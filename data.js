@@ -338,19 +338,44 @@ async function pushToCloud() {
 // ============================================================================
 function handleAuthClick() {
     if (!isFirebaseReady) {
-        alert("يرجى وضع مفاتيح firebaseConfig في أعلى ملف data.js أولاً لتفعيل الحماية السحابية.");
-        return;
+        return Swal.fire({
+            icon: 'warning',
+            title: 'تنبيه',
+            text: 'يرجى وضع مفاتيح firebaseConfig أولاً لتفعيل الحماية السحابية.',
+            confirmButtonColor: '#0f766e',
+            confirmButtonText: 'حسناً'
+        });
     }
+
     if (currentUser) {
-        if (confirm("هل تود تسجيل الخروج من وضع الصيدلي؟")) {
-            auth.signOut();
-        }
+        // رسالة خروج أنيقة باستخدام SweetAlert2 بدلاً من confirm() المزعج
+        Swal.fire({
+            title: 'تسجيل الخروج؟',
+            text: "هل أنت متأكد أنك تود تسجيل الخروج من وضع الصيدلي؟",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0f766e',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'نعم، تسجيل خروج',
+            cancelButtonText: 'إلغاء'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                auth.signOut();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم تسجيل الخروج بنجاح',
+                    toast: true,
+                    position: 'bottom',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+            }
+        });
     } else {
         document.getElementById('loginError').style.display = 'none';
         document.getElementById('loginModal').style.display = 'flex';
     }
 }
-
 function closeLoginModal() {
     document.getElementById('loginModal').style.display = 'none';
 }
