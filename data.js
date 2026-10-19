@@ -711,21 +711,74 @@ function closeFormModal() {
 function uploadImgBase64(event) {
     const file = event.target.files[0];
     if (!file) return;
+
+    // 1. التحقق من أن الملف المرفوع هو صورة فعلاً لتجنب الأخطاء
+    if (!file.type.startsWith('image/')) {
+        return Swal.fire({
+            icon: 'warning',
+            title: 'صيغة غير مدعومة',
+            text: 'يرجى اختيار صورة صحيحة بدلاً من هذا الملف!',
+            confirmButtonColor: '#0f766e',
+            confirmButtonText: 'حسناً'
+        });
+    }
+
     const reader = new FileReader();
+    
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-            const canvas = document.createElement('canvas');
-            const max = 450;
-            let w = img.width, h = img.height;
-            if (w > h && w > max) { h *= max / w; w = max; }
-            else if (h > max) { w *= max / h; h = max; }
-            canvas.width = w; canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            document.getElementById('fImg').value = canvas.toDataURL('image/jpeg', 0.72);
+            try {
+                const canvas = document.createElement('canvas');
+                const max = 450;
+                let w = img.width, h = img.height;
+                
+                if (w > h && w > max) { h *= max / w; w = max; }
+                else if (h > max) { w *= max / h; h = max; }
+                
+                canvas.width = w; 
+                canvas.height = h;
+                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                
+                document.getElementById('fImg').value = canvas.toDataURL('image/jpeg', 0.72);
+                
+            } catch (error) {
+                // 2. تنبيه أنيق في حال فشل ضغط الصورة
+                Swal.fire({
+                    icon: 'error',
+                    title: 'خطأ في المعالجة',
+                    text: 'حدث خطأ أثناء ضغط الصورة، يرجى المحاولة بصورة أخرى.',
+                    confirmButtonColor: '#0f766e',
+                    confirmButtonText: 'حسناً'
+                });
+            }
         };
+        
+        img.onerror = function() {
+            // 3. تنبيه إذا كانت الصورة تالفة
+            Swal.fire({
+                icon: 'error',
+                title: 'صورة تالفة',
+                text: 'لا يمكن قراءة هذه الصورة، قد يكون الملف تالفاً.',
+                confirmButtonColor: '#0f766e',
+                confirmButtonText: 'حسناً'
+            });
+        };
+        
         img.src = e.target.result;
     };
+    
+    reader.onerror = function() {
+        // 4. تنبيه في حال منع المتصفح أو الهاتف قراءة الملف
+        Swal.fire({
+            icon: 'error',
+            title: 'خطأ في القراءة',
+            text: 'حدث خطأ أثناء محاولة قراءة الملف من جهازك.',
+            confirmButtonColor: '#0f766e',
+            confirmButtonText: 'حسناً'
+        });
+    };
+
     reader.readAsDataURL(file);
 }
 
@@ -742,7 +795,15 @@ function saveFormProduct() {
         qty: parseInt(document.getElementById('fQty').value) || 0,
         img: document.getElementById('fImg').value.trim()
     };
-    if (!obj.name) return alert('يرجى إدخال اسم الصنف');
+    if (!obj.name) {
+    return Swal.fire({
+        icon: 'warning',
+        title: 'تنبيه',
+        text: 'يرجى إدخال اسم الصنف أولاً!',
+        confirmButtonColor: '#0f766e',
+        confirmButtonText: 'حسناً'
+    });
+}
 
     if (editId) {
         const idx = products.findIndex(x => x.id === parseInt(editId));
@@ -756,20 +817,34 @@ function saveFormProduct() {
 }
 
 function deleteItem(id) {
-    if (confirm('هل أنت متأكد من حذف هذا الصنف نهائياً؟')) {
-        products = products.filter(x => x.id !== id);
-        
-        // حذف المنتج من قاعدة البيانات السحابية بشكل مستقل
-        if (isFirebaseReady && currentUser) {
-            db.collection('pharmacy_products').doc(id.toString()).delete().catch(e => console.warn(e));
+    Swal.fire({
+        title: 'هل أنت متأكد؟',
+        text: "لن تتمكن من استعادة هذا الصنف بعد حذفه!",
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444', // لون أحمر للحذف
+        cancelButtonColor: '#64748b', // لون رمادي للإلغاء
+        confirmButtonText: 'نعم، احذف!',
+        cancelButtonText: 'إلغاء'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            products = products.filter(x => x.id !== id);
+            saveStorage();
+            closeSheet();
+            renderAll();
+            
+            // رسالة تأكيد خفيفة أسفل الشاشة (Toast)
+            Swal.fire({
+                icon: 'success',
+                title: 'تم الحذف بنجاح',
+                toast: true,
+                position: 'bottom',
+                showConfirmButton: false,
+                timer: 2000
+            });
         }
-        
-        pushToCloud();
-        closeSheet();
-        renderAll();
-    }
+    });
 }
-
 function zoomImage(src) {
     if (!src) return;
     document.getElementById('zoomImg').src = src;
