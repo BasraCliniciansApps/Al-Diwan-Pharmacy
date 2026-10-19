@@ -31,16 +31,14 @@
             
             <!-- 1. شريط التحكم العلوي الصغير (أيقونات فقط ولا يظهر إلا للصيدلي) -->
             <!-- 1. شريط التحكم العلوي الصغير (أيقونات فقط ولا يظهر إلا للصيدلي) -->
+            <!-- 1. شريط التحكم العلوي الصغير (أيقونات موحدة الشكل واللون) -->
             <div class="admin-top-strip">
-                <!-- حالة المزامنة -->
                 <span id="syncBadge" class="sync-icon-badge">☁️</span>
-                
-                <!-- زر تسجيل الدخول كأيقونة سهم (📥) -->
-                <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي">📥</button>
-                
-                <!-- أزرار الإدارة تظهر فقط بعد الدخول -->
+                <!-- زر تسجيل الدخول (أيقونة مستخدم) -->
+                <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي">👤</button>
+                <!-- أزرار الإدارة -->
                 <button class="small-icon-btn admin-only" onclick="openCategoryManager()" title="إعدادات الأقسام">⚙️</button>
-                <button class="small-icon-btn admin-only" style="background:var(--primary); color:white; border:none;" onclick="openFormModal()" title="إضافة صنف">➕</button>
+                <button class="small-icon-btn admin-only" onclick="openFormModal()" title="إضافة صنف">➕</button>
             </div>
             
             <!-- 2. صف اسم الصيدلية والشعار (مستقل تماماً ولا يزاحمه شيء) -->
@@ -96,11 +94,15 @@
         </button>
         <button class="nav-tab" id="navRx" onclick="setMainTab('rx')">
             <span class="nav-ico">💊</span>
-            <span>الأدوية العلاجية (Rx)</span>
+            <span>الادوية</span>
         </button>
         <button class="nav-tab" id="navCosmetic" onclick="setMainTab('cosmetic')">
             <span class="nav-ico">✨</span>
-            <span>العناية والكوزمتك</span>
+            <span>كوزمتك</span>
+        </button>
+        <button class="nav-tab" id="navOut" onclick="setMainTab('out')">
+            <span class="nav-ico">⚠️</span>
+            <span>النواقص</span>
         </button>
     </nav>
 
@@ -170,13 +172,17 @@
             <div class="form-group"><label>الشركة (Brand):</label><input type="text" id="fBrand"></div>
             <div class="form-group"><label>الاسم التجاري والتركيز:</label><input type="text" id="fName"></div>
             <div class="form-group"><label>المادة الفعالة والاستخدام:</label><textarea id="fDetails" rows="3"></textarea></div>
-            <div class="form-group"><label>العبوة / الشكل الدوائي (مثال: 10 Tablets | Oral):</label><input type="text" id="fMeta" dir="ltr"></div>
+            <!-- ... الحقول السابقة ... -->
+            <div class="form-group"><label>العبوة / الشكل الدوائي:</label><input type="text" id="fMeta" dir="ltr"></div>
+            <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="fPrice" min="0" value="0"></div>
             <div class="form-group"><label>العدد المتوفر:</label><input type="number" id="fQty" min="0" value="5"></div>
+            <div class="form-group"><label>كلمات مفتاحية لتسهيل البحث (اختياري):</label><input type="text" id="fKeywords" placeholder="مثال: مسكن، ألم رأس، بديل كذا..."></div>
             <div class="form-group">
-                <label>صورة الصنف (اختر صورة أو اكتب اسم الملف):</label>
+                <label>صورة الصنف:</label>
                 <input type="file" accept="image/*" onchange="uploadImgBase64(event)" style="margin-bottom:6px;">
-                <input type="text" id="fImg" dir="ltr" placeholder="1001882687.jpg">
+                <input type="text" id="fImg" dir="ltr">
             </div>
+            <!-- ... أزرار الإلغاء والحفظ ... -->
             <div class="modal-actions-row">
                 <button class="icon-btn" onclick="closeFormModal()">إلغاء</button>
                 <button class="icon-btn primary-btn" onclick="saveFormProduct()">حفظ في السحابة</button>
