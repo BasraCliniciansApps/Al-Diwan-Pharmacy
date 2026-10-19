@@ -258,8 +258,8 @@ async function initFirebase() {
             const authBtn = document.getElementById('authBtn');
             if (user) {
                 document.body.classList.add('admin-mode');
-                authBtn.classList.add('active');
-                authBtn.innerText = '🔓 خروج الصيدلي';
+                authBtn.innerText = '🔓';
+                authBtn.title = 'خروج الصيدلي';
                 
                 // رفع البيانات لأول مرة إذا كانت السحابة فارغة
                 db.collection('pharmacy').doc('metadata').get().then(doc => {
@@ -267,8 +267,8 @@ async function initFirebase() {
                 });
             } else {
                 document.body.classList.remove('admin-mode');
-                authBtn.classList.remove('active');
-                authBtn.innerText = '🔒 دخول الصيدلي';
+                authBtn.innerText = '🔒';
+                authBtn.title = 'دخول الصيدلي';
             }
             if (currentOpenId) openSheet(currentOpenId);
         });
