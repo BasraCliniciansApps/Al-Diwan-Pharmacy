@@ -231,7 +231,7 @@ products = products.map(p => ({
     meta: fixMetaOrder(p.meta)
 }));
 
-function initFirebase() {
+async function initFirebase() {
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PUT_YOUR_API_KEY_HERE") {
         document.getElementById('syncBadge').innerText = "💾 محلي (بانتظار ربط Firebase)";
         return;
@@ -240,9 +240,18 @@ function initFirebase() {
         firebase.initializeApp(firebaseConfig);
         auth = firebase.auth();
         db = firebase.firestore();
+
+        // 1. تفعيل الحفظ غير المتصل (Offline Persistence) لمنع ضياع البيانات عند الإغلاق
+        try {
+            await db.enablePersistence({ synchronizeTabs: true });
+        } catch (err) {
+            console.warn("Offline persistence issue:", err);
+        }
+
         isFirebaseReady = true;
 
-        auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+        // 2. الفرض الصارم لبقاء تسجيل الدخول دائماً حتى لو تم إغلاق التطبيق بالكامل
+        await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
         auth.onAuthStateChanged(user => {
             currentUser = user;
@@ -251,6 +260,7 @@ function initFirebase() {
                 document.body.classList.add('admin-mode');
                 authBtn.classList.add('active');
                 authBtn.innerText = '🔓 خروج الصيدلي';
+                
                 // رفع البيانات لأول مرة إذا كانت السحابة فارغة
                 db.collection('pharmacy').doc('metadata').get().then(doc => {
                     if (!doc.exists && products.length > 0) pushToCloud();
@@ -263,7 +273,7 @@ function initFirebase() {
             if (currentOpenId) openSheet(currentOpenId);
         });
 
-        // 1. مراقبة الأقسام والتصنيفات (وثيقة واحدة)
+        // 3. مراقبة الأقسام والتصنيفات
         db.collection('pharmacy').doc('metadata').onSnapshot(doc => {
             if (doc.exists) {
                 const data = doc.data();
@@ -274,14 +284,13 @@ function initFirebase() {
             }
         });
 
-        // 2. مراقبة المنتجات (كل منتج في وثيقة مستقلة لحل مشكلة الـ 1 ميجابايت)
+        // 4. مراقبة المنتجات
         db.collection('pharmacy_products').onSnapshot(snapshot => {
             if (!snapshot.empty) {
                 let cloudProducts = [];
                 snapshot.forEach(doc => {
                     cloudProducts.push({...doc.data(), meta: fixMetaOrder(doc.data().meta)});
                 });
-                // ترتيب المنتجات من الأحدث للأقدم
                 products = cloudProducts.sort((a, b) => b.id - a.id);
                 saveLocal();
                 renderAll();
@@ -292,7 +301,6 @@ function initFirebase() {
         console.warn("Firebase Error:", e);
     }
 }
-
 function saveLocal() {
     localStorage.setItem('diwanProducts', JSON.stringify(products));
     localStorage.setItem('diwanDepts', JSON.stringify(departments));
