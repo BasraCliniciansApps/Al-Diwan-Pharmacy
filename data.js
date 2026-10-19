@@ -242,10 +242,8 @@ function initFirebase() {
         db = firebase.firestore();
         isFirebaseReady = true;
 
-        // حفظ جلسة الدخول دائماً في المتصفح (LOCAL Persistence)
         auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        // مراقبة حالة تسجيل الدخول تلقائياً بدون طلب الرمز كل مرة
         auth.onAuthStateChanged(user => {
             currentUser = user;
             const authBtn = document.getElementById('authBtn');
@@ -253,6 +251,10 @@ function initFirebase() {
                 document.body.classList.add('admin-mode');
                 authBtn.classList.add('active');
                 authBtn.innerText = '🔓 خروج الصيدلي';
+                // رفع البيانات لأول مرة إذا كانت السحابة فارغة
+                db.collection('pharmacy').doc('metadata').get().then(doc => {
+                    if (!doc.exists && products.length > 0) pushToCloud();
+                });
             } else {
                 document.body.classList.remove('admin-mode');
                 authBtn.classList.remove('active');
@@ -261,19 +263,29 @@ function initFirebase() {
             if (currentOpenId) openSheet(currentOpenId);
         });
 
-        // مزامنة فورية للبيانات والأقسام من السحابة
-        db.collection('pharmacy').doc('catalogData').onSnapshot(doc => {
+        // 1. مراقبة الأقسام والتصنيفات (وثيقة واحدة)
+        db.collection('pharmacy').doc('metadata').onSnapshot(doc => {
             if (doc.exists) {
                 const data = doc.data();
-                if (data.products) products = data.products.map(p => ({...p, meta: fixMetaOrder(p.meta)}));
                 if (data.departments) departments = data.departments;
                 if (data.subCategories) subCategories = data.subCategories;
                 saveLocal();
                 renderAll();
+            }
+        });
+
+        // 2. مراقبة المنتجات (كل منتج في وثيقة مستقلة لحل مشكلة الـ 1 ميجابايت)
+        db.collection('pharmacy_products').onSnapshot(snapshot => {
+            if (!snapshot.empty) {
+                let cloudProducts = [];
+                snapshot.forEach(doc => {
+                    cloudProducts.push({...doc.data(), meta: fixMetaOrder(doc.data().meta)});
+                });
+                // ترتيب المنتجات من الأحدث للأقدم
+                products = cloudProducts.sort((a, b) => b.id - a.id);
+                saveLocal();
+                renderAll();
                 document.getElementById('syncBadge').innerText = "☁️ متزامن";
-            } else if (currentUser) {
-                // رفع البيانات الافتراضية لأول مرة تلقائياً عند دخول الصيدلي
-                pushToCloud();
             }
         });
     } catch (e) {
@@ -292,19 +304,27 @@ async function pushToCloud() {
     if (isFirebaseReady && currentUser) {
         document.getElementById('syncBadge').innerText = "⏳ جاري الحفظ...";
         try {
-            await db.collection('pharmacy').doc('catalogData').set({
-                products,
+            // حفظ الأقسام في وثيقة الميتاداتا
+            await db.collection('pharmacy').doc('metadata').set({
                 departments,
                 subCategories,
                 updatedAt: new Date().toISOString()
             });
+
+            // حفظ المنتجات (كل منتج كوثيقة مستقلة)
+            const batch = db.batch();
+            products.forEach(p => {
+                const docRef = db.collection('pharmacy_products').doc(p.id.toString());
+                batch.set(docRef, p);
+            });
+            await batch.commit();
+
             document.getElementById('syncBadge').innerText = "☁️ تم الحفظ";
         } catch (err) {
             alert("خطأ في الحفظ السحابي: " + err.message);
         }
     }
 }
-
 // ============================================================================
 // 5. تسجيل الدخول الآمن عبر Firebase
 // ============================================================================
@@ -730,6 +750,12 @@ function saveFormProduct() {
 function deleteItem(id) {
     if (confirm('هل أنت متأكد من حذف هذا الصنف نهائياً؟')) {
         products = products.filter(x => x.id !== id);
+        
+        // حذف المنتج من قاعدة البيانات السحابية بشكل مستقل
+        if (isFirebaseReady && currentUser) {
+            db.collection('pharmacy_products').doc(id.toString()).delete().catch(e => console.warn(e));
+        }
+        
         pushToCloud();
         closeSheet();
         renderAll();
