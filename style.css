@@ -68,18 +68,24 @@ body.admin-mode .admin-only {
 }
 
 .logo-icon {
-    width: 42px;
-    height: 42px;
+    width: 46px;
+    height: 46px;
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    color: white;
+    background: #0f1c38;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.35rem;
-    box-shadow: 0 3px 10px rgba(15, 118, 110, 0.25);
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(15, 28, 56, 0.25);
+    border: 1.5px solid #f59e0b;
+    flex-shrink: 0;
 }
 
+.logo-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
 /* اسم صيدلية الديوان بخط الرقعة العربي الأصيل */
 .ruqaa-title {
     font-family: 'Aref Ruqaa', serif;
