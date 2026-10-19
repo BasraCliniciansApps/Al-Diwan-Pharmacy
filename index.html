@@ -53,7 +53,7 @@
             <div class="search-row">
                 <div class="search-input-wrap">
                     <span class="search-icon">🔍</span>
-                    <input type="text" id="searchInput" placeholder="ابحث بالاسم التجاري، المادة الفعالة، أو الاستخدام..." oninput="handleSearch()">
+                    <input type="search" id="searchInput" name="drug_search_query" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" placeholder="ابحث بالاسم التجاري، المادة الفعالة، أو الاستخدام..." oninput="handleSearch()">
                     <button class="clear-search" id="clearSearchBtn" onclick="clearSearch()">✕</button>
                 </div>
             </div>
