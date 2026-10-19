@@ -30,18 +30,19 @@
         <div class="top-bar-inner">
             
             <!-- 1. شريط التحكم العلوي الصغير (أيقونات فقط ولا يظهر إلا للصيدلي) -->
+            <!-- 1. شريط التحكم العلوي الصغير (أيقونات فقط ولا يظهر إلا للصيدلي) -->
             <div class="admin-top-strip">
                 <!-- حالة المزامنة -->
                 <span id="syncBadge" class="sync-icon-badge">☁️</span>
                 
-                <!-- زر تسجيل الدخول / الخروج كأيقونة -->
-                <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي">🔒</button>
+                <!-- زر تسجيل الدخول كأيقونة سهم (📥) -->
+                <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي">📥</button>
                 
                 <!-- أزرار الإدارة تظهر فقط بعد الدخول -->
                 <button class="small-icon-btn admin-only" onclick="openCategoryManager()" title="إعدادات الأقسام">⚙️</button>
                 <button class="small-icon-btn admin-only" style="background:var(--primary); color:white; border:none;" onclick="openFormModal()" title="إضافة صنف">➕</button>
             </div>
-
+            
             <!-- 2. صف اسم الصيدلية والشعار (مستقل تماماً ولا يزاحمه شيء) -->
             <div class="app-header-row">
                 <div class="app-logo">
