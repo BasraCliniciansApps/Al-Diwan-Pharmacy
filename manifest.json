@@ -1,0 +1,24 @@
+{
+  "name": "صيدلية الديوان - الدليل الدوائي",
+  "short_name": "صيدلية الديوان",
+  "description": "الدليل التفاعلي للأدوية والمستلزمات الطبية والجلدية",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f1c38",
+  "theme_color": "#0f1c38",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icon.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
