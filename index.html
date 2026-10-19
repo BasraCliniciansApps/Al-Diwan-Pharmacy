@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>صيدلية الديوان | الدليل الدوائي التفاعلي</title>
+    
+    <!-- إعدادات تثبيت التطبيق على الآيفون والأندرويد (PWA) -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f1c38">
+    <link rel="icon" type="image/jpeg" href="icon.jpg">
+    <link rel="apple-touch-icon" href="icon.jpg">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="صيدلية الديوان">
+
     <!-- خطوط عربية فخمة: خط عارف رقعة للاسم + خط تجوال للنصوص -->
     <link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
@@ -17,9 +27,11 @@
     <header class="top-bar">
         <div class="top-bar-inner">
             <div class="app-header-row">
-                <!-- اسم الصيدلية في أعلى اليمين بخط الرقعة -->
+                <!-- اسم الصيدلية في أعلى اليمين بخط الرقعة مع الشعار -->
                 <div class="app-logo">
-                    <div class="logo-icon">⚕️</div>
+                    <div class="logo-icon">
+                        <img src="icon.jpg" alt="شعار صيدلية الديوان">
+                    </div>
                     <div class="logo-text">
                         <h1 class="ruqaa-title">صيدلية الديوان</h1>
                         <span>الدليل التفاعلي للأدوية والمستلزمات</span>
@@ -171,5 +183,10 @@
     </div>
 
     <script src="data.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(() => {});
+        }
+    </script>
 </body>
 </html>
