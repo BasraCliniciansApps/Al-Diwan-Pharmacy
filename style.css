@@ -59,21 +59,21 @@ body.admin-mode .admin-only {
     justify-content: flex-end;
     align-items: center;
     gap: 8px;
-    margin-bottom: 6px;
-    min-height: 28px; /* يحافظ على المساحة حتى لو كانت الأزرار مخفية */
+    margin-bottom: 2px; /* مسافة صغيرة جداً لعدم دفع اللوجو للأسفل */
+    min-height: 28px; 
 }
 
 /* الأيقونات الصغيرة للتحكم */
 .small-icon-btn {
-    width: 28px;
-    height: 28px;
+    width: 32px; /* زيادة بسيطة لحجم الزر ليسهل الضغط عليه في الموبايل */
+    height: 32px;
     border-radius: 8px;
     background: white;
     border: 1px solid var(--border);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.9rem;
+    font-size: 1.1rem; /* تكبير الأيقونة (الباب/السهم/الترس) */
     cursor: pointer;
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     transition: 0.2s;
@@ -96,7 +96,7 @@ body.admin-mode .admin-only {
     border: 1px solid var(--border);
 }
 
-/* 2. صف الشعار واسم الصيدلية (مستقل ومنعزل) */
+/* 2. صف الشعار واسم الصيدلية (مستقل وكبير) */
 .app-header-row {
     display: flex;
     justify-content: flex-start; /* دفع الاسم لليمين دائماً */
@@ -110,9 +110,10 @@ body.admin-mode .admin-only {
     gap: 12px;
 }
 
+/* تكبير أيقونة الشعار لإبرازها */
 .logo-icon {
-    width: 46px;
-    height: 46px;
+    width: 52px; /* تم تكبيرها لتكون أوضح */
+    height: 52px;
     border-radius: 12px;
     background: #0f1c38;
     display: flex;
@@ -130,14 +131,14 @@ body.admin-mode .admin-only {
     object-fit: cover;
 }
 
-/* اسم صيدلية الديوان بخط الرقعة العربي الأصيل */
+/* اسم صيدلية الديوان بخط الرقعة العربي الأصيل (تكبير وتوضيح) */
 .ruqaa-title {
     font-family: 'Aref Ruqaa', serif;
-    font-size: 1.65rem;
+    font-size: 1.9rem; /* تكبير الخط ليكون بارزاً وفخماً كما كان */
     font-weight: 700;
     color: var(--primary-dark);
     line-height: 1.1;
-    margin-bottom: 0; /* تم إزالة الهامش لعدم وجود نص فرعي */
+    margin-bottom: 0; 
 }
 .logo-text span {
     font-size: 0.74rem;
