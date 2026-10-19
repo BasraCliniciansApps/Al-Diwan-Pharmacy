@@ -45,7 +45,7 @@ body.admin-mode .admin-only {
     background: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
-    padding: 10px 16px 12px;
+    padding: 8px 16px 12px;
 }
 
 .top-bar-inner {
@@ -53,13 +53,55 @@ body.admin-mode .admin-only {
     margin: 0 auto;
 }
 
+/* 1. صف الإدارة العلوي الصغير جداً (أيقونات فقط) */
+.admin-top-strip {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    min-height: 28px; /* يحافظ على المساحة حتى لو كانت الأزرار مخفية */
+}
+
+/* الأيقونات الصغيرة للتحكم */
+.small-icon-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    background: white;
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    transition: 0.2s;
+    color: var(--text-main);
+}
+
+.small-icon-btn:hover {
+    background: #f8fafc;
+}
+
+/* أيقونة المزامنة */
+.sync-icon-badge {
+    font-size: 0.8rem;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: var(--text-sub);
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--border);
+}
+
+/* 2. صف الشعار واسم الصيدلية (مستقل ومنعزل) */
 .app-header-row {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start; /* دفع الاسم لليمين دائماً */
     align-items: center;
-    gap: 12px;
     margin-bottom: 14px;
-    flex-wrap: wrap; /* يسمح للعناصر بالنزول لسطر جديد بانتظام إذا ضاقت الشاشة */
 }
 
 .app-logo {
@@ -87,6 +129,7 @@ body.admin-mode .admin-only {
     height: 100%;
     object-fit: cover;
 }
+
 /* اسم صيدلية الديوان بخط الرقعة العربي الأصيل */
 .ruqaa-title {
     font-family: 'Aref Ruqaa', serif;
@@ -94,9 +137,8 @@ body.admin-mode .admin-only {
     font-weight: 700;
     color: var(--primary-dark);
     line-height: 1.1;
-    margin-bottom: 2px;
+    margin-bottom: 0; /* تم إزالة الهامش لعدم وجود نص فرعي */
 }
-
 .logo-text span {
     font-size: 0.74rem;
     color: var(--text-sub);
