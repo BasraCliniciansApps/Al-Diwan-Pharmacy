@@ -304,33 +304,61 @@ async function initFirebase() {
     }
 }
 function saveLocal() {
-    localStorage.setItem('diwanProducts', JSON.stringify(products));
-    localStorage.setItem('diwanDepts', JSON.stringify(departments));
-    localStorage.setItem('diwanSubCats', JSON.stringify(subCategories));
+    try {
+        localStorage.setItem('diwanDepts', JSON.stringify(departments));
+        localStorage.setItem('diwanSubCats', JSON.stringify(subCategories));
+        localStorage.setItem('diwanProducts', JSON.stringify(products));
+    } catch (e) {
+        // إذا امتلأت ذاكرة المتصفح (5MB) بسبب كثرة الصور، نتجاهل الخطأ لكي لا يتوقف الرفع السحابي
+        console.warn("ذاكرة المتصفح ممتلئة، سيتم الاعتماد على الحفظ السحابي المباشر.");
+    }
 }
 
-async function pushToCloud() {
+async function saveSingleProductToCloud(product) {
     saveLocal();
     if (isFirebaseReady && currentUser) {
-        document.getElementById('syncBadge').innerText = "⏳ جاري الحفظ...";
+        const badge = document.getElementById('syncBadge');
+        badge.innerText = "⏳ جاري الحفظ...";
         try {
-            // حفظ الأقسام في وثيقة الميتاداتا
+            await db.collection('pharmacy_products').doc(product.id.toString()).set(product);
+            badge.innerText = "☁️ تم الحفظ";
+        } catch (err) {
+            badge.innerText = "❌ فشل الحفظ";
+            alert("خطأ أثناء حفظ الصنف في السحابة: " + err.message);
+        }
+    }
+}
+
+async function pushToCloud(onlyMetadata = false) {
+    saveLocal();
+    if (isFirebaseReady && currentUser) {
+        const badge = document.getElementById('syncBadge');
+        badge.innerText = "⏳ جاري الحفظ...";
+        try {
+            // حفظ الأقسام والتصنيفات
             await db.collection('pharmacy').doc('metadata').set({
                 departments,
                 subCategories,
                 updatedAt: new Date().toISOString()
             });
 
-            // حفظ المنتجات (كل منتج كوثيقة مستقلة)
-            const batch = db.batch();
-            products.forEach(p => {
-                const docRef = db.collection('pharmacy_products').doc(p.id.toString());
-                batch.set(docRef, p);
-            });
-            await batch.commit();
+            // إذا كان التعديل في الأقسام فقط لا نعيد رفع المنتجات
+            if (!onlyMetadata) {
+                // تقسيم الرفع الأولي إلى دفعات صغيرة (20 منتج في كل دفعة) لعدم تجاوز حجم الباندويث
+                for (let i = 0; i < products.length; i += 20) {
+                    const batch = db.batch();
+                    const chunk = products.slice(i, i + 20);
+                    chunk.forEach(p => {
+                        const docRef = db.collection('pharmacy_products').doc(p.id.toString());
+                        batch.set(docRef, p);
+                    });
+                    await batch.commit();
+                }
+            }
 
-            document.getElementById('syncBadge').innerText = "☁️ تم الحفظ";
+            badge.innerText = "☁️ تم الحفظ";
         } catch (err) {
+            badge.innerText = "❌ خطأ";
             alert("خطأ في الحفظ السحابي: " + err.message);
         }
     }
@@ -704,7 +732,7 @@ function updateItemQty(id, delta) {
     const p = products.find(x => x.id === id);
     if (!p) return;
     p.qty = Math.max(0, (parseInt(p.qty) || 0) + delta);
-    pushToCloud();
+    saveSingleProductToCloud(p); // حفظ هذا المنتج فقط
     renderAll();
     openSheet(id);
 }
@@ -836,19 +864,10 @@ function saveFormProduct() {
         details: document.getElementById('fDetails').value.trim(),
         meta: fixMetaOrder(document.getElementById('fMeta').value.trim()),
         qty: parseInt(document.getElementById('fQty').value) || 0,
-        price: parseInt(document.getElementById('fPrice').value) || 0, // السعر
-        keywords: document.getElementById('fKeywords').value.trim(), // الكلمات المفتاحية
         img: document.getElementById('fImg').value.trim()
     };
-    if (!obj.name) {
-    return Swal.fire({
-        icon: 'warning',
-        title: 'تنبيه',
-        text: 'يرجى إدخال اسم الصنف أولاً!',
-        confirmButtonColor: '#0f766e',
-        confirmButtonText: 'حسناً'
-    });
-}
+    
+    if (!obj.name) return alert('يرجى إدخال اسم الصنف');
 
     if (editId) {
         const idx = products.findIndex(x => x.id === parseInt(editId));
@@ -856,11 +875,11 @@ function saveFormProduct() {
     } else {
         products.unshift(obj);
     }
-    pushToCloud();
+    
+    saveSingleProductToCloud(obj); // يرفع المنتج الجديد فقط في أقل من ثانية!
     closeFormModal();
     renderAll();
 }
-
 function deleteItem(id) {
     Swal.fire({
         title: 'هل أنت متأكد؟',
