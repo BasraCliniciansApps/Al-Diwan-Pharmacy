@@ -258,8 +258,8 @@ async function initFirebase() {
             const authBtn = document.getElementById('authBtn');
             if (user) {
                 document.body.classList.add('admin-mode');
-                // تغيير الأيقونة إلى باب الخروج (🚪) عند تسجيل الدخول
-                authBtn.innerText = '🚪';
+                /// عند تسجيل الدخول
+                authBtn.innerText = '🔒';
                 authBtn.title = 'خروج الصيدلي';
                 
                 // رفع البيانات لأول مرة إذا كانت السحابة فارغة
@@ -268,8 +268,8 @@ async function initFirebase() {
                 });
             } else {
                 document.body.classList.remove('admin-mode');
-                // إعادة الأيقونة إلى سهم الدخول (📥)
-                authBtn.innerText = '📥';
+                // عند عدم تسجيل الدخول
+                authBtn.innerText = '👤';
                 authBtn.title = 'دخول الصيدلي';
             }
             if (currentOpenId) openSheet(currentOpenId);
@@ -530,19 +530,29 @@ function setMainTab(tab) {
     mainTab = tab;
     activeSubCat = 'الكل';
     document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-    if (tab === 'all') document.getElementById('navAll').classList.add('active');
-    else if (tab === 'rx') document.getElementById('navRx').classList.add('active');
-    else document.getElementById('navCosmetic').classList.add('active');
+    
+    if (tab === 'all') {
+        document.getElementById('navAll').classList.add('active');
+        document.getElementById('sectionLabel').innerText = 'كل أصناف الصيدلية';
+    } else if (tab === 'rx') {
+        document.getElementById('navRx').classList.add('active');
+        document.getElementById('sectionLabel').innerText = 'الأدوية العلاجية الموصوفة (Rx)';
+    } else if (tab === 'cosmetic') {
+        document.getElementById('navCosmetic').classList.add('active');
+        document.getElementById('sectionLabel').innerText = 'منتجات العناية والكوزمتك';
+    } else if (tab === 'out') {
+        document.getElementById('navOut').classList.add('active');
+        document.getElementById('sectionLabel').innerText = 'الأصناف النافذة (الكمية 0)';
+    }
     renderAll();
 }
 
 function getBaseFilteredByTab() {
     return products.filter(p => {
-        const matchDept = (p.department || "قسم الجلدية") === activeDept;
-        if (!matchDept) return false;
+        if (mainTab === 'out') return parseInt(p.qty) === 0;
         if (mainTab === 'rx') return isRxItem(p);
         if (mainTab === 'cosmetic') return !isRxItem(p);
-        return true;
+        return true; // all
     });
 }
 
@@ -591,34 +601,36 @@ function renderAll() {
     const baseItems = getBaseFilteredByTab();
 
     const filtered = baseItems.filter(p => {
-        const matchCat = activeSubCat === 'الكل' || p.category === activeSubCat;
-        const text = `${p.name} ${p.brand} ${p.details} ${p.meta} ${p.category}`.toLowerCase();
-        const matchQ = !query || text.includes(query);
-        return matchCat && matchQ;
-    });
+            const matchCat = activeSubCat === 'الكل' || p.category === activeSubCat;
+            // إضافة الكلمات المفتاحية لمجال البحث
+            const text = `${p.name} ${p.brand} ${p.details} ${p.meta} ${p.category} ${p.keywords || ''}`.toLowerCase();
+            const matchQ = !query || text.includes(query);
+            return matchCat && matchQ;
+        });
 
-    document.getElementById('countLabel').innerText = `${filtered.length} صنف`;
-    const container = document.getElementById('itemsContainer');
+        document.getElementById('countLabel').innerText = `${filtered.length} صنف`;
+        const container = document.getElementById('itemsContainer');
 
-    container.innerHTML = filtered.map(p => {
-        const badge = getFormBadge(p);
-        const dotCls = p.qty > 0 ? 'status-dot' : 'status-dot out';
-        const cleanMeta = fixMetaOrder(p.meta);
-        return `
-            <div class="bento-card" onclick="openSheet(${p.id})">
-                <div class="bento-img-wrap">
-                    <span class="${dotCls}" style="top:10px; right:10px;"></span>
-                    <span class="form-badge ${badge.cls} bento-badge-top">${badge.txt}</span>
-                    <img src="${p.img}" alt="" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%224%22/><circle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/><path d=%22M21 15l-5-5L5 21%22/></svg>'">
+        container.innerHTML = filtered.map(p => {
+            const badge = getFormBadge(p);
+            const dotCls = p.qty > 0 ? 'status-dot' : 'status-dot out';
+            const cleanMeta = fixMetaOrder(p.meta);
+            return `
+                <div class="bento-card" onclick="openSheet(${p.id})">
+                    <div class="bento-img-wrap">
+                        <span class="${dotCls}" style="top:10px; right:10px;"></span>
+                        <span class="form-badge ${badge.cls} bento-badge-top">${badge.txt}</span>
+                        <img src="${p.img}" alt="" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%224%22/><circle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/><path d=%22M21 15l-5-5L5 21%22/></svg>'">
+                    </div>
+                    <div class="bento-body">
+                        <div class="bento-brand">${p.brand}</div>
+                        <div class="bento-title">${p.name}</div>
+                        <div style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? p.price.toLocaleString() + ' د.ع' : '0 د.ع'}</div>
+                        <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
+                    </div>
                 </div>
-                <div class="bento-body">
-                    <div class="bento-brand">${p.brand}</div>
-                    <div class="bento-title">${p.name}</div>
-                    <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
 }
 
 function openSheet(id) {
@@ -628,8 +640,8 @@ function openSheet(id) {
     const badge = getFormBadge(p);
     const cleanMeta = fixMetaOrder(p.meta);
     const stockTag = p.qty > 0 
-        ? `<span class="form-badge" style="background:#dcfce7; color:#15803d;">متوفر في الصيدلية (${p.qty})</span>`
-        : `<span class="form-badge" style="background:#fee2e2; color:#b91c1c;">غير متوفر حالياً (0)</span>`;
+        ? `<span class="form-badge" style="background:#dcfce7; color:#15803d;">متوفر (${p.qty}) | ${p.price ? p.price.toLocaleString() : 0} د.ع</span>`
+        : `<span class="form-badge" style="background:#fee2e2; color:#b91c1c;">نافذ (0) | ${p.price ? p.price.toLocaleString() : 0} د.ع</span>`;
 
     document.getElementById('sheetContent').innerHTML = `
         <div class="sheet-header">
@@ -717,6 +729,8 @@ function openFormModal(id = null) {
         document.getElementById('fMeta').value = fixMetaOrder(p.meta);
         document.getElementById('fQty').value = p.qty;
         document.getElementById('fImg').value = p.img || '';
+        document.getElementById('fPrice').value = p.price || 0;
+        document.getElementById('fKeywords').value = p.keywords || '';
     } else {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
@@ -727,6 +741,8 @@ function openFormModal(id = null) {
         document.getElementById('fMeta').value = '';
         document.getElementById('fQty').value = 5;
         document.getElementById('fImg').value = '';
+        document.getElementById('fPrice').value = 0;
+        document.getElementById('fKeywords').value = '';
     }
     modal.style.display = 'flex';
 }
@@ -820,6 +836,8 @@ function saveFormProduct() {
         details: document.getElementById('fDetails').value.trim(),
         meta: fixMetaOrder(document.getElementById('fMeta').value.trim()),
         qty: parseInt(document.getElementById('fQty').value) || 0,
+        price: parseInt(document.getElementById('fPrice').value) || 0, // السعر
+        keywords: document.getElementById('fKeywords').value.trim(), // الكلمات المفتاحية
         img: document.getElementById('fImg').value.trim()
     };
     if (!obj.name) {
