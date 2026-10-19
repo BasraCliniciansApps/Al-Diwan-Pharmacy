@@ -28,8 +28,22 @@
 
     <header class="top-bar">
         <div class="top-bar-inner">
+            
+            <!-- 1. شريط التحكم العلوي الصغير (أيقونات فقط ولا يظهر إلا للصيدلي) -->
+            <div class="admin-top-strip">
+                <!-- حالة المزامنة -->
+                <span id="syncBadge" class="sync-icon-badge">☁️</span>
+                
+                <!-- زر تسجيل الدخول / الخروج كأيقونة -->
+                <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي">🔒</button>
+                
+                <!-- أزرار الإدارة تظهر فقط بعد الدخول -->
+                <button class="small-icon-btn admin-only" onclick="openCategoryManager()" title="إعدادات الأقسام">⚙️</button>
+                <button class="small-icon-btn admin-only" style="background:var(--primary); color:white; border:none;" onclick="openFormModal()" title="إضافة صنف">➕</button>
+            </div>
+
+            <!-- 2. صف اسم الصيدلية والشعار (مستقل تماماً ولا يزاحمه شيء) -->
             <div class="app-header-row">
-                <!-- اسم الصيدلية في أعلى اليمين بخط الرقعة مع الشعار -->
                 <div class="app-logo">
                     <div class="logo-icon">
                         <img src="icon.jpg" alt="شعار صيدلية الديوان">
@@ -38,19 +52,10 @@
                         <h1 class="ruqaa-title">صيدلية الديوان</h1>
                     </div>
                 </div>
-
-                <!-- أزرار التحكم والمزامنة -->
-                <div class="top-actions">
-                    <span id="syncBadge" class="sync-badge">☁️ متصل</span>
-                    <button class="icon-btn" id="authBtn" onclick="handleAuthClick()">🔒 دخول الصيدلي</button>
-                    <button class="icon-btn admin-only" onclick="openCategoryManager()">🗂️ الأقسام</button>
-                    <button class="icon-btn admin-only primary-btn" onclick="openFormModal()">➕ إضافة صنف</button>
-                </div>
             </div>
 
-            <!-- شريط الأقسام الكبرى (قسم الجلدية وقابل لإضافة أقسام أخرى) -->
+            <!-- شريط الأقسام الكبرى -->
             <div class="departments-bar" id="departmentsBar"></div>
-
             <!-- شريط البحث -->
             <div class="search-row">
                 <div class="search-input-wrap">
