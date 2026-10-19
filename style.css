@@ -1,0 +1,511 @@
+:root {
+    --primary: #0f766e;
+    --primary-dark: #115e59;
+    --primary-light: #ccfbf1;
+    --accent: #0284c7;
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --text-main: #0f172a;
+    --text-sub: #64748b;
+    --border: #e2e8f0;
+    --success: #10b981;
+    --danger: #ef4444;
+    --radius-lg: 18px;
+    --radius-md: 12px;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Tajawal', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body {
+    background-color: var(--bg);
+    color: var(--text-main);
+    padding-bottom: 90px;
+    overflow-x: hidden;
+}
+
+.admin-only {
+    display: none !important;
+}
+
+body.admin-mode .admin-only {
+    display: flex !important;
+}
+
+/* الشريط العلوي */
+.top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px 12px;
+}
+
+.top-bar-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.app-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    gap: 8px;
+}
+
+.app-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    box-shadow: 0 3px 10px rgba(15, 118, 110, 0.25);
+}
+
+/* اسم صيدلية الديوان بخط الرقعة العربي الأصيل */
+.ruqaa-title {
+    font-family: 'Aref Ruqaa', serif;
+    font-size: 1.65rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    line-height: 1.1;
+    margin-bottom: 2px;
+}
+
+.logo-text span {
+    font-size: 0.74rem;
+    color: var(--text-sub);
+    font-weight: 500;
+}
+
+.top-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.sync-badge {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.icon-btn {
+    background: #f1f5f9;
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    height: 35px;
+    padding: 0 11px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: 0.15s;
+}
+
+.icon-btn.primary-btn {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.icon-btn.active {
+    background: #fef3c7;
+    color: #b45309;
+    border-color: #fde68a;
+}
+
+/* شريط الأقسام الكبرى (قسم الجلدية) */
+.departments-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.departments-bar::-webkit-scrollbar { display: none; }
+
+.dept-chip {
+    background: #f1f5f9;
+    color: var(--text-main);
+    border: 1.5px solid var(--border);
+    padding: 5px 14px;
+    border-radius: 10px;
+    font-size: 0.84rem;
+    font-weight: 800;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dept-chip.active {
+    background: var(--primary-light);
+    color: var(--primary-dark);
+    border-color: var(--primary);
+}
+
+/* شريط البحث */
+.search-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.search-input-wrap {
+    flex-grow: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrap input {
+    width: 100%;
+    background: #f1f5f9;
+    border: 1.5px solid transparent;
+    padding: 10px 36px 10px 32px;
+    border-radius: 12px;
+    font-size: 0.92rem;
+    color: var(--text-main);
+    outline: none;
+    transition: 0.2s;
+}
+
+.search-input-wrap input:focus {
+    background: white;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.1);
+}
+
+.search-icon {
+    position: absolute;
+    right: 12px;
+    font-size: 0.9rem;
+    color: var(--text-sub);
+    pointer-events: none;
+}
+
+.clear-search {
+    position: absolute;
+    left: 10px;
+    background: #cbd5e1;
+    color: white;
+    border: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+}
+
+/* أزرار التصنيفات الفرعية */
+.pills-bar {
+    max-width: 1100px;
+    margin: 10px auto 0;
+    display: flex;
+    gap: 7px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+}
+.pills-bar::-webkit-scrollbar { display: none; }
+
+.pill {
+    background: white;
+    border: 1px solid var(--border);
+    color: var(--text-sub);
+    padding: 6px 13px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.pill.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.pill-num {
+    font-size: 0.72rem;
+    opacity: 0.8;
+    background: rgba(0,0,0,0.06);
+    padding: 1px 6px;
+    border-radius: 10px;
+}
+
+.pill.active .pill-num {
+    background: rgba(255,255,255,0.22);
+    color: white;
+}
+
+.info-strip {
+    max-width: 1100px;
+    margin: 12px auto 8px;
+    padding: 0 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    font-weight: 700;
+}
+
+.content-area {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 16px;
+}
+
+/* عرض الشبكة الاحترافي (Bento Grid) */
+.grid-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    gap: 12px;
+}
+
+@media (min-width: 768px) {
+    .grid-layout {
+        grid-template-columns: repeat(auto-fill, minmax(195px, 1fr));
+        gap: 16px;
+    }
+}
+
+.bento-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s;
+    position: relative;
+}
+
+.bento-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+
+.bento-img-wrap {
+    height: 135px;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    position: relative;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.bento-img-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.bento-badge-top {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+}
+
+.bento-body {
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.bento-brand {
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--primary);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+}
+
+.bento-title {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: var(--text-main);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 8px;
+    direction: ltr;
+    text-align: right;
+    unicode-bidi: plaintext;
+}
+
+/* إصلاح اتجاه الأرقام والوحدات بشكل جذري */
+.bento-sub {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-sub);
+    display: inline-block;
+    background: #f1f5f9;
+    padding: 3px 8px;
+    border-radius: 6px;
+    margin-top: auto;
+    direction: ltr;
+    text-align: left;
+    unicode-bidi: embed;
+    align-self: flex-start;
+}
+
+.status-dot {
+    position: absolute;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 2px white;
+    z-index: 2;
+}
+.status-dot.out { background: var(--danger); }
+
+.form-badge {
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+.badge-cream { background: #e0f2fe; color: #0369a1; }
+.badge-oint { background: #fef3c7; color: #b45309; }
+.badge-gel { background: #ccfbf1; color: #0f766e; }
+.badge-oral { background: #f3e8ff; color: #7e22ce; }
+.badge-syrup { background: #fce7f3; color: #be185d; }
+.badge-wash { background: #dcfce7; color: #15803d; }
+.badge-spray { background: #e0e7ff; color: #4338ca; }
+
+/* النافذة السفلية (Bottom Sheet) */
+.sheet-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 500;
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+.sheet-backdrop.open { display: block; opacity: 1; }
+
+.bottom-sheet {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    background: white;
+    z-index: 501;
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    max-width: 650px;
+    margin: 0 auto;
+    max-height: 88vh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    padding: 16px 20px 30px;
+    box-shadow: 0 -10px 30px rgba(0,0,0,0.15);
+}
+.bottom-sheet.open { transform: translateY(0); }
+.sheet-handle { width: 42px; height: 5px; background: #cbd5e1; border-radius: 10px; margin: 0 auto 16px; }
+
+.sheet-header { display: flex; gap: 16px; align-items: center; margin-bottom: 18px; }
+.sheet-img-box {
+    width: 110px; height: 110px; border-radius: 16px; background: #f8fafc;
+    border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; overflow: hidden; cursor: zoom-in;
+}
+.sheet-img-box img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
+.sheet-title-area { flex-grow: 1; }
+.sheet-brand { font-size: 0.8rem; font-weight: 800; color: var(--primary); text-transform: uppercase; }
+.sheet-name { font-size: 1.2rem; font-weight: 800; color: var(--text-main); margin: 4px 0 8px; line-height: 1.3; }
+.sheet-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.sheet-section {
+    background: #f8fafc; border-radius: 14px; padding: 14px; margin-bottom: 14px; border: 1px solid #f1f5f9;
+}
+.sheet-section h4 { font-size: 0.8rem; color: var(--text-sub); margin-bottom: 6px; }
+.sheet-section p { font-size: 0.95rem; color: var(--text-main); line-height: 1.6; font-weight: 500; }
+
+.sheet-admin-box {
+    display: none; background: #fffbeb; border: 1px solid #fde68a; border-radius: 14px; padding: 14px; margin-top: 16px;
+}
+body.admin-mode .sheet-admin-box { display: block; }
+.admin-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.qty-control-lg {
+    display: flex; align-items: center; gap: 10px; background: white; padding: 4px 10px; border-radius: 10px; border: 1px solid #fcd34d;
+}
+.qty-control-lg button { width: 30px; height: 30px; border: none; background: #fef3c7; border-radius: 8px; font-weight: 800; font-size: 1.1rem; cursor: pointer; }
+
+/* شريط التنقل السفلي */
+.bottom-nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px);
+    border-top: 1px solid var(--border); display: flex; justify-content: space-around;
+    padding: 8px 10px 12px; z-index: 200; box-shadow: 0 -4px 15px rgba(0,0,0,0.03);
+}
+.nav-tab {
+    border: none; background: transparent; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; color: var(--text-sub); font-size: 0.76rem; font-weight: 700; cursor: pointer; padding: 4px 16px; border-radius: 12px; transition: 0.15s;
+}
+.nav-tab span.nav-ico { font-size: 1.25rem; }
+.nav-tab.active { color: var(--primary); background: var(--primary-light); }
+
+/* النوافذ المنبثقة للإدارة */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); z-index: 1000; justify-content: center; align-items: center; padding: 15px; }
+.modal-card { background: white; width: 100%; max-width: 520px; border-radius: 20px; padding: 22px; max-height: 90vh; overflow-y: auto; }
+.form-group { margin-bottom: 12px; }
+.form-group label { display: block; font-size: 0.82rem; font-weight: 700; margin-bottom: 4px; color: #334155; }
+.form-group input, .form-group select, .form-group textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.9rem;
+}
+.modal-actions-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+
+/* إدارة الأقسام والتصنيفات */
+.cat-manager-box { background: #f8fafc; padding: 12px; border-radius: 12px; border: 1px solid var(--border); }
+.cat-manager-box h4 { font-size: 0.85rem; color: var(--primary-dark); margin-bottom: 10px; }
+.manager-list { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; margin-bottom: 10px; }
+.manager-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 0.85rem; font-weight: 700; }
+.add-inline-row { display: flex; gap: 6px; }
+.add-inline-row input { flex-grow: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.85rem; }
+
+.img-zoom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
+.img-zoom-modal img { max-width: 96%; max-height: 88vh; border-radius: 12px; }
