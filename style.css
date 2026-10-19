@@ -57,8 +57,9 @@ body.admin-mode .admin-only {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 10px;
-    gap: 8px;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap; /* يسمح للعناصر بالنزول لسطر جديد بانتظام إذا ضاقت الشاشة */
 }
 
 .app-logo {
@@ -105,35 +106,49 @@ body.admin-mode .admin-only {
 .top-actions {
     display: flex;
     align-items: center;
-    gap: 6px;
-    flex-wrap: wrap;
+    justify-content: flex-end; /* محاذاة الأزرار لليسار في الشاشات الكبيرة */
+    gap: 8px;
+    flex-wrap: wrap; /* ترتيب الأزرار بانتظام دون تداخل */
 }
 
-.sync-badge {
-    font-size: 0.72rem;
-    font-weight: 700;
-    padding: 4px 8px;
-    border-radius: 8px;
-    background: #dcfce7;
-    color: #15803d;
-}
-
-.icon-btn {
-    background: #f1f5f9;
-    border: 1px solid var(--border);
-    color: var(--text-main);
-    height: 35px;
-    padding: 0 11px;
+.icon-btn, .sync-badge {
+    height: 38px;
+    padding: 0 14px;
     border-radius: 10px;
-    font-size: 0.78rem;
+    font-size: 0.85rem;
     font-weight: 700;
-    cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 5px;
-    transition: 0.15s;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap; /* يمنع انقسام الكلمة لسطرين (مثل زر إضافة صنف) */
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04); /* ظل خفيف يعطي عمقاً احترافياً */
+    border: 1px solid var(--border);
+    transition: all 0.2s ease;
 }
 
+#addTopBtn {
+    background: var(--primary) !important;
+    color: white !important;
+    border: none;
+    box-shadow: 0 4px 12px rgba(15, 118, 110, 0.25);
+}
+
+/* 5. ترتيب متوافق تماماً مع شاشات الهواتف (Responsive) */
+@media (max-width: 600px) {
+    .app-header-row {
+        flex-direction: column; /* ترتيب اللوجو فوق والأزرار تحته */
+        align-items: stretch;
+    }
+    .app-logo {
+        margin-bottom: 8px;
+        justify-content: center; /* توسيط اللوجو في الهاتف */
+    }
+    .top-actions {
+        justify-content: center; /* توسيط الأزرار في الهاتف */
+        width: 100%;
+    }
+}
 .icon-btn.primary-btn {
     background: var(--primary);
     color: white;
