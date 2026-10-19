@@ -258,7 +258,8 @@ async function initFirebase() {
             const authBtn = document.getElementById('authBtn');
             if (user) {
                 document.body.classList.add('admin-mode');
-                authBtn.innerText = '🔓';
+                // تغيير الأيقونة إلى باب الخروج (🚪) عند تسجيل الدخول
+                authBtn.innerText = '🚪';
                 authBtn.title = 'خروج الصيدلي';
                 
                 // رفع البيانات لأول مرة إذا كانت السحابة فارغة
@@ -267,7 +268,8 @@ async function initFirebase() {
                 });
             } else {
                 document.body.classList.remove('admin-mode');
-                authBtn.innerText = '🔒';
+                // إعادة الأيقونة إلى سهم الدخول (📥)
+                authBtn.innerText = '📥';
                 authBtn.title = 'دخول الصيدلي';
             }
             if (currentOpenId) openSheet(currentOpenId);
