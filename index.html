@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>صيدلية الديوان | الدليل الدوائي التفاعلي</title>
+    <!-- خطوط عربية فخمة: خط عارف رقعة للاسم + خط تجوال للنصوص -->
+    <link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@700&family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- مكتبات Firebase الرسمية -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="top-bar-inner">
+            <div class="app-header-row">
+                <!-- اسم الصيدلية في أعلى اليمين بخط الرقعة -->
+                <div class="app-logo">
+                    <div class="logo-icon">⚕️</div>
+                    <div class="logo-text">
+                        <h1 class="ruqaa-title">صيدلية الديوان</h1>
+                        <span>الدليل التفاعلي للأدوية والمستلزمات</span>
+                    </div>
+                </div>
+
+                <!-- أزرار التحكم والمزامنة -->
+                <div class="top-actions">
+                    <span id="syncBadge" class="sync-badge">☁️ متصل</span>
+                    <button class="icon-btn" id="authBtn" onclick="handleAuthClick()">🔒 دخول الصيدلي</button>
+                    <button class="icon-btn admin-only" onclick="openCategoryManager()">🗂️ الأقسام</button>
+                    <button class="icon-btn admin-only primary-btn" onclick="openFormModal()">➕ إضافة صنف</button>
+                </div>
+            </div>
+
+            <!-- شريط الأقسام الكبرى (قسم الجلدية وقابل لإضافة أقسام أخرى) -->
+            <div class="departments-bar" id="departmentsBar"></div>
+
+            <!-- شريط البحث -->
+            <div class="search-row">
+                <div class="search-input-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="ابحث بالاسم التجاري، المادة الفعالة، أو الاستخدام..." oninput="handleSearch()">
+                    <button class="clear-search" id="clearSearchBtn" onclick="clearSearch()">✕</button>
+                </div>
+            </div>
+
+            <!-- شريط التصنيفات الفرعية -->
+            <div class="pills-bar" id="pillsBar"></div>
+        </div>
+    </header>
+
+    <div class="info-strip">
+        <span id="sectionLabel">قسم الجلدية - جميع الأصناف</span>
+        <span id="countLabel">0 صنف</span>
+    </div>
+
+    <!-- شبكة المنتجات -->
+    <main class="content-area">
+        <div id="itemsContainer" class="grid-layout"></div>
+    </main>
+
+    <!-- نافذة التفاصيل السفلية (Bottom Sheet) -->
+    <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()"></div>
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="sheet-handle"></div>
+        <div id="sheetContent"></div>
+    </div>
+
+    <!-- شريط التنقل السفلي -->
+    <nav class="bottom-nav">
+        <button class="nav-tab active" id="navAll" onclick="setMainTab('all')">
+            <span class="nav-ico">📦</span>
+            <span>كل القسم</span>
+        </button>
+        <button class="nav-tab" id="navRx" onclick="setMainTab('rx')">
+            <span class="nav-ico">💊</span>
+            <span>الأدوية العلاجية (Rx)</span>
+        </button>
+        <button class="nav-tab" id="navCosmetic" onclick="setMainTab('cosmetic')">
+            <span class="nav-ico">✨</span>
+            <span>العناية والكوزمتك</span>
+        </button>
+    </nav>
+
+    <!-- نافذة تسجيل دخول الصيدلي (Firebase Auth) -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-card" style="max-width: 380px;">
+            <h3 style="margin-bottom:8px; color:var(--primary-dark);">🔐 تسجيل دخول الصيدلي</h3>
+            <p style="font-size:0.82rem; color:var(--text-sub); margin-bottom:16px;">بيانات الدخول مشفرة عبر Firebase وتُحفظ تلقائياً على جهازك.</p>
+            <div class="form-group">
+                <label>البريد الإلكتروني:</label>
+                <input type="email" id="loginEmail" dir="ltr" placeholder="admin@diwan.com">
+            </div>
+            <div class="form-group">
+                <label>كلمة المرور:</label>
+                <input type="password" id="loginPass" dir="ltr" placeholder="••••••••">
+            </div>
+            <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-bottom:10px; display:none;"></div>
+            <div class="modal-actions-row">
+                <button class="icon-btn" onclick="closeLoginModal()">إلغاء</button>
+                <button class="icon-btn primary-btn" id="loginSubmitBtn" onclick="performLogin()">تسجيل الدخول</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إدارة وتعديل الأقسام والتصنيفات -->
+    <div class="modal-overlay" id="catModal">
+        <div class="modal-card">
+            <h3 style="margin-bottom:14px; color:var(--primary-dark);">🗂️ إدارة الأقسام والتصنيفات</h3>
+            
+            <div class="cat-manager-box">
+                <h4>1. الأقسام الرئيسية (مثل: قسم الجلدية)</h4>
+                <div id="deptListManager" class="manager-list"></div>
+                <div class="add-inline-row">
+                    <input type="text" id="newDeptInput" placeholder="اسم قسم رئيسي جديد...">
+                    <button class="icon-btn primary-btn" onclick="addDepartment()">+ إضافة</button>
+                </div>
+            </div>
+
+            <div class="cat-manager-box" style="margin-top:16px;">
+                <h4>2. التصنيفات الفرعية (قابلة لتعديل التسمية)</h4>
+                <div id="subCatListManager" class="manager-list"></div>
+                <div class="add-inline-row">
+                    <input type="text" id="newSubCatInput" placeholder="اسم تصنيف فرعي جديد...">
+                    <button class="icon-btn primary-btn" onclick="addSubCategory()">+ إضافة</button>
+                </div>
+            </div>
+
+            <div class="modal-actions-row" style="margin-top:18px;">
+                <button class="icon-btn" onclick="closeCategoryManager()">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة / تعديل منتج -->
+    <div class="modal-overlay" id="formModal">
+        <div class="modal-card">
+            <h3 id="formModalTitle" style="margin-bottom:14px; color:var(--primary-dark);">إضافة / تعديل صنف</h3>
+            <input type="hidden" id="editId">
+            <div class="form-group">
+                <label>القسم الرئيسي:</label>
+                <select id="fDepartment"></select>
+            </div>
+            <div class="form-group">
+                <label>التصنيف الفرعي:</label>
+                <select id="fCategory"></select>
+            </div>
+            <div class="form-group"><label>الشركة (Brand):</label><input type="text" id="fBrand"></div>
+            <div class="form-group"><label>الاسم التجاري والتركيز:</label><input type="text" id="fName"></div>
+            <div class="form-group"><label>المادة الفعالة والاستخدام:</label><textarea id="fDetails" rows="3"></textarea></div>
+            <div class="form-group"><label>العبوة / الشكل الدوائي (مثال: 10 Tablets | Oral):</label><input type="text" id="fMeta" dir="ltr"></div>
+            <div class="form-group"><label>العدد المتوفر:</label><input type="number" id="fQty" min="0" value="5"></div>
+            <div class="form-group">
+                <label>صورة الصنف (اختر صورة أو اكتب اسم الملف):</label>
+                <input type="file" accept="image/*" onchange="uploadImgBase64(event)" style="margin-bottom:6px;">
+                <input type="text" id="fImg" dir="ltr" placeholder="1001882687.jpg">
+            </div>
+            <div class="modal-actions-row">
+                <button class="icon-btn" onclick="closeFormModal()">إلغاء</button>
+                <button class="icon-btn primary-btn" onclick="saveFormProduct()">حفظ في السحابة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- تكبير الصورة -->
+    <div class="img-zoom-modal" id="zoomModal" onclick="this.style.display='none'">
+        <img id="zoomImg" src="" alt="">
+    </div>
+
+    <script src="data.js"></script>
+</body>
+</html>
