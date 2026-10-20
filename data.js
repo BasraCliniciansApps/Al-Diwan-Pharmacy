@@ -798,7 +798,7 @@ function closeFormModal() {
     document.getElementById('formModal').style.display = 'none';
 }
 
-// 1. دالة رفع الصورة مباشرة من الهاتف إلى مستودع GitHub الخاص بك
+// 1. دالة رفع الصورة مباشرة داخل مجلد (images) في مستودع GitHub
 async function uploadImgBase64(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -816,8 +816,9 @@ async function uploadImgBase64(event) {
     const GITHUB_USERNAME = "BasraCliniciansApps";
     const GITHUB_REPO = "Al-Diwan-Pharmacy";
     const GITHUB_BRANCH = "main";
+    const IMAGES_FOLDER = "images"; // 📁 اسم الفولدر المخصص للصور لمنع الهوسة
 
-    // جلب المفتاح من ذاكرة الهاتف (أو طلبه لأول مرة فقط لحمايته من الحظر التلقائي)
+    // جلب المفتاح من ذاكرة الهاتف
     let githubToken = localStorage.getItem('diwan_gh_token');
     if (!githubToken) {
         const { value: tokenInput } = await Swal.fire({
@@ -840,13 +841,12 @@ async function uploadImgBase64(event) {
     }
 
     const imgInput = document.getElementById('fImg');
-    imgInput.value = "⏳ جاري رفع الصورة إلى GitHub...";
+    imgInput.value = "⏳ جاري رفع الصورة إلى مجلد الصور...";
 
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
         img.onload = async function() {
-            // ضغط الصورة بدقة ممتازة وحجم خفيف وسريع (600px)
             const canvas = document.createElement('canvas');
             const max = 600;
             let w = img.width, h = img.height;
@@ -856,10 +856,13 @@ async function uploadImgBase64(event) {
             canvas.getContext('2d').drawImage(img, 0, 0, w, h);
 
             const base64Content = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
-            const fileName = `med_${Date.now()}.jpg`; // اسم فريد للصورة
+            const fileName = `med_${Date.now()}.jpg`;
+            
+            // المسار الكامل داخل فولدر الصور: images/med_123456.jpg
+            const filePath = `${IMAGES_FOLDER}/${fileName}`;
 
             try {
-                const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${fileName}`;
+                const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${filePath}`;
                 const response = await fetch(apiUrl, {
                     method: "PUT",
                     headers: {
@@ -867,7 +870,7 @@ async function uploadImgBase64(event) {
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
-                        message: `إضافة صورة دواء ${fileName}`,
+                        message: `إضافة صورة دواء في مجلد الصور: ${fileName}`,
                         content: base64Content,
                         branch: GITHUB_BRANCH
                     })
@@ -876,20 +879,19 @@ async function uploadImgBase64(event) {
                 const result = await response.json();
 
                 if (response.ok && result.content) {
-                    // رابط مباشر وسريع جداً يعمل في نفس الثانية
-                    const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${fileName}`;
+                    // الرابط المباشر يشير إلى داخل فولدر images
+                    const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${filePath}`;
                     imgInput.value = rawUrl;
 
                     Swal.fire({
                         icon: 'success',
-                        title: 'تم رفع الصورة إلى GitHub بنجاح!',
+                        title: 'تم حفظ الصورة في فولدر (images) بنجاح!',
                         toast: true,
                         position: 'bottom',
                         showConfirmButton: false,
                         timer: 2000
                     });
                 } else {
-                    // إذا كان المفتاح غير صالح أو تم إبطاله، نمسحه ليطلب مفتاحاً جديداً
                     if (response.status === 401) {
                         localStorage.removeItem('diwan_gh_token');
                     }
