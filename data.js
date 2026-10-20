@@ -200,7 +200,7 @@ const defaultProducts = [
 ];
 
 // ============================================================================
-// 4. منطق التطبيق، المزامنة مع Firebase، وإدارة الجلسة الدائمة
+// 4. منطق التطبيق، المزامنة الفورية مع Firebase، وإدارة الجلسة الدائمة
 // ============================================================================
 let products = JSON.parse(localStorage.getItem('diwanProducts')) || defaultProducts;
 let departments = JSON.parse(localStorage.getItem('diwanDepts')) || defaultDepartments;
@@ -215,10 +215,9 @@ let auth = null;
 let isFirebaseReady = false;
 let currentUser = null;
 
-// دالة إصلاح انقلاب الأرقام والوحدات تلقائياً (حتى لو كانت مخزنة قديماً بالمقلوب)
+// دالة إصلاح انقلاب الأرقام والوحدات تلقائياً
 function fixMetaOrder(metaStr) {
     if (!metaStr) return '';
-    // يحول أي صيغة مقلوبة مثل "Tablets | Oral 10" إلى "10 Tablets | Oral"
     let fixed = metaStr.replace(/^(Tablets|Capsules|Capsule|Drops|Syrup|ml|g)\s*\|\s*([A-Za-z\s]+)\s+(\d+)$/i, '$3 $1 | $2');
     fixed = fixed.replace(/^(Syrup|Drops|Solution|Cream|Gel|Ointment)\s*\|\s*(\d+\s*(?:ml|g))$/i, '$2 | $1');
     return fixed;
@@ -233,49 +232,44 @@ products = products.map(p => ({
 
 async function initFirebase() {
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PUT_YOUR_API_KEY_HERE") {
-        document.getElementById('syncBadge').innerText = "💾 محلي (بانتظار ربط Firebase)";
+        document.getElementById('syncBadge').innerText = "💾 محلي";
         return;
     }
     try {
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         auth = firebase.auth();
         db = firebase.firestore();
-
-        // 1. تفعيل الحفظ غير المتصل (Offline Persistence) لمنع ضياع البيانات عند الإغلاق
-        try {
-            await db.enablePersistence({ synchronizeTabs: true });
-        } catch (err) {
-            console.warn("Offline persistence issue:", err);
-        }
-
         isFirebaseReady = true;
 
-        // 2. الفرض الصارم لبقاء تسجيل الدخول دائماً حتى لو تم إغلاق التطبيق بالكامل
+        // ملاحظة هامة: تم إزالة enablePersistence لأنها تحبس الصور محلياً وتمنع رفعها المباشر للسحابة
+
+        // الفرض الصارم لبقاء تسجيل الدخول دائماً
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        auth.onAuthStateChanged(user => {
+        auth.onAuthStateChanged(async (user) => {
             currentUser = user;
             const authBtn = document.getElementById('authBtn');
             if (user) {
                 document.body.classList.add('admin-mode');
-                /// عند تسجيل الدخول
                 authBtn.innerText = '🔒';
                 authBtn.title = 'خروج الصيدلي';
                 
-                // رفع البيانات لأول مرة إذا كانت السحابة فارغة
-                db.collection('pharmacy').doc('metadata').get().then(doc => {
-                    if (!doc.exists && products.length > 0) pushToCloud();
-                });
+                // فحص ما إذا كانت قاعدة منتجات السحابة فارغة لرفع الـ 166 منتجاً لأول مرة
+                const snap = await db.collection('pharmacy_products').limit(1).get();
+                if (snap.empty && products.length > 0) {
+                    pushToCloud(false);
+                }
             } else {
                 document.body.classList.remove('admin-mode');
-                // عند عدم تسجيل الدخول
                 authBtn.innerText = '👤';
                 authBtn.title = 'دخول الصيدلي';
             }
             if (currentOpenId) openSheet(currentOpenId);
         });
 
-        // 3. مراقبة الأقسام والتصنيفات
+        // 1. مراقبة الأقسام والتصنيفات من السحابة
         db.collection('pharmacy').doc('metadata').onSnapshot(doc => {
             if (doc.exists) {
                 const data = doc.data();
@@ -286,65 +280,85 @@ async function initFirebase() {
             }
         });
 
-        // 4. مراقبة المنتجات
+        // 2. مراقبة المنتجات والصور من السحابة (تحديث فوري لكل الأجهزة)
         db.collection('pharmacy_products').onSnapshot(snapshot => {
             if (!snapshot.empty) {
                 let cloudProducts = [];
                 snapshot.forEach(doc => {
-                    cloudProducts.push({...doc.data(), meta: fixMetaOrder(doc.data().meta)});
+                    const d = doc.data();
+                    cloudProducts.push({
+                        ...d,
+                        meta: fixMetaOrder(d.meta)
+                    });
                 });
                 products = cloudProducts.sort((a, b) => b.id - a.id);
                 saveLocal();
                 renderAll();
                 document.getElementById('syncBadge').innerText = "☁️ متزامن";
             }
+        }, err => {
+            console.error("Cloud Sync Error:", err);
+            document.getElementById('syncBadge').innerText = "⚠️ خطأ مزامنة";
         });
     } catch (e) {
         console.warn("Firebase Error:", e);
     }
 }
+
 function saveLocal() {
     try {
         localStorage.setItem('diwanDepts', JSON.stringify(departments));
         localStorage.setItem('diwanSubCats', JSON.stringify(subCategories));
         localStorage.setItem('diwanProducts', JSON.stringify(products));
     } catch (e) {
-        // إذا امتلأت ذاكرة المتصفح (5MB) بسبب كثرة الصور، نتجاهل الخطأ لكي لا يتوقف الرفع السحابي
-        console.warn("ذاكرة المتصفح ممتلئة، سيتم الاعتماد على الحفظ السحابي المباشر.");
+        console.warn("ذاكرة المتصفح ممتلئة، يتم الاعتماد على السحابة مباشرة.");
     }
 }
 
+// دالة حفظ منتج واحد فقط في السحابة مع التأكد من وصوله للإنترنت
 async function saveSingleProductToCloud(product) {
     saveLocal();
-    if (isFirebaseReady && currentUser) {
-        const badge = document.getElementById('syncBadge');
-        badge.innerText = "⏳ جاري الحفظ...";
-        try {
-            await db.collection('pharmacy_products').doc(product.id.toString()).set(product);
-            badge.innerText = "☁️ تم الحفظ";
-        } catch (err) {
-            badge.innerText = "❌ فشل الحفظ";
-            alert("خطأ أثناء حفظ الصنف في السحابة: " + err.message);
-        }
+    if (!isFirebaseReady || !currentUser) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'تنبيه هام',
+            text: 'تم الحفظ في جهازك فقط لأنك غير مسجل الدخول كصيدلي! يرجى تسجيل الدخول ليرتفع التعديل للإنترنت.',
+            confirmButtonColor: '#0f766e',
+            confirmButtonText: 'حسناً'
+        });
+        return;
+    }
+
+    const badge = document.getElementById('syncBadge');
+    badge.innerText = "⏳ جاري الرفع...";
+    try {
+        await db.collection('pharmacy_products').doc(product.id.toString()).set(product);
+        badge.innerText = "☁️ تم الحفظ";
+    } catch (err) {
+        badge.innerText = "❌ فشل الحفظ";
+        Swal.fire({
+            icon: 'error',
+            title: 'فشل الرفع للإنترنت',
+            text: 'تعذر حفظ الصنف في السحابة: ' + err.message,
+            confirmButtonColor: '#0f766e'
+        });
     }
 }
 
+// دالة حفظ الأقسام والتصنيفات (أو الرفع التأسيسي الأول)
 async function pushToCloud(onlyMetadata = false) {
     saveLocal();
     if (isFirebaseReady && currentUser) {
         const badge = document.getElementById('syncBadge');
         badge.innerText = "⏳ جاري الحفظ...";
         try {
-            // حفظ الأقسام والتصنيفات
             await db.collection('pharmacy').doc('metadata').set({
                 departments,
                 subCategories,
                 updatedAt: new Date().toISOString()
             });
 
-            // إذا كان التعديل في الأقسام فقط لا نعيد رفع المنتجات
             if (!onlyMetadata) {
-                // تقسيم الرفع الأولي إلى دفعات صغيرة (20 منتج في كل دفعة) لعدم تجاوز حجم الباندويث
                 for (let i = 0; i < products.length; i += 20) {
                     const batch = db.batch();
                     const chunk = products.slice(i, i + 20);
@@ -363,6 +377,7 @@ async function pushToCloud(onlyMetadata = false) {
         }
     }
 }
+
 // ============================================================================
 // 5. تسجيل الدخول الآمن عبر Firebase
 // ============================================================================
@@ -378,7 +393,6 @@ function handleAuthClick() {
     }
 
     if (currentUser) {
-        // رسالة خروج أنيقة باستخدام SweetAlert2 بدلاً من confirm() المزعج
         Swal.fire({
             title: 'تسجيل الخروج؟',
             text: "هل أنت متأكد أنك تود تسجيل الخروج من وضع الصيدلي؟",
@@ -406,6 +420,7 @@ function handleAuthClick() {
         document.getElementById('loginModal').style.display = 'flex';
     }
 }
+
 function closeLoginModal() {
     document.getElementById('loginModal').style.display = 'none';
 }
@@ -435,7 +450,7 @@ async function performLogin() {
 }
 
 // ============================================================================
-// 6. إدارة الأقسام الكبرى والتصنيفات الفرعية (إضافة وتعديل التسميات)
+// 6. إدارة الأقسام الكبرى والتصنيفات الفرعية
 // ============================================================================
 function openCategoryManager() {
     renderManagerLists();
@@ -476,7 +491,7 @@ function renameDepartment(index) {
         departments[index] = clean;
         products.forEach(p => { if (p.department === oldName) p.department = clean; });
         if (activeDept === oldName) activeDept = clean;
-        pushToCloud();
+        pushToCloud(false);
         renderManagerLists();
         renderAll();
     }
@@ -487,7 +502,7 @@ function addDepartment() {
     if (val && !departments.includes(val)) {
         departments.push(val);
         document.getElementById('newDeptInput').value = '';
-        pushToCloud();
+        pushToCloud(true); // حفظ الأقسام فقط بسرعة
         renderManagerLists();
         renderAll();
     }
@@ -501,7 +516,7 @@ function renameSubCategory(index) {
         subCategories[index] = clean;
         products.forEach(p => { if (p.category === oldName) p.category = clean; });
         if (activeSubCat === oldName) activeSubCat = clean;
-        pushToCloud();
+        pushToCloud(false);
         renderManagerLists();
         renderAll();
     }
@@ -512,7 +527,7 @@ function addSubCategory() {
     if (val && !subCategories.includes(val)) {
         subCategories.push(val);
         document.getElementById('newSubCatInput').value = '';
-        pushToCloud();
+        pushToCloud(true); // حفظ التصنيفات فقط بسرعة
         renderManagerLists();
         renderAll();
     }
@@ -561,26 +576,24 @@ function setMainTab(tab) {
     
     if (tab === 'all') {
         document.getElementById('navAll').classList.add('active');
-        document.getElementById('sectionLabel').innerText = 'كل أصناف الصيدلية';
     } else if (tab === 'rx') {
         document.getElementById('navRx').classList.add('active');
-        document.getElementById('sectionLabel').innerText = 'الأدوية العلاجية الموصوفة (Rx)';
     } else if (tab === 'cosmetic') {
         document.getElementById('navCosmetic').classList.add('active');
-        document.getElementById('sectionLabel').innerText = 'منتجات العناية والكوزمتك';
     } else if (tab === 'out') {
         document.getElementById('navOut').classList.add('active');
-        document.getElementById('sectionLabel').innerText = 'الأصناف النافذة (الكمية 0)';
     }
     renderAll();
 }
 
 function getBaseFilteredByTab() {
     return products.filter(p => {
-        if (mainTab === 'out') return parseInt(p.qty) === 0;
+        const matchDept = (p.department || "قسم الجلدية") === activeDept;
+        if (!matchDept) return false;
+        if (mainTab === 'out') return (parseInt(p.qty) || 0) === 0;
         if (mainTab === 'rx') return isRxItem(p);
         if (mainTab === 'cosmetic') return !isRxItem(p);
-        return true; // all
+        return true;
     });
 }
 
@@ -622,43 +635,45 @@ function renderAll() {
     renderDepartmentsBar();
     renderPills();
 
-    const tabTitle = mainTab === 'all' ? 'جميع الأصناف' : (mainTab === 'rx' ? 'الأدوية العلاجية (Rx)' : 'العناية والكوزمتك');
+    const tabTitle = mainTab === 'all' ? 'جميع الأصناف' 
+                   : mainTab === 'rx' ? 'الأدوية العلاجية (Rx)' 
+                   : mainTab === 'cosmetic' ? 'العناية والكوزمتك' 
+                   : 'الأصناف النافذة (0)';
     document.getElementById('sectionLabel').innerText = `${activeDept} • ${tabTitle}`;
 
     const query = document.getElementById('searchInput').value.toLowerCase().trim();
     const baseItems = getBaseFilteredByTab();
 
     const filtered = baseItems.filter(p => {
-            const matchCat = activeSubCat === 'الكل' || p.category === activeSubCat;
-            // إضافة الكلمات المفتاحية لمجال البحث
-            const text = `${p.name} ${p.brand} ${p.details} ${p.meta} ${p.category} ${p.keywords || ''}`.toLowerCase();
-            const matchQ = !query || text.includes(query);
-            return matchCat && matchQ;
-        });
+        const matchCat = activeSubCat === 'الكل' || p.category === activeSubCat;
+        const text = `${p.name} ${p.brand} ${p.details} ${p.meta} ${p.category} ${p.keywords || ''}`.toLowerCase();
+        const matchQ = !query || text.includes(query);
+        return matchCat && matchQ;
+    });
 
-        document.getElementById('countLabel').innerText = `${filtered.length} صنف`;
-        const container = document.getElementById('itemsContainer');
+    document.getElementById('countLabel').innerText = `${filtered.length} صنف`;
+    const container = document.getElementById('itemsContainer');
 
-        container.innerHTML = filtered.map(p => {
-            const badge = getFormBadge(p);
-            const dotCls = p.qty > 0 ? 'status-dot' : 'status-dot out';
-            const cleanMeta = fixMetaOrder(p.meta);
-            return `
-                <div class="bento-card" onclick="openSheet(${p.id})">
-                    <div class="bento-img-wrap">
-                        <span class="${dotCls}" style="top:10px; right:10px;"></span>
-                        <span class="form-badge ${badge.cls} bento-badge-top">${badge.txt}</span>
-                        <img src="${p.img}" alt="" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%224%22/><circle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/><path d=%22M21 15l-5-5L5 21%22/></svg>'">
-                    </div>
-                    <div class="bento-body">
-                        <div class="bento-brand">${p.brand}</div>
-                        <div class="bento-title">${p.name}</div>
-                        <div style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? p.price.toLocaleString() + ' د.ع' : '0 د.ع'}</div>
-                        <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
-                    </div>
+    container.innerHTML = filtered.map(p => {
+        const badge = getFormBadge(p);
+        const dotCls = p.qty > 0 ? 'status-dot' : 'status-dot out';
+        const cleanMeta = fixMetaOrder(p.meta);
+        return `
+            <div class="bento-card" onclick="openSheet(${p.id})">
+                <div class="bento-img-wrap">
+                    <span class="${dotCls}" style="top:10px; right:10px;"></span>
+                    <span class="form-badge ${badge.cls} bento-badge-top">${badge.txt}</span>
+                    <img src="${p.img}" alt="" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%224%22/><circle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/><path d=%22M21 15l-5-5L5 21%22/></svg>'">
                 </div>
-            `;
-        }).join('');
+                <div class="bento-body">
+                    <div class="bento-brand">${p.brand}</div>
+                    <div class="bento-title">${p.name}</div>
+                    <div style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? Number(p.price).toLocaleString() + ' د.ع' : '0 د.ع'}</div>
+                    <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function openSheet(id) {
@@ -667,9 +682,10 @@ function openSheet(id) {
     currentOpenId = id;
     const badge = getFormBadge(p);
     const cleanMeta = fixMetaOrder(p.meta);
+    const formattedPrice = p.price ? Number(p.price).toLocaleString() : 0;
     const stockTag = p.qty > 0 
-        ? `<span class="form-badge" style="background:#dcfce7; color:#15803d;">متوفر (${p.qty}) | ${p.price ? p.price.toLocaleString() : 0} د.ع</span>`
-        : `<span class="form-badge" style="background:#fee2e2; color:#b91c1c;">نافذ (0) | ${p.price ? p.price.toLocaleString() : 0} د.ع</span>`;
+        ? `<span class="form-badge" style="background:#dcfce7; color:#15803d;">متوفر (${p.qty}) | ${formattedPrice} د.ع</span>`
+        : `<span class="form-badge" style="background:#fee2e2; color:#b91c1c;">نافذ (0) | ${formattedPrice} د.ع</span>`;
 
     document.getElementById('sheetContent').innerHTML = `
         <div class="sheet-header">
@@ -732,7 +748,7 @@ function updateItemQty(id, delta) {
     const p = products.find(x => x.id === id);
     if (!p) return;
     p.qty = Math.max(0, (parseInt(p.qty) || 0) + delta);
-    saveSingleProductToCloud(p); // حفظ هذا المنتج فقط
+    saveSingleProductToCloud(p);
     renderAll();
     openSheet(id);
 }
@@ -757,8 +773,8 @@ function openFormModal(id = null) {
         document.getElementById('fMeta').value = fixMetaOrder(p.meta);
         document.getElementById('fQty').value = p.qty;
         document.getElementById('fImg').value = p.img || '';
-        document.getElementById('fPrice').value = p.price || 0;
-        document.getElementById('fKeywords').value = p.keywords || '';
+        if (document.getElementById('fPrice')) document.getElementById('fPrice').value = p.price || 0;
+        if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = p.keywords || '';
     } else {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
@@ -769,8 +785,8 @@ function openFormModal(id = null) {
         document.getElementById('fMeta').value = '';
         document.getElementById('fQty').value = 5;
         document.getElementById('fImg').value = '';
-        document.getElementById('fPrice').value = 0;
-        document.getElementById('fKeywords').value = '';
+        if (document.getElementById('fPrice')) document.getElementById('fPrice').value = 0;
+        if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = '';
     }
     modal.style.display = 'flex';
 }
@@ -783,7 +799,6 @@ function uploadImgBase64(event) {
     const file = event.target.files[0];
     if (!file) return;
 
-    // 1. التحقق من أن الملف المرفوع هو صورة فعلاً لتجنب الأخطاء
     if (!file.type.startsWith('image/')) {
         return Swal.fire({
             icon: 'warning',
@@ -795,13 +810,12 @@ function uploadImgBase64(event) {
     }
 
     const reader = new FileReader();
-    
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
             try {
                 const canvas = document.createElement('canvas');
-                const max = 450;
+                const max = 380; // حجم مثالي وسريع جداً للرفع السحابي
                 let w = img.width, h = img.height;
                 
                 if (w > h && w > max) { h *= max / w; w = max; }
@@ -811,10 +825,8 @@ function uploadImgBase64(event) {
                 canvas.height = h;
                 canvas.getContext('2d').drawImage(img, 0, 0, w, h);
                 
-                document.getElementById('fImg').value = canvas.toDataURL('image/jpeg', 0.72);
-                
+                document.getElementById('fImg').value = canvas.toDataURL('image/jpeg', 0.68);
             } catch (error) {
-                // 2. تنبيه أنيق في حال فشل ضغط الصورة
                 Swal.fire({
                     icon: 'error',
                     title: 'خطأ في المعالجة',
@@ -824,9 +836,7 @@ function uploadImgBase64(event) {
                 });
             }
         };
-        
         img.onerror = function() {
-            // 3. تنبيه إذا كانت الصورة تالفة
             Swal.fire({
                 icon: 'error',
                 title: 'صورة تالفة',
@@ -835,24 +845,12 @@ function uploadImgBase64(event) {
                 confirmButtonText: 'حسناً'
             });
         };
-        
         img.src = e.target.result;
     };
-    
-    reader.onerror = function() {
-        // 4. تنبيه في حال منع المتصفح أو الهاتف قراءة الملف
-        Swal.fire({
-            icon: 'error',
-            title: 'خطأ في القراءة',
-            text: 'حدث خطأ أثناء محاولة قراءة الملف من جهازك.',
-            confirmButtonColor: '#0f766e',
-            confirmButtonText: 'حسناً'
-        });
-    };
-
     reader.readAsDataURL(file);
 }
 
+// حفظ الصنف مع تضمين السعر والكلمات المفتاحية ورفعه فوراً للسحابة
 function saveFormProduct() {
     const editId = document.getElementById('editId').value;
     const obj = {
@@ -864,10 +862,20 @@ function saveFormProduct() {
         details: document.getElementById('fDetails').value.trim(),
         meta: fixMetaOrder(document.getElementById('fMeta').value.trim()),
         qty: parseInt(document.getElementById('fQty').value) || 0,
+        price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
+        keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
         img: document.getElementById('fImg').value.trim()
     };
     
-    if (!obj.name) return alert('يرجى إدخال اسم الصنف');
+    if (!obj.name) {
+        return Swal.fire({
+            icon: 'warning',
+            title: 'تنبيه',
+            text: 'يرجى إدخال اسم الصنف أولاً!',
+            confirmButtonColor: '#0f766e',
+            confirmButtonText: 'حسناً'
+        });
+    }
 
     if (editId) {
         const idx = products.findIndex(x => x.id === parseInt(editId));
@@ -876,28 +884,38 @@ function saveFormProduct() {
         products.unshift(obj);
     }
     
-    saveSingleProductToCloud(obj); // يرفع المنتج الجديد فقط في أقل من ثانية!
+    saveSingleProductToCloud(obj);
     closeFormModal();
     renderAll();
 }
+
+// دالة الحذف المصححة (تحذف محلياً ومن السحابة أيضاً)
 function deleteItem(id) {
     Swal.fire({
         title: 'هل أنت متأكد؟',
         text: "لن تتمكن من استعادة هذا الصنف بعد حذفه!",
         icon: 'error',
         showCancelButton: true,
-        confirmButtonColor: '#ef4444', // لون أحمر للحذف
-        cancelButtonColor: '#64748b', // لون رمادي للإلغاء
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
         confirmButtonText: 'نعم، احذف!',
         cancelButtonText: 'إلغاء'
-    }).then((result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
             products = products.filter(x => x.id !== id);
-            saveStorage();
+            saveLocal(); // تم تصحيح الاسم من saveStorage إلى saveLocal
+            
+            if (isFirebaseReady && currentUser) {
+                try {
+                    await db.collection('pharmacy_products').doc(id.toString()).delete();
+                } catch (e) {
+                    console.warn("Delete Cloud Error:", e);
+                }
+            }
+            
             closeSheet();
             renderAll();
             
-            // رسالة تأكيد خفيفة أسفل الشاشة (Toast)
             Swal.fire({
                 icon: 'success',
                 title: 'تم الحذف بنجاح',
@@ -909,6 +927,7 @@ function deleteItem(id) {
         }
     });
 }
+
 function zoomImage(src) {
     if (!src) return;
     document.getElementById('zoomImg').src = src;
