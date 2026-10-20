@@ -314,16 +314,15 @@ function saveLocal() {
     }
 }
 
-// 1. دالة الحفظ السحابي المزودة بمؤقت حماية ضد التعليق
+// 2. دالة حفظ المنتج الواحد في Firebase (خفيفة وسريعة جداً لأنها تحفظ الرابط فقط)
 async function saveSingleProductToCloud(product) {
     saveLocal();
     
-    // التحقق من تسجيل الدخول كصيدلي
     if (!isFirebaseReady || !currentUser) {
         await Swal.fire({
             icon: 'error',
             title: 'أنت غير مسجل الدخول!',
-            text: 'يرجى الضغط على أيقونة الصيدلي في الأعلى وتسجيل الدخول أولاً ليتم الحفظ في السحابة.',
+            text: 'اضغط على أيقونة الصيدلي (👤) في الأعلى وسجل الدخول أولاً ليتم الحفظ في الإنترنت.',
             confirmButtonColor: '#0f766e',
             confirmButtonText: 'حسناً'
         });
@@ -334,27 +333,17 @@ async function saveSingleProductToCloud(product) {
     if (badge) badge.innerText = "⏳ جاري الحفظ...";
     
     try {
-        // تنظيف الكائن من أي قيم غير معرفة (undefined) قد تمنع Firebase من الحفظ
         const cleanProduct = JSON.parse(JSON.stringify(product));
-
-        // إرسال البيانات للسحابة مع مؤقت أمان (8 ثوانٍ) لكسر أي تعليق قديم في المتصفح
-        const savePromise = db.collection('pharmacy_products').doc(cleanProduct.id.toString()).set(cleanProduct);
-        const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("تأخر الاتصال بالسحابة بسبب امتلاء الذاكرة المؤقتة للمتصفح، يرجى مسح بيانات الموقع من إعدادات المتصفح لمرة واحدة.")), 8000)
-        );
-
-        await Promise.race([savePromise, timeoutPromise]);
-
+        await db.collection('pharmacy_products').doc(cleanProduct.id.toString()).set(cleanProduct);
         if (badge) badge.innerText = "☁️ تم الحفظ";
         return true;
     } catch (err) {
         if (badge) badge.innerText = "❌ فشل الحفظ";
         await Swal.fire({
             icon: 'error',
-            title: 'تنبيه من السحابة',
+            title: 'خطأ في السحابة',
             text: err.message,
-            confirmButtonColor: '#0f766e',
-            confirmButtonText: 'فهمت'
+            confirmButtonColor: '#0f766e'
         });
         return false;
     }
@@ -809,6 +798,7 @@ function closeFormModal() {
     document.getElementById('formModal').style.display = 'none';
 }
 
+// 1. دالة رفع الصورة مباشرة من الهاتف إلى مستودع GitHub الخاص بك
 async function uploadImgBase64(event) {
     const file = event.target.files[0];
     if (!file) return;
@@ -822,60 +812,95 @@ async function uploadImgBase64(event) {
         });
     }
 
-    // مفتاح ImgBB الخاص بك موضوع بشكل نصي صحيح
-    const IMGBB_API_KEY = "037b73d4459c5e3bd9cb42bf6bbe73c5";
+    // بيانات مستودع صيدلية الديوان على GitHub
+    const GITHUB_USERNAME = "BasraCliniciansApps";
+    const GITHUB_REPO = "Al-Diwan-Pharmacy";
+    const GITHUB_BRANCH = "main";
+
+    // جلب المفتاح من ذاكرة الهاتف (أو طلبه لأول مرة فقط لحمايته من الحظر التلقائي)
+    let githubToken = localStorage.getItem('diwan_gh_token');
+    if (!githubToken) {
+        const { value: tokenInput } = await Swal.fire({
+            title: 'إعداد مفتاح GitHub (لأول مرة فقط)',
+            text: 'الصق مفتاح التوكن (الذي يبدأ بـ ghp_) ليتم حفظه في جهازك بأمان لرفع الصور:',
+            input: 'text',
+            inputPlaceholder: 'ghp_...',
+            confirmButtonColor: '#0f766e',
+            confirmButtonText: 'حفظ المفتاح ومتابعة الرفع',
+            showCancelButton: true,
+            cancelButtonText: 'إلغاء'
+        });
+
+        if (!tokenInput || !tokenInput.trim()) {
+            event.target.value = "";
+            return;
+        }
+        githubToken = tokenInput.trim();
+        localStorage.setItem('diwan_gh_token', githubToken);
+    }
 
     const imgInput = document.getElementById('fImg');
-    imgInput.value = "⏳ جاري رفع الصورة للسحابة...";
+    imgInput.value = "⏳ جاري رفع الصورة إلى GitHub...";
 
-    // 1. ضغط الصورة أولاً لتصبح خفيفة وسريعة جداً في الرفع
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
         img.onload = async function() {
+            // ضغط الصورة بدقة ممتازة وحجم خفيف وسريع (600px)
             const canvas = document.createElement('canvas');
-            const max = 600; // دقة ممتازة وواضحة جداً
+            const max = 600;
             let w = img.width, h = img.height;
             if (w > h && w > max) { h *= max / w; w = max; }
             else if (h > max) { w *= max / h; h = max; }
             canvas.width = w; canvas.height = h;
             canvas.getContext('2d').drawImage(img, 0, 0, w, h);
 
-            // استخراج الصورة المضغوطة بدون البادئة النصية
-            const base64Data = canvas.toDataURL('image/jpeg', 0.80).split(',')[1];
+            const base64Content = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
+            const fileName = `med_${Date.now()}.jpg`; // اسم فريد للصورة
 
-            // 2. إرسال الصورة المضغوطة إلى سحابة ImgBB واستلام الرابط المباشر
             try {
-                const formData = new FormData();
-                formData.append("image", base64Data);
-
-                // ✅ تم التصحيح هنا: استدعاء اسم المتغير IMGBB_API_KEY بشكل سليم
-                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
-                    method: "POST",
-                    body: formData
+                const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${fileName}`;
+                const response = await fetch(apiUrl, {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": `token ${githubToken}`,
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        message: `إضافة صورة دواء ${fileName}`,
+                        content: base64Content,
+                        branch: GITHUB_BRANCH
+                    })
                 });
 
                 const result = await response.json();
-                if (result.success) {
-                    // وضع الرابط المباشر القصير والسريع في الحقل
-                    imgInput.value = result.data.url;
+
+                if (response.ok && result.content) {
+                    // رابط مباشر وسريع جداً يعمل في نفس الثانية
+                    const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${fileName}`;
+                    imgInput.value = rawUrl;
+
                     Swal.fire({
                         icon: 'success',
-                        title: 'تم رفع الصورة وتجهيز الرابط السريع!',
+                        title: 'تم رفع الصورة إلى GitHub بنجاح!',
                         toast: true,
                         position: 'bottom',
                         showConfirmButton: false,
                         timer: 2000
                     });
                 } else {
-                    throw new Error("فشل الرفع، تأكد من صلاحية مفتاح ImgBB");
+                    // إذا كان المفتاح غير صالح أو تم إبطاله، نمسحه ليطلب مفتاحاً جديداً
+                    if (response.status === 401) {
+                        localStorage.removeItem('diwan_gh_token');
+                    }
+                    throw new Error(result.message || "فشل الرفع إلى GitHub");
                 }
             } catch (err) {
                 imgInput.value = "";
                 Swal.fire({
                     icon: 'error',
-                    title: 'فشل رفع الصورة',
-                    text: err.message,
+                    title: 'تعذر رفع الصورة إلى GitHub',
+                    text: 'السبب: ' + err.message,
                     confirmButtonColor: '#0f766e'
                 });
             }
@@ -885,17 +910,14 @@ async function uploadImgBase64(event) {
     reader.readAsDataURL(file);
 }
 
-// 2. دالة زر الحفظ المباشرة والسريعة
+// 3. دالة زر "حفظ" داخل نافذة إضافة/تعديل الصنف
 async function saveFormProduct() {
-    const imgInput = document.getElementById('fImg');
-    const imgVal = imgInput ? imgInput.value.trim() : '';
-
-    // منع الحفظ إذا كانت الصورة لا تزال ترفع إلى ImgBB
+    const imgVal = document.getElementById('fImg').value.trim();
     if (imgVal.includes("⏳")) {
         return Swal.fire({
             icon: 'info',
-            title: 'لحظة واحدة',
-            text: 'يرجى الانتظار حتى يظهر رابط الصورة ثم اضغط حفظ.',
+            title: 'انتظر لحظة...',
+            text: 'جاري رفع الصورة إلى GitHub، انتظر ثانية حتى يظهر الرابط ثم اضغط حفظ.',
             confirmButtonColor: '#0f766e'
         });
     }
@@ -906,16 +928,15 @@ async function saveFormProduct() {
             icon: 'warning',
             title: 'تنبيه',
             text: 'يرجى إدخال اسم الصنف أولاً!',
-            confirmButtonColor: '#0f766e',
-            confirmButtonText: 'حسناً'
+            confirmButtonColor: '#0f766e'
         });
     }
 
     const editId = document.getElementById('editId').value;
     const obj = {
         id: editId ? parseInt(editId) : Date.now(),
-        department: document.getElementById('fDepartment') ? document.getElementById('fDepartment').value : "قسم الجلدية",
-        category: document.getElementById('fCategory') ? document.getElementById('fCategory').value : subCategories[0],
+        department: document.getElementById('fDepartment').value,
+        category: document.getElementById('fCategory').value,
         brand: document.getElementById('fBrand').value.trim() || 'GENERIC',
         name: nameVal,
         details: document.getElementById('fDetails').value.trim(),
@@ -932,17 +953,15 @@ async function saveFormProduct() {
     } else {
         products.unshift(obj);
     }
-
-    // إغلاق النافذة وتحديث الشاشة فوراً لكي لا يتوقف التطبيق أمامك
+    
     closeFormModal();
     renderAll();
 
-    // إرسال التحديث للسحابة وإظهار إشعار النجاح
     const success = await saveSingleProductToCloud(obj);
     if (success) {
         Swal.fire({
             icon: 'success',
-            title: 'تم الحفظ في السحابة بنجاح!',
+            title: 'تم حفظ الصنف وصورته بنجاح!',
             toast: true,
             position: 'bottom',
             showConfirmButton: false,
