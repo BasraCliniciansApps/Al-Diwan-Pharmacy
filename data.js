@@ -798,7 +798,7 @@ function closeFormModal() {
     document.getElementById('formModal').style.display = 'none';
 }
 
-function uploadImgBase64(event) {
+async function uploadImgBase64(event) {
     const file = event.target.files[0];
     if (!file) return;
 
@@ -811,27 +811,68 @@ function uploadImgBase64(event) {
         });
     }
 
-    const imgInput = document.getElementById('fImg');
-    imgInput.value = "⏳ جاري تجهيز وضغط الصورة...";
+    // ضع مفتاح ImgBB المجاني الخاص بك هنا بين علامتي التنصيص
+    const IMGBB_API_KEY = 037b73d4459c5e3bd9cb42bf6bbe73c5;
 
+    const imgInput = document.getElementById('fImg');
+    imgInput.value = "⏳ جاري رفع الصورة للسحابة...";
+
+    // 1. ضغط الصورة أولاً لتصبح خفيفة وسريعة جداً في الرفع (أقل من 40 كيلوبايت)
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
-        img.onload = function() {
+        img.onload = async function() {
             const canvas = document.createElement('canvas');
-            const max = 350;
+            const max = 600; // دقة ممتازة وواضحة جداً
             let w = img.width, h = img.height;
             if (w > h && w > max) { h *= max / w; w = max; }
             else if (h > max) { w *= max / h; h = max; }
             canvas.width = w; canvas.height = h;
             canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-            
-            imgInput.value = canvas.toDataURL('image/jpeg', 0.65);
+
+            // استخراج الصورة المضغوطة بدون البادئة النصية
+            const base64Data = canvas.toDataURL('image/jpeg', 0.80).split(',')[1];
+
+            // 2. إرسال الصورة المضغوطة إلى سحابة ImgBB واستلام الرابط المباشر
+            try {
+                const formData = new FormData();
+                formData.append("image", base64Data);
+
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                    method: "POST",
+                    body: formData
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    // وضع الرابط المباشر القصير والسريع في الحقل!
+                    imgInput.value = result.data.url;
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'تم رفع الصورة وتجهيز الرابط السريع!',
+                        toast: true,
+                        position: 'bottom',
+                        showConfirmButton: false,
+                        timer: 2000
+                    });
+                } else {
+                    throw new Error("تأكد من وضع مفتاح ImgBB الصحيح");
+                }
+            } catch (err) {
+                imgInput.value = "";
+                Swal.fire({
+                    icon: 'error',
+                    title: 'فشل رفع الصورة',
+                    text: err.message,
+                    confirmButtonColor: '#0f766e'
+                });
+            }
         };
         img.src = e.target.result;
     };
     reader.readAsDataURL(file);
 }
+
 
 // حفظ الصنف مع تضمين السعر والكلمات المفتاحية ورفعه فوراً للسحابة
 async function saveFormProduct() {
