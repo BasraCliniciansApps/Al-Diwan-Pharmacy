@@ -811,13 +811,13 @@ async function uploadImgBase64(event) {
         });
     }
 
-    // ضع مفتاح ImgBB المجاني الخاص بك هنا بين علامتي التنصيص
+    // مفتاح ImgBB الخاص بك موضوع بشكل نصي صحيح
     const IMGBB_API_KEY = "037b73d4459c5e3bd9cb42bf6bbe73c5";
 
     const imgInput = document.getElementById('fImg');
     imgInput.value = "⏳ جاري رفع الصورة للسحابة...";
 
-    // 1. ضغط الصورة أولاً لتصبح خفيفة وسريعة جداً في الرفع (أقل من 40 كيلوبايت)
+    // 1. ضغط الصورة أولاً لتصبح خفيفة وسريعة جداً في الرفع
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
@@ -838,14 +838,15 @@ async function uploadImgBase64(event) {
                 const formData = new FormData();
                 formData.append("image", base64Data);
 
-                const response = await fetch(`https://api.imgbb.com/1/upload?key=${037b73d4459c5e3bd9cb42bf6bbe73c5}`, {
+                // ✅ تم التصحيح هنا: استدعاء اسم المتغير IMGBB_API_KEY بشكل سليم
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
                     method: "POST",
                     body: formData
                 });
 
                 const result = await response.json();
                 if (result.success) {
-                    // وضع الرابط المباشر القصير والسريع في الحقل!
+                    // وضع الرابط المباشر القصير والسريع في الحقل
                     imgInput.value = result.data.url;
                     Swal.fire({
                         icon: 'success',
@@ -856,7 +857,7 @@ async function uploadImgBase64(event) {
                         timer: 2000
                     });
                 } else {
-                    throw new Error("037b73d4459c5e3bd9cb42bf6bbe73c5");
+                    throw new Error("فشل الرفع، تأكد من صلاحية مفتاح ImgBB");
                 }
             } catch (err) {
                 imgInput.value = "";
@@ -873,15 +874,15 @@ async function uploadImgBase64(event) {
     reader.readAsDataURL(file);
 }
 
-
 // حفظ الصنف مع تضمين السعر والكلمات المفتاحية ورفعه فوراً للسحابة
 async function saveFormProduct() {
     const imgVal = document.getElementById('fImg').value.trim();
-    if (imgVal === "⏳ جاري تجهيز وضغط الصورة...") {
+    // ✅ منع الحفظ إذا كانت الصورة لا تزال قيد الرفع إلى ImgBB
+    if (imgVal.includes("⏳")) {
         return Swal.fire({
             icon: 'info',
             title: 'لحظة واحدة',
-            text: 'يرجى الانتظار ثانية واحدة حتى يكتمل تجهيز الصورة ثم اضغط حفظ.',
+            text: 'يرجى الانتظار ثانية واحدة حتى يكتمل رفع الصورة وتظهر رسالتها الخضراء ثم اضغط حفظ.',
             confirmButtonColor: '#0f766e'
         });
     }
@@ -901,7 +902,15 @@ async function saveFormProduct() {
         img: imgVal
     };
     
-    if (!obj.name) return alert('يرجى إدخال اسم الصنف');
+    if (!obj.name) {
+        return Swal.fire({
+            icon: 'warning',
+            title: 'تنبيه',
+            text: 'يرجى إدخال اسم الصنف أولاً!',
+            confirmButtonColor: '#0f766e',
+            confirmButtonText: 'حسناً'
+        });
+    }
 
     if (editId) {
         const idx = products.findIndex(x => x.id === parseInt(editId));
@@ -918,7 +927,7 @@ async function saveFormProduct() {
         closeFormModal();
         Swal.fire({
             icon: 'success',
-            title: 'تم حفظ الصورة في السحابة بنجاح!',
+            title: 'تم حفظ الصنف في السحابة بنجاح!',
             toast: true,
             position: 'bottom',
             showConfirmButton: false,
@@ -926,7 +935,6 @@ async function saveFormProduct() {
         });
     }
 }
-
 // دالة الحذف المصححة
 function deleteItem(id) {
     Swal.fire({
