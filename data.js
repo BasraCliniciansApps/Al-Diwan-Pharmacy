@@ -317,31 +317,37 @@ function saveLocal() {
 
 // دالة حفظ منتج واحد فقط في السحابة مع التأكد من وصوله للإنترنت
 async function saveSingleProductToCloud(product) {
+async function saveSingleProductToCloud(product) {
     saveLocal();
+    
     if (!isFirebaseReady || !currentUser) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'تنبيه هام',
-            text: 'تم الحفظ في جهازك فقط لأنك غير مسجل الدخول كصيدلي! يرجى تسجيل الدخول ليرتفع التعديل للإنترنت.',
+        await Swal.fire({
+            icon: 'error',
+            title: 'أنت غير مسجل الدخول!',
+            text: 'اضغط على أيقونة الصيدلي (👤) في الأعلى وسجل الدخول أولاً، وإلا ستختفي الصورة عند تحديث الصفحة!',
             confirmButtonColor: '#0f766e',
-            confirmButtonText: 'حسناً'
+            confirmButtonText: 'فهمت'
         });
-        return;
+        return false;
     }
 
     const badge = document.getElementById('syncBadge');
     badge.innerText = "⏳ جاري الرفع...";
+    
     try {
+        // إرسال المنتج وصورته إلى السحابة والانتظار حتى تأكيد الاستلام
         await db.collection('pharmacy_products').doc(product.id.toString()).set(product);
         badge.innerText = "☁️ تم الحفظ";
+        return true;
     } catch (err) {
         badge.innerText = "❌ فشل الحفظ";
-        Swal.fire({
+        await Swal.fire({
             icon: 'error',
-            title: 'فشل الرفع للإنترنت',
-            text: 'تعذر حفظ الصنف في السحابة: ' + err.message,
+            title: 'رفضت السحابة حفظ الصورة!',
+            text: 'السبب التقني: ' + err.message,
             confirmButtonColor: '#0f766e'
         });
+        return false;
     }
 }
 
@@ -803,47 +809,28 @@ function uploadImgBase64(event) {
         return Swal.fire({
             icon: 'warning',
             title: 'صيغة غير مدعومة',
-            text: 'يرجى اختيار صورة صحيحة بدلاً من هذا الملف!',
-            confirmButtonColor: '#0f766e',
-            confirmButtonText: 'حسناً'
+            text: 'يرجى اختيار صورة صحيحة!',
+            confirmButtonColor: '#0f766e'
         });
     }
+
+    const imgInput = document.getElementById('fImg');
+    imgInput.value = "⏳ جاري تجهيز وضغط الصورة...";
 
     const reader = new FileReader();
     reader.onload = function(e) {
         const img = new Image();
         img.onload = function() {
-            try {
-                const canvas = document.createElement('canvas');
-                const max = 380; // حجم مثالي وسريع جداً للرفع السحابي
-                let w = img.width, h = img.height;
-                
-                if (w > h && w > max) { h *= max / w; w = max; }
-                else if (h > max) { w *= max / h; h = max; }
-                
-                canvas.width = w; 
-                canvas.height = h;
-                canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-                
-                document.getElementById('fImg').value = canvas.toDataURL('image/jpeg', 0.68);
-            } catch (error) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'خطأ في المعالجة',
-                    text: 'حدث خطأ أثناء ضغط الصورة، يرجى المحاولة بصورة أخرى.',
-                    confirmButtonColor: '#0f766e',
-                    confirmButtonText: 'حسناً'
-                });
-            }
-        };
-        img.onerror = function() {
-            Swal.fire({
-                icon: 'error',
-                title: 'صورة تالفة',
-                text: 'لا يمكن قراءة هذه الصورة، قد يكون الملف تالفاً.',
-                confirmButtonColor: '#0f766e',
-                confirmButtonText: 'حسناً'
-            });
+            const canvas = document.createElement('canvas');
+            const max = 350; // مقاس خفيف جداً يضمن الرفع في أقل من ثانية
+            let w = img.width, h = img.height;
+            if (w > h && w > max) { h *= max / w; w = max; }
+            else if (h > max) { w *= max / h; h = max; }
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            
+            // وضع كود الصورة الجاهز في الحقل
+            imgInput.value = canvas.toDataURL('image/jpeg', 0.65);
         };
         img.src = e.target.result;
     };
@@ -852,6 +839,17 @@ function uploadImgBase64(event) {
 
 // حفظ الصنف مع تضمين السعر والكلمات المفتاحية ورفعه فوراً للسحابة
 function saveFormProduct() {
+async function saveFormProduct() {
+    const imgVal = document.getElementById('fImg').value.trim();
+    if (imgVal === "⏳ جاري تجهيز وضغط الصورة...") {
+        return Swal.fire({
+            icon: 'info',
+            title: 'لحظة واحدة',
+            text: 'يرجى الانتظار ثانية واحدة حتى يكتمل تجهيز الصورة ثم اضغط حفظ.',
+            confirmButtonColor: '#0f766e'
+        });
+    }
+
     const editId = document.getElementById('editId').value;
     const obj = {
         id: editId ? parseInt(editId) : Date.now(),
@@ -864,18 +862,10 @@ function saveFormProduct() {
         qty: parseInt(document.getElementById('fQty').value) || 0,
         price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
         keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
-        img: document.getElementById('fImg').value.trim()
+        img: imgVal
     };
     
-    if (!obj.name) {
-        return Swal.fire({
-            icon: 'warning',
-            title: 'تنبيه',
-            text: 'يرجى إدخال اسم الصنف أولاً!',
-            confirmButtonColor: '#0f766e',
-            confirmButtonText: 'حسناً'
-        });
-    }
+    if (!obj.name) return alert('يرجى إدخال اسم الصنف');
 
     if (editId) {
         const idx = products.findIndex(x => x.id === parseInt(editId));
@@ -884,9 +874,21 @@ function saveFormProduct() {
         products.unshift(obj);
     }
     
-    saveSingleProductToCloud(obj);
-    closeFormModal();
     renderAll();
+
+    // انتظار الرفع الفعلي للإنترنت قبل إغلاق النافذة!
+    const success = await saveSingleProductToCloud(obj);
+    if (success) {
+        closeFormModal();
+        Swal.fire({
+            icon: 'success',
+            title: 'تم حفظ الصورة في السحابة بنجاح!',
+            toast: true,
+            position: 'bottom',
+            showConfirmButton: false,
+            timer: 2000
+        });
+    }
 }
 
 // دالة الحذف المصححة (تحذف محلياً ومن السحابة أيضاً)
