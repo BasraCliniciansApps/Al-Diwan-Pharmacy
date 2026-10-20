@@ -314,40 +314,51 @@ function saveLocal() {
     }
 }
 
-// دالة حفظ منتج واحد فقط في السحابة مع التأكد من وصوله للإنترنت
+// 1. دالة الحفظ السحابي المزودة بمؤقت حماية ضد التعليق
 async function saveSingleProductToCloud(product) {
     saveLocal();
     
+    // التحقق من تسجيل الدخول كصيدلي
     if (!isFirebaseReady || !currentUser) {
         await Swal.fire({
             icon: 'error',
             title: 'أنت غير مسجل الدخول!',
-            text: 'اضغط على أيقونة الصيدلي (👤) في الأعلى وسجل الدخول أولاً، وإلا ستختفي الصورة عند تحديث الصفحة!',
+            text: 'يرجى الضغط على أيقونة الصيدلي في الأعلى وتسجيل الدخول أولاً ليتم الحفظ في السحابة.',
             confirmButtonColor: '#0f766e',
-            confirmButtonText: 'فهمت'
+            confirmButtonText: 'حسناً'
         });
         return false;
     }
 
     const badge = document.getElementById('syncBadge');
-    badge.innerText = "⏳ جاري الرفع...";
+    if (badge) badge.innerText = "⏳ جاري الحفظ...";
     
     try {
-        await db.collection('pharmacy_products').doc(product.id.toString()).set(product);
-        badge.innerText = "☁️ تم الحفظ";
+        // تنظيف الكائن من أي قيم غير معرفة (undefined) قد تمنع Firebase من الحفظ
+        const cleanProduct = JSON.parse(JSON.stringify(product));
+
+        // إرسال البيانات للسحابة مع مؤقت أمان (8 ثوانٍ) لكسر أي تعليق قديم في المتصفح
+        const savePromise = db.collection('pharmacy_products').doc(cleanProduct.id.toString()).set(cleanProduct);
+        const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error("تأخر الاتصال بالسحابة بسبب امتلاء الذاكرة المؤقتة للمتصفح، يرجى مسح بيانات الموقع من إعدادات المتصفح لمرة واحدة.")), 8000)
+        );
+
+        await Promise.race([savePromise, timeoutPromise]);
+
+        if (badge) badge.innerText = "☁️ تم الحفظ";
         return true;
     } catch (err) {
-        badge.innerText = "❌ فشل الحفظ";
+        if (badge) badge.innerText = "❌ فشل الحفظ";
         await Swal.fire({
             icon: 'error',
-            title: 'رفضت السحابة حفظ الصورة!',
-            text: 'السبب التقني: ' + err.message,
-            confirmButtonColor: '#0f766e'
+            title: 'تنبيه من السحابة',
+            text: err.message,
+            confirmButtonColor: '#0f766e',
+            confirmButtonText: 'فهمت'
         });
         return false;
     }
 }
-
 // دالة حفظ الأقسام والتصنيفات (أو الرفع التأسيسي الأول)
 async function pushToCloud(onlyMetadata = false) {
     saveLocal();
@@ -874,35 +885,23 @@ async function uploadImgBase64(event) {
     reader.readAsDataURL(file);
 }
 
-// حفظ الصنف مع تضمين السعر والكلمات المفتاحية ورفعه فوراً للسحابة
+// 2. دالة زر الحفظ المباشرة والسريعة
 async function saveFormProduct() {
-    const imgVal = document.getElementById('fImg').value.trim();
-    // ✅ منع الحفظ إذا كانت الصورة لا تزال قيد الرفع إلى ImgBB
+    const imgInput = document.getElementById('fImg');
+    const imgVal = imgInput ? imgInput.value.trim() : '';
+
+    // منع الحفظ إذا كانت الصورة لا تزال ترفع إلى ImgBB
     if (imgVal.includes("⏳")) {
         return Swal.fire({
             icon: 'info',
             title: 'لحظة واحدة',
-            text: 'يرجى الانتظار ثانية واحدة حتى يكتمل رفع الصورة وتظهر رسالتها الخضراء ثم اضغط حفظ.',
+            text: 'يرجى الانتظار حتى يظهر رابط الصورة ثم اضغط حفظ.',
             confirmButtonColor: '#0f766e'
         });
     }
 
-    const editId = document.getElementById('editId').value;
-    const obj = {
-        id: editId ? parseInt(editId) : Date.now(),
-        department: document.getElementById('fDepartment').value,
-        category: document.getElementById('fCategory').value,
-        brand: document.getElementById('fBrand').value.trim() || 'GENERIC',
-        name: document.getElementById('fName').value.trim(),
-        details: document.getElementById('fDetails').value.trim(),
-        meta: fixMetaOrder(document.getElementById('fMeta').value.trim()),
-        qty: parseInt(document.getElementById('fQty').value) || 0,
-        price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
-        keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
-        img: imgVal
-    };
-    
-    if (!obj.name) {
+    const nameVal = document.getElementById('fName').value.trim();
+    if (!nameVal) {
         return Swal.fire({
             icon: 'warning',
             title: 'تنبيه',
@@ -912,22 +911,38 @@ async function saveFormProduct() {
         });
     }
 
+    const editId = document.getElementById('editId').value;
+    const obj = {
+        id: editId ? parseInt(editId) : Date.now(),
+        department: document.getElementById('fDepartment') ? document.getElementById('fDepartment').value : "قسم الجلدية",
+        category: document.getElementById('fCategory') ? document.getElementById('fCategory').value : subCategories[0],
+        brand: document.getElementById('fBrand').value.trim() || 'GENERIC',
+        name: nameVal,
+        details: document.getElementById('fDetails').value.trim(),
+        meta: fixMetaOrder(document.getElementById('fMeta').value.trim()),
+        qty: parseInt(document.getElementById('fQty').value) || 0,
+        price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
+        keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
+        img: imgVal
+    };
+
     if (editId) {
         const idx = products.findIndex(x => x.id === parseInt(editId));
         if (idx > -1) products[idx] = obj;
     } else {
         products.unshift(obj);
     }
-    
+
+    // إغلاق النافذة وتحديث الشاشة فوراً لكي لا يتوقف التطبيق أمامك
+    closeFormModal();
     renderAll();
 
-    // انتظار الرفع الفعلي للإنترنت قبل إغلاق النافذة
+    // إرسال التحديث للسحابة وإظهار إشعار النجاح
     const success = await saveSingleProductToCloud(obj);
     if (success) {
-        closeFormModal();
         Swal.fire({
             icon: 'success',
-            title: 'تم حفظ الصنف في السحابة بنجاح!',
+            title: 'تم الحفظ في السحابة بنجاح!',
             toast: true,
             position: 'bottom',
             showConfirmButton: false,
