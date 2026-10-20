@@ -243,8 +243,6 @@ async function initFirebase() {
         db = firebase.firestore();
         isFirebaseReady = true;
 
-        // ملاحظة هامة: تم إزالة enablePersistence لأنها تحبس الصور محلياً وتمنع رفعها المباشر للسحابة
-
         // الفرض الصارم لبقاء تسجيل الدخول دائماً
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
@@ -318,7 +316,6 @@ function saveLocal() {
 
 // دالة حفظ منتج واحد فقط في السحابة مع التأكد من وصوله للإنترنت
 async function saveSingleProductToCloud(product) {
-async function saveSingleProductToCloud(product) {
     saveLocal();
     
     if (!isFirebaseReady || !currentUser) {
@@ -336,7 +333,6 @@ async function saveSingleProductToCloud(product) {
     badge.innerText = "⏳ جاري الرفع...";
     
     try {
-        // إرسال المنتج وصورته إلى السحابة والانتظار حتى تأكيد الاستلام
         await db.collection('pharmacy_products').doc(product.id.toString()).set(product);
         badge.innerText = "☁️ تم الحفظ";
         return true;
@@ -509,7 +505,7 @@ function addDepartment() {
     if (val && !departments.includes(val)) {
         departments.push(val);
         document.getElementById('newDeptInput').value = '';
-        pushToCloud(true); // حفظ الأقسام فقط بسرعة
+        pushToCloud(true);
         renderManagerLists();
         renderAll();
     }
@@ -534,7 +530,7 @@ function addSubCategory() {
     if (val && !subCategories.includes(val)) {
         subCategories.push(val);
         document.getElementById('newSubCatInput').value = '';
-        pushToCloud(true); // حفظ التصنيفات فقط بسرعة
+        pushToCloud(true);
         renderManagerLists();
         renderAll();
     }
@@ -823,14 +819,13 @@ function uploadImgBase64(event) {
         const img = new Image();
         img.onload = function() {
             const canvas = document.createElement('canvas');
-            const max = 350; // مقاس خفيف جداً يضمن الرفع في أقل من ثانية
+            const max = 350;
             let w = img.width, h = img.height;
             if (w > h && w > max) { h *= max / w; w = max; }
             else if (h > max) { w *= max / h; h = max; }
             canvas.width = w; canvas.height = h;
             canvas.getContext('2d').drawImage(img, 0, 0, w, h);
             
-            // وضع كود الصورة الجاهز في الحقل
             imgInput.value = canvas.toDataURL('image/jpeg', 0.65);
         };
         img.src = e.target.result;
@@ -839,7 +834,6 @@ function uploadImgBase64(event) {
 }
 
 // حفظ الصنف مع تضمين السعر والكلمات المفتاحية ورفعه فوراً للسحابة
-function saveFormProduct() {
 async function saveFormProduct() {
     const imgVal = document.getElementById('fImg').value.trim();
     if (imgVal === "⏳ جاري تجهيز وضغط الصورة...") {
@@ -877,7 +871,7 @@ async function saveFormProduct() {
     
     renderAll();
 
-    // انتظار الرفع الفعلي للإنترنت قبل إغلاق النافذة!
+    // انتظار الرفع الفعلي للإنترنت قبل إغلاق النافذة
     const success = await saveSingleProductToCloud(obj);
     if (success) {
         closeFormModal();
@@ -892,7 +886,7 @@ async function saveFormProduct() {
     }
 }
 
-// دالة الحذف المصححة (تحذف محلياً ومن السحابة أيضاً)
+// دالة الحذف المصححة
 function deleteItem(id) {
     Swal.fire({
         title: 'هل أنت متأكد؟',
@@ -906,7 +900,7 @@ function deleteItem(id) {
     }).then(async (result) => {
         if (result.isConfirmed) {
             products = products.filter(x => x.id !== id);
-            saveLocal(); // تم تصحيح الاسم من saveStorage إلى saveLocal
+            saveLocal();
             
             if (isFirebaseReady && currentUser) {
                 try {
