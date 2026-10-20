@@ -311,7 +311,8 @@ function saveLocal() {
         localStorage.setItem('diwanSubCats', JSON.stringify(subCategories));
         localStorage.setItem('diwanProducts', JSON.stringify(products));
     } catch (e) {
-        console.warn("ذاكرة المتصفح ممتلئة، يتم الاعتماد على السحابة مباشرة.");
+        // إذا امتلأت ذاكرة المتصفح، نمسح النسخة المحلية القديمة لكي يقرأ المتصفح من السحابة المحدثة دائماً!
+        localStorage.removeItem('diwanProducts');
     }
 }
 
