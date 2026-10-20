@@ -812,7 +812,7 @@ async function uploadImgBase64(event) {
     }
 
     // ضع مفتاح ImgBB المجاني الخاص بك هنا بين علامتي التنصيص
-    const IMGBB_API_KEY = 037b73d4459c5e3bd9cb42bf6bbe73c5;
+    const IMGBB_API_KEY = "037b73d4459c5e3bd9cb42bf6bbe73c5";
 
     const imgInput = document.getElementById('fImg');
     imgInput.value = "⏳ جاري رفع الصورة للسحابة...";
