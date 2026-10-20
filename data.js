@@ -838,7 +838,7 @@ async function uploadImgBase64(event) {
                 const formData = new FormData();
                 formData.append("image", base64Data);
 
-                const response = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, {
+                const response = await fetch(`https://api.imgbb.com/1/upload?key=${037b73d4459c5e3bd9cb42bf6bbe73c5}`, {
                     method: "POST",
                     body: formData
                 });
@@ -856,7 +856,7 @@ async function uploadImgBase64(event) {
                         timer: 2000
                     });
                 } else {
-                    throw new Error("تأكد من وضع مفتاح ImgBB الصحيح");
+                    throw new Error("037b73d4459c5e3bd9cb42bf6bbe73c5");
                 }
             } catch (err) {
                 imgInput.value = "";
