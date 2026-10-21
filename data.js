@@ -208,12 +208,12 @@ let subCategories = JSON.parse(localStorage.getItem('diwanSubCats')) || defaultS
 
 let activeDept = departments[0] || "قسم الجلدية";
 let mainTab = 'all';
-let activeSubCat = 'الكل'; // ✅ تم إعادة هذا السطر الضروري الذي حُذف بالخطأ
+let activeSubCat = 'الكل'; // ✅ هذا هو السطر المفقود الذي تسبب بتوقف التطبيق!
 let activeBrand = 'الكل';  // الشركة المختارة للفلترة
 
 // رقم واتساب الصيدلية (مع مفتاح العراق 964 بدون الصفر الأول) ويوزر صفحة الانستغرام:
 const PHARMACY_WHATSAPP = "9647805261843"; 
-const PHARMACY_INSTAGRAM = "ald1_pharmacy";
+const PHARMACY_INSTAGRAM = "ald1_pharmacy"; 
 
 let currentOpenId = null;
 let db = null;
@@ -1157,7 +1157,6 @@ async function shareProduct(id, platform) {
     const baseUrl = window.location.origin + window.location.pathname;
     const productLink = `${baseUrl}?product=${p.id}`;
 
-    // رسالة مختصرة وأنيقة تحتوي على اسم الصنف والرابط المباشر فقط
     const msg = `🏥 *صيدلية الديوان*\n💊 *${p.name}*\n🔗 اضغط على الرابط لعرض المنتج:\n${productLink}`;
 
     if (platform === 'whatsapp') {
@@ -1165,7 +1164,6 @@ async function shareProduct(id, platform) {
         window.open(waUrl, '_blank');
     } else if (platform === 'instagram') {
         try {
-            // نسخ الرابط إلى الحافظة ليتم لصقه في دايركت الانستغرام
             await navigator.clipboard.writeText(msg);
             await Swal.fire({
                 icon: 'success',
@@ -1179,7 +1177,7 @@ async function shareProduct(id, platform) {
     }
 }
 
-// دالة تفحص الرابط عند فتح الموقع: إذا كان يحتوي على (?product=ID) تفتح بطاقة الدواء فوراً!
+// دالة تفحص الرابط عند فتح الموقع: إذا كان يحتوي على (?product=ID) تفتح بطاقة الدواء فوراً
 function checkSharedProductUrl() {
     const params = new URLSearchParams(window.location.search);
     const sharedId = params.get('product');
@@ -1195,5 +1193,5 @@ function checkSharedProductUrl() {
 window.onload = function() {
     renderAll();
     initFirebase();
-    checkSharedProductUrl(); // فحص الرابط فور فتح التطبيق
+    checkSharedProductUrl();
 };
