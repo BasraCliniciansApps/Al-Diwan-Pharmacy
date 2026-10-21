@@ -715,8 +715,15 @@ body.admin-mode .sheet-admin-box { display: block; }
     border-radius: 20px;
     transition: background 0.18s, color 0.18s;
     flex: 1;
+    min-width: 0;
 }
 .nav-tab span.nav-ico { font-size: 1.25rem; line-height: 1.2; }
+.nav-tab span:not(.nav-ico) {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
 
 .nav-tab.active {
     background: var(--gold);
@@ -784,6 +791,14 @@ body.admin-mode .sheet-admin-box { display: block; }
     background: #fff;
     border-color: var(--gold);
     box-shadow: 0 0 0 3px rgba(249, 168, 37, 0.22);
+}
+
+/* صفوف تواريخ النفاذ المتعددة */
+.expiry-row { display: flex; gap: 6px; margin-bottom: 6px; align-items: center; }
+.expiry-row .expiry-input { flex: 1; }
+.expiry-row .expiry-remove {
+    width: 42px; height: 40px; padding: 0; flex-shrink: 0;
+    background: #fee2e2; color: #b91c1c; border-color: #fecaca;
 }
 
 .modal-actions-row { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }

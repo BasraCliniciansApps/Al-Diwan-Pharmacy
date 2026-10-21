@@ -852,8 +852,12 @@ function openSheet(id) {
         : `<span class="form-badge" style="background:#fee2e2; color:#b91c1c;">نافذ (0) | ${formattedPrice} د.ع</span>`;
 
     // سطر تاريخ النفاذ داخل لوحة الصيدلي فقط
-    const expiryInfo = p.expiryDate 
-        ? `<div style="font-size:0.78rem; font-weight:700; color:#475569; margin-bottom:8px;">📅 تاريخ النفاذ: <span dir="ltr">${p.expiryDate}</span></div>` 
+    const expDates = getProductExpiryDates(p);
+    const expiryInfo = expDates.length
+        ? `<div style="font-size:0.78rem; font-weight:700; color:#475569; margin-bottom:8px;">📅 ${expDates.length > 1 ? 'تواريخ النفاذ' : 'تاريخ النفاذ'}: ${expDates.map(dt => {
+            const st = getExpiryStatus(dt);
+            return `<span dir="ltr" style="display:inline-block; margin:0 0 3px 4px; padding:1px 8px; border-radius:6px; background:${st ? st.bg : '#f1f5f9'}; color:${st ? st.color : '#334155'};">${dt}</span>`;
+        }).join('')}</div>`
         : `<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📅 تاريخ النفاذ: غير محدد</div>`;
 
     document.getElementById('sheetContent').innerHTML = `
@@ -968,7 +972,7 @@ function openFormModal(id = null) {
         document.getElementById('fImg').value = p.img || '';
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = p.price || 0;
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = p.keywords || '';
-      if (document.getElementById('fExpiry')) document.getElementById('fExpiry').value = p.expiryDate || '';
+        setExpiryDatesInForm(getProductExpiryDates(p));
     } else {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
@@ -982,7 +986,7 @@ function openFormModal(id = null) {
         document.getElementById('fImg').value = '';
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = 0;
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = '';
-      if (document.getElementById('fExpiry')) document.getElementById('fExpiry').value = '';
+        setExpiryDatesInForm([]);
     }
     modal.style.display = 'flex';
 }
@@ -1127,6 +1131,7 @@ async function saveFormProduct() {
         });
     }
 
+    const expiryDates = getExpiryDatesFromForm();
     const editId = document.getElementById('editId').value;
     const obj = {
         id: editId ? parseInt(editId) : Date.now(),
@@ -1139,7 +1144,8 @@ async function saveFormProduct() {
         meta: fixMetaOrder(document.getElementById('fMeta').value.trim()),
         qty: parseInt(document.getElementById('fQty').value) || 0,
         price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
-      expiryDate: document.getElementById('fExpiry') ? document.getElementById('fExpiry').value : '',
+        expiryDates: expiryDates,
+        expiryDate: expiryDates[0] || '',   // الأقرب نفاذاً (للتوافق مع الأكواد القديمة)
         keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
         img: imgVal
       
@@ -1214,6 +1220,38 @@ function zoomImage(src) {
 // ============================================================================
 // 8. نظام مراقبة تواريخ النفاذ (قبل 6 أشهر وقبل 3 أشهر) - خاص بالصيدلي
 // ============================================================================
+// كل تواريخ نفاذ المنتج (يدعم الصيغة القديمة: تاريخ واحد فقط)
+function getProductExpiryDates(p) {
+    const arr = (Array.isArray(p.expiryDates) && p.expiryDates.length) ? p.expiryDates : (p.expiryDate ? [p.expiryDate] : []);
+    return [...new Set(arr.filter(Boolean))].sort();   // الأقرب أولاً (YYYY-MM)
+}
+
+function addExpiryRow(value = '') {
+    const wrap = document.getElementById('expiryDatesWrap');
+    if (!wrap) return;
+    const row = document.createElement('div');
+    row.className = 'expiry-row';
+    row.innerHTML = `<input type="month" dir="ltr" class="expiry-input" value="${value}">
+        <button type="button" class="icon-btn expiry-remove" title="حذف هذا التاريخ">✕</button>`;
+    row.querySelector('.expiry-remove').onclick = () => {
+        row.remove();
+        if (!wrap.children.length) addExpiryRow();   // دائماً يبقى حقل واحد على الأقل
+    };
+    wrap.appendChild(row);
+}
+
+function setExpiryDatesInForm(dates) {
+    const wrap = document.getElementById('expiryDatesWrap');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    (dates && dates.length ? dates : ['']).forEach(dt => addExpiryRow(dt));
+}
+
+function getExpiryDatesFromForm() {
+    const inputs = document.querySelectorAll('#expiryDatesWrap .expiry-input');
+    return [...new Set([...inputs].map(i => i.value).filter(Boolean))].sort();
+}
+
 function getExpiryStatus(expiryDateStr) {
     if (!expiryDateStr) return null; // الصيغة قادمة كـ "YYYY-MM"
     
@@ -1241,10 +1279,14 @@ function getExpiryStatus(expiryDateStr) {
 }
 
 function getExpiringProducts() {
-    return products
-        .map(p => ({ product: p, status: getExpiryStatus(p.expiryDate) }))
-        .filter(item => item.status !== null)
-        .sort((a, b) => a.status.days - b.status.days); // الأقرب للانتهاء يظهر أولاً
+    const list = [];
+    products.forEach(p => {
+        getProductExpiryDates(p).forEach(date => {
+            const status = getExpiryStatus(date);
+            if (status) list.push({ product: p, status, date });
+        });
+    });
+    return list.sort((a, b) => a.status.days - b.status.days);   // الأقرب للانتهاء أولاً
 }
 
 function updateExpiryBadge() {
@@ -1266,7 +1308,7 @@ function openExpiryModal() {
     if (expiringList.length === 0) {
         listContainer.innerHTML = `<div style="text-align:center; padding:25px; color:#15803d; font-weight:700;">✅ لا توجد أي مواد منتهية أو قريبة النفاذ (خلال 6 أشهر القادمة).</div>`;
     } else {
-        listContainer.innerHTML = expiringList.map(({ product, status }) => `
+        listContainer.innerHTML = expiringList.map(({ product, status, date }) => `
             <div onclick="closeExpiryModal(); openSheet(${product.id});" style="cursor:pointer; padding:10px 12px; border-radius:10px; background:${status.bg}; border:1px solid ${status.border}; display:flex; justify-content:space-between; align-items:center; gap:10px;">
                 <div>
                     <div style="font-weight:800; font-size:0.88rem; color:#0f172a;" dir="ltr">${product.name}</div>
@@ -1274,7 +1316,7 @@ function openExpiryModal() {
                 </div>
                 <div style="text-align:left; flex-shrink:0;">
                     <div style="font-size:0.74rem; font-weight:800; color:${status.color};">${status.label}</div>
-                    <div style="font-size:0.72rem; font-weight:700; color:#334155;" dir="ltr">📅 ${product.expiryDate}</div>
+                    <div style="font-size:0.72rem; font-weight:700; color:#334155;" dir="ltr">📅 ${date}</div>
                 </div>
             </div>
         `).join('');
@@ -1574,7 +1616,7 @@ async function scanProductImage(event) {
             if (fullName) document.getElementById('fName').value = fullName;
             if (parsed.meta) document.getElementById('fMeta').value = parsed.meta;
             if (parsed.brand) document.getElementById('fBrand').value = parsed.brand;
-            if (parsed.expiry && document.getElementById('fExpiry')) document.getElementById('fExpiry').value = parsed.expiry;
+            if (parsed.expiry) setExpiryDatesInForm([...getExpiryDatesFromForm(), parsed.expiry]);
         }
     } catch (err) {
         setStatus('');
