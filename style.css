@@ -573,3 +573,82 @@ body.admin-mode .sheet-admin-box { display: block; }
 
 .img-zoom-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
 .img-zoom-modal img { max-width: 96%; max-height: 88vh; border-radius: 12px; }
+
+/* شريط الشركات المصنعة */
+.brands-bar {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--border);
+}
+
+.brand-pill {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: 0.2s;
+}
+
+.brand-pill.active {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+}
+
+/* نقطة العداد الحمراء فوق جرس التنبيهات */
+.expiry-badge-dot {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 800;
+    min-width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 1.5px solid white;
+}
+
+/* أزرار المشاركة (واتساب وإنستغرام) */
+.share-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.share-btn {
+    flex: 1;
+    height: 40px;
+    border-radius: 10px;
+    font-size: 0.84rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    border: none;
+    color: white;
+    text-decoration: none;
+}
+
+.share-wa {
+    background: #16a34a;
+}
+
+.share-ig {
+    background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+}
