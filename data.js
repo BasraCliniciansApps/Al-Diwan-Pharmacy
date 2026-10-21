@@ -208,7 +208,11 @@ let subCategories = JSON.parse(localStorage.getItem('diwanSubCats')) || defaultS
 
 let activeDept = departments[0] || "قسم الجلدية";
 let mainTab = 'all';
-let activeSubCat = 'الكل';
+let activeBrand = 'الكل'; // الشركة المختارة للفلترة
+
+// ضع رقم واتساب الصيدلية (مع مفتاح العراق 964 بدون أصفار في البداية) ويوزر صفحة الانستغرام:
+const PHARMACY_WHATSAPP = "07805261843"; 
+const PHARMACY_INSTAGRAM = "ald1_pharmacy"; // ضع يوزر انستغرام الصيدلية هنا بدون @
 let currentOpenId = null;
 let db = null;
 let auth = null;
@@ -569,23 +573,20 @@ function renderDepartmentsBar() {
 function selectDepartment(d) {
     activeDept = d;
     activeSubCat = 'الكل';
+    activeBrand = 'الكل';
     renderAll();
 }
 
 function setMainTab(tab) {
     mainTab = tab;
     activeSubCat = 'الكل';
+    activeBrand = 'الكل';
     document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
     
-    if (tab === 'all') {
-        document.getElementById('navAll').classList.add('active');
-    } else if (tab === 'rx') {
-        document.getElementById('navRx').classList.add('active');
-    } else if (tab === 'cosmetic') {
-        document.getElementById('navCosmetic').classList.add('active');
-    } else if (tab === 'out') {
-        document.getElementById('navOut').classList.add('active');
-    }
+    if (tab === 'all') document.getElementById('navAll').classList.add('active');
+    else if (tab === 'rx') document.getElementById('navRx').classList.add('active');
+    else if (tab === 'cosmetic') document.getElementById('navCosmetic').classList.add('active');
+    else if (tab === 'out') document.getElementById('navOut').classList.add('active');
     renderAll();
 }
 
@@ -619,6 +620,35 @@ function renderPills() {
 
 function selectSubCat(c) {
     activeSubCat = c;
+    activeBrand = 'الكل';
+    renderAll();
+}
+
+// دالة توليد شريط فلاتر الشركات المصنعة تلقائياً
+function renderBrands() {
+    const bar = document.getElementById('brandsBar');
+    if (!bar) return;
+
+    const baseItems = getBaseFilteredByTab().filter(p => activeSubCat === 'الكل' || p.category === activeSubCat);
+    
+    // استخراج أسماء الشركات الفريدة وترتيبها أبجدياً
+    const uniqueBrands = [...new Set(baseItems.map(p => (p.brand || 'GENERIC').trim()))].filter(Boolean).sort();
+    const allBrands = ['الكل', ...uniqueBrands];
+
+    bar.innerHTML = allBrands.map(b => {
+        const count = b === 'الكل' ? baseItems.length : baseItems.filter(x => (x.brand || 'GENERIC').trim() === b).length;
+        const active = activeBrand === b ? 'active' : '';
+        return `
+            <button class="brand-pill ${active}" onclick="selectBrand('${b.replace(/'/g, "\\'")}')">
+                <span dir="ltr">${b}</span>
+                <span class="pill-num">${count}</span>
+            </button>
+        `;
+    }).join('');
+}
+
+function selectBrand(b) {
+    activeBrand = b;
     renderAll();
 }
 
@@ -637,6 +667,8 @@ function clearSearch() {
 function renderAll() {
     renderDepartmentsBar();
     renderPills();
+    renderBrands();
+    updateExpiryBadge(); // تحديث عداد جرس الصلاحية للصيدلي
 
     const tabTitle = mainTab === 'all' ? 'جميع الأصناف' 
                    : mainTab === 'rx' ? 'الأدوية العلاجية (Rx)' 
@@ -649,9 +681,10 @@ function renderAll() {
 
     const filtered = baseItems.filter(p => {
         const matchCat = activeSubCat === 'الكل' || p.category === activeSubCat;
+        const matchBrand = activeBrand === 'الكل' || (p.brand || 'GENERIC').trim() === activeBrand;
         const text = `${p.name} ${p.brand} ${p.details} ${p.meta} ${p.category} ${p.keywords || ''}`.toLowerCase();
         const matchQ = !query || text.includes(query);
-        return matchCat && matchQ;
+        return matchCat && matchBrand && matchQ;
     });
 
     document.getElementById('countLabel').innerText = `${filtered.length} صنف`;
@@ -678,7 +711,6 @@ function renderAll() {
         `;
     }).join('');
 }
-
 function openSheet(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
@@ -689,6 +721,11 @@ function openSheet(id) {
     const stockTag = p.qty > 0 
         ? `<span class="form-badge" style="background:#dcfce7; color:#15803d;">متوفر (${p.qty}) | ${formattedPrice} د.ع</span>`
         : `<span class="form-badge" style="background:#fee2e2; color:#b91c1c;">نافذ (0) | ${formattedPrice} د.ع</span>`;
+
+    // سطر تاريخ النفاذ داخل لوحة الصيدلي فقط
+    const expiryInfo = p.expiryDate 
+        ? `<div style="font-size:0.78rem; font-weight:700; color:#475569; margin-bottom:8px;">📅 تاريخ النفاذ: <span dir="ltr">${p.expiryDate}</span></div>` 
+        : `<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📅 تاريخ النفاذ: غير محدد</div>`;
 
     document.getElementById('sheetContent').innerHTML = `
         <div class="sheet-header">
@@ -721,8 +758,19 @@ function openSheet(id) {
             </div>
         </div>
 
+        <!-- أزرار مشاركة المنتج إلى واتساب أو دايركت انستغرام -->
+        <div class="share-row">
+            <button class="share-btn share-wa" onclick="shareProduct(${p.id}, 'whatsapp')">
+                <span>💬</span> <span>مشاركة واتساب</span>
+            </button>
+            <button class="share-btn share-ig" onclick="shareProduct(${p.id}, 'instagram')">
+                <span>📸</span> <span>دايركت انستغرام</span>
+            </button>
+        </div>
+
         <div class="sheet-admin-box">
-            <div style="font-size:0.8rem; font-weight:800; color:#b45309; margin-bottom:8px;">⚙️ تحكم الصيدلي المباشر</div>
+            <div style="font-size:0.8rem; font-weight:800; color:#b45309; margin-bottom:4px;">⚙️ تحكم الصيدلي المباشر</div>
+            ${expiryInfo}
             <div class="admin-row">
                 <div class="qty-control-lg">
                     <button onclick="updateItemQty(${p.id}, -1)">-</button>
@@ -778,6 +826,7 @@ function openFormModal(id = null) {
         document.getElementById('fImg').value = p.img || '';
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = p.price || 0;
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = p.keywords || '';
+      if (document.getElementById('fExpiry')) document.getElementById('fExpiry').value = p.expiryDate || '';
     } else {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
@@ -790,6 +839,7 @@ function openFormModal(id = null) {
         document.getElementById('fImg').value = '';
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = 0;
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = '';
+      if (document.getElementById('fExpiry')) document.getElementById('fExpiry').value = '';
     }
     modal.style.display = 'flex';
 }
@@ -945,8 +995,10 @@ async function saveFormProduct() {
         meta: fixMetaOrder(document.getElementById('fMeta').value.trim()),
         qty: parseInt(document.getElementById('fQty').value) || 0,
         price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
+      expiryDate: document.getElementById('fExpiry') ? document.getElementById('fExpiry').value : '',
         keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
         img: imgVal
+      
     };
 
     if (editId) {
@@ -1015,7 +1067,104 @@ function zoomImage(src) {
     document.getElementById('zoomImg').src = src;
     document.getElementById('zoomModal').style.display = 'flex';
 }
+// ============================================================================
+// 8. نظام مراقبة تواريخ النفاذ (قبل 6 أشهر وقبل 3 أشهر) - خاص بالصيدلي
+// ============================================================================
+function getExpiryStatus(expiryDateStr) {
+    if (!expiryDateStr) return null;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const exp = new Date(expiryDateStr);
+    if (isNaN(exp.getTime())) return null;
 
+    const diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+
+    if (diffDays <= 0) {
+        return { level: 'expired', days: diffDays, label: 'منتهي الصلاحية!', bg: '#fee2e2', color: '#991b1b', border: '#f87171' };
+    } else if (diffDays <= 90) { // أقل من 3 أشهر (90 يوماً)
+        return { level: '3m', days: diffDays, label: `أقل من 3 أشهر (باقي ${diffDays} يوم)`, bg: '#ffedd5', color: '#c2410c', border: '#fb923c' };
+    } else if (diffDays <= 180) { // بين 3 إلى 6 أشهر (180 يوماً)
+        return { level: '6m', days: diffDays, label: `أقل من 6 أشهر (باقي ${diffDays} يوم)`, bg: '#fef9c3', color: '#854d0e', border: '#facc15' };
+    }
+    return null; // صالح لأكثر من 6 أشهر
+}
+
+function getExpiringProducts() {
+    return products
+        .map(p => ({ product: p, status: getExpiryStatus(p.expiryDate) }))
+        .filter(item => item.status !== null)
+        .sort((a, b) => a.status.days - b.status.days); // الأقرب للانتهاء يظهر أولاً
+}
+
+function updateExpiryBadge() {
+    const badge = document.getElementById('expiryBadgeCount');
+    if (!badge) return;
+    const expiringList = getExpiringProducts();
+    if (expiringList.length > 0) {
+        badge.innerText = expiringList.length;
+        badge.style.display = 'flex';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function openExpiryModal() {
+    const listContainer = document.getElementById('expiryListContainer');
+    const expiringList = getExpiringProducts();
+
+    if (expiringList.length === 0) {
+        listContainer.innerHTML = `<div style="text-align:center; padding:25px; color:#15803d; font-weight:700;">✅ لا توجد أي مواد منتهية أو قريبة النفاذ (خلال 6 أشهر القادمة).</div>`;
+    } else {
+        listContainer.innerHTML = expiringList.map(({ product, status }) => `
+            <div onclick="closeExpiryModal(); openSheet(${product.id});" style="cursor:pointer; padding:10px 12px; border-radius:10px; background:${status.bg}; border:1px solid ${status.border}; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                <div>
+                    <div style="font-weight:800; font-size:0.88rem; color:#0f172a;" dir="ltr">${product.name}</div>
+                    <div style="font-size:0.75rem; color:#475569;">الشركة: ${product.brand} | العدد: ${product.qty}</div>
+                </div>
+                <div style="text-align:left; flex-shrink:0;">
+                    <div style="font-size:0.74rem; font-weight:800; color:${status.color};">${status.label}</div>
+                    <div style="font-size:0.72rem; font-weight:700; color:#334155;" dir="ltr">📅 ${product.expiryDate}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+    document.getElementById('expiryModal').style.display = 'flex';
+}
+
+function closeExpiryModal() {
+    document.getElementById('expiryModal').style.display = 'none';
+}
+
+// ============================================================================
+// 9. مشاركة الصنف إلى واتساب أو دايركت إنستغرام الصيدلية
+// ============================================================================
+async function shareProduct(id, platform) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+
+    const priceTxt = p.price ? `${Number(p.price).toLocaleString()} د.ع` : 'يرجى الاستفسار';
+    const msg = `🏥 *صيدلية الديوان*\n💊 *الصنف:* ${p.name}\n🏢 *الشركة:* ${p.brand}\n📦 *العبوة:* ${fixMetaOrder(p.meta)}\n💰 *السعر:* ${priceTxt}\nℹ️ *التفاصيل:* ${p.details}`;
+
+    if (platform === 'whatsapp') {
+        // يفتح واتساب مع نص الرسالة جاهزاً للإرسال
+        const waUrl = `https://wa.me/${PHARMACY_WHATSAPP}?text=${encodeURIComponent(msg)}`;
+        window.open(waUrl, '_blank');
+    } else if (platform === 'instagram') {
+        // ينسخ تفاصيل الدواء للحافظة ثم يفتح محادثة انستغرام الصيدلية مباشرة
+        try {
+            await navigator.clipboard.writeText(msg);
+            await Swal.fire({
+                icon: 'success',
+                title: 'تم نسخ تفاصيل الصنف!',
+                text: 'سيتم الآن فتح محادثة إنستغرام الصيدلية، فقط اضغط (لصق / Paste) في المحادثة.',
+                confirmButtonColor: '#0f766e',
+                confirmButtonText: 'فتح إنستغرام'
+            });
+        } catch (e) {}
+        // رابط فتح الدايركت لحساب الصيدلية مباشرة
+        window.open(`https://ig.me/m/${PHARMACY_INSTAGRAM}`, '_blank');
+    }
+}
 window.onload = function() {
     renderAll();
     initFirebase();
