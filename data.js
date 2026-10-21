@@ -1078,22 +1078,29 @@ function zoomImage(src) {
 // 8. نظام مراقبة تواريخ النفاذ (قبل 6 أشهر وقبل 3 أشهر) - خاص بالصيدلي
 // ============================================================================
 function getExpiryStatus(expiryDateStr) {
-    if (!expiryDateStr) return null;
+    if (!expiryDateStr) return null; // الصيغة قادمة كـ "YYYY-MM"
+    
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const exp = new Date(expiryDateStr);
+
+    // تثبيت اليوم على أنه الأول من الشهر الحالي (اليوم 01)
+    const [year, month] = expiryDateStr.split('-');
+    if (!year || !month) return null;
+    
+    // إنشاء تاريخ لليوم الأول من الشهر المختار
+    const exp = new Date(parseInt(year), parseInt(month) - 1, 1);
     if (isNaN(exp.getTime())) return null;
 
     const diffDays = Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
 
     if (diffDays <= 0) {
         return { level: 'expired', days: diffDays, label: 'منتهي الصلاحية!', bg: '#fee2e2', color: '#991b1b', border: '#f87171' };
-    } else if (diffDays <= 90) { // أقل من 3 أشهر (90 يوماً)
-        return { level: '3m', days: diffDays, label: `أقل من 3 أشهر (باقي ${diffDays} يوم)`, bg: '#ffedd5', color: '#c2410c', border: '#fb923c' };
-    } else if (diffDays <= 180) { // بين 3 إلى 6 أشهر (180 يوماً)
-        return { level: '6m', days: diffDays, label: `أقل من 6 أشهر (باقي ${diffDays} يوم)`, bg: '#fef9c3', color: '#854d0e', border: '#facc15' };
+    } else if (diffDays <= 90) { // أقل من 3 أشهر
+        return { level: '3m', days: diffDays, label: `أقل من 3 أشهر (يبدأ نفاذه في ${expiryDateStr}-01)`, bg: '#ffedd5', color: '#c2410c', border: '#fb923c' };
+    } else if (diffDays <= 180) { // بين 3 إلى 6 أشهر
+        return { level: '6m', days: diffDays, label: `أقل من 6 أشهر (يبدأ نفاذه في ${expiryDateStr}-01)`, bg: '#fef9c3', color: '#854d0e', border: '#facc15' };
     }
-    return null; // صالح لأكثر من 6 أشهر
+    return null; 
 }
 
 function getExpiringProducts() {
