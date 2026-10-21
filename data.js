@@ -298,6 +298,7 @@ async function initFirebase() {
                 products = cloudProducts.sort((a, b) => b.id - a.id);
                 saveLocal();
                 renderAll();
+                checkSharedProductUrl(); // ✅ يفتح المنتج المشارك فور وصوله من السحابة
                 document.getElementById('syncBadge').innerText = "☁️ متزامن";
             }
         }, err => {
@@ -795,6 +796,14 @@ function closeSheet() {
     document.getElementById('sheetBackdrop').classList.remove('open');
     document.getElementById('bottomSheet').classList.remove('open');
     currentOpenId = null;
+    // تنظيف الرابط في الأعلى بعد إغلاق نافذة الدواء
+    if (window.location.search.includes('product=')) {
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+}
+    document.getElementById('sheetBackdrop').classList.remove('open');
+    document.getElementById('bottomSheet').classList.remove('open');
+    currentOpenId = null;
 }
 
 function updateItemQty(id, delta) {
@@ -1138,36 +1147,53 @@ function closeExpiryModal() {
 }
 
 // ============================================================================
-// 9. مشاركة الصنف إلى واتساب أو دايركت إنستغرام الصيدلية
+// 9. مشاركة رابط مباشر للمنتج (Deep Link) إلى واتساب أو دايركت إنستغرام
 // ============================================================================
 async function shareProduct(id, platform) {
     const p = products.find(x => x.id === id);
     if (!p) return;
 
-    const priceTxt = p.price ? `${Number(p.price).toLocaleString()} د.ع` : 'يرجى الاستفسار';
-    const msg = `🏥 *صيدلية الديوان*\n💊 *الصنف:* ${p.name}\n🏢 *الشركة:* ${p.brand}\n📦 *العبوة:* ${fixMetaOrder(p.meta)}\n💰 *السعر:* ${priceTxt}\nℹ️ *التفاصيل:* ${p.details}`;
+    // توليد الرابط المباشر الذي يفتح هذا المنتج تحديداً عند النقر عليه
+    const baseUrl = window.location.origin + window.location.pathname;
+    const productLink = `${baseUrl}?product=${p.id}`;
+
+    // رسالة مختصرة وأنيقة تحتوي على اسم الصنف والرابط المباشر فقط
+    const msg = `🏥 *صيدلية الديوان*\n💊 *${p.name}*\n🔗 اضغط على الرابط لعرض المنتج:\n${productLink}`;
 
     if (platform === 'whatsapp') {
-        // يفتح واتساب مع نص الرسالة جاهزاً للإرسال
         const waUrl = `https://wa.me/${PHARMACY_WHATSAPP}?text=${encodeURIComponent(msg)}`;
         window.open(waUrl, '_blank');
     } else if (platform === 'instagram') {
-        // ينسخ تفاصيل الدواء للحافظة ثم يفتح محادثة انستغرام الصيدلية مباشرة
         try {
+            // نسخ الرابط إلى الحافظة ليتم لصقه في دايركت الانستغرام
             await navigator.clipboard.writeText(msg);
             await Swal.fire({
                 icon: 'success',
-                title: 'تم نسخ تفاصيل الصنف!',
-                text: 'سيتم الآن فتح محادثة إنستغرام الصيدلية، فقط اضغط (لصق / Paste) في المحادثة.',
+                title: 'تم نسخ رابط المنتج!',
+                text: 'سيتم الآن فتح محادثة إنستغرام الصيدلية، فقط اضغط (لصق / Paste) لإرسال الرابط.',
                 confirmButtonColor: '#0f766e',
                 confirmButtonText: 'فتح إنستغرام'
             });
         } catch (e) {}
-        // رابط فتح الدايركت لحساب الصيدلية مباشرة
         window.open(`https://ig.me/m/${PHARMACY_INSTAGRAM}`, '_blank');
     }
 }
+
+// دالة تفحص الرابط عند فتح الموقع: إذا كان يحتوي على (?product=ID) تفتح بطاقة الدواء فوراً!
+function checkSharedProductUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const sharedId = params.get('product');
+    if (sharedId) {
+        const idNum = parseInt(sharedId);
+        const found = products.find(x => x.id === idNum);
+        if (found && currentOpenId !== idNum) {
+            openSheet(idNum);
+        }
+    }
+}
+
 window.onload = function() {
     renderAll();
     initFirebase();
+    checkSharedProductUrl(); // فحص الرابط فور فتح التطبيق
 };
