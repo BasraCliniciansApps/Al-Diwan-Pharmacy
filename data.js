@@ -206,6 +206,14 @@ let products = JSON.parse(localStorage.getItem('diwanProducts')) || defaultProdu
 let departments = JSON.parse(localStorage.getItem('diwanDepts')) || defaultDepartments;
 let subCategories = JSON.parse(localStorage.getItem('diwanSubCats')) || defaultSubCategories;
 
+// أسماء تبويبات الشريط السفلي (قابلة للتعديل من إعدادات ⚙️)
+const defaultTabLabels = { all: 'كل القسم', rx: 'الادوية', cosmetic: 'كوزمتك', out: 'النواقص' };
+let tabLabels = { ...defaultTabLabels, ...(JSON.parse(localStorage.getItem('diwanTabLabels')) || {}) };
+
+// تبويبات إضافية يضيفها الصيدلي: [{id, name, icon}]
+const MAX_CUSTOM_TABS = 2;
+let customTabs = JSON.parse(localStorage.getItem('diwanCustomTabs')) || [];
+
 let activeDept = departments[0] || "قسم الجلدية";
 let mainTab = 'all';
 let activeSubCat = 'الكل';   // <-- add this line
@@ -279,6 +287,8 @@ async function initFirebase() {
                 const data = doc.data();
                 if (data.departments) departments = data.departments;
                 if (data.subCategories) subCategories = data.subCategories;
+                if (data.tabLabels) tabLabels = { ...defaultTabLabels, ...data.tabLabels };
+                if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
                 saveLocal();
                 renderAll();
             }
@@ -314,6 +324,8 @@ function saveLocal() {
     try {
         localStorage.setItem('diwanDepts', JSON.stringify(departments));
         localStorage.setItem('diwanSubCats', JSON.stringify(subCategories));
+        localStorage.setItem('diwanTabLabels', JSON.stringify(tabLabels));
+        localStorage.setItem('diwanCustomTabs', JSON.stringify(customTabs));
         localStorage.setItem('diwanProducts', JSON.stringify(products));
     } catch (e) {
         // إذا امتلأت ذاكرة المتصفح، نمسح النسخة المحلية القديمة لكي يقرأ المتصفح من السحابة المحدثة دائماً!
@@ -330,7 +342,7 @@ async function saveSingleProductToCloud(product) {
             icon: 'error',
             title: 'أنت غير مسجل الدخول!',
             text: 'اضغط على أيقونة الصيدلي (👤) في الأعلى وسجل الدخول أولاً ليتم الحفظ في الإنترنت.',
-            confirmButtonColor: '#0f766e',
+            confirmButtonColor: '#0f1c38',
             confirmButtonText: 'حسناً'
         });
         return false;
@@ -350,7 +362,7 @@ async function saveSingleProductToCloud(product) {
             icon: 'error',
             title: 'خطأ في السحابة',
             text: err.message,
-            confirmButtonColor: '#0f766e'
+            confirmButtonColor: '#0f1c38'
         });
         return false;
     }
@@ -365,6 +377,8 @@ async function pushToCloud(onlyMetadata = false) {
             await db.collection('pharmacy').doc('metadata').set({
                 departments,
                 subCategories,
+                tabLabels,
+                customTabs,
                 updatedAt: new Date().toISOString()
             });
 
@@ -397,7 +411,7 @@ function handleAuthClick() {
             icon: 'warning',
             title: 'تنبيه',
             text: 'يرجى وضع مفاتيح firebaseConfig أولاً لتفعيل الحماية السحابية.',
-            confirmButtonColor: '#0f766e',
+            confirmButtonColor: '#0f1c38',
             confirmButtonText: 'حسناً'
         });
     }
@@ -408,7 +422,7 @@ function handleAuthClick() {
             text: "هل أنت متأكد أنك تود تسجيل الخروج من وضع الصيدلي؟",
             icon: 'question',
             showCancelButton: true,
-            confirmButtonColor: '#0f766e',
+            confirmButtonColor: '#0f1c38',
             cancelButtonColor: '#64748b',
             confirmButtonText: 'نعم، تسجيل خروج',
             cancelButtonText: 'إلغاء'
@@ -491,6 +505,118 @@ function renderManagerLists() {
             </div>
         </div>
     `).join('');
+
+    const tabContainer = document.getElementById('tabListManager');
+    if (tabContainer) {
+        const builtin = (key, note = '') => `
+            <div class="manager-item">
+                <span>${escTab(tabLabels[key])}<small style="color:var(--text-sub); font-weight:500;">${note}</small></span>
+                <div style="display:flex; gap:6px;">
+                    <button class="icon-btn" onclick="renameTab('${key}')">✏️ تعديل الاسم</button>
+                </div>
+            </div>`;
+        const custom = customTabs.map(t => `
+            <div class="manager-item">
+                <span>${escTab(t.icon || '🏷️')} ${escTab(t.name)}</span>
+                <div style="display:flex; gap:6px;">
+                    <button class="icon-btn" onclick="renameCustomTab('${t.id}')">✏️ تعديل</button>
+                    <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteCustomTab('${t.id}')">🗑️</button>
+                </div>
+            </div>`).join('');
+        tabContainer.innerHTML = builtin('all') + builtin('rx') + builtin('cosmetic') + custom + builtin('out', ' (تلقائي: الكمية = 0)');
+    }
+}
+
+function renameTab(key) {
+    const oldName = tabLabels[key];
+    const newName = prompt("تعديل اسم التبويب:", oldName);
+    if (newName && newName.trim() && newName.trim() !== oldName) {
+        tabLabels[key] = newName.trim();
+        pushToCloud(true);
+        renderManagerLists();
+        renderAll();
+    }
+}
+
+function escTab(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function getTabTitle() {
+    if (mainTab === 'all') return 'جميع الأصناف';
+    if (mainTab === 'rx') return tabLabels.rx;
+    if (mainTab === 'cosmetic') return tabLabels.cosmetic;
+    if (mainTab === 'out') return tabLabels.out;
+    const t = customTabs.find(x => x.id === mainTab);
+    return t ? t.name : 'جميع الأصناف';
+}
+
+// رسم الشريط السفلي: الثابتة + المخصصة (النواقص دائماً في الآخر)
+function renderBottomNav() {
+    const nav = document.querySelector('.bottom-nav');
+    if (!nav) return;
+    const tabs = [
+        { key: 'all', icon: '📦', name: tabLabels.all },
+        { key: 'rx', icon: '💊', name: tabLabels.rx },
+        { key: 'cosmetic', icon: '✨', name: tabLabels.cosmetic },
+        ...customTabs.map(t => ({ key: t.id, icon: t.icon || '🏷️', name: t.name })),
+        { key: 'out', icon: '⚠️', name: tabLabels.out }
+    ];
+    if (!tabs.some(t => t.key === mainTab)) mainTab = 'all';   // تبويب محذوف
+    nav.innerHTML = tabs.map(t => `
+        <button class="nav-tab ${mainTab === t.key ? 'active' : ''}" onclick="setMainTab('${t.key}')">
+            <span class="nav-ico">${t.icon}</span>
+            <span>${escTab(t.name)}</span>
+        </button>
+    `).join('');
+}
+
+function addCustomTab() {
+    const nameEl = document.getElementById('newTabInput');
+    const iconEl = document.getElementById('newTabIcon');
+    const name = nameEl.value.trim();
+    if (!name) return;
+    if (customTabs.length >= MAX_CUSTOM_TABS) {
+        alert('الحد الأقصى ' + MAX_CUSTOM_TABS + ' تبويبات إضافية حتى يبقى الشريط واضحاً على الهاتف. احذف تبويباً لإضافة آخر.');
+        return;
+    }
+    const used = [...Object.values(tabLabels), ...customTabs.map(t => t.name)];
+    if (used.includes(name)) { alert('هذا الاسم مستخدم مسبقاً.'); return; }
+    const icon = Array.from(iconEl.value.trim())[0] || '🏷️';
+    customTabs.push({ id: 'c' + Date.now(), name, icon });
+    nameEl.value = '';
+    iconEl.value = '';
+    pushToCloud(true);
+    renderManagerLists();
+    renderAll();
+}
+
+function renameCustomTab(id) {
+    const t = customTabs.find(x => x.id === id);
+    if (!t) return;
+    const newName = prompt("تعديل اسم التبويب:", t.name);
+    if (newName && newName.trim() && newName.trim() !== t.name) {
+        t.name = newName.trim();
+        pushToCloud(true);
+        renderManagerLists();
+        renderAll();
+    }
+}
+
+function deleteCustomTab(id) {
+    const t = customTabs.find(x => x.id === id);
+    if (!t) return;
+    const count = products.filter(p => p.type === id).length;
+    const msg = count
+        ? `حذف تبويب "${t.name}"؟ سيتم إرجاع ${count} صنف إلى التصنيف التلقائي (أدوية/كوزمتك). لن يُحذف أي صنف.`
+        : `حذف تبويب "${t.name}"؟`;
+    if (!confirm(msg)) return;
+    customTabs = customTabs.filter(x => x.id !== id);
+    products.forEach(p => { if (p.type === id) p.type = ''; });
+    if (mainTab === id) mainTab = 'all';
+    pushToCloud(count > 0 ? false : true);
+    renderManagerLists();
+    renderAll();
 }
 
 function renameDepartment(index) {
@@ -547,10 +673,17 @@ function addSubCategory() {
 // 7. العرض والفلترة
 // ============================================================================
 function isRxItem(item) {
+    // الاختيار اليدوي من نموذج الصنف له الأولوية، وإن لم يُحدَّد يُستخدم التخمين القديم
+    if (item.type === 'rx') return true;
+    if (item.type) return false;   // كوزمتك أو تبويب مخصص
     const rxKeywords = ['مضادات', 'كورتيزون', 'فموية', 'شرابات', 'rx'];
     if (rxKeywords.some(k => item.category.toLowerCase().includes(k))) return true;
     const rxNames = ['acretin', 'azaderm', 'peroduo', 'ben-oxide', 'clinaderm', 'minoxidil', 'beta-salic', 'kenazole', 'naxoral', 'selerex', 'hiquin', 'benoquin'];
     return rxNames.some(k => item.name.toLowerCase().includes(k));
+}
+
+function isCustomItem(item) {
+    return !!item.type && customTabs.some(t => t.id === item.type);
 }
 
 function getFormBadge(item) {
@@ -584,13 +717,7 @@ function setMainTab(tab) {
     mainTab = tab;
     activeSubCat = 'الكل';
     activeBrand = 'الكل';
-    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-    
-    if (tab === 'all') document.getElementById('navAll').classList.add('active');
-    else if (tab === 'rx') document.getElementById('navRx').classList.add('active');
-    else if (tab === 'cosmetic') document.getElementById('navCosmetic').classList.add('active');
-    else if (tab === 'out') document.getElementById('navOut').classList.add('active');
-    renderAll();
+    renderAll();   // الشريط السفلي يُعاد رسمه ويحدّد التبويب النشط تلقائياً
 }
 
 function getBaseFilteredByTab() {
@@ -599,7 +726,8 @@ function getBaseFilteredByTab() {
         if (!matchDept) return false;
         if (mainTab === 'out') return (parseInt(p.qty) || 0) === 0;
         if (mainTab === 'rx') return isRxItem(p);
-        if (mainTab === 'cosmetic') return !isRxItem(p);
+        if (mainTab === 'cosmetic') return !isRxItem(p) && !isCustomItem(p);
+        if (customTabs.some(t => t.id === mainTab)) return p.type === mainTab;
         return true;
     });
 }
@@ -668,15 +796,13 @@ function clearSearch() {
 }
 
 function renderAll() {
+    renderBottomNav();
     renderDepartmentsBar();
     renderPills();
     renderBrands();
     updateExpiryBadge(); // تحديث عداد جرس الصلاحية للصيدلي
 
-    const tabTitle = mainTab === 'all' ? 'جميع الأصناف' 
-                   : mainTab === 'rx' ? 'الأدوية العلاجية (Rx)' 
-                   : mainTab === 'cosmetic' ? 'العناية والكوزمتك' 
-                   : 'الأصناف النافذة (0)';
+    const tabTitle = getTabTitle();
     document.getElementById('sectionLabel').innerText = `${activeDept} • ${tabTitle}`;
 
     const query = document.getElementById('searchInput').value.toLowerCase().trim();
@@ -812,6 +938,14 @@ function updateItemQty(id, delta) {
 }
 
 function populateModalSelects() {
+    const typeSel = document.getElementById('fType');
+    if (typeSel) {
+        typeSel.innerHTML = `
+            <option value="">تلقائي (حسب الاسم والتصنيف)</option>
+            <option value="rx">${escTab(tabLabels.rx)}</option>
+            <option value="cosmetic">${escTab(tabLabels.cosmetic)}</option>` +
+            customTabs.map(t => `<option value="${t.id}">${escTab(t.name)}</option>`).join('');
+    }
     document.getElementById('fDepartment').innerHTML = departments.map(d => `<option value="${d}">${d}</option>`).join('');
     document.getElementById('fCategory').innerHTML = subCategories.map(c => `<option value="${c}">${c}</option>`).join('');
 }
@@ -825,6 +959,7 @@ function openFormModal(id = null) {
         document.getElementById('editId').value = p.id;
         document.getElementById('fDepartment').value = p.department || departments[0];
         document.getElementById('fCategory').value = p.category;
+        if (document.getElementById('fType')) document.getElementById('fType').value = p.type || (isRxItem(p) ? 'rx' : 'cosmetic');
         document.getElementById('fBrand').value = p.brand;
         document.getElementById('fName').value = p.name;
         document.getElementById('fDetails').value = p.details;
@@ -838,6 +973,7 @@ function openFormModal(id = null) {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
         document.getElementById('fDepartment').value = activeDept;
+        if (document.getElementById('fType')) document.getElementById('fType').value = '';
         document.getElementById('fBrand').value = '';
         document.getElementById('fName').value = '';
         document.getElementById('fDetails').value = '';
@@ -865,7 +1001,7 @@ async function uploadImgBase64(event) {
             icon: 'warning',
             title: 'صيغة غير مدعومة',
             text: 'يرجى اختيار صورة صحيحة!',
-            confirmButtonColor: '#0f766e'
+            confirmButtonColor: '#0f1c38'
         });
     }
 
@@ -883,7 +1019,7 @@ async function uploadImgBase64(event) {
             text: 'الصق مفتاح التوكن (الذي يبدأ بـ ghp_) ليتم حفظه في جهازك بأمان لرفع الصور:',
             input: 'text',
             inputPlaceholder: 'ghp_...',
-            confirmButtonColor: '#0f766e',
+            confirmButtonColor: '#0f1c38',
             confirmButtonText: 'حفظ المفتاح ومتابعة الرفع',
             showCancelButton: true,
             cancelButtonText: 'إلغاء'
@@ -960,7 +1096,7 @@ async function uploadImgBase64(event) {
                     icon: 'error',
                     title: 'تعذر رفع الصورة إلى GitHub',
                     text: 'السبب: ' + err.message,
-                    confirmButtonColor: '#0f766e'
+                    confirmButtonColor: '#0f1c38'
                 });
             }
         };
@@ -977,7 +1113,7 @@ async function saveFormProduct() {
             icon: 'info',
             title: 'انتظر لحظة...',
             text: 'جاري رفع الصورة إلى GitHub، انتظر ثانية حتى يظهر الرابط ثم اضغط حفظ.',
-            confirmButtonColor: '#0f766e'
+            confirmButtonColor: '#0f1c38'
         });
     }
 
@@ -987,7 +1123,7 @@ async function saveFormProduct() {
             icon: 'warning',
             title: 'تنبيه',
             text: 'يرجى إدخال اسم الصنف أولاً!',
-            confirmButtonColor: '#0f766e'
+            confirmButtonColor: '#0f1c38'
         });
     }
 
@@ -996,6 +1132,7 @@ async function saveFormProduct() {
         id: editId ? parseInt(editId) : Date.now(),
         department: document.getElementById('fDepartment').value,
         category: document.getElementById('fCategory').value,
+        type: document.getElementById('fType') ? document.getElementById('fType').value : '',
         brand: document.getElementById('fBrand').value.trim() || 'GENERIC',
         name: nameVal,
         details: document.getElementById('fDetails').value.trim(),
@@ -1172,7 +1309,7 @@ async function shareProduct(id, platform) {
                 icon: 'success',
                 title: 'تم نسخ رابط المنتج!',
                 text: 'سيتم الآن فتح محادثة إنستغرام الصيدلية، فقط اضغط (لصق / Paste) لإرسال الرابط.',
-                confirmButtonColor: '#0f766e',
+                confirmButtonColor: '#0f1c38',
                 confirmButtonText: 'فتح إنستغرام'
             });
         } catch (e) {}
@@ -1198,3 +1335,251 @@ window.onload = function() {
     initFirebase();
     checkSharedProductUrl();
 };
+
+// ============================================================================
+// 9. مسح العبوة بالكاميرا (قراءة الاسم والتركيز والشكل الدوائي والصلاحية)
+// ============================================================================
+let tesseractPromise = null;
+
+function loadTesseract() {
+    if (window.Tesseract) return Promise.resolve();
+    if (!tesseractPromise) {
+        tesseractPromise = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+            s.onload = resolve;
+            s.onerror = () => {
+                tesseractPromise = null;
+                reject(new Error('تعذر تحميل مكتبة القراءة. تأكد من اتصال الإنترنت وحاول مرة أخرى.'));
+            };
+            document.head.appendChild(s);
+        });
+    }
+    return tesseractPromise;
+}
+
+function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// تصغير الصورة وتحسين التباين لرفع دقة القراءة
+function prepareImageForOcr(file) {
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            const maxSide = 1800;
+            const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const px = imgData.data;
+            for (let i = 0; i < px.length; i += 4) {
+                const g = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+                const v = Math.max(0, Math.min(255, (g - 128) * 1.35 + 128));
+                px[i] = px[i + 1] = px[i + 2] = v;
+            }
+            ctx.putImageData(imgData, 0, 0);
+            URL.revokeObjectURL(url);
+            resolve(canvas);
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('تعذر فتح الصورة.')); };
+        img.src = url;
+    });
+}
+
+const SCAN_FORMS = [
+    [/\btablets?\b|\btabs?\b/i, 'Tablets'],
+    [/\bcapsules?\b|\bcaps\b/i, 'Capsules'],
+    [/\bsyrup\b/i, 'Syrup'],
+    [/\bsuspension\b/i, 'Suspension'],
+    [/\bdrops?\b/i, 'Drops'],
+    [/\bointment\b/i, 'Ointment'],
+    [/\bcream\b/i, 'Cream'],
+    [/\bgel\b/i, 'Gel'],
+    [/\blotion\b/i, 'Lotion'],
+    [/\bshampoo\b/i, 'Shampoo'],
+    [/\bserum\b/i, 'Serum'],
+    [/\bspray\b/i, 'Spray'],
+    [/\bsolution\b/i, 'Solution'],
+    [/\bcleanser\b|\bwash\b/i, 'Wash'],
+    [/\bsoap\b/i, 'Soap'],
+    [/\binjection\b|\bampoules?\b|\bvials?\b/i, 'Injection'],
+    [/\bsachets?\b/i, 'Sachets'],
+    [/\bsuppositor(?:y|ies)\b/i, 'Suppositories']
+];
+
+function normalizeUnit(num, unit) {
+    const n = num.replace(',', '.');
+    const u = unit.toLowerCase().replace('µg', 'mcg').replace('gm', 'g');
+    return u === '%' ? `${n}%` : `${n} ${u === 'iu' ? 'IU' : u}`;
+}
+
+function parseExpiryFromText(text) {
+    const lead = '(?:exp(?:iry)?|use\\s*before|best\\s*before)\\.?\\s*(?:date)?\\s*[:\\-]?\\s*';
+    let m = text.match(new RegExp(lead + '(\\d{1,2})\\s*[\\/\\-. ]\\s*(\\d{4}|\\d{2})\\b', 'i'));
+    let month, year;
+    if (m) { month = parseInt(m[1]); year = parseInt(m[2]); }
+    else {
+        m = text.match(new RegExp(lead + '(\\d{4})\\s*[\\/\\-. ]\\s*(\\d{1,2})\\b', 'i'));
+        if (m) { year = parseInt(m[1]); month = parseInt(m[2]); }
+    }
+    if (!month) return '';
+    if (year < 100) year += 2000;
+    if (month < 1 || month > 12 || year < 2020 || year > 2045) return '';
+    return `${year}-${String(month).padStart(2, '0')}`;
+}
+
+function toTitleIfAllCaps(s) {
+    if (s !== s.toUpperCase()) return s;
+    return s.split(/\s+/).map(w => /\d/.test(w) || w.length <= 2 ? w : w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+}
+
+// استخراج الحقول من النص المقروء (lines اختياري: أسطر مع ارتفاع الخط لمعرفة أكبر نص = الاسم التجاري)
+function parseProductText(text, lines) {
+    const clean = (text || '').replace(/[|_]/g, ' ');
+
+    // --- التركيز (potency) ---
+    let potency = '';
+    const compound = clean.match(/(\d+(?:[.,]\d+)?)\s?(mg|mcg|µg|g|iu)\s?\/\s?(\d+(?:[.,]\d+)?)?\s?(ml|g)\b/i);
+    if (compound) {
+        potency = `${normalizeUnit(compound[1], compound[2])}/${compound[3] ? compound[3] + ' ' : ''}${compound[4].toLowerCase()}`;
+    } else {
+        const found = [];
+        const re = /(\d+(?:[.,]\d+)?)\s?(mg|mcg|µg|iu|%)/gi;
+        let m;
+        while ((m = re.exec(clean)) !== null) {
+            const v = normalizeUnit(m[1], m[2]);
+            if (!found.includes(v)) found.push(v);
+        }
+        potency = found.slice(0, 3).join(' / ');
+    }
+
+    // --- العبوة والشكل ---
+    let form = '';
+    for (const [re, name] of SCAN_FORMS) { if (re.test(clean)) { form = name; break; } }
+
+    let pack = '';
+    const count = clean.match(/(\d{1,4})\s*(?:film[-\s]?coated\s+|coated\s+|chewable\s+|effervescent\s+)?(tablets?|capsules?|caps|sachets?|ampoules?|vials?|suppositor(?:y|ies))\b/i);
+    if (count) {
+        pack = `${count[1]} ${count[2].charAt(0).toUpperCase() + count[2].slice(1).toLowerCase()}`;
+    } else {
+        const vol = clean.replace(compound ? compound[0] : '', ' ').match(/(\d+(?:[.,]\d+)?)\s?(ml|g)\b/i);
+        if (vol) pack = normalizeUnit(vol[1], vol[2]);
+    }
+    let meta = '';
+    if (count) meta = pack;
+    else meta = [pack, form].filter(Boolean).join(' | ');
+
+    // --- الاسم التجاري: أكبر سطر نصي ---
+    let name = '';
+    const candidates = (lines || [])
+        .map(l => ({ text: (l.text || '').replace(/\s+/g, ' ').trim(), h: l.bbox ? (l.bbox.y1 - l.bbox.y0) : 0, conf: l.confidence || 0 }))
+        .filter(l => {
+            const letters = (l.text.match(/[A-Za-z]/g) || []).length;
+            return letters >= 3 && letters / l.text.length >= 0.6 && l.conf >= 40;
+        });
+    if (candidates.length) {
+        candidates.sort((a, b) => b.h - a.h);
+        name = candidates[0].text;
+    } else {
+        const first = clean.split('\n').map(s => s.trim()).find(s => (s.match(/[A-Za-z]/g) || []).length >= 3);
+        name = first || '';
+    }
+    name = name
+        .replace(/(\d+(?:[.,]\d+)?)\s?(mg|mcg|µg|iu|ml|g|%)\b.*$/i, '')
+        .replace(/[^A-Za-z0-9 .+\-&()]/g, ' ')
+        .replace(/\s+/g, ' ').trim();
+    name = toTitleIfAllCaps(name);
+
+    // --- الشركة: مطابقة مع الشركات الموجودة عندك ---
+    let brand = '';
+    const upper = clean.toUpperCase();
+    const brands = [...new Set((typeof products !== 'undefined' ? products : []).map(p => (p.brand || '').trim()).filter(b => b && b !== 'GENERIC'))];
+    brand = brands.find(b => upper.includes(b.toUpperCase())) || '';
+
+    return { name, potency, meta, form, brand, expiry: parseExpiryFromText(clean) };
+}
+
+async function scanProductImage(event) {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const status = document.getElementById('scanStatus');
+    const setStatus = (t) => { if (status) status.innerText = t; };
+
+    try {
+        setStatus('⏳ جاري تجهيز الصورة...');
+        const canvas = await prepareImageForOcr(file);
+
+        setStatus('⏳ تحميل أداة القراءة (أول مرة فقط)...');
+        await loadTesseract();
+
+        setStatus('⏳ جاري القراءة... 0%');
+        const result = await Tesseract.recognize(canvas, 'eng', {
+            logger: m => {
+                if (m.status === 'recognizing text') setStatus(`⏳ جاري القراءة... ${Math.round(m.progress * 100)}%`);
+            }
+        });
+        const data = result.data || {};
+        const parsed = parseProductText(data.text || '', data.lines || []);
+        setStatus('');
+
+        const fullName = [parsed.name, parsed.potency].filter(Boolean).join(' ');
+        const rows = [
+            ['الاسم والتركيز', fullName],
+            ['العبوة / الشكل', parsed.meta],
+            ['الشركة', parsed.brand],
+            ['تاريخ النفاذ', parsed.expiry]
+        ];
+
+        if (!rows.some(r => r[1])) {
+            await Swal.fire({
+                icon: 'warning',
+                title: 'لم أتمكن من قراءة نص واضح',
+                html: '<div style="font-size:0.9rem; line-height:1.7;">جرّب صورة أقرب، بإضاءة جيدة، والعبوة مسطحة وغير لامعة، مع إظهار الاسم بوضوح.</div>',
+                confirmButtonColor: '#0f1c38',
+                confirmButtonText: 'حسناً'
+            });
+            return;
+        }
+
+        const html = `
+            <div style="text-align:right; font-size:0.9rem;">
+                ${rows.map(([k, v]) => `
+                    <div style="display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px solid #e5e7eb;">
+                        <b>${k}</b>
+                        <span dir="ltr" style="color:${v ? '#0f172a' : '#94a3b8'};">${v ? escapeHtml(v) : 'لم يُقرأ'}</span>
+                    </div>`).join('')}
+                <p style="margin-top:12px; color:#b91c1c; font-weight:700; font-size:0.82rem;">راجع التركيز بدقة قبل الحفظ (مثل 5 mg أو 50 mg).</p>
+                <details style="margin-top:8px; font-size:0.78rem; color:#64748b;">
+                    <summary>النص الذي قرأه التطبيق</summary>
+                    <pre dir="ltr" style="white-space:pre-wrap; text-align:left; margin-top:6px;">${escapeHtml((data.text || '').trim())}</pre>
+                </details>
+            </div>`;
+
+        const choice = await Swal.fire({
+            title: 'نتيجة المسح',
+            html,
+            showCancelButton: true,
+            confirmButtonText: 'تعبئة الحقول',
+            cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#0f1c38'
+        });
+
+        if (choice.isConfirmed) {
+            if (fullName) document.getElementById('fName').value = fullName;
+            if (parsed.meta) document.getElementById('fMeta').value = parsed.meta;
+            if (parsed.brand) document.getElementById('fBrand').value = parsed.brand;
+            if (parsed.expiry && document.getElementById('fExpiry')) document.getElementById('fExpiry').value = parsed.expiry;
+        }
+    } catch (err) {
+        setStatus('');
+        Swal.fire({ icon: 'error', title: 'تعذر المسح', text: err.message || String(err), confirmButtonColor: '#0f1c38' });
+    } finally {
+        input.value = ''; // للسماح باختيار نفس الصورة مرة أخرى
+    }
+}

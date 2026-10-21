@@ -155,6 +155,16 @@
                 </div>
             </div>
 
+            <div class="cat-manager-box" style="margin-top:16px;">
+                <h4>3. تبويبات الشريط السفلي (تعديل الأسماء وإضافة تبويبات جديدة)</h4>
+                <div id="tabListManager" class="manager-list"></div>
+                <div class="add-inline-row">
+                    <input type="text" id="newTabIcon" placeholder="🏷️" maxlength="4" style="width:56px; flex-grow:0; text-align:center;">
+                    <input type="text" id="newTabInput" placeholder="اسم تبويب جديد (مثل: مستلزمات)...">
+                    <button class="icon-btn primary-btn" onclick="addCustomTab()">+ إضافة</button>
+                </div>
+            </div>
+
             <div class="modal-actions-row" style="margin-top:18px;">
                 <button class="icon-btn" onclick="closeCategoryManager()">إغلاق</button>
             </div>
@@ -173,6 +183,10 @@
             <div class="form-group">
                 <label>التصنيف الفرعي:</label>
                 <select id="fCategory"></select>
+            </div>
+            <div class="form-group">
+                <label>يظهر في تبويب (الشريط السفلي):</label>
+                <select id="fType"></select>
             </div>
             <div class="form-group"><label>الشركة (Brand):</label><input type="text" id="fBrand"></div>
             <div class="form-group"><label>الاسم التجاري والتركيز:</label><input type="text" id="fName"></div>
