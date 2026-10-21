@@ -169,14 +169,14 @@ body.admin-mode .admin-only { display: flex !important; }
 
 .ruqaa-title {
     font-family: 'Aref Ruqaa', serif;
-    font-size: calc(var(--logo-size) * 0.7);   /* ارتفاع الخط يتناسب مع ارتفاع الشعار */
+    font-size: calc(var(--logo-size) * 0.75);   /* ارتفاع الخط يتناسب مع ارتفاع الشعار */
     font-weight: 700;
     color: var(--gold);
     line-height: var(--logo-size);              /* سطر الاسم بنفس ارتفاع الشعار */
     margin-bottom: 0;
     white-space: nowrap;
     position: relative;
-    top: 4px;      /* موجب = ينزل للأسفل ، سالب = يطلع للأعلى */
+    top: -1px;      /* موجب = ينزل للأسفل ، سالب = يطلع للأعلى */
 }
 
 .logo-text span {
