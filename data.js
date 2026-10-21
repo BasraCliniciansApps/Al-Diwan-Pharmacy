@@ -208,11 +208,13 @@ let subCategories = JSON.parse(localStorage.getItem('diwanSubCats')) || defaultS
 
 let activeDept = departments[0] || "قسم الجلدية";
 let mainTab = 'all';
-let activeBrand = 'الكل'; // الشركة المختارة للفلترة
+let activeSubCat = 'الكل'; // ✅ تم إعادة هذا السطر الضروري الذي حُذف بالخطأ
+let activeBrand = 'الكل';  // الشركة المختارة للفلترة
 
-// ضع رقم واتساب الصيدلية (مع مفتاح العراق 964 بدون أصفار في البداية) ويوزر صفحة الانستغرام:
-const PHARMACY_WHATSAPP = "07805261843"; 
-const PHARMACY_INSTAGRAM = "ald1_pharmacy"; // ضع يوزر انستغرام الصيدلية هنا بدون @
+// رقم واتساب الصيدلية (مع مفتاح العراق 964 بدون الصفر الأول) ويوزر صفحة الانستغرام:
+const PHARMACY_WHATSAPP = "9647805261843"; 
+const PHARMACY_INSTAGRAM = "ald1_pharmacy";
+
 let currentOpenId = null;
 let db = null;
 let auth = null;
