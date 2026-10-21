@@ -801,10 +801,6 @@ function closeSheet() {
         window.history.replaceState({}, document.title, window.location.pathname);
     }
 }
-    document.getElementById('sheetBackdrop').classList.remove('open');
-    document.getElementById('bottomSheet').classList.remove('open');
-    currentOpenId = null;
-}
 
 function updateItemQty(id, delta) {
     const p = products.find(x => x.id === id);
