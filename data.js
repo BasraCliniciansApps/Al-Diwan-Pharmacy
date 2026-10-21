@@ -214,6 +214,10 @@ let tabLabels = { ...defaultTabLabels, ...(JSON.parse(localStorage.getItem('diwa
 const MAX_CUSTOM_TABS = 2;
 let customTabs = JSON.parse(localStorage.getItem('diwanCustomTabs')) || [];
 
+// حد تنبيه الكمية القليلة العام (يمكن تخصيصه لكل صنف من نموذج الصنف)
+let lowStockThreshold = parseInt(localStorage.getItem('diwanLowThreshold'));
+if (isNaN(lowStockThreshold)) lowStockThreshold = 2;
+
 let activeDept = departments[0] || "قسم الجلدية";
 let mainTab = 'all';
 let activeSubCat = 'الكل';   // <-- add this line
@@ -289,6 +293,7 @@ async function initFirebase() {
                 if (data.subCategories) subCategories = data.subCategories;
                 if (data.tabLabels) tabLabels = { ...defaultTabLabels, ...data.tabLabels };
                 if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
+                if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
                 saveLocal();
                 renderAll();
             }
@@ -326,6 +331,7 @@ function saveLocal() {
         localStorage.setItem('diwanSubCats', JSON.stringify(subCategories));
         localStorage.setItem('diwanTabLabels', JSON.stringify(tabLabels));
         localStorage.setItem('diwanCustomTabs', JSON.stringify(customTabs));
+        localStorage.setItem('diwanLowThreshold', String(lowStockThreshold));
         localStorage.setItem('diwanProducts', JSON.stringify(products));
     } catch (e) {
         // إذا امتلأت ذاكرة المتصفح، نمسح النسخة المحلية القديمة لكي يقرأ المتصفح من السحابة المحدثة دائماً!
@@ -336,6 +342,7 @@ function saveLocal() {
 // 2. دالة حفظ المنتج الواحد في Firebase (خفيفة وسريعة جداً لأنها تحفظ الرابط فقط)
 async function saveSingleProductToCloud(product) {
     saveLocal();
+    if (isFirebaseReady && currentUser && !navigator.onLine) { requireOnline(); return false; }
     
     if (!isFirebaseReady || !currentUser) {
         await Swal.fire({
@@ -370,6 +377,7 @@ async function saveSingleProductToCloud(product) {
 // دالة حفظ الأقسام والتصنيفات (أو الرفع التأسيسي الأول)
 async function pushToCloud(onlyMetadata = false) {
     saveLocal();
+    if (isFirebaseReady && currentUser && !navigator.onLine) { requireOnline(); return; }
     if (isFirebaseReady && currentUser) {
         const badge = document.getElementById('syncBadge');
         badge.innerText = "⏳ جاري الحفظ...";
@@ -379,6 +387,7 @@ async function pushToCloud(onlyMetadata = false) {
                 subCategories,
                 tabLabels,
                 customTabs,
+                lowStockThreshold,
                 updatedAt: new Date().toISOString()
             });
 
@@ -478,6 +487,8 @@ async function performLogin() {
 // ============================================================================
 function openCategoryManager() {
     renderManagerLists();
+    const lowInput = document.getElementById('lowThresholdInput');
+    if (lowInput) lowInput.value = lowStockThreshold;
     document.getElementById('catModal').style.display = 'flex';
 }
 
@@ -787,6 +798,7 @@ function handleSearch() {
     const q = document.getElementById('searchInput').value;
     document.getElementById('clearSearchBtn').style.display = q.length > 0 ? 'flex' : 'none';
     renderAll();
+    scheduleMissCheck(q);   // تسجيل البحث الفاشل (بعد توقف المستخدم عن الكتابة)
 }
 
 function clearSearch() {
@@ -811,7 +823,7 @@ function renderAll() {
     const filtered = baseItems.filter(p => {
         const matchCat = activeSubCat === 'الكل' || p.category === activeSubCat;
         const matchBrand = activeBrand === 'الكل' || (p.brand || 'GENERIC').trim() === activeBrand;
-        const text = `${p.name} ${p.brand} ${p.details} ${p.meta} ${p.category} ${p.keywords || ''}`.toLowerCase();
+        const text = `${p.name} ${p.brand} ${p.details} ${p.meta} ${p.category} ${p.keywords || ''} ${p.activeIngredient || ''}`.toLowerCase();
         const matchQ = !query || text.includes(query);
         return matchCat && matchBrand && matchQ;
     });
@@ -821,7 +833,7 @@ function renderAll() {
 
     container.innerHTML = filtered.map(p => {
         const badge = getFormBadge(p);
-        const dotCls = p.qty > 0 ? 'status-dot' : 'status-dot out';
+        const dotCls = p.qty > 0 ? (isLowStock(p) ? 'status-dot low' : 'status-dot') : 'status-dot out';
         const cleanMeta = fixMetaOrder(p.meta);
         return `
             <div class="bento-card" onclick="openSheet(${p.id})">
@@ -860,6 +872,14 @@ function openSheet(id) {
         }).join('')}</div>`
         : `<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📅 تاريخ النفاذ: غير محدد</div>`;
 
+    const lowInfo = isLowStock(p)
+        ? `<div style="font-size:0.78rem; font-weight:800; color:#c2410c; margin-bottom:6px;">⚠️ كمية قليلة (حد التنبيه: ${getMinQty(p)})</div>`
+        : '';
+    const altHtml = buildAlternativesHtml(p);
+    const activeLine = p.activeIngredient
+        ? `<p dir="ltr" style="font-size:0.82rem; font-weight:800; color:var(--primary-dark); text-align:left; margin-bottom:6px;">${escapeHtml(p.activeIngredient)}</p>`
+        : '';
+
     document.getElementById('sheetContent').innerHTML = `
         <div class="sheet-header">
             <div class="sheet-img-box" onclick="zoomImage('${p.img}')">
@@ -877,6 +897,7 @@ function openSheet(id) {
 
         <div class="sheet-section">
             <h4>التركيب والاستخدام الطبي</h4>
+            ${activeLine}
             <p>${p.details}</p>
         </div>
 
@@ -891,6 +912,8 @@ function openSheet(id) {
             </div>
         </div>
 
+        ${altHtml}
+
         <!-- أزرار مشاركة المنتج إلى واتساب أو دايركت انستغرام -->
         <div class="share-row">
             <button class="share-btn share-wa" onclick="shareProduct(${p.id}, 'whatsapp')">
@@ -903,7 +926,7 @@ function openSheet(id) {
 
         <div class="sheet-admin-box">
             <div style="font-size:0.8rem; font-weight:800; color:#b45309; margin-bottom:4px;">⚙️ تحكم الصيدلي المباشر</div>
-            ${expiryInfo}
+            ${lowInfo}${expiryInfo}
             <div class="admin-row">
                 <div class="qty-control-lg">
                     <button onclick="updateItemQty(${p.id}, -1)">-</button>
@@ -933,6 +956,7 @@ function closeSheet() {
 }
 
 function updateItemQty(id, delta) {
+    if (!requireOnline()) return;
     const p = products.find(x => x.id === id);
     if (!p) return;
     p.qty = Math.max(0, (parseInt(p.qty) || 0) + delta);
@@ -942,6 +966,7 @@ function updateItemQty(id, delta) {
 }
 
 function populateModalSelects() {
+    refreshActiveDatalist();
     const typeSel = document.getElementById('fType');
     if (typeSel) {
         typeSel.innerHTML = `
@@ -964,6 +989,8 @@ function openFormModal(id = null) {
         document.getElementById('fDepartment').value = p.department || departments[0];
         document.getElementById('fCategory').value = p.category;
         if (document.getElementById('fType')) document.getElementById('fType').value = p.type || (isRxItem(p) ? 'rx' : 'cosmetic');
+        if (document.getElementById('fActive')) document.getElementById('fActive').value = p.activeIngredient || '';
+        if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = (p.minQty === null || p.minQty === undefined) ? '' : p.minQty;
         document.getElementById('fBrand').value = p.brand;
         document.getElementById('fName').value = p.name;
         document.getElementById('fDetails').value = p.details;
@@ -978,6 +1005,9 @@ function openFormModal(id = null) {
         document.getElementById('editId').value = '';
         document.getElementById('fDepartment').value = activeDept;
         if (document.getElementById('fType')) document.getElementById('fType').value = '';
+        if (document.getElementById('fActive')) document.getElementById('fActive').value = '';
+        if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = '';
+        if (document.getElementById('scanStatus')) document.getElementById('scanStatus').innerText = '';
         document.getElementById('fBrand').value = '';
         document.getElementById('fName').value = '';
         document.getElementById('fDetails').value = '';
@@ -1111,6 +1141,7 @@ async function uploadImgBase64(event) {
 
 // 3. دالة زر "حفظ" داخل نافذة إضافة/تعديل الصنف
 async function saveFormProduct() {
+    if (!requireOnline()) return;
     const imgVal = document.getElementById('fImg').value.trim();
     if (imgVal.includes("⏳")) {
         return Swal.fire({
@@ -1138,6 +1169,8 @@ async function saveFormProduct() {
         department: document.getElementById('fDepartment').value,
         category: document.getElementById('fCategory').value,
         type: document.getElementById('fType') ? document.getElementById('fType').value : '',
+        activeIngredient: document.getElementById('fActive') ? document.getElementById('fActive').value.trim() : '',
+        minQty: (document.getElementById('fMinQty') && document.getElementById('fMinQty').value !== '') ? (parseInt(document.getElementById('fMinQty').value) || 0) : null,
         brand: document.getElementById('fBrand').value.trim() || 'GENERIC',
         name: nameVal,
         details: document.getElementById('fDetails').value.trim(),
@@ -1175,6 +1208,7 @@ async function saveFormProduct() {
 }
 // دالة الحذف المصححة
 function deleteItem(id) {
+    if (!requireOnline()) return;
     Swal.fire({
         title: 'هل أنت متأكد؟',
         text: "لن تتمكن من استعادة هذا الصنف بعد حذفه!",
@@ -1292,9 +1326,9 @@ function getExpiringProducts() {
 function updateExpiryBadge() {
     const badge = document.getElementById('expiryBadgeCount');
     if (!badge) return;
-    const expiringList = getExpiringProducts();
-    if (expiringList.length > 0) {
-        badge.innerText = expiringList.length;
+    const total = getExpiringProducts().length + getLowStockProducts().length;
+    if (total > 0) {
+        badge.innerText = total;
         badge.style.display = 'flex';
     } else {
         badge.style.display = 'none';
@@ -1321,6 +1355,7 @@ function openExpiryModal() {
             </div>
         `).join('');
     }
+    listContainer.innerHTML = '<div class="alert-title">📅 قرب نفاذ الصلاحية</div>' + listContainer.innerHTML + buildLowStockSection();
     document.getElementById('expiryModal').style.display = 'flex';
 }
 
@@ -1376,6 +1411,7 @@ window.onload = function() {
     renderAll();
     initFirebase();
     checkSharedProductUrl();
+    setTimeout(updateConnectionBadge, 1500);
 };
 
 // ============================================================================
@@ -1504,16 +1540,25 @@ function parseProductText(text, lines) {
     let form = '';
     for (const [re, name] of SCAN_FORMS) { if (re.test(clean)) { form = name; break; } }
 
+    // التركيز بالغرام (1 g) للأقراص والكبسول والحقن فقط، لأن g في الكريمات تعني حجم العبوة
+    if (!potency && /^(Tablets|Capsules|Sachets|Injection|Suppositories)$/.test(form)) {
+        const g = clean.match(/(\d+(?:[.,]\d+)?)\s?g\b/i);
+        if (g) potency = normalizeUnit(g[1], 'g');
+    }
+
     let pack = '';
     const count = clean.match(/(\d{1,4})\s*(?:film[-\s]?coated\s+|coated\s+|chewable\s+|effervescent\s+)?(tablets?|capsules?|caps|sachets?|ampoules?|vials?|suppositor(?:y|ies))\b/i);
+    const countAfter = !count && clean.match(/\b(tablets?|capsules?|caps|sachets?|ampoules?|vials?|suppositor(?:y|ies))\s*[x×:\-]?\s*(\d{1,4})\b/i);
     if (count) {
         pack = `${count[1]} ${count[2].charAt(0).toUpperCase() + count[2].slice(1).toLowerCase()}`;
+    } else if (countAfter) {
+        pack = `${countAfter[2]} ${countAfter[1].charAt(0).toUpperCase() + countAfter[1].slice(1).toLowerCase()}`;
     } else {
         const vol = clean.replace(compound ? compound[0] : '', ' ').match(/(\d+(?:[.,]\d+)?)\s?(ml|g)\b/i);
         if (vol) pack = normalizeUnit(vol[1], vol[2]);
     }
     let meta = '';
-    if (count) meta = pack;
+    if (count || countAfter) meta = pack;
     else meta = [pack, form].filter(Boolean).join(' | ');
 
     // --- الاسم التجاري: أكبر سطر نصي ---
@@ -1623,5 +1668,504 @@ async function scanProductImage(event) {
         Swal.fire({ icon: 'error', title: 'تعذر المسح', text: err.message || String(err), confirmButtonColor: '#0f1c38' });
     } finally {
         input.value = ''; // للسماح باختيار نفس الصورة مرة أخرى
+    }
+}
+
+// ============================================================================
+// 10. العمل بدون إنترنت: التصفح يعمل دائماً، أما الحفظ في السحابة فيحتاج اتصالاً
+// ============================================================================
+function requireOnline() {
+    if (navigator.onLine) return true;
+    Swal.fire({
+        icon: 'warning',
+        title: 'لا يوجد اتصال بالإنترنت',
+        text: 'التصفح والبحث يعملان بدون إنترنت، لكن الإضافة والتعديل والحذف تحتاج اتصالاً حتى تُحفظ في السحابة.',
+        confirmButtonColor: '#0f1c38',
+        confirmButtonText: 'حسناً'
+    });
+    return false;
+}
+
+function updateConnectionBadge() {
+    const badge = document.getElementById('syncBadge');
+    if (!badge) return;
+    if (!navigator.onLine) {
+        badge.innerText = '📴 بدون إنترنت';
+    } else if (badge.innerText.includes('📴')) {
+        badge.innerText = isFirebaseReady ? '☁️ متصل' : '💾 محلي';
+    }
+}
+window.addEventListener('offline', updateConnectionBadge);
+window.addEventListener('online', updateConnectionBadge);
+
+// ============================================================================
+// 11. تنبيه الكمية القليلة
+// ============================================================================
+function getMinQty(p) {
+    const v = parseInt(p.minQty);
+    return isNaN(v) ? lowStockThreshold : v;   // حد الصنف إن وُجد، وإلا الحد العام من الإعدادات
+}
+
+function isLowStock(p) {
+    const q = parseInt(p.qty) || 0;
+    return q > 0 && q <= getMinQty(p);
+}
+
+function getLowStockProducts() {
+    return products.filter(isLowStock).sort((a, b) => (parseInt(a.qty) || 0) - (parseInt(b.qty) || 0));
+}
+
+function buildLowStockSection() {
+    const list = getLowStockProducts();
+    const title = '<div class="alert-title">📉 كمية قليلة</div>';
+    if (!list.length) {
+        return title + `<div style="text-align:center; padding:18px; color:#15803d; font-weight:700;">✅ لا توجد أصناف وصلت للحد الأدنى.</div>`;
+    }
+    return title + list.map(p => `
+        <div onclick="closeExpiryModal(); openSheet(${p.id});" style="cursor:pointer; padding:10px 12px; border-radius:10px; background:#fff7ed; border:1px solid #fdba74; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div>
+                <div style="font-weight:800; font-size:0.88rem; color:#0f172a;" dir="ltr">${escapeHtml(p.name)}</div>
+                <div style="font-size:0.75rem; color:#475569;">الشركة: ${escapeHtml(p.brand || '')}</div>
+            </div>
+            <div style="text-align:left; flex-shrink:0;">
+                <div style="font-size:0.78rem; font-weight:800; color:#c2410c;">الكمية: ${p.qty}</div>
+                <div style="font-size:0.72rem; font-weight:700; color:#334155;">الحد: ${getMinQty(p)}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function saveLowThreshold() {
+    const v = parseInt(document.getElementById('lowThresholdInput').value);
+    if (isNaN(v) || v < 0) {
+        Swal.fire({ icon: 'warning', title: 'أدخل رقماً صحيحاً (0 أو أكثر)', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        return;
+    }
+    lowStockThreshold = v;
+    pushToCloud(true);
+    renderAll();
+    Swal.fire({ icon: 'success', title: 'تم حفظ حد التنبيه', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
+}
+
+// ============================================================================
+// 12. البدائل بنفس المادة الفعالة
+// ============================================================================
+function ingredientKey(str) {
+    return (str || '')
+        .toLowerCase()
+        .replace(/\d+(?:[.,]\d+)?\s*(?:mg|mcg|g|ml|iu|%)/g, ' ')   // نتجاهل التركيز لو كُتب بالخطأ
+        .split(/[+,\/،&]|\band\b/)
+        .map(s => s.replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .sort()
+        .join('+');
+}
+
+function getAlternatives(p) {
+    const key = ingredientKey(p.activeIngredient);
+    if (!key) return [];
+    return products
+        .filter(x => x.id !== p.id && ingredientKey(x.activeIngredient) === key)
+        .sort((a, b) => {
+            const sa = (parseInt(a.qty) || 0) > 0 ? 0 : 1;
+            const sb = (parseInt(b.qty) || 0) > 0 ? 0 : 1;
+            if (sa !== sb) return sa - sb;                                  // المتوفر أولاً
+            return (Number(a.price) || 1e12) - (Number(b.price) || 1e12);   // ثم الأرخص
+        });
+}
+
+function buildAlternativesHtml(p) {
+    const alts = getAlternatives(p);
+    if (!alts.length) return '';
+    return `
+        <div class="sheet-section alt-section">
+            <h4>بدائل بنفس المادة الفعالة (${alts.length})</h4>
+            <div class="alt-list">
+                ${alts.map(a => {
+                    const inStock = (parseInt(a.qty) || 0) > 0;
+                    const price = a.price ? Number(a.price).toLocaleString() + ' د.ع' : '';
+                    return `
+                    <div class="alt-item ${inStock ? '' : 'alt-out'}" onclick="openSheet(${a.id}); document.getElementById('bottomSheet').scrollTop = 0;">
+                        <span class="alt-dot ${inStock ? '' : 'out'}"></span>
+                        <div class="alt-main">
+                            <div class="alt-name" dir="ltr">${escapeHtml(a.name)}</div>
+                            <div class="alt-sub">${escapeHtml(a.brand || '')}${price ? ' | ' + price : ''}${inStock ? '' : ' | نافذ'}</div>
+                        </div>
+                        <div class="alt-meta" dir="ltr">${escapeHtml(fixMetaOrder(a.meta))}</div>
+                    </div>`;
+                }).join('')}
+            </div>
+        </div>`;
+}
+
+// قائمة اقتراحات المواد الفعالة المكتوبة سابقاً (لتوحيد الكتابة)
+function refreshActiveDatalist() {
+    const dl = document.getElementById('activeList');
+    if (!dl) return;
+    const seen = new Map();
+    products.forEach(p => {
+        const v = (p.activeIngredient || '').trim();
+        if (v && !seen.has(v.toLowerCase())) seen.set(v.toLowerCase(), v);
+    });
+    dl.innerHTML = [...seen.values()].sort().map(v => `<option value="${escapeHtml(v)}"></option>`).join('');
+}
+
+// حفظ عدة أصناف دفعة واحدة في السحابة
+async function saveProductsBatch(list) {
+    saveLocal();
+    if (!isFirebaseReady || !currentUser) {
+        await Swal.fire({ icon: 'error', title: 'أنت غير مسجل الدخول!', text: 'سجّل دخول الصيدلي أولاً ليتم الحفظ في الإنترنت.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        return false;
+    }
+    if (!requireOnline()) return false;
+    const badge = document.getElementById('syncBadge');
+    if (badge) badge.innerText = '⏳ جاري الحفظ...';
+    try {
+        for (let i = 0; i < list.length; i += 20) {
+            const batch = db.batch();
+            list.slice(i, i + 20).forEach(p => {
+                batch.set(db.collection('pharmacy_products').doc(p.id.toString()), JSON.parse(JSON.stringify(p)));
+            });
+            await batch.commit();
+        }
+        if (badge) badge.innerText = '☁️ تم الحفظ';
+        return true;
+    } catch (err) {
+        if (badge) badge.innerText = '❌ فشل الحفظ';
+        await Swal.fire({ icon: 'error', title: 'خطأ في السحابة', text: err.message, confirmButtonColor: '#0f1c38' });
+        return false;
+    }
+}
+
+// ---------- نافذة إكمال المواد الفعالة للأصناف القديمة ----------
+function openIngredientModal() {
+    refreshActiveDatalist();
+    const missing = products.filter(p => !(p.activeIngredient || '').trim());
+    document.getElementById('ingSummary').innerText = missing.length
+        ? `${missing.length} صنف بدون مادة فعالة من أصل ${products.length}. اكتب المادة الفعالة فقط (بدون التركيز)، وللمركّب افصل بـ +`
+        : 'كل الأصناف لها مادة فعالة ✅';
+    document.getElementById('ingFilter').value = '';
+    document.getElementById('ingListContainer').innerHTML = missing.map(p => `
+        <div class="ing-row" data-name="${escapeHtml((p.name + ' ' + (p.brand || '')).toLowerCase())}">
+            <div class="ing-name">
+                <span dir="ltr">${escapeHtml(p.name)}</span>
+                <small dir="ltr">${escapeHtml(p.brand || '')} | ${escapeHtml(fixMetaOrder(p.meta))}</small>
+            </div>
+            <input type="text" class="ing-input" data-id="${p.id}" list="activeList" dir="ltr" placeholder="مثال: Tretinoin">
+        </div>
+    `).join('');
+    document.getElementById('ingModal').style.display = 'flex';
+}
+
+function closeIngredientModal() {
+    document.getElementById('ingModal').style.display = 'none';
+}
+
+function filterIngredientRows() {
+    const q = document.getElementById('ingFilter').value.toLowerCase().trim();
+    document.querySelectorAll('#ingListContainer .ing-row').forEach(row => {
+        row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+}
+
+async function saveIngredients() {
+    if (!requireOnline()) return;
+    const changed = [];
+    document.querySelectorAll('#ingListContainer .ing-input').forEach(inp => {
+        const v = inp.value.trim();
+        if (!v) return;
+        const p = products.find(x => x.id === parseInt(inp.dataset.id));
+        if (p) { p.activeIngredient = v; changed.push(p); }
+    });
+    if (!changed.length) { closeIngredientModal(); return; }
+    const ok = await saveProductsBatch(changed);
+    if (ok) {
+        closeIngredientModal();
+        renderAll();
+        Swal.fire({ icon: 'success', title: `تم حفظ المادة الفعالة لـ ${changed.length} صنف`, toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    }
+}
+
+// ============================================================================
+// 13. سجل البحث الفاشل (ما يبحث عنه الزبائن ولا يجدونه)
+// ============================================================================
+const MISS_KEY = 'diwanSearchMisses';
+const missSeenThisSession = new Set();
+let missTimer = null;
+let currentMissList = [];
+
+function normalizeQuery(q) {
+    return (q || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+function loadLocalMisses() {
+    try { return JSON.parse(localStorage.getItem(MISS_KEY)) || {}; } catch (e) { return {}; }
+}
+
+function saveLocalMisses(obj) {
+    const keys = Object.keys(obj);
+    if (keys.length > 200) {   // نحتفظ بآخر 200 عملية بحث فقط
+        keys.sort((a, b) => (obj[a].last || '').localeCompare(obj[b].last || ''))
+            .slice(0, keys.length - 200)
+            .forEach(k => delete obj[k]);
+    }
+    try { localStorage.setItem(MISS_KEY, JSON.stringify(obj)); } catch (e) { /* ذاكرة ممتلئة */ }
+}
+
+function productSearchText(p) {
+    return `${p.name} ${p.brand} ${p.details} ${p.meta} ${p.category} ${p.keywords || ''} ${p.activeIngredient || ''}`.toLowerCase();
+}
+
+function scheduleMissCheck(rawQuery) {
+    clearTimeout(missTimer);
+    const q = normalizeQuery(rawQuery);
+    if (q.length < 2 || missSeenThisSession.has(q)) return;
+    missTimer = setTimeout(() => {
+        if (products.some(p => productSearchText(p).includes(q))) return;   // وُجد في أي قسم: ليس بحثاً فاشلاً
+        missSeenThisSession.add(q);
+        recordFailedSearch(q);
+    }, 1800);
+}
+
+function recordFailedSearch(q) {
+    const misses = loadLocalMisses();
+    const entry = misses[q] || { count: 0, last: '' };
+    entry.count += 1;
+    entry.last = new Date().toISOString();
+    misses[q] = entry;
+    saveLocalMisses(misses);
+
+    // محاولة تسجيله في السحابة (تنجح فقط إذا سمحت قواعد Firestore بذلك)
+    if (isFirebaseReady && db && navigator.onLine) {
+        try {
+            db.collection('pharmacy_search_misses').doc(encodeURIComponent(q).slice(0, 200)).set({
+                query: q,
+                count: firebase.firestore.FieldValue.increment(1),
+                lastAt: entry.last
+            }, { merge: true }).catch(() => {});
+        } catch (e) { /* تجاهل */ }
+    }
+}
+
+async function openMissModal() {
+    document.getElementById('missModal').style.display = 'flex';
+    const box = document.getElementById('missListContainer');
+    box.innerHTML = '<div class="miss-empty">⏳ جاري التحميل...</div>';
+
+    const merged = {};
+    Object.entries(loadLocalMisses()).forEach(([q, v]) => { merged[q] = { query: q, count: v.count || 0, last: v.last || '', cloudId: null }; });
+
+    if (isFirebaseReady && currentUser && navigator.onLine) {
+        try {
+            const snap = await db.collection('pharmacy_search_misses').orderBy('count', 'desc').limit(200).get();
+            snap.forEach(doc => {
+                const d = doc.data();
+                if (!d.query) return;
+                const q = normalizeQuery(d.query);
+                const prev = merged[q];
+                merged[q] = {
+                    query: q,
+                    count: Math.max(d.count || 0, prev ? prev.count : 0),   // نتجنب العد المزدوج لبحث هذا الجهاز
+                    last: (d.lastAt || '') > (prev ? prev.last : '') ? (d.lastAt || '') : (prev ? prev.last : ''),
+                    cloudId: doc.id
+                };
+            });
+        } catch (e) { /* القواعد لا تسمح بالقراءة: نعرض السجل المحلي فقط */ }
+    }
+
+    currentMissList = Object.values(merged).sort((a, b) => b.count - a.count || (b.last || '').localeCompare(a.last || ''));
+    renderMissList();
+}
+
+function renderMissList() {
+    const box = document.getElementById('missListContainer');
+    if (!currentMissList.length) {
+        box.innerHTML = '<div class="miss-empty">لا توجد عمليات بحث فاشلة مسجّلة بعد.<br><small>يُسجَّل هنا أي اسم يُبحث عنه ولا يوجد في أي قسم.</small></div>';
+        return;
+    }
+    box.innerHTML = currentMissList.map(m => `
+        <div class="miss-row">
+            <span class="miss-q" dir="auto">${escapeHtml(m.query)}</span>
+            <span class="miss-count">${m.count}×</span>
+            <span class="miss-date">${m.last ? new Date(m.last).toLocaleDateString('ar') : ''}</span>
+        </div>
+    `).join('');
+}
+
+function closeMissModal() {
+    document.getElementById('missModal').style.display = 'none';
+}
+
+async function copyMissList() {
+    if (!currentMissList.length) return;
+    const text = currentMissList.map(m => `${m.query} (${m.count})`).join('\n');
+    try {
+        await navigator.clipboard.writeText(text);
+        Swal.fire({ icon: 'success', title: 'تم نسخ القائمة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'تعذر النسخ', text: 'انسخ القائمة يدوياً.', confirmButtonColor: '#0f1c38' });
+    }
+}
+
+async function clearMissList() {
+    const res = await Swal.fire({
+        title: 'مسح سجل البحث الفاشل؟',
+        text: 'سيُحذف السجل من هذا الجهاز ومن السحابة (إن كان مسجلاً دخولك).',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'نعم، امسح',
+        cancelButtonText: 'إلغاء'
+    });
+    if (!res.isConfirmed) return;
+    localStorage.removeItem(MISS_KEY);
+    missSeenThisSession.clear();
+    const cloudIds = currentMissList.filter(m => m.cloudId).map(m => m.cloudId);
+    if (cloudIds.length && isFirebaseReady && currentUser && navigator.onLine) {
+        try {
+            for (let i = 0; i < cloudIds.length; i += 400) {
+                const batch = db.batch();
+                cloudIds.slice(i, i + 400).forEach(id => batch.delete(db.collection('pharmacy_search_misses').doc(id)));
+                await batch.commit();
+            }
+        } catch (e) { console.warn('Clear misses error:', e); }
+    }
+    currentMissList = [];
+    renderMissList();
+}
+
+// ============================================================================
+// 14. النسخ الاحتياطي (تصدير / استرجاع)
+// ============================================================================
+function buildBackupObject() {
+    return {
+        app: 'diwan-pharmacy',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        departments,
+        subCategories,
+        tabLabels,
+        customTabs,
+        lowStockThreshold,
+        products
+    };
+}
+
+function todayStamp() {
+    return new Date().toISOString().slice(0, 10);
+}
+
+async function downloadFile(filename, content, mime) {
+    const blob = new Blob([content], { type: mime });
+    // على الهواتف: قائمة المشاركة تتيح الحفظ في الملفات أو الإرسال لنفسك
+    const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
+    if (isMobile && navigator.canShare && navigator.share) {
+        try {
+            const file = new File([blob], filename, { type: mime });
+            if (navigator.canShare({ files: [file] })) {
+                await navigator.share({ files: [file], title: filename });
+                return;
+            }
+        } catch (e) {
+            if (e && e.name === 'AbortError') return;   // أغلق المستخدم القائمة
+        }
+    }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+
+function exportBackupJson() {
+    downloadFile(`diwan-backup-${todayStamp()}.json`, JSON.stringify(buildBackupObject(), null, 2), 'application/json');
+}
+
+function csvCell(v) {
+    const s = String(v === null || v === undefined ? '' : v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportCsv() {
+    const headers = ['القسم', 'التصنيف', 'الشركة', 'الاسم التجاري', 'المادة الفعالة', 'العبوة', 'السعر', 'الكمية', 'حد التنبيه', 'تواريخ النفاذ', 'الكلمات المفتاحية', 'الوصف'];
+    const rows = products.map(p => [
+        p.department || '', p.category || '', p.brand || '', p.name || '', p.activeIngredient || '',
+        fixMetaOrder(p.meta), p.price || 0, p.qty || 0,
+        isNaN(parseInt(p.minQty)) ? '' : p.minQty,
+        getProductExpiryDates(p).join(' ; '),
+        p.keywords || '', p.details || ''
+    ]);
+    const csv = '\uFEFF' + [headers, ...rows].map(r => r.map(csvCell).join(',')).join('\r\n');   // BOM ليقرأ Excel العربية صحيحة
+    downloadFile(`diwan-products-${todayStamp()}.csv`, csv, 'text/csv;charset=utf-8');
+}
+
+function validateBackup(data) {
+    if (!data || typeof data !== 'object' || !Array.isArray(data.products)) return 'الملف ليس نسخة احتياطية لهذا التطبيق.';
+    if (data.products.length === 0) return 'النسخة الاحتياطية لا تحتوي أي أصناف.';
+    const bad = data.products.find(p => !p || typeof p !== 'object' || p.id === undefined || p.id === null || !p.name);
+    if (bad) return 'بعض الأصناف في الملف ناقصة (بدون رقم أو اسم).';
+    return null;
+}
+
+async function restoreBackup(event) {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    try {
+        if (!currentUser) {
+            await Swal.fire({ icon: 'error', title: 'سجّل دخول الصيدلي أولاً', text: 'الاسترجاع يكتب في السحابة، لذلك يحتاج تسجيل الدخول.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+            return;
+        }
+        if (!requireOnline()) return;
+
+        let data;
+        try { data = JSON.parse(await file.text()); } catch (e) { data = null; }
+        const problem = validateBackup(data);
+        if (problem) {
+            await Swal.fire({ icon: 'error', title: 'ملف غير صالح', text: problem, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+            return;
+        }
+
+        const existingIds = new Set(products.map(p => p.id));
+        const replaced = data.products.filter(p => existingIds.has(p.id)).length;
+        const added = data.products.length - replaced;
+        const when = data.exportedAt ? new Date(data.exportedAt).toLocaleDateString('ar') : 'غير معروف';
+
+        const ok = await Swal.fire({
+            title: 'استرجاع النسخة الاحتياطية؟',
+            html: `<div style="text-align:right; line-height:1.9; font-size:0.92rem;">
+                تاريخ النسخة: <b>${escapeHtml(when)}</b><br>
+                أصناف جديدة ستُضاف: <b>${added}</b><br>
+                أصناف موجودة ستُستبدل بنسختها القديمة: <b>${replaced}</b><br>
+                <span style="color:#64748b;">لن يُحذف أي صنف موجود حالياً غير موجود في النسخة. والصور لا تتأثر (هي محفوظة في GitHub).</span>
+            </div>`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0f1c38',
+            confirmButtonText: 'نعم، استرجع',
+            cancelButtonText: 'إلغاء'
+        });
+        if (!ok.isConfirmed) return;
+
+        const byId = new Map(products.map(p => [p.id, p]));
+        data.products.forEach(p => byId.set(p.id, p));
+        products = [...byId.values()].sort((a, b) => b.id - a.id);
+
+        if (Array.isArray(data.departments)) departments = [...new Set([...departments, ...data.departments])];
+        if (Array.isArray(data.subCategories)) subCategories = [...new Set([...subCategories, ...data.subCategories])];
+        if (data.tabLabels && typeof data.tabLabels === 'object') tabLabels = { ...defaultTabLabels, ...data.tabLabels };
+        if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
+        if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
+
+        await pushToCloud(false);
+        renderAll();
+        Swal.fire({ icon: 'success', title: 'تم الاسترجاع', text: `${data.products.length} صنف`, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'تعذر الاسترجاع', text: err.message || String(err), confirmButtonColor: '#0f1c38' });
+    } finally {
+        input.value = '';
     }
 }
