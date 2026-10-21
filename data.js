@@ -208,8 +208,8 @@ let subCategories = JSON.parse(localStorage.getItem('diwanSubCats')) || defaultS
 
 let activeDept = departments[0] || "قسم الجلدية";
 let mainTab = 'all';
-let activeSubCat = 'الكل'; // ✅ هذا هو السطر المفقود الذي تسبب بتوقف التطبيق!
-let activeBrand = 'الكل';  // الشركة المختارة للفلترة
+let activeSubCat = 'الكل';   // <-- add this line
+let activeBrand = 'الكل';
 
 // رقم واتساب الصيدلية (مع مفتاح العراق 964 بدون الصفر الأول) ويوزر صفحة الانستغرام:
 const PHARMACY_WHATSAPP = "9647805261843"; 
