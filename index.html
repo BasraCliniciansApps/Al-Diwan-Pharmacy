@@ -29,14 +29,17 @@
     <header class="top-bar">
         <div class="top-bar-inner">
             
-            <!-- 1. شريط التحكم العلوي الصغير (أيقونات فقط ولا يظهر إلا للصيدلي) -->
-            <!-- 1. شريط التحكم العلوي الصغير (أيقونات فقط ولا يظهر إلا للصيدلي) -->
-            <!-- 1. شريط التحكم العلوي الصغير (أيقونات موحدة الشكل واللون) -->
+            <!-- 1. شريط التحكم العلوي الصغير -->
             <div class="admin-top-strip">
                 <span id="syncBadge" class="sync-icon-badge">☁️</span>
-                <!-- زر تسجيل الدخول (أيقونة مستخدم) -->
                 <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي">👤</button>
-                <!-- أزرار الإدارة -->
+                
+                <!-- زر تنبيهات الصلاحية (يظهر للصيدلي فقط) -->
+                <button class="small-icon-btn admin-only" onclick="openExpiryModal()" title="تنبيهات الصلاحية" style="position:relative;">
+                    🔔
+                    <span id="expiryBadgeCount" class="expiry-badge-dot" style="display:none;">0</span>
+                </button>
+
                 <button class="small-icon-btn admin-only" onclick="openCategoryManager()" title="إعدادات الأقسام">⚙️</button>
                 <button class="small-icon-btn admin-only" onclick="openFormModal()" title="إضافة صنف">➕</button>
             </div>
@@ -66,6 +69,8 @@
 
             <!-- شريط التصنيفات الفرعية -->
             <div class="pills-bar" id="pillsBar"></div>
+            <!-- شريط الشركات المصنعة (الجديد) -->
+            <div class="pills-bar brands-bar" id="brandsBar"></div>
         </div>
     </header>
 
@@ -174,6 +179,10 @@
             <div class="form-group"><label>المادة الفعالة والاستخدام:</label><textarea id="fDetails" rows="3"></textarea></div>
             <!-- ... الحقول السابقة ... -->
             <div class="form-group"><label>العبوة / الشكل الدوائي:</label><input type="text" id="fMeta" dir="ltr"></div>
+            <div class="form-group">
+                <label>تاريخ النفاذ (Expiry Date - يظهر للصيدلي فقط):</label>
+                <input type="date" id="fExpiry" dir="ltr">
+            </div>
             <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="fPrice" min="0" value="0"></div>
             <div class="form-group"><label>العدد المتوفر:</label><input type="number" id="fQty" min="0" value="5"></div>
             <div class="form-group"><label>كلمات مفتاحية لتسهيل البحث (اختياري):</label><input type="text" id="fKeywords" placeholder="مثال: مسكن، ألم رأس، بديل كذا..."></div>
@@ -193,6 +202,18 @@
     <!-- تكبير الصورة -->
     <div class="img-zoom-modal" id="zoomModal" onclick="this.style.display='none'">
         <img id="zoomImg" src="" alt="">
+    </div>
+
+    <!-- نافذة تنبيهات صلاحية الأدوية (خاصة بالصيدلي فقط) -->
+    <div class="modal-overlay" id="expiryModal">
+        <div class="modal-card" style="max-width: 480px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <h3 style="color:var(--primary-dark);">🔔 تنبيهات قرب نفاذ الصلاحية</h3>
+                <button class="icon-btn" onclick="closeExpiryModal()">✕</button>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:12px;">يعرض هذا التقرير المواد التي تنتهي صلاحيتها خلال 3 أشهر أو 6 أشهر القادمة.</p>
+            <div id="expiryListContainer" style="max-height: 60vh; overflow-y: auto; display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
     </div>
 
     <script src="data.js"></script>
