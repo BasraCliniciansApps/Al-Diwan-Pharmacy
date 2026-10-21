@@ -27,6 +27,7 @@
     --success: #12a37a;
     --danger: #e5484d;
 
+    --logo-size: 54px;          /* ارتفاع الشعار، والخط يتبعه تلقائياً */
     --radius-lg: 20px;
     --radius-md: 14px;
     --radius-sm: 10px;
@@ -147,8 +148,8 @@ body.admin-mode .admin-only { display: flex !important; }
 }
 
 .logo-icon {
-    width: 54px;
-    height: 54px;
+    width: var(--logo-size);
+    height: var(--logo-size);
     border-radius: 16px;
     background: var(--navy-deep);
     display: flex;
@@ -168,11 +169,12 @@ body.admin-mode .admin-only { display: flex !important; }
 
 .ruqaa-title {
     font-family: 'Aref Ruqaa', serif;
-    font-size: 2.3rem;
+    font-size: calc(var(--logo-size) * 0.86);   /* ارتفاع الخط يتناسب مع ارتفاع الشعار */
     font-weight: 700;
     color: var(--gold);
-    line-height: 1.1;
+    line-height: var(--logo-size);              /* سطر الاسم بنفس ارتفاع الشعار */
     margin-bottom: 0;
+    white-space: nowrap;
 }
 
 .logo-text span {
@@ -189,20 +191,15 @@ body.admin-mode .admin-only { display: flex !important; }
     flex-wrap: wrap;
 }
 
+/* الهاتف: الشعار والاسم في أعلى اليمين مثل الحاسوب (بدون توسيط) */
 @media (max-width: 600px) {
-    .app-header-row {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .app-logo {
-        margin-bottom: 4px;
-        justify-content: center;
-    }
     .top-actions {
         justify-content: center;
         width: 100%;
     }
-    .ruqaa-title { font-size: 2.1rem; }
+}
+@media (max-width: 380px) {
+    :root { --logo-size: 48px; }   /* الهواتف الصغيرة: تصغير بسيط حتى لا يضيق الاسم */
 }
 
 /* ---------- الأزرار العامة ---------- */
