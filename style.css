@@ -169,7 +169,7 @@ body.admin-mode .admin-only { display: flex !important; }
 
 .ruqaa-title {
     font-family: 'Aref Ruqaa', serif;
-    font-size: calc(var(--logo-size) * 0.86);   /* ارتفاع الخط يتناسب مع ارتفاع الشعار */
+    font-size: calc(var(--logo-size) * 0.8);   /* ارتفاع الخط يتناسب مع ارتفاع الشعار */
     font-weight: 700;
     color: var(--gold);
     line-height: var(--logo-size);              /* سطر الاسم بنفس ارتفاع الشعار */
