@@ -249,34 +249,44 @@
             <h3 id="formModalTitle" style="margin-bottom:14px; color:var(--primary-dark);">إضافة / تعديل صنف</h3>
             <input type="hidden" id="editId">
             <div class="scan-box">
-                <label class="icon-btn scan-btn" for="scanInput">📷 مسح العبوة بالكاميرا</label>
-                <input type="file" id="scanInput" accept="image/*" capture="environment" hidden onchange="scanProductImage(event)">
-                <label class="icon-btn scan-btn" for="scanGalleryInput">🖼️ من الاستوديو</label>
-                <input type="file" id="scanGalleryInput" accept="image/*" hidden onchange="scanProductImage(event)">
-                <select id="scanEngineSelect" class="scan-engine-select" onchange="setAiEngine(this.value)" title="محرك القراءة">
-                    <option value="local">قراءة عادية (بدون ذكاء)</option>
-                    <option value="gemini">Gemini API</option>
-                    <option value="firebase">Firebase AI Logic</option>
-                </select>
-                <button type="button" class="icon-btn scan-gear" onclick="openAiSettingsOverForm()" title="إعدادات الذكاء الصناعي">⚙️</button>
-                <div class="name-lookup-row">
-                    <input type="text" id="nameLookupInput" dir="ltr" placeholder="أو اكتب اسم المنتج (مثال: Differin 0.1%)" onkeydown="if(event.key==='Enter'){event.preventDefault();fillFromTypedName();}">
-                    <button type="button" class="icon-btn" onclick="fillFromTypedName()">🔎 املأ من الاسم</button>
+                <div class="scan-head">
+                    <span class="scan-title">✨ تعبئة سريعة</span>
+                    <div class="scan-engine">
+                        <select id="scanEngineSelect" class="scan-engine-select" onchange="setAiEngine(this.value)" title="محرك القراءة">
+                            <option value="local">قراءة عادية</option>
+                            <option value="gemini">Gemini API</option>
+                            <option value="firebase">Firebase AI</option>
+                        </select>
+                        <button type="button" class="scan-gear" onclick="openAiSettingsOverForm()" title="إعدادات الذكاء الصناعي" aria-label="إعدادات الذكاء الصناعي">⚙️</button>
+                    </div>
                 </div>
-                <span id="scanStatus" class="scan-status"></span>
-                <small class="scan-hint" id="scanHint">صوّر واجهة العبوة بإضاءة جيدة، وسيقرأ التطبيق الاسم والتركيز والشكل والصلاحية. راجع القيم دائماً قبل الحفظ.</small>
+                <div class="scan-actions">
+                    <label class="scan-act" for="scanInput"><span class="scan-ico">📷</span><span>كاميرا</span></label>
+                    <label class="scan-act" for="scanGalleryInput"><span class="scan-ico">🖼️</span><span>الاستوديو</span></label>
+                </div>
+                <input type="file" id="scanInput" accept="image/*" capture="environment" hidden onchange="scanProductImage(event)">
+                <input type="file" id="scanGalleryInput" accept="image/*" hidden onchange="scanProductImage(event)">
+                <div class="name-lookup-row">
+                    <input type="text" id="nameLookupInput" dir="ltr" placeholder="أو اكتب اسم المنتج: Differin 0.1%" onkeydown="if(event.key==='Enter'){event.preventDefault();fillFromTypedName();}">
+                    <button type="button" class="scan-go" onclick="fillFromTypedName()">🔎 املأ</button>
+                </div>
+                <div id="scanStatus" class="scan-status"></div>
+                <small class="scan-hint" id="scanHint">صوّر واجهة العبوة بإضاءة جيدة. راجع القيم قبل الحفظ.</small>
             </div>
             <div class="form-group">
                 <label>القسم الرئيسي:</label>
-                <select id="fDepartment"></select>
+                <select id="fDepartment" onchange="refreshExtraChips('dept')"></select>
+                <div class="extra-group"><small>يظهر أيضاً في قسم:</small><div id="fExtraDepts" class="chip-wrap"></div></div>
             </div>
             <div class="form-group">
                 <label>التصنيف الفرعي:</label>
-                <select id="fCategory"></select>
+                <select id="fCategory" onchange="refreshExtraChips('cat')"></select>
+                <div class="extra-group"><small>ويظهر أيضاً في تصنيف:</small><div id="fExtraCats" class="chip-wrap"></div></div>
             </div>
             <div class="form-group">
                 <label>يظهر في تبويب (الشريط السفلي):</label>
-                <select id="fType"></select>
+                <select id="fType" onchange="refreshExtraChips('type')"></select>
+                <div class="extra-group"><small>ويظهر أيضاً في تبويب:</small><div id="fExtraTypes" class="chip-wrap"></div></div>
             </div>
             <div class="form-group"><label>الشركة (Brand):</label><input type="text" id="fBrand"></div>
             <div class="form-group"><label>الاسم التجاري والتركيز:</label><input type="text" id="fName"></div>

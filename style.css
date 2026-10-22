@@ -922,14 +922,6 @@ body.admin-mode .sheet-admin-box { display: block; }
    ===================================================== */
 
 /* مسح العبوة بالكاميرا */
-.scan-box {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
-    background: var(--gold-soft); border: 1px dashed #f3c969;
-    border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 14px;
-}
-.scan-btn { background: var(--navy); color: #fff; border-color: var(--navy); }
-.scan-status { font-size: 0.8rem; font-weight: 700; color: var(--gold-dark); }
-.scan-hint { width: 100%; font-size: 0.72rem; color: var(--text-sub); line-height: 1.5; }
 
 /* نقطة الكمية القليلة: برتقالية للصيدلي فقط، وخضراء للزبائن */
 .status-dot.low { background: var(--success); }
@@ -979,14 +971,64 @@ body.admin-mode .status-dot.low { background: #f59e0b; }
 /* =====================================================
    الذكاء الصناعي لمسح العبوة
    ===================================================== */
-.scan-engine-select {
-    height: 40px; padding: 0 10px; max-width: 100%;
-    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
-    background: #fff; color: var(--navy); font-size: 0.82rem; font-weight: 700;
-}
-.scan-gear { padding: 0 12px; }
 .ai-test-result { font-size: 0.8rem; font-weight: 700; margin-top: 8px; min-height: 1.2em; line-height: 1.6; }
 .ai-note { font-size: 0.72rem; color: var(--text-sub); line-height: 1.7; margin-top: 8px; }
 
-.name-lookup-row { display: flex; gap: 8px; width: 100%; flex-basis: 100%; margin-top: 6px; }
-.name-lookup-row input { flex: 1; min-width: 0; height: 40px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; }
+
+/* =====================================================
+   صندوق المسح (مضغوط ومنظّم)
+   ===================================================== */
+.scan-box {
+    display: flex; flex-direction: column; gap: 8px;
+    background: #fff; border: 1px solid var(--border);
+    border-right: 4px solid var(--gold);
+    border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 14px;
+}
+.scan-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.scan-title { font-weight: 800; font-size: 0.88rem; color: var(--navy); }
+.scan-engine { display: flex; align-items: center; gap: 6px; }
+.scan-engine-select {
+    height: 32px; padding: 0 8px; max-width: 130px;
+    border: 1px solid var(--border); border-radius: 8px;
+    background: var(--gold-soft); color: var(--navy); font-size: 0.76rem; font-weight: 700;
+}
+.scan-gear {
+    width: 32px; height: 32px; padding: 0; line-height: 1;
+    border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; font-size: 0.95rem;
+}
+.scan-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.scan-act {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    height: 40px; border-radius: 10px; cursor: pointer;
+    background: var(--navy); color: #fff; font-size: 0.85rem; font-weight: 700;
+}
+.scan-act:nth-child(2) { background: #fff; color: var(--navy); border: 1.5px solid var(--navy); }
+.scan-ico { font-size: 1rem; }
+.name-lookup-row { display: flex; gap: 6px; }
+.name-lookup-row input {
+    flex: 1; min-width: 0; height: 36px; padding: 0 10px;
+    border: 1px solid var(--border); border-radius: 10px; font-size: 0.8rem;
+}
+.scan-go {
+    height: 36px; padding: 0 12px; border: 0; border-radius: 10px; cursor: pointer;
+    background: var(--gold); color: var(--navy); font-weight: 800; font-size: 0.8rem; white-space: nowrap;
+}
+.scan-status { font-size: 0.78rem; font-weight: 700; color: var(--gold-dark); }
+.scan-status:empty { display: none; }
+.scan-hint { font-size: 0.7rem; color: var(--text-sub); line-height: 1.5; }
+
+/* شرائح "يظهر أيضاً في" */
+.extra-group { margin-top: 6px; }
+.extra-group > small { display: block; font-size: 0.72rem; color: var(--text-sub); margin-bottom: 4px; }
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-opt { cursor: pointer; }
+.chip-opt input { position: absolute; opacity: 0; pointer-events: none; }
+.chip-opt span {
+    display: inline-block; padding: 4px 10px; border-radius: 999px;
+    border: 1px solid var(--border); background: #fff; color: var(--text-sub);
+    font-size: 0.76rem; font-weight: 700; transition: all .15s;
+}
+.chip-opt input:checked + span { background: var(--navy); border-color: var(--navy); color: #fff; }
+.chip-opt input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+.form-group .chip-opt { display: inline-block; margin: 0; width: auto; }

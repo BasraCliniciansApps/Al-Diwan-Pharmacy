@@ -619,13 +619,16 @@ function renameCustomTab(id) {
 function deleteCustomTab(id) {
     const t = customTabs.find(x => x.id === id);
     if (!t) return;
-    const count = products.filter(p => p.type === id).length;
+    const count = products.filter(p => p.type === id || inExtraTab(p, id)).length;
     const msg = count
         ? `حذف تبويب "${t.name}"؟ سيتم إرجاع ${count} صنف إلى التصنيف التلقائي (أدوية/كوزمتك). لن يُحذف أي صنف.`
         : `حذف تبويب "${t.name}"؟`;
     if (!confirm(msg)) return;
     customTabs = customTabs.filter(x => x.id !== id);
-    products.forEach(p => { if (p.type === id) p.type = ''; });
+    products.forEach(p => {
+        if (p.type === id) p.type = '';
+        if (inExtraTab(p, id)) p.extraTypes = p.extraTypes.filter(x => x !== id);
+    });
     if (mainTab === id) mainTab = 'all';
     pushToCloud(count > 0 ? false : true);
     renderManagerLists();
@@ -638,7 +641,10 @@ function renameDepartment(index) {
     if (newName && newName.trim() && newName.trim() !== oldName) {
         const clean = newName.trim();
         departments[index] = clean;
-        products.forEach(p => { if (p.department === oldName) p.department = clean; });
+        products.forEach(p => {
+            if (p.department === oldName) p.department = clean;
+            if (extrasOf(p.extraDepartments).includes(oldName)) p.extraDepartments = p.extraDepartments.map(x => x === oldName ? clean : x);
+        });
         if (activeDept === oldName) activeDept = clean;
         pushToCloud(false);
         renderManagerLists();
@@ -663,7 +669,10 @@ function renameSubCategory(index) {
     if (newName && newName.trim() && newName.trim() !== oldName) {
         const clean = newName.trim();
         subCategories[index] = clean;
-        products.forEach(p => { if (p.category === oldName) p.category = clean; });
+        products.forEach(p => {
+            if (p.category === oldName) p.category = clean;
+            if (extrasOf(p.extraCategories).includes(oldName)) p.extraCategories = p.extraCategories.map(x => x === oldName ? clean : x);
+        });
         if (activeSubCat === oldName) activeSubCat = clean;
         pushToCloud(false);
         renderManagerLists();
@@ -685,12 +694,20 @@ function addSubCategory() {
 // ============================================================================
 // 7. العرض والفلترة
 // ============================================================================
+// ---- أقسام/تصنيفات/تبويبات متعددة للصنف الواحد ----
+// الحقول القديمة department/category/type تبقى "الأساسية"، والإضافية تُخزَّن في مصفوفات منفصلة
+function extrasOf(v) { return Array.isArray(v) ? v.filter(x => typeof x === 'string' && x) : []; }
+function deptsOf(p) { return [p.department || 'قسم الجلدية'].concat(extrasOf(p.extraDepartments)); }
+function catsOf(p) { return [p.category].concat(extrasOf(p.extraCategories)).filter(Boolean); }
+function typesOf(p) { return [p.type].concat(extrasOf(p.extraTypes)).filter(Boolean); }
+function inExtraTab(p, id) { return extrasOf(p.extraTypes).includes(id); }
+
 function isRxItem(item) {
     // الاختيار اليدوي من نموذج الصنف له الأولوية، وإن لم يُحدَّد يُستخدم التخمين القديم
     if (item.type === 'rx') return true;
     if (item.type) return false;   // كوزمتك أو تبويب مخصص
     const rxKeywords = ['مضادات', 'كورتيزون', 'فموية', 'شرابات', 'rx'];
-    if (rxKeywords.some(k => item.category.toLowerCase().includes(k))) return true;
+    if (rxKeywords.some(k => String(item.category || '').toLowerCase().includes(k))) return true;
     const rxNames = ['acretin', 'azaderm', 'peroduo', 'ben-oxide', 'clinaderm', 'minoxidil', 'beta-salic', 'kenazole', 'naxoral', 'selerex', 'hiquin', 'benoquin'];
     return rxNames.some(k => item.name.toLowerCase().includes(k));
 }
@@ -735,23 +752,23 @@ function setMainTab(tab) {
 
 function getBaseFilteredByTab() {
     return products.filter(p => {
-        const matchDept = (p.department || "قسم الجلدية") === activeDept;
+        const matchDept = deptsOf(p).includes(activeDept);
         if (!matchDept) return false;
         if (mainTab === 'out') return (parseInt(p.qty) || 0) === 0;
-        if (mainTab === 'rx') return isRxItem(p);
-        if (mainTab === 'cosmetic') return !isRxItem(p) && !isCustomItem(p);
-        if (customTabs.some(t => t.id === mainTab)) return p.type === mainTab;
+        if (mainTab === 'rx') return isRxItem(p) || inExtraTab(p, 'rx');
+        if (mainTab === 'cosmetic') return (!isRxItem(p) && !isCustomItem(p)) || inExtraTab(p, 'cosmetic');
+        if (customTabs.some(t => t.id === mainTab)) return p.type === mainTab || inExtraTab(p, mainTab);
         return true;
     });
 }
 
 function renderPills() {
     const baseItems = getBaseFilteredByTab();
-    const availableCats = ['الكل', ...subCategories.filter(c => baseItems.some(p => p.category === c))];
+    const availableCats = ['الكل', ...subCategories.filter(c => baseItems.some(p => catsOf(p).includes(c)))];
     const bar = document.getElementById('pillsBar');
 
     bar.innerHTML = availableCats.map(c => {
-        const count = c === 'الكل' ? baseItems.length : baseItems.filter(x => x.category === c).length;
+        const count = c === 'الكل' ? baseItems.length : baseItems.filter(x => catsOf(x).includes(c)).length;
         const active = activeSubCat === c ? 'active' : '';
         return `
             <button class="pill ${active}" onclick="selectSubCat('${c}')">
@@ -773,7 +790,7 @@ function renderBrands() {
     const bar = document.getElementById('brandsBar');
     if (!bar) return;
 
-    const baseItems = getBaseFilteredByTab().filter(p => activeSubCat === 'الكل' || p.category === activeSubCat);
+    const baseItems = getBaseFilteredByTab().filter(p => activeSubCat === 'الكل' || catsOf(p).includes(activeSubCat));
     
     // استخراج أسماء الشركات الفريدة وترتيبها أبجدياً
     const uniqueBrands = [...new Set(baseItems.map(p => (p.brand || 'GENERIC').trim()))].filter(Boolean).sort();
@@ -823,9 +840,9 @@ function renderAll() {
     const baseItems = getBaseFilteredByTab();
 
     const filtered = baseItems.filter(p => {
-        const matchCat = activeSubCat === 'الكل' || p.category === activeSubCat;
+        const matchCat = activeSubCat === 'الكل' || catsOf(p).includes(activeSubCat);
         const matchBrand = activeBrand === 'الكل' || (p.brand || 'GENERIC').trim() === activeBrand;
-        const text = `${p.name} ${p.brand} ${p.details} ${p.meta} ${p.category} ${p.keywords || ''} ${p.activeIngredient || ''}`.toLowerCase();
+        const text = `${p.name} ${p.brand} ${p.details} ${p.meta} ${catsOf(p).join(' ')} ${p.keywords || ''} ${p.activeIngredient || ''}`.toLowerCase();
         const matchQ = !query || text.includes(query);
         return matchCat && matchBrand && matchQ;
     });
@@ -906,7 +923,7 @@ function openSheet(id) {
         <div class="sheet-section" style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
             <div>
                 <h4>القسم والتصنيف</h4>
-                <p style="font-size:0.86rem; font-weight:700;">${p.department || 'قسم الجلدية'} - ${p.category}</p>
+                <p style="font-size:0.86rem; font-weight:700;">${deptsOf(p).map(escapeHtml).join(' + ')} - ${catsOf(p).map(escapeHtml).join(' + ')}</p>
             </div>
             <div style="text-align:left;">
                 <h4>العبوة / الشكل الدوائي</h4>
@@ -981,6 +998,42 @@ function populateModalSelects() {
     document.getElementById('fCategory').innerHTML = subCategories.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
+// ---- شرائح الاختيار المتعدد في نموذج الصنف ----
+const EXTRA_KINDS = {
+    dept: { box: 'fExtraDepts', primary: 'fDepartment', options: () => departments.map(d => [d, d]) },
+    cat:  { box: 'fExtraCats',  primary: 'fCategory',   options: () => subCategories.map(c => [c, c]) },
+    type: { box: 'fExtraTypes', primary: 'fType',       options: () => [['rx', tabLabels.rx], ['cosmetic', tabLabels.cosmetic]].concat(customTabs.map(t => [t.id, t.name])) }
+};
+
+function getExtraSelection(kind) {
+    const box = document.getElementById(EXTRA_KINDS[kind].box);
+    if (!box) return [];
+    return Array.from(box.querySelectorAll('input[type=checkbox]:checked')).map(i => i.value);
+}
+
+function renderExtraChips(kind, selected) {
+    const k = EXTRA_KINDS[kind];
+    const box = document.getElementById(k.box);
+    if (!box) return;
+    const prim = (document.getElementById(k.primary) || {}).value || '';
+    const sel = new Set(selected || []);
+    const opts = k.options().filter(o => o[0] !== prim);
+    box.innerHTML = opts.map(o => `<label class="chip-opt"><input type="checkbox" value="${escapeHtml(o[0])}" ${sel.has(o[0]) ? 'checked' : ''}><span>${escapeHtml(o[1])}</span></label>`).join('');
+    box.parentElement.style.display = opts.length ? '' : 'none';
+}
+
+// عند تغيير الخيار الأساسي: نعيد الرسم مع الإبقاء على ما اختير سابقاً
+function refreshExtraChips(kind) {
+    const kinds = kind ? [kind] : Object.keys(EXTRA_KINDS);
+    kinds.forEach(k => renderExtraChips(k, getExtraSelection(k)));
+}
+
+function setExtraSelections(p) {
+    renderExtraChips('dept', p ? extrasOf(p.extraDepartments) : []);
+    renderExtraChips('cat', p ? extrasOf(p.extraCategories) : []);
+    renderExtraChips('type', p ? extrasOf(p.extraTypes) : []);
+}
+
 function openFormModal(id = null) {
     populateModalSelects();
     const modal = document.getElementById('formModal');
@@ -1002,6 +1055,7 @@ function openFormModal(id = null) {
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = p.price || 0;
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = p.keywords || '';
         setExpiryDatesInForm(getProductExpiryDates(p));
+        setExtraSelections(p);
     } else {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
@@ -1019,6 +1073,7 @@ function openFormModal(id = null) {
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = 0;
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = '';
         setExpiryDatesInForm([]);
+        setExtraSelections(null);
     }
     refreshScanEngineLabel();
     modal.style.display = 'flex';
@@ -1172,6 +1227,9 @@ async function saveFormProduct() {
         department: document.getElementById('fDepartment').value,
         category: document.getElementById('fCategory').value,
         type: document.getElementById('fType') ? document.getElementById('fType').value : '',
+        extraDepartments: getExtraSelection('dept').filter(x => x !== document.getElementById('fDepartment').value),
+        extraCategories: getExtraSelection('cat').filter(x => x !== document.getElementById('fCategory').value),
+        extraTypes: getExtraSelection('type').filter(x => x !== (document.getElementById('fType').value || '')),
         activeIngredient: document.getElementById('fActive') ? document.getElementById('fActive').value.trim() : '',
         minQty: (document.getElementById('fMinQty') && document.getElementById('fMinQty').value !== '') ? (parseInt(document.getElementById('fMinQty').value) || 0) : null,
         brand: document.getElementById('fBrand').value.trim() || 'GENERIC',
@@ -1916,7 +1974,7 @@ function saveLocalMisses(obj) {
 }
 
 function productSearchText(p) {
-    return `${p.name} ${p.brand} ${p.details} ${p.meta} ${p.category} ${p.keywords || ''} ${p.activeIngredient || ''}`.toLowerCase();
+    return `${p.name} ${p.brand} ${p.details} ${p.meta} ${catsOf(p).join(' ')} ${p.keywords || ''} ${p.activeIngredient || ''}`.toLowerCase();
 }
 
 function scheduleMissCheck(rawQuery) {
@@ -2095,7 +2153,7 @@ function csvCell(v) {
 function exportCsv() {
     const headers = ['القسم', 'التصنيف', 'الشركة', 'الاسم التجاري', 'المادة الفعالة', 'العبوة', 'السعر', 'الكمية', 'حد التنبيه', 'تواريخ النفاذ', 'الكلمات المفتاحية', 'الوصف'];
     const rows = products.map(p => [
-        p.department || '', p.category || '', p.brand || '', p.name || '', p.activeIngredient || '',
+        deptsOf(p).join(' + '), catsOf(p).join(' + '), p.brand || '', p.name || '', p.activeIngredient || '',
         fixMetaOrder(p.meta), p.price || 0, p.qty || 0,
         isNaN(parseInt(p.minQty)) ? '' : p.minQty,
         getProductExpiryDates(p).join(' ; '),
@@ -2221,6 +2279,7 @@ function friendlyAiError(err) {
     if (err && (err.name === 'AbortError' || err.name === 'TimeoutError')) return 'لم يصل رد من جوجل خلال 90 ثانية (الإنترنت يعمل لكن النموذج بطيء أو محجوب). جرّب نموذجاً أسرع مثل gemini-2.5-flash-lite من «جلب القائمة».';
     if (/dynamically imported module|importing a module script failed|error loading dynamically/.test(low)) return 'تعذر تحميل مكتبة Firebase AI Logic. تحقق من الإنترنت ومن رقم النسخة FIREBASE_MODULAR_VERSION في data.js.';
     if (st === 429 || /quota|rate.?limit|resource.?exhausted|\b429\b/.test(low)) return 'انتهت الحصة المجانية الحالية أو الطلبات كثيرة. انتظر قليلاً أو جرّب نموذجاً آخر (مثل Flash-Lite).';
+    if (isBusyAiError(err)) return 'نماذج جوجل مزدحمة الآن (جرّبنا عدة محاولات ونماذج بديلة). أعد المحاولة بعد دقائق.';
     if (/api key not valid|api_key_invalid|api key expired/.test(low) || (st === 400 && /api key/.test(low))) return 'مفتاح Gemini API غير صحيح أو منتهي.';
     if (/app.?check/.test(low)) return 'رفض Firebase الطلب بسبب App Check. أضف APP_CHECK_SITE_KEY في data.js وتأكد من تسجيل التطبيق في App Check.';
     if (st === 404 || /not found|not_found|is not supported for/.test(low)) return 'اسم النموذج غير صحيح أو غير متاح لحسابك. اختره من قائمة «جلب القائمة».';
@@ -2365,10 +2424,39 @@ function extractGeminiText(data) {
     return parts.filter(p => typeof p.text === 'string' && !p.thought).map(p => p.text).join('');
 }
 
+// عند ازدحام النموذج (503) نعيد المحاولة ثم ننتقل لنماذج بديلة أخف
+const AI_FALLBACK_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+function isBusyAiError(e) {
+    return !!e && (e.status === 503 || /high demand|overloaded|unavailable/i.test(String(e.message || '')));
+}
+const aiSleep = ms => new Promise(r => setTimeout(r, ms));
+
 async function callGeminiRest(opts) {
+    const first = cleanAiModel(aiGet('gModel', AI_DEFAULT_MODEL)) || AI_DEFAULT_MODEL;
+    const models = [first].concat(AI_FALLBACK_MODELS.filter(m => m !== first));
+    let lastErr = null;
+    for (let i = 0; i < models.length; i++) {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const out = await callGeminiRestOnce(opts, models[i]);
+                if (i > 0) setScanStatusText('ℹ️ تم استعمال النموذج البديل ' + models[i]);
+                return out;
+            } catch (e) {
+                lastErr = e;
+                if (e && e.code === 'NO_KEY') throw e;
+                if (isBusyAiError(e)) { if (attempt === 0) await aiSleep(2500); continue; }
+                if (i > 0 && e && e.status === 404) break;   // نموذج بديل غير متاح لهذا الحساب: ننتقل للتالي
+                throw e;
+            }
+        }
+    }
+    throw lastErr;
+}
+
+async function callGeminiRestOnce(opts, modelName) {
     const key = cleanAiKey(aiGet('key'));
     if (!key) { const e = new Error('NO_KEY'); e.code = 'NO_KEY'; throw e; }
-    const model = cleanAiModel(aiGet('gModel', AI_DEFAULT_MODEL)) || AI_DEFAULT_MODEL;
+    const model = modelName;
     const parts = [{ text: opts.prompt }];
     if (opts.img) parts.push({ inlineData: { mimeType: opts.img.mimeType, data: opts.img.data } });
     const body = { contents: [{ role: 'user', parts }] };
@@ -2585,6 +2673,7 @@ function applyAiRows(rows, selectedKeys) {
         }
         aiSetVal(r.field, r.raw);
     });
+    refreshExtraChips();
 }
 
 function normAiName(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9؀-ۿ]+/g, ''); }
@@ -2766,8 +2855,8 @@ function refreshScanEngineLabel() {
     const hint = document.getElementById('scanHint');
     if (hint) {
         hint.innerText = eng === 'local'
-            ? 'صوّر واجهة العبوة بإضاءة جيدة، وسيقرأ التطبيق الاسم والتركيز والشكل والصلاحية (قراءة عادية بدون ذكاء). راجع القيم دائماً قبل الحفظ.'
-            : 'صوّر العبوة وسيقرأها الذكاء الصناعي ويقترح الحقول الفارغة فقط. الصورة تُرسل إلى جوجل. راجع كل شيء قبل الحفظ.';
+            ? 'قراءة عادية على جهازك بدون ذكاء. راجع القيم قبل الحفظ.'
+            : 'الصورة تُرسل إلى جوجل ويُملأ الفارغ فقط. راجع قبل الحفظ.';
     }
 }
 
