@@ -137,9 +137,18 @@ function stopStockListener() {
     stockMap = {};
 }
 
+// مؤشر المزامنة: نقطة صغيرة بدون كلمات (أخضر متزامن، برتقالي جارٍ الحفظ، أحمر خطأ، رمادي بدون إنترنت/محلي)
+let syncState = 'ok';
+function setSyncText(txt) {
+    const s = String(txt || '');
+    const state = /جاري/.test(s) ? 'busy' : /خطأ|فشل/.test(s) ? 'err' : /إنترنت/.test(s) ? 'off' : /محلي/.test(s) ? 'local' : 'ok';
+    syncState = state;
+    document.querySelectorAll('.sync-dot').forEach(d => { d.dataset.state = state; d.title = s.replace(/^[^\u0600-\u06FF]+/, ''); });
+}
+
 async function initFirebase() {
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PUT_YOUR_API_KEY_HERE") {
-        document.getElementById('syncBadge').innerText = "💾 محلي";
+        setSyncText("💾 محلي");
         setTimeout(() => { if (typeof onAdminAuth === 'function') onAdminAuth(null); }, 400);
         return;
     }
@@ -204,11 +213,11 @@ async function initFirebase() {
                 saveLocal();
                 renderAll();
                 checkSharedProductUrl(); // ✅ يفتح المنتج المشارك فور وصوله من السحابة
-                document.getElementById('syncBadge').innerText = "☁️ متزامن";
+                setSyncText("☁️ متزامن");
             }
         }, err => {
             console.error("Cloud Sync Error:", err);
-            document.getElementById('syncBadge').innerText = "⚠️ خطأ مزامنة";
+            setSyncText("⚠️ خطأ مزامنة");
         });
     } catch (e) {
         console.warn("Firebase Error:", e);
@@ -245,18 +254,16 @@ async function saveSingleProductToCloud(product) {
         });
         return false;
     }
-
-    const badge = document.getElementById('syncBadge');
-    if (badge) badge.innerText = "⏳ جاري الحفظ...";
+    setSyncText("⏳ جاري الحفظ...");
     
     try {
         const wb = db.batch();
         writeProductBatch(wb, product);
         await wb.commit();
-        if (badge) badge.innerText = "☁️ تم الحفظ";
+        setSyncText("☁️ تم الحفظ");
         return true;
     } catch (err) {
-        if (badge) badge.innerText = "❌ فشل الحفظ";
+        setSyncText("❌ فشل الحفظ");
         await Swal.fire({
             icon: 'error',
             title: 'خطأ في السحابة',
@@ -271,8 +278,7 @@ async function pushToCloud(onlyMetadata = false) {
     saveLocal();
     if (isFirebaseReady && currentUser && !navigator.onLine) { requireOnline(); return; }
     if (isFirebaseReady && currentUser) {
-        const badge = document.getElementById('syncBadge');
-        badge.innerText = "⏳ جاري الحفظ...";
+        setSyncText("⏳ جاري الحفظ...");
         try {
             await db.collection('pharmacy').doc('metadata').set({
                 departments,
@@ -295,9 +301,9 @@ async function pushToCloud(onlyMetadata = false) {
                 }
             }
 
-            badge.innerText = "☁️ تم الحفظ";
+            setSyncText("☁️ تم الحفظ");
         } catch (err) {
-            badge.innerText = "❌ خطأ";
+            setSyncText("❌ خطأ");
             alert("خطأ في الحفظ السحابي: " + err.message);
         }
     }
@@ -850,6 +856,32 @@ function clearSearch() {
     renderAll();
 }
 
+function productCardHtml(p, tagHtml) {
+    const badge = getFormBadge(p);
+        const dotCls = isInStock(p) ? ((IS_ADMIN_PAGE && isLowStock(p)) ? 'status-dot low' : 'status-dot') : 'status-dot out';
+        const cleanMeta = fixMetaOrder(p.meta);
+        return `
+            <div class="bento-card" onclick="openSheet(${p.id})">
+                <div class="bento-img-wrap">
+                    <span class="${dotCls}" id="qd_${p.id}" style="top:10px; right:10px;"></span>
+                    <span class="form-badge ${badge.cls} bento-badge-top">${badge.txt}</span>${tagHtml || ''}
+                    <img src="${p.img}" alt="" loading="lazy" decoding="async" onload="this.classList.add('loaded')" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%224%22/><circle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/><path d=%22M21 15l-5-5L5 21%22/></svg>'">
+                </div>
+                <div class="bento-body">
+                    <div class="bento-brand">${p.brand}</div>
+                    <div class="bento-title">${p.name}</div>
+                    <div style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? Number(p.price).toLocaleString() + ' د.ع' : (IS_ADMIN_PAGE ? '0 د.ع' : '')}</div>
+                    <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
+                    ${!IS_ADMIN_PAGE ? '' : `<div class="quick-qty" onclick="event.stopPropagation()">
+                        <button type="button" aria-label="إنقاص الكمية" onclick="quickQty(${p.id}, -1, event)">−</button>
+                        <span class="qs-num" id="qs_${p.id}">${Number(p.qty) || 0}</span>
+                        <button type="button" aria-label="زيادة الكمية" onclick="quickQty(${p.id}, 1, event)">+</button>
+                    </div>`}
+                </div>
+            </div>
+        `;
+}
+
 function renderAll() {
     renderBottomNav();
     renderDepartmentsBar();
@@ -875,31 +907,7 @@ function renderAll() {
         return;
     }
 
-    container.innerHTML = filtered.map(p => {
-        const badge = getFormBadge(p);
-        const dotCls = isInStock(p) ? ((IS_ADMIN_PAGE && isLowStock(p)) ? 'status-dot low' : 'status-dot') : 'status-dot out';
-        const cleanMeta = fixMetaOrder(p.meta);
-        return `
-            <div class="bento-card" onclick="openSheet(${p.id})">
-                <div class="bento-img-wrap">
-                    <span class="${dotCls}" id="qd_${p.id}" style="top:10px; right:10px;"></span>
-                    <span class="form-badge ${badge.cls} bento-badge-top">${badge.txt}</span>
-                    <img src="${p.img}" alt="" loading="lazy" decoding="async" onload="this.classList.add('loaded')" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%224%22/><circle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/><path d=%22M21 15l-5-5L5 21%22/></svg>'">
-                </div>
-                <div class="bento-body">
-                    <div class="bento-brand">${p.brand}</div>
-                    <div class="bento-title">${p.name}</div>
-                    <div style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? Number(p.price).toLocaleString() + ' د.ع' : (IS_ADMIN_PAGE ? '0 د.ع' : '')}</div>
-                    <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
-                    ${!IS_ADMIN_PAGE ? '' : `<div class="quick-qty" onclick="event.stopPropagation()">
-                        <button type="button" aria-label="إنقاص الكمية" onclick="quickQty(${p.id}, -1, event)">−</button>
-                        <span class="qs-num" id="qs_${p.id}">${Number(p.qty) || 0}</span>
-                        <button type="button" aria-label="زيادة الكمية" onclick="quickQty(${p.id}, 1, event)">+</button>
-                    </div>`}
-                </div>
-            </div>
-        `;
-    }).join('');
+    container.innerHTML = filtered.map(p => productCardHtml(p)).join('');
 }
 function openSheet(id) {
     const p = products.find(x => x.id === id);
@@ -1956,13 +1964,8 @@ function requireOnline() {
 }
 
 function updateConnectionBadge() {
-    const badge = document.getElementById('syncBadge');
-    if (!badge) return;
-    if (!navigator.onLine) {
-        badge.innerText = '📴 بدون إنترنت';
-    } else if (badge.innerText.includes('📴')) {
-        badge.innerText = isFirebaseReady ? '☁️ متصل' : '💾 محلي';
-    }
+    if (!navigator.onLine) setSyncText('📴 بدون إنترنت');
+    else if (syncState === 'off') setSyncText(isFirebaseReady ? '☁️ متصل' : '💾 محلي');
 }
 window.addEventListener('offline', updateConnectionBadge);
 window.addEventListener('online', updateConnectionBadge);
@@ -2087,8 +2090,7 @@ async function saveProductsBatch(list) {
         return false;
     }
     if (!requireOnline()) return false;
-    const badge = document.getElementById('syncBadge');
-    if (badge) badge.innerText = '⏳ جاري الحفظ...';
+    setSyncText('⏳ جاري الحفظ...');
     try {
         for (let i = 0; i < list.length; i += 20) {
             const batch = db.batch();
@@ -2097,10 +2099,10 @@ async function saveProductsBatch(list) {
             });
             await batch.commit();
         }
-        if (badge) badge.innerText = '☁️ تم الحفظ';
+        setSyncText('☁️ تم الحفظ');
         return true;
     } catch (err) {
-        if (badge) badge.innerText = '❌ فشل الحفظ';
+        setSyncText('❌ فشل الحفظ');
         await Swal.fire({ icon: 'error', title: 'خطأ في السحابة', text: err.message, confirmButtonColor: '#0f1c38' });
         return false;
     }

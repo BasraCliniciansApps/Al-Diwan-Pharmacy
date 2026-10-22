@@ -1672,3 +1672,50 @@ body.admin-page:not([data-view="stock"]) .bottom-nav { display: none; }
     .bill-unit { font-size: 0.72rem; max-width: 100%; }
     .bill-actions .bill-tb-btn { flex: 1 1 auto; padding: 0 8px; font-size: 0.78rem; }
 }
+
+/* =====================================================
+   شريط الهوية الموحد لصفحات الصيدلي
+   ===================================================== */
+.brand-bar { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.brand-id { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand-logo { position: relative; width: 38px; height: 38px; flex-shrink: 0; }
+.brand-logo img { width: 38px; height: 38px; border-radius: 11px; object-fit: cover; display: block; }
+.brand-name { font-family: 'Aref Ruqaa', serif; font-size: 1.3rem; font-weight: 700; color: var(--gold, #f4b73f); white-space: nowrap; }
+.brand-actions { display: flex; gap: 6px; }
+.page-title { margin: 6px 2px 10px; font-size: 0.82rem; font-weight: 800; color: #cbd5e1; letter-spacing: .2px; }
+.sync-dot { position: absolute; bottom: -3px; left: -3px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #0f1c38; background: #22c55e; transition: background .2s; }
+.sync-dot[data-state="busy"] { background: #f59e0b; animation: dotPulse 1s infinite; }
+.sync-dot[data-state="err"] { background: #ef4444; }
+.sync-dot[data-state="off"], .sync-dot[data-state="local"] { background: #94a3b8; }
+@keyframes dotPulse { 50% { opacity: .35; } }
+body.admin-page .app-header-row { display: none; }
+body.admin-page .top-bar-inner { padding-top: 12px; }
+
+.home-view, .alerts-view, .bill-view { background: var(--bg); }
+.home-view, .alerts-view { padding: 0 0 40px; min-height: 100vh; }
+.home-view > .brand-bar, .alerts-view > .brand-bar, .bill-top .brand-bar { background: #0f1c38; padding: 12px 16px 0; }
+.home-view > .page-title, .alerts-view > .page-title, .bill-top .page-title { background: #0f1c38; margin: 0; padding: 6px 18px 14px; border-radius: 0 0 22px 22px; }
+.home-view > *:not(.brand-bar):not(.page-title) { width: min(calc(100% - 32px), 760px); margin-left: auto; margin-right: auto; }
+.home-view, .alerts-view { max-width: none; margin: 0; }
+.home-kpis { margin-top: 16px; }
+.home-tiles3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.tile-sm { min-height: 118px; border-radius: 20px; gap: 6px; position: relative; }
+.tile-sm b { font-size: 1.05rem; }
+.tile-inv { background: linear-gradient(150deg, #0f766e, #14b8a6); }
+.tile-alert { background: linear-gradient(150deg, #b91c1c, #f87171); }
+.tile-gear { background: linear-gradient(150deg, #475569, #94a3b8); }
+.tile-badge { position: absolute; top: 10px; left: 10px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: #fff; color: #b91c1c; font-weight: 900; font-size: 0.8rem; align-items: center; justify-content: center; }
+.home-tiles { margin-top: 16px; }
+.bill-top { background: transparent; }
+.bill-tabs { top: 0; }
+.alerts-controls { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px 4px; }
+.alerts-select { display: flex; flex-direction: column; gap: 6px; font-weight: 800; font-size: 0.8rem; color: var(--navy); }
+.alerts-select select, .alerts-search { min-height: 48px; padding: 0 14px; border: 1.5px solid var(--border); border-radius: 14px; background: var(--surface, #fff); color: var(--text-main); font-family: inherit; font-size: 0.95rem; font-weight: 700; }
+.alerts-info { margin: 6px 16px; }
+.alerts-grid { padding: 0 16px; }
+.alerts-grid .quick-qty { display: none !important; }
+.exp-tag { position: absolute; left: 8px; bottom: 8px; padding: 4px 9px; border-radius: 10px; font-size: 0.68rem; font-weight: 900; z-index: 2; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
+.t-exp { background: #991b1b; color: #fff; } .t-m1 { background: #ea580c; color: #fff; } .t-m3 { background: #f59e0b; color: #1f1300; } .t-m6 { background: #fde68a; color: #713f12; } .t-low { background: #dbeafe; color: #1e3a8a; }
+body.admin-page[data-view="alerts"] #alertsView { display: block; }
+:root[data-theme="dark"] .alerts-select { color: var(--text-main); }
+:root[data-theme="dark"] .home-view > .brand-bar, :root[data-theme="dark"] .home-view > .page-title, :root[data-theme="dark"] .alerts-view > .brand-bar, :root[data-theme="dark"] .alerts-view > .page-title, :root[data-theme="dark"] .bill-top .brand-bar, :root[data-theme="dark"] .bill-top .page-title { background: #0b1326; }

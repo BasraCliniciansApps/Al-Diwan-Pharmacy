@@ -33,26 +33,14 @@
     <header class="top-bar">
         <div class="top-bar-inner">
             
-            <!-- 1. شريط التحكم العلوي الصغير -->
+            
+            
             <div class="admin-top-strip">
-                
-                <span id="syncBadge" class="sync-icon-badge">☁️</span>
-                <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي" aria-label="دخول الصيدلي">👤</button>
                 <button class="small-icon-btn" id="themeBtn" onclick="toggleTheme()" title="الوضع الداكن" aria-label="تبديل الوضع الداكن">🌓</button>
-                
-                <!-- زر تنبيهات الصلاحية (يظهر للصيدلي فقط) -->
-                <button class="small-icon-btn admin-only" onclick="openExpiryModal()" title="التنبيهات" style="position:relative;">
-                    <span id="bellIco">🔔</span>
-                    <span id="expiryBadgeCount" class="expiry-badge-dot" style="display:none;">0</span>
-                </button>
-
-                <button class="small-icon-btn admin-only" onclick="openInventory()" title="وضع الجرد" aria-label="وضع الجرد" id="invBtn">📋</button>
-                <button class="small-icon-btn admin-only" onclick="openCategoryManager()" title="إعدادات الأقسام" aria-label="الإعدادات" id="gearBtn">⚙️</button>
-                <button class="small-icon-btn admin-only" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button>
             </div>
             
+
             <!-- 2. صف اسم الصيدلية والشعار (مستقل تماماً ولا يزاحمه شيء) -->
-            
             <div class="app-header-row">
                 <div class="app-logo">
                     <div class="logo-icon">

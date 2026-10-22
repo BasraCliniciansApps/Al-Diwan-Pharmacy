@@ -11,6 +11,7 @@ function showView(v) {
     if (v === 'home') refreshHome();
     else if (v === 'stock') { renderAll(); }
     else if (v === 'bill') { onShowBill(); }
+    else if (v === 'alerts') { renderAlerts(); }
 }
 
 // يُستدعى من data.js عند تغيّر حالة الدخول
@@ -50,15 +51,66 @@ async function refreshHome() {
     const low = products.filter(isLowStock).length;
     let exp = 0; try { exp = getExpiringProducts().length; } catch (e) { /* تجاهل */ }
     const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}" onclick="${onclick}"><b>${val}</b><span>${label}</span></button>`;
+    const alertsTotal = products.filter(p => alertKinds(p).any).length;
+    const hb = document.getElementById('homeAlertCount');
+    if (hb) { hb.innerText = alertsTotal; hb.style.display = alertsTotal ? 'flex' : 'none'; }
     const render = (sales) => {
         document.getElementById('homeKpis').innerHTML =
             kpi('k-out', 'غير متوفر', out, "goStock('out')") +
-            kpi('k-low', 'كمية قليلة', low, "showView('stock'); openExpiryModal()") +
-            kpi('k-exp', 'قريب الانتهاء', exp, "showView('stock'); openExpiryModal()") +
+            kpi('k-low', 'كمية قليلة', low, "goAlerts('low')") +
+            kpi('k-exp', 'قريب الانتهاء', exp, "goAlerts('m6')") +
             kpi('k-sales', 'مبيعات اليوم', fmtNum(sales), "showView('bill'); billTab('reports')");
     };
     render(salesTodayTotal());
     try { await loadInvoices(); render(salesTodayTotal()); } catch (e) { /* تجاهل */ }
+}
+
+// ---------------- شاشة التنبيهات ----------------
+let alertFilterV = 'all';
+const ALERT_LABELS = {
+    all: 'كل التنبيهات',
+    expired: 'منتهية الصلاحية',
+    m1: 'تنتهي خلال شهر',
+    m3: 'تنتهي خلال 3 أشهر',
+    m6: 'تنتهي خلال 6 أشهر',
+    low: 'مخزون منخفض'
+};
+function expiryDaysOf(dateStr) {   // نفس حساب التطبيق: اعتبار تاريخ النفاذ هو أول يوم من الشهر
+    const m = /^(\d{4})-(\d{2})/.exec(dateStr || '');
+    if (!m) return null;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    return Math.ceil((new Date(parseInt(m[1]), parseInt(m[2]) - 1, 1) - today) / 864e5);
+}
+// يحدد حالات التنبيه للصنف حسب أقرب تاريخ نفاذ (التصنيف تراكمي: خلال شهر ⊂ خلال 3 أشهر ⊂ خلال 6 أشهر)
+function alertKinds(p) {
+    let days = null, date = '';
+    getProductExpiryDates(p).forEach(d => { const n = expiryDaysOf(d); if (n !== null && (days === null || n < days)) { days = n; date = d; } });
+    const k = { days, date, expired: days !== null && days <= 0, m1: days !== null && days <= 30, m3: days !== null && days <= 90, m6: days !== null && days <= 180, low: isLowStock(p) };
+    k.any = k.m6 || k.low;
+    return k;
+}
+function goAlerts(f) { alertFilterV = f || 'all'; showView('alerts'); }
+function setAlertFilter(v) { alertFilterV = v; renderAlerts(); }
+function renderAlerts() {
+    const sel = document.getElementById('alertFilter');
+    const all = products.map(p => ({ p, k: alertKinds(p) }));
+    const cnt = key => all.filter(x => key === 'all' ? x.k.any : x.k[key]).length;
+    const opt = key => `<option value="${key}" ${alertFilterV === key ? 'selected' : ''}>${ALERT_LABELS[key]} (${cnt(key)})</option>`;
+    sel.innerHTML = opt('all') + `<optgroup label="الصلاحية">${opt('expired')}${opt('m1')}${opt('m3')}${opt('m6')}</optgroup><optgroup label="المخزون">${opt('low')}</optgroup>`;
+    const q = normSearch(document.getElementById('alertSearch').value);
+    const toks = q ? q.split(' ') : [];
+    let list = all.filter(x => (alertFilterV === 'all' ? x.k.any : x.k[alertFilterV]) && (!q || searchScore(x.p, q, toks) > 0));
+    list.sort((a, b) => (a.k.days === null ? 1e9 : a.k.days) - (b.k.days === null ? 1e9 : b.k.days) || (parseInt(a.p.qty) || 0) - (parseInt(b.p.qty) || 0));
+    document.getElementById('alertTitle').innerText = ALERT_LABELS[alertFilterV];
+    document.getElementById('alertCount').innerText = list.length + ' صنف';
+    const tag = ({ p, k }) => {
+        if (alertFilterV === 'low' || (k.days === null || !k.m6)) return `<span class="exp-tag t-low">📉 كمية قليلة: ${escapeHtml(stockLabel(p))}</span>`;
+        if (k.expired) return `<span class="exp-tag t-exp">⛔ منتهية · ${k.date}</span>`;
+        const cls = k.m1 ? 't-m1' : k.m3 ? 't-m3' : 't-m6';
+        return `<span class="exp-tag ${cls}">⏳ ${k.date} · ${k.days} يوم</span>`;
+    };
+    document.getElementById('alertsContainer').innerHTML = list.map(x => productCardHtml(x.p, tag(x))).join('') ||
+        `<div class="empty-state empty-wide"><div class="empty-ico">✅</div><div>لا توجد أصناف ضمن هذا التنبيه</div></div>`;
 }
 
 // الشاشة الأولى: انتظر حالة الدخول، وإلا اذهب لشاشة الدخول
