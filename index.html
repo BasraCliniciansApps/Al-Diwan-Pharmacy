@@ -8,6 +8,7 @@
     <!-- إعدادات تثبيت التطبيق على الآيفون والأندرويد (PWA) -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#0f1c38">
+    <script>try{var t=localStorage.getItem("diwanTheme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <link rel="icon" type="image/jpeg" href="icon.jpg">
     <link rel="apple-touch-icon" href="icon.jpg">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -32,16 +33,18 @@
             <!-- 1. شريط التحكم العلوي الصغير -->
             <div class="admin-top-strip">
                 <span id="syncBadge" class="sync-icon-badge">☁️</span>
-                <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي">👤</button>
+                <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي" aria-label="دخول الصيدلي">👤</button>
+                <button class="small-icon-btn" id="themeBtn" onclick="toggleTheme()" title="الوضع الداكن" aria-label="تبديل الوضع الداكن">🌓</button>
                 
                 <!-- زر تنبيهات الصلاحية (يظهر للصيدلي فقط) -->
                 <button class="small-icon-btn admin-only" onclick="openExpiryModal()" title="التنبيهات" style="position:relative;">
-                    🔔
+                    <span id="bellIco">🔔</span>
                     <span id="expiryBadgeCount" class="expiry-badge-dot" style="display:none;">0</span>
                 </button>
 
-                <button class="small-icon-btn admin-only" onclick="openCategoryManager()" title="إعدادات الأقسام">⚙️</button>
-                <button class="small-icon-btn admin-only" onclick="openFormModal()" title="إضافة صنف">➕</button>
+                <button class="small-icon-btn admin-only" onclick="openInventory()" title="وضع الجرد" aria-label="وضع الجرد" id="invBtn">📋</button>
+                <button class="small-icon-btn admin-only" onclick="openCategoryManager()" title="إعدادات الأقسام" aria-label="الإعدادات" id="gearBtn">⚙️</button>
+                <button class="small-icon-btn admin-only" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button>
             </div>
             
             <!-- 2. صف اسم الصيدلية والشعار (مستقل تماماً ولا يزاحمه شيء) -->
@@ -64,6 +67,7 @@
                     <span class="search-icon">🔍</span>
                     <input type="search" id="searchInput" name="drug_search_query" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" placeholder="ابحث بالاسم التجاري، المادة الفعالة، أو الاستخدام..." oninput="handleSearch()">
                     <button class="clear-search" id="clearSearchBtn" onclick="clearSearch()">✕</button>
+                    <button type="button" class="bc-search-btn" onclick="scanBarcodeToSearch()" title="مسح باركود" aria-label="مسح باركود">▦</button>
                 </div>
             </div>
 
@@ -191,6 +195,24 @@
                 <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">النسخة تحفظ الأصناف والأقسام والإعدادات. الصور تبقى في GitHub ولا تدخل في النسخة.</p>
             </div>
 
+            <div class="cat-manager-box" style="margin-top:16px;">
+                <h4>8. أدوات سريعة</h4>
+                <div class="tools-grid">
+                    <button class="icon-btn" onclick="closeCategoryManager(); openInventory()">📋 وضع الجرد</button>
+                    <button class="icon-btn" onclick="installApp()">📲 تثبيت التطبيق</button>
+                </div>
+            </div>
+
+            <div class="cat-manager-box" id="securityBox" style="margin-top:16px;">
+                <h4>7. الأمان والسجلات</h4>
+                <div class="tools-grid">
+                    <button class="icon-btn" onclick="openTrashModal()">🗑️ سلة المحذوفات</button>
+                    <button class="icon-btn" onclick="openLogModal()">📜 سجل التعديلات</button>
+                    <button class="icon-btn" onclick="openCloudBackupsModal()">☁️ النسخ السحابية</button>
+                </div>
+                <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">الحذف ينقل الصنف للسلة 30 يوماً. تُنشأ نسخة سحابية تلقائياً كل 7 أيام عند دخولك، ويُحتفظ بآخر 4 نسخ.</p>
+            </div>
+
             <div class="cat-manager-box" id="aiSettingsBox" style="margin-top:16px;">
                 <h4>6. الذكاء الصناعي لمسح العبوة (إعدادات هذا الجهاز)</h4>
                 <div class="form-group">
@@ -298,6 +320,13 @@
             <!-- ... الحقول السابقة ... -->
             <div class="form-group"><label>العبوة / الشكل الدوائي:</label><input type="text" id="fMeta" dir="ltr"></div>
             <div class="form-group">
+                <label>الباركود (اختياري):</label>
+                <div class="add-inline-row">
+                    <input type="text" id="fBarcode" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="امسح أو اكتب الرقم">
+                    <button type="button" class="icon-btn" onclick="scanBarcodeToForm()">▦ مسح</button>
+                </div>
+            </div>
+            <div class="form-group">
                 <label>تواريخ النفاذ (أضف أكثر من تاريخ إذا كان عندك دفعات مختلفة):</label>
                 <div id="expiryDatesWrap"></div>
                 <button type="button" class="icon-btn" onclick="addExpiryRow()" style="margin-top:6px;">+ إضافة تاريخ نفاذ آخر</button>
@@ -334,6 +363,48 @@
             <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:12px;">المواد التي تنتهي صلاحيتها خلال 6 أشهر، والأصناف التي وصلت كميتها للحد الأدنى.</p>
             <div id="expiryListContainer" style="max-height: 60vh; overflow-y: auto; display:flex; flex-direction:column; gap:8px;"></div>
         </div>
+    </div>
+
+    <!-- وضع الجرد -->
+    <div class="modal-overlay" id="inventoryModal">
+        <div class="modal-card inv-card">
+            <div class="inv-head">
+                <h3>📋 وضع الجرد</h3>
+                <button class="icon-btn" onclick="closeInventory()">✕</button>
+            </div>
+            <p class="inv-hint">يعرض أصناف القسم والتبويب المحدَّدين حالياً. اكتب الكمية الفعلية (أو استعمل + و −)، ثم اضغط «تطبيق».</p>
+            <input type="search" id="invSearch" class="inv-search" placeholder="🔍 ابحث داخل الجرد..." oninput="invFilter(this.value)" autocomplete="off">
+            <div id="invList" class="inv-list"></div>
+            <div class="inv-foot">
+                <span id="invCount">لا تغييرات بعد</span>
+                <button type="button" id="invSaveBtn" class="inv-save" onclick="saveInventory()" disabled>تطبيق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ماسح الباركود -->
+    <div class="modal-overlay" id="barcodeModal">
+        <div class="modal-card bc-card">
+            <div class="inv-head">
+                <h3>▦ مسح الباركود</h3>
+                <button class="icon-btn" onclick="closeBarcodeScanner()">✕</button>
+            </div>
+            <div class="bc-video-wrap"><video id="bcVideo" playsinline muted></video><div class="bc-frame"></div></div>
+            <div id="bcStatus" class="bc-status"></div>
+            <div class="bc-manual">
+                <input type="text" id="bcManual" dir="ltr" inputmode="numeric" placeholder="أو اكتب رقم الباركود" onkeydown="if(event.key==='Enter'){event.preventDefault();submitManualBarcode();}">
+                <button type="button" class="icon-btn" onclick="submitManualBarcode()">بحث</button>
+            </div>
+            <label class="icon-btn bc-photo" for="bcPhoto">🖼️ قراءة من صورة</label>
+            <input type="file" id="bcPhoto" accept="image/*" capture="environment" hidden onchange="barcodeFromPhoto(event)">
+        </div>
+    </div>
+
+    <!-- شريط تثبيت التطبيق -->
+    <div id="installBanner" class="install-banner" style="display:none;">
+        <span>📲 ثبّت تطبيق صيدلية الديوان على شاشتك</span>
+        <button type="button" onclick="installApp()">تثبيت</button>
+        <button type="button" class="install-x" onclick="dismissInstallBanner()" aria-label="إغلاق">✕</button>
     </div>
 
     <datalist id="activeList"></datalist>
@@ -380,6 +451,7 @@
         </div>
     </div>
 
+    <script src="seed.js"></script>
     <script src="data.js"></script>
     <script>
         if ('serviceWorker' in navigator) {

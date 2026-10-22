@@ -27,177 +27,7 @@ const defaultSubCategories = [
     "الأدوية الفموية والشرابات"
 ];
 
-// ============================================================================
-// 3. قائمة الأصناف الـ 166 الكاملة (مدرجة تحت قسم الجلدية ومعالجة اتجاه الأرقام)
-// ============================================================================
-const defaultProducts = [
-    {id: 1, department: "قسم الجلدية", category: "واقيات الشمس", brand: "ISISPHARMA", name: "Uveblock SPF 50+ (Dry Touch)", details: "واقي شمس سائل فائق الجفاف، للبشرة الحساسة والدهنية، لمسة مطفية (Matte)، حماية واسعة الطيف.", meta: "40 ml | Fluid Cream", qty: 5, img: "1001882687.jpg"},
-    {id: 2, department: "قسم الجلدية", category: "واقيات الشمس", brand: "ISISPHARMA", name: "Uveblock SPF 50+ (Fluide Invisible)", details: "واقي شمس سائل خفي بدون أثر أبيض، للبشرة الحساسة، مقاوم للماء.", meta: "40 ml | Fluid", qty: 5, img: "1001882688.jpg"},
-    {id: 3, department: "قسم الجلدية", category: "واقيات الشمس", brand: "ARDENE SEBUMA", name: "Total Sunblock Cream SPF 50 (Oil Free)", details: "واقي شمس خالٍ من الدهون للبشرة الدهنية والمعرضة لحب الشباب، غني بفيتامين E و C وخلاصة العرقسوس والجوجوبا.", meta: "50 g | Oil Free Cream", qty: 4, img: "1001882711.jpg"},
-    {id: 4, department: "قسم الجلدية", category: "واقيات الشمس", brand: "ARDENE DERMOCOSMETICS", name: "Total Sunblock Cream SPF 60 (Tinted)", details: "واقي شمس ملون فيزيائي (خالٍ من الفلاتر الكيميائية) للبشرة الجافة والحساسة، مقاوم للماء والتعرق.", meta: "50 g | Tinted Cream", qty: 4, img: "1001882712.jpg"},
-    {id: 5, department: "قسم الجلدية", category: "واقيات الشمس", brand: "ARDENE", name: "Sunscreen Lotion SPF 30 (Oil Free)", details: "لوشن واقي شمس خالٍ من الزيوت للبشرة الدهنية والمعرضة للحبوب، يحتوي على فيتامين E وبيسابولول.", meta: "75 g | Lotion", qty: 4, img: "1001882716.jpg"},
-    {id: 6, department: "قسم الجلدية", category: "واقيات الشمس", brand: "ARDENE SUN", name: "Rejusol Sunshield Cream SPF 90 (Anti-Aging)", details: "واقي شمس مضاد للشيخوخة والتجاعيد بلون Peach Beige للبشرة العادية والجافة، يحتوي على Ascorbyl Glucoside وإكليل الجبل.", meta: "SPF 90 | Cream", qty: 3, img: "1001882717.jpg"},
-    {id: 7, department: "قسم الجلدية", category: "واقيات الشمس", brand: "ARDENE SUN", name: "Acnesol+ Sunshield Cream SPF 50 (Extra Matt)", details: "واقي شمس للبشرة الدهنية والمعرضة للحبوب بمظهر مطفي ولون بيج طبيعي وتغطية عالية، يحتوي على Sepicontrol A5.", meta: "SPF 50 | Matt Cream", qty: 4, img: "1001882718.jpg"},
-    {id: 8, department: "قسم الجلدية", category: "واقيات الشمس", brand: "BIONIKE", name: "Defence B-Lucent Anti-Dark Spots SPF 50", details: "كريم واقي شمس علاجي مضاد للبقع والتصبغات للبشرة المعرضة للكلف وفرط التصبغ.", meta: "SPF 50 | Cream", qty: 3, img: "1001882735.jpg"},
-    {id: 9, department: "قسم الجلدية", category: "واقيات الشمس", brand: "PHOTOBLOCK", name: "Photoblock Gel SPF 50", details: "جل واقي شمس خفيف مخصص للبشرة الدهنية والمعرضة لحب الشباب.", meta: "75 g | Gel", qty: 5, img: "1001882755.jpg"},
-    {id: 10, department: "قسم الجلدية", category: "واقيات الشمس", brand: "PHOTOBLOCK", name: "Photoblock Plus Cream SPF 50+", details: "كريم واقي شمس مع مفعول مضاد لعلامات تقدم السن والشيخوخة.", meta: "75 g | Cream", qty: 5, img: "1001882756.jpg"},
-    {id: 11, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "GEROVITAL", name: "Tratament Expert Anti-Hair Loss Serum", details: "سيروم يترك على فروة الرأس لعلاج تساقط الشعر، يحتوي على Procapil و Bio-Capigen PT.", meta: "Serum | Spray", qty: 3, img: "1001882689.jpg"},
-    {id: 12, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "DENIZ", name: "Spray Minoxidil 2% (For Women)", details: "بخاخ مينوكسيديل 2% محلول موضعي لإيقاف تساقط الشعر وإعادة إنباته وتنشيط البصيلات للنساء.", meta: "60 ml | Spray", qty: 6, img: "1001882700.jpg"},
-    {id: 13, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "SEBAMED", name: "Anti-Dandruff Shampoo pH 5.5", details: "شامبو طبي مضاد للقشرة للشعر الدهني والفروة المعرضة للقشرة، يحتوي على Piroctone Olamine.", meta: "200 ml | Shampoo", qty: 5, img: "1001882708.jpg"},
-    {id: 14, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "SEBAMED", name: "Anti-Hairloss Shampoo pH 5.5", details: "شامبو طبي لتقليل تساقط الشعر وتنشيط الدورة الدموية للفروة بتركيبة NHE والكافيين والجنكة بيلوبا.", meta: "200 ml | Shampoo", qty: 5, img: "1001882709.jpg"},
-    {id: 15, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "MOSTAL", name: "Mostal Solution", details: "محلول موضعي لتكثيف الشعر ومنع التساقط وزيادة سماكة الشعرة للرجال والنساء.", meta: "50 ml | Solution", qty: 4, img: "1001882754.jpg"},
-    {id: 16, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "KENAZOLE", name: "Kenazole Shampoo (Ketoconazole 2%)", details: "شامبو طبي مضاد للفطريات والقشرة والتهاب الجلد الدهني (Ketoconazole 20mg/1g).", meta: "100 ml | Shampoo", qty: 8, img: "1001882793.jpg"},
-    {id: 17, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "DOMINA", name: "Beta-Salic Solution (بيتا-ساليك محلول)", details: "محلول لفروة الرأس (بيتاميثازون + ساليسيليك أسيد) لعلاج صدفية الفروة والإكزيما الدهنية.", meta: "Solution | Scalp", qty: 6, img: "1001882803.jpg"},
-    {id: 18, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "PHILADELPHIA", name: "Panthophil Vitamin Hair Tonic", details: "تونيك مقوي ومغذي للشعر بالفيتامينات والبانثينول لتقوية بصيلات الشعر.", meta: "Lotion | Hair Tonic", qty: 4, img: "1001882804.jpg"},
-    {id: 19, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "DENIZ", name: "Antibacterial-Antiseborrheic Shampoo", details: "شامبو طبي للشعر والجسم مضاد للبكتيريا والقشرة الدهنية، يحتوي على الكبريت، قطران الصنوبر، ساليسيليك أسيد وبروفيتامين B5.", meta: "Shampoo | Sulfur + Tar", qty: 4, img: "1001882805.jpg"},
-    {id: 20, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "TURKUAZ", name: "Minodil X Plus Caffeine Shampoo (Procapil 5%)", details: "شامبو مضاد لتساقط الشعر بتركيز Procapil 5% مع الكافيين، زيت الخروع، زيت الزيتون وفيتامين B5.", meta: "200 ml | Shampoo", qty: 4, img: "1001882806.jpg"},
-    {id: 21, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "TURKUAZ", name: "Minodil X Plus Caffeine Spray (Procapil 5%)", details: "بخاخ مقوي ومضاد لتساقط الشعر بتركيز Procapil 5% مع الكافيين وفيتامين B5.", meta: "60 ml | Spray", qty: 4, img: "1001882807.jpg"},
-    {id: 22, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "ARDENE HERBA SENSE", name: "Bio-Fort Anti Hair-Loss Shampoo", details: "شامبو عشبي مقوي للشعر الضعيف والمتساقط، غني بـ 10 أعشاب طبيعية، كافيين، وفيتامينات B3, B6, B5.", meta: "Shampoo | Herbal", qty: 4, img: "1001882808.jpg"},
-    {id: 23, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "KONIX", name: "Stop Lice Tea Tree Oil Shampoo (ستوب لايس)", details: "شامبو زيت شجرة الشاي المضاد للقمل والصئبان مع مشط خاص بالداخل.", meta: "250 ml | Shampoo", qty: 5, img: "1001882809.jpg"},
-    {id: 24, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "UNIREX", name: "Naxoral Shampoo (Ketoconazole 2%)", details: "شامبو مضاد للقشرة والفطريات بتركيز كيتوكونازول 2%.", meta: "Shampoo | Ketoconazole 2%", qty: 6, img: "1001882812.jpg"},
-    {id: 25, department: "قسم الجلدية", category: "العناية بالشعر والشامبو", brand: "UNIREX", name: "Selerex Dandruff Shampoo (Selenium Sulfide)", details: "شامبو طبي بتركيز سيلينيوم سلفايد للتحكم بالقشرة المستعصية والتهاب الفروة الدهني والتينيا الملونة.", meta: "200 ml | Shampoo", qty: 5, img: "1001882813.jpg"},
-    {id: 26, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "TURKUAZ", name: "Off Acne Soap (صابون أوف أكني)", details: "صابون منظف لعلاج حب الشباب بتأثير ثلاثي (تقشير، تغذية، مضاد بكتيري).", meta: "125 g | Soap Bar", qty: 6, img: "1001882691.jpg"},
-    {id: 27, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "LA ROCHE-POSAY", name: "Effaclar Medicated Gel Cleanser (+M)", details: "غسول جل طبي للبشرة الدهنية وحب الشباب، يحتوي على 2% Salicylic Acid و LHA المقشر اللطيف.", meta: "150 ml | Cleanser", qty: 3, img: "1001882692.jpg"},
-    {id: 28, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "NOREVA", name: "Exfoliac Intensive Foaming Gel", details: "غسول جل رغوي مكثف لتنقية وتنظيف البشرة الدهنية والمعرضة لحب الشباب (للوجه والجسم).", meta: "200 ml | Wash Gel", qty: 3, img: "1001882693.jpg"},
-    {id: 29, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "ARDENE SEBUMA", name: "Salicyl 2 Body Anti-Acne Spray", details: "بخاخ معالج لحبوب الظهر والجسم، يحتوي على Salicylic Acid 2%، Glycolic Acid، و Piroctone Olamine.", meta: "Spray | Body Acne", qty: 4, img: "1001882694.jpg"},
-    {id: 30, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "PANOXYL", name: "PanOxyl Acne Foaming Wash 10%", details: "غسول رغوي بنزويل بيروكسايد بأقصى قوة (10% Benzoyl Peroxide) للوجه والجسم للقضاء على بكتيريا حب الشباب.", meta: "156 g | Wash", qty: 4, img: "1001882701.jpg"},
-    {id: 31, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "AJANTA", name: "Perobar 2.5% Cleansing Bar", details: "صابونة طبية لحب الشباب بتركيز 2.5% Benzoyl Peroxide لتقليل الدهون وفتح المسام.", meta: "Soap Bar | BPO 2.5%", qty: 6, img: "1001882725.jpg"},
-    {id: 32, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "AJANTA", name: "Perobar 5% Cleansing Bar", details: "صابونة طبية لحب الشباب بتركيز 5% Benzoyl Peroxide للبشرة الدهنية وحب الشباب المتوسط إلى الشديد.", meta: "Soap Bar | BPO 5%", qty: 6, img: "1001882726.jpg"},
-    {id: 33, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "OZMODERM AUSTRALIA", name: "Acne Clear Cleansing Bar", details: "صابونة طبية للبشرة المعرضة لحب الشباب لتنقية المسام وتقليل الإفرازات الدهنية.", meta: "100 g | Soap Bar", qty: 5, img: "1001882729.jpg"},
-    {id: 34, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "DENIZ", name: "Deniz Sulfur Soap (صابون الكبريت)", details: "صابونة الكبريت الطبية لعلاج البثور وحب الشباب والفطريات للوجه والجسم والشعر.", meta: "Soap Bar | Sulfur", qty: 6, img: "1001882732.jpg"},
-    {id: 35, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "OZMODERM AUSTRALIA", name: "Antibacterial Bar (Lemon Myrtle Oil)", details: "صابونة مضادة للبكتيريا تقضي على 99.9% من الميكروبات، مناسبة للبشرة الحساسة والاستخدام اليومي.", meta: "100 g | Soap Bar", qty: 5, img: "1001882733.jpg"},
-    {id: 36, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "PHILADELPHIA", name: "Clinaderm 1% Topical Solution", details: "محلول موضعي مضاد حيوي (Clindamycin 10mg/ml) لعلاج حب الشباب الالتهابي.", meta: "30 ml | Solution", qty: 8, img: "1001882743.jpg"},
-    {id: 37, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "REVUELE", name: "No Problem Facial Wash Gel (Salicylic Acid & Zinc)", details: "غسول جل يومي للبشرة الدهنية والمختلطة بحمض الساليسيليك والزنك لتقليل الشوائب ولمعان البشرة.", meta: "Wash Gel | Salicylic", qty: 5, img: "1001882746.jpg"},
-    {id: 38, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "COSRX", name: "Salicylic Acid Daily Gentle Cleanser", details: "غسول كوري لطيف يومي بحمض الساليسيليك 0.5% والمستخلصات النباتية لتنقية المسام وإزالة الدهون.", meta: "150 ml | Cleanser", qty: 4, img: "1001882748.jpg"},
-    {id: 39, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "JAMJOOM PHARMA", name: "Acretin 0.025% Cream (Tretinoin)", details: "كريم تريتينوين بتركيز 0.025% لعلاج حب الشباب وتجديد خلايا البشرة.", meta: "30 g | Cream", qty: 10, img: "1001882773.jpg"},
-    {id: 40, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "JAMJOOM PHARMA", name: "Acretin 0.05% Cream (Tretinoin)", details: "كريم تريتينوين بتركيز 0.05% لعلاج حب الشباب الرؤوس السوداء والتقشير.", meta: "30 g | Cream", qty: 10, img: "1001882774.jpg"},
-    {id: 41, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "AZADERM", name: "Azaderm Cream (Azelaic Acid 20%)", details: "كريم حمض الأزيليك 20% المضاد لحب الشباب والوردية والمفتح للتصبغات وآثار الحبوب.", meta: "30 g | Cream", qty: 8, img: "1001882777.jpg"},
-    {id: 42, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "AJANTA", name: "Peroduo Gel (Adapalene + Benzoyl Peroxide)", details: "جل ثنائي المفعول يجمع بين أدابالين وبنزويل بيروكسايد لعلاج حب الشباب الموضعي.", meta: "15 g | Gel", qty: 6, img: "1001882787.jpg"},
-    {id: 43, department: "قسم الجلدية", category: "غسولات وعلاجات حب الشباب", brand: "DOMINA", name: "Ben-Oxide 10 Gel (Benzoyl Peroxide 10%)", details: "جل بنزويل بيروكسايد بتركيز 10% لعلاج حب الشباب الموضعي.", meta: "30 g | Gel", qty: 6, img: "1001882786.jpg"},
-    {id: 44, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "SIMPLE", name: "Hydrating Light Moisturiser", details: "مرطب خفيف سريع الامتصاص للبشرة الحساسة، يحتوي على 1% Niacinamide و Pro-Vitamin B5، خالٍ من العطور.", meta: "125 ml | Lotion", qty: 5, img: "1001882695.jpg"},
-    {id: 45, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "SIMPLE", name: "Replenishing Rich Moisturiser", details: "مرطب غني للبشرة الجافة والحساسة بالجلسرين النباتي وفيتامينات B5 و E لترطيب عميق.", meta: "125 ml | Cream", qty: 5, img: "1001882696.jpg"},
-    {id: 46, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "SIMPLE", name: "Water Boost Hydrating Gel Cream", details: "جل كريم مرطب عميق للبشرة الجافة والحساسة بخاصية Water Boost.", meta: "50 ml | Gel Cream", qty: 4, img: "1001882697.jpg"},
-    {id: 47, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "SIMPLE", name: "Moisturising Facial Wash", details: "غسول وجه مرطب خالٍ من الصابون بنسبة 100% مع فيتامين B5 و E والأحماض الأمينية لجميع أنواع البشرة.", meta: "150 ml | Wash", qty: 5, img: "1001882698.jpg"},
-    {id: 48, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "REVUELE", name: "Ceramide Hydrating Cleanser", details: "غسول مرطب بالسيراميد وحمض الهيالورونيك للبشرة الجافة إلى الجافة جداً للوجه والجسم دون خدش الحاجز الجلدي.", meta: "250 ml | Cleanser", qty: 4, img: "1001882699.jpg"},
-    {id: 49, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "ISISPHARMA", name: "Sensylia 24h Cream", details: "كريم مرطب ومهدئ لمدة 24 ساعة للبشرة الحساسة العادية إلى الجافة.", meta: "40 ml | Cream", qty: 4, img: "1001882702.jpg"},
-    {id: 50, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "ISISPHARMA", name: "Sensylia 24h Légère Fluid", details: "سائل مرطب ومهدئ خفيف للبشرة الحساسة العادية إلى المختلطة مع لمسة مطفية.", meta: "40 ml | Fluid", qty: 4, img: "1001882703.jpg"},
-    {id: 51, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "ISISPHARMA", name: "Secalia Face Cream Ultra-Confort", details: "كريم مغذي ومرمم للوجه للبشرة الجافة إلى الجافة جداً والإكزيما.", meta: "40 ml | Cream", qty: 4, img: "1001882704.jpg"},
-    {id: 52, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "ISISPHARMA", name: "Secalia Body Lotion Ultra-Confort", details: "لوشن مرطب ومغذي للجسم للبشرة الجافة إلى الجافة جداً يرمم الحاجز الجلدي.", meta: "200 ml | Lotion", qty: 4, img: "1001882706.jpg"},
-    {id: 53, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "ISISPHARMA", name: "Urelia 10 Exfoliating Moisturising Cream", details: "كريم مرطب ومقشر بتركيز يوريا 10% للبشرة شديدة الجفاف والمتقشرة أو المصابة بالتقرن للوجه والجسم.", meta: "150 ml | Cream", qty: 4, img: "1001882707.jpg"},
-    {id: 54, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "ARDENE", name: "Moisturizing Lotion (Urea 10%)", details: "لوشن مرطب مكثف باليوريا 10% والسيراميد وحمض الهيالورونيك للمناطق شديدة الجفاف والقدمين.", meta: "75 g | Lotion", qty: 5, img: "1001882710.jpg"},
-    {id: 55, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "ARDENE", name: "Vaseline Cream (With Glycerin)", details: "كريم فازلين طبي مع الجلسرين خالٍ من اللانولين والعطور لترطيب وحماية الجلد المتشقق.", meta: "50 ml | Cream", qty: 6, img: "1001882713.jpg"},
-    {id: 56, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "ARDENE BEAUTY", name: "Dermaline Repair Cream", details: "كريم مرمم ومهدئ للبشرة المتضررة بعد جلسات الليزر والتقشير، يحتوي على مركب (Mn + Zn + Cu Gluconate).", meta: "40 ml | Repair Cream", qty: 5, img: "1001882715.jpg"},
-    {id: 57, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "SVR", name: "Xerial 50 Extreme Crème Pieds", details: "كريم مركز جداً بتركيز يوريا نقية 50% وحمض الساليسيليك لإزالة مسامير القدم والتقرنات وتشققات الكعبين في 7 أيام.", meta: "50 ml | Cream", qty: 3, img: "1001882719.jpg"},
-    {id: 58, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "NIVEA", name: "Nivea Soft Moisturizing Cream", details: "كريم مرطب ناعم ومنعش بفيتامين E وزيت الجوجوبا للوجه والجسم واليدين.", meta: "75 ml | Cream", qty: 8, img: "1001882720.jpg"},
-    {id: 59, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "GLYCERIN", name: "Glycerin Cream (جليسرين كريم الأصلي)", details: "كريم الجلسرين الأحمر الكلاسيكي للترطيب المكثف للجلد الجاف والمتشقق.", meta: "125 g | Cream", qty: 10, img: "1001882721.jpg"},
-    {id: 60, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "AJANTA", name: "Aquasoft Cream (Glycerin 15%)", details: "كريم طبي مرطب للبشرة الجافة يحتوي على جلسرين بتركيز 15%.", meta: "50 g | Cream", qty: 6, img: "1001882724.jpg"},
-    {id: 61, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "SUDOCREM", name: "Sudocrem Antiseptic Healing Cream", details: "كريم مطهر ومرمم للبشرة لحالات التهاب الحفاض، الإكزيما، الجروح السطحية وحروق الشمس.", meta: "Cream | Antiseptic", qty: 8, img: "1001882723.jpg"},
-    {id: 62, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "FEMME CARE", name: "Stretch Mark Cream", details: "كريم لتقليل والوقاية من علامات تمدد الجلد أثناء الحمل وتحفيز الكولاجين والمرونة.", meta: "50 ml | Cream", qty: 4, img: "1001882722.jpg"},
-    {id: 63, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "AJANTA", name: "Aquasoft Savon (Moisturizing Soap)", details: "صابونة مرطبة لطيفة للبشرة الجافة والحساسة.", meta: "Soap Bar", qty: 6, img: "1001882727.jpg"},
-    {id: 64, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "OZMODERM AUSTRALIA", name: "Sensitive Bar Gentle Cleansing Bar", details: "صابونة طبية لطيفة جداً مخصصة لتنظيف البشرة الحساسة والمتهيجة دون جفاف.", meta: "100 g | Soap Bar", qty: 5, img: "1001882730.jpg"},
-    {id: 65, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "AVENE", name: "Cicalfate+ Repairing Protective Cream", details: "كريم سيكالفات بلس الشهير لترميم وإصلاح الجلد المتضرر والمتهيج وما بعد الإجراءات التجميلية.", meta: "40 ml | Repair Cream", qty: 4, img: "1001882749.jpg"},
-    {id: 66, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "DERMA PELLA", name: "Calm Cream (Soothing Moisturizing Cream)", details: "كريم ملطف ومهدئ ومرطب للبشرة المتهيجة والحساسة.", meta: "75 g | Cream", qty: 5, img: "1001882757.jpg"},
-    {id: 67, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "AQUAX", name: "Aquax Cream", details: "كريم مرطب طبي للبشرة الجافة والمتهيجة والمصابة بالحكة والإكزيما.", meta: "150 g | Cream", qty: 8, img: "1001882759.jpg"},
-    {id: 68, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "AQUAX", name: "Aquax Deo Cream (Hyperhidrosis)", details: "كريم طبي لتقليل وعلاج فرط التعرق (Hyperhidrosis).", meta: "75 g | Cream", qty: 5, img: "1001882760.jpg"},
-    {id: 69, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "SORAFINE", name: "Sorafine Cremogel", details: "كريم-جل مرطب ومهدئ خالٍ من الزيوت (Non-Comedogenic) بخلاصة الجوجوبا، مثالي للبشرة المختلطة والدهنية.", meta: "75 g | Gel Cream", qty: 5, img: "1001882762.jpg"},
-    {id: 70, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "JULPHAR", name: "Mebo Ointment (0.25% Beta-Sitosterol)", details: "مرهم ميبو العشبي الطبيعي لعلاج الحروق والجروح وتقرحات الجلد.", meta: "30 g | Ointment", qty: 10, img: "1001882764.jpg"},
-    {id: 71, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "JULPHAR", name: "Mebo Scar Ointment", details: "مرهم ميبو سكار لتقليل ومنع تشكل الندبات بعد الجروح والحروق والعمليات.", meta: "30 g | Ointment", qty: 5, img: "1001882765.jpg"},
-    {id: 72, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "NEWGEL+E", name: "NewGel+E Advanced Silicone Gel for Scars", details: "جل السيليكون الطبي المتقدم مع فيتامين E لعلاج وإخفاء الندبات القديمة والحديثة.", meta: "15 g | Gel", qty: 3, img: "1001882772.jpg"},
-    {id: 73, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "ARDENE", name: "Vitamin E Face & Hand Cream", details: "كريم مرطب بفيتامين E للوجه واليدين للبشرة العادية والحساسة.", meta: "45 g | Cream", qty: 5, img: "1001882783.jpg"},
-    {id: 74, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "ARDENE", name: "Collagen Moisturizing Cream", details: "كريم مرطب بالكولاجين وفيتامينات A, E, C والبانثينول وزيت بذور العنب للبشرة الجافة.", meta: "50 g | Cream", qty: 5, img: "1001882784.jpg"},
-    {id: 75, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "UNIREX", name: "Aquanza Glycerin & Aloe Vera Cream", details: "كريم فائق الترطيب للبشرة الجافة بالجلسرين وخلاصة الألوفيرا.", meta: "50 g | Cream", qty: 6, img: "1001882810.jpg"},
-    {id: 76, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "UNIREX", name: "Bioral Rich Replenishing Face Cream (Urea 5%)", details: "كريم وجه غني باليوريا 5%، السيراميد، حمض الهيالورونيك والسكوالان لإغاثة البشرة الجافة.", meta: "75 g | Cream", qty: 5, img: "1001882811.jpg"},
-    {id: 77, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "SDI", name: "Zinc Oxide Ointment (مرهم أوكسيد الزنك)", details: "مرهم أوكسيد الزنك لحماية الجلد وتهدئة الطفح الجلدي والتهابات الحفاض.", meta: "25 g | Ointment", qty: 10, img: "1001882816.jpg"},
-    {id: 78, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "SDI", name: "Zinc Castor Oil Baby Ointment", details: "مرهم الزنك وزيت الخروع لحماية بشرة الأطفال وعلاج طفح الحفاض.", meta: "25 g | Ointment", qty: 10, img: "1001882827.jpg"},
-    {id: 79, department: "قسم الجلدية", category: "المرطبات والترميم", brand: "LSI", name: "Quasix Anti-Redness Cream", details: "كريم مضاد للاحمرار والوردية (Rosacea) للبشرة الجافة والمختلطة.", meta: "30 g | Cream", qty: 4, img: "1001882832.jpg"},
-    {id: 80, department: "قسم الجلدية", category: "التفتيح والتقشير", brand: "THE ORDINARY", name: "Alpha Arbutin 2% + HA Serum", details: "سيروم ألفا أربوتين 2% المركز مع حمض الهيالورونيك لعلاج البقع البنية والتصبغات وتوحيد لون البشرة.", meta: "30 ml | Serum", qty: 4, img: "1001882690.jpg"},
-    {id: 81, department: "قسم الجلدية", category: "التفتيح والتقشير", brand: "ISISPHARMA", name: "Unitone 4 White Nightly Care", details: "كريم ليلي مركز لإزالة البقع الصباغية والكلف وتفتيح البشرة.", meta: "40 ml | Cream", qty: 4, img: "1001882705.jpg"},
-    {id: 82, department: "قسم الجلدية", category: "التفتيح والتقشير", brand: "ARDENE", name: "Skin Lightener Cream", details: "كريم مفتح للبشرة يحتوي على فيتامين C، Kojic Acid، Kojic Dipalmitate، وفيتامينات A و E.", meta: "50 g | Cream", qty: 4, img: "1001882714.jpg"},
-    {id: 83, department: "قسم الجلدية", category: "التفتيح والتقشير", brand: "OZMODERM AUSTRALIA", name: "Whitening Black Bar (Brightening Bar)", details: "صابونة التفتيح السوداء بخلاصة الفطر، فيتامين C، الكافيار، الفحم النشط والجنسنغ لجميع أنواع البشرة.", meta: "100 g | Soap Bar", qty: 5, img: "1001882731.jpg"},
-    {id: 84, department: "قسم الجلدية", category: "التفتيح والتقشير", brand: "LA JU", name: "SW Skin Whitening Cream", details: "كريم تفتيح ونضارة البشرة وعلاج التصبغات.", meta: "40 g | Cream", qty: 4, img: "1001882734.jpg"},
-    {id: 85, department: "قسم الجلدية", category: "التفتيح والتقشير", brand: "MAC", name: "Benoquin Cream (Monobenzone 20%)", details: "كريم مونوبنزون 20% لإزالة التصبغات النهائية في حالات البهاق المنتشر (Vitiligo).", meta: "30 g | Cream", qty: 3, img: "1001882738.jpg"},
-    {id: 86, department: "قسم الجلدية", category: "التفتيح والتقشير", brand: "AQUAX", name: "Aquax Whitening Cream", details: "كريم أكواكس المفتح والمرطب للبشرة.", meta: "50 g | Cream", qty: 5, img: "1001882761.jpg"},
-    {id: 87, department: "قسم الجلدية", category: "التفتيح والتقشير", brand: "JAMJOOM PHARMA", name: "HiQuin 4% Cream (Hydroquinone 4%)", details: "كريم هايكوين بتركيز هيدروكينون 4% لعلاج الكلف والتصبغات والبقع الداكنة.", meta: "30 g | Cream", qty: 10, img: "1001882768.jpg"},
-    {id: 88, department: "قسم الجلدية", category: "التفتيح والتقشير", brand: "ARDENE", name: "AHA 12% Alpha-Hydroxy Acid Cream", details: "كريم أحماض الفواكه المقشر بتركيز 12% مع الريتينول وفيتامين C والألوفيرا لتجديد البشرة وتقليل التجاعيد والبقع.", meta: "50 g | Cream", qty: 4, img: "1001882785.jpg"},
-    {id: 89, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "AMOOR", name: "Potassium Permanganate (برمنكنات للتعقيم)", details: "بلورات برمنغنات البوتاسيوم للتعقيم والمغاطس الجلدية المطهرة والقابضة.", meta: "7 g | Powder", qty: 10, img: "1001882728.jpg"},
-    {id: 90, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "FPI", name: "PermeRx 5% Cream (Permethrin 5%)", details: "كريم بيرمثرين 5% لعلاج الجرب (Scabies) والقمل.", meta: "30 g | Cream", qty: 10, img: "1001882737.jpg"},
-    {id: 91, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "ACM", name: "Molutrex Solution (5% Potassium Hydroxide)", details: "محلول موضعي بتركيز 5% هيدروكسيد البوتاسيوم لعلاج المليساء المعدية (Molluscum Contagiosum).", meta: "10 ml | Solution", qty: 3, img: "1001882740.jpg"},
-    {id: 92, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "BAYER", name: "Canesten Cream (Clotrimazole 1%)", details: "كريم كانستين المضاد للفطريات واسع الطيف.", meta: "20 g | Cream", qty: 8, img: "1001882741.jpg"},
-    {id: 93, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "ERNST", name: "Iverzo 1 Cream (Ivermectin 1%)", details: "كريم إيفرمكتين 1% الموضعي لعلاج الوردية (Rosacea) والطفيليات الجلدية.", meta: "30 g | Cream", qty: 4, img: "1001882742.jpg"},
-    {id: 94, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "ATCO", name: "Ivermite Lotion (Ivermectin 0.5%)", details: "لوشن إيفرمكتين الموضعي 0.5% لعلاج القمل والجرب والطفيليات الجلدية.", meta: "60 ml | Lotion", qty: 5, img: "1001882744.jpg"},
-    {id: 95, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "AVALON PHARMA", name: "Avoban Ointment (Mupirocin 2%)", details: "مرهم موبيروسين 2% مضاد بكتيري موضعي لعلاج القوباء (Impetigo)، التهاب البصيلات والدمامل.", meta: "15 g | Ointment", qty: 8, img: "1001882747.jpg"},
-    {id: 96, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "AJANTA", name: "Lucoz Cream (Luliconazole 1%)", details: "كريم لوليكونازول 1% مضاد فطريات حديث وقوي لعلاج التينيا والفطريات الجلدية.", meta: "30 g | Cream", qty: 6, img: "1001882763.jpg"},
-    {id: 97, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "LINCOLN", name: "Clovir Cream (Aciclovir 5%)", details: "كريم أسيكلوفير 5% مضاد فيروسي موضعي لعلاج الهربس البسيط (لطمة الحمى).", meta: "15 g | Cream", qty: 8, img: "1001882779.jpg"},
-    {id: 98, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "BRAWN", name: "Gentamicin Cream BP 0.3%", details: "كريم جنتامايسين 0.3% مضاد حيوي موضعي للعدوى البكتيرية الجلدية.", meta: "15 g | Cream", qty: 10, img: "1001882780.jpg"},
-    {id: 99, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "SANA ALFAYHAA", name: "Fusicure Ointment (فيوسيكيور مرهم)", details: "مرهم صوديوم فيوسيديت 2% مضاد حيوي لعلاج الالتهابات البكتيرية الجلدية.", meta: "20 g | Ointment", qty: 10, img: "1001882781.jpg"},
-    {id: 100, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "SANA ALFAYHAA", name: "Fusicure Cream (فيوسيكيور كريم)", details: "كريم حمض الفيوسيديك 2% مضاد بكتيري موضعي.", meta: "20 g | Cream", qty: 10, img: "1001882782.jpg"},
-    {id: 101, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "FERRER", name: "Dermofix Cream (Sertaconazole 2%)", details: "كريم سيرتاكونازول نيترات 20mg/g المضاد للفطريات الجلدية والخمائر.", meta: "20 g | Cream", qty: 6, img: "1001882788.jpg"},
-    {id: 102, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "BILIM", name: "Ketoral Cream (Ketoconazole 2%)", details: "كريم كيتوكونازول 2% مضاد فطريات واسع الطيف.", meta: "40 g | Cream", qty: 8, img: "1001882789.jpg"},
-    {id: 103, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "DAR ALDAWA", name: "Mycoheal Cream (Miconazole 2%)", details: "كريم ميكونازول نيترات 20mg/g مضاد للفطريات الجلدية.", meta: "30 g | Cream", qty: 8, img: "1001882790.jpg"},
-    {id: 104, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "UNITED", name: "Candizol Oral Gel (Miconazole 2%)", details: "جل فموي ميكونازول 2% لعلاج فطريات الفم واللسان (Oral Thrush).", meta: "40 g | Oral Gel", qty: 6, img: "1001882791.jpg"},
-    {id: 105, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "JUMAN", name: "Sulfur 5% Cream (كريم الكبريت جمان)", details: "كريم الكبريت بتركيز 5% شديد الفعالية لعلاج الجرب والفطريات وحب الشباب.", meta: "500 ml | Cream", qty: 5, img: "1001882794.jpg"},
-    {id: 106, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "VITAPURE", name: "Terbinafine-Vitapure Spray 1%", details: "بخاخ تيربينافين 1% مضاد للفطريات الجلدية وفطريات الأصابع والقدمين.", meta: "30 ml | Spray", qty: 6, img: "1001882795.jpg"},
-    {id: 107, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "SDI", name: "Whitefield's Ointment (مرهم ويتفيلد)", details: "مرهم حمض البنزويك وحمض الساليسيليك المقشر والمضاد للفطريات السطحية.", meta: "25 g | Ointment", qty: 8, img: "1001882796.jpg"},
-    {id: 108, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "PHILADELPHIA", name: "Metroza 0.75% Gel (Metronidazole)", details: "جل ميترونيدازول 0.75% لعلاج الوردية (Rosacea) والالتهابات الجلدية.", meta: "0.75% | Gel", qty: 6, img: "1001882799.jpg"},
-    {id: 109, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "STIEFEL", name: "Duofilm Solution (Salicylic 16.7% + Lactic 15%)", details: "محلول ديفيلم الكاوي والمقشر لعلاج وإزالة الثآليل (Warts) ومسامير اللحم.", meta: "18 ml | Solution", qty: 5, img: "1001882800.jpg"},
-    {id: 110, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "AVALON PHARMA", name: "Avomack Solution", details: "محلول موضعي بحمض الساليسيليك واللاكتيك لإزالة الثآليل ومسامير القدم.", meta: "Solution | Warts", qty: 6, img: "1001882801.jpg"},
-    {id: 111, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "OCTOBER PHARMA", name: "Collomak Topical Solution", details: "محلول كولوماك (Salicylic Acid 20% + Lactic Acid 5% + Polidocanol 2%) لإزالة الثآليل والتقرنات.", meta: "10 ml | Solution", qty: 6, img: "1001882802.jpg"},
-    {id: 112, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "SDI", name: "Permethrin Ointment (مرهم بيرمثرين)", details: "مرهم مضاد للجرب والطفيليات الجلدية.", meta: "Ointment | SDI", qty: 8, img: "1001882820.jpg"},
-    {id: 113, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "ASWAR AL-KHALEEJ", name: "As-Fugidin Cream (Fusidic Acid)", details: "كريم فيوسيدين مضاد بكتيري موضعي.", meta: "15 g | Cream", qty: 10, img: "1001882822.jpg"},
-    {id: 114, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "SDI", name: "Mycodin Ointment", details: "مرهم مضاد للفطريات الجلدية.", meta: "15 g | Ointment", qty: 8, img: "1001882823.jpg"},
-    {id: 115, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "SAMA ALFAYHAA", name: "Hyloza Cream (Silver Sulfadiazine + Hyaluronic Acid)", details: "كريم سلفاديازين الفضة مع حمض الهيالورونيك لعلاج الحروق ومنع العدوى وتسريع التئام الجروح.", meta: "30 g | Cream", qty: 6, img: "1001882828.jpg"},
-    {id: 116, department: "قسم الجلدية", category: "المضادات الموضعية (بكتيريا/فطريات/طفيليات)", brand: "CELAVEX", name: "Celavex Cream (Cetrimide 0.5% + Chlorhexidine 0.1%)", details: "كريم مطهر ومعقم للجروح والحروق السطحية والخدوش وطفح الحفاض.", meta: "25 g | Cream", qty: 8, img: "1001882829.jpg"},
-    {id: 117, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "HALAMINE", name: "Halamine Lotion (Calamine Lotion)", details: "لوشن ملطف ومبرد للجلد ومضاد للحكة والتهيج وحروق الشمس والجدري.", meta: "100 ml | Lotion", qty: 8, img: "1001882736.jpg"},
-    {id: 118, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "AQUAX", name: "Aquax-H Cream (Hydrocortisone 17-Butyrate 0.1%)", details: "كريم هيدروكورتيزون 17-بيوتيرات 0.1% لعلاج الإكزيما والالتهابات الجلدية.", meta: "30 g | Cream", qty: 6, img: "1001882758.jpg"},
-    {id: 119, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "JAMJOOM PHARMA", name: "Elica Cream (Mometasone Furoate 0.1%)", details: "كريم موميتازون فيورويت 0.1% لعلاج الإكزيما والصدفية والحساسية الجلدية.", meta: "30 g | Cream", qty: 10, img: "1001882766.jpg"},
-    {id: 120, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "JAMJOOM PHARMA", name: "Promax Cream (Clobetasol 0.05%)", details: "كريم كلوبيتازول بروبيونات 0.05% كورتيزون عالي القوة للإكزيما والصدفية المستعصية.", meta: "30 g | Cream", qty: 8, img: "1001882767.jpg"},
-    {id: 121, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "JULPHAR", name: "Alfacort Cream (Hydrocortisone 1%)", details: "كريم هيدروكورتيزون 1% خفيف لعلاج الالتهابات الجلدية البسيطة والإكزيما.", meta: "15 g | Cream", qty: 10, img: "1001882769.jpg"},
-    {id: 122, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "TABUK", name: "Rolip Ointment (Calcipotriol / Betamethasone)", details: "مرهم كالسيبوتريول (نظير فيتامين D) مع بيتاميثازون المخصص لعلاج الصدفية اللويحية (Plaque Psoriasis).", meta: "30 g | Ointment", qty: 5, img: "1001882770.jpg"},
-    {id: 123, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "AJANTA", name: "Talimus 0.1% Ointment (Tacrolimus 0.1%)", details: "مرهم تاكروليمس 0.1% معدل مناعي موضعي خالٍ من الكورتيزون لعلاج الإكزيما التأتبية والبهاق.", meta: "10 g | Ointment", qty: 5, img: "1001882771.jpg"},
-    {id: 124, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "WPC", name: "Quadridain Cream (رباعي المفعول)", details: "كريم رباعي مضاد للالتهابات والبكتيريا والفطريات الجلدية المختلطة.", meta: "15 g | Cream", qty: 10, img: "1001882778.jpg"},
-    {id: 125, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "FERRER", name: "Peitel 0.25% Cream (Prednicarbate)", details: "كريم بريدنيكاربات 0.25% كورتيزون موضعي عالي الأمان لعلاج الإكزيما والتهاب الجلد.", meta: "30 g | Cream", qty: 5, img: "1001882797.jpg"},
-    {id: 126, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "UNIREX", name: "Virapoxx Gel (For Chickenpox)", details: "جل مبرد ومهدئ للحكة الشديدة المصاحبة للجدري المائي (Chickenpox) ويمنع التندب، مناسب من عمر 6 أشهر.", meta: "150 ml | Gel", qty: 5, img: "1001882814.jpg"},
-    {id: 127, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "DIJLA", name: "Nastocord Cream", details: "كريم مشكل مضاد للالتهابات الفطرية والبكتيرية والحساسية.", meta: "15 g | Cream", qty: 8, img: "1001882815.jpg"},
-    {id: 128, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "SDI", name: "Betnosam Ointment (Betamethasone)", details: "مرهم بيتاميثازون لعلاج الحساسية والصدفية والإكزيما الجافة.", meta: "15 g | Ointment", qty: 10, img: "1001882817.jpg"},
-    {id: 129, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "SDI", name: "Betnosam Cream (Betamethasone)", details: "كريم بيتاميثازون لعلاج الالتهابات الجلدية والحساسية.", meta: "15 g | Cream", qty: 10, img: "1001882818.jpg"},
-    {id: 130, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "SDI", name: "Nystacort Ointment", details: "مرهم نيستاتين وكورتيزون لعلاج التهابات الحفاض والفطريات المترافقة مع التهاب.", meta: "15 g | Ointment", qty: 10, img: "1001882819.jpg"},
-    {id: 131, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "SDI", name: "Dermodin Cream (Clobetasol)", details: "كريم ديرمودين لعلاج الإكزيما والصدفية والحساسية الشديدة.", meta: "25 g | Cream", qty: 10, img: "1001882821.jpg"},
-    {id: 132, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "SDI", name: "Betnosam-N Cream (Betamethasone + Neomycin)", details: "كريم بيتاميثازون مع نيومايسين للالتهابات الجلدية المصحوبة بعدوى بكتيرية.", meta: "15 g | Cream", qty: 10, img: "1001882824.jpg"},
-    {id: 133, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "HAYAT", name: "Hycortisone 2.5% Cream (هايكورتيزون 2.5%)", details: "كريم هيدروكورتيزون بتركيز 2.5% لعلاج الإكزيما والالتهابات الجلدية.", meta: "15 g | Cream", qty: 8, img: "1001882825.jpg"},
-    {id: 134, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "MDI", name: "Hydrocortisone-MDI Cream 1%", details: "كريم هيدروكورتيزون أسيتات 1% لعلاج الحساسية والاحمرار.", meta: "15 g | Cream", qty: 8, img: "1001882826.jpg"},
-    {id: 135, department: "قسم الجلدية", category: "الكورتيزونات والمراهم الموضعية", brand: "WPC", name: "Dermocalin Cream", details: "كريم ملطف لتهيجات الجلد البسيطة، لدغات الحشرات وحروق الشمس.", meta: "25 g | Cream", qty: 6, img: "1001882831.jpg"},
-    {id: 136, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "ATCO", name: "Ivermite 6mg Tablets (Ivermectin USP)", details: "أقراص إيفرمكتين 6 ملغ فموية مضادة للطفيليات لعلاج الجرب المستعصي والعدوى الطفيلية.", meta: "10 Tablets | Oral", qty: 6, img: "1001882739.jpg"},
-    {id: 137, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "ASIA PHARMA", name: "Retane 20 (Isotretinoin 20mg Capsules)", details: "كبسولات أيزوتريتينوين 20 ملغ لعلاج حب الشباب الكيسي والعقدي الشديد.", meta: "30 Capsules | Oral", qty: 8, img: "1001882775.jpg"},
-    {id: 138, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "ASIA PHARMA", name: "Retane 10 (Isotretinoin 10mg Capsules)", details: "كبسولات أيزوتريتينوين 10 ملغ لعلاج حب الشباب.", meta: "30 Capsules | Oral", qty: 8, img: "1001882776.jpg"},
-    {id: 139, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "PHILADELPHIA", name: "Mycophil Oral Suspension (Nystatin)", details: "معلق فموي نيستاتين خالٍ من الكحول لعلاج فطريات الفم والأمعاء (Candidiasis).", meta: "30 ml | Oral Drops", qty: 8, img: "1001882792.jpg"},
-    {id: 140, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "VIDA FARMA", name: "Troda 100 Capsules (Itraconazole 100mg)", details: "كبسولات إيتراكونازول 100 ملغ مضاد فطريات جهازي واسع الطيف لفطريات الجلد والأظافر.", meta: "8 Capsules | Oral", qty: 6, img: "1001882833.jpg"},
-    {id: 141, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "JAMJOOM PHARMA", name: "Lamifen 250mg Tablets (Terbinafine 250mg)", details: "أقراص لامفين (تيربينافين 250 ملغ) لعلاج فطريات الأظافر والجلد والشعر.", meta: "14 Tablets | Oral", qty: 6, img: "1001882834.jpg"},
-    {id: 142, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "UROK PHARMA", name: "Diflurok 150mg Capsule (Fluconazole 150mg)", details: "كبسولة فلوكونازول 150 ملغ أحادية الجرعة لعلاج الخمائر والفطريات الجلدية والتناسلية.", meta: "1 Capsule | Oral", qty: 12, img: "1001882835.jpg"},
-    {id: 143, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "ACCORD", name: "Aciclovir 800mg Tablets", details: "أقراص أسيكلوفير 800 ملغ مضاد فيروسي لعلاج الحزام الناري (Herpes Zoster) والجدري المائي.", meta: "35 Tablets | Oral", qty: 5, img: "1001882836.jpg"},
-    {id: 144, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "MEDICO LABS", name: "Viramed 200 Tablets (Aciclovir 200mg)", details: "أقراص أسيكلوفير 200 ملغ مضاد فيروسي لعلاج التهابات الهربس البسيط.", meta: "20 Tablets | Oral", qty: 6, img: "1001882839.jpg"},
-    {id: 145, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "ACCORD", name: "Aciclovir 400mg Tablets", details: "أقراص أسيكلوفير 400 ملغ مضاد فيروسي لعلاج الهربس والوقاية من تكراره.", meta: "56 Tablets | Oral", qty: 5, img: "1001882840.jpg"},
-    {id: 146, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "GENERIC", name: "Desloratadine 5mg Tablets", details: "أقراص ديسلوراتادين 5 ملغ مضاد هيستامين طويل المفعول لا يسبب النعاس للحكة والشرى (Urticaria).", meta: "30 Tablets | Oral", qty: 10, img: "1001882843.jpg"},
-    {id: 147, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "ORGANON", name: "Aerius 5mg Tablets (Desloratadine)", details: "أقراص إيريوس الأصلية 5 ملغ لعلاج الحساسية الجلدية والشرى المزمن والحكة دون نعاس.", meta: "30 Tablets | Oral", qty: 6, img: "1001882844.jpg"},
-    {id: 148, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "SANOFI", name: "Telfast 120mg Tablets (Fexofenadine)", details: "أقراص تيلفاست 120 ملغ مضاد حساسية سريع المفعول لا يسبب النعاس.", meta: "15 Tablets | Oral", qty: 8, img: "1001882845.jpg"},
-    {id: 149, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "SANOFI", name: "Telfast 180mg Tablets (Fexofenadine)", details: "أقراص تيلفاست 180 ملغ المخصصة للشرى الجلدي (Urticaria) والحكة الشديدة دون نعاس.", meta: "15 Tablets | Oral", qty: 8, img: "1001882846.jpg"},
-    {id: 150, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "MUP", name: "Alertam 120mg Tablets (Fexofenadine)", details: "أقراص فيكسوفينادين 120 ملغ مضاد للحساسية والحكة.", meta: "10 Tablets | Oral", qty: 8, img: "1001882847.jpg"},
-    {id: 151, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "TABUK", name: "Fexodine 180mg Tablets (Fexofenadine)", details: "أقراص فيكسودين 180 ملغ لعلاج الشرى والحساسية الجلدية.", meta: "14 Tablets | Oral", qty: 8, img: "1001882848.jpg"},
-    {id: 152, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "MICRO LABS", name: "Fexofast-120 Tablets (Fexofenadine)", details: "أقراص فيكسوفينادين 120 ملغ مضاد للهيستامين.", meta: "10 Tablets | Oral", qty: 8, img: "1001882849.jpg"},
-    {id: 153, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "MICRO LABS", name: "Fexofast-180 Tablets (Fexofenadine)", details: "أقراص فيكسوفينادين 180 ملغ لعلاج الحساسية الجلدية والشرى.", meta: "10 Tablets | Oral", qty: 8, img: "1001882850.jpg"},
-    {id: 154, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "BAYER", name: "Claritine 10mg Tablets (Loratadine)", details: "أقراص كلاريتين 10 ملغ لعلاج الحساسية والحكة والشرى لمدة 24 ساعة دون نعاس.", meta: "10 Tablets | Oral", qty: 8, img: "1001882851.jpg"},
-    {id: 155, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "PIONEER", name: "Laritin 10mg Tablets (Loratadine)", details: "أقراص لوراتادين 10 ملغ لعلاج أعراض الحساسية والشرى الجلدي.", meta: "30 Tablets | Oral", qty: 10, img: "1001882852.jpg"},
-    {id: 156, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "JULPHAR", name: "Cetralon 10mg Tablets (Cetirizine)", details: "أقراص سيتريزين 10 ملغ مضاد هيستامين قوي لعلاج الحكة والتحسس الجلدي.", meta: "10 Tablets | Oral", qty: 10, img: "1001882853.jpg"},
-    {id: 157, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "PIONEER", name: "Laritin Syrup (Loratadine 5mg/5ml)", details: "شراب لوراتادين للأطفال لعلاج الحساسية الجلدية والشرى والحكة.", meta: "100 ml | Syrup", qty: 8, img: "1001882854.jpg"},
-    {id: 158, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "PIONEER", name: "Larius Oral Syrup (Desloratadine 2.5mg/5ml)", details: "شراب ديسلوراتادين للأطفال لا يسبب النعاس لعلاج الحساسية الجلدية والشرى.", meta: "100 ml | Syrup", qty: 8, img: "1001882855.jpg"},
-    {id: 159, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "PIONEER", name: "Chlomal Syrup (Chlorpheniramine Maleate)", details: "شراب كلورفينيرامين مضاد للحساسية والحكة الشديدة لدى الأطفال.", meta: "100 ml | Syrup", qty: 8, img: "1001882856.jpg"},
-    {id: 160, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "SDI", name: "Allermin Syrup (شراب الرمين - Diphenhydramine)", details: "شراب دايفنهيدرامين 10mg/5ml مضاد للحساسية والحكة والشرى.", meta: "100 ml | Syrup", qty: 8, img: "1001882857.jpg"},
-    {id: 161, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "MEDWISE", name: "Colchicine Wise 0.5mg Tablets", details: "أقراص كولشيسين 0.5 ملغ لعلاج داء بهجت (Behcet's Disease)، التهابات الأوعية الجلدية والنقرس.", meta: "30 Tablets | Oral", qty: 5, img: "1001882859.jpg"},
-    {id: 162, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "PIONEER", name: "Prednicort Syrup (Prednisolone 15mg/5ml)", details: "شراب بريدنيزولون 15 ملغ/5 مل مضاد التهاب وحساسية فموي للأطفال.", meta: "100 ml | Syrup", qty: 8, img: "1001882861.jpg"},
-    {id: 163, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "SDI", name: "Fenistil Kids Drops", details: "قطرات فينيستيل للأطفال مضادة للهيستامين والشرى والحكة الجلدية وجدري الماء.", meta: "15 ml | Drops", qty: 8, img: "1001882862.jpg"},
-    {id: 164, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "ASWAR AL-KHALEEJ", name: "As-Prislone 5mg Tablets (Prednisolone 5mg)", details: "أقراص بريدنيزولون 5 ملغ كورتيزون فموي لعلاج الحالات الالتهابية والتحسسية.", meta: "100 Tablets | Oral", qty: 8, img: "1001882863.jpg"},
-    {id: 165, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "PIONEER", name: "Prednicort 20mg Tablets (Prednisolone 20mg)", details: "أقراص بريدنيزولون 20 ملغ لعلاج الأمراض الجلدية المناعية والتحسسية الحادة.", meta: "20 Tablets | Oral", qty: 8, img: "1001882864.jpg"},
-    {id: 166, department: "قسم الجلدية", category: "الأدوية الفموية والشرابات", brand: "JULPHAR", name: "Gupisone 20mg Tablets (Prednisolone 20mg)", details: "أقراص غوبيزون (بريدنيزولون 20 ملغ) مضاد التهاب وتحسس جهازي.", meta: "20 Tablets | Oral", qty: 8, img: "1001882865.jpg"}
-];
+// (الأصناف الافتراضية في ملف seed.js)
 
 // ============================================================================
 // 4. منطق التطبيق، المزامنة الفورية مع Firebase، وإدارة الجلسة الدائمة
@@ -269,7 +99,7 @@ async function initFirebase() {
             const authBtn = document.getElementById('authBtn');
             if (user) {
                 document.body.classList.add('admin-mode');
-                authBtn.innerText = '🔒';
+                authBtn.innerHTML = ICONS.lock;
                 authBtn.title = 'خروج الصيدلي';
                 
                 // فحص ما إذا كانت قاعدة منتجات السحابة فارغة لرفع الـ 166 منتجاً لأول مرة
@@ -277,9 +107,10 @@ async function initFirebase() {
                 if (snap.empty && products.length > 0) {
                     pushToCloud(false);
                 }
+                setTimeout(autoMaintenance, 9000);   // نسخة احتياطية أسبوعية + تنظيف السلة والسجل
             } else {
                 document.body.classList.remove('admin-mode');
-                authBtn.innerText = '👤';
+                authBtn.innerHTML = ICONS.user;
                 authBtn.title = 'دخول الصيدلي';
             }
             if (currentOpenId) openSheet(currentOpenId);
@@ -696,6 +527,74 @@ function addSubCategory() {
 // ============================================================================
 // 7. العرض والفلترة
 // ============================================================================
+// ---- بحث ذكي: يتجاهل التشكيل وفروق الهمزات/التاء المربوطة، ويتحمل الأخطاء الإملائية البسيطة ----
+function normSearch(s) {
+    return String(s === null || s === undefined ? '' : s)
+        .toLowerCase()
+        .normalize('NFKD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+        .replace(/[٠-٩]/g, c => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c)))
+        .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه').replace(/ؤ/g, 'و').replace(/ئ/g, 'ي')
+        .replace(/[^a-z0-9\u0600-\u06FF]+/g, ' ')
+        .replace(/(^| )ال(?=\S{3,})/g, '$1')   // حذف "ال" التعريف من أول الكلمة
+        .trim();
+}
+
+const SEARCH_IDX = new WeakMap();
+function searchIndexOf(p) {
+    let x = SEARCH_IDX.get(p);
+    if (!x) {
+        const all = normSearch(`${p.name} ${p.brand} ${p.details} ${p.meta} ${catsOf(p).join(' ')} ${p.keywords || ''} ${p.activeIngredient || ''} ${p.barcode || ''}`);
+        x = { name: normSearch(p.name), all, words: all.split(' ').filter(Boolean) };
+        SEARCH_IDX.set(p, x);
+    }
+    return x;
+}
+
+// مسافة التحرير (Levenshtein) مع حد أعلى للتوقف المبكر
+function editDistanceWithin(a, b, max) {
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+        const cur = [i];
+        let rowMin = i;
+        for (let j = 1; j <= b.length; j++) {
+            cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+            if (cur[j] < rowMin) rowMin = cur[j];
+        }
+        if (rowMin > max) return max + 1;
+        prev = cur;
+    }
+    return prev[b.length];
+}
+
+// 0 = لا يطابق، 2 = يطابق نصاً، 1 = يطابق بخطأ إملائي بسيط
+function tokenMatchScore(tok, x) {
+    if (x.all.includes(tok)) return 2;
+    if (tok.length < 5) return 0;
+    const max = tok.length >= 8 ? 2 : 1;
+    for (const w of x.words) {
+        if (w.length >= 3 && editDistanceWithin(tok, w, max) <= max) return 1;
+    }
+    return 0;
+}
+
+// يعيد درجة الصنف (0 = لا يطابق). كل كلمات البحث يجب أن تتطابق.
+function searchScore(p, qNorm, qTokens) {
+    if (!qTokens.length) return 1;
+    const x = searchIndexOf(p);
+    let score = 0;
+    for (const t of qTokens) {
+        const s = tokenMatchScore(t, x);
+        if (!s) return 0;
+        score += s;
+    }
+    if (x.name === qNorm) score += 8;
+    else if (x.name.startsWith(qNorm)) score += 5;
+    else if (x.name.includes(qNorm)) score += 3;
+    return score;
+}
+
 // ---- أقسام/تصنيفات/تبويبات متعددة للصنف الواحد ----
 // الحقول القديمة department/category/type تبقى "الأساسية"، والإضافية تُخزَّن في مصفوفات منفصلة
 function extrasOf(v) { return Array.isArray(v) ? v.filter(x => typeof x === 'string' && x) : []; }
@@ -838,19 +737,34 @@ function renderAll() {
     const tabTitle = getTabTitle();
     document.getElementById('sectionLabel').innerText = `${activeDept} • ${tabTitle}`;
 
-    const query = document.getElementById('searchInput').value.toLowerCase().trim();
+    const qNorm = normSearch(document.getElementById('searchInput').value);
+    const qTokens = qNorm ? qNorm.split(' ') : [];
     const baseItems = getBaseFilteredByTab();
 
-    const filtered = baseItems.filter(p => {
+    let scored = [];
+    baseItems.forEach(p => {
         const matchCat = activeSubCat === 'الكل' || catsOf(p).includes(activeSubCat);
         const matchBrand = activeBrand === 'الكل' || (p.brand || 'GENERIC').trim() === activeBrand;
-        const text = `${p.name} ${p.brand} ${p.details} ${p.meta} ${catsOf(p).join(' ')} ${p.keywords || ''} ${p.activeIngredient || ''}`.toLowerCase();
-        const matchQ = !query || text.includes(query);
-        return matchCat && matchBrand && matchQ;
+        if (!matchCat || !matchBrand) return;
+        const s = searchScore(p, qNorm, qTokens);
+        if (s > 0) scored.push([p, s]);
     });
+    if (qTokens.length) scored.sort((a, b) => b[1] - a[1]);   // الأقرب أولاً (الترتيب ثابت للمتساوي)
+    const filtered = scored.map(x => x[0]);
 
     document.getElementById('countLabel').innerText = `${filtered.length} صنف`;
     const container = document.getElementById('itemsContainer');
+
+    if (!filtered.length) {
+        const rawQ = document.getElementById('searchInput').value.trim();
+        const outTab = mainTab === 'out' && !rawQ;
+        container.innerHTML = `<div class="empty-state empty-wide">
+            <div class="empty-ico">${outTab ? '🎉' : '🔎'}</div>
+            <div>${outTab ? 'لا توجد نواقص الآن' : rawQ ? 'لا توجد نتائج لـ «' + escapeHtml(rawQ) + '»' : 'لا توجد أصناف هنا بعد'}</div>
+            ${rawQ ? '<button type="button" class="empty-btn" onclick="clearSearch()">مسح البحث</button>' : ''}
+        </div>`;
+        return;
+    }
 
     container.innerHTML = filtered.map(p => {
         const badge = getFormBadge(p);
@@ -859,15 +773,20 @@ function renderAll() {
         return `
             <div class="bento-card" onclick="openSheet(${p.id})">
                 <div class="bento-img-wrap">
-                    <span class="${dotCls}" style="top:10px; right:10px;"></span>
+                    <span class="${dotCls}" id="qd_${p.id}" style="top:10px; right:10px;"></span>
                     <span class="form-badge ${badge.cls} bento-badge-top">${badge.txt}</span>
-                    <img src="${p.img}" alt="" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%224%22/><circle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/><path d=%22M21 15l-5-5L5 21%22/></svg>'">
+                    <img src="${p.img}" alt="" loading="lazy" decoding="async" onload="this.classList.add('loaded')" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2248%22 height=%2248%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%224%22/><circle cx=%228.5%22 cy=%228.5%22 r=%221.5%22/><path d=%22M21 15l-5-5L5 21%22/></svg>'">
                 </div>
                 <div class="bento-body">
                     <div class="bento-brand">${p.brand}</div>
                     <div class="bento-title">${p.name}</div>
                     <div style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? Number(p.price).toLocaleString() + ' د.ع' : '0 د.ع'}</div>
                     <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
+                    <div class="quick-qty" onclick="event.stopPropagation()">
+                        <button type="button" aria-label="إنقاص الكمية" onclick="quickQty(${p.id}, -1, event)">−</button>
+                        <span class="qs-num" id="qs_${p.id}">${Number(p.qty) || 0}</span>
+                        <button type="button" aria-label="زيادة الكمية" onclick="quickQty(${p.id}, 1, event)">+</button>
+                    </div>
                 </div>
             </div>
         `;
@@ -980,8 +899,10 @@ function updateItemQty(id, delta) {
     if (!requireOnline()) return;
     const p = products.find(x => x.id === id);
     if (!p) return;
-    p.qty = Math.max(0, (parseInt(p.qty) || 0) + delta);
+    const oldQty = parseInt(p.qty) || 0;
+    p.qty = Math.max(0, oldQty + delta);
     saveSingleProductToCloud(p);
+    logAction('qty', p, [{ f: 'الكمية', from: String(oldQty), to: String(p.qty) }]);
     renderAll();
     openSheet(id);
 }
@@ -1239,6 +1160,7 @@ function openFormModal(id = null) {
         document.getElementById('fImg').value = p.img || '';
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = p.price || 0;
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = p.keywords || '';
+        if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = p.barcode || '';
         setExpiryDatesInForm(getProductExpiryDates(p));
         setExtraSelections(p);
     } else {
@@ -1257,6 +1179,7 @@ function openFormModal(id = null) {
         document.getElementById('fImg').value = '';
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = 0;
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = '';
+        if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = '';
         setExpiryDatesInForm([]);
         setExtraSelections(null);
     }
@@ -1426,13 +1349,15 @@ async function saveFormProduct() {
         expiryDates: expiryDates,
         expiryDate: expiryDates[0] || '',   // الأقرب نفاذاً (للتوافق مع الأكواد القديمة)
         keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
+        barcode: document.getElementById('fBarcode') ? cleanBarcode(document.getElementById('fBarcode').value) : '',
         img: imgVal
       
     };
 
+    let oldProduct = null;
     if (editId) {
         const idx = products.findIndex(x => x.id === parseInt(editId));
-        if (idx > -1) products[idx] = obj;
+        if (idx > -1) { oldProduct = JSON.parse(JSON.stringify(products[idx])); products[idx] = obj; }
     } else {
         products.unshift(obj);
     }
@@ -1442,6 +1367,7 @@ async function saveFormProduct() {
 
     const success = await saveSingleProductToCloud(obj);
     if (success) {
+        logAction(oldProduct ? 'edit' : 'add', obj, oldProduct ? diffProduct(oldProduct, obj) : []);
         Swal.fire({
             icon: 'success',
             title: 'تم حفظ الصنف وصورته بنجاح!',
@@ -1457,7 +1383,7 @@ function deleteItem(id) {
     if (!requireOnline()) return;
     Swal.fire({
         title: 'هل أنت متأكد؟',
-        text: "لن تتمكن من استعادة هذا الصنف بعد حذفه!",
+        text: "سينتقل الصنف إلى «سلة المحذوفات» ويمكنك استعادته خلال 30 يوماً.",
         icon: 'error',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
@@ -1466,6 +1392,8 @@ function deleteItem(id) {
         cancelButtonText: 'إلغاء'
     }).then(async (result) => {
         if (result.isConfirmed) {
+            const doomed = products.find(x => x.id === id);
+            if (doomed) { await moveToTrash(doomed); logAction('delete', doomed, []); }
             products = products.filter(x => x.id !== id);
             saveLocal();
             
@@ -1579,30 +1507,6 @@ function updateExpiryBadge() {
     } else {
         badge.style.display = 'none';
     }
-}
-
-function openExpiryModal() {
-    const listContainer = document.getElementById('expiryListContainer');
-    const expiringList = getExpiringProducts();
-
-    if (expiringList.length === 0) {
-        listContainer.innerHTML = `<div style="text-align:center; padding:25px; color:#15803d; font-weight:700;">✅ لا توجد أي مواد منتهية أو قريبة النفاذ (خلال 6 أشهر القادمة).</div>`;
-    } else {
-        listContainer.innerHTML = expiringList.map(({ product, status, date }) => `
-            <div onclick="closeExpiryModal(); openSheet(${product.id});" style="cursor:pointer; padding:10px 12px; border-radius:10px; background:${status.bg}; border:1px solid ${status.border}; display:flex; justify-content:space-between; align-items:center; gap:10px;">
-                <div>
-                    <div style="font-weight:800; font-size:0.88rem; color:#0f172a;" dir="ltr">${product.name}</div>
-                    <div style="font-size:0.75rem; color:#475569;">الشركة: ${product.brand} | العدد: ${product.qty}</div>
-                </div>
-                <div style="text-align:left; flex-shrink:0;">
-                    <div style="font-size:0.74rem; font-weight:800; color:${status.color};">${status.label}</div>
-                    <div style="font-size:0.72rem; font-weight:700; color:#334155;" dir="ltr">📅 ${date}</div>
-                </div>
-            </div>
-        `).join('');
-    }
-    listContainer.innerHTML = '<div class="alert-title">📅 قرب نفاذ الصلاحية</div>' + listContainer.innerHTML + buildLowStockSection();
-    document.getElementById('expiryModal').style.display = 'flex';
 }
 
 function closeExpiryModal() {
@@ -1883,12 +1787,12 @@ async function scanWithOcr(event) {
         const html = `
             <div style="text-align:right; font-size:0.9rem;">
                 ${rows.map(([k, v]) => `
-                    <div style="display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px solid #e5e7eb;">
+                    <div style="display:flex; justify-content:space-between; gap:10px; padding:7px 0; border-bottom:1px solid var(--border);">
                         <b>${k}</b>
-                        <span dir="ltr" style="color:${v ? '#0f172a' : '#94a3b8'};">${v ? escapeHtml(v) : 'لم يُقرأ'}</span>
+                        <span dir="ltr" style="color:${v ? 'var(--text-main)' : 'var(--text-sub)'};">${v ? escapeHtml(v) : 'لم يُقرأ'}</span>
                     </div>`).join('')}
                 <p style="margin-top:12px; color:#b91c1c; font-weight:700; font-size:0.82rem;">راجع التركيز بدقة قبل الحفظ (مثل 5 mg أو 50 mg).</p>
-                <details style="margin-top:8px; font-size:0.78rem; color:#64748b;">
+                <details style="margin-top:8px; font-size:0.78rem; color:var(--text-sub);">
                     <summary>النص الذي قرأه التطبيق</summary>
                     <pre dir="ltr" style="white-space:pre-wrap; text-align:left; margin-top:6px;">${escapeHtml((data.text || '').trim())}</pre>
                 </details>
@@ -2167,7 +2071,8 @@ function scheduleMissCheck(rawQuery) {
     const q = normalizeQuery(rawQuery);
     if (q.length < 2 || missSeenThisSession.has(q)) return;
     missTimer = setTimeout(() => {
-        if (products.some(p => productSearchText(p).includes(q))) return;   // وُجد في أي قسم: ليس بحثاً فاشلاً
+        const qn = normSearch(q), qt = qn ? qn.split(' ') : [];
+        if (products.some(p => searchScore(p, qn, qt) > 0)) return;   // وُجد في أي قسم: ليس بحثاً فاشلاً
         missSeenThisSession.add(q);
         recordFailedSearch(q);
     }, 1800);
@@ -2375,6 +2280,21 @@ async function restoreBackup(event) {
             return;
         }
 
+        await applyBackupData(data);
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'تعذر الاسترجاع', text: err.message || String(err), confirmButtonColor: '#0f1c38' });
+    } finally {
+        input.value = '';
+    }
+}
+
+async function applyBackupData(data) {
+    try {
+        if (!currentUser) {
+            await Swal.fire({ icon: 'error', title: 'سجّل دخول الصيدلي أولاً', text: 'الاسترجاع يكتب في السحابة، لذلك يحتاج تسجيل الدخول.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+            return;
+        }
+        if (!requireOnline()) return;
         const existingIds = new Set(products.map(p => p.id));
         const replaced = data.products.filter(p => existingIds.has(p.id)).length;
         const added = data.products.length - replaced;
@@ -2411,8 +2331,6 @@ async function restoreBackup(event) {
         Swal.fire({ icon: 'success', title: 'تم الاسترجاع', text: `${data.products.length} صنف`, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
     } catch (err) {
         Swal.fire({ icon: 'error', title: 'تعذر الاسترجاع', text: err.message || String(err), confirmButtonColor: '#0f1c38' });
-    } finally {
-        input.value = '';
     }
 }
 
@@ -2902,13 +2820,13 @@ async function showAiScanResult(res, mode) {
     const conf = { high: ['عالية', '#15803d', '#dcfce7'], medium: ['متوسطة', '#b45309', '#fef3c7'], low: ['منخفضة', '#b91c1c', '#fee2e2'] }[res.confidence];
 
     const rowHtml = r => r.value ? `
-        <label style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #e5e7eb; cursor:pointer;">
+        <label style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); cursor:pointer;">
             <input type="checkbox" id="aiRow_${r.key}" ${r.checked ? 'checked' : ''} style="margin-top:4px; width:18px; height:18px; flex-shrink:0;">
             <span style="flex:1; min-width:0;">
-                <b style="display:block; font-size:0.8rem; color:#475569;">${r.label}${r.empty ? '' : ' <small style="color:#b45309; font-weight:700;">(الحقل معبأ — علّم لاستبداله)</small>'}</b>
-                <span dir="${r.ltr ? 'ltr' : 'rtl'}" style="display:block; color:#0f172a; word-break:break-word; text-align:${r.ltr ? 'left' : 'right'};">${escapeHtml(r.value)}</span>
+                <b style="display:block; font-size:0.8rem; color:var(--text-sub);">${r.label}${r.empty ? '' : ' <small style="color:#b45309; font-weight:700;">(الحقل معبأ — علّم لاستبداله)</small>'}</b>
+                <span dir="${r.ltr ? 'ltr' : 'rtl'}" style="display:block; color:var(--text-main); word-break:break-word; text-align:${r.ltr ? 'left' : 'right'};">${escapeHtml(r.value)}</span>
             </span>
-        </label>` : `<div style="padding:7px 0; border-bottom:1px solid #f1f5f9; color:#94a3b8; font-size:0.82rem;">${r.label}: لم يُقرأ</div>`;
+        </label>` : `<div style="padding:7px 0; border-bottom:1px solid var(--border); color:var(--text-sub); font-size:0.82rem;">${r.label}: لم يُقرأ</div>`;
 
     const section = (title, color, src) => `
         <div style="margin-top:12px;">
@@ -2923,7 +2841,7 @@ async function showAiScanResult(res, mode) {
             ${byName ? '<div style="margin-top:10px; padding:8px 10px; border-radius:10px; background:#fee2e2; color:#991b1b; font-size:0.82rem; line-height:1.7;">⚠️ هذه المعلومات من معرفة النموذج وليست من العبوة. تحقق من الشركة والتركيز والشكل من المنتج نفسه قبل الحفظ.</div>' : ''}
             ${section(byName ? '🏷️ التعرف على الاسم' : '📖 مقروء من العبوة', '#0f1c38', 'printed')}
             ${section('💡 مقترح من الذكاء الصناعي — راجعه جيداً', '#b45309', 'suggested')}
-            ${res.notes ? `<p style="margin-top:10px; color:#64748b; font-size:0.78rem;">ملاحظة النموذج: ${escapeHtml(res.notes)}</p>` : ''}
+            ${res.notes ? `<p style="margin-top:10px; color:var(--text-sub); font-size:0.78rem;">ملاحظة النموذج: ${escapeHtml(res.notes)}</p>` : ''}
             <p style="margin-top:12px; color:#b91c1c; font-weight:700; font-size:0.82rem;">راجع التركيز بدقة قبل الحفظ (مثل 5 mg أو 50 mg). لن يُحفظ شيء قبل أن تضغط «حفظ».</p>
         </div>`;
 
@@ -3005,7 +2923,7 @@ async function handleAiScanError(err, file) {
         icon: 'error',
         title: 'تعذر القراءة بالذكاء الصناعي',
         html: `<div style="font-size:0.9rem; line-height:1.8;">${escapeHtml(friendlyAiError(err))}</div>
-               <details style="margin-top:8px; font-size:0.75rem; color:#64748b; text-align:left;" dir="ltr"><summary>technical details</summary><pre style="white-space:pre-wrap;">${escapeHtml(raw)}</pre></details>`,
+               <details style="margin-top:8px; font-size:0.75rem; color:var(--text-sub); text-align:left;" dir="ltr"><summary>technical details</summary><pre style="white-space:pre-wrap;">${escapeHtml(raw)}</pre></details>`,
         showCancelButton: true,
         confirmButtonText: 'جرّب القراءة العادية',
         cancelButtonText: 'إغلاق',
@@ -3192,3 +3110,701 @@ async function fillFromTypedName() {
     setScanStatusText('');
     await showAiScanResult(res, 'name');
 }
+
+// ============================================================================
+// 16. الأمان: سلة المحذوفات، سجل التعديلات، ونسخ احتياطية سحابية تلقائية
+// ============================================================================
+const TRASH_DAYS = 30;
+const LOG_KEEP_LOCAL = 200;
+const LOG_KEEP_CLOUD_DAYS = 90;
+const AUTO_BACKUP_DAYS = 7;
+const AUTO_BACKUP_KEEP = 4;
+const LS_TRASH = 'diwanTrashLocal';
+const LS_LOG = 'diwanLogLocal';
+const LS_AUTOBK = 'diwanLastAutoBackup';
+
+function lsJson(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v === null || v === undefined ? d : v; } catch (e) { return d; } }
+function lsPut(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ممتلئ أو ممنوع */ } }
+function actorName() { return (currentUser && currentUser.email) || 'غير معروف'; }
+function cloudReady() { return !!(isFirebaseReady && db && currentUser); }
+function fmtDateTime(iso) {
+    const d = new Date(iso);
+    if (isNaN(d)) return '';
+    return d.toLocaleDateString('ar-IQ') + ' ' + d.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+}
+
+// ---------------- سلة المحذوفات ----------------
+async function moveToTrash(p) {
+    const entry = { id: p.id, product: JSON.parse(JSON.stringify(p)), deletedAt: new Date().toISOString(), deletedBy: actorName() };
+    const local = lsJson(LS_TRASH, []).filter(x => x && x.id !== p.id);
+    local.unshift(entry);
+    lsPut(LS_TRASH, local.slice(0, 200));
+    if (cloudReady()) {
+        try { await db.collection('pharmacy_trash').doc(String(p.id)).set(entry); }
+        catch (e) { console.warn('Trash cloud write failed (محفوظ محلياً):', e && e.message); }
+    }
+}
+
+async function getTrashList() {
+    const byId = new Map();
+    lsJson(LS_TRASH, []).forEach(x => { if (x && x.product) byId.set(x.id, x); });
+    if (cloudReady() && navigator.onLine) {
+        try {
+            const snap = await db.collection('pharmacy_trash').orderBy('deletedAt', 'desc').limit(200).get();
+            snap.forEach(doc => { const d = doc.data(); if (d && d.product) byId.set(d.id, d); });
+        } catch (e) { console.warn('Trash read failed:', e && e.message); }
+    }
+    const limit = Date.now() - TRASH_DAYS * 864e5;
+    return [...byId.values()].filter(x => new Date(x.deletedAt).getTime() >= limit)
+        .sort((a, b) => String(b.deletedAt).localeCompare(String(a.deletedAt)));
+}
+
+async function removeTrashEntry(id) {
+    lsPut(LS_TRASH, lsJson(LS_TRASH, []).filter(x => x && x.id !== id));
+    if (cloudReady()) { try { await db.collection('pharmacy_trash').doc(String(id)).delete(); } catch (e) { /* تجاهل */ } }
+}
+
+async function purgeOldTrash() {
+    const limit = new Date(Date.now() - TRASH_DAYS * 864e5).toISOString();
+    lsPut(LS_TRASH, lsJson(LS_TRASH, []).filter(x => x && String(x.deletedAt) >= limit));
+    if (!cloudReady() || !navigator.onLine) return;
+    try {
+        const snap = await db.collection('pharmacy_trash').where('deletedAt', '<', limit).limit(50).get();
+        const batch = db.batch(); let n = 0;
+        snap.forEach(doc => { batch.delete(doc.ref); n++; });
+        if (n) await batch.commit();
+    } catch (e) { /* تجاهل */ }
+}
+
+async function restoreFromTrash(id) {
+    if (!requireOnline()) return;
+    const list = await getTrashList();
+    const entry = list.find(x => x.id === id);
+    if (!entry) return;
+    const p = entry.product;
+    if (products.some(x => x.id === p.id)) {
+        Swal.fire({ icon: 'info', title: 'الصنف موجود أصلاً', confirmButtonColor: '#0f1c38' });
+        await removeTrashEntry(id);
+        return;
+    }
+    products.unshift(p);
+    products.sort((a, b) => b.id - a.id);
+    saveLocal();
+    renderAll();
+    await saveSingleProductToCloud(p);
+    await removeTrashEntry(id);
+    logAction('restore', p, []);
+    await openTrashModal();
+    Swal.fire({ icon: 'success', title: 'تمت الاستعادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
+}
+
+async function deleteTrashForever(id) {
+    const r = await Swal.fire({ icon: 'warning', title: 'حذف نهائي؟', text: 'لن يمكن استرجاعه بعد ذلك.', showCancelButton: true, confirmButtonText: 'حذف نهائي', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c' });
+    if (!r.isConfirmed) return;
+    await removeTrashEntry(id);
+    await openTrashModal();
+}
+
+async function openTrashModal() {
+    const list = await getTrashList();
+    const rows = list.map(x => `
+        <div class="sec-row">
+            <div class="sec-main"><b>${escapeHtml(x.product.name || '')}</b>
+                <small>${escapeHtml(x.product.brand || '')} • حُذف ${escapeHtml(fmtDateTime(x.deletedAt))}</small></div>
+            <button type="button" class="sec-btn" onclick="restoreFromTrash(${Number(x.id)})">↩️ استعادة</button>
+            <button type="button" class="sec-btn sec-del" onclick="deleteTrashForever(${Number(x.id)})">🗑️</button>
+        </div>`).join('');
+    Swal.fire({
+        title: '🗑️ سلة المحذوفات',
+        html: `<div class="sec-list">${rows || '<div class="sec-empty">السلة فارغة</div>'}</div>
+               <p class="sec-note">تُحذف الأصناف نهائياً بعد ${TRASH_DAYS} يوماً.</p>`,
+        showConfirmButton: true, confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38'
+    });
+}
+
+// ---------------- سجل التعديلات ----------------
+const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود' };
+
+function diffProduct(a, b) {
+    const out = [];
+    Object.keys(LOG_FIELDS).forEach(f => {
+        const x = a[f] === undefined || a[f] === null ? '' : a[f];
+        const y = b[f] === undefined || b[f] === null ? '' : b[f];
+        if (String(x) !== String(y)) out.push({ f: LOG_FIELDS[f], from: String(x).slice(0, 60), to: String(y).slice(0, 60) });
+    });
+    const ea = (a.expiryDates || (a.expiryDate ? [a.expiryDate] : [])).join(', ');
+    const eb = (b.expiryDates || (b.expiryDate ? [b.expiryDate] : [])).join(', ');
+    if (ea !== eb) out.push({ f: 'النفاذ', from: ea, to: eb });
+    ['extraDepartments', 'extraCategories', 'extraTypes'].forEach(f => {
+        const x = extrasOf(a[f]).join(', '), y = extrasOf(b[f]).join(', ');
+        if (x !== y) out.push({ f: f === 'extraDepartments' ? 'أقسام إضافية' : f === 'extraCategories' ? 'تصنيفات إضافية' : 'تبويبات إضافية', from: x, to: y });
+    });
+    return out;
+}
+
+function logAction(action, p, changes) {
+    try {
+        const e = { at: new Date().toISOString(), by: actorName(), action, productId: p.id, name: String(p.name || '').slice(0, 120), changes: (changes || []).slice(0, 12) };
+        const local = lsJson(LS_LOG, []);
+        local.unshift(e);
+        lsPut(LS_LOG, local.slice(0, LOG_KEEP_LOCAL));
+        if (cloudReady() && navigator.onLine) db.collection('pharmacy_log').add(e).catch(() => {});
+    } catch (err) { /* السجل لا يجب أن يكسر العملية الأصلية */ }
+}
+
+const LOG_ACTION_LABEL = { add: '➕ إضافة', edit: '✏️ تعديل', qty: '📦 كمية', delete: '🗑️ حذف', restore: '↩️ استعادة' };
+
+async function openLogModal() {
+    let list = lsJson(LS_LOG, []);
+    if (cloudReady() && navigator.onLine) {
+        try {
+            const snap = await db.collection('pharmacy_log').orderBy('at', 'desc').limit(100).get();
+            const cloud = []; snap.forEach(d => cloud.push(d.data()));
+            if (cloud.length) list = cloud;
+        } catch (e) { /* نعرض المحلي */ }
+    }
+    const rows = list.slice(0, 100).map(e => `
+        <div class="sec-row sec-log">
+            <div class="sec-main">
+                <b>${LOG_ACTION_LABEL[e.action] || escapeHtml(e.action)} — ${escapeHtml(e.name || '')}</b>
+                ${(e.changes || []).map(c => `<small>${escapeHtml(c.f)}: ${escapeHtml(c.from || '—')} ← ${escapeHtml(c.to || '—')}</small>`).join('')}
+                <small class="sec-meta">${escapeHtml(fmtDateTime(e.at))} • ${escapeHtml(e.by || '')}</small>
+            </div>
+        </div>`).join('');
+    Swal.fire({
+        title: '📜 سجل التعديلات',
+        html: `<div class="sec-list">${rows || '<div class="sec-empty">لا توجد تعديلات مسجلة بعد</div>'}</div>`,
+        confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38'
+    });
+}
+
+async function purgeOldLog() {
+    if (!cloudReady() || !navigator.onLine) return;
+    try {
+        const limit = new Date(Date.now() - LOG_KEEP_CLOUD_DAYS * 864e5).toISOString();
+        const snap = await db.collection('pharmacy_log').where('at', '<', limit).limit(100).get();
+        const batch = db.batch(); let n = 0;
+        snap.forEach(doc => { batch.delete(doc.ref); n++; });
+        if (n) await batch.commit();
+    } catch (e) { /* تجاهل */ }
+}
+
+// ---------------- نسخ احتياطية سحابية تلقائية ----------------
+async function createCloudBackup(force) {
+    if (!cloudReady() || !navigator.onLine || !products.length) return false;
+    const json = JSON.stringify(buildBackupObject());
+    if (json.length > 900000) { console.warn('النسخة أكبر من حد المستند (1MB)'); return false; }
+    const id = todayStamp();
+    await db.collection('pharmacy_backups').doc(id).set({ id, at: new Date().toISOString(), count: products.length, json, by: actorName() });
+    lsPut(LS_AUTOBK, Date.now());
+    // نُبقي آخر N نسخ فقط
+    try {
+        const snap = await db.collection('pharmacy_backups').orderBy('at', 'desc').limit(AUTO_BACKUP_KEEP + 6).get();
+        const docs = []; snap.forEach(d => docs.push(d.ref));
+        for (const ref of docs.slice(AUTO_BACKUP_KEEP)) { await ref.delete(); }
+    } catch (e) { /* تجاهل */ }
+    return true;
+}
+
+async function autoMaintenance() {
+    if (!cloudReady() || !navigator.onLine) return;
+    try {
+        const last = Number(lsJson(LS_AUTOBK, 0)) || 0;
+        if (Date.now() - last >= AUTO_BACKUP_DAYS * 864e5) await createCloudBackup(false);
+        await purgeOldTrash();
+        await purgeOldLog();
+    } catch (e) { console.warn('Auto maintenance:', e && e.message); }
+}
+
+async function backupNowCloud() {
+    if (!requireOnline()) return;
+    if (!cloudReady()) { Swal.fire({ icon: 'error', title: 'سجّل دخول الصيدلي أولاً', confirmButtonColor: '#0f1c38' }); return; }
+    try {
+        const ok = await createCloudBackup(true);
+        Swal.fire({ icon: ok ? 'success' : 'warning', title: ok ? 'تم حفظ نسخة سحابية' : 'تعذر حفظ النسخة (حجمها كبير أو لا توجد أصناف)', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'تعذر حفظ النسخة', text: 'تأكد أن قواعد Firestore تسمح بمجموعة pharmacy_backups. ' + (e && e.message || ''), confirmButtonColor: '#0f1c38' });
+    }
+}
+
+async function openCloudBackupsModal() {
+    if (!cloudReady()) { Swal.fire({ icon: 'error', title: 'سجّل دخول الصيدلي أولاً', confirmButtonColor: '#0f1c38' }); return; }
+    let docs = [];
+    try {
+        const snap = await db.collection('pharmacy_backups').orderBy('at', 'desc').limit(AUTO_BACKUP_KEEP + 2).get();
+        snap.forEach(d => docs.push(d.data()));
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'تعذر قراءة النسخ', text: 'تأكد أن قواعد Firestore تسمح بمجموعة pharmacy_backups.', confirmButtonColor: '#0f1c38' });
+        return;
+    }
+    window.__cloudBackups = docs;
+    const rows = docs.map((b, i) => `
+        <div class="sec-row">
+            <div class="sec-main"><b>${escapeHtml(b.id || '')}</b><small>${Number(b.count) || 0} صنف • ${escapeHtml(fmtDateTime(b.at))}</small></div>
+            <button type="button" class="sec-btn" onclick="restoreCloudBackup(${i})">↩️ استرجاع</button>
+            <button type="button" class="sec-btn" onclick="downloadCloudBackup(${i})">⬇️</button>
+        </div>`).join('');
+    Swal.fire({
+        title: '☁️ النسخ السحابية',
+        html: `<div class="sec-list">${rows || '<div class="sec-empty">لا توجد نسخ بعد. تُنشأ تلقائياً كل ${AUTO_BACKUP_DAYS} أيام عند دخولك.</div>'}</div>
+               <button type="button" class="sec-btn sec-wide" onclick="backupNowCloud()">➕ نسخة الآن</button>`,
+        confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38'
+    });
+}
+
+function parseCloudBackup(i) {
+    const b = (window.__cloudBackups || [])[i];
+    if (!b) return null;
+    try { return JSON.parse(b.json); } catch (e) { return null; }
+}
+
+async function restoreCloudBackup(i) {
+    const data = parseCloudBackup(i);
+    const problem = validateBackup(data);
+    if (problem) { Swal.fire({ icon: 'error', title: 'نسخة غير صالحة', text: problem, confirmButtonColor: '#0f1c38' }); return; }
+    await applyBackupData(data);
+}
+
+function downloadCloudBackup(i) {
+    const b = (window.__cloudBackups || [])[i];
+    if (b) downloadFile(`diwan-cloud-backup-${b.id}.json`, b.json, 'application/json');
+}
+
+// ============================================================================
+// 17. تحسينات الاستخدام: تعديل الكمية السريع، فلاتر النفاذ، وضع الجرد، الباركود، التثبيت
+// ============================================================================
+
+// ---------------- تعديل الكمية السريع من بطاقة الصنف ----------------
+const qtyTimers = {};
+const qtyStart = {};
+
+function quickQty(id, delta, ev) {
+    if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+    if (!requireOnline()) return;
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    if (qtyStart[id] === undefined) qtyStart[id] = parseInt(p.qty) || 0;
+    p.qty = Math.max(0, (parseInt(p.qty) || 0) + delta);
+    const num = document.getElementById('qs_' + id);
+    if (num) num.innerText = p.qty;
+    const dot = document.getElementById('qd_' + id);
+    if (dot) dot.className = p.qty > 0 ? (isLowStock(p) ? 'status-dot low' : 'status-dot') : 'status-dot out';
+    saveLocal();
+    clearTimeout(qtyTimers[id]);
+    qtyTimers[id] = setTimeout(() => flushQty(id), 900);   // نجمع الضغطات المتتالية في كتابة واحدة
+}
+
+async function flushQty(id) {
+    const p = products.find(x => x.id === id);
+    const from = qtyStart[id];
+    delete qtyStart[id];
+    if (!p || from === undefined) return;
+    const to = parseInt(p.qty) || 0;
+    if (from === to) return;
+    const ok = await saveSingleProductToCloud(p);
+    if (ok) logAction('qty', p, [{ f: 'الكمية', from: String(from), to: String(to) }]);
+    updateExpiryBadge();
+}
+
+// ---------------- فلاتر "قرب النفاذ" ----------------
+let expiryFilter = 'all';
+
+function setExpiryFilter(f) {
+    expiryFilter = f;
+    openExpiryModal();
+}
+
+function openExpiryModal() {
+    const listContainer = document.getElementById('expiryListContainer');
+    const all = getExpiringProducts();
+    const count = lv => all.filter(x => x.status.level === lv).length;
+    const chips = [['all', 'الكل', all.length], ['expired', 'منتهية', count('expired')], ['3m', 'أقل من 3 أشهر', count('3m')], ['6m', '3–6 أشهر', count('6m')]]
+        .map(([k, label, n]) => `<button type="button" class="ex-chip ${expiryFilter === k ? 'active' : ''}" onclick="setExpiryFilter('${k}')">${label} <b>${n}</b></button>`).join('');
+    const list = expiryFilter === 'all' ? all : all.filter(x => x.status.level === expiryFilter);
+
+    let body;
+    if (list.length === 0) {
+        body = `<div class="empty-state"><div class="empty-ico">✅</div><div>${all.length ? 'لا توجد أصناف في هذا الفلتر.' : 'لا توجد مواد منتهية أو قريبة النفاذ (خلال 6 أشهر).'}</div></div>`;
+    } else {
+        body = list.map(({ product, status, date }) => `
+            <div onclick="closeExpiryModal(); openSheet(${product.id});" style="cursor:pointer; padding:10px 12px; border-radius:10px; background:${status.bg}; border:1px solid ${status.border}; display:flex; justify-content:space-between; align-items:center; gap:10px;">
+                <div>
+                    <div style="font-weight:800; font-size:0.88rem; color:#0f172a;" dir="ltr">${escapeHtml(product.name)}</div>
+                    <div style="font-size:0.75rem; color:#475569;">الشركة: ${escapeHtml(product.brand)} | العدد: ${Number(product.qty) || 0}</div>
+                </div>
+                <div style="text-align:left; flex-shrink:1; max-width:46%; word-break:break-word;">
+                    <div style="font-size:0.74rem; font-weight:800; color:${status.color};">${status.label}</div>
+                    <div style="font-size:0.72rem; font-weight:700; color:#334155;" dir="ltr">📅 ${date}</div>
+                </div>
+            </div>`).join('');
+    }
+    listContainer.innerHTML = '<div class="alert-title">📅 قرب نفاذ الصلاحية</div><div class="ex-chips">' + chips + '</div>' + body + buildLowStockSection();
+    document.getElementById('expiryModal').style.display = 'flex';
+}
+
+// ---------------- وضع الجرد ----------------
+let invCounts = {};
+let invQuery = '';
+
+function openInventory() {
+    invCounts = {};
+    invQuery = '';
+    const q = document.getElementById('invSearch');
+    if (q) q.value = '';
+    renderInventory();
+    document.getElementById('inventoryModal').style.display = 'flex';
+}
+
+function closeInventory() {
+    document.getElementById('inventoryModal').style.display = 'none';
+}
+
+function invVisibleItems() {
+    const qn = normSearch(invQuery), qt = qn ? qn.split(' ') : [];
+    return getBaseFilteredByTab()
+        .filter(p => searchScore(p, qn, qt) > 0)
+        .slice()
+        .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+}
+
+function invChangedCount() {
+    return Object.keys(invCounts).filter(id => {
+        const p = products.find(x => String(x.id) === id);
+        return p && invCounts[id] !== (parseInt(p.qty) || 0);
+    }).length;
+}
+
+function renderInventory() {
+    const items = invVisibleItems();
+    const box = document.getElementById('invList');
+    if (!box) return;
+    box.innerHTML = items.length ? items.map(p => {
+        const cur = parseInt(p.qty) || 0;
+        const val = invCounts[p.id] !== undefined ? invCounts[p.id] : cur;
+        const changed = val !== cur;
+        return `<div class="inv-row ${changed ? 'changed' : ''}" id="inv_${p.id}">
+            <div class="inv-info"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')} • المسجّل: ${cur}</small></div>
+            <div class="inv-step">
+                <button type="button" onclick="invStep(${p.id}, -1)">−</button>
+                <input type="number" inputmode="numeric" min="0" value="${val}" onchange="invSet(${p.id}, this.value)" id="invIn_${p.id}">
+                <button type="button" onclick="invStep(${p.id}, 1)">+</button>
+            </div>
+        </div>`;
+    }).join('') : '<div class="empty-state"><div class="empty-ico">🔎</div><div>لا توجد أصناف مطابقة.</div></div>';
+    refreshInvFooter();
+}
+
+function refreshInvFooter() {
+    const n = invChangedCount();
+    const btn = document.getElementById('invSaveBtn');
+    const lab = document.getElementById('invCount');
+    if (lab) lab.innerText = n ? `${n} صنف تغيّرت كميته` : 'لا تغييرات بعد';
+    if (btn) btn.disabled = n === 0;
+}
+
+function invSet(id, v) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    const n = Math.max(0, parseInt(v) || 0);
+    invCounts[id] = n;
+    const row = document.getElementById('inv_' + id);
+    if (row) row.classList.toggle('changed', n !== (parseInt(p.qty) || 0));
+    const inp = document.getElementById('invIn_' + id);
+    if (inp) inp.value = n;
+    refreshInvFooter();
+}
+
+function invStep(id, d) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    const cur = invCounts[id] !== undefined ? invCounts[id] : (parseInt(p.qty) || 0);
+    invSet(id, cur + d);
+}
+
+function invFilter(v) {
+    invQuery = v || '';
+    renderInventory();
+}
+
+async function saveInventory() {
+    const changed = [];
+    Object.keys(invCounts).forEach(id => {
+        const p = products.find(x => String(x.id) === id);
+        if (p && invCounts[id] !== (parseInt(p.qty) || 0)) changed.push({ p, from: parseInt(p.qty) || 0, to: invCounts[id] });
+    });
+    if (!changed.length) return;
+    const r = await Swal.fire({
+        title: 'تطبيق نتائج الجرد؟',
+        html: `<div style="font-size:0.9rem; line-height:1.8;">سيتم تعديل كمية <b>${changed.length}</b> صنف.</div>`,
+        icon: 'question', showCancelButton: true, confirmButtonText: 'نعم، طبّق', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38'
+    });
+    if (!r.isConfirmed) return;
+    changed.forEach(c => { c.p.qty = c.to; });
+    const ok = await saveProductsBatch(changed.map(c => c.p));
+    if (ok) {
+        changed.forEach(c => logAction('qty', c.p, [{ f: 'الكمية (جرد)', from: String(c.from), to: String(c.to) }]));
+        closeInventory();
+        renderAll();
+        Swal.fire({ icon: 'success', title: `تم تحديث ${changed.length} صنف`, toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    } else {
+        changed.forEach(c => { c.p.qty = c.from; });   // نُرجع القيم القديمة عند فشل الحفظ
+        saveLocal();
+        renderInventory();
+    }
+}
+
+// ---------------- الباركود ----------------
+const ZXING_URL = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+let barcodeStream = null;
+let barcodeRaf = 0;
+let barcodeCallback = null;
+let zxingReader = null;
+let zxingPromise = null;
+
+function cleanBarcode(v) { return String(v || '').replace(/[^0-9A-Za-z\-]/g, '').slice(0, 40); }
+
+function loadZXing() {
+    if (window.ZXing) return Promise.resolve(window.ZXing);
+    if (!zxingPromise) {
+        zxingPromise = new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = ZXING_URL;
+            s.onload = () => window.ZXing ? resolve(window.ZXing) : reject(new Error('ZXing not found'));
+            s.onerror = () => { zxingPromise = null; reject(new Error('تعذر تحميل مكتبة قراءة الباركود')); };
+            document.head.appendChild(s);
+        });
+    }
+    return zxingPromise;
+}
+
+function setBarcodeStatus(t, isErr) {
+    const el = document.getElementById('bcStatus');
+    if (el) { el.innerText = t || ''; el.style.color = isErr ? '#b91c1c' : ''; }
+}
+
+function openBarcodeScanner(cb) {
+    barcodeCallback = cb;
+    document.getElementById('barcodeModal').style.display = 'flex';
+    const m = document.getElementById('bcManual');
+    if (m) m.value = '';
+    setBarcodeStatus('');
+    startBarcodeCamera();
+}
+
+function closeBarcodeScanner() {
+    stopBarcodeCamera();
+    document.getElementById('barcodeModal').style.display = 'none';
+    barcodeCallback = null;
+}
+
+function stopBarcodeCamera() {
+    cancelAnimationFrame(barcodeRaf);
+    barcodeRaf = 0;
+    if (zxingReader) { try { zxingReader.reset(); } catch (e) { /* تجاهل */ } zxingReader = null; }
+    if (barcodeStream) { barcodeStream.getTracks().forEach(t => t.stop()); barcodeStream = null; }
+    const v = document.getElementById('bcVideo');
+    if (v) { try { v.srcObject = null; } catch (e) { /* تجاهل */ } }
+}
+
+function barcodeFound(code) {
+    const c = cleanBarcode(code);
+    if (!c) return;
+    const cb = barcodeCallback;
+    closeBarcodeScanner();
+    if (cb) cb(c);
+}
+
+async function startBarcodeCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setBarcodeStatus('الكاميرا غير متاحة في هذا المتصفح. اكتب الرقم يدوياً أو صوّر الباركود.', true);
+        return;
+    }
+    const video = document.getElementById('bcVideo');
+    try {
+        if ('BarcodeDetector' in window) {
+            const det = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf', 'qr_code', 'data_matrix'] });
+            barcodeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+            video.srcObject = barcodeStream;
+            await video.play();
+            setBarcodeStatus('وجّه الكاميرا نحو الباركود...');
+            let last = 0;
+            const tick = async (t) => {
+                if (!barcodeStream) return;
+                if (t - last > 220) {
+                    last = t;
+                    try {
+                        const found = await det.detect(video);
+                        if (found && found.length) { barcodeFound(found[0].rawValue); return; }
+                    } catch (e) { /* إطار غير جاهز */ }
+                }
+                barcodeRaf = requestAnimationFrame(tick);
+            };
+            barcodeRaf = requestAnimationFrame(tick);
+        } else {
+            setBarcodeStatus('جاري تحميل قارئ الباركود...');
+            const Z = await loadZXing();
+            zxingReader = new Z.BrowserMultiFormatReader();
+            setBarcodeStatus('وجّه الكاميرا نحو الباركود...');
+            zxingReader.decodeFromVideoDevice(null, 'bcVideo', (result) => {
+                if (result) barcodeFound(result.getText());
+            }).catch(err => setBarcodeStatus('تعذر تشغيل الكاميرا: ' + (err && err.message || err), true));
+        }
+    } catch (err) {
+        setBarcodeStatus('تعذر تشغيل الكاميرا (اسمح للتطبيق باستخدامها). يمكنك الكتابة يدوياً أو تصوير الباركود.', true);
+    }
+}
+
+async function barcodeFromPhoto(event) {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    setBarcodeStatus('⏳ جاري قراءة الصورة...');
+    try {
+        let code = '';
+        if ('BarcodeDetector' in window) {
+            const bmp = await createImageBitmap(file);
+            const det = new BarcodeDetector();
+            const found = await det.detect(bmp);
+            if (found && found.length) code = found[0].rawValue;
+        } else {
+            const Z = await loadZXing();
+            const url = URL.createObjectURL(file);
+            try { code = (await new Z.BrowserMultiFormatReader().decodeFromImageUrl(url)).getText(); }
+            finally { URL.revokeObjectURL(url); }
+        }
+        if (code) barcodeFound(code); else setBarcodeStatus('لم أجد باركوداً في الصورة. جرّب صورة أقرب أو اكتب الرقم.', true);
+    } catch (err) {
+        setBarcodeStatus('لم أستطع قراءة الباركود من الصورة. اكتب الرقم يدوياً.', true);
+    } finally {
+        input.value = '';
+    }
+}
+
+function submitManualBarcode() {
+    const v = (document.getElementById('bcManual') || {}).value;
+    if (!cleanBarcode(v)) { setBarcodeStatus('اكتب رقم الباركود.', true); return; }
+    barcodeFound(v);
+}
+
+function findByBarcode(code) {
+    const c = cleanBarcode(code);
+    return products.find(p => cleanBarcode(p.barcode) === c);
+}
+
+// من شريط البحث: امسح باركوداً لفتح الصنف
+function scanBarcodeToSearch() {
+    openBarcodeScanner(async (code) => {
+        const p = findByBarcode(code);
+        if (p) { openSheet(p.id); return; }
+        if (document.body.classList.contains('admin-mode')) {
+            const r = await Swal.fire({
+                icon: 'question', title: 'باركود غير مسجّل',
+                html: `<div dir="ltr" style="font-weight:800; margin-bottom:6px;">${escapeHtml(code)}</div><div style="font-size:0.9rem;">لا يوجد صنف بهذا الباركود. هل تريد إضافة صنف جديد به؟</div>`,
+                showCancelButton: true, confirmButtonText: 'إضافة صنف', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38'
+            });
+            if (r.isConfirmed) { openFormModal(); const f = document.getElementById('fBarcode'); if (f) f.value = code; }
+        } else {
+            Swal.fire({ icon: 'info', title: 'لم يتم العثور على الصنف', text: 'هذا الباركود غير موجود في قائمتنا. اسأل الصيدلي.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        }
+    });
+}
+
+// من نموذج الصنف: امسح باركوداً لتعبئة الحقل
+function scanBarcodeToForm() {
+    openBarcodeScanner(async (code) => {
+        const dup = findByBarcode(code);
+        const editId = parseInt((document.getElementById('editId') || {}).value, 10);
+        if (dup && dup.id !== editId) {
+            await Swal.fire({ icon: 'warning', title: 'الباركود مستعمل', html: `هذا الباركود مسجّل للصنف: <b dir="ltr">${escapeHtml(dup.name)}</b>`, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        }
+        const f = document.getElementById('fBarcode');
+        if (f) f.value = code;
+    });
+}
+
+// ---------------- تثبيت التطبيق ----------------
+let deferredInstall = null;
+const LS_INSTALL_DISMISSED = 'diwanInstallDismissed';
+
+function isStandalone() {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+}
+
+function showInstallBanner() {
+    const b = document.getElementById('installBanner');
+    if (!b || isStandalone()) return;
+    try { if (localStorage.getItem(LS_INSTALL_DISMISSED)) return; } catch (e) { /* تجاهل */ }
+    b.style.display = 'flex';
+}
+
+function dismissInstallBanner() {
+    const b = document.getElementById('installBanner');
+    if (b) b.style.display = 'none';
+    try { localStorage.setItem(LS_INSTALL_DISMISSED, '1'); } catch (e) { /* تجاهل */ }
+}
+
+async function installApp() {
+    if (deferredInstall) {
+        deferredInstall.prompt();
+        try { await deferredInstall.userChoice; } catch (e) { /* تجاهل */ }
+        deferredInstall = null;
+        dismissInstallBanner();
+        return;
+    }
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    Swal.fire({
+        icon: 'info', title: 'تثبيت التطبيق',
+        html: `<div style="font-size:0.92rem; line-height:1.9; text-align:right;">${isStandalone() ? 'التطبيق مثبّت ويعمل بالفعل ✅' : ios
+            ? 'في Safari: اضغط زر المشاركة <b>⬆️</b> ثم اختر <b>«إضافة إلى الشاشة الرئيسية»</b>.'
+            : 'من قائمة المتصفح (⋮) اختر <b>«تثبيت التطبيق»</b> أو <b>«إضافة إلى الشاشة الرئيسية»</b>.'}</div>`,
+        confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38'
+    });
+}
+
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredInstall = e; showInstallBanner(); });
+window.addEventListener('appinstalled', () => { deferredInstall = null; dismissInstallBanner(); });
+
+// ============================================================================
+// 18. المظهر: وضع داكن (يتبع النظام افتراضياً) وأيقونات موحّدة
+// ============================================================================
+const LS_THEME = 'diwanTheme';   // 'light' | 'dark' | (فارغ = حسب النظام)
+
+function currentTheme() {
+    let saved = '';
+    try { saved = localStorage.getItem(LS_THEME) || ''; } catch (e) { /* تجاهل */ }
+    if (saved === 'light' || saved === 'dark') return saved;
+    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+}
+
+function applyTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t === 'dark' ? '#0a1020' : '#0f1c38');
+    const btn = document.getElementById('themeBtn');
+    if (btn) { btn.innerHTML = t === 'dark' ? ICONS.sun : ICONS.moon; btn.title = t === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'; }
+}
+
+function toggleTheme() {
+    const next = currentTheme() === 'dark' ? 'light' : 'dark';
+    try { localStorage.setItem(LS_THEME, next); } catch (e) { /* تجاهل */ }
+    applyTheme(next);
+}
+
+const svgIcon = (p) => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;
+const ICONS = {
+    user: svgIcon('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/>'),
+    lock: svgIcon('<rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>'),
+    bell: svgIcon('<path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 7H4c0-1 2-2 2-7z"/><path d="M10 20a2 2 0 0 0 4 0"/>'),
+    gear: svgIcon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>'),
+    plus: svgIcon('<path d="M12 5v14M5 12h14"/>'),
+    list: svgIcon('<rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M9 8h6M9 12h6M9 16h4"/>'),
+    moon: svgIcon('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+    sun: svgIcon('<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>')
+};
+
+function initIcons() {
+    const map = { authBtn: ICONS.user, bellIco: ICONS.bell, gearBtn: ICONS.gear, addBtn: ICONS.plus, invBtn: ICONS.list };
+    Object.keys(map).forEach(id => { const el = document.getElementById(id); if (el) el.innerHTML = map[id]; });
+    applyTheme(currentTheme());
+}
+initIcons();
