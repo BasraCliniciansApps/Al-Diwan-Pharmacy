@@ -94,35 +94,49 @@ function puChanged() { puReadFields(); puRecalc(); clearTimeout(puDraftTimer); p
 function puRecalc() {
     const tot = puTotalOf(pu), net = puNetOf(pu), rem = Math.max(net - puNum(pu.paid), 0);
     $b('puTotal').innerText = fmtNum(tot); $b('puNet').innerText = fmtNum(net); $b('puRem').innerText = fmtNum(rem);
-    pu.items.forEach((it, i) => { const el = $b('puLine-' + i); if (el) el.innerText = fmtNum(puNum(it.qty) * puNum(it.cost)); });
+    pu.items.forEach((it, i) => {
+        const sum = fmtNum(puNum(it.qty) * puNum(it.cost)), set = (id, v) => { const el = $b(id + i); if (el) el.innerText = v; };
+        set('puLine-', sum); set('puBq-', fmtNum(puNum(it.qty))); set('puBc-', puNum(it.cost) > 0 ? fmtNum(it.cost) : '⚠ بلا سعر'); set('puBs-', sum);
+    });
 }
 function puThumb(pid) { const p = products.find(x => x.id === pid); return p && p.img ? `<img class="pk-img" src="${escapeHtml(p.img)}" alt="" onerror="this.style.visibility='hidden'">` : '<span class="pk-img pk-noimg">💊</span>'; }
 function puSub(pid) { const p = products.find(x => x.id === pid); return p ? [p.brand, fixMetaOrder(p.meta || ''), 'بالمخزن ' + stockLabel(p)].filter(Boolean).join(' · ') : ''; }
 function puRenderItems() {
     $b('puCount').innerText = pu.items.length ? 'عدد المواد في الفاتورة: ' + pu.items.length : '';
     $b('puItems').innerHTML = pu.items.map((it, i) => `
-        <div class="pu-item">
-            <div class="pu-item-h">${puThumb(it.pid)}<span class="pu-item-t"><b dir="ltr">${escapeHtml(it.name)}</b><span>${escapeHtml(puSub(it.pid))}</span></span><button type="button" class="pu-x" onclick="puRemoveItem(${i})" aria-label="حذف">✕</button></div>
-            <div class="pu-grid">
-                <label><span>العدد (عبوة)</span><input type="number" min="1" inputmode="numeric" value="${escapeHtml(it.qty)}" oninput="puItemEdit(${i},'qty',this.value)"></label>
-                <label><span>سعر الشراء</span><input type="number" min="0" inputmode="decimal" value="${escapeHtml(it.cost)}" oninput="puItemEdit(${i},'cost',this.value)"></label>
-                <label><span>تاريخ الانتهاء</span><input type="month" dir="ltr" value="${escapeHtml(it.expiry || '')}" oninput="puItemEdit(${i},'expiry',this.value)"></label>
-                <label><span>رقم الدفعة (اختياري)</span><input dir="ltr" value="${escapeHtml(it.batch || '')}" oninput="puItemEdit(${i},'batch',this.value)"></label>
+        <div class="pu-item ${it.open ? 'open' : 'closed'}" id="puItem-${i}">
+            <div class="pu-bar" onclick="puToggle(${i})">
+                <span class="pu-chev">${it.open ? '▾' : '▸'}</span>
+                <span class="pu-bar-name" dir="ltr">${escapeHtml(it.name)}</span>
+                <span class="pu-bar-sum"><span id="puBq-${i}"></span> × <span id="puBc-${i}"></span> = <b id="puBs-${i}"></b></span>
+                <button type="button" class="pu-x" onclick="event.stopPropagation();puRemoveItem(${i})" aria-label="حذف">✕</button>
             </div>
-            <div class="pu-line">المجموع: <b id="puLine-${i}">0</b> د.ع</div>
+            <div class="pu-body" style="display:${it.open ? 'block' : 'none'}">
+                <div class="pu-item-h">${puThumb(it.pid)}<span class="pu-item-t"><b dir="ltr">${escapeHtml(it.name)}</b><span>${escapeHtml(puSub(it.pid))}</span></span></div>
+                <div class="pu-grid">
+                    <label><span>العدد (عبوة)</span><input type="number" min="1" inputmode="numeric" value="${escapeHtml(it.qty)}" oninput="puItemEdit(${i},'qty',this.value)"></label>
+                    <label><span>سعر الشراء</span><input type="number" min="0" inputmode="decimal" value="${escapeHtml(it.cost)}" oninput="puItemEdit(${i},'cost',this.value)"></label>
+                    <label><span>تاريخ الانتهاء</span><input type="month" dir="ltr" value="${escapeHtml(it.expiry || '')}" oninput="puItemEdit(${i},'expiry',this.value)"></label>
+                    <label><span>رقم الدفعة (اختياري)</span><input dir="ltr" value="${escapeHtml(it.batch || '')}" oninput="puItemEdit(${i},'batch',this.value)"></label>
+                </div>
+                <div class="pu-line">المجموع: <b id="puLine-${i}">0</b> د.ع</div>
+            </div>
         </div>`).join('') || '<div class="bill-none">ابحث عن دواء أو امسح باركوده لإضافته إلى الفاتورة الواردة.</div>';
+    puRecalc();
 }
+function puToggle(i) { if (!pu.items[i]) return; pu.items[i].open = !pu.items[i].open; puRenderItems(); if (pu.items[i].open) { const el = $b('puItem-' + i); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }
 function puItemEdit(i, f, v) { if (!pu.items[i]) return; pu.items[i][f] = v; puChanged(); }
 function puRemoveItem(i) { pu.items.splice(i, 1); puRenderItems(); puChanged(); }
 function puAddProduct(id) {
     const p = products.find(x => x.id === id); if (!p) return;
     if (puPendingBc) { puAttachBarcode(p, puPendingBc); puPendingBc = ''; puShowPending(); }
     const ex = pu.items.find(it => it.pid === id);
-    if (ex) ex.qty = (parseInt(ex.qty) || 0) + 1;
-    else pu.items.push({ pid: id, name: p.name, qty: 1, cost: p.costPrice || '', expiry: '', batch: '' });
+    pu.items.forEach(it => { it.open = false; });   // القديمة تنطوي والجديدة تُفتح
+    if (ex) { ex.qty = (parseInt(ex.qty) || 0) + 1; ex.open = true; }
+    else pu.items.push({ pid: id, name: p.name, qty: 1, cost: p.costPrice || '', expiry: '', batch: '', open: true });
     $b('puSearch').value = ''; $b('puResults').style.display = 'none';
     puRenderItems(); puChanged();
-    const cards = document.querySelectorAll('#puItems .pu-item');   // التمرير للصنف المضاف وتمييزه
+    const cards = document.querySelectorAll('#puItems .pu-item');   //    // التمرير للصنف المضاف وتمييزه
     const idx = pu.items.findIndex(it => it.pid === id), card = cards[idx];
     if (card) { card.classList.add('pu-flash'); card.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => card.classList.remove('pu-flash'), 1400); }
 }

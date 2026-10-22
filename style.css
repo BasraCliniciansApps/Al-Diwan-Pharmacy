@@ -1819,3 +1819,14 @@ body.admin-page[data-view="purch"] #purchView { display: block; }
 .pu-newprod { display: block; width: 100%; margin-top: 8px; padding: 10px; border: 0; border-radius: 10px; background: #0f1c38; color: #fff; font-family: inherit; font-weight: 800; cursor: pointer; }
 [data-theme="dark"] .pk-img { background: #1e293b; border-color: #334155; } [data-theme="dark"] .pk-info small { color: #94a3b8; }
 [data-theme="dark"] .pu-editbar { background: #082f49; color: #bae6fd; border-color: #0369a1; }
+
+/* v21: أشرطة المواد القابلة للطي في الوارد */
+.pu-item { padding: 0; overflow: hidden; }
+.pu-bar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; cursor: pointer; min-height: 48px; }
+.pu-chev { color: #065f46; font-weight: 900; width: 14px; }
+.pu-bar-name { flex: 1; min-width: 0; font-weight: 800; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: right; }
+.pu-bar-sum { font-size: .76rem; color: #475569; white-space: nowrap; } .pu-bar-sum b { color: #0f1c38; font-size: .86rem; }
+.pu-item .pu-x { flex-shrink: 0; width: 28px; height: 28px; }
+.pu-item.open .pu-bar { background: #ecfdf5; border-bottom: 1px solid #d1fae5; }
+.pu-body { padding: 10px 12px 12px; }
+[data-theme="dark"] .pu-bar-sum { color: #94a3b8; } [data-theme="dark"] .pu-bar-sum b { color: #f1f5f9; } [data-theme="dark"] .pu-item.open .pu-bar { background: #0f2a20; border-color: #064e3b; }
