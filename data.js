@@ -2674,9 +2674,11 @@ const APP_CHECK_PROVIDER = 'enterprise';     // 'enterprise' (reCAPTCHA Enterpri
 
 const AI_DEFAULT_MODEL = 'gemini-3.8-flash';
 const AI_TIMEOUT_MS = 90000;
-const AI_ENGINES = { local: 'قراءة عادية (بدون ذكاء)', gemini: 'Gemini API', firebase: 'Firebase AI Logic' };
+const AI_ENGINES = { local: 'قراءة عادية (بدون ذكاء)', gemini: 'Gemini API', firebase: 'Firebase AI Logic', openai: 'مزوّد مجاني (Groq / OpenRouter)' };
 // إعدادات المحرك تُحفظ على هذا الجهاز فقط (لا تُرفع للسحابة ولا تدخل النسخة الاحتياطية)
-const AI_LS = { engine: 'diwanAiEngine', key: 'diwanGeminiKey', gModel: 'diwanGeminiModel', fModel: 'diwanFbAiModel', web: 'diwanAiWebSearch' };
+const AI_LS = { engine: 'diwanAiEngine', key: 'diwanGeminiKey', gModel: 'diwanGeminiModel', fModel: 'diwanFbAiModel', web: 'diwanAiWebSearch', oaiProv: 'diwanOaiProv', oaiKey: 'diwanOaiKey', oaiModel: 'diwanOaiModel', oaiBase: 'diwanOaiBase' };
+const OAI_PRESETS = { groq: 'https://api.groq.com/openai/v1', openrouter: 'https://openrouter.ai/api/v1' };
+function oaiBase() { const p = aiGet('oaiProv', 'groq'); return String(OAI_PRESETS[p] || aiGet('oaiBase') || '').replace(/\/+$/, ''); }
 
 function aiGet(k, d) {
     const def = (d === undefined) ? '' : d;
@@ -2983,7 +2985,54 @@ async function callFirebaseAi(opts) {
     return result.response.text();
 }
 
+// المحرك 3: أي مزوّد متوافق مع OpenAI (Groq / OpenRouter المجانيان) — نص فقط، مناسب للبحث بالاسم
+async function callOpenAiCompat(opts) {
+    const key = cleanAiKey(aiGet('oaiKey'));
+    if (!key) { const e = new Error('NO_KEY'); e.code = 'NO_KEY'; throw e; }
+    const base = oaiBase(); if (!/^https:\/\//.test(base)) throw new Error('عنوان المزوّد غير صحيح (يجب أن يبدأ بـ https://).');
+    let model = String(aiGet('oaiModel') || '').trim();
+    if (!model) throw new Error('اختر النموذج: اضغط «جلب القائمة» في إعدادات الذكاء الصناعي.');
+    if (opts.img) { const e = new Error('هذا المحرك يقرأ النص فقط. لقراءة الصور استعمل Gemini.'); e.code = 'NO_IMG'; throw e; }
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    let res;
+    try {
+        res = await fetch(base + '/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+            body: JSON.stringify({ model, temperature: 0.1, messages: [{ role: 'system', content: opts.json ? 'You are a careful pharmaceutical data assistant. Reply with a single valid JSON object only, no markdown.' : 'Reply briefly.' }, { role: 'user', content: opts.prompt }] }),
+            signal: controller.signal
+        });
+    } finally { clearTimeout(timer); }
+    if (!res.ok) throw await aiHttpError(res);
+    const data = await res.json();
+    const txt = data && data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+    if (!txt) throw new Error('لم يُرجع النموذج نتيجة. جرّب نموذجاً آخر.');
+    return String(txt).replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+}
+async function loadOaiModels() {
+    saveAiSettings(true);
+    const key = cleanAiKey(aiGet('oaiKey'));
+    if (!key) { setAiTestMsg('أدخل المفتاح أولاً.', true); return; }
+    setAiTestMsg('⏳ جاري جلب النماذج...');
+    try {
+        const res = await fetch(oaiBase() + '/models', { headers: { 'Authorization': 'Bearer ' + key } });
+        if (!res.ok) throw await aiHttpError(res);
+        const data = await res.json();
+        let ids = (data.data || []).map(m => String(m.id || '')).filter(Boolean);
+        if (aiGet('oaiProv', 'groq') === 'openrouter') ids = ids.filter(n => /:free$/.test(n));
+        ids = ids.filter(n => !/(whisper|tts|guard|embed|orpheus|playai|image|audio|moderation|safeguard)/i.test(n));
+        ids.sort((a, b) => (/gpt-oss|llama-3\.3|qwen|deepseek|gemma|llama/i.test(b) ? 1 : 0) - (/gpt-oss|llama-3\.3|qwen|deepseek|gemma|llama/i.test(a) ? 1 : 0) || a.localeCompare(b));
+        const pick = document.getElementById('aiOaiPick');
+        if (pick) { pick.innerHTML = '<option value="">— اختر نموذجاً (' + ids.length + ') —</option>' + ids.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join(''); pick.style.display = ids.length ? 'block' : 'none'; }
+        if (ids.length && !aiVal('aiOaiModel')) aiSetVal('aiOaiModel', ids[0]);
+        setAiTestMsg('✅ تم جلب ' + ids.length + ' نموذجاً. اختر من القائمة ثم احفظ واضغط «اختبار».');
+    } catch (err) { setAiTestMsg('❌ ' + friendlyAiError(err), true); }
+}
+function onOaiProviderChange() { const c = document.getElementById('aiOaiCustom'); if (c) c.style.display = aiVal('aiOaiProv') === 'custom' ? '' : 'none'; }
+
 function callAiEngine(engine, opts) {
+    if (engine === 'openai') return callOpenAiCompat(opts);
     return engine === 'firebase' ? callFirebaseAi(opts) : callGeminiRest(opts);
 }
 
@@ -3221,6 +3270,7 @@ async function scanProductImage(event) {
 
     try {
         if (engine === 'local') { await scanWithOcr(event); return; }
+        if (engine === 'openai') { setScanStatusText('ℹ️ هذا المحرك للبحث بالاسم فقط — قراءة عادية للصورة'); await scanWithOcr(event); return; }
         if (!navigator.onLine) {
             setScanStatusText('📴 بدون إنترنت — قراءة عادية');
             await scanWithOcr(event);
@@ -3295,6 +3345,7 @@ function updateAiSettingsVisibility() {
     const f = document.getElementById('aiFirebaseBox');
     if (g) g.style.display = eng === 'gemini' ? '' : 'none';
     if (f) f.style.display = eng === 'firebase' ? '' : 'none';
+    const o = document.getElementById('aiOpenAiBox'); if (o) o.style.display = eng === 'openai' ? '' : 'none';
 }
 
 function refreshScanEngineLabel() {
@@ -3326,6 +3377,7 @@ function loadAiSettingsToForm() {
     aiSetVal('aiGeminiModel', aiGet('gModel', AI_DEFAULT_MODEL));
     aiSetVal('aiFbModel', aiGet('fModel', AI_DEFAULT_MODEL));
     { const w = document.getElementById('aiWebSearch'); if (w) w.checked = aiWebOn(); }
+    aiSetVal('aiOaiProv', aiGet('oaiProv', 'groq')); aiSetVal('aiOaiKey', aiGet('oaiKey')); aiSetVal('aiOaiModel', aiGet('oaiModel')); aiSetVal('aiOaiBase', aiGet('oaiBase')); onOaiProviderChange();
     const keyEl = document.getElementById('aiGeminiKey');
     if (keyEl) keyEl.type = 'password';
     setAiTestMsg('');
@@ -3345,7 +3397,8 @@ function saveAiSettings(silent) {
     const gModel = cleanAiModel(aiVal('aiGeminiModel')) || AI_DEFAULT_MODEL;
     const fModel = cleanAiModel(aiVal('aiFbModel')) || AI_DEFAULT_MODEL;
     const webEl = document.getElementById('aiWebSearch');
-    const ok = aiSet('key', key) && aiSet('gModel', gModel) && aiSet('fModel', fModel) && aiSet('web', webEl && webEl.checked ? '1' : '');
+    const ok = aiSet('key', key) && aiSet('gModel', gModel) && aiSet('fModel', fModel) && aiSet('web', webEl && webEl.checked ? '1' : '')
+        && aiSet('oaiProv', aiVal('aiOaiProv') || aiGet('oaiProv', 'groq')) && aiSet('oaiKey', cleanAiKey(aiVal('aiOaiKey'))) && aiSet('oaiModel', String(aiVal('aiOaiModel')).replace(/\s+/g, '')) && aiSet('oaiBase', aiVal('aiOaiBase'));
     aiSetVal('aiGeminiKey', key);
     aiSetVal('aiGeminiModel', gModel);
     aiSetVal('aiFbModel', fModel);
@@ -3398,7 +3451,8 @@ async function testAiConnection() {
     setAiTestMsg('⏳ جاري الاختبار...');
     const t0 = Date.now();
     try {
-        const out = await callAiEngine(eng, {
+        const textOnly = eng === 'openai';
+        const out = await callAiEngine(eng, textOnly ? { prompt: 'Reply with this single word only: DIWAN', json: false } : {
             prompt: 'Read the word written in this image. Reply with that single word only.',
             img: makeAiTestImage(),
             json: false
@@ -3407,7 +3461,7 @@ async function testAiConnection() {
         if (/diwan/i.test(out)) setAiTestMsg('✅ يعمل بشكل صحيح (' + secs + ' ثانية) — قرأ الصورة والنموذج جاهز.');
         else setAiTestMsg('⚠️ الاتصال يعمل لكن القراءة لم تطابق المتوقع. ردّ النموذج: ' + aiClean(out, 60), true);
     } catch (err) {
-        if (err && err.code === 'NO_KEY') setAiTestMsg('أدخل مفتاح Gemini API أولاً.', true);
+        if (err && err.code === 'NO_KEY') setAiTestMsg('أدخل المفتاح أولاً.', true);
         else setAiTestMsg('❌ ' + friendlyAiError(err), true);
     }
 }

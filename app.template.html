@@ -244,6 +244,7 @@
                         <option value="local">قراءة عادية بدون ذكاء (Tesseract)</option>
                         <option value="gemini">Gemini API — بمفتاح من AI Studio (الأسهل)</option>
                         <option value="firebase">Firebase AI Logic — بدون مفتاح داخل التطبيق</option>
+                        <option value="openai">مزوّد مجاني: Groq / OpenRouter (للبحث بالاسم فقط)</option>
                     </select>
                 </div>
 
@@ -266,6 +267,25 @@
                         <small style="display:block;margin-top:6px;color:#64748b;line-height:1.7;">الموصى به للحساب المجاني: <b dir="ltr">gemini-3.8-flash</b>. عند فشله يجرّب التطبيق تلقائياً <b dir="ltr">gemini-3.5-flash-lite</b> ثم <b dir="ltr">gemini-3.1-flash-lite</b>.</small>
                     </div>
                     <label style="display:flex;gap:8px;align-items:flex-start;font-size:.85rem;line-height:1.7;margin:8px 0;"><input type="checkbox" id="aiWebSearch" style="width:auto;margin-top:5px;"><span>🌐 البحث على الإنترنت عند «البحث بالاسم» <small style="color:#64748b;display:block">يستعمل بحث جوجل. غير متاح في الحساب المجاني (يحتاج تفعيل الفوترة في AI Studio، وأول 5000 بحث شهرياً بلا رسوم). إن لم يتوفر يرجع التطبيق تلقائياً لمعرفة النموذج.</small></span></label>
+                </div>
+
+                <div id="aiOpenAiBox" style="display:none;">
+                    <div class="form-group">
+                        <label>المزوّد:</label>
+                        <select id="aiOaiProv" onchange="onOaiProviderChange()">
+                            <option value="groq">Groq — مجاني، بدون بطاقة (console.groq.com)</option>
+                            <option value="openrouter">OpenRouter — نماذج :free (openrouter.ai)</option>
+                            <option value="custom">مزوّد آخر متوافق مع OpenAI</option>
+                        </select>
+                    </div>
+                    <div class="form-group" id="aiOaiCustom" style="display:none;"><label>عنوان الخدمة (https://.../v1):</label><input type="text" id="aiOaiBase" dir="ltr" placeholder="https://api.deepseek.com/v1"></div>
+                    <div class="form-group"><label>المفتاح:</label><input type="password" id="aiOaiKey" dir="ltr" autocomplete="off" spellcheck="false" placeholder="الصق المفتاح هنا"></div>
+                    <div class="form-group">
+                        <label>النموذج:</label>
+                        <div class="add-inline-row"><input type="text" id="aiOaiModel" dir="ltr" placeholder="اضغط جلب القائمة"><button type="button" class="icon-btn" onclick="loadOaiModels()">جلب القائمة</button></div>
+                        <select id="aiOaiPick" style="display:none;margin-top:8px;width:100%;" dir="ltr" onchange="if(this.value){document.getElementById('aiOaiModel').value=this.value;}"></select>
+                        <small style="display:block;margin-top:6px;color:#64748b;line-height:1.7;">للنص فقط (اكتب اسم الدواء فيملأ الحقول من معرفة النموذج، لا يقرأ الصور ولا يبحث في الإنترنت). راجع الحقول قبل الحفظ.</small>
+                    </div>
                 </div>
 
                 <div id="aiFirebaseBox" style="display:none;">
@@ -303,6 +323,7 @@
                             <option value="local">قراءة عادية</option>
                             <option value="gemini">Gemini API</option>
                             <option value="firebase">Firebase AI</option>
+                            <option value="openai">Groq / OpenRouter</option>
                         </select>
                         <button type="button" class="scan-gear" onclick="openAiSettingsOverForm()" title="إعدادات الذكاء الصناعي" aria-label="إعدادات الذكاء الصناعي">⚙️</button>
                     </div>
