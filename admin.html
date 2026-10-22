@@ -367,7 +367,7 @@
             </div>
             <!-- ... أزرار الإلغاء والحفظ ... -->
             <div class="modal-actions-row">
-                <button class="icon-btn" onclick="closeFormModal()">إلغاء</button>
+                <button class="icon-btn" onclick="requestCloseForm()">إلغاء</button>
                 <button class="icon-btn primary-btn" onclick="saveFormProduct()">حفظ في السحابة</button>
             </div>
         </div>
@@ -795,6 +795,7 @@
         <section class="pu-pane" id="puPane-sup">
             <div class="bill-panel">
                 <button type="button" class="bill-tb-btn" onclick="puEditSupplier('')">＋ إضافة مذخر</button>
+                <button type="button" class="bill-tb-btn" onclick="puBackfill()">🔄 تحديث المواد من سجل الوارد</button>
                 <div id="puSupList2"></div>
                 <h4 class="rep-h">🔎 مقارنة أسعار الشراء لدواء</h4>
                 <input type="search" class="bill-list-search" id="puCmpSearch" placeholder="اكتب اسم الدواء..." oninput="puCmpInput()">

@@ -69,9 +69,15 @@ function puLinesOf(pid) {
 }
 function lastPurchaseHtml(p) {
     const arr = puLinesOf(p.id);
-    if (!arr.length) return '<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📥 لا يوجد وارد مسجّل لهذا الصنف</div>';
+    const cur = p.costPrice ? `<div style="font-size:0.78rem;margin-bottom:6px;font-weight:700;">💰 سعر الشراء الحالي: ${fmtNum(p.costPrice)} د.ع</div>` : '';
+    const lp = p.lastPurchase;
+    if (lp && (!arr.length || String(lp.date || '') >= String(arr[0].r.date || ''))) {
+        const rows = arr.length ? arr.slice(0, 3).map(x => `<div style="font-size:0.74rem;color:#64748b;">• <b>${escapeHtml(x.r.supplier)}</b> — ${escapeHtml(fmtDateDMY(x.r.date))} — ${fmtNum(x.l.qty)} عبوة${x.l.cost ? ' × ' + fmtNum(x.l.cost) : ''}</div>`).join('') : '';
+        return cur + `<div style="font-size:0.78rem; margin-bottom:8px; padding:6px 8px; border-radius:8px; background:#ecfdf5;"><div style="font-weight:800;color:#065f46;">📥 آخر وارد: <b>${escapeHtml(lp.supplier)}</b> — ${escapeHtml(fmtDateDMY(lp.date))} — ${fmtNum(lp.qty)} عبوة${lp.cost ? ' × ' + fmtNum(lp.cost) : ''} — فاتورة <span dir="ltr">${escapeHtml(lp.no)}</span>${lp.expiry ? ' — نفاذ <span dir="ltr">' + escapeHtml(lp.expiry) + '</span>' : ''}</div>${rows}</div>`;
+    }
+    if (!arr.length) return cur + '<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📥 لا يوجد وارد مسجّل لهذا الصنف</div>';
     const row = (x, first) => `<div style="${first ? 'font-weight:800;color:#065f46;' : 'font-size:0.74rem;color:#64748b;'}">${first ? '📥 آخر وارد: ' : '• '}<b>${escapeHtml(x.r.supplier)}</b> — ${escapeHtml(fmtDateDMY(x.r.date))} — ${fmtNum(x.l.qty)} عبوة${x.l.cost ? ' × ' + fmtNum(x.l.cost) : ''} — فاتورة <span dir="ltr">${escapeHtml(x.r.no)}</span>${x.l.batch ? ' — دفعة <span dir="ltr">' + escapeHtml(x.l.batch) + '</span>' : ''}</div>`;
-    return `<div style="font-size:0.78rem; margin-bottom:8px; padding:6px 8px; border-radius:8px; background:#ecfdf5;">${row(arr[0], true)}${arr.slice(1, 4).map(x => row(x, false)).join('')}</div>`;
+    return cur + `<div style="font-size:0.78rem; margin-bottom:8px; padding:6px 8px; border-radius:8px; background:#ecfdf5;">${row(arr[0], true)}${arr.slice(1, 4).map(x => row(x, false)).join('')}</div>`;
 }
 
 // ---------- التبويبات ----------
@@ -240,7 +246,7 @@ async function puSave() {
     const oldLines = editing ? (editing.items || []) : [];
     const oldBy = new Map(oldLines.map(l => [l.pid, l]));
     const snaps = new Map(), lines = [];
-    const snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate }); };
+    const snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); };
     // 1) الأصناف التي أُزيلت من الفاتورة عند التعديل: نُنقص كميتها السابقة
     const newIds = new Set(items.map(it => it.pid));
     oldLines.filter(l => !newIds.has(l.pid)).forEach(l => {
@@ -258,11 +264,13 @@ async function puSave() {
         if (old && old.expiry !== line.expiry && old.expAdded && old.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; line.expAdded = false; }
         if (cost > 0) p.costPrice = cost;
         if (line.expiry && puExpiryPush(p, line.expiry)) line.expAdded = true;
+        const lp = p.lastPurchase;
+        if (!lp || String(pu.date) >= String(lp.date || '')) p.lastPurchase = { supplier, no, date: pu.date, qty: n, cost, batch: line.batch, expiry: line.expiry };
         lines.push(line);
     });
     const touched = [...snaps.values()].map(s => s.p);
     const ok = await saveProductsDelta([...snaps.values()].map(s => deltaFromSnap(s.p, s)));
-    if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; }); renderAll(); return; }
+    if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; s.p.lastPurchase = s.lastPurchase; }); renderAll(); return; }
     // تحقق من وصول الكميات للسحابة فعلاً
     try {
         if (cloudReady() && navigator.onLine && pendingOps === 0) {
@@ -344,12 +352,15 @@ async function puCancel(id) {
     const touched = [], csnaps = new Map();
     (r.items || []).forEach(l => {
         const p = products.find(x => x.id === l.pid); if (!p) return;
-        if (!csnaps.has(p.id)) csnaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate });
+        if (!csnaps.has(p.id)) csnaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase });
         p.qty = Math.max((parseInt(p.qty) || 0) - l.qty, 0);
         if (l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
         if (l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
         touched.push(p);
     });
+    r.cancelled = true;   // مؤقتاً لإعادة حساب «آخر وارد» دون هذه الفاتورة
+    touched.forEach(pp => { const rest = puLinesOf(pp.id)[0]; pp.lastPurchase = rest ? { supplier: rest.r.supplier, no: rest.r.no, date: rest.r.date, qty: rest.l.qty, cost: rest.l.cost, batch: rest.l.batch || '', expiry: rest.l.expiry || '' } : null; });
+    r.cancelled = false;
     if (touched.length && !(await saveProductsDelta([...new Set(touched)].map(p => deltaFromSnap(p, csnaps.get(p.id)))))) return;
     r.cancelled = true; r.cancelledAt = todayLocalISO();
     await puSaveRecord(r); renderAll(); puRefreshCurrent();
@@ -520,4 +531,36 @@ async function syncLocalRecords(auto) {
         try { sessionStorage.setItem('diwanSess', sessionStorage.getItem('diwanSess') || String(Date.now())); lsSet('diwanPushedOnce', sessionStorage.getItem('diwanSess')); } catch (e) { /* تجاهل */ }
     } finally { syncingLocal = false; }
     return n;
+}
+
+// ---------- تحديث المواد من سجل الوارد (للفواتير المسجّلة سابقاً) ----------
+async function puBackfill() {
+    await puLoad();
+    const best = new Map();   // آخر سطر لكل مادة
+    const now = new Date().toISOString().slice(0, 7), yearAgo = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+    const exps = new Map();   // تواريخ نفاذ حديثة وغير منتهية
+    puAll.filter(r => !r.cancelled).forEach(r => (r.items || []).forEach(l => {
+        const k = l.pid, cur = best.get(k);
+        if (!cur || String(r.date).localeCompare(cur.r.date) > 0 || (r.date === cur.r.date && String(r.createdTs).localeCompare(String(cur.r.createdTs)) > 0)) best.set(k, { r, l });
+        if (l.expiry && l.expiry >= now && String(r.date) >= yearAgo) { if (!exps.has(k)) exps.set(k, new Set()); exps.get(k).add(l.expiry); }
+    }));
+    const snaps = [], plan = [];
+    best.forEach(({ r, l }, pid) => {
+        const p = products.find(x => x.id === pid); if (!p) return;
+        const s = { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase };
+        let ch = [];
+        const lp = { supplier: r.supplier, no: r.no, date: r.date, qty: l.qty, cost: l.cost, batch: l.batch || '', expiry: l.expiry || '' };
+        if (JSON.stringify(p.lastPurchase || null) !== JSON.stringify(lp)) { p.lastPurchase = lp; ch.push('آخر مذخر'); }
+        if (l.cost > 0 && puNum(p.costPrice) !== l.cost) { p.costPrice = l.cost; ch.push('سعر الشراء'); }
+        let added = false; (exps.get(pid) || []).forEach(e => { if (puExpiryPush(p, e)) added = true; });
+        if (added) ch.push('تاريخ النفاذ');
+        if (ch.length) plan.push({ p, s, ch });
+    });
+    if (!plan.length) return Swal.fire({ icon: 'success', title: 'كل المواد محدّثة', text: 'لا يوجد ما يحتاج تحديثاً من سجل الوارد.', confirmButtonColor: '#0f1c38' });
+    const res = await Swal.fire({ icon: 'question', title: 'تحديث ' + plan.length + ' مادة من سجل الوارد؟', html: '<div style="text-align:right;max-height:240px;overflow:auto;font-size:.85rem">' + plan.slice(0, 40).map(x => '• <b dir="ltr">' + escapeHtml(x.p.name) + '</b>: ' + x.ch.join('، ')).join('<br>') + (plan.length > 40 ? '<br>...' : '') + '<br><small style="color:#64748b">النفاذ: تُضاف فقط التواريخ غير المنتهية من وارد آخر 12 شهراً. الكميات لا تتغير.</small></div>', showCancelButton: true, confirmButtonText: 'تحديث', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+    if (!res.isConfirmed) { plan.forEach(x => Object.assign(x.p, x.s)); return; }
+    const ok = await saveProductsDelta(plan.map(x => deltaFromSnap(x.p, x.s)));
+    if (!ok) { plan.forEach(x => Object.assign(x.p, x.s)); renderAll(); return; }
+    renderAll();
+    Swal.fire({ icon: 'success', title: 'حُدّثت ' + plan.length + ' مادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
 }

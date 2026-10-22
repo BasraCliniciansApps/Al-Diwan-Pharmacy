@@ -92,7 +92,7 @@ products = products.map(p => ({
 // بيانات المخزون الحساسة (الكمية، الحد الأدنى، الصلاحية) تُحفظ في مجموعة خاصة بالصيدلي
 // ============================================================================
 const IS_ADMIN_PAGE = window.APP_MODE === 'admin';
-const STOCK_FIELDS = ['qty', 'loose', 'minQty', 'expiryDate', 'expiryDates', 'costPrice'];
+const STOCK_FIELDS = ['qty', 'loose', 'minQty', 'expiryDate', 'expiryDates', 'costPrice', 'lastPurchase'];
 let cloudPub = [];          // الأصناف العامة كما تصل من السحابة
 let stockMap = {};          // بيانات المخزون الخاصة (للصيدلي فقط)
 let unsubStock = null;
@@ -1402,6 +1402,22 @@ function openFormModal(id = null) {
     }
     refreshScanEngineLabel();
     modal.style.display = 'flex';
+    formSnapshot = formSerialize();
+}
+let formSnapshot = '';
+function formSerialize() {
+    const parts = [];
+    document.querySelectorAll('#formModal input, #formModal select, #formModal textarea').forEach(el => { if (el.type === 'file') return; parts.push((el.id || el.name || '') + '=' + (el.type === 'checkbox' ? el.checked : el.value)); });
+    return parts.join('|') + '|bc=' + JSON.stringify(formBarcodes || []);
+}
+async function requestCloseForm() {   // إغلاق ذكي: يسأل إن كانت هناك تعديلات غير محفوظة
+    const m = document.getElementById('formModal');
+    if (!m || m.style.display === 'none' || !m.style.display) return;
+    if (formSerialize() === formSnapshot) { closeFormModal(); return; }
+    const isEdit = !!document.getElementById('editId').value;
+    const r = await Swal.fire({ icon: 'question', title: 'توجد تعديلات غير محفوظة', text: isEdit ? 'ماذا تريد أن تفعل بتعديلات الصنف؟' : 'ماذا تريد أن تفعل بالصنف الجديد؟', showCancelButton: true, showDenyButton: true, confirmButtonText: isEdit ? '💾 حفظ التعديل' : '💾 حفظ الصنف', denyButtonText: 'تجاهل وإغلاق', cancelButtonText: 'متابعة التحرير', confirmButtonColor: '#0f1c38', denyButtonColor: '#b91c1c', reverseButtons: false });
+    if (r.isConfirmed) saveFormProduct();
+    else if (r.isDenied) closeFormModal();
 }
 
 function closeFormModal() {
@@ -1567,6 +1583,7 @@ async function saveFormProduct() {
         price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
         costPrice: document.getElementById('fCost') ? (parseFloat(document.getElementById('fCost').value) || 0) : 0,
         ...readRetailForm(),
+        ...((() => { const o = editId ? products.find(x => x.id === parseInt(editId)) : null; return o && o.lastPurchase ? { lastPurchase: o.lastPurchase } : {}; })()),
         expiryDates: expiryDates,
         expiryDate: expiryDates[0] || '',   // الأقرب نفاذاً (للتوافق مع الأكواد القديمة)
         keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
@@ -2226,6 +2243,7 @@ function deltaFromSnap(p, s) {
     const a = getProductExpiryDates({ expiryDates: s.expiryDates, expiryDate: s.expiryDate }), b = getProductExpiryDates(p);
     d.expAdd = b.filter(x => !a.includes(x)); d.expRemove = a.filter(x => !b.includes(x)); d.expChanged = !!(d.expAdd.length || d.expRemove.length);
     if ((s.costPrice || 0) !== (p.costPrice || 0)) d.cost = p.costPrice || 0;
+    if (JSON.stringify(s.lastPurchase || null) !== JSON.stringify(p.lastPurchase || null)) { d.lastSet = true; d.last = p.lastPurchase || null; }
     return d;
 }
 async function saveProductsDelta(entries) {
@@ -2251,6 +2269,7 @@ async function saveProductsDelta(entries) {
                 if (e.dq) u.qty = F.increment(e.dq);
                 if (e.dl) u.loose = F.increment(e.dl);
                 if (e.cost !== undefined) u.costPrice = e.cost;
+                if (e.lastSet) u.lastPurchase = e.last;
                 if (e.expChanged) {
                     if (e.expAdd.length && !e.expRemove.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayUnion(...e.expAdd);
                     else if (e.expRemove.length && !e.expAdd.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayRemove(...e.expRemove);
@@ -4291,6 +4310,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     }
     swipeClose('bottomSheet', () => closeSheet());
     swipeClose('filterSheet', () => closeFilterSheet());
+    const fc = document.querySelector('#formModal .modal-card'); if (fc) { fc.id = fc.id || 'formCard'; swipeClose(fc.id, () => requestCloseForm()); }
 
     // 2) زر الرجوع
     let exiting = false, asking = false;
@@ -4299,6 +4319,8 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         if (window.Swal && Swal.isVisible && Swal.isVisible()) { Swal.close(); return true; }
         const z = document.getElementById('zoomModal');
         if (z && z.style.display && z.style.display !== 'none') { z.style.display = 'none'; return true; }
+        const fm = document.getElementById('formModal');
+        if (fm && fm.style.display === 'flex') { requestCloseForm(); return true; }
         const sb = document.getElementById('sheetBackdrop');
         if (sb && sb.classList.contains('open')) { closeSheet(); return true; }
         const fs = document.getElementById('filterSheet');
