@@ -48,7 +48,9 @@ let customTabs = JSON.parse(localStorage.getItem('diwanCustomTabs')) || [];
 let lowStockThreshold = parseInt(localStorage.getItem('diwanLowThreshold'));
 if (isNaN(lowStockThreshold)) lowStockThreshold = 2;
 
-let activeDept = departments[0] || "قسم الجلدية";
+const ALL_DEPTS = '__all__';
+const ALL_DEPTS_LABEL = 'كل الأقسام';
+let activeDept = ALL_DEPTS;   // تفتح الصفحة على كل الأصناف من كل الأقسام
 let mainTab = 'all';
 // فلاتر متعددة الاختيار (تُدار من نافذة التصفية)
 const filCats = new Set();
@@ -682,10 +684,11 @@ function getFormBadge(item) {
 
 function renderDepartmentsBar() {
     const bar = document.getElementById('departmentsBar');
-    bar.style.display = departments.length > 1 ? '' : 'none';
-    bar.innerHTML = departments.map(d => `
-        <button class="dept-chip ${activeDept === d ? 'active' : ''}" onclick="selectDepartment('${d}')">
-            🏥 ${d}
+    if (activeDept !== ALL_DEPTS && !departments.includes(activeDept)) activeDept = ALL_DEPTS;
+    bar.innerHTML = `<button class="dept-chip ${activeDept === ALL_DEPTS ? 'active' : ''}" onclick="selectDepartment('${ALL_DEPTS}')">🗂️ ${ALL_DEPTS_LABEL}</button>` +
+        departments.map(d => `
+        <button class="dept-chip ${activeDept === d ? 'active' : ''}" onclick="selectDepartment(this.dataset.d)" data-d="${escapeHtml(d)}">
+            🏥 ${escapeHtml(d)}
         </button>
     `).join('');
 }
@@ -704,7 +707,7 @@ function setMainTab(tab) {
 
 function getBaseFilteredByTab() {
     return products.filter(p => {
-        const matchDept = deptsOf(p).includes(activeDept);
+        const matchDept = activeDept === ALL_DEPTS || deptsOf(p).includes(activeDept);
         if (!matchDept) return false;
         if (mainTab === 'out') return (parseInt(p.qty) || 0) === 0;
         if (mainTab === 'rx') return isRxItem(p) || inExtraTab(p, 'rx');
@@ -826,7 +829,7 @@ function renderAll() {
     updateExpiryBadge(); // تحديث عداد جرس الصلاحية للصيدلي
 
     const tabTitle = getTabTitle();
-    document.getElementById('sectionLabel').innerText = `${activeDept} • ${tabTitle}`;
+    document.getElementById('sectionLabel').innerText = `${activeDept === ALL_DEPTS ? ALL_DEPTS_LABEL : activeDept} • ${tabTitle}`;
 
     const filtered = getFiltered();
 
@@ -1164,7 +1167,7 @@ async function removeListItem(kind, index) {
     });
     list.splice(index, 1);
     if (kind === 'cat') filCats.delete(name);
-    if (kind === 'dept' && activeDept === name) activeDept = list[0];
+    if (kind === 'dept' && activeDept === name) activeDept = ALL_DEPTS;
     return true;
 }
 
@@ -1245,7 +1248,7 @@ function openFormModal(id = null) {
     } else {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
-        document.getElementById('fDepartment').value = activeDept;
+        document.getElementById('fDepartment').value = activeDept === ALL_DEPTS ? (departments[0] || '') : activeDept;
         if (document.getElementById('fType')) document.getElementById('fType').value = '';
         if (document.getElementById('fActive')) document.getElementById('fActive').value = '';
         if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = '';
