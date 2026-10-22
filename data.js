@@ -2826,7 +2826,12 @@ async function loadGeminiModels() {
         names.sort((a, b) => (/flash/.test(b) ? 1 : 0) - (/flash/.test(a) ? 1 : 0) || a.localeCompare(b));
         const dl = document.getElementById('aiModelList');
         if (dl) dl.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
-        setAiTestMsg('✅ تم جلب ' + names.length + ' نموذجاً. اضغط داخل خانة النموذج واختر (يُفضّل Flash أو Flash-Lite).');
+        const pick = document.getElementById('aiModelPick');
+        if (pick) {
+            pick.innerHTML = '<option value="">— اختر نموذجاً من القائمة (' + names.length + ') —</option>' + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
+            pick.style.display = names.length ? 'block' : 'none';
+        }
+        setAiTestMsg('✅ تم جلب ' + names.length + ' نموذجاً. اختر من القائمة المنسدلة تحت خانة النموذج (يُفضّل Flash-Lite).');
     } catch (err) {
         setAiTestMsg('❌ ' + friendlyAiError(err), true);
     }

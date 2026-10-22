@@ -216,6 +216,8 @@
                             <input type="text" id="aiGeminiModel" dir="ltr" list="aiModelList" placeholder="gemini-3.8-flash">
                             <button type="button" class="icon-btn" onclick="loadGeminiModels()">جلب القائمة</button>
                         </div>
+                        <select id="aiModelPick" style="display:none;margin-top:8px;width:100%;" dir="ltr" onchange="if(this.value){document.getElementById('aiGeminiModel').value=this.value;}">
+                        </select>
                     </div>
                 </div>
 
