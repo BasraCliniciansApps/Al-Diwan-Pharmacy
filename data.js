@@ -2676,7 +2676,7 @@ const AI_DEFAULT_MODEL = 'gemini-3.8-flash';
 const AI_TIMEOUT_MS = 90000;
 const AI_ENGINES = { local: 'قراءة عادية (بدون ذكاء)', gemini: 'Gemini API', firebase: 'Firebase AI Logic' };
 // إعدادات المحرك تُحفظ على هذا الجهاز فقط (لا تُرفع للسحابة ولا تدخل النسخة الاحتياطية)
-const AI_LS = { engine: 'diwanAiEngine', key: 'diwanGeminiKey', gModel: 'diwanGeminiModel', fModel: 'diwanFbAiModel' };
+const AI_LS = { engine: 'diwanAiEngine', key: 'diwanGeminiKey', gModel: 'diwanGeminiModel', fModel: 'diwanFbAiModel', web: 'diwanAiWebSearch' };
 
 function aiGet(k, d) {
     const def = (d === undefined) ? '' : d;
@@ -2858,13 +2858,26 @@ function extractGeminiText(data) {
 }
 
 // عند ازدحام النموذج (503) نعيد المحاولة ثم ننتقل لنماذج بديلة أخف
-const AI_FALLBACK_MODELS = ['gemini-2.5-flash-lite', 'gemini-2.5-flash'];
+const AI_KNOWN_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];   // المتاحة في الطبقة المجانية
+const AI_FALLBACK_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash'];
+const aiWebOn = () => aiGet('web') === '1';
 function isBusyAiError(e) {
     return !!e && (e.status === 503 || /high demand|overloaded|unavailable/i.test(String(e.message || '')));
 }
 const aiSleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function callGeminiRest(opts) {
+    if (opts.search) {   // بحث جوجل على الإنترنت: يحتاج حساباً مفعّل الفوترة، وإلا نرجع بدونه
+        try { return await callGeminiChain(opts); }
+        catch (e) {
+            if (e && (e.code === 'NO_KEY' || e.name === 'AbortError' || e.name === 'TimeoutError' || e instanceof TypeError)) throw e;
+            setScanStatusText('ℹ️ البحث على الإنترنت غير متاح لحسابك (يحتاج فوترة) — استُعملت معرفة النموذج');
+            return callGeminiChain(Object.assign({}, opts, { search: false }));
+        }
+    }
+    return callGeminiChain(opts);
+}
+async function callGeminiChain(opts) {
     const first = cleanAiModel(aiGet('gModel', AI_DEFAULT_MODEL)) || AI_DEFAULT_MODEL;
     const models = [first].concat(AI_FALLBACK_MODELS.filter(m => m !== first));
     let lastErr = null;
@@ -2878,7 +2891,7 @@ async function callGeminiRest(opts) {
                 lastErr = e;
                 if (e && e.code === 'NO_KEY') throw e;
                 if (isBusyAiError(e)) { if (attempt === 0) await aiSleep(2500); continue; }
-                if (i > 0 && e && e.status === 404) break;   // نموذج بديل غير متاح لهذا الحساب: ننتقل للتالي
+                if (e && (e.status === 404 || e.status === 429 || e.status === 403) && i < models.length - 1 && !opts.search) break;   // النموذج غير متاح/استنفد حصته: ننتقل للتالي
                 throw e;
             }
         }
@@ -2893,7 +2906,9 @@ async function callGeminiRestOnce(opts, modelName) {
     const parts = [{ text: opts.prompt }];
     if (opts.img) parts.push({ inlineData: { mimeType: opts.img.mimeType, data: opts.img.data } });
     const body = { contents: [{ role: 'user', parts }] };
-    if (opts.json) body.generationConfig = { responseMimeType: 'application/json', temperature: 0.1 };
+    if (opts.search) body.tools = [{ google_search: {} }];
+    if (opts.json && !opts.search) body.generationConfig = { responseMimeType: 'application/json', temperature: 0.1 };
+    else if (opts.json) body.generationConfig = { temperature: 0.1 };
 
     const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
     const send = async (payload) => {
@@ -3310,6 +3325,7 @@ function loadAiSettingsToForm() {
     aiSetVal('aiGeminiKey', aiGet('key'));
     aiSetVal('aiGeminiModel', aiGet('gModel', AI_DEFAULT_MODEL));
     aiSetVal('aiFbModel', aiGet('fModel', AI_DEFAULT_MODEL));
+    { const w = document.getElementById('aiWebSearch'); if (w) w.checked = aiWebOn(); }
     const keyEl = document.getElementById('aiGeminiKey');
     if (keyEl) keyEl.type = 'password';
     setAiTestMsg('');
@@ -3328,7 +3344,8 @@ function saveAiSettings(silent) {
     const key = cleanAiKey(aiVal('aiGeminiKey'));
     const gModel = cleanAiModel(aiVal('aiGeminiModel')) || AI_DEFAULT_MODEL;
     const fModel = cleanAiModel(aiVal('aiFbModel')) || AI_DEFAULT_MODEL;
-    const ok = aiSet('key', key) && aiSet('gModel', gModel) && aiSet('fModel', fModel);
+    const webEl = document.getElementById('aiWebSearch');
+    const ok = aiSet('key', key) && aiSet('gModel', gModel) && aiSet('fModel', fModel) && aiSet('web', webEl && webEl.checked ? '1' : '');
     aiSetVal('aiGeminiKey', key);
     aiSetVal('aiGeminiModel', gModel);
     aiSetVal('aiFbModel', fModel);
@@ -3356,8 +3373,9 @@ async function loadGeminiModels() {
         const names = (data.models || [])
             .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
             .map(m => String(m.name || '').replace(/^models\//, ''))
-            .filter(n => /^gemini/.test(n) && !/(tts|image|live|embedding|audio|transcribe|translate|robotics|computer-use)/i.test(n));
-        names.sort((a, b) => (/flash/.test(b) ? 1 : 0) - (/flash/.test(a) ? 1 : 0) || a.localeCompare(b));
+            
+            .filter(n => /^gemini-\d+(\.\d+)?-flash(-lite)?$/.test(n));   // نماذج Flash المستقرة فقط (بدون preview/pro/live)
+        names.sort((a, b) => (AI_KNOWN_MODELS.indexOf(a) + 1 || 99) - (AI_KNOWN_MODELS.indexOf(b) + 1 || 99) || b.localeCompare(a));
         const dl = document.getElementById('aiModelList');
         if (dl) dl.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
         const pick = document.getElementById('aiModelPick');
@@ -3365,7 +3383,7 @@ async function loadGeminiModels() {
             pick.innerHTML = '<option value="">— اختر نموذجاً من القائمة (' + names.length + ') —</option>' + names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
             pick.style.display = names.length ? 'block' : 'none';
         }
-        setAiTestMsg('✅ تم جلب ' + names.length + ' نموذجاً. اختر من القائمة المنسدلة تحت خانة النموذج (يُفضّل Flash-Lite).');
+        setAiTestMsg('✅ تم جلب ' + names.length + ' نموذجاً. اختر من القائمة المنسدلة تحت خانة النموذج (الأول هو الأنسب).');
     } catch (err) {
         setAiTestMsg('❌ ' + friendlyAiError(err), true);
     }
@@ -3421,7 +3439,8 @@ async function fillFromTypedName() {
     let res;
     try {
         setScanStatusText('🤖 ' + AI_ENGINES[engine] + ' يبحث عن المنتج...');
-        const text = await callAiEngine(engine, { prompt: buildAiPrompt(name), json: true });
+        const useWeb = engine === 'gemini' && aiWebOn();
+        const text = await callAiEngine(engine, { prompt: buildAiPrompt(name) + (useWeb ? '\n\nابحث في الإنترنت (مواقع الشركة المصنّعة ومراجع الأدوية) عن هذا المنتج بدقة قبل تعبئة الحقول، وأعد كائن JSON فقط بلا أي نص آخر.' : ''), json: true, search: useWeb });
         res = normalizeAiResult(parseAiJson(text));
         // التركيز والعبوة والصلاحية لا تُؤخذ إلا مما كتبه الصيدلاني
         res.expiry = '';
@@ -4367,7 +4386,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
 (function setupMobileNav() {
     // 1) سحب النوافذ السفلية للأسفل
     function swipeClose(sheetId, closeFn) {
-        const sh = document.getElementById(sheetId); if (!sh) return;
+        const sh = document.getElementById(sheetId); if (!sh || !sh.addEventListener) return;
         let y0 = 0, dy = 0, track = false;
         sh.addEventListener('touchstart', e => {
             if (e.touches.length !== 1) { track = false; return; }
@@ -4393,7 +4412,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     }
     swipeClose('bottomSheet', () => closeSheet());
     swipeClose('filterSheet', () => closeFilterSheet());
-    const fc = document.querySelector('#formModal .modal-card'); if (fc) { fc.id = fc.id || 'formCard'; swipeClose(fc.id, () => requestCloseForm()); }
+    const fc = document.querySelector && document.querySelector('#formModal .modal-card'); if (fc && fc.addEventListener) { fc.id = fc.id || 'formCard'; swipeClose(fc.id, () => requestCloseForm()); }
 
     // 2) زر الرجوع
     let exiting = false, asking = false;

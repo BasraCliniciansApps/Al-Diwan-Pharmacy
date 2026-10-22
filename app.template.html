@@ -263,7 +263,9 @@
                         </div>
                         <select id="aiModelPick" style="display:none;margin-top:8px;width:100%;" dir="ltr" onchange="if(this.value){document.getElementById('aiGeminiModel').value=this.value;}">
                         </select>
+                        <small style="display:block;margin-top:6px;color:#64748b;line-height:1.7;">الموصى به للحساب المجاني: <b dir="ltr">gemini-3.8-flash</b>. عند فشله يجرّب التطبيق تلقائياً <b dir="ltr">gemini-3.5-flash-lite</b> ثم <b dir="ltr">gemini-3.1-flash-lite</b>.</small>
                     </div>
+                    <label style="display:flex;gap:8px;align-items:flex-start;font-size:.85rem;line-height:1.7;margin:8px 0;"><input type="checkbox" id="aiWebSearch" style="width:auto;margin-top:5px;"><span>🌐 البحث على الإنترنت عند «البحث بالاسم» <small style="color:#64748b;display:block">يستعمل بحث جوجل. غير متاح في الحساب المجاني (يحتاج تفعيل الفوترة في AI Studio، وأول 5000 بحث شهرياً بلا رسوم). إن لم يتوفر يرجع التطبيق تلقائياً لمعرفة النموذج.</small></span></label>
                 </div>
 
                 <div id="aiFirebaseBox" style="display:none;">
