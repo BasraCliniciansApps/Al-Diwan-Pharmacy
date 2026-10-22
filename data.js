@@ -50,8 +50,12 @@ if (isNaN(lowStockThreshold)) lowStockThreshold = 2;
 
 let activeDept = departments[0] || "قسم الجلدية";
 let mainTab = 'all';
-let activeSubCat = 'الكل';   // <-- add this line
-let activeBrand = 'الكل';
+// فلاتر متعددة الاختيار (تُدار من نافذة التصفية)
+const filCats = new Set();
+const filBrands = new Set();
+const filForms = new Set();
+let filInStock = false;
+function clearFilterState() { filCats.clear(); filBrands.clear(); filForms.clear(); filInStock = false; }
 
 // رقم واتساب الصيدلية (مع مفتاح العراق 964 بدون الصفر الأول) ويوزر صفحة الانستغرام:
 const PHARMACY_WHATSAPP = "9647805261843"; 
@@ -78,6 +82,57 @@ products = products.map(p => ({
     meta: fixMetaOrder(p.meta)
 }));
 
+// ============================================================================
+// وضع الصفحة: 'admin' (الصيدلي) أو 'customer' (الزبائن، الافتراضي)
+// بيانات المخزون الحساسة (الكمية، الحد الأدنى، الصلاحية) تُحفظ في مجموعة خاصة بالصيدلي
+// ============================================================================
+const IS_ADMIN_PAGE = window.APP_MODE === 'admin';
+const STOCK_FIELDS = ['qty', 'minQty', 'expiryDate', 'expiryDates'];
+let cloudPub = [];          // الأصناف العامة كما تصل من السحابة
+let stockMap = {};          // بيانات المخزون الخاصة (للصيدلي فقط)
+let unsubStock = null;
+
+function splitProduct(p) {
+    const full = JSON.parse(JSON.stringify(p));
+    const pub = {};
+    const stock = { id: full.id };
+    Object.keys(full).forEach(k => { if (STOCK_FIELDS.includes(k)) stock[k] = full[k]; else pub[k] = full[k]; });
+    pub.inStock = (parseInt(full.qty) || 0) > 0;
+    return { pub, stock };
+}
+// هل الصنف متوفر؟ (يعمل في الصفحتين)
+function isInStock(p) {
+    if (p.qty !== undefined && p.qty !== null) return (parseInt(p.qty) || 0) > 0;
+    return p.inStock === true;
+}
+function rebuildProducts() {
+    const merged = cloudPub.map(d => {
+        const s = stockMap[String(d.id)];
+        const o = s ? { ...d, ...s } : { ...d };
+        o.meta = fixMetaOrder(o.meta);
+        return o;
+    });
+    products = merged.sort((a, b) => b.id - a.id);
+}
+function writeProductBatch(batch, p) {
+    const { pub, stock } = splitProduct(p);
+    batch.set(db.collection('pharmacy_products').doc(String(p.id)), pub);
+    batch.set(db.collection('pharmacy_stock').doc(String(p.id)), stock);
+}
+function startStockListener() {
+    if (!IS_ADMIN_PAGE || unsubStock || !db) return;
+    unsubStock = db.collection('pharmacy_stock').onSnapshot(snap => {
+        const m = {};
+        snap.forEach(doc => { m[doc.id] = doc.data(); });
+        stockMap = m;
+        if (cloudPub.length) { rebuildProducts(); saveLocal(); renderAll(); }
+    }, err => { console.warn('Stock listener:', err.message); });
+}
+function stopStockListener() {
+    if (unsubStock) { unsubStock(); unsubStock = null; }
+    stockMap = {};
+}
+
 async function initFirebase() {
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PUT_YOUR_API_KEY_HERE") {
         document.getElementById('syncBadge').innerText = "💾 محلي";
@@ -94,7 +149,7 @@ async function initFirebase() {
         // الفرض الصارم لبقاء تسجيل الدخول دائماً
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
-        auth.onAuthStateChanged(async (user) => {
+        if (IS_ADMIN_PAGE) auth.onAuthStateChanged(async (user) => {
             currentUser = user;
             const authBtn = document.getElementById('authBtn');
             if (user) {
@@ -107,11 +162,14 @@ async function initFirebase() {
                 if (snap.empty && products.length > 0) {
                     pushToCloud(false);
                 }
+                startStockListener();
                 setTimeout(autoMaintenance, 9000);   // نسخة احتياطية أسبوعية + تنظيف السلة والسجل
             } else {
                 document.body.classList.remove('admin-mode');
                 authBtn.innerHTML = ICONS.user;
                 authBtn.title = 'دخول الصيدلي';
+                stopStockListener();
+                if (cloudPub.length) { rebuildProducts(); renderAll(); }
             }
             if (currentOpenId) openSheet(currentOpenId);
         });
@@ -133,15 +191,9 @@ async function initFirebase() {
         // 2. مراقبة المنتجات والصور من السحابة (تحديث فوري لكل الأجهزة)
         db.collection('pharmacy_products').onSnapshot(snapshot => {
             if (!snapshot.empty) {
-                let cloudProducts = [];
-                snapshot.forEach(doc => {
-                    const d = doc.data();
-                    cloudProducts.push({
-                        ...d,
-                        meta: fixMetaOrder(d.meta)
-                    });
-                });
-                products = cloudProducts.sort((a, b) => b.id - a.id);
+                cloudPub = [];
+                snapshot.forEach(doc => { cloudPub.push(doc.data()); });
+                rebuildProducts();
                 saveLocal();
                 renderAll();
                 checkSharedProductUrl(); // ✅ يفتح المنتج المشارك فور وصوله من السحابة
@@ -190,8 +242,9 @@ async function saveSingleProductToCloud(product) {
     if (badge) badge.innerText = "⏳ جاري الحفظ...";
     
     try {
-        const cleanProduct = JSON.parse(JSON.stringify(product));
-        await db.collection('pharmacy_products').doc(cleanProduct.id.toString()).set(cleanProduct);
+        const wb = db.batch();
+        writeProductBatch(wb, product);
+        await wb.commit();
         if (badge) badge.innerText = "☁️ تم الحفظ";
         return true;
     } catch (err) {
@@ -227,8 +280,7 @@ async function pushToCloud(onlyMetadata = false) {
                     const batch = db.batch();
                     const chunk = products.slice(i, i + 20);
                     chunk.forEach(p => {
-                        const docRef = db.collection('pharmacy_products').doc(p.id.toString());
-                        batch.set(docRef, p);
+                        writeProductBatch(batch, p);
                     });
                     await batch.commit();
                 }
@@ -406,7 +458,7 @@ function renderBottomNav() {
         { key: 'rx', icon: '💊', name: tabLabels.rx },
         { key: 'cosmetic', icon: '✨', name: tabLabels.cosmetic },
         ...customTabs.map(t => ({ key: t.id, icon: t.icon || '🏷️', name: t.name })),
-        { key: 'out', icon: '⚠️', name: tabLabels.out }
+        ...(IS_ADMIN_PAGE ? [{ key: 'out', icon: '⚠️', name: tabLabels.out }] : [])
     ];
     if (!tabs.some(t => t.key === mainTab)) mainTab = 'all';   // تبويب محذوف
     nav.innerHTML = tabs.map(t => `
@@ -506,7 +558,7 @@ function renameSubCategory(index) {
             if (p.category === oldName) p.category = clean;
             if (extrasOf(p.extraCategories).includes(oldName)) p.extraCategories = p.extraCategories.map(x => x === oldName ? clean : x);
         });
-        if (activeSubCat === oldName) activeSubCat = clean;
+        if (filCats.has(oldName)) { filCats.delete(oldName); filCats.add(clean); }
         pushToCloud(false);
         renderManagerLists();
         renderAll();
@@ -630,6 +682,7 @@ function getFormBadge(item) {
 
 function renderDepartmentsBar() {
     const bar = document.getElementById('departmentsBar');
+    bar.style.display = departments.length > 1 ? '' : 'none';
     bar.innerHTML = departments.map(d => `
         <button class="dept-chip ${activeDept === d ? 'active' : ''}" onclick="selectDepartment('${d}')">
             🏥 ${d}
@@ -639,15 +692,13 @@ function renderDepartmentsBar() {
 
 function selectDepartment(d) {
     activeDept = d;
-    activeSubCat = 'الكل';
-    activeBrand = 'الكل';
+    clearFilterState();
     renderAll();
 }
 
 function setMainTab(tab) {
     mainTab = tab;
-    activeSubCat = 'الكل';
-    activeBrand = 'الكل';
+    clearFilterState();
     renderAll();   // الشريط السفلي يُعاد رسمه ويحدّد التبويب النشط تلقائياً
 }
 
@@ -663,55 +714,96 @@ function getBaseFilteredByTab() {
     });
 }
 
-function renderPills() {
-    const baseItems = getBaseFilteredByTab();
-    const availableCats = ['الكل', ...subCategories.filter(c => baseItems.some(p => catsOf(p).includes(c)))];
-    const bar = document.getElementById('pillsBar');
+// ---------------- نافذة التصفية الموحدة ----------------
+function brandOf(p) { return (p.brand || 'GENERIC').trim(); }
+function formOf(p) { return getFormBadge(p).txt; }
+function activeFilterCount() { return filCats.size + filBrands.size + filForms.size + (filInStock ? 1 : 0); }
 
-    bar.innerHTML = availableCats.map(c => {
-        const count = c === 'الكل' ? baseItems.length : baseItems.filter(x => catsOf(x).includes(c)).length;
-        const active = activeSubCat === c ? 'active' : '';
-        return `
-            <button class="pill ${active}" onclick="selectSubCat('${c}')">
-                <span>${c}</span>
-                <span class="pill-num">${count}</span>
-            </button>
-        `;
-    }).join('');
+// الأصناف بعد تطبيق القسم/التبويب والفلاتر والبحث (مرتبة بالأقرب أولاً عند البحث)
+function getFiltered(skipFilters) {
+    const qNorm = normSearch(document.getElementById('searchInput').value);
+    const qTokens = qNorm ? qNorm.split(' ') : [];
+    const scored = [];
+    getBaseFilteredByTab().forEach(p => {
+        if (!skipFilters) {
+            if (filCats.size && !catsOf(p).some(x => filCats.has(x))) return;
+            if (filBrands.size && !filBrands.has(brandOf(p))) return;
+            if (filForms.size && !filForms.has(formOf(p))) return;
+            if (filInStock && !isInStock(p)) return;
+        }
+        const s = searchScore(p, qNorm, qTokens);
+        if (s > 0) scored.push([p, s]);
+    });
+    if (qTokens.length) scored.sort((a, b) => b[1] - a[1]);
+    return scored.map(x => x[0]);
 }
 
-function selectSubCat(c) {
-    activeSubCat = c;
-    activeBrand = 'الكل';
-    renderAll();
+function renderFilterChips() {
+    const wrap = document.getElementById('activeFilters');
+    const btn = document.getElementById('filterBtnCount');
+    const n = activeFilterCount();
+    if (btn) { btn.innerText = n; btn.style.display = n ? 'flex' : 'none'; }
+    if (!wrap) return;
+    if (!n) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+    const chip = (kind, v) => `<button type="button" class="af-chip" onclick="removeFilter('${kind}', this.dataset.v)" data-v="${escapeHtml(v)}"><span>${escapeHtml(v)}</span><b>✕</b></button>`;
+    wrap.innerHTML = [...filCats].map(v => chip('cat', v)).join('') + [...filBrands].map(v => chip('brand', v)).join('') + [...filForms].map(v => chip('form', v)).join('') +
+        (filInStock ? `<button type="button" class="af-chip" onclick="removeFilter('stock')"><span>متوفر فقط</span><b>✕</b></button>` : '') +
+        `<button type="button" class="af-clear" onclick="resetFilters()">مسح الكل</button>`;
+    wrap.style.display = 'flex';
 }
-
-// دالة توليد شريط فلاتر الشركات المصنعة تلقائياً
-function renderBrands() {
-    const bar = document.getElementById('brandsBar');
-    if (!bar) return;
-
-    const baseItems = getBaseFilteredByTab().filter(p => activeSubCat === 'الكل' || catsOf(p).includes(activeSubCat));
-    
-    // استخراج أسماء الشركات الفريدة وترتيبها أبجدياً
-    const uniqueBrands = [...new Set(baseItems.map(p => (p.brand || 'GENERIC').trim()))].filter(Boolean).sort();
-    const allBrands = ['الكل', ...uniqueBrands];
-
-    bar.innerHTML = allBrands.map(b => {
-        const count = b === 'الكل' ? baseItems.length : baseItems.filter(x => (x.brand || 'GENERIC').trim() === b).length;
-        const active = activeBrand === b ? 'active' : '';
-        return `
-            <button class="brand-pill ${active}" onclick="selectBrand('${b.replace(/'/g, "\\'")}')">
-                <span dir="ltr">${b}</span>
-                <span class="pill-num">${count}</span>
-            </button>
-        `;
-    }).join('');
+function removeFilter(kind, v) {
+    if (kind === 'cat') filCats.delete(v); else if (kind === 'brand') filBrands.delete(v); else if (kind === 'form') filForms.delete(v); else filInStock = false;
+    renderAll(); if (isFilterSheetOpen()) renderFilterSheet();
 }
-
-function selectBrand(b) {
-    activeBrand = b;
-    renderAll();
+function resetFilters() { clearFilterState(); renderAll(); if (isFilterSheetOpen()) renderFilterSheet(); }
+function isFilterSheetOpen() { const s = document.getElementById('filterSheet'); return !!(s && s.classList.contains('open')); }
+function toggleFilter(kind, v) {
+    const set = kind === 'cat' ? filCats : kind === 'brand' ? filBrands : filForms;
+    if (set.has(v)) set.delete(v); else set.add(v);
+    renderAll(); renderFilterSheet();
+}
+function toggleInStockFilter() { filInStock = !filInStock; renderAll(); renderFilterSheet(); }
+let filterBrandQuery = '';
+function openFilterSheet() {
+    filterBrandQuery = '';
+    renderFilterSheet();
+    document.getElementById('filterBackdrop').classList.add('open');
+    document.getElementById('filterSheet').classList.add('open');
+}
+function closeFilterSheet() {
+    document.getElementById('filterBackdrop').classList.remove('open');
+    document.getElementById('filterSheet').classList.remove('open');
+}
+function onFilterBrandSearch(v) { filterBrandQuery = v; renderFilterSheet(true); }
+function renderFilterSheet(keepFocus) {
+    const box = document.getElementById('filterContent');
+    if (!box) return;
+    const base = getBaseFilteredByTab();
+    const group = (title, items, kind, set, extra) => items.length ? `
+        <div class="fs-group"><div class="fs-title">${title}</div>${extra || ''}
+        <div class="fs-chips">${items.map(([name, n]) => `<button type="button" class="fs-chip ${set.has(name) ? 'active' : ''}" onclick="toggleFilter('${kind}', this.dataset.v)" data-v="${escapeHtml(name)}"><span ${kind === 'brand' ? 'dir="ltr"' : ''}>${escapeHtml(name)}</span><b>${n}</b></button>`).join('')}</div></div>` : '';
+    const count = (arr, fn) => { const m = new Map(); arr.forEach(p => { const ks = fn(p); (Array.isArray(ks) ? ks : [ks]).forEach(k => m.set(k, (m.get(k) || 0) + 1)); }); return m; };
+    const cats = [...count(base, catsOf)].filter(([k]) => k).sort((a, b) => subCategories.indexOf(a[0]) - subCategories.indexOf(b[0]));
+    let brands = [...count(base, brandOf)].sort((a, b) => a[0].localeCompare(b[0]));
+    const forms = [...count(base, formOf)].sort((a, b) => b[1] - a[1]);
+    const showBrandSearch = brands.length > 10;
+    const bq = filterBrandQuery.trim().toLowerCase();
+    if (bq) brands = brands.filter(([k]) => k.toLowerCase().includes(bq) || filBrands.has(k));
+    const brandSearch = showBrandSearch ? `<input type="search" class="fs-search" placeholder="ابحث عن شركة..." value="${escapeHtml(filterBrandQuery)}" oninput="onFilterBrandSearch(this.value)">` : '';
+    const total = getFiltered().length;
+    box.innerHTML = `
+        <div class="fs-head"><h3>تصفية الأصناف</h3><button type="button" class="fs-x" onclick="closeFilterSheet()" aria-label="إغلاق">✕</button></div>
+        <div class="fs-body">
+            <button type="button" class="fs-switch ${filInStock ? 'on' : ''}" onclick="toggleInStockFilter()"><span>المتوفر فقط</span><i></i></button>
+            ${group('التصنيف', cats, 'cat', filCats)}
+            ${group('الشركة', brands, 'brand', filBrands, brandSearch)}
+            ${group('الشكل الدوائي', forms, 'form', filForms)}
+        </div>
+        <div class="fs-foot">
+            <button type="button" class="icon-btn" onclick="resetFilters()" ${activeFilterCount() ? '' : 'disabled'}>مسح الكل</button>
+            <button type="button" class="icon-btn primary-btn fs-apply" onclick="closeFilterSheet()">عرض ${total} صنف</button>
+        </div>`;
+    if (keepFocus) { const i = box.querySelector('.fs-search'); if (i) { i.focus(); const l = i.value.length; try { i.setSelectionRange(l, l); } catch (e) {} } }
 }
 
 function handleSearch() {
@@ -730,27 +822,13 @@ function clearSearch() {
 function renderAll() {
     renderBottomNav();
     renderDepartmentsBar();
-    renderPills();
-    renderBrands();
+    renderFilterChips();
     updateExpiryBadge(); // تحديث عداد جرس الصلاحية للصيدلي
 
     const tabTitle = getTabTitle();
     document.getElementById('sectionLabel').innerText = `${activeDept} • ${tabTitle}`;
 
-    const qNorm = normSearch(document.getElementById('searchInput').value);
-    const qTokens = qNorm ? qNorm.split(' ') : [];
-    const baseItems = getBaseFilteredByTab();
-
-    let scored = [];
-    baseItems.forEach(p => {
-        const matchCat = activeSubCat === 'الكل' || catsOf(p).includes(activeSubCat);
-        const matchBrand = activeBrand === 'الكل' || (p.brand || 'GENERIC').trim() === activeBrand;
-        if (!matchCat || !matchBrand) return;
-        const s = searchScore(p, qNorm, qTokens);
-        if (s > 0) scored.push([p, s]);
-    });
-    if (qTokens.length) scored.sort((a, b) => b[1] - a[1]);   // الأقرب أولاً (الترتيب ثابت للمتساوي)
-    const filtered = scored.map(x => x[0]);
+    const filtered = getFiltered();
 
     document.getElementById('countLabel').innerText = `${filtered.length} صنف`;
     const container = document.getElementById('itemsContainer');
@@ -760,15 +838,15 @@ function renderAll() {
         const outTab = mainTab === 'out' && !rawQ;
         container.innerHTML = `<div class="empty-state empty-wide">
             <div class="empty-ico">${outTab ? '🎉' : '🔎'}</div>
-            <div>${outTab ? 'لا توجد نواقص الآن' : rawQ ? 'لا توجد نتائج لـ «' + escapeHtml(rawQ) + '»' : 'لا توجد أصناف هنا بعد'}</div>
-            ${rawQ ? '<button type="button" class="empty-btn" onclick="clearSearch()">مسح البحث</button>' : ''}
+            <div>${outTab ? 'لا توجد نواقص الآن' : rawQ ? 'لا توجد نتائج لـ «' + escapeHtml(rawQ) + '»' : activeFilterCount() ? 'لا توجد أصناف تطابق الفلاتر المختارة' : 'لا توجد أصناف هنا بعد'}</div>
+            ${rawQ ? '<button type="button" class="empty-btn" onclick="clearSearch()">مسح البحث</button>' : (activeFilterCount() ? '<button type="button" class="empty-btn" onclick="resetFilters()">مسح الفلاتر</button>' : '')}
         </div>`;
         return;
     }
 
     container.innerHTML = filtered.map(p => {
         const badge = getFormBadge(p);
-        const dotCls = p.qty > 0 ? (isLowStock(p) ? 'status-dot low' : 'status-dot') : 'status-dot out';
+        const dotCls = isInStock(p) ? ((IS_ADMIN_PAGE && isLowStock(p)) ? 'status-dot low' : 'status-dot') : 'status-dot out';
         const cleanMeta = fixMetaOrder(p.meta);
         return `
             <div class="bento-card" onclick="openSheet(${p.id})">
@@ -780,13 +858,13 @@ function renderAll() {
                 <div class="bento-body">
                     <div class="bento-brand">${p.brand}</div>
                     <div class="bento-title">${p.name}</div>
-                    <div style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? Number(p.price).toLocaleString() + ' د.ع' : '0 د.ع'}</div>
+                    <div style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? Number(p.price).toLocaleString() + ' د.ع' : (IS_ADMIN_PAGE ? '0 د.ع' : '')}</div>
                     <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
-                    <div class="quick-qty" onclick="event.stopPropagation()">
+                    ${!IS_ADMIN_PAGE ? '' : `<div class="quick-qty" onclick="event.stopPropagation()">
                         <button type="button" aria-label="إنقاص الكمية" onclick="quickQty(${p.id}, -1, event)">−</button>
                         <span class="qs-num" id="qs_${p.id}">${Number(p.qty) || 0}</span>
                         <button type="button" aria-label="زيادة الكمية" onclick="quickQty(${p.id}, 1, event)">+</button>
-                    </div>
+                    </div>`}
                 </div>
             </div>
         `;
@@ -799,9 +877,10 @@ function openSheet(id) {
     const badge = getFormBadge(p);
     const cleanMeta = fixMetaOrder(p.meta);
     const formattedPrice = p.price ? Number(p.price).toLocaleString() : 0;
-    const stockTag = p.qty > 0 
-        ? `<span class="form-badge" style="background:#dcfce7; color:#15803d;">متوفر (${p.qty}) | ${formattedPrice} د.ع</span>`
-        : `<span class="form-badge" style="background:#fee2e2; color:#b91c1c;">نافذ (0) | ${formattedPrice} د.ع</span>`;
+    const priceTxt = p.price ? ' | ' + formattedPrice + ' د.ع' : (IS_ADMIN_PAGE ? ' | 0 د.ع' : '');
+    const stockTag = isInStock(p)
+        ? `<span class="form-badge" style="background:#dcfce7; color:#15803d;">متوفر${IS_ADMIN_PAGE ? ' (' + p.qty + ')' : ''}${priceTxt}</span>`
+        : `<span class="form-badge" style="background:#fee2e2; color:#b91c1c;">${IS_ADMIN_PAGE ? 'نافذ (0)' : 'غير متوفر'}${priceTxt}</span>`;
 
     // سطر تاريخ النفاذ داخل لوحة الصيدلي فقط
     const expDates = getProductExpiryDates(p);
@@ -864,7 +943,7 @@ function openSheet(id) {
             </button>
         </div>
 
-        <div class="sheet-admin-box">
+        ${!IS_ADMIN_PAGE ? '' : `<div class="sheet-admin-box">
             <div style="font-size:0.8rem; font-weight:800; color:#b45309; margin-bottom:4px;">⚙️ تحكم الصيدلي المباشر</div>
             ${lowInfo}${expiryInfo}
             <div class="admin-row">
@@ -878,7 +957,7 @@ function openSheet(id) {
                     <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteItem(${p.id})">🗑️ حذف</button>
                 </div>
             </div>
-        </div>
+        </div>`}
     `;
 
     document.getElementById('sheetBackdrop').classList.add('open');
@@ -1084,7 +1163,7 @@ async function removeListItem(kind, index) {
         }
     });
     list.splice(index, 1);
-    if (kind === 'cat' && activeSubCat === name) activeSubCat = 'الكل';
+    if (kind === 'cat') filCats.delete(name);
     if (kind === 'dept' && activeDept === name) activeDept = list[0];
     return true;
 }
@@ -1399,7 +1478,10 @@ function deleteItem(id) {
             
             if (isFirebaseReady && currentUser) {
                 try {
-                    await db.collection('pharmacy_products').doc(id.toString()).delete();
+                    const delB = db.batch();
+                    delB.delete(db.collection('pharmacy_products').doc(id.toString()));
+                    delB.delete(db.collection('pharmacy_stock').doc(id.toString()));
+                    await delB.commit();
                 } catch (e) {
                     console.warn("Delete Cloud Error:", e);
                 }
@@ -1917,8 +1999,8 @@ function getAlternatives(p) {
     return products
         .filter(x => x.id !== p.id && ingredientKey(x.activeIngredient) === key)
         .sort((a, b) => {
-            const sa = (parseInt(a.qty) || 0) > 0 ? 0 : 1;
-            const sb = (parseInt(b.qty) || 0) > 0 ? 0 : 1;
+            const sa = isInStock(a) ? 0 : 1;
+            const sb = isInStock(b) ? 0 : 1;
             if (sa !== sb) return sa - sb;                                  // المتوفر أولاً
             return (Number(a.price) || 1e12) - (Number(b.price) || 1e12);   // ثم الأرخص
         });
@@ -1932,7 +2014,7 @@ function buildAlternativesHtml(p) {
             <h4>بدائل بنفس المادة الفعالة (${alts.length})</h4>
             <div class="alt-list">
                 ${alts.map(a => {
-                    const inStock = (parseInt(a.qty) || 0) > 0;
+                    const inStock = isInStock(a);
                     const price = a.price ? Number(a.price).toLocaleString() + ' د.ع' : '';
                     return `
                     <div class="alt-item ${inStock ? '' : 'alt-out'}" onclick="openSheet(${a.id}); document.getElementById('bottomSheet').scrollTop = 0;">
@@ -1974,7 +2056,7 @@ async function saveProductsBatch(list) {
         for (let i = 0; i < list.length; i += 20) {
             const batch = db.batch();
             list.slice(i, i + 20).forEach(p => {
-                batch.set(db.collection('pharmacy_products').doc(p.id.toString()), JSON.parse(JSON.stringify(p)));
+                writeProductBatch(batch, p);
             });
             await batch.commit();
         }
@@ -3808,3 +3890,28 @@ function initIcons() {
     applyTheme(currentTheme());
 }
 initIcons();
+
+
+// ============================================================================
+// حماية بيانات المخزون: نقل الكمية والصلاحية إلى مجموعة خاصة بالصيدلي
+// ============================================================================
+function publicStockLeakCount() { return cloudPub.filter(d => STOCK_FIELDS.some(f => f in d)).length; }
+async function migrateStockPrivate() {
+    if (!cloudReady()) { Swal.fire({ icon: 'error', title: 'سجّل دخول الصيدلي أولاً', confirmButtonColor: '#0f1c38' }); return; }
+    if (!requireOnline()) return;
+    const leak = publicStockLeakCount();
+    const r = await Swal.fire({
+        icon: 'question', title: 'حماية بيانات المخزون',
+        html: `سيتم نقل <b>الكمية وحد التنبيه وتواريخ الصلاحية</b> إلى مجموعة خاصة بك فقط، ويبقى الزبون يرى «متوفر / غير متوفر» فقط.<br><br>عدد الأصناف التي ما زالت كمياتها ظاهرة للعامة: <b>${leak}</b> من ${products.length}.<br><small>تُنشأ نسخة احتياطية سحابية قبل البدء.</small>`,
+        showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'ابدأ الآن', cancelButtonText: 'إلغاء'
+    });
+    if (!r.isConfirmed) return;
+    try {
+        const ok = await createCloudBackup(true);
+        if (!ok) { await Swal.fire({ icon: 'error', title: 'تعذر إنشاء النسخة الاحتياطية', text: 'لن نبدأ النقل بدون نسخة احتياطية. تأكد من قواعد Firestore ثم أعد المحاولة.', confirmButtonColor: '#0f1c38' }); return; }
+        const saved = await saveProductsBatch(products.slice());
+        if (saved) await Swal.fire({ icon: 'success', title: 'تمت الحماية', text: 'صارت الكميات والصلاحيات خاصة بك. تحقق أن الأصناف ما زالت تظهر بشكل سليم.', confirmButtonColor: '#0f1c38' });
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'تعذر إكمال النقل', text: (e && e.message) || '', confirmButtonColor: '#0f1c38' });
+    }
+}

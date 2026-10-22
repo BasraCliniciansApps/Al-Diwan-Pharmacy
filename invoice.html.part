@@ -1,0 +1,83 @@
+<div id="invoicePage" class="invoice-page" dir="rtl" aria-hidden="true">
+    <div class="bill-toolbar no-print">
+        <button type="button" class="bill-tb-btn" onclick="closeInvoice()">→ رجوع</button>
+        <b class="bill-tb-title">🧾 فاتورة</b>
+        <button type="button" class="bill-tb-btn" onclick="newInvoice()">＋ جديدة</button>
+        <button type="button" class="bill-tb-btn bill-tb-primary" onclick="printInvoice()">🖨️ طباعة</button>
+    </div>
+
+    <div class="bill-scroll">
+        <div class="bill-sheet" id="billSheet">
+            <div class="bill-letterhead">
+                <img src="icon.jpg" alt="" class="bill-logo">
+                <div class="bill-ph">
+                    <div class="bill-ph-name">صيدلية الديوان</div>
+                    <div class="bill-ph-line" id="billPhLine1"></div>
+                    <div class="bill-ph-line" id="billPhLine2"></div>
+                </div>
+                <div class="bill-title-box">
+                    <div class="bill-title">فاتورة بيع</div>
+                    <label class="bill-no">رقم: <input id="billNo" dir="ltr" oninput="billChanged()"></label>
+                </div>
+            </div>
+
+            <div class="bill-meta">
+                <label class="bill-field bill-to"><span>إلى السيد / الشركة:</span><input id="billTo" placeholder="اكتب اسم الشركة" oninput="billChanged()"></label>
+                <label class="bill-field bill-date"><span>التاريخ:</span>
+                    <input type="date" id="billDate" class="bill-date-input" oninput="billChanged()">
+                    <span class="bill-date-txt" id="billDateTxt"></span>
+                </label>
+            </div>
+
+            <table class="bill-table">
+                <thead><tr><th class="c-n">#</th><th class="c-name">اسم المادة</th><th class="c-qty">العدد</th><th class="c-price">السعر</th><th class="c-sum">المجموع</th><th class="c-del no-print"></th></tr></thead>
+                <tbody id="billRows"></tbody>
+            </table>
+
+            <div class="bill-add no-print">
+                <div class="bill-search-wrap">
+                    <input type="search" id="billSearch" autocomplete="off" placeholder="🔍 ابحث عن مادة من الأصناف لإضافتها..." oninput="billSearchInput()" onkeydown="if(event.key==='Enter'){billAddFirstResult();}">
+                    <div class="bill-results" id="billResults" style="display:none;"></div>
+                </div>
+                <button type="button" class="bill-tb-btn" onclick="billAddBlank()">＋ سطر فارغ</button>
+            </div>
+
+            <div class="bill-bottom">
+                <div class="bill-totals">
+                    <div class="bill-trow"><span>مجموع المواد</span><b id="billSub">0</b></div>
+                    <div class="bill-trow bill-disc has-pv" id="billDiscRow"><span>الخصم</span><input type="number" min="0" inputmode="decimal" id="billDiscount" oninput="billChanged()" placeholder="0"><span class="bill-pv" id="billDiscTxt"></span></div>
+                    <div class="bill-trow bill-grand"><span>المبلغ الكلي</span><b id="billTotal">0</b></div>
+                    <div class="bill-trow bill-paid has-pv" id="billPaidRow"><span>المبلغ المدفوع</span><input type="number" min="0" inputmode="decimal" id="billPaid" oninput="billChanged()" placeholder="—"><span class="bill-pv" id="billPaidTxt"></span></div>
+                    <div class="bill-trow bill-rem" id="billRemRow"><span>المتبقي</span><b id="billRem">0</b></div>
+                </div>
+            </div>
+            <div class="bill-words" id="billWords"></div>
+
+            <div class="bill-parties">
+                <label class="bill-field"><span>اسم الزبون:</span><input id="billCustomer" oninput="billChanged()"></label>
+                <label class="bill-field"><span>اسم الطبيب:</span><input id="billDoctor" oninput="billChanged()"></label>
+            </div>
+            <label class="bill-field bill-notes"><span>ملاحظات:</span><textarea id="billNotes" rows="1" oninput="billChanged(); autoGrow(this)"></textarea></label>
+
+            <div class="bill-signs">
+                <div class="bill-sign"><div class="bill-sign-box" id="billSigBox"></div><div class="bill-sign-label">توقيع الصيدلاني</div></div>
+                <div class="bill-sign"><div class="bill-sign-box" id="billStampBox"></div><div class="bill-sign-label">ختم الصيدلية</div></div>
+            </div>
+            <div class="bill-foot" id="billFootTxt"></div>
+        </div>
+
+        <div class="bill-settings no-print">
+            <div class="bill-set-title">⚙️ بيانات الصيدلية على الفاتورة <small>(تُحفظ على هذا الجهاز)</small></div>
+            <label class="bill-field"><span>العنوان:</span><input id="setAddr" oninput="billSaveMeta()" placeholder="مثال: البصرة - ..."></label>
+            <label class="bill-field"><span>الهاتف:</span><input id="setPhone" dir="ltr" oninput="billSaveMeta()"></label>
+            <label class="bill-field"><span>اسم الصيدلاني / رقم الإجازة:</span><input id="setLic" oninput="billSaveMeta()" placeholder="اختياري"></label>
+            <label class="bill-field"><span>سطر أسفل الفاتورة:</span><input id="setFoot" oninput="billSaveMeta()" placeholder="مثال: شكراً لثقتكم — البضاعة المباعة لا تُرد"></label>
+            <div class="bill-set-imgs">
+                <label class="bill-tb-btn">🖋️ صورة التوقيع<input type="file" accept="image/*" hidden onchange="billPickImage('sig', this)"></label>
+                <label class="bill-tb-btn">🔵 صورة الختم<input type="file" accept="image/*" hidden onchange="billPickImage('stamp', this)"></label>
+                <button type="button" class="bill-tb-btn" onclick="billClearImages()">إزالة الصورتين</button>
+            </div>
+            <div class="bill-set-hint">إن تركت الصورتين فارغتين يبقى مكان التوقيع والختم فارغاً لتوقّع وتختم بيدك بعد الطباعة.</div>
+        </div>
+    </div>
+</div>

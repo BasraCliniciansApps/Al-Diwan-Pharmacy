@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>صيدلية الديوان | الدليل الدوائي التفاعلي</title>
+    <title>صيدلية الديوان | الدليل الدوائي</title>
     
     <!-- إعدادات تثبيت التطبيق على الآيفون والأندرويد (PWA) -->
     <link rel="manifest" href="manifest.json">
@@ -25,7 +25,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
-<body>
+<body class="customer">
 
     <header class="top-bar">
         <div class="top-bar-inner">
@@ -42,12 +42,14 @@
                     <span id="expiryBadgeCount" class="expiry-badge-dot" style="display:none;">0</span>
                 </button>
 
+                <button class="small-icon-btn admin-only" onclick="openInvoice()" title="فاتورة" aria-label="فاتورة" id="invoiceBtn">🧾</button>
                 <button class="small-icon-btn admin-only" onclick="openInventory()" title="وضع الجرد" aria-label="وضع الجرد" id="invBtn">📋</button>
                 <button class="small-icon-btn admin-only" onclick="openCategoryManager()" title="إعدادات الأقسام" aria-label="الإعدادات" id="gearBtn">⚙️</button>
                 <button class="small-icon-btn admin-only" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button>
             </div>
             
             <!-- 2. صف اسم الصيدلية والشعار (مستقل تماماً ولا يزاحمه شيء) -->
+            
             <div class="app-header-row">
                 <div class="app-logo">
                     <div class="logo-icon">
@@ -69,12 +71,14 @@
                     <button class="clear-search" id="clearSearchBtn" onclick="clearSearch()">✕</button>
                     <button type="button" class="bc-search-btn" onclick="scanBarcodeToSearch()" title="مسح باركود" aria-label="مسح باركود">▦</button>
                 </div>
+                <button type="button" class="filter-btn" onclick="openFilterSheet()" aria-label="تصفية">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+                    <span>تصفية</span><b id="filterBtnCount" style="display:none;">0</b>
+                </button>
             </div>
 
-            <!-- شريط التصنيفات الفرعية -->
-            <div class="pills-bar" id="pillsBar"></div>
-            <!-- شريط الشركات المصنعة (الجديد) -->
-            <div class="pills-bar brands-bar" id="brandsBar"></div>
+            <!-- الفلاتر المفعّلة (تظهر فقط عند وجود فلتر) -->
+            <div class="active-filters" id="activeFilters" style="display:none;"></div>
         </div>
     </header>
 
@@ -93,6 +97,13 @@
     <div class="bottom-sheet" id="bottomSheet">
         <div class="sheet-handle"></div>
         <div id="sheetContent"></div>
+    </div>
+
+    <!-- نافذة التصفية الموحدة -->
+    <div class="sheet-backdrop" id="filterBackdrop" onclick="closeFilterSheet()"></div>
+    <div class="bottom-sheet filter-sheet" id="filterSheet" role="dialog" aria-label="تصفية الأصناف">
+        <div class="sheet-handle"></div>
+        <div id="filterContent"></div>
     </div>
 
     <!-- شريط التنقل السفلي -->
@@ -209,6 +220,7 @@
                     <button class="icon-btn" onclick="openTrashModal()">🗑️ سلة المحذوفات</button>
                     <button class="icon-btn" onclick="openLogModal()">📜 سجل التعديلات</button>
                     <button class="icon-btn" onclick="openCloudBackupsModal()">☁️ النسخ السحابية</button>
+                    <button class="icon-btn" onclick="migrateStockPrivate()" style="grid-column:1/-1;">🔒 حماية بيانات المخزون (إخفاء الكميات عن الزبائن)</button>
                 </div>
                 <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">الحذف ينقل الصنف للسلة 30 يوماً. تُنشأ نسخة سحابية تلقائياً كل 7 أيام عند دخولك، ويُحتفظ بآخر 4 نسخ.</p>
             </div>
@@ -451,8 +463,11 @@
         </div>
     </div>
 
+
+    <script>window.APP_MODE='customer';</script>
     <script src="seed.js"></script>
     <script src="data.js"></script>
+
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});

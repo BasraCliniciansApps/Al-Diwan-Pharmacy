@@ -6,14 +6,14 @@
    - طلبات Firebase وGitHub API لا يتدخل فيها أبداً
    لإجبار كل الأجهزة على تحديث الكاش: غيّر رقم VERSION
    ===================================================== */
-const VERSION = 'diwan-v7';
+const VERSION = 'diwan-v8';
 const SHELL_CACHE = VERSION + '-shell';
 const LIB_CACHE = VERSION + '-lib';
 const IMG_CACHE = VERSION + '-img';
 const MAX_IMAGES = 600;
 const NETWORK_TIMEOUT_MS = 4000;
 
-const SHELL_FILES = ['./', './index.html', './style.css', './data.js', './seed.js', './manifest.json', './icon.jpg'];
+const SHELL_FILES = ['./', './index.html', './style.css', './data.js', './seed.js', './admin.html', './invoice.js', './manifest-admin.json', './manifest.json', './icon.jpg'];
 
 const CDN_FILES = [
     'https://cdn.jsdelivr.net/npm/sweetalert2@11',
