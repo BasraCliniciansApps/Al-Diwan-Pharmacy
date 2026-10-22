@@ -131,7 +131,10 @@ function startStockListener() {
         snap.forEach(doc => { m[doc.id] = doc.data(); });
         stockMap = m;
         if (cloudPub.length) { rebuildProducts(); saveLocal(); renderAll(); }
-    }, err => { console.warn('Stock listener:', err.message); });
+    }, err => { console.warn('Stock listener:', err.message); if (unsubStock) { try { unsubStock(); } catch (e) { /* تجاهل */ } } unsubStock = null; setTimeout(() => { if (currentUser) startStockListener(); }, 4000); });   // إعادة التشغيل إن انقطع
+}
+function syncStockLocal(list) {   // بعد نجاح الحفظ نحدّث نسخة المخزون محلياً فوراً (لا ننتظر المراقب)
+    (list || []).forEach(p => { stockMap[String(p.id)] = splitProduct(p).stock; });
 }
 function stopStockListener() {
     if (unsubStock) { unsubStock(); unsubStock = null; }
@@ -263,6 +266,7 @@ async function saveSingleProductToCloud(product) {
         const wb = db.batch();
         writeProductBatch(wb, product);
         await wb.commit();
+        syncStockLocal([product]);
         setSyncText("☁️ تم الحفظ");
         return true;
     } catch (err) {
@@ -992,7 +996,7 @@ function openSheet(id) {
 
         ${!IS_ADMIN_PAGE ? '' : `<div class="sheet-admin-box">
             <div style="font-size:0.8rem; font-weight:800; color:#b45309; margin-bottom:4px;">⚙️ تحكم الصيدلي المباشر</div>
-            ${lowInfo}${expiryInfo}
+            ${lowInfo}${expiryInfo}${typeof lastPurchaseHtml === 'function' ? lastPurchaseHtml(p) : ''}
             <div class="admin-row">
                 <div class="qty-control-lg">
                     <button onclick="updateItemQty(${p.id}, -1)">-</button>
@@ -2124,6 +2128,7 @@ async function saveProductsBatch(list) {
             });
             await batch.commit();
         }
+        syncStockLocal(list);
         setSyncText('☁️ تم الحفظ');
         return true;
     } catch (err) {

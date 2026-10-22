@@ -60,6 +60,20 @@ function puSupplierNames() {
     return [...set.values()].sort((a, b) => a.localeCompare(b, 'ar'));
 }
 
+// ---------- آخر وارد للصنف (يظهر في بطاقة الصنف للصيدلي) ----------
+function puLinesOf(pid) {
+    const src = (puAll && puAll.length) ? puAll : puLocalList();
+    const out = [];
+    src.filter(r => r && !r.cancelled).forEach(r => (r.items || []).filter(l => l.pid === pid).forEach(l => out.push({ r, l })));
+    return out.sort((a, b) => String(b.r.date).localeCompare(String(a.r.date)) || String(b.r.createdTs).localeCompare(String(a.r.createdTs)));
+}
+function lastPurchaseHtml(p) {
+    const arr = puLinesOf(p.id);
+    if (!arr.length) return '<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📥 لا يوجد وارد مسجّل لهذا الصنف</div>';
+    const row = (x, first) => `<div style="${first ? 'font-weight:800;color:#065f46;' : 'font-size:0.74rem;color:#64748b;'}">${first ? '📥 آخر وارد: ' : '• '}<b>${escapeHtml(x.r.supplier)}</b> — ${escapeHtml(fmtDateDMY(x.r.date))} — ${fmtNum(x.l.qty)} عبوة${x.l.cost ? ' × ' + fmtNum(x.l.cost) : ''} — فاتورة <span dir="ltr">${escapeHtml(x.r.no)}</span>${x.l.batch ? ' — دفعة <span dir="ltr">' + escapeHtml(x.l.batch) + '</span>' : ''}</div>`;
+    return `<div style="font-size:0.78rem; margin-bottom:8px; padding:6px 8px; border-radius:8px; background:#ecfdf5;">${row(arr[0], true)}${arr.slice(1, 4).map(x => row(x, false)).join('')}</div>`;
+}
+
 // ---------- التبويبات ----------
 function puTab(name) {
     puTabName = name;
@@ -249,6 +263,14 @@ async function puSave() {
     const touched = [...snaps.values()].map(s => s.p);
     const ok = await saveProductsBatch(touched);
     if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; }); renderAll(); return; }
+    // تحقق من وصول الكميات للسحابة فعلاً
+    try {
+        if (cloudReady()) {
+            const bad = [];
+            for (const sn of snaps.values()) { const d = await db.collection('pharmacy_stock').doc(String(sn.p.id)).get(); const data = d.exists ? d.data() : null; if (!data || (parseInt(data.qty) || 0) !== (parseInt(sn.p.qty) || 0)) bad.push(sn.p.name); }
+            if (bad.length) Swal.fire({ icon: 'warning', title: 'تنبيه: لم تصل بعض الكميات للسحابة', text: 'الأصناف: ' + bad.join('، ') + '. تأكد من قواعد pharmacy_stock ومن الاتصال ثم أعد المحاولة.', confirmButtonColor: '#0f1c38' });
+        }
+    } catch (e) { /* تجاهل */ }
     lines.forEach(l => { const p = products.find(x => x.id === l.pid); const old = oldBy.get(l.pid); logAction('qty', p, [{ f: 'الكمية (' + (editing ? 'تعديل وارد ' : 'وارد ') + no + ' - ' + supplier + ')', from: String(old ? old.qty : l.prevQty), to: String(old ? l.qty : l.prevQty + l.qty) }]); });
     const paid = Math.min(puNum(pu.paid), Math.max(total - ret, 0));
     let rec;
