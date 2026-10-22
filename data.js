@@ -485,8 +485,25 @@ function openCategoryManager() {
     alertMonths.forEach((m, i) => { const el = document.getElementById('alertM' + (i + 1)); if (el) el.value = m; });
     { const w = document.getElementById('puWindowInput'); if (w && typeof puWindowMonths === 'function') w.value = puWindowMonths(); }
     loadAiSettingsToForm();
+    setupSettingsAccordion();
     document.getElementById('catModal').style.display = 'flex';
 }
+// أقسام الإعدادات قابلة للطي (مطويّة افتراضياً)
+function setupSettingsAccordion() {
+    document.querySelectorAll('#catModal .cat-manager-box').forEach(box => {
+        if (box.dataset.acc) return; box.dataset.acc = '1';
+        const h = box.querySelector('h4'); if (!h) return;
+        const body = document.createElement('div'); body.className = 'cmb-body';
+        while (h.nextSibling) body.appendChild(h.nextSibling);
+        box.appendChild(body);
+        h.classList.add('cmb-head'); h.setAttribute('role', 'button'); h.tabIndex = 0;
+        h.innerHTML = '<span>' + h.innerHTML + '</span><i class="cmb-chev">▾</i>';
+        const tog = () => box.classList.toggle('open');
+        h.addEventListener('click', tog);
+        h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog(); } });
+    });
+}
+function openSettingsSection(id) { setupSettingsAccordion(); const b = document.getElementById(id); if (b) b.classList.add('open'); }
 
 function closeCategoryManager() {
     document.getElementById('catModal').style.display = 'none';
@@ -3382,6 +3399,7 @@ function openAiSettingsOverForm() {
     openCategoryManager();
     const modal = document.getElementById('catModal');
     if (modal) modal.style.zIndex = '1100';
+    openSettingsSection('aiSettingsBox');
     const box = document.getElementById('aiSettingsBox');
     if (box && box.scrollIntoView) box.scrollIntoView({ block: 'start' });
 }
