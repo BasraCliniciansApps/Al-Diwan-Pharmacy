@@ -1,7 +1,7 @@
 // =====================================================================
 // فاتورة الصيدلية (للصيدلي فقط) — جاهزة للطباعة A4
 // =====================================================================
-const BILL_LS = { draft: 'diwanInvoiceDraft', seq: 'diwanInvoiceSeq', meta: 'diwanInvoiceMeta', sig: 'diwanInvoiceSig', stamp: 'diwanInvoiceStamp' };
+const BILL_LS = { list: 'diwanInvoicesLocal', draft: 'diwanInvoiceDraft', seq: 'diwanInvoiceSeq', meta: 'diwanInvoiceMeta', sig: 'diwanInvoiceSig', stamp: 'diwanInvoiceStamp' };
 let bill = null;
 let billSaveTimer = null;
 
@@ -27,7 +27,7 @@ function nextInvoiceNumber(peek) {
     return 'INV-' + String(n).padStart(4, '0');
 }
 function emptyInvoice() {
-    return { no: nextInvoiceNumber(true), to: '', date: todayLocalISO(), items: [], discount: '', paid: '', customer: '', doctor: '', notes: '' };
+    return { id: '', no: nextInvoiceNumber(true), to: '', date: todayLocalISO(), items: [], discount: '', paid: '', customer: '', doctor: '', notes: '', issued: false, deduct: true };
 }
 
 // ---------- تفقيط المبلغ بالعربية ----------
@@ -77,6 +77,7 @@ function readInvoiceFields() {
     bill.no = v('billNo'); bill.to = v('billTo'); bill.date = v('billDate');
     bill.discount = v('billDiscount'); bill.paid = v('billPaid');
     bill.customer = v('billCustomer'); bill.doctor = v('billDoctor'); bill.notes = v('billNotes');
+    bill.deduct = document.getElementById('billDeduct').checked;
 }
 function writeInvoiceFields() {
     const set = (id, val) => { document.getElementById(id).value = val == null ? '' : val; };
@@ -84,6 +85,18 @@ function writeInvoiceFields() {
     set('billDiscount', bill.discount); set('billPaid', bill.paid);
     set('billCustomer', bill.customer); set('billDoctor', bill.doctor); set('billNotes', bill.notes);
     autoGrow(document.getElementById('billNotes'));
+    document.getElementById('billDeduct').checked = bill.deduct !== false;
+    updateIssuedUI();
+}
+function updateIssuedUI() {
+    const note = document.getElementById('billIssuedNote'), btn = document.getElementById('billIssueBtn'), chk = document.getElementById('billDeduct');
+    if (bill.issued) {
+        note.style.display = 'block';
+        note.innerText = '✅ صدرت هذه الفاتورة' + (bill.issuedAt ? ' بتاريخ ' + fmtDateDMY(String(bill.issuedAt).slice(0, 10)) : '') + (bill.deducted ? ' وتم خصم الكميات من المخزون.' : ' (بدون خصم من المخزون).');
+        btn.innerText = '🖨️ طباعة نسخة'; chk.disabled = true;
+    } else {
+        note.style.display = 'none'; btn.innerText = '✅ إصدار وطباعة'; chk.disabled = false;
+    }
 }
 function autoGrow(el) { if (!el) return; el.style.height = 'auto'; el.style.height = Math.max(el.scrollHeight, 28) + 'px'; }
 
@@ -167,11 +180,11 @@ function billAddFirstResult() { if (billFound.length) billAddProduct(billFound[0
 // ---------- بيانات الصيدلية والصور ----------
 function defaultInvMeta() {
     const w = String(typeof PHARMACY_WHATSAPP !== 'undefined' ? PHARMACY_WHATSAPP : '').replace(/^964/, '0');
-    return { addr: '', phone: w.length === 11 ? `${w.slice(0, 4)} ${w.slice(4, 7)} ${w.slice(7)}` : w, lic: '', foot: 'شكراً لثقتكم بصيدلية الديوان' };
+    return { addr: '', phone: w.length === 11 ? `${w.slice(0, 4)} ${w.slice(4, 7)} ${w.slice(7)}` : w, lic: '', ret: 'الأدوية المباعة لا تُرد ولا تُستبدل بعد الاستلام', foot: 'شكراً لثقتكم بصيدلية الديوان' };
 }
 function getInvMeta() { try { return { ...defaultInvMeta(), ...(JSON.parse(lsGet(BILL_LS.meta)) || {}) }; } catch (e) { return defaultInvMeta(); } }
 function billSaveMeta() {
-    lsSet(BILL_LS.meta, JSON.stringify({ addr: document.getElementById('setAddr').value, phone: document.getElementById('setPhone').value, lic: document.getElementById('setLic').value, foot: document.getElementById('setFoot').value }));
+    lsSet(BILL_LS.meta, JSON.stringify({ addr: document.getElementById('setAddr').value, phone: document.getElementById('setPhone').value, lic: document.getElementById('setLic').value, ret: document.getElementById('setRet').value, foot: document.getElementById('setFoot').value }));
     renderInvMeta();
 }
 function renderInvMeta() {
@@ -179,6 +192,7 @@ function renderInvMeta() {
     document.getElementById('billPhLine1').innerText = m.addr || '';
     document.getElementById('billPhLine2').innerText = [m.phone ? 'هاتف: ' + m.phone : '', m.lic].filter(Boolean).join('  |  ');
     document.getElementById('billFootTxt').innerText = m.foot || '';
+    document.getElementById('billRetTxt').innerText = m.ret ? 'سياسة الإرجاع: ' + m.ret : '';
 }
 function renderInvImages() {
     const put = (boxId, key) => {
@@ -215,7 +229,7 @@ function openInvoice() {
     if (!bill || !Array.isArray(bill.items)) bill = emptyInvoice();
     const m = getInvMeta();
     document.getElementById('setAddr').value = m.addr; document.getElementById('setPhone').value = m.phone;
-    document.getElementById('setLic').value = m.lic; document.getElementById('setFoot').value = m.foot;
+    document.getElementById('setLic').value = m.lic; document.getElementById('setFoot').value = m.foot; document.getElementById('setRet').value = m.ret;
     writeInvoiceFields(); renderInvoiceRows(); renderInvMeta(); renderInvImages();
     const pg = document.getElementById('invoicePage');
     pg.classList.add('open'); pg.setAttribute('aria-hidden', 'false');
@@ -228,9 +242,8 @@ function closeInvoice() {
     document.body.classList.remove('invoice-open');
 }
 function newInvoice() {
-    const hasData = bill && (bill.items.length || bill.to || bill.customer || bill.doctor);
+    const hasData = bill && !bill.issued && (bill.items.length || bill.to || bill.customer || bill.doctor);
     const go = () => {
-        nextInvoiceNumber(false);               // ترقيم الفاتورة المنتهية
         bill = emptyInvoice();
         lsSet(BILL_LS.draft, JSON.stringify(bill));
         writeInvoiceFields(); renderInvoiceRows();
@@ -239,7 +252,7 @@ function newInvoice() {
     Swal.fire({ icon: 'question', title: 'فاتورة جديدة؟', text: 'سيتم مسح الفاتورة الحالية.', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم، جديدة', cancelButtonText: 'إلغاء' })
         .then(r => { if (r.isConfirmed) go(); });
 }
-function printInvoice() {
+function printInvoice(draftOnly) {
     readInvoiceFields();
     if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'أضف مادة واحدة على الأقل قبل الطباعة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     lsSet(BILL_LS.draft, JSON.stringify(bill));
@@ -248,4 +261,92 @@ function printInvoice() {
     const done = () => { document.body.classList.remove('printing-invoice'); window.removeEventListener('afterprint', done); };
     window.addEventListener('afterprint', done);
     setTimeout(() => { window.print(); setTimeout(done, 1500); }, 50);
+}
+
+// ---------- إصدار الفاتورة: حفظ + خصم من المخزون + طباعة ----------
+function billSeqBump(no) {
+    const n = parseInt(String(no).replace(/\D/g, '')) || 0;
+    if (n > (parseInt(lsGet(BILL_LS.seq)) || 0)) lsSet(BILL_LS.seq, String(n));
+}
+function billStockLines() {
+    const lines = [];
+    bill.items.forEach(it => {
+        const need = parseFloat(it.qty) || 0;
+        const p = it.pid ? products.find(x => x.id === it.pid) : null;
+        if (p && need > 0) lines.push({ p, need, have: parseInt(p.qty) || 0 });
+    });
+    return lines;
+}
+async function issueInvoice() {
+    readInvoiceFields();
+    if (bill.issued) { printInvoice(); return; }
+    if (!bill.items.length) { printInvoice(); return; }   // يعرض تنبيه القائمة الفارغة
+    const t = billTotals();
+    const deduct = bill.deduct !== false;
+    const lines = deduct ? billStockLines() : [];
+    const short = lines.filter(l => l.have < l.need);
+    const manual = bill.items.filter(it => !it.pid).length;
+    const r = await Swal.fire({
+        icon: 'question', title: 'إصدار الفاتورة ' + escapeHtml(bill.no),
+        html: `المبلغ الكلي: <b>${fmtNum(t.total)} د.ع</b><br>` +
+            (deduct ? `سيتم خصم الكميات من المخزون (${lines.length} مادة).` : 'بدون خصم من المخزون.') +
+            (manual && deduct ? `<br><small>${manual} سطر مكتوب يدوياً لن يُخصم لأنه غير مرتبط بصنف.</small>` : '') +
+            (short.length ? `<div style="margin-top:10px;color:#b45309;font-weight:700;font-size:.85rem;">⚠️ كميات غير كافية في المخزون:<br>${short.map(l => escapeHtml(l.p.name) + ' (المتوفر ' + l.have + '، المطلوب ' + l.need + ')').join('<br>')}<br><small>ستصبح الكمية 0.</small></div>` : ''),
+        showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'إصدار وطباعة', cancelButtonText: 'إلغاء'
+    });
+    if (!r.isConfirmed) return;
+    if (deduct && lines.length) {
+        if (!requireOnline()) return;
+        const changed = [];
+        lines.forEach(l => { const to = Math.max(0, l.have - l.need); if (to !== l.have) changed.push({ p: l.p, from: l.have, to }); });
+        changed.forEach(c => { c.p.qty = c.to; });
+        const ok = await saveProductsBatch(changed.map(c => c.p));
+        if (!ok) { changed.forEach(c => { c.p.qty = c.from; }); renderAll(); return; }
+        changed.forEach(c => logAction('qty', c.p, [{ f: 'الكمية (فاتورة ' + bill.no + ')', from: String(c.from), to: String(c.to) }]));
+        renderAll();
+    }
+    bill.issued = true; bill.issuedAt = new Date().toISOString(); bill.deducted = !!(deduct && lines.length);
+    bill.id = bill.id || String(Date.now());
+    billSeqBump(bill.no);
+    lsSet(BILL_LS.draft, JSON.stringify(bill));
+    await saveInvoiceRecord(bill);
+    updateIssuedUI();
+    printInvoice();
+}
+
+// ---------- أرشيف الفواتير ----------
+async function saveInvoiceRecord(b) {
+    const t = billTotals();
+    const rec = JSON.parse(JSON.stringify({ ...b, total: t.total }));
+    let list = [];
+    try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
+    list = list.filter(x => x.id !== rec.id); list.unshift(rec);
+    lsSet(BILL_LS.list, JSON.stringify(list.slice(0, 200)));
+    if (cloudReady() && navigator.onLine) {
+        try { await db.collection('pharmacy_invoices').doc(rec.id).set(rec); }
+        catch (e) { Swal.fire({ icon: 'warning', title: 'حُفظت الفاتورة على هذا الجهاز فقط', text: 'أضف قاعدة pharmacy_invoices إلى قواعد Firestore لتُحفظ في السحابة أيضاً.', confirmButtonColor: '#0f1c38' }); }
+    }
+}
+async function openInvoicesList() {
+    const map = new Map();
+    try { (JSON.parse(lsGet(BILL_LS.list)) || []).forEach(x => x && x.id && map.set(x.id, x)); } catch (e) { /* تجاهل */ }
+    if (cloudReady() && navigator.onLine) {
+        try { const snap = await db.collection('pharmacy_invoices').orderBy('issuedAt', 'desc').limit(100).get(); snap.forEach(d => { const x = d.data(); if (x && x.id) map.set(x.id, x); }); } catch (e) { /* تجاهل */ }
+    }
+    const arr = [...map.values()].sort((a, b) => String(b.issuedAt).localeCompare(String(a.issuedAt)));
+    window.__bills = arr;
+    const rows = arr.map((b, i) => `
+        <div class="sec-row" onclick="billOpenSaved(${i})" style="cursor:pointer;">
+            <div class="sec-main"><b dir="ltr">${escapeHtml(b.no || '')}</b> — ${escapeHtml(b.to || b.customer || 'بدون اسم')}<small>${escapeHtml(fmtDateDMY(b.date))} • ${fmtNum(b.total)} د.ع • ${(b.items || []).length} مادة</small></div>
+            <span class="sec-btn">فتح</span>
+        </div>`).join('');
+    Swal.fire({ title: '📚 الفواتير المحفوظة', html: `<div class="sec-list">${rows || '<div class="sec-empty">لا توجد فواتير صادرة بعد.</div>'}</div>`, confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
+}
+function billOpenSaved(i) {
+    const b = (window.__bills || [])[i];
+    if (!b) return;
+    if (typeof Swal !== 'undefined' && Swal.close) Swal.close();
+    bill = JSON.parse(JSON.stringify(b));
+    lsSet(BILL_LS.draft, JSON.stringify(bill));
+    writeInvoiceFields(); renderInvoiceRows();
 }

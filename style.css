@@ -1494,3 +1494,12 @@ body.invoice-open { overflow: hidden; }
 .admin-top-strip { flex-wrap: nowrap; gap: 5px; }
 body.admin-page .small-icon-btn { width: 38px; }
 body.admin-page .sync-icon-badge { padding: 0 6px; }
+
+.swal2-container { z-index: 3000 !important; }
+.bill-ret { margin-top: 12px; font-size: 0.8rem; font-weight: 700; color: #334155; text-align: center; }
+.bill-ret:empty { display: none; }
+.bill-issued { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #dcfce7; color: #166534; font-weight: 800; font-size: 0.85rem; }
+.bill-opts { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+.bill-check { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; color: #0f1c38; }
+.bill-check input { width: 20px; height: 20px; }
+@media (max-width: 560px) { .bill-toolbar .bill-tb-btn { padding: 0 10px; font-size: 0.8rem; } }
