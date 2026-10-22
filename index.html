@@ -191,6 +191,50 @@
                 <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">النسخة تحفظ الأصناف والأقسام والإعدادات. الصور تبقى في GitHub ولا تدخل في النسخة.</p>
             </div>
 
+            <div class="cat-manager-box" id="aiSettingsBox" style="margin-top:16px;">
+                <h4>6. الذكاء الصناعي لمسح العبوة (إعدادات هذا الجهاز)</h4>
+                <div class="form-group">
+                    <label>محرك القراءة:</label>
+                    <select id="aiEngineSelect" onchange="setAiEngine(this.value)">
+                        <option value="local">قراءة عادية بدون ذكاء (Tesseract)</option>
+                        <option value="gemini">Gemini API — بمفتاح من AI Studio (الأسهل)</option>
+                        <option value="firebase">Firebase AI Logic — بدون مفتاح داخل التطبيق</option>
+                    </select>
+                </div>
+
+                <div id="aiGeminiBox" style="display:none;">
+                    <div class="form-group">
+                        <label>مفتاح Gemini API (من aistudio.google.com):</label>
+                        <div class="add-inline-row">
+                            <input type="password" id="aiGeminiKey" dir="ltr" autocomplete="off" spellcheck="false" placeholder="الصق المفتاح هنا">
+                            <button type="button" class="icon-btn" onclick="toggleAiKeyVisible()" title="إظهار / إخفاء">👁</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>النموذج:</label>
+                        <div class="add-inline-row">
+                            <input type="text" id="aiGeminiModel" dir="ltr" list="aiModelList" placeholder="gemini-3.8-flash">
+                            <button type="button" class="icon-btn" onclick="loadGeminiModels()">جلب القائمة</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="aiFirebaseBox" style="display:none;">
+                    <div class="form-group">
+                        <label>النموذج:</label>
+                        <input type="text" id="aiFbModel" dir="ltr" list="aiModelList" placeholder="gemini-3.8-flash">
+                    </div>
+                    <p id="aiAppCheckNote" class="ai-note"></p>
+                </div>
+
+                <div class="tools-grid">
+                    <button type="button" class="icon-btn" onclick="saveAiSettings()">💾 حفظ الإعدادات</button>
+                    <button type="button" class="icon-btn" onclick="testAiConnection()">🧪 اختبار الاتصال</button>
+                </div>
+                <p id="aiTestResult" class="ai-test-result"></p>
+                <p class="ai-note">الإعدادات والمفتاح يُحفظان على هذا الجهاز فقط، ولا يُرفعان للسحابة ولا يدخلان النسخة الاحتياطية. عند استعمال الذكاء الصناعي تُرسل صورة العبوة إلى جوجل (والطبقة المجانية قد تُستخدم لتحسين منتجاتها)، فلا تصوّر أي شيء يخص الزبائن. الذكاء الصناعي قد يخطئ، فراجع الاسم والتركيز والمادة الفعالة قبل الحفظ.</p>
+            </div>
+
             <div class="modal-actions-row" style="margin-top:18px;">
                 <button class="icon-btn" onclick="closeCategoryManager()">إغلاق</button>
             </div>
@@ -205,8 +249,14 @@
             <div class="scan-box">
                 <label class="icon-btn scan-btn" for="scanInput">📷 مسح العبوة بالكاميرا</label>
                 <input type="file" id="scanInput" accept="image/*" capture="environment" hidden onchange="scanProductImage(event)">
+                <select id="scanEngineSelect" class="scan-engine-select" onchange="setAiEngine(this.value)" title="محرك القراءة">
+                    <option value="local">قراءة عادية (بدون ذكاء)</option>
+                    <option value="gemini">Gemini API</option>
+                    <option value="firebase">Firebase AI Logic</option>
+                </select>
+                <button type="button" class="icon-btn scan-gear" onclick="openAiSettingsOverForm()" title="إعدادات الذكاء الصناعي">⚙️</button>
                 <span id="scanStatus" class="scan-status"></span>
-                <small class="scan-hint">صوّر واجهة العبوة بإضاءة جيدة، وسيقرأ التطبيق الاسم والتركيز والشكل والصلاحية. راجع القيم دائماً قبل الحفظ.</small>
+                <small class="scan-hint" id="scanHint">صوّر واجهة العبوة بإضاءة جيدة، وسيقرأ التطبيق الاسم والتركيز والشكل والصلاحية. راجع القيم دائماً قبل الحفظ.</small>
             </div>
             <div class="form-group">
                 <label>القسم الرئيسي:</label>
@@ -269,6 +319,12 @@
     </div>
 
     <datalist id="activeList"></datalist>
+    <datalist id="aiModelList">
+        <option value="gemini-3.8-flash"></option>
+        <option value="gemini-3.6-flash"></option>
+        <option value="gemini-3.5-flash-lite"></option>
+        <option value="gemini-3.1-flash-lite"></option>
+    </datalist>
 
     <!-- نافذة إكمال المواد الفعالة -->
     <div class="modal-overlay" id="ingModal">

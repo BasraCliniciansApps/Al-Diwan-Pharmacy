@@ -6,7 +6,7 @@
    - طلبات Firebase وGitHub API لا يتدخل فيها أبداً
    لإجبار كل الأجهزة على تحديث الكاش: غيّر رقم VERSION
    ===================================================== */
-const VERSION = 'diwan-v2';
+const VERSION = 'diwan-v3';
 const SHELL_CACHE = VERSION + '-shell';
 const LIB_CACHE = VERSION + '-lib';
 const IMG_CACHE = VERSION + '-img';
@@ -164,6 +164,9 @@ self.addEventListener('fetch', (event) => {
         event.respondWith(cacheFirstImage(req));
         return;
     }
+
+    // سكربتات reCAPTCHA (لـ App Check) تمر مباشرة: لا نخزّنها حتى لا تتقادم
+    if (url.hostname === 'www.gstatic.com' && url.pathname.indexOf('/recaptcha') === 0) return;
 
     if (LIB_HOSTS.includes(url.hostname)) {
         event.respondWith(staleWhileRevalidate(req, LIB_CACHE));

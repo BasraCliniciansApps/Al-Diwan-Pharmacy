@@ -489,11 +489,13 @@ function openCategoryManager() {
     renderManagerLists();
     const lowInput = document.getElementById('lowThresholdInput');
     if (lowInput) lowInput.value = lowStockThreshold;
+    loadAiSettingsToForm();
     document.getElementById('catModal').style.display = 'flex';
 }
 
 function closeCategoryManager() {
     document.getElementById('catModal').style.display = 'none';
+    document.getElementById('catModal').style.zIndex = '';
 }
 
 function renderManagerLists() {
@@ -1018,6 +1020,7 @@ function openFormModal(id = null) {
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = '';
         setExpiryDatesInForm([]);
     }
+    refreshScanEngineLabel();
     modal.style.display = 'flex';
 }
 
@@ -1591,7 +1594,7 @@ function parseProductText(text, lines) {
     return { name, potency, meta, form, brand, expiry: parseExpiryFromText(clean) };
 }
 
-async function scanProductImage(event) {
+async function scanWithOcr(event) {
     const input = event.target;
     const file = input.files && input.files[0];
     if (!file) return;
@@ -2168,4 +2171,683 @@ async function restoreBackup(event) {
     } finally {
         input.value = '';
     }
+}
+
+// ============================================================================
+// 15. مسح العبوة بالذكاء الصناعي: Gemini API أو Firebase AI Logic (مع رجوع احتياطي للقارئ العادي)
+// ============================================================================
+// ---- إعدادات Firebase AI Logic (تُضبط مرة واحدة هنا، وليست أسراراً) ----
+const FIREBASE_MODULAR_VERSION = '13.0.0';   // نسخة مكتبة Firebase التي تحمّل AI Logic
+const APP_CHECK_SITE_KEY = '';               // مفتاح reCAPTCHA للويب (عام وليس سرياً) — مطلوب لـ Firebase AI Logic
+const APP_CHECK_PROVIDER = 'enterprise';     // 'enterprise' (reCAPTCHA Enterprise) أو 'v3' (reCAPTCHA v3)
+
+const AI_DEFAULT_MODEL = 'gemini-3.8-flash';
+const AI_TIMEOUT_MS = 45000;
+const AI_ENGINES = { local: 'قراءة عادية (بدون ذكاء)', gemini: 'Gemini API', firebase: 'Firebase AI Logic' };
+// إعدادات المحرك تُحفظ على هذا الجهاز فقط (لا تُرفع للسحابة ولا تدخل النسخة الاحتياطية)
+const AI_LS = { engine: 'diwanAiEngine', key: 'diwanGeminiKey', gModel: 'diwanGeminiModel', fModel: 'diwanFbAiModel' };
+
+function aiGet(k, d) {
+    const def = (d === undefined) ? '' : d;
+    try {
+        const v = localStorage.getItem(AI_LS[k]);
+        return (v === null || v === undefined) ? def : v;
+    } catch (err) { return def; }
+}
+function aiSet(k, v) {
+    try { localStorage.setItem(AI_LS[k], v); return true; } catch (err) { return false; }
+}
+function aiVal(id) { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; }
+function aiSetVal(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
+function getAiEngine() { const eng = aiGet('engine', 'local'); return AI_ENGINES[eng] ? eng : 'local'; }
+function cleanAiModel(v) { return String(v || '').trim().replace(/^models\//, '').replace(/[^A-Za-z0-9._\-]/g, ''); }
+function cleanAiKey(v) { return String(v || '').replace(/\s+/g, ''); }
+
+// ---------------------------------------------------------------------------
+// أخطاء مفهومة بالعربية
+// ---------------------------------------------------------------------------
+async function aiHttpError(res) {
+    let msg = '';
+    try { const j = await res.json(); msg = (j && j.error && j.error.message) || ''; } catch (err) { /* لا يوجد جسم */ }
+    const e = new Error(msg || ('HTTP ' + res.status));
+    e.status = res.status;
+    return e;
+}
+
+function friendlyAiError(err) {
+    const raw = String((err && err.message) || err || '');
+    const low = raw.toLowerCase();
+    const st = err && err.status;
+    if (err && (err.name === 'AbortError' || err.name === 'TimeoutError')) return 'انتهت مهلة الطلب. تأكد من الإنترنت وحاول مرة أخرى.';
+    if (/dynamically imported module|importing a module script failed|error loading dynamically/.test(low)) return 'تعذر تحميل مكتبة Firebase AI Logic. تحقق من الإنترنت ومن رقم النسخة FIREBASE_MODULAR_VERSION في data.js.';
+    if (st === 429 || /quota|rate.?limit|resource.?exhausted|\b429\b/.test(low)) return 'انتهت الحصة المجانية الحالية أو الطلبات كثيرة. انتظر قليلاً أو جرّب نموذجاً آخر (مثل Flash-Lite).';
+    if (/api key not valid|api_key_invalid|api key expired/.test(low) || (st === 400 && /api key/.test(low))) return 'مفتاح Gemini API غير صحيح أو منتهي.';
+    if (/app.?check/.test(low)) return 'رفض Firebase الطلب بسبب App Check. أضف APP_CHECK_SITE_KEY في data.js وتأكد من تسجيل التطبيق في App Check.';
+    if (st === 404 || /not found|not_found|is not supported for/.test(low)) return 'اسم النموذج غير صحيح أو غير متاح لحسابك. اختره من قائمة «جلب القائمة».';
+    if (st === 403 || /permission|forbidden|\b403\b/.test(low)) return 'الوصول مرفوض (403). في Firebase تحقق من تفعيل AI Logic وApp Check، وفي Gemini تحقق من قيود المفتاح.';
+    if (st === 413 || /too large|\b413\b/.test(low)) return 'الصورة كبيرة جداً على الطلب.';
+    if (!navigator.onLine || /failed to fetch|networkerror|load failed|network error/.test(low)) return 'تعذر الاتصال بالإنترنت أو بخدمة جوجل.';
+    return raw.slice(0, 180) || 'خطأ غير معروف';
+}
+
+function withTimeout(promise, ms) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => { const e = new Error('timeout'); e.name = 'TimeoutError'; reject(e); }, ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// ---------------------------------------------------------------------------
+// تجهيز الصورة: ملوّنة ومصغّرة (عكس الصورة المخصصة للقارئ العادي)
+// ---------------------------------------------------------------------------
+function prepareImageForAi(file, maxSide, quality) {
+    const MAX = maxSide || 1600;
+    const Q = quality || 0.85;
+    return new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+            const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+            const c = document.createElement('canvas');
+            c.width = Math.round(img.width * scale);
+            c.height = Math.round(img.height * scale);
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.drawImage(img, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(url);
+            resolve({ mimeType: 'image/jpeg', data: c.toDataURL('image/jpeg', Q).split(',')[1] });
+        };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('تعذر فتح الصورة.')); };
+        img.src = url;
+    });
+}
+
+function makeAiTestImage() {
+    const c = document.createElement('canvas');
+    c.width = 320; c.height = 120;
+    const x = c.getContext('2d');
+    x.fillStyle = '#ffffff'; x.fillRect(0, 0, 320, 120);
+    x.fillStyle = '#000000'; x.font = 'bold 64px Arial, sans-serif';
+    x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('DIWAN', 160, 62);
+    return { mimeType: 'image/jpeg', data: c.toDataURL('image/jpeg', 0.9).split(',')[1] };
+}
+
+// ---------------------------------------------------------------------------
+// الطلب (Prompt)
+// ---------------------------------------------------------------------------
+function buildAiPrompt() {
+    const cats = subCategories.join(' | ');
+    const brands = [...new Set(products.map(p => (p.brand || '').trim()).filter(b => b && b !== 'GENERIC'))].slice(0, 120).join(', ');
+    return `You are assisting a pharmacist in Iraq who is adding one product to a pharmacy / dermatology catalogue.
+Look at the photo of the product package (box, tube, bottle, blister or vial) and extract the data.
+
+STRICT RULES
+- "printed" fields must contain ONLY what is actually readable on the package. If you cannot read it clearly, return an empty string. Never guess a strength, a number or a date.
+- Strength digits are safety-critical (5 mg vs 50 mg): copy them exactly as printed, with the unit.
+- "suggested" fields come from your general pharmaceutical knowledge of this product. If you are not confident, return an empty string (or an empty array).
+- Never invent prices, quantities or batch numbers.
+- Expiry: return YYYY-MM only if an expiry date (EXP / Exp / use before) is clearly printed, otherwise "". Ignore manufacturing dates (MFG).
+
+Return ONE JSON object with exactly these keys:
+{
+  "printed": { "brand_company": "", "trade_name": "", "strength": "", "dosage_form": "", "pack_size": "", "expiry": "", "active_ingredient": "" },
+  "suggested": { "active_ingredient": "", "details_ar": "", "keywords": [], "category": "", "tab": "" },
+  "confidence": "high | medium | low",
+  "notes": ""
+}
+
+Field definitions:
+- brand_company: the manufacturer / company name printed on the pack (e.g. ISISPHARMA). If it matches one of these existing companies, use that exact spelling: ${brands || '(none yet)'}.
+- trade_name: the product brand name only, without strength (e.g. "Differin").
+- strength: e.g. "0.1%", "500 mg", "500 mg/65 mg".
+- dosage_form: one English word or phrase: Tablets, Capsules, Cream, Gel, Ointment, Syrup, Drops, Solution, Lotion, Shampoo, Serum, Spray, Foam, Wash, Injection ...
+- pack_size: e.g. "30 g", "60 ml", "24 Tablets".
+- printed.active_ingredient: active ingredient(s) in English ONLY if printed on the pack (use " + " between several).
+- suggested.active_ingredient: active ingredient(s) in English if you know them (use " + " between several).
+- suggested.details_ar: one or two sentences in Arabic: what the product is and its main use. No dosing advice.
+- suggested.keywords: up to 8 short search words in Arabic and English (e.g. "حب الشباب", "acne").
+- suggested.category: exactly one value from this list, or "": ${cats}
+- suggested.tab: "rx" for prescription / medicinal products, "cosmetic" for cosmetics and skin-care, or "".
+- confidence: how sure you are about the printed fields.
+- notes: a short note about anything unreadable or uncertain.`;
+}
+
+// المخطط الإلزامي لـ Firebase AI Logic (Schema من مكتبة Firebase)
+function buildAiSchema(S) {
+    const str = () => S.string();
+    return S.object({
+        properties: {
+            printed: S.object({
+                properties: {
+                    brand_company: str(), trade_name: str(), strength: str(), dosage_form: str(),
+                    pack_size: str(), expiry: str(), active_ingredient: str()
+                }
+            }),
+            suggested: S.object({
+                properties: {
+                    active_ingredient: str(), details_ar: str(), keywords: S.array({ items: str() }),
+                    category: str(), tab: str()
+                }
+            }),
+            confidence: str(),
+            notes: str()
+        },
+        optionalProperties: ['notes']
+    });
+}
+
+// ---------------------------------------------------------------------------
+// المحرك 1: Gemini API مباشرة (مفتاح من Google AI Studio)
+// ---------------------------------------------------------------------------
+function extractGeminiText(data) {
+    if (data && data.promptFeedback && data.promptFeedback.blockReason) {
+        throw new Error('حُجب الطلب من النموذج (' + data.promptFeedback.blockReason + ').');
+    }
+    const cand = data && data.candidates && data.candidates[0];
+    const parts = cand && cand.content && cand.content.parts;
+    if (!parts || !parts.length) {
+        const why = (cand && cand.finishReason) ? ' (' + cand.finishReason + ')' : '';
+        throw new Error('لم يُرجع النموذج نتيجة' + why + '. جرّب صورة أوضح.');
+    }
+    return parts.filter(p => typeof p.text === 'string' && !p.thought).map(p => p.text).join('');
+}
+
+async function callGeminiRest(opts) {
+    const key = cleanAiKey(aiGet('key'));
+    if (!key) { const e = new Error('NO_KEY'); e.code = 'NO_KEY'; throw e; }
+    const model = cleanAiModel(aiGet('gModel', AI_DEFAULT_MODEL)) || AI_DEFAULT_MODEL;
+    const parts = [{ text: opts.prompt }];
+    if (opts.img) parts.push({ inlineData: { mimeType: opts.img.mimeType, data: opts.img.data } });
+    const body = { contents: [{ role: 'user', parts }] };
+    if (opts.json) body.generationConfig = { responseMimeType: 'application/json', temperature: 0.1 };
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    try {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },   // المفتاح في الترويسة وليس في الرابط
+            body: JSON.stringify(body),
+            signal: controller.signal
+        });
+        if (!res.ok) throw await aiHttpError(res);
+        return extractGeminiText(await res.json());
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// المحرك 2: Firebase AI Logic (بدون مفتاح داخل التطبيق)
+// ---------------------------------------------------------------------------
+let fbSdkPromise = null;
+function aiImport(url) { return import(url); }   // غلاف بسيط ليسهل اختبار التحميل
+
+function loadFirebaseAiSdk() {
+    if (!fbSdkPromise) {
+        fbSdkPromise = (async () => {
+            const base = 'https://www.gstatic.com/firebasejs/' + FIREBASE_MODULAR_VERSION + '/';
+            const mods = await Promise.all([aiImport(base + 'firebase-app.js'), aiImport(base + 'firebase-ai.js')]);
+            const appMod = mods[0];
+            const aiMod = mods[1];
+            const NAME = 'diwan-ai';   // نسخة مستقلة عن تطبيق Firebase القديم الذي يخدم قاعدة البيانات
+            const app = appMod.getApps().find(a => a.name === NAME) || appMod.initializeApp(firebaseConfig, NAME);
+            if (APP_CHECK_SITE_KEY) {
+                if (['localhost', '127.0.0.1'].includes(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+                const ac = await aiImport(base + 'firebase-app-check.js');
+                const provider = APP_CHECK_PROVIDER === 'v3'
+                    ? new ac.ReCaptchaV3Provider(APP_CHECK_SITE_KEY)
+                    : new ac.ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY);
+                ac.initializeAppCheck(app, { provider: provider, isTokenAutoRefreshEnabled: true });
+            }
+            const ai = aiMod.getAI(app, { backend: new aiMod.GoogleAIBackend() });
+            return { aiMod, ai };
+        })().catch(err => { fbSdkPromise = null; throw err; });
+    }
+    return fbSdkPromise;
+}
+
+async function callFirebaseAi(opts) {
+    const modelName = cleanAiModel(aiGet('fModel', AI_DEFAULT_MODEL)) || AI_DEFAULT_MODEL;
+    const sdk = await loadFirebaseAiSdk();
+    const cfg = { model: modelName };
+    if (opts.json) {
+        cfg.generationConfig = { responseMimeType: 'application/json', responseSchema: buildAiSchema(sdk.aiMod.Schema), temperature: 0.1 };
+    }
+    const model = sdk.aiMod.getGenerativeModel(sdk.ai, cfg);
+    const parts = [opts.prompt];
+    // الشكل مطابق لمثال توثيق Firebase الحالي لإرسال الصور
+    if (opts.img) parts.push({ type: 'inlineData', inlineData: { data: opts.img.data, mimeType: opts.img.mimeType } });
+    const result = await withTimeout(model.generateContent(parts), AI_TIMEOUT_MS);
+    return result.response.text();
+}
+
+function callAiEngine(engine, opts) {
+    return engine === 'firebase' ? callFirebaseAi(opts) : callGeminiRest(opts);
+}
+
+// ---------------------------------------------------------------------------
+// تحليل النتيجة وتنظيفها
+// ---------------------------------------------------------------------------
+function parseAiJson(text) {
+    let t = String(text || '').trim();
+    t = t.replace(/^```(?:json)?/i, '').replace(/```\s*$/, '').trim();
+    try { return JSON.parse(t); } catch (err1) { /* نجرّب استخراج الكائن */ }
+    const s = t.indexOf('{');
+    const f = t.lastIndexOf('}');
+    if (s >= 0 && f > s) {
+        try { return JSON.parse(t.slice(s, f + 1)); } catch (err2) { /* تابع */ }
+    }
+    throw new Error('لم يُرجع النموذج نتيجة مفهومة. جرّب مرة أخرى.');
+}
+
+function aiClean(v, max) {
+    if (typeof v !== 'string' && typeof v !== 'number') return '';
+    return String(v).replace(/[\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max || 200);
+}
+
+function normalizeAiExpiry(v) {
+    const s = aiClean(v, 30);
+    if (!s) return '';
+    let y, mo;
+    let m = s.match(/^(\d{4})\s*[-\/.]\s*(\d{1,2})/);
+    if (m) { y = parseInt(m[1], 10); mo = parseInt(m[2], 10); }
+    else {
+        m = s.match(/(\d{1,2})\s*[\/\-. ]\s*(\d{4}|\d{2})\b/);
+        if (m) { mo = parseInt(m[1], 10); y = parseInt(m[2], 10); if (y < 100) y += 2000; }
+    }
+    if (!y || !mo || mo < 1 || mo > 12 || y < 2020 || y > 2050) return '';
+    return y + '-' + String(mo).padStart(2, '0');
+}
+
+function canonicalBrand(b) {
+    const name = aiClean(b, 60);
+    if (!name) return '';
+    const key = name.toLowerCase();
+    const hit = products.map(p => (p.brand || '').trim()).find(x => x && x.toLowerCase() === key);
+    return hit || name;
+}
+
+function canonicalCategory(c) {
+    const name = aiClean(c, 80);
+    if (!name) return '';
+    const key = name.toLowerCase();
+    return subCategories.find(x => x === name) || subCategories.find(x => String(x).trim().toLowerCase() === key) || '';
+}
+
+function normalizeAiResult(raw) {
+    const r = (raw && typeof raw === 'object') ? raw : {};
+    const p = (r.printed && typeof r.printed === 'object') ? r.printed : r;      // يتسامح إن أرجع النموذج بنية مسطحة
+    const s = (r.suggested && typeof r.suggested === 'object') ? r.suggested : r;
+
+    const tradeName = aiClean(p.trade_name, 80);
+    const strength = aiClean(p.strength, 60);
+    let form = aiClean(p.dosage_form, 40);
+    if (form) form = form.charAt(0).toUpperCase() + form.slice(1);
+    const pack = aiClean(p.pack_size, 40);
+
+    // العبوة / الشكل بنفس صيغة بقية الأصناف (مثل: "30 g | Gel" أو "24 Tablets")
+    let meta = '';
+    if (pack && form && pack.toLowerCase().includes(form.toLowerCase())) meta = pack;
+    else meta = [pack, form].filter(Boolean).join(' | ');
+    meta = fixMetaOrder(meta);
+
+    const activePrinted = aiClean(p.active_ingredient, 120);
+    const activeSuggested = aiClean(s.active_ingredient, 120);
+
+    const keywords = [];
+    (Array.isArray(s.keywords) ? s.keywords : []).forEach(k => {
+        const w = aiClean(k, 30);
+        if (w && !keywords.includes(w) && keywords.length < 8) keywords.push(w);
+    });
+
+    const tab = aiClean(s.tab, 20).toLowerCase();
+    const conf = aiClean(r.confidence, 12).toLowerCase();
+
+    return {
+        brand: canonicalBrand(p.brand_company),
+        tradeName,
+        strength,
+        form,
+        pack,
+        meta,
+        expiry: normalizeAiExpiry(p.expiry),
+        active: activePrinted || activeSuggested,
+        activeFromPack: !!activePrinted,
+        detailsAr: aiClean(s.details_ar, 400),
+        keywords,
+        category: canonicalCategory(s.category),
+        tab: (tab === 'rx' || tab === 'cosmetic') ? tab : '',
+        confidence: ['high', 'medium', 'low'].includes(conf) ? conf : '',
+        notes: aiClean(r.notes, 200)
+    };
+}
+
+// ---------------------------------------------------------------------------
+// صفوف النتيجة + التعبئة (الحقول الفارغة فقط افتراضياً)
+// ---------------------------------------------------------------------------
+function buildAiRows(res) {
+    const fullName = [res.tradeName, res.strength].filter(Boolean).join(' ');
+    const tabLabel = res.tab === 'rx' ? tabLabels.rx : (res.tab === 'cosmetic' ? tabLabels.cosmetic : '');
+    return [
+        { key: 'name', label: 'الاسم التجاري والتركيز', value: fullName, raw: fullName, field: 'fName', src: 'printed', ltr: true },
+        { key: 'brand', label: 'الشركة', value: res.brand, raw: res.brand, field: 'fBrand', src: 'printed', ltr: true },
+        { key: 'meta', label: 'العبوة / الشكل الدوائي', value: res.meta, raw: res.meta, field: 'fMeta', src: 'printed', ltr: true },
+        { key: 'expiry', label: 'تاريخ النفاذ', value: res.expiry, raw: res.expiry, field: 'expiry', src: 'printed', ltr: true },
+        { key: 'active', label: 'المادة الفعالة', value: res.active, raw: res.active, field: 'fActive', src: res.activeFromPack ? 'printed' : 'suggested', ltr: true },
+        { key: 'details', label: 'الوصف والاستخدام', value: res.detailsAr, raw: res.detailsAr, field: 'fDetails', src: 'suggested', ltr: false },
+        { key: 'keywords', label: 'كلمات البحث', value: res.keywords.join('، '), raw: res.keywords.join('، '), field: 'fKeywords', src: 'suggested', ltr: false },
+        { key: 'category', label: 'التصنيف الفرعي', value: res.category, raw: res.category, field: 'fCategory', src: 'suggested', newOnly: true, ltr: false },
+        { key: 'tab', label: 'التبويب', value: tabLabel, raw: res.tab, field: 'fType', src: 'suggested', newOnly: true, ltr: false }
+    ];
+}
+
+function isAiRowTargetEmpty(row, isEdit) {
+    if (!row.value) return false;
+    if (row.key === 'expiry') return !getExpiryDatesFromForm().includes(row.value);   // إضافة وليست استبدالاً
+    if (row.newOnly) return !isEdit;                                                    // التصنيف والتبويب: للصنف الجديد فقط
+    const el = document.getElementById(row.field);
+    return !el || !String(el.value || '').trim();
+}
+
+function applyAiRows(rows, selectedKeys) {
+    selectedKeys.forEach(k => {
+        const r = rows.find(x => x.key === k);
+        if (!r || !r.value) return;
+        if (r.key === 'expiry') {
+            setExpiryDatesInForm([...getExpiryDatesFromForm(), r.value]);
+            return;
+        }
+        aiSetVal(r.field, r.raw);
+    });
+}
+
+function normAiName(s) { return String(s || '').toLowerCase().replace(/[^a-z0-9؀-ۿ]+/g, ''); }
+
+function findSimilarProducts(res) {
+    const t = normAiName(res.tradeName);
+    const st = normAiName(res.strength);
+    if (t.length < 3) return [];
+    const editId = parseInt(aiVal('editId'), 10);
+    return products.filter(p => {
+        if (!isNaN(editId) && p.id === editId) return false;
+        const hay = normAiName((p.name || '') + ' ' + (p.meta || ''));
+        return hay.includes(t) && (!st || hay.includes(st));
+    });
+}
+
+function setScanStatusText(t) {
+    const el = document.getElementById('scanStatus');
+    if (el) el.innerText = t;
+}
+
+async function showAiScanResult(res) {
+    const isEdit = !!aiVal('editId');
+    const rows = buildAiRows(res);
+
+    if (!rows.some(r => r.value)) {
+        await Swal.fire({
+            icon: 'warning',
+            title: 'لم يتعرف الذكاء الصناعي على العبوة',
+            html: '<div style="font-size:0.9rem; line-height:1.7;">جرّب صورة أقرب بإضاءة جيدة تُظهر الاسم بوضوح.</div>',
+            confirmButtonColor: '#0f1c38',
+            confirmButtonText: 'حسناً'
+        });
+        return;
+    }
+
+    rows.forEach(r => { r.empty = isAiRowTargetEmpty(r, isEdit); r.checked = !!r.value && r.empty; });
+
+    const dups = findSimilarProducts(res);
+    const conf = { high: ['عالية', '#15803d', '#dcfce7'], medium: ['متوسطة', '#b45309', '#fef3c7'], low: ['منخفضة', '#b91c1c', '#fee2e2'] }[res.confidence];
+
+    const rowHtml = r => r.value ? `
+        <label style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid #e5e7eb; cursor:pointer;">
+            <input type="checkbox" id="aiRow_${r.key}" ${r.checked ? 'checked' : ''} style="margin-top:4px; width:18px; height:18px; flex-shrink:0;">
+            <span style="flex:1; min-width:0;">
+                <b style="display:block; font-size:0.8rem; color:#475569;">${r.label}${r.empty ? '' : ' <small style="color:#b45309; font-weight:700;">(الحقل معبأ — علّم لاستبداله)</small>'}</b>
+                <span dir="${r.ltr ? 'ltr' : 'rtl'}" style="display:block; color:#0f172a; word-break:break-word; text-align:${r.ltr ? 'left' : 'right'};">${escapeHtml(r.value)}</span>
+            </span>
+        </label>` : `<div style="padding:7px 0; border-bottom:1px solid #f1f5f9; color:#94a3b8; font-size:0.82rem;">${r.label}: لم يُقرأ</div>`;
+
+    const section = (title, color, src) => `
+        <div style="margin-top:12px;">
+            <div style="font-weight:800; font-size:0.82rem; color:${color}; margin-bottom:2px;">${title}</div>
+            ${rows.filter(r => r.src === src).map(rowHtml).join('')}
+        </div>`;
+
+    const html = `
+        <div style="text-align:right; font-size:0.9rem;">
+            ${conf ? `<div style="display:inline-block; padding:2px 10px; border-radius:8px; background:${conf[2]}; color:${conf[1]}; font-weight:800; font-size:0.78rem;">دقة القراءة: ${conf[0]}</div>` : ''}
+            ${dups.length ? `<div style="margin-top:10px; padding:8px 10px; border-radius:10px; background:#fef3c7; color:#92400e; font-size:0.82rem; line-height:1.7;">⚠️ قد يكون هذا الصنف موجوداً عندك: <b dir="ltr">${dups.slice(0, 3).map(d => escapeHtml(d.name)).join(' ، ')}</b></div>` : ''}
+            ${section('📖 مقروء من العبوة', '#0f1c38', 'printed')}
+            ${section('💡 مقترح من الذكاء الصناعي — راجعه جيداً', '#b45309', 'suggested')}
+            ${res.notes ? `<p style="margin-top:10px; color:#64748b; font-size:0.78rem;">ملاحظة النموذج: ${escapeHtml(res.notes)}</p>` : ''}
+            <p style="margin-top:12px; color:#b91c1c; font-weight:700; font-size:0.82rem;">راجع التركيز بدقة قبل الحفظ (مثل 5 mg أو 50 mg). لن يُحفظ شيء قبل أن تضغط «حفظ».</p>
+        </div>`;
+
+    const choice = await Swal.fire({
+        title: 'نتيجة المسح بالذكاء الصناعي',
+        html,
+        showCancelButton: true,
+        confirmButtonText: 'تعبئة المحدد',
+        cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#0f1c38',
+        preConfirm: () => rows.filter(r => {
+            const cb = document.getElementById('aiRow_' + r.key);
+            return cb && cb.checked;
+        }).map(r => r.key)
+    });
+
+    if (choice.isConfirmed) {
+        const keys = Array.isArray(choice.value) ? choice.value : [];
+        applyAiRows(rows, keys);
+        setScanStatusText(keys.length ? '✅ تمت التعبئة — راجع الحقول قبل الحفظ' : '');
+    }
+}
+
+// ---------------------------------------------------------------------------
+// زر المسح: يوزّع حسب المحرك المختار
+// ---------------------------------------------------------------------------
+async function scanProductImage(event) {
+    const input = event.target;
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const engine = getAiEngine();
+
+    try {
+        if (engine === 'local') { await scanWithOcr(event); return; }
+        if (!navigator.onLine) {
+            setScanStatusText('📴 بدون إنترنت — قراءة عادية');
+            await scanWithOcr(event);
+            return;
+        }
+
+        let res;
+        try {
+            setScanStatusText('⏳ جاري تجهيز الصورة...');
+            const img = await prepareImageForAi(file);
+            setScanStatusText('🤖 ' + AI_ENGINES[engine] + ' يقرأ العبوة...');
+            const text = await callAiEngine(engine, { prompt: buildAiPrompt(), img, json: true });
+            res = normalizeAiResult(parseAiJson(text));
+        } catch (err) {
+            setScanStatusText('');
+            await handleAiScanError(err, file);
+            return;
+        }
+        setScanStatusText('');
+        await showAiScanResult(res);
+    } finally {
+        input.value = '';   // للسماح باختيار نفس الصورة مرة أخرى
+    }
+}
+
+async function handleAiScanError(err, file) {
+    if (err && err.code === 'NO_KEY') {
+        const r = await Swal.fire({
+            icon: 'info',
+            title: 'مفتاح Gemini API غير مُدخل',
+            html: '<div style="font-size:0.9rem; line-height:1.8;">أدخل المفتاح من ⚙️ الإعدادات ← قسم «الذكاء الصناعي»، أو اقرأ العبوة الآن بالقراءة العادية.</div>',
+            showCancelButton: true,
+            showDenyButton: true,
+            confirmButtonText: '⚙️ فتح الإعدادات',
+            denyButtonText: 'قراءة عادية الآن',
+            cancelButtonText: 'إغلاق',
+            confirmButtonColor: '#0f1c38'
+        });
+        if (r.isConfirmed) openAiSettingsOverForm();
+        else if (r.isDenied) await scanWithOcr({ target: { files: [file], value: '' } });
+        return;
+    }
+    const raw = aiClean((err && err.message) || err, 300);
+    const r = await Swal.fire({
+        icon: 'error',
+        title: 'تعذر القراءة بالذكاء الصناعي',
+        html: `<div style="font-size:0.9rem; line-height:1.8;">${escapeHtml(friendlyAiError(err))}</div>
+               <details style="margin-top:8px; font-size:0.75rem; color:#64748b; text-align:left;" dir="ltr"><summary>technical details</summary><pre style="white-space:pre-wrap;">${escapeHtml(raw)}</pre></details>`,
+        showCancelButton: true,
+        confirmButtonText: 'جرّب القراءة العادية',
+        cancelButtonText: 'إغلاق',
+        confirmButtonColor: '#0f1c38'
+    });
+    if (r.isConfirmed) await scanWithOcr({ target: { files: [file], value: '' } });
+}
+
+// ---------------------------------------------------------------------------
+// الإعدادات (⚙️ → 6. الذكاء الصناعي) — تُحفظ على هذا الجهاز فقط
+// ---------------------------------------------------------------------------
+function setAiEngine(v) {
+    const eng = AI_ENGINES[v] ? v : 'local';
+    aiSet('engine', eng);
+    aiSetVal('scanEngineSelect', eng);
+    aiSetVal('aiEngineSelect', eng);
+    updateAiSettingsVisibility();
+    refreshScanEngineLabel();
+}
+
+function updateAiSettingsVisibility() {
+    const eng = getAiEngine();
+    const g = document.getElementById('aiGeminiBox');
+    const f = document.getElementById('aiFirebaseBox');
+    if (g) g.style.display = eng === 'gemini' ? '' : 'none';
+    if (f) f.style.display = eng === 'firebase' ? '' : 'none';
+}
+
+function refreshScanEngineLabel() {
+    const eng = getAiEngine();
+    aiSetVal('scanEngineSelect', eng);
+    const hint = document.getElementById('scanHint');
+    if (hint) {
+        hint.innerText = eng === 'local'
+            ? 'صوّر واجهة العبوة بإضاءة جيدة، وسيقرأ التطبيق الاسم والتركيز والشكل والصلاحية (قراءة عادية بدون ذكاء). راجع القيم دائماً قبل الحفظ.'
+            : 'صوّر العبوة وسيقرأها الذكاء الصناعي ويقترح الحقول الفارغة فقط. الصورة تُرسل إلى جوجل. راجع كل شيء قبل الحفظ.';
+    }
+}
+
+function renderAppCheckNote() {
+    const el = document.getElementById('aiAppCheckNote');
+    if (!el) return;
+    if (APP_CHECK_SITE_KEY) {
+        el.innerText = '✅ App Check مضبوط (' + (APP_CHECK_PROVIDER === 'v3' ? 'reCAPTCHA v3' : 'reCAPTCHA Enterprise') + ').';
+        el.style.color = '#15803d';
+    } else {
+        el.innerText = '⚠️ APP_CHECK_SITE_KEY فارغ في data.js. تفعيل App Check مطلوب لـ Firebase AI Logic، وبدونه قد يرفض Firebase الطلب (403).';
+        el.style.color = '#b45309';
+    }
+}
+
+function loadAiSettingsToForm() {
+    aiSetVal('aiEngineSelect', getAiEngine());
+    aiSetVal('aiGeminiKey', aiGet('key'));
+    aiSetVal('aiGeminiModel', aiGet('gModel', AI_DEFAULT_MODEL));
+    aiSetVal('aiFbModel', aiGet('fModel', AI_DEFAULT_MODEL));
+    const keyEl = document.getElementById('aiGeminiKey');
+    if (keyEl) keyEl.type = 'password';
+    setAiTestMsg('');
+    updateAiSettingsVisibility();
+    renderAppCheckNote();
+}
+
+function setAiTestMsg(msg, isErr) {
+    const el = document.getElementById('aiTestResult');
+    if (!el) return;
+    el.innerText = msg || '';
+    el.style.color = isErr ? '#b91c1c' : '#334155';
+}
+
+function saveAiSettings(silent) {
+    const key = cleanAiKey(aiVal('aiGeminiKey'));
+    const gModel = cleanAiModel(aiVal('aiGeminiModel')) || AI_DEFAULT_MODEL;
+    const fModel = cleanAiModel(aiVal('aiFbModel')) || AI_DEFAULT_MODEL;
+    const ok = aiSet('key', key) && aiSet('gModel', gModel) && aiSet('fModel', fModel);
+    aiSetVal('aiGeminiKey', key);
+    aiSetVal('aiGeminiModel', gModel);
+    aiSetVal('aiFbModel', fModel);
+    if (!ok) {
+        Swal.fire({ icon: 'error', title: 'تعذر الحفظ على هذا الجهاز', text: 'المتصفح يمنع التخزين (ربما وضع التصفح الخاص).', confirmButtonColor: '#0f1c38' });
+        return false;
+    }
+    if (!silent) Swal.fire({ icon: 'success', title: 'تم حفظ إعدادات الذكاء الصناعي على هذا الجهاز', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
+    return true;
+}
+
+function toggleAiKeyVisible() {
+    const el = document.getElementById('aiGeminiKey');
+    if (el) el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+async function loadGeminiModels() {
+    const key = cleanAiKey(aiVal('aiGeminiKey'));
+    if (!key) { setAiTestMsg('أدخل مفتاح Gemini API أولاً.', true); return; }
+    setAiTestMsg('⏳ جاري جلب النماذج...');
+    try {
+        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { headers: { 'x-goog-api-key': key } });
+        if (!res.ok) throw await aiHttpError(res);
+        const data = await res.json();
+        const names = (data.models || [])
+            .filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+            .map(m => String(m.name || '').replace(/^models\//, ''))
+            .filter(n => /^gemini/.test(n) && !/(tts|image|live|embedding|audio|transcribe|translate|robotics|computer-use)/i.test(n));
+        names.sort((a, b) => (/flash/.test(b) ? 1 : 0) - (/flash/.test(a) ? 1 : 0) || a.localeCompare(b));
+        const dl = document.getElementById('aiModelList');
+        if (dl) dl.innerHTML = names.map(n => `<option value="${escapeHtml(n)}"></option>`).join('');
+        setAiTestMsg('✅ تم جلب ' + names.length + ' نموذجاً. اضغط داخل خانة النموذج واختر (يُفضّل Flash أو Flash-Lite).');
+    } catch (err) {
+        setAiTestMsg('❌ ' + friendlyAiError(err), true);
+    }
+}
+
+// اختبار حقيقي: يرسل صورة صغيرة فيها كلمة ويتأكد أن النموذج يقرؤها (يختبر المفتاح والنموذج ودعم الصور)
+async function testAiConnection() {
+    if (!saveAiSettings(true)) return;
+    const eng = aiVal('aiEngineSelect') || getAiEngine();
+    if (eng === 'local') { setAiTestMsg('القراءة العادية لا تحتاج اختباراً.'); return; }
+    if (!navigator.onLine) { setAiTestMsg('لا يوجد اتصال بالإنترنت.', true); return; }
+    setAiTestMsg('⏳ جاري الاختبار...');
+    const t0 = Date.now();
+    try {
+        const out = await callAiEngine(eng, {
+            prompt: 'Read the word written in this image. Reply with that single word only.',
+            img: makeAiTestImage(),
+            json: false
+        });
+        const secs = ((Date.now() - t0) / 1000).toFixed(1);
+        if (/diwan/i.test(out)) setAiTestMsg('✅ يعمل بشكل صحيح (' + secs + ' ثانية) — قرأ الصورة والنموذج جاهز.');
+        else setAiTestMsg('⚠️ الاتصال يعمل لكن القراءة لم تطابق المتوقع. ردّ النموذج: ' + aiClean(out, 60), true);
+    } catch (err) {
+        if (err && err.code === 'NO_KEY') setAiTestMsg('أدخل مفتاح Gemini API أولاً.', true);
+        else setAiTestMsg('❌ ' + friendlyAiError(err), true);
+    }
+}
+
+// فتح الإعدادات فوق نموذج الصنف دون إغلاقه (حتى لا تضيع البيانات المُدخلة)
+function openAiSettingsOverForm() {
+    openCategoryManager();
+    const modal = document.getElementById('catModal');
+    if (modal) modal.style.zIndex = '1100';
+    const box = document.getElementById('aiSettingsBox');
+    if (box && box.scrollIntoView) box.scrollIntoView({ block: 'start' });
 }

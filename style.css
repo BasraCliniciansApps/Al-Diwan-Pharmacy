@@ -975,3 +975,15 @@ body.admin-mode .status-dot.low { background: #f59e0b; }
 .miss-count { font-size: 0.78rem; font-weight: 800; color: #c2410c; background: #ffedd5; padding: 1px 8px; border-radius: 6px; }
 .miss-date { font-size: 0.7rem; color: var(--text-sub); font-weight: 600; min-width: 62px; text-align: left; }
 .miss-empty { text-align: center; padding: 24px 10px; color: var(--text-sub); font-weight: 700; line-height: 1.8; }
+
+/* =====================================================
+   الذكاء الصناعي لمسح العبوة
+   ===================================================== */
+.scan-engine-select {
+    height: 40px; padding: 0 10px; max-width: 100%;
+    border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    background: #fff; color: var(--navy); font-size: 0.82rem; font-weight: 700;
+}
+.scan-gear { padding: 0 12px; }
+.ai-test-result { font-size: 0.8rem; font-weight: 700; margin-top: 8px; min-height: 1.2em; line-height: 1.6; }
+.ai-note { font-size: 0.72rem; color: var(--text-sub); line-height: 1.7; margin-top: 8px; }
