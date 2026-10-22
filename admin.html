@@ -34,7 +34,7 @@
         <div class="top-bar-inner">
             
             
-            <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية">🏠</button><button class="small-icon-btn" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button><button class="small-icon-btn" id="themeBtn" onclick="toggleTheme()" title="الوضع الداكن" aria-label="الوضع الداكن">🌓</button></div></div>
+            <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية">🏠</button><button class="small-icon-btn bell-btn" onclick="goAlerts('all')" title="التنبيهات" aria-label="التنبيهات">🔔<i id="stockAlertCount" class="bell-badge"></i></button><button class="small-icon-btn" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button><button class="small-icon-btn" id="themeBtn" onclick="toggleTheme()" title="الوضع الداكن" aria-label="الوضع الداكن">🌓</button></div></div>
 <div class="page-title">📦 المخزن</div>
             <button type="button" id="authBtn" hidden></button>
             
@@ -179,6 +179,13 @@
                     <div class="add-inline-row">
                         <input type="number" id="lowThresholdInput" min="0">
                         <button class="icon-btn primary-btn" onclick="saveLowThreshold()">حفظ</button>
+                    </div>
+                </div>
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label>مدد تنبيه الصلاحية (بالأشهر، مرتبة من الأقصر للأطول):</label>
+                    <div class="add-inline-row">
+                        <input type="number" id="alertM1" min="1"><input type="number" id="alertM2" min="1"><input type="number" id="alertM3" min="1">
+                        <button class="icon-btn primary-btn" onclick="saveAlertMonths()">حفظ</button>
                     </div>
                 </div>
                 <div class="tools-grid">
@@ -336,6 +343,7 @@
                 <button type="button" class="icon-btn" onclick="addExpiryRow()" style="margin-top:6px;">+ إضافة تاريخ نفاذ آخر</button>
             </div>
             <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="fPrice" min="0" value="0" oninput="retailAutoPrice()"></div>
+            <div class="form-group"><label>سعر الشراء للعبوة (اختياري، خاص بالصيدلي ولا يظهر للزبائن):</label><input type="number" id="fCost" min="0" placeholder="لحساب الربح في التقارير"></div>
             <div class="form-group"><label>العدد المتوفر (عبوات):</label><input type="number" id="fQty" min="0" value="5"></div>
             <div class="form-group retail-box">
                 <label>🧩 البيع بالتجزئة (اختياري)</label>
@@ -512,10 +520,8 @@
     </div>
     <div class="home-quick">
         <button type="button" onclick="goAddProduct()">➕ مادة جديدة</button>
-        <button type="button" onclick="showView('bill'); billTab('po')">🛒 طلب شراء</button>
-        <button type="button" onclick="showView('bill'); billTab('reports')">📊 تقارير</button>
         <button type="button" onclick="showView('bill'); billTab('debt')">💳 الآجل</button>
-        <button type="button" onclick="goStock('out')">🚫 غير المتوفر</button>
+        <button type="button" onclick="showView('bill'); billTab('reports')">📊 تقارير</button>
         <a href="./" class="home-quick-link">👁 صفحة الزبائن</a>
     </div>
 </div>
@@ -530,6 +536,7 @@
         <input type="search" id="alertSearch" class="alerts-search" placeholder="🔍 ابحث داخل التنبيهات..." oninput="renderAlerts()">
     </div>
     <div class="info-strip alerts-info"><span id="alertTitle">كل التنبيهات</span><span id="alertCount">0 صنف</span></div>
+    <button type="button" class="alerts-po-btn" id="alertPoBtn" onclick="alertsToPO()">🛒 أضف أصناف هذه القائمة إلى طلب الشراء</button>
     <div class="grid-layout alerts-grid" id="alertsContainer"></div>
 </div>
 

@@ -54,6 +54,8 @@ async function refreshHome() {
     const alertsTotal = products.filter(p => alertKinds(p).any).length;
     const hb = document.getElementById('homeAlertCount');
     if (hb) { hb.innerText = alertsTotal; hb.style.display = alertsTotal ? 'flex' : 'none'; }
+    const sb = document.getElementById('stockAlertCount');
+    if (sb) { sb.innerText = alertsTotal; sb.style.display = alertsTotal ? 'flex' : 'none'; }
     const render = (sales) => {
         document.getElementById('homeKpis').innerHTML =
             kpi('k-out', 'غير متوفر', out, "goStock('out')") +
@@ -67,13 +69,14 @@ async function refreshHome() {
 
 // ---------------- شاشة التنبيهات ----------------
 let alertFilterV = 'all';
+const monthsTxt = n => n === 1 ? 'شهر' : n === 2 ? 'شهرين' : n + (n <= 10 ? ' أشهر' : ' شهراً');
 const ALERT_LABELS = {
-    all: 'كل التنبيهات',
-    expired: 'منتهية الصلاحية',
-    m1: 'تنتهي خلال شهر',
-    m3: 'تنتهي خلال 3 أشهر',
-    m6: 'تنتهي خلال 6 أشهر',
-    low: 'مخزون منخفض'
+    get all() { return 'كل التنبيهات'; },
+    get expired() { return 'منتهية الصلاحية'; },
+    get m1() { return 'تنتهي خلال ' + monthsTxt(alertMonths[0]); },
+    get m3() { return 'تنتهي خلال ' + monthsTxt(alertMonths[1]); },
+    get m6() { return 'تنتهي خلال ' + monthsTxt(alertMonths[2]); },
+    get low() { return 'مخزون منخفض'; }
 };
 function expiryDaysOf(dateStr) {   // نفس حساب التطبيق: اعتبار تاريخ النفاذ هو أول يوم من الشهر
     const m = /^(\d{4})-(\d{2})/.exec(dateStr || '');
@@ -85,12 +88,19 @@ function expiryDaysOf(dateStr) {   // نفس حساب التطبيق: اعتبا
 function alertKinds(p) {
     let days = null, date = '';
     getProductExpiryDates(p).forEach(d => { const n = expiryDaysOf(d); if (n !== null && (days === null || n < days)) { days = n; date = d; } });
-    const k = { days, date, expired: days !== null && days <= 0, m1: days !== null && days <= 30, m3: days !== null && days <= 90, m6: days !== null && days <= 180, low: isLowStock(p) };
+    const k = { days, date, expired: days !== null && days <= 0, m1: days !== null && days <= alertMonths[0] * 30, m3: days !== null && days <= alertMonths[1] * 30, m6: days !== null && days <= alertMonths[2] * 30, low: isLowStock(p) };
     k.any = k.m6 || k.low;
     return k;
 }
 function goAlerts(f) { alertFilterV = f || 'all'; showView('alerts'); }
 function setAlertFilter(v) { alertFilterV = v; renderAlerts(); }
+let alertListIds = [];
+function alertsToPO() {
+    if (!alertListIds.length) { Swal.fire({ icon: 'info', title: 'القائمة فارغة', confirmButtonColor: '#0f1c38' }); return; }
+    alertListIds.forEach(id => { poExtra.add(id); if (poState[id]) poState[id].on = true; });
+    showView('bill'); billTab('po');
+    Swal.fire({ icon: 'success', title: 'أضيف ' + alertListIds.length + ' صنف إلى طلب الشراء', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+}
 function renderAlerts() {
     const sel = document.getElementById('alertFilter');
     const all = products.map(p => ({ p, k: alertKinds(p) }));
@@ -101,6 +111,8 @@ function renderAlerts() {
     const toks = q ? q.split(' ') : [];
     let list = all.filter(x => (alertFilterV === 'all' ? x.k.any : x.k[alertFilterV]) && (!q || searchScore(x.p, q, toks) > 0));
     list.sort((a, b) => (a.k.days === null ? 1e9 : a.k.days) - (b.k.days === null ? 1e9 : b.k.days) || (parseInt(a.p.qty) || 0) - (parseInt(b.p.qty) || 0));
+    alertListIds = list.map(x => x.p.id);
+    document.getElementById('alertPoBtn').style.display = list.length ? '' : 'none';
     document.getElementById('alertTitle').innerText = ALERT_LABELS[alertFilterV];
     document.getElementById('alertCount').innerText = list.length + ' صنف';
     const tag = ({ p, k }) => {

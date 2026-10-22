@@ -1719,3 +1719,13 @@ body.admin-page .top-bar-inner { padding-top: 12px; }
 body.admin-page[data-view="alerts"] #alertsView { display: block; }
 :root[data-theme="dark"] .alerts-select { color: var(--text-main); }
 :root[data-theme="dark"] .home-view > .brand-bar, :root[data-theme="dark"] .home-view > .page-title, :root[data-theme="dark"] .alerts-view > .brand-bar, :root[data-theme="dark"] .alerts-view > .page-title, :root[data-theme="dark"] .bill-top .brand-bar, :root[data-theme="dark"] .bill-top .page-title { background: #0b1326; }
+
+/* v14: جرس التنبيهات في المخزن، زر طلب الشراء من التنبيهات، الربح */
+.bell-btn { position: relative; }
+.bell-badge { position: absolute; top: -5px; inset-inline-start: -5px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: #dc2626; color: #fff; font: 800 .66rem/18px inherit; font-style: normal; display: none; align-items: center; justify-content: center; }
+.alerts-po-btn { display: block; width: calc(100% - 32px); max-width: 728px; margin: 4px auto 10px; padding: 12px; border: 1.5px dashed #b45309; border-radius: 12px; background: #fff7ed; color: #9a3412; font: 800 .9rem inherit; cursor: pointer; }
+body.dark .alerts-po-btn, [data-theme="dark"] .alerts-po-btn { background: #2a1d10; color: #fdba74; border-color: #b45309; }
+.rep-cards .rep-profit { grid-column: 1 / -1; background: #ecfdf5; border-color: #6ee7b7; }
+.rep-cards .rep-profit b { color: #047857; }
+body.dark .rep-cards .rep-profit, [data-theme="dark"] .rep-cards .rep-profit { background: #0f2a20; border-color: #047857; }
+#catModal .add-inline-row input[id^="alertM"] { width: 33%; min-width: 0; }

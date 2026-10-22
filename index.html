@@ -181,6 +181,13 @@
                         <button class="icon-btn primary-btn" onclick="saveLowThreshold()">حفظ</button>
                     </div>
                 </div>
+                <div class="form-group" style="margin-bottom:10px;">
+                    <label>مدد تنبيه الصلاحية (بالأشهر، مرتبة من الأقصر للأطول):</label>
+                    <div class="add-inline-row">
+                        <input type="number" id="alertM1" min="1"><input type="number" id="alertM2" min="1"><input type="number" id="alertM3" min="1">
+                        <button class="icon-btn primary-btn" onclick="saveAlertMonths()">حفظ</button>
+                    </div>
+                </div>
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="openIngredientModal()">🧪 إكمال المواد الفعالة</button>
                     <button class="icon-btn" onclick="openMissModal()">🔍 سجل البحث الفاشل</button>
@@ -336,6 +343,7 @@
                 <button type="button" class="icon-btn" onclick="addExpiryRow()" style="margin-top:6px;">+ إضافة تاريخ نفاذ آخر</button>
             </div>
             <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="fPrice" min="0" value="0" oninput="retailAutoPrice()"></div>
+            <div class="form-group"><label>سعر الشراء للعبوة (اختياري، خاص بالصيدلي ولا يظهر للزبائن):</label><input type="number" id="fCost" min="0" placeholder="لحساب الربح في التقارير"></div>
             <div class="form-group"><label>العدد المتوفر (عبوات):</label><input type="number" id="fQty" min="0" value="5"></div>
             <div class="form-group retail-box">
                 <label>🧩 البيع بالتجزئة (اختياري)</label>

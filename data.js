@@ -49,6 +49,7 @@ const DEFAULT_SUB_TYPES = ['Strip', 'Tablet', 'Vial', 'Ampoule'];
 let subTypes = (() => { try { const a = JSON.parse(localStorage.getItem('diwanSubTypes')); return Array.isArray(a) && a.length ? a : DEFAULT_SUB_TYPES.slice(); } catch (e) { return DEFAULT_SUB_TYPES.slice(); } })();
 let lowStockThreshold = parseInt(localStorage.getItem('diwanLowThreshold'));
 if (isNaN(lowStockThreshold)) lowStockThreshold = 2;
+let alertMonths = (() => { try { const a = JSON.parse(localStorage.getItem('diwanAlertMonths')); return Array.isArray(a) && a.length === 3 && a.every(n => n > 0) ? a : [1, 3, 6]; } catch (e) { return [1, 3, 6]; } })();
 
 const ALL_DEPTS = '__all__';
 const ALL_DEPTS_LABEL = 'كل الأقسام';
@@ -91,7 +92,7 @@ products = products.map(p => ({
 // بيانات المخزون الحساسة (الكمية، الحد الأدنى، الصلاحية) تُحفظ في مجموعة خاصة بالصيدلي
 // ============================================================================
 const IS_ADMIN_PAGE = window.APP_MODE === 'admin';
-const STOCK_FIELDS = ['qty', 'loose', 'minQty', 'expiryDate', 'expiryDates'];
+const STOCK_FIELDS = ['qty', 'loose', 'minQty', 'expiryDate', 'expiryDates', 'costPrice'];
 let cloudPub = [];          // الأصناف العامة كما تصل من السحابة
 let stockMap = {};          // بيانات المخزون الخاصة (للصيدلي فقط)
 let unsubStock = null;
@@ -198,6 +199,7 @@ async function initFirebase() {
                 if (data.tabLabels) tabLabels = { ...defaultTabLabels, ...data.tabLabels };
                 if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
                 if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
+                if (Array.isArray(data.alertMonths) && data.alertMonths.length === 3) alertMonths = data.alertMonths;
                 if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
                 saveLocal();
                 renderAll();
@@ -231,6 +233,7 @@ function saveLocal() {
         localStorage.setItem('diwanTabLabels', JSON.stringify(tabLabels));
         localStorage.setItem('diwanCustomTabs', JSON.stringify(customTabs));
         localStorage.setItem('diwanLowThreshold', String(lowStockThreshold));
+        localStorage.setItem('diwanAlertMonths', JSON.stringify(alertMonths));
         localStorage.setItem('diwanSubTypes', JSON.stringify(subTypes));
         localStorage.setItem('diwanProducts', JSON.stringify(products));
     } catch (e) {
@@ -286,6 +289,7 @@ async function pushToCloud(onlyMetadata = false) {
                 tabLabels,
                 customTabs,
                 lowStockThreshold,
+                alertMonths,
                 subTypes,
                 updatedAt: new Date().toISOString()
             });
@@ -387,6 +391,7 @@ function openCategoryManager() {
     renderManagerLists();
     const lowInput = document.getElementById('lowThresholdInput');
     if (lowInput) lowInput.value = lowStockThreshold;
+    alertMonths.forEach((m, i) => { const el = document.getElementById('alertM' + (i + 1)); if (el) el.value = m; });
     loadAiSettingsToForm();
     document.getElementById('catModal').style.display = 'flex';
 }
@@ -1280,6 +1285,7 @@ function openFormModal(id = null) {
         document.getElementById('fQty').value = p.qty;
         document.getElementById('fImg').value = p.img || '';
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = p.price || 0;
+        if (document.getElementById('fCost')) document.getElementById('fCost').value = p.costPrice || '';
         fillRetailForm(p);
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = p.keywords || '';
         if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = p.barcode || '';
@@ -1469,6 +1475,7 @@ async function saveFormProduct() {
         meta: fixMetaOrder(document.getElementById('fMeta').value.trim()),
         qty: parseInt(document.getElementById('fQty').value) || 0,
         price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
+        costPrice: document.getElementById('fCost') ? (parseFloat(document.getElementById('fCost').value) || 0) : 0,
         ...readRetailForm(),
         expiryDates: expiryDates,
         expiryDate: expiryDates[0] || '',   // الأقرب نفاذاً (للتوافق مع الأكواد القديمة)
@@ -2007,6 +2014,18 @@ function buildLowStockSection() {
     `).join('');
 }
 
+function saveAlertMonths() {
+    const a = ['alertM1', 'alertM2', 'alertM3'].map(id => parseInt(document.getElementById(id).value));
+    if (a.some(n => isNaN(n) || n < 1) || !(a[0] < a[1] && a[1] < a[2])) {
+        Swal.fire({ icon: 'warning', title: 'أدخل ثلاث مدد بالأشهر مرتبة تصاعدياً (مثال 1 ثم 3 ثم 6)', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        return;
+    }
+    alertMonths = a;
+    pushToCloud(true);
+    if (typeof refreshHome === 'function') refreshHome();
+    Swal.fire({ icon: 'success', title: 'تم حفظ مدد التنبيه', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
+}
+
 function saveLowThreshold() {
     const v = parseInt(document.getElementById('lowThresholdInput').value);
     if (isNaN(v) || v < 0) {
@@ -2319,6 +2338,7 @@ function buildBackupObject() {
         tabLabels,
         customTabs,
         lowStockThreshold,
+        alertMonths,
         subTypes,
         products
     };
@@ -2447,6 +2467,7 @@ async function applyBackupData(data) {
         if (data.tabLabels && typeof data.tabLabels === 'object') tabLabels = { ...defaultTabLabels, ...data.tabLabels };
         if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
         if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
+                if (Array.isArray(data.alertMonths) && data.alertMonths.length === 3) alertMonths = data.alertMonths;
         if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
 
         await pushToCloud(false);
@@ -3346,7 +3367,7 @@ async function openTrashModal() {
 }
 
 // ---------------- سجل التعديلات ----------------
-const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'نوع الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة' };
+const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'نوع الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة', costPrice: 'سعر الشراء' };
 
 function diffProduct(a, b) {
     const out = [];

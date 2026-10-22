@@ -334,6 +334,7 @@ async function issueInvoice() {
         showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'إصدار وطباعة', cancelButtonText: 'إلغاء'
     });
     if (!r.isConfirmed) return;
+    bill.items.forEach(it => { const p = itemProduct(it); const c = p ? parseFloat(p.costPrice) || 0 : 0; if (c > 0) { const sc = subCountOf(p); it.cost = it.unit === 'part' && hasRetail(p) ? c / sc : c; } else delete it.cost; });
     let lines = [];
     if (deduct && plan.length) {
         if (!requireOnline()) return;
@@ -472,11 +473,12 @@ function reportInvoices() {
 }
 function renderReport() {
     const arr = reportInvoices();
-    let gross = 0, disc = 0, net = 0, owed = 0; const items = new Map(), days = new Map();
+    let gross = 0, disc = 0, net = 0, owed = 0, cost = 0, costRev = 0, noCost = 0; const items = new Map(), days = new Map();
     arr.forEach(b => {
         const sub = (b.items || []).reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), 0);
         const t = invTotalOf(b); gross += sub; disc += sub - t; net += t; owed += invRemaining(b);
         days.set(b.date, (days.get(b.date) || 0) + t);
+        (b.items || []).forEach(it => { if (it.cost > 0) { const q = parseFloat(it.qty) || 0; cost += it.cost * q; costRev += q * (parseFloat(it.price) || 0) * (sub > 0 ? t / sub : 1); } else noCost++; });
         (b.items || []).forEach(it => { const k = (it.name || '—') + (it.unit === 'part' && it.partType ? ' (' + it.partType + ')' : ''); const e = items.get(k) || { q: 0, v: 0 }; e.q += parseFloat(it.qty) || 0; e.v += (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0); items.set(k, e); });
     });
     const top = [...items.entries()].sort((a, b) => b[1].v - a[1].v).slice(0, 10);
@@ -488,7 +490,9 @@ function renderReport() {
             <div><span>صافي المبيعات</span><b>${fmtNum(net)}</b></div>
             <div><span>الخصومات</span><b>${fmtNum(disc)}</b></div>
             <div><span>الآجل</span><b>${fmtNum(owed)}</b></div>
+            ${cost > 0 ? `<div class="rep-profit"><span>الربح التقديري</span><b>${fmtNum(costRev - cost)}</b></div>` : ''}
         </div>
+        ${cost > 0 && noCost ? `<div class="bill-set-hint">الربح محسوب من المواد التي لها سعر شراء فقط (${noCost} سطر بلا سعر شراء).</div>` : (cost <= 0 ? `<div class="bill-set-hint">أضف «سعر الشراء» لأصنافك لتظهر أرباحك هنا.</div>` : '')}
         ${dayRows.length > 1 ? `<h4 class="rep-h">المبيعات اليومية</h4>` + dayRows.map(([d, v]) => `<div class="rep-bar"><span>${escapeHtml(fmtDateDMY(d))}</span><i style="width:${Math.max(4, Math.round(v / maxDay * 100))}%"></i><b>${fmtNum(v)}</b></div>`).join('') : ''}
         <h4 class="rep-h">الأكثر مبيعاً</h4>
         ${top.map(([n, e]) => `<div class="rep-row"><span dir="auto">${escapeHtml(n)}</span><small>× ${fmtNum(e.q)}</small><b>${fmtNum(e.v)}</b></div>`).join('') || '<div class="bill-none">لا مبيعات في هذه الفترة.</div>'}`;
@@ -497,7 +501,8 @@ function salesTodayTotal() { const t = todayLocalISO(); return billAll.filter(b 
 
 // ---------- طلب الشراء ----------
 let poState = {};
-function poCandidates() { return products.filter(p => !isInStock(p) || isLowStock(p)).sort((a, b) => (parseInt(a.qty) || 0) - (parseInt(b.qty) || 0) || String(a.brand).localeCompare(String(b.brand))); }
+const poExtra = new Set();   // أصناف أُضيفت يدوياً من صفحة التنبيهات
+function poCandidates() { return products.filter(p => !isInStock(p) || isLowStock(p) || poExtra.has(p.id)).sort((a, b) => (parseInt(a.qty) || 0) - (parseInt(b.qty) || 0) || String(a.brand).localeCompare(String(b.brand))); }
 function renderPO() {
     const m = getInvMeta();
     $b('poPhLine').innerText = [m.addr, m.phone ? 'هاتف: ' + m.phone : ''].filter(Boolean).join('  |  ');
