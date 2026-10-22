@@ -2182,7 +2182,7 @@ const APP_CHECK_SITE_KEY = '';               // مفتاح reCAPTCHA للويب 
 const APP_CHECK_PROVIDER = 'enterprise';     // 'enterprise' (reCAPTCHA Enterprise) أو 'v3' (reCAPTCHA v3)
 
 const AI_DEFAULT_MODEL = 'gemini-3.8-flash';
-const AI_TIMEOUT_MS = 45000;
+const AI_TIMEOUT_MS = 90000;
 const AI_ENGINES = { local: 'قراءة عادية (بدون ذكاء)', gemini: 'Gemini API', firebase: 'Firebase AI Logic' };
 // إعدادات المحرك تُحفظ على هذا الجهاز فقط (لا تُرفع للسحابة ولا تدخل النسخة الاحتياطية)
 const AI_LS = { engine: 'diwanAiEngine', key: 'diwanGeminiKey', gModel: 'diwanGeminiModel', fModel: 'diwanFbAiModel' };
@@ -2218,7 +2218,7 @@ function friendlyAiError(err) {
     const raw = String((err && err.message) || err || '');
     const low = raw.toLowerCase();
     const st = err && err.status;
-    if (err && (err.name === 'AbortError' || err.name === 'TimeoutError')) return 'انتهت مهلة الطلب. تأكد من الإنترنت وحاول مرة أخرى.';
+    if (err && (err.name === 'AbortError' || err.name === 'TimeoutError')) return 'لم يصل رد من جوجل خلال 90 ثانية (الإنترنت يعمل لكن النموذج بطيء أو محجوب). جرّب نموذجاً أسرع مثل gemini-2.5-flash-lite من «جلب القائمة».';
     if (/dynamically imported module|importing a module script failed|error loading dynamically/.test(low)) return 'تعذر تحميل مكتبة Firebase AI Logic. تحقق من الإنترنت ومن رقم النسخة FIREBASE_MODULAR_VERSION في data.js.';
     if (st === 429 || /quota|rate.?limit|resource.?exhausted|\b429\b/.test(low)) return 'انتهت الحصة المجانية الحالية أو الطلبات كثيرة. انتظر قليلاً أو جرّب نموذجاً آخر (مثل Flash-Lite).';
     if (/api key not valid|api_key_invalid|api key expired/.test(low) || (st === 400 && /api key/.test(low))) return 'مفتاح Gemini API غير صحيح أو منتهي.';
@@ -2364,20 +2364,32 @@ async function callGeminiRest(opts) {
     const body = { contents: [{ role: 'user', parts }] };
     if (opts.json) body.generationConfig = { responseMimeType: 'application/json', temperature: 0.1 };
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
-    try {
-        const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },   // المفتاح في الترويسة وليس في الرابط
-            body: JSON.stringify(body),
-            signal: controller.signal
-        });
-        if (!res.ok) throw await aiHttpError(res);
-        return extractGeminiText(await res.json());
-    } finally {
-        clearTimeout(timer);
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent';
+    const send = async (payload) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+        try {
+            return await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },   // المفتاح في الترويسة وليس في الرابط
+                body: JSON.stringify(payload),
+                signal: controller.signal
+            });
+        } finally {
+            clearTimeout(timer);
+        }
+    };
+    // نماذج Gemini الحديثة "تفكر" قبل الرد فتبطؤ؛ نطلب أقل تفكير ممكن، وإن رفضه النموذج نعيد بدونه
+    const fast = JSON.parse(JSON.stringify(body));
+    fast.generationConfig = Object.assign({}, fast.generationConfig, { thinkingConfig: { thinkingBudget: 0 } });
+    let res = await send(fast);
+    if (res.status === 400) {
+        const err = await aiHttpError(res);
+        if (/thinking/i.test(err.message)) res = await send(body);
+        else throw err;
     }
+    if (!res.ok) throw await aiHttpError(res);
+    return extractGeminiText(await res.json());
 }
 
 // ---------------------------------------------------------------------------
