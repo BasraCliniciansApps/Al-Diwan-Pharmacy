@@ -331,11 +331,13 @@
             <!-- ... الحقول السابقة ... -->
             <div class="form-group"><label>العبوة / الشكل الدوائي:</label><input type="text" id="fMeta" dir="ltr"></div>
             <div class="form-group">
-                <label>الباركود (اختياري):</label>
+                <label>الباركودات (اختياري، يمكن أكثر من باركود للدواء الواحد):</label>
                 <div class="add-inline-row">
-                    <input type="text" id="fBarcode" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="امسح أو اكتب الرقم">
+                    <input type="text" id="fBarcode" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="امسح أو اكتب الرقم" onkeydown="if(event.key==='Enter'){event.preventDefault();addFormBarcode();}">
+                    <button type="button" class="icon-btn" onclick="addFormBarcode()">＋</button>
                     <button type="button" class="icon-btn" onclick="scanBarcodeToForm()">▦ مسح</button>
                 </div>
+                <div id="fBarcodeChips" class="bc-chips"></div>
             </div>
             <div class="form-group">
                 <label>تواريخ النفاذ (أضف أكثر من تاريخ إذا كان عندك دفعات مختلفة):</label>

@@ -619,7 +619,7 @@ const SEARCH_IDX = new WeakMap();
 function searchIndexOf(p) {
     let x = SEARCH_IDX.get(p);
     if (!x) {
-        const all = normSearch(`${p.name} ${p.brand} ${p.details} ${p.meta} ${catsOf(p).join(' ')} ${p.keywords || ''} ${p.activeIngredient || ''} ${p.barcode || ''}`);
+        const all = normSearch(`${p.name} ${p.brand} ${p.details} ${p.meta} ${catsOf(p).join(' ')} ${p.keywords || ''} ${p.activeIngredient || ''} ${barcodesOf(p).join(' ')}`);
         x = { name: normSearch(p.name), all, words: all.split(' ').filter(Boolean) };
         SEARCH_IDX.set(p, x);
     }
@@ -1288,7 +1288,8 @@ function openFormModal(id = null) {
         if (document.getElementById('fCost')) document.getElementById('fCost').value = p.costPrice || '';
         fillRetailForm(p);
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = p.keywords || '';
-        if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = p.barcode || '';
+        if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = '';
+        formBarcodes = barcodesOf(p); renderBarcodeChips();
         setExpiryDatesInForm(getProductExpiryDates(p));
         setExtraSelections(p);
     } else {
@@ -1309,6 +1310,7 @@ function openFormModal(id = null) {
         fillRetailForm(null);
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = '';
         if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = '';
+        formBarcodes = []; renderBarcodeChips();
         setExpiryDatesInForm([]);
         setExtraSelections(null);
     }
@@ -1458,6 +1460,8 @@ async function saveFormProduct() {
     }
 
     const expiryDates = getExpiryDatesFromForm();
+    const pendingBc = cleanBarcode((document.getElementById('fBarcode') || {}).value);
+    if (pendingBc && !formBarcodes.includes(pendingBc)) formBarcodes.push(pendingBc);
     const editId = document.getElementById('editId').value;
     const obj = {
         id: editId ? parseInt(editId) : Date.now(),
@@ -1480,7 +1484,8 @@ async function saveFormProduct() {
         expiryDates: expiryDates,
         expiryDate: expiryDates[0] || '',   // الأقرب نفاذاً (للتوافق مع الأكواد القديمة)
         keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
-        barcode: document.getElementById('fBarcode') ? cleanBarcode(document.getElementById('fBarcode').value) : '',
+        barcode: formBarcodes[0] || '',
+        barcodes: formBarcodes.slice(),
         img: imgVal
       
     };
@@ -3830,9 +3835,37 @@ function submitManualBarcode() {
     barcodeFound(v);
 }
 
+function barcodesOf(p) {   // كل باركودات الصنف (الأول هو الأساسي)
+    const set = [];
+    [p && p.barcode].concat(Array.isArray(p && p.barcodes) ? p.barcodes : []).forEach(b => { const c = cleanBarcode(b); if (c && !set.includes(c)) set.push(c); });
+    return set;
+}
 function findByBarcode(code) {
     const c = cleanBarcode(code);
-    return products.find(p => cleanBarcode(p.barcode) === c);
+    if (!c) return undefined;
+    return products.find(p => barcodesOf(p).includes(c));
+}
+// ---- قائمة الباركودات في نموذج الصنف ----
+let formBarcodes = [];
+function renderBarcodeChips() {
+    const box = document.getElementById('fBarcodeChips');
+    if (!box) return;
+    box.innerHTML = formBarcodes.map((b, i) => `<span class="bc-chip" dir="ltr">${i === 0 ? '★ ' : ''}${escapeHtml(b)}<button type="button" aria-label="حذف" onclick="removeFormBarcode(${i})">✕</button></span>`).join('');
+}
+function removeFormBarcode(i) { formBarcodes.splice(i, 1); renderBarcodeChips(); }
+async function addFormBarcode(code) {
+    const f = document.getElementById('fBarcode');
+    const c = cleanBarcode(code !== undefined ? code : (f ? f.value : ''));
+    if (!c) return;
+    if (formBarcodes.includes(c)) { if (f) f.value = ''; return; }
+    const dup = findByBarcode(c);
+    const editId = parseInt((document.getElementById('editId') || {}).value, 10);
+    if (dup && dup.id !== editId) {
+        await Swal.fire({ icon: 'warning', title: 'الباركود مستعمل', html: `هذا الباركود مسجّل للصنف: <b dir="ltr">${escapeHtml(dup.name)}</b>`, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        return;
+    }
+    formBarcodes.push(c); if (f) f.value = '';
+    renderBarcodeChips();
 }
 
 // من شريط البحث: امسح باركوداً لفتح الصنف
@@ -3846,7 +3879,7 @@ function scanBarcodeToSearch() {
                 html: `<div dir="ltr" style="font-weight:800; margin-bottom:6px;">${escapeHtml(code)}</div><div style="font-size:0.9rem;">لا يوجد صنف بهذا الباركود. هل تريد إضافة صنف جديد به؟</div>`,
                 showCancelButton: true, confirmButtonText: 'إضافة صنف', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38'
             });
-            if (r.isConfirmed) { openFormModal(); const f = document.getElementById('fBarcode'); if (f) f.value = code; }
+            if (r.isConfirmed) { openFormModal(); formBarcodes = [cleanBarcode(code)]; renderBarcodeChips(); }
         } else {
             Swal.fire({ icon: 'info', title: 'لم يتم العثور على الصنف', text: 'هذا الباركود غير موجود في قائمتنا. اسأل الصيدلي.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         }
@@ -3855,15 +3888,7 @@ function scanBarcodeToSearch() {
 
 // من نموذج الصنف: امسح باركوداً لتعبئة الحقل
 function scanBarcodeToForm() {
-    openBarcodeScanner(async (code) => {
-        const dup = findByBarcode(code);
-        const editId = parseInt((document.getElementById('editId') || {}).value, 10);
-        if (dup && dup.id !== editId) {
-            await Swal.fire({ icon: 'warning', title: 'الباركود مستعمل', html: `هذا الباركود مسجّل للصنف: <b dir="ltr">${escapeHtml(dup.name)}</b>`, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
-        }
-        const f = document.getElementById('fBarcode');
-        if (f) f.value = code;
-    });
+    openBarcodeScanner(code => addFormBarcode(code));
 }
 
 // ---------------- تثبيت التطبيق ----------------

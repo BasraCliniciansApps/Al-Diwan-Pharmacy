@@ -4,8 +4,9 @@ import re, os
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 t = open(os.path.join(root, 'app.template.html'), encoding='utf-8').read()
 inv = open(os.path.join(root, 'invoice.html.part'), encoding='utf-8').read()
+pur = open(os.path.join(root, 'purchase.html.part'), encoding='utf-8').read()
 def build(mode):
-    s = t.replace('@@INVOICE_HTML@@', inv)
+    s = t.replace('@@INVOICE_HTML@@', inv).replace('@@PURCHASE_HTML@@', pur)
     if mode == 'admin':
         s = re.sub(r'<!--/?A-->', '', s)
         s = re.sub(r'<!--C-->.*?<!--/C-->', '', s, flags=re.S)

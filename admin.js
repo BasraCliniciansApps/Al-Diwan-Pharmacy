@@ -11,6 +11,7 @@ function showView(v) {
     if (v === 'home') refreshHome();
     else if (v === 'stock') { renderAll(); }
     else if (v === 'bill') { onShowBill(); }
+    else if (v === 'purch') { onShowPurch(); }
     else if (v === 'alerts') { renderAlerts(); }
 }
 
@@ -52,6 +53,7 @@ async function refreshHome() {
     let exp = 0; try { exp = getExpiringProducts().length; } catch (e) { /* تجاهل */ }
     const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}" onclick="${onclick}"><b>${val}</b><span>${label}</span></button>`;
     const alertsTotal = products.filter(p => alertKinds(p).any).length;
+    if (typeof puLoad === 'function') puLoad().then(puHomeBadge).catch(() => {});
     const hb = document.getElementById('homeAlertCount');
     if (hb) { hb.innerText = alertsTotal; hb.style.display = alertsTotal ? 'flex' : 'none'; }
     const sb = document.getElementById('stockAlertCount');

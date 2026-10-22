@@ -335,11 +335,13 @@
             <!-- ... الحقول السابقة ... -->
             <div class="form-group"><label>العبوة / الشكل الدوائي:</label><input type="text" id="fMeta" dir="ltr"></div>
             <div class="form-group">
-                <label>الباركود (اختياري):</label>
+                <label>الباركودات (اختياري، يمكن أكثر من باركود للدواء الواحد):</label>
                 <div class="add-inline-row">
-                    <input type="text" id="fBarcode" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="امسح أو اكتب الرقم">
+                    <input type="text" id="fBarcode" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="امسح أو اكتب الرقم" onkeydown="if(event.key==='Enter'){event.preventDefault();addFormBarcode();}">
+                    <button type="button" class="icon-btn" onclick="addFormBarcode()">＋</button>
                     <button type="button" class="icon-btn" onclick="scanBarcodeToForm()">▦ مسح</button>
                 </div>
+                <div id="fBarcodeChips" class="bc-chips"></div>
             </div>
             <div class="form-group">
                 <label>تواريخ النفاذ (أضف أكثر من تاريخ إذا كان عندك دفعات مختلفة):</label>
@@ -507,6 +509,10 @@
             <b>مخزن</b><small>الأصناف والكميات</small>
         </button>
     </div>
+    <button type="button" class="home-tile tile-purch" onclick="showView('purch')">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/><path d="M8 5.5l8 3.8"/></svg>
+        <span class="tile-txt"><b>الوارد</b><small id="homePuOwed">فواتير المذاخر والدفعات</small></span>
+    </button>
     <div class="home-tiles3">
         <button type="button" class="home-tile tile-sm tile-inv" onclick="openInventory()">
             <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9z"/><path d="M9 13l2 2 4-4"/></svg>
@@ -545,11 +551,12 @@
 </div>
 
 @@INVOICE_HTML@@
+@@PURCHASE_HTML@@
 <!--/A-->
     <script>window.APP_MODE='__MODE__';</script>
     <script src="seed.js"></script>
     <script src="data.js"></script>
-<!--A--><script src="invoice.js"></script><script src="admin.js"></script><!--/A-->
+<!--A--><script src="invoice.js"></script><script src="purchase.js"></script><script src="admin.js"></script><!--/A-->
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});

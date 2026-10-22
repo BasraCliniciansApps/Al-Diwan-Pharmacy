@@ -1,0 +1,86 @@
+<div id="purchView" class="app-view bill-view" dir="rtl">
+    <div class="bill-top no-print">
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button></div></div>
+<div class="page-title">📥 الوارد من المذاخر</div>
+    </div>
+    <div class="bill-tabs no-print" id="puTabs">
+        <button type="button" data-tab="new" class="active" onclick="puTab('new')">➕ وارد جديد</button>
+        <button type="button" data-tab="log" onclick="puTab('log')">📚 السجل</button>
+        <button type="button" data-tab="debt" onclick="puTab('debt')">💳 مستحقات المذاخر</button>
+        <button type="button" data-tab="month" onclick="puTab('month')">🗓️ كشف شهري</button>
+        <button type="button" data-tab="sup" onclick="puTab('sup')">🏭 المذاخر والأسعار</button>
+    </div>
+
+    <div class="bill-scroll">
+        <!-- ===== وارد جديد ===== -->
+        <section class="pu-pane active" id="puPane-new">
+            <div class="pu-card">
+                <div class="pu-form">
+                    <label><span>المذخر المجهز</span><input id="puSupplier" list="puSupList" autocomplete="off" placeholder="اسم المذخر" oninput="puChanged()"><datalist id="puSupList"></datalist></label>
+                    <label><span>رقم فاتورة المذخر</span><input id="puNo" dir="ltr" autocomplete="off" oninput="puChanged()"></label>
+                    <label><span>تاريخ فاتورة المذخر</span><input type="date" id="puDate" oninput="puChanged()"></label>
+                </div>
+            </div>
+            <div class="bill-add">
+                <div class="bill-search-wrap">
+                    <input type="search" id="puSearch" autocomplete="off" placeholder="🔍 ابحث عن الدواء أو امسح الباركود..." oninput="puSearchInput()" onkeydown="if(event.key==='Enter'){puSearchEnter();}">
+                    <div class="bill-results" id="puResults" style="display:none;"></div>
+                </div>
+                <button type="button" class="bill-tb-btn bill-scan" onclick="puScan()" aria-label="مسح باركود">▦ باركود</button>
+            </div>
+            <div class="pu-hint" id="puPendingHint" style="display:none;"></div>
+            <div id="puItems"></div>
+            <div class="pu-card pu-totals">
+                <div class="pu-trow"><span>مجموع الفاتورة</span><b id="puTotal">0</b></div>
+                <label class="pu-trow"><span>مبلغ الاسترجاع</span><input type="number" min="0" inputmode="decimal" id="puReturn" placeholder="0" oninput="puChanged()"></label>
+                <div class="pu-trow pu-net"><span>الصافي بعد الاسترجاع</span><b id="puNet">0</b></div>
+                <label class="pu-trow"><span>المبلغ المدفوع الآن</span><input type="number" min="0" inputmode="decimal" id="puPaid" placeholder="0" oninput="puChanged()"></label>
+                <div class="pu-trow pu-rem"><span>المتبقي للمذخر (دين)</span><b id="puRem">0</b></div>
+            </div>
+            <label class="pu-notes"><span>ملاحظات</span><textarea id="puNotes" rows="2" oninput="puChanged()"></textarea></label>
+            <div class="bill-actions">
+                <button type="button" class="bill-tb-btn" onclick="puNew()">＋ جديد</button>
+                <button type="button" class="bill-tb-btn bill-tb-primary" id="puSaveBtn" onclick="puSave()">✅ حفظ الوارد وإضافته للمخزن</button>
+            </div>
+        </section>
+
+        <!-- ===== السجل ===== -->
+        <section class="pu-pane" id="puPane-log">
+            <div class="bill-panel">
+                <input type="search" class="bill-list-search" id="puLogSearch" placeholder="🔍 ابحث باسم المذخر أو رقم الفاتورة..." oninput="renderPuLog()">
+                <div class="bill-list" id="puLogList"></div>
+            </div>
+        </section>
+
+        <!-- ===== المستحقات ===== -->
+        <section class="pu-pane" id="puPane-debt">
+            <div class="bill-panel">
+                <div class="bill-sum-card" id="puDebtSummary"></div>
+                <div id="puDebtList"></div>
+            </div>
+        </section>
+
+        <!-- ===== الكشف الشهري ===== -->
+        <section class="pu-pane" id="puPane-month">
+            <div class="bill-actions no-print">
+                <label class="pu-mfield"><span>الشهر</span><input type="month" id="puMonth" oninput="renderPuMonth()"></label>
+                <label class="pu-mfield"><span>المذخر</span><select id="puMonthSup" onchange="renderPuMonth()"></select></label>
+                <button type="button" class="bill-tb-btn" onclick="puMonthCsv()">⬇️ Excel</button>
+                <button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-month')">🖨️ طباعة</button>
+            </div>
+            <div class="bill-sheet" id="puMonthSheet"></div>
+        </section>
+
+        <!-- ===== المذاخر والأسعار ===== -->
+        <section class="pu-pane" id="puPane-sup">
+            <div class="bill-panel">
+                <button type="button" class="bill-tb-btn" onclick="puEditSupplier('')">＋ إضافة مذخر</button>
+                <div id="puSupList2"></div>
+                <h4 class="rep-h">🔎 مقارنة أسعار الشراء لدواء</h4>
+                <input type="search" class="bill-list-search" id="puCmpSearch" placeholder="اكتب اسم الدواء..." oninput="puCmpInput()">
+                <div class="bill-results pu-cmp-results" id="puCmpResults" style="display:none;"></div>
+                <div id="puCmpBody"></div>
+            </div>
+        </section>
+    </div>
+</div>
