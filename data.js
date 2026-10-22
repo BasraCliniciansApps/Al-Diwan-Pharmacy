@@ -4086,20 +4086,33 @@ async function offerUnknownBarcode(code, after, opts) {
     if (r.isConfirmed) openAttachBarcodePicker(code, after);
     else if (r.isDenied) { if (opts.onNew) opts.onNew(code); else { openFormModal(); formBarcodes = [cleanBarcode(code)]; renderBarcodeChips(); } }
 }
+function bcpRowHtml(p) {
+    const img = p.img ? `<img src="${escapeHtml(p.img)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'💊'}))">` : '<span>💊</span>';
+    const n = barcodesOf(p).length, inS = isInStock(p);
+    const meta = [p.brand, fixMetaOrder(p.meta || '')].filter(Boolean).join(' · ');
+    return `<button type="button" class="bcp-row" onclick="attachBarcodePick(${p.id})">
+        <span class="bcp-img">${img}</span>
+        <span class="bcp-txt"><b dir="ltr">${escapeHtml(p.name)}</b><small dir="ltr">${escapeHtml(meta)}</small>
+            <span class="bcp-tags"><i class="${inS ? 'ok' : 'no'}">${inS ? 'متوفر ' + stockLabel(p) : 'غير متوفر'}</i><i>${n ? '🏷️ ' + n + (n === 1 ? ' باركود' : ' باركودات') : 'بدون باركود'}</i></span></span>
+        <span class="bcp-go">ربط</span></button>`;
+}
 function openAttachBarcodePicker(code, after) {
     bcAttach = { code, after, list: [] };
     Swal.fire({
-        title: 'ابحث عن المادة', showConfirmButton: false, showCancelButton: true, cancelButtonText: 'إلغاء',
-        html: `<div dir="ltr" style="font-weight:800;margin-bottom:8px;">${escapeHtml(code)}</div><input id="bcAttSearch" class="swal2-input" style="margin:0 0 8px;width:100%" placeholder="اكتب اسم الدواء..." autocomplete="off"><div id="bcAttRes" style="max-height:46vh;overflow:auto;text-align:right"></div>`,
+        title: 'ربط الباركود بمادة', showConfirmButton: false, showCancelButton: true, cancelButtonText: 'إلغاء', width: 'min(94vw, 480px)',
+        customClass: { popup: 'bcp-popup', title: 'bcp-title', cancelButton: 'bcp-cancel' },
+        html: `<div class="bcp-code" dir="ltr"><span>▦</span>${escapeHtml(code)}</div>
+            <div class="bcp-search"><span>🔍</span><input id="bcAttSearch" placeholder="اكتب اسم الدواء..." autocomplete="off"></div>
+            <div id="bcAttRes" class="bcp-res"><div class="bcp-hint">ابحث عن المادة التي يعود لها هذا الباركود، وسيُضاف إليها (يمكنك ربط أكثر من باركود بنفس المادة).</div></div>`,
         didOpen: () => {
             const inp = document.getElementById('bcAttSearch'), box = document.getElementById('bcAttRes'); if (!inp) return;
             inp.focus();
             inp.addEventListener('input', () => {
                 const qn = normSearch(inp.value);
-                if (!qn) { box.innerHTML = ''; return; }
+                if (!qn) { box.innerHTML = '<div class="bcp-hint">ابحث عن المادة التي يعود لها هذا الباركود.</div>'; return; }
                 const toks = qn.split(' ');
                 const list = products.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(x => x[0]);
-                box.innerHTML = list.length ? list.map(p => productPickHtml(p, 'attachBarcodePick', barcodesOf(p).length ? barcodesOf(p).length + ' باركود' : 'بدون باركود')).join('') : '<div class="bill-noresult">لا توجد نتائج</div>';
+                box.innerHTML = list.length ? list.map(bcpRowHtml).join('') : '<div class="bcp-hint">لا توجد نتائج مطابقة</div>';
             });
         }
     });
@@ -4160,6 +4173,11 @@ function dismissInstallBanner() {
 
 async function installApp() {
     if (deferredInstall) {
+        const r = await Swal.fire({
+            title: 'تثبيت صيدلية الديوان', showCancelButton: true, confirmButtonText: 'تثبيت الآن', cancelButtonText: 'ليس الآن', confirmButtonColor: '#0f1c38',
+            html: `<div style="text-align:center"><img src="icon.jpg" alt="" style="width:76px;height:76px;border-radius:20px;box-shadow:0 6px 18px rgba(15,28,56,.25);margin-bottom:10px"><div style="font-size:.92rem;line-height:1.9;color:#475569">يعمل كتطبيق مستقل بدون شريط المتصفح، ويفتح أسرع من شاشتك الرئيسية.<br><small>سيطلب منك المتصفح تأكيداً أخيراً بعد الضغط.</small></div></div>`
+        });
+        if (!r.isConfirmed) return;
         deferredInstall.prompt();
         try { await deferredInstall.userChoice; } catch (e) { /* تجاهل */ }
         deferredInstall = null;
