@@ -2278,12 +2278,22 @@ function makeAiTestImage() {
 // ---------------------------------------------------------------------------
 // الطلب (Prompt)
 // ---------------------------------------------------------------------------
-function buildAiPrompt() {
+function buildAiPrompt(typedName) {
     const cats = subCategories.join(' | ');
     const brands = [...new Set(products.map(p => (p.brand || '').trim()).filter(b => b && b !== 'GENERIC'))].slice(0, 120).join(', ');
-    return `You are assisting a pharmacist in Iraq who is adding one product to a pharmacy / dermatology catalogue.
+    const intro = typedName
+        ? `You are assisting a pharmacist in Iraq who is adding one product to a pharmacy / dermatology catalogue.
+There is NO photo. The pharmacist typed only this product name (it may include a strength or form): "${String(typedName).replace(/["\\]/g, ' ').slice(0, 120)}".
+Identify the product from your general pharmaceutical knowledge and fill the data. Because nothing is read from a package:
+- strength: copy it ONLY if the pharmacist typed it; otherwise return "" (many products exist in several strengths).
+- pack_size and expiry: always "".
+- brand_company, dosage_form and active ingredients: fill them only if you are confident this is a real, known product; otherwise "".
+- If you do not recognise the name, return empty strings, an empty array and confidence "low". Never invent a product.
+`
+        : `You are assisting a pharmacist in Iraq who is adding one product to a pharmacy / dermatology catalogue.
 Look at the photo of the product package (box, tube, bottle, blister or vial) and extract the data.
-
+`;
+    return `${intro}
 STRICT RULES
 - "printed" fields must contain ONLY what is actually readable on the package. If you cannot read it clearly, return an empty string. Never guess a strength, a number or a date.
 - Strength digits are safety-critical (5 mg vs 50 mg): copy them exactly as printed, with the unit.
@@ -2596,15 +2606,16 @@ function setScanStatusText(t) {
     if (el) el.innerText = t;
 }
 
-async function showAiScanResult(res) {
+async function showAiScanResult(res, mode) {
+    const byName = mode === 'name';
     const isEdit = !!aiVal('editId');
     const rows = buildAiRows(res);
 
     if (!rows.some(r => r.value)) {
         await Swal.fire({
             icon: 'warning',
-            title: 'لم يتعرف الذكاء الصناعي على العبوة',
-            html: '<div style="font-size:0.9rem; line-height:1.7;">جرّب صورة أقرب بإضاءة جيدة تُظهر الاسم بوضوح.</div>',
+            title: byName ? 'لم يتعرف الذكاء الصناعي على هذا الاسم' : 'لم يتعرف الذكاء الصناعي على العبوة',
+            html: '<div style="font-size:0.9rem; line-height:1.7;">' + (byName ? 'جرّب كتابة الاسم التجاري بالإنجليزية كما هو مطبوع على العبوة.' : 'جرّب صورة أقرب بإضاءة جيدة تُظهر الاسم بوضوح.') + '</div>',
             confirmButtonColor: '#0f1c38',
             confirmButtonText: 'حسناً'
         });
@@ -2633,16 +2644,17 @@ async function showAiScanResult(res) {
 
     const html = `
         <div style="text-align:right; font-size:0.9rem;">
-            ${conf ? `<div style="display:inline-block; padding:2px 10px; border-radius:8px; background:${conf[2]}; color:${conf[1]}; font-weight:800; font-size:0.78rem;">دقة القراءة: ${conf[0]}</div>` : ''}
+            ${conf ? `<div style="display:inline-block; padding:2px 10px; border-radius:8px; background:${conf[2]}; color:${conf[1]}; font-weight:800; font-size:0.78rem;">${byName ? 'ثقة النموذج بالتعرف' : 'دقة القراءة'}: ${conf[0]}</div>` : ''}
             ${dups.length ? `<div style="margin-top:10px; padding:8px 10px; border-radius:10px; background:#fef3c7; color:#92400e; font-size:0.82rem; line-height:1.7;">⚠️ قد يكون هذا الصنف موجوداً عندك: <b dir="ltr">${dups.slice(0, 3).map(d => escapeHtml(d.name)).join(' ، ')}</b></div>` : ''}
-            ${section('📖 مقروء من العبوة', '#0f1c38', 'printed')}
+            ${byName ? '<div style="margin-top:10px; padding:8px 10px; border-radius:10px; background:#fee2e2; color:#991b1b; font-size:0.82rem; line-height:1.7;">⚠️ هذه المعلومات من معرفة النموذج وليست من العبوة. تحقق من الشركة والتركيز والشكل من المنتج نفسه قبل الحفظ.</div>' : ''}
+            ${section(byName ? '🏷️ التعرف على الاسم' : '📖 مقروء من العبوة', '#0f1c38', 'printed')}
             ${section('💡 مقترح من الذكاء الصناعي — راجعه جيداً', '#b45309', 'suggested')}
             ${res.notes ? `<p style="margin-top:10px; color:#64748b; font-size:0.78rem;">ملاحظة النموذج: ${escapeHtml(res.notes)}</p>` : ''}
             <p style="margin-top:12px; color:#b91c1c; font-weight:700; font-size:0.82rem;">راجع التركيز بدقة قبل الحفظ (مثل 5 mg أو 50 mg). لن يُحفظ شيء قبل أن تضغط «حفظ».</p>
         </div>`;
 
     const choice = await Swal.fire({
-        title: 'نتيجة المسح بالذكاء الصناعي',
+        title: byName ? 'نتيجة البحث بالاسم' : 'نتيجة المسح بالذكاء الصناعي',
         html,
         showCancelButton: true,
         confirmButtonText: 'تعبئة المحدد',
@@ -2867,4 +2879,42 @@ function openAiSettingsOverForm() {
     if (modal) modal.style.zIndex = '1100';
     const box = document.getElementById('aiSettingsBox');
     if (box && box.scrollIntoView) box.scrollIntoView({ block: 'start' });
+}
+
+
+// ---------------------------------------------------------------------------
+// ملء المعلومات من اسم المنتج المكتوب (بدون صورة)
+// ---------------------------------------------------------------------------
+async function fillFromTypedName() {
+    const box = document.getElementById('nameLookupInput');
+    const name = ((box && box.value) || '').trim();
+    if (!name) { setScanStatusText('اكتب اسم المنتج أولاً.'); if (box) box.focus(); return; }
+    const engine = getAiEngine();
+    if (engine === 'local') {
+        await Swal.fire({ icon: 'info', title: 'اختر محركاً ذكياً', html: '<div style="font-size:0.9rem; line-height:1.8;">البحث بالاسم يحتاج Gemini API أو Firebase AI Logic. اخترهما من القائمة المجاورة لزر الكاميرا.</div>', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' });
+        return;
+    }
+    if (!navigator.onLine) { setScanStatusText('📴 يحتاج إنترنت'); return; }
+    let res;
+    try {
+        setScanStatusText('🤖 ' + AI_ENGINES[engine] + ' يبحث عن المنتج...');
+        const text = await callAiEngine(engine, { prompt: buildAiPrompt(name), json: true });
+        res = normalizeAiResult(parseAiJson(text));
+        // التركيز والعبوة والصلاحية لا تُؤخذ إلا مما كتبه الصيدلاني
+        res.expiry = '';
+        if (!/\d/.test(name)) { res.strength = ''; }
+        res.pack = '';
+        res.meta = res.form || '';
+    } catch (err) {
+        setScanStatusText('');
+        if (err && err.code === 'NO_KEY') {
+            const r = await Swal.fire({ icon: 'info', title: 'مفتاح Gemini API غير مُدخل', html: '<div style="font-size:0.9rem;">أدخله من ⚙️ الإعدادات ← قسم الذكاء الصناعي.</div>', showCancelButton: true, confirmButtonText: '⚙️ فتح الإعدادات', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
+            if (r.isConfirmed) openAiSettingsOverForm();
+        } else {
+            await Swal.fire({ icon: 'error', title: 'تعذر البحث بالذكاء الصناعي', html: `<div style="font-size:0.9rem; line-height:1.8;">${escapeHtml(friendlyAiError(err))}</div>`, confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
+        }
+        return;
+    }
+    setScanStatusText('');
+    await showAiScanResult(res, 'name');
 }

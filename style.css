@@ -987,3 +987,6 @@ body.admin-mode .status-dot.low { background: #f59e0b; }
 .scan-gear { padding: 0 12px; }
 .ai-test-result { font-size: 0.8rem; font-weight: 700; margin-top: 8px; min-height: 1.2em; line-height: 1.6; }
 .ai-note { font-size: 0.72rem; color: var(--text-sub); line-height: 1.7; margin-top: 8px; }
+
+.name-lookup-row { display: flex; gap: 8px; width: 100%; flex-basis: 100%; margin-top: 6px; }
+.name-lookup-row input { flex: 1; min-width: 0; height: 40px; padding: 0 10px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); font-size: 0.85rem; }
