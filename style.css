@@ -1837,7 +1837,7 @@ body.admin-page[data-view="purch"] #purchView { display: block; }
 .sync-dot[data-state="off"] { background: #94a3b8; }
 
 /* v24: منع السحب للتحديث وتحسين سحب النوافذ */
-html, body { overscroll-behavior-y: contain; }
-.bottom-sheet { overscroll-behavior: contain; }
+/* السحب للتحديث يعمل في الصفحات؛ ويُمنع داخل النوافذ فقط */
+.bottom-sheet, .modal-card { overscroll-behavior: contain; }
 .sheet-handle { position: relative; }
 .sheet-handle::after { content: ''; position: absolute; left: -30px; right: -30px; top: -14px; bottom: -10px; }

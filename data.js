@@ -203,6 +203,11 @@ function checkPending() {   // كتابات قديمة من جلسة سابقة�
     const t = setTimeout(() => { startupPending = true; syncRefresh(); }, 600);
     db.waitForPendingWrites().then(() => { clearTimeout(t); if (startupPending) markSynced(); startupPending = false; syncRefresh(); }).catch(() => clearTimeout(t));
 }
+async function hardRefresh() {   // تحديث كامل: مسح الكاش وإلغاء الخدمة المؤقتة ثم إعادة التحميل (البيانات المحفوظة لا تُمسح)
+    try { if (window.caches) for (const k of await caches.keys()) await caches.delete(k); } catch (e) { /* تجاهل */ }
+    try { if (navigator.serviceWorker) for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch (e) { /* تجاهل */ }
+    location.reload();
+}
 async function syncNow() {
     if (!isFirebaseReady || !db) return;
     try { await db.enableNetwork(); } catch (e) { /* تجاهل */ }
@@ -224,7 +229,7 @@ function showSyncStatus() {
         row('آخر مزامنة ناجحة', lastSyncAt ? new Date(lastSyncAt).toLocaleString('ar-IQ') : '—') +
         (syncErrMsg ? row('آخر خطأ', escapeHtml(syncErrMsg)) : '') + loc +
         (dups.length ? `<div style="margin-top:10px;color:#b45309;font-weight:700;font-size:.82rem">⚠️ أرقام فواتير مكررة (أُصدرت من أجهزة مختلفة بدون إنترنت): ${dups.map(escapeHtml).join('، ')}</div>` : '') + `</div>`;
-    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, confirmButtonText: '🔄 مزامنة الآن', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' }).then(r => { if (r.isConfirmed) syncNow(); });
+    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', denyButtonColor: '#047857' }).then(r => { if (r.isConfirmed) syncNow(); else if (r.isDenied) hardRefresh(); });
 }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
 
