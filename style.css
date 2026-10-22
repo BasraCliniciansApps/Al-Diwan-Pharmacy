@@ -1830,3 +1830,8 @@ body.admin-page[data-view="purch"] #purchView { display: block; }
 .pu-item.open .pu-bar { background: #ecfdf5; border-bottom: 1px solid #d1fae5; }
 .pu-body { padding: 10px 12px 12px; }
 [data-theme="dark"] .pu-bar-sum { color: #94a3b8; } [data-theme="dark"] .pu-bar-sum b { color: #f1f5f9; } [data-theme="dark"] .pu-item.open .pu-bar { background: #0f2a20; border-color: #064e3b; }
+
+/* v23: حالة المزامنة */
+.brand-logo { cursor: pointer; }
+.sync-dot[data-state="off"][data-pend="1"] { background: #f59e0b; box-shadow: 0 0 0 2px #94a3b8; }
+.sync-dot[data-state="off"] { background: #94a3b8; }

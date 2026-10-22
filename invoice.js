@@ -353,15 +353,16 @@ async function issueInvoice(doPrintAfter) {   // true/undefined: إصدار وط
     billSnapCosts();
     let lines = [];
     if (deduct && plan.length) {
-        if (!requireOnline()) return;
+        if (!writesAllowed()) return;
         plan.forEach(e => { e.p.qty = e.to.qty; e.p.loose = e.to.loose; });
-        const ok = await saveProductsBatch(plan.map(e => e.p));
+        const ok = await saveProductsDelta(plan.map(e => ({ p: e.p, dq: e.to.qty - e.from.qty, dl: e.to.loose - e.from.loose })));
         if (!ok) { plan.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; }); renderAll(); return; }
         plan.forEach(e => { logAction('qty', e.p, [{ f: 'الكمية (فاتورة ' + bill.no + ')', from: stockTxt(e.p, e.from), to: stockTxt(e.p, e.to) }]); lines = lines.concat(e.lines); });
         renderAll();
     }
     bill.issued = true; bill.issuedAt = todayLocalISO(); bill.issuedTs = new Date().toISOString(); bill.deducted = lines.length > 0; bill.deductedLines = lines;
     bill.id = bill.id || String(Date.now());
+    billEnsureUniqueNo();
     billSeqBump(bill.no);
     lsSet(BILL_LS.draft, JSON.stringify(bill));
     await saveInvoiceRecord(bill);
@@ -411,9 +412,9 @@ async function saveInvoiceEdit(doPrintAfter) {
     const rollback = () => { snaps.forEach(s => { s.p.qty = s.qty; s.p.loose = s.loose; }); };
     if (!r.isConfirmed) { rollback(); return; }
     if (hadDeduct) {
-        if (!requireOnline()) { rollback(); return; }
+        if (!writesAllowed()) { rollback(); return; }
         plan.forEach(e => { e.p.qty = e.to.qty; e.p.loose = e.to.loose; lines = lines.concat(e.lines); });
-        const ok = await saveProductsBatch([...snaps.values()].map(s => s.p));
+        const ok = await saveProductsDelta([...snaps.values()].map(s => ({ p: s.p, dq: (parseInt(s.p.qty) || 0) - (parseInt(s.qty) || 0), dl: (parseInt(s.p.loose) || 0) - (parseInt(s.loose) || 0) })));
         if (!ok) { rollback(); renderAll(); return; }
         snaps.forEach(s => { const from = { qty: parseInt(s.qty) || 0, loose: parseInt(s.loose) || 0 }, to = { qty: parseInt(s.p.qty) || 0, loose: parseInt(s.p.loose) || 0 }; if (from.qty !== to.qty || from.loose !== to.loose) logAction('qty', s.p, [{ f: 'الكمية (تعديل فاتورة ' + bill.no + ')', from: stockTxt(s.p, from), to: stockTxt(s.p, to) }]); });
         renderAll();
@@ -440,7 +441,7 @@ async function cancelInvoice(target) {
     const r = await Swal.fire({ icon: 'warning', title: 'إلغاء الفاتورة ' + escapeHtml(b.no) + '؟', text: b.deducted ? 'ستُرجَع الكميات المخصومة إلى المخزن.' : 'لم تُخصم كميات بهذه الفاتورة.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، ألغِ', cancelButtonText: 'رجوع' });
     if (!r.isConfirmed) return;
     if (b.deducted && (b.deductedLines || []).length) {
-        if (!requireOnline()) return;
+        if (!writesAllowed()) return;
         const touched = new Map();
         (b.deductedLines || []).forEach(l => {
             const p = products.find(x => x.id === l.pid); if (!p) return;
@@ -450,7 +451,7 @@ async function cancelInvoice(target) {
                 p.qty = Math.floor(tot / sc); p.loose = tot % sc;
             } else p.qty = (parseInt(p.qty) || 0) + l.n;
         });
-        const ok = await saveProductsBatch([...touched.values()].map(e => e.p));
+        const ok = await saveProductsDelta([...touched.values()].map(e => ({ p: e.p, dq: (parseInt(e.p.qty) || 0) - e.from.qty, dl: (parseInt(e.p.loose) || 0) - e.from.loose })));
         if (!ok) { touched.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; }); renderAll(); return; }
         touched.forEach(e => logAction('qty', e.p, [{ f: 'الكمية (إلغاء فاتورة ' + b.no + ')', from: stockTxt(e.p, e.from), to: stockTxt(e.p, { qty: parseInt(e.p.qty) || 0, loose: parseInt(e.p.loose) || 0 }) }]));
         renderAll();
@@ -480,10 +481,41 @@ async function saveInvoiceRecord(b) {
     list = list.filter(x => x.id !== rec.id); list.unshift(rec);
     lsSet(BILL_LS.list, JSON.stringify(list.slice(0, 300)));
     billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec);
-    if (cloudReady() && navigator.onLine) {
-        try { await db.collection('pharmacy_invoices').doc(rec.id).set(rec); }
-        catch (e) { Swal.fire({ icon: 'warning', title: 'حُفظت الفاتورة على هذا الجهاز فقط', text: 'أضف قاعدة pharmacy_invoices إلى قواعد Firestore لتُحفظ في السحابة أيضاً.', confirmButtonColor: '#0f1c38' }); }
+    if (cloudReady() && (navigator.onLine || persistenceOn)) {
+        try { await fsSet(db.collection('pharmacy_invoices').doc(rec.id), rec); }
+        catch (e) { lsSet('diwanNeedsPush', '1'); Swal.fire({ icon: 'warning', title: 'حُفظت الفاتورة على هذا الجهاز فقط', text: 'أضف قاعدة pharmacy_invoices إلى قواعد Firestore لتُحفظ في السحابة أيضاً. ستُعاد المحاولة تلقائياً.', confirmButtonColor: '#0f1c38' }); }
+    } else lsSet('diwanNeedsPush', '1');
+}
+// ---------- إعادة إرسال ما حُفظ محلياً فقط + ترقيم فريد ----------
+function billKnownNos(exceptId) { const m = new Map(); (billAll || []).concat((() => { try { return JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { return []; } })()).forEach(x => { if (x && x.issued && x.id !== exceptId && x.no) m.set(String(x.no), x.id); }); return m; }
+function billEnsureUniqueNo() {
+    const known = billKnownNos(bill.id);
+    let guard = 0;
+    while (known.has(String(bill.no)) && guard++ < 500) {
+        const n = (parseInt(String(bill.no).replace(/\D/g, '')) || 0) + 1;
+        bill.no = 'INV-' + String(n).padStart(4, '0');
     }
+    if ($b('billNo')) $b('billNo').value = bill.no;
+}
+function billDuplicateNumbers() {
+    const seen = new Map(), dup = new Set();
+    (billAll || []).forEach(x => { if (!x || !x.issued || x.cancelled || !x.no) return; if (seen.has(x.no) && seen.get(x.no) !== x.id) dup.add(x.no); else seen.set(x.no, x.id); });
+    return [...dup];
+}
+async function pushLocalInvoices() {
+    if (!cloudReady()) return 0;
+    let local = []; try { local = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { return 0; }
+    if (!local.length) return 0;
+    let cloud = new Map();
+    const snap = await db.collection('pharmacy_invoices').orderBy('issuedTs', 'desc').limit(300).get();
+    snap.forEach(d => { const x = d.data(); if (x && x.id) cloud.set(x.id, x); });
+    let n = 0;
+    for (const r of local) {
+        const c = cloud.get(r.id);
+        const newer = !c || String(r.editedAt || r.cancelledAt || '') > String(c.editedAt || c.cancelledAt || '') || (!!r.cancelled && !c.cancelled);
+        if (newer) { await fsSet(db.collection('pharmacy_invoices').doc(r.id), r); n++; }
+    }
+    return n;
 }
 async function loadInvoices() {
     const map = new Map();

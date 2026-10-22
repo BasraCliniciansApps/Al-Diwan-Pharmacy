@@ -38,15 +38,15 @@ async function puLoad() {
 async function puSaveRecord(r) {
     puAll = puAll.filter(x => x.id !== r.id); puAll.unshift(r);
     lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500)));
-    if (cloudReady() && navigator.onLine) {
-        try { await db.collection('pharmacy_purchases').doc(r.id).set(JSON.parse(JSON.stringify(r))); }
-        catch (e) { Swal.fire({ icon: 'warning', title: 'حُفظ الوارد على هذا الجهاز فقط', text: 'أضف قاعدة pharmacy_purchases إلى قواعد Firestore لتُحفظ في السحابة أيضاً.', confirmButtonColor: '#0f1c38' }); }
-    }
+    if (cloudReady() && (navigator.onLine || persistenceOn)) {
+        try { await fsSet(db.collection('pharmacy_purchases').doc(r.id), JSON.parse(JSON.stringify(r))); }
+        catch (e) { lsSet('diwanNeedsPush', '1'); Swal.fire({ icon: 'warning', title: 'حُفظ الوارد على هذا الجهاز فقط', text: 'أضف قاعدة pharmacy_purchases إلى قواعد Firestore لتُحفظ في السحابة أيضاً. ستُعاد المحاولة تلقائياً.', confirmButtonColor: '#0f1c38' }); }
+    } else lsSet('diwanNeedsPush', '1');
 }
 async function puSaveSupplierRec(s) {
     puSuppliers = puSuppliers.filter(x => x.id !== s.id); puSuppliers.push(s);
     lsSet(PU_LS.sup, JSON.stringify(puSuppliers));
-    if (cloudReady() && navigator.onLine) { try { await db.collection('pharmacy_suppliers').doc(s.id).set(s); } catch (e) { /* تجاهل */ } }
+    if (cloudReady() && (navigator.onLine || persistenceOn)) { try { await fsSet(db.collection('pharmacy_suppliers').doc(s.id), s); } catch (e) { lsSet('diwanNeedsPush', '1'); } } else lsSet('diwanNeedsPush', '1');
 }
 async function puUpsertSupplier(name) {
     name = String(name || '').trim(); if (!name) return;
@@ -170,7 +170,7 @@ function onProductSaved(obj) {
 async function puAttachBarcode(p, code) {
     const list = barcodesOf(p); if (!list.includes(code)) list.push(code);
     p.barcodes = list; p.barcode = list[0];
-    await saveProductsBatch([p]);
+    await saveProductsDelta([{ p, dq: 0, dl: 0 }]);
     Swal.fire({ icon: 'success', title: 'رُبط الباركود بـ ' + p.name, toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
 }
 function puShowPending() {
@@ -234,13 +234,13 @@ async function puSave() {
         const r = await Swal.fire({ icon: 'warning', title: 'رقم الفاتورة مسجّل سابقاً لهذا المذخر', text: 'هل تريد تسجيلها مرة أخرى؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'تسجيل', cancelButtonText: 'رجوع' });
         if (!r.isConfirmed) return;
     }
-    if (!requireOnline()) return;
+    if (!writesAllowed()) return;
     const total = items.reduce((s, it) => s + puNum(it.qty) * puNum(it.cost), 0), ret = puNum(pu.returnAmt);
     if (ret > total) return warn('مبلغ الاسترجاع أكبر من مجموع الفاتورة');
     const oldLines = editing ? (editing.items || []) : [];
     const oldBy = new Map(oldLines.map(l => [l.pid, l]));
     const snaps = new Map(), lines = [];
-    const snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate }); };
+    const snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate }); };
     // 1) الأصناف التي أُزيلت من الفاتورة عند التعديل: نُنقص كميتها السابقة
     const newIds = new Set(items.map(it => it.pid));
     oldLines.filter(l => !newIds.has(l.pid)).forEach(l => {
@@ -261,11 +261,11 @@ async function puSave() {
         lines.push(line);
     });
     const touched = [...snaps.values()].map(s => s.p);
-    const ok = await saveProductsBatch(touched);
+    const ok = await saveProductsDelta([...snaps.values()].map(s => deltaFromSnap(s.p, s)));
     if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; }); renderAll(); return; }
     // تحقق من وصول الكميات للسحابة فعلاً
     try {
-        if (cloudReady()) {
+        if (cloudReady() && navigator.onLine && pendingOps === 0) {
             const bad = [];
             for (const sn of snaps.values()) { const d = await db.collection('pharmacy_stock').doc(String(sn.p.id)).get(); const data = d.exists ? d.data() : null; if (!data || (parseInt(data.qty) || 0) !== (parseInt(sn.p.qty) || 0)) bad.push(sn.p.name); }
             if (bad.length) Swal.fire({ icon: 'warning', title: 'تنبيه: لم تصل بعض الكميات للسحابة', text: 'الأصناف: ' + bad.join('، ') + '. تأكد من قواعد pharmacy_stock ومن الاتصال ثم أعد المحاولة.', confirmButtonColor: '#0f1c38' });
@@ -340,16 +340,17 @@ async function puCancel(id) {
     const r = puAll.find(x => x.id === id); if (!r || r.cancelled) return;
     const res = await Swal.fire({ icon: 'warning', title: 'إلغاء الوارد؟', text: 'ستُنقص الكميات المضافة من المخزن ويُلغى مبلغها من المستحقات.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، إلغاء', cancelButtonText: 'رجوع' });
     if (!res.isConfirmed) return;
-    if (!requireOnline()) return;
-    const touched = [];
+    if (!writesAllowed()) return;
+    const touched = [], csnaps = new Map();
     (r.items || []).forEach(l => {
         const p = products.find(x => x.id === l.pid); if (!p) return;
+        if (!csnaps.has(p.id)) csnaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate });
         p.qty = Math.max((parseInt(p.qty) || 0) - l.qty, 0);
         if (l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
         if (l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
         touched.push(p);
     });
-    if (touched.length && !(await saveProductsBatch(touched))) return;
+    if (touched.length && !(await saveProductsDelta([...new Set(touched)].map(p => deltaFromSnap(p, csnaps.get(p.id)))))) return;
     r.cancelled = true; r.cancelledAt = todayLocalISO();
     await puSaveRecord(r); renderAll(); puRefreshCurrent();
 }
@@ -497,4 +498,26 @@ function puCmpShow(id) {
     $b('puCmpBody').innerHTML = arr.length
         ? `<table class="bill-table"><thead><tr><th>المذخر</th><th>آخر سعر</th><th>تاريخه</th><th>مرات الشراء</th></tr></thead><tbody>${arr.map((e, i) => `<tr class="${i === 0 ? 'pu-best' : ''}"><td>${i === 0 ? '✅ ' : ''}${escapeHtml(e.name)}</td><td><b>${fmtNum(e.last.cost)}</b></td><td>${escapeHtml(fmtDateDMY(e.last.date))}</td><td>${e.count}</td></tr>`).join('')}</tbody></table><div class="bill-set-hint">سعر البيع الحالي: ${fmtNum(p.price)} د.ع${p.costPrice ? ' • سعر الشراء المسجّل: ' + fmtNum(p.costPrice) : ''}</div>`
         : '<div class="bill-none">لا توجد مشتريات مسجّلة لهذا الدواء بعد.</div>';
+}
+
+// ---------- إعادة إرسال السجلات المحفوظة محلياً فقط ----------
+let syncingLocal = false;
+function localOnlyCounts() { return ''; }
+async function syncLocalRecords(auto) {
+    if (!cloudReady() || !navigator.onLine || syncingLocal) return 0;
+    if (auto && lsGet('diwanNeedsPush') !== '1' && lsGet('diwanPushedOnce') === sessionStorage.getItem('diwanSess')) return 0;
+    syncingLocal = true; let n = 0;
+    try {
+        try { n += await pushLocalInvoices(); } catch (e) { /* القواعد */ }
+        try {
+            const snap = await db.collection('pharmacy_purchases').limit(1000).get(); const have = new Map(); snap.forEach(d => have.set(d.id, d.data()));
+            for (const r of puLocalList()) { const c = have.get(r.id); if (!c || (!!r.cancelled && !c.cancelled) || String(r.editedAt || '') > String(c.editedAt || '') || (r.payments || []).length > (c.payments || []).length) { await fsSet(db.collection('pharmacy_purchases').doc(r.id), JSON.parse(JSON.stringify(r))); n++; } }
+            const ss = await db.collection('pharmacy_suppliers').limit(500).get(); const sh = new Set(); ss.forEach(d => sh.add(d.id));
+            let sup = []; try { sup = JSON.parse(lsGet(PU_LS.sup)) || []; } catch (e) { sup = []; }
+            for (const s of sup) if (!sh.has(s.id)) { await fsSet(db.collection('pharmacy_suppliers').doc(s.id), s); n++; }
+        } catch (e) { /* القواعد */ }
+        lsSet('diwanNeedsPush', '0');
+        try { sessionStorage.setItem('diwanSess', sessionStorage.getItem('diwanSess') || String(Date.now())); lsSet('diwanPushedOnce', sessionStorage.getItem('diwanSess')); } catch (e) { /* تجاهل */ }
+    } finally { syncingLocal = false; }
+    return n;
 }

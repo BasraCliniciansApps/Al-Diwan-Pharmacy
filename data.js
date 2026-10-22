@@ -110,12 +110,21 @@ function isInStock(p) {
     if (p.qty !== undefined && p.qty !== null) return (parseInt(p.qty) || 0) > 0 || (parseInt(p.loose) || 0) > 0;
     return p.inStock === true;
 }
+function normalizeStockFields(o) {   // يُصلح الأجزاء المفتوحة والكميات بعد دمج تغييرات أجهزة مختلفة
+    if (o.qty === undefined) return o;
+    let q = parseInt(o.qty) || 0, l = parseInt(o.loose) || 0;
+    const sc = parseInt(o.subCount) || 0;
+    if (sc >= 2) { let tot = q * sc + l; if (tot < 0) tot = 0; q = Math.floor(tot / sc); l = tot % sc; }
+    else { if (q < 0) q = 0; l = 0; }
+    o.qty = q; if (sc >= 2 || o.loose !== undefined) o.loose = l;
+    return o;
+}
 function rebuildProducts() {
     const merged = cloudPub.map(d => {
         const s = stockMap[String(d.id)];
         const o = s ? { ...d, ...s } : { ...d };
         o.meta = fixMetaOrder(o.meta);
-        return o;
+        return normalizeStockFields(o);
     });
     products = merged.sort((a, b) => b.id - a.id);
 }
@@ -146,9 +155,78 @@ let syncState = 'ok';
 function setSyncText(txt) {
     const s = String(txt || '');
     const state = /جاري/.test(s) ? 'busy' : /خطأ|فشل/.test(s) ? 'err' : /إنترنت/.test(s) ? 'off' : /محلي/.test(s) ? 'local' : 'ok';
+    if (isFirebaseReady && (state === 'ok' || state === 'busy')) return syncRefresh();   // الحالة الحقيقية من العدّادات
     syncState = state;
     document.querySelectorAll('.sync-dot').forEach(d => { d.dataset.state = state; d.title = s.replace(/^[^\u0600-\u06FF]+/, ''); });
 }
+
+// ============================================================================
+// الحفظ بدون إنترنت والمزامنة التلقائية (تخزين Firestore المحلي)
+// الكتابة تُحفظ على الجهاز فوراً وتُرسل للسحابة لوحدها عند رجوع الاتصال، حتى بعد إغلاق التطبيق.
+// ============================================================================
+let persistenceOn = false;      // هل التخزين المحلي للكتابات مفعّل؟
+let pendingOps = 0;             // عدد عمليات الكتابة التي لم تصل للسحابة بعد (في هذه الجلسة)
+let startupPending = false;     // كتابات من جلسة سابقة ما زالت بانتظار الإرسال
+let syncErrMsg = '';
+let lastSyncAt = (() => { try { return localStorage.getItem('diwanLastSync') || ''; } catch (e) { return ''; } })();
+function fv() { try { return (window.firebase && firebase.firestore && firebase.firestore.FieldValue) || null; } catch (e) { return null; } }
+function writesAllowed() { if (navigator.onLine || persistenceOn) return true; return requireOnline(); }
+function markSynced() { lastSyncAt = new Date().toISOString(); try { localStorage.setItem('diwanLastSync', lastSyncAt); } catch (e) { /* تجاهل */ } }
+function syncRefresh() {
+    let state, txt;
+    if (!isFirebaseReady) { state = 'local'; txt = 'محلي'; }
+    else if (!navigator.onLine) { state = 'off'; txt = 'بدون إنترنت' + (pendingOps ? ' — ' + pendingOps + ' بانتظار الإرسال' : '') + ' (يُحفظ على الجهاز وسيُرسل عند الاتصال)'; }
+    else if (pendingOps > 0 || startupPending) { state = 'busy'; txt = 'جاري الإرسال للسحابة' + (pendingOps ? ' (' + pendingOps + ')' : '') + '...'; }
+    else if (syncErrMsg) { state = 'err'; txt = 'خطأ في الحفظ: ' + syncErrMsg; }
+    else { state = 'ok'; txt = 'متزامن'; }
+    syncState = state;
+    document.querySelectorAll('.sync-dot').forEach(d => { d.dataset.state = state; d.dataset.pend = (pendingOps || startupPending) ? '1' : '0'; d.title = txt + ' — اضغط للتفاصيل'; });
+}
+function asyncWriteFailed(e) {
+    syncErrMsg = (e && e.message) || 'فشل الكتابة'; syncRefresh();
+    try { Swal.fire({ icon: 'error', title: 'تعذّر إرسال بعض التغييرات للسحابة', text: syncErrMsg, confirmButtonColor: '#0f1c38' }); } catch (x) { /* تجاهل */ }
+}
+// ننتظر تأكيد السحابة إن كان الاتصال سريعاً، وإلا نعتبرها «في الطابور» ونكمل بدون تعليق الشاشة
+async function fsWrite(promise) {
+    pendingOps++; syncRefresh();
+    const settle = ok => { pendingOps = Math.max(0, pendingOps - 1); if (ok) { syncErrMsg = ''; markSynced(); } syncRefresh(); };
+    promise.then(() => settle(true), () => settle(false));
+    if (!navigator.onLine) { promise.catch(asyncWriteFailed); return 'queued'; }
+    const r = await Promise.race([promise.then(() => 'ok'), new Promise(res => setTimeout(() => res('slow'), 7000))]);
+    if (r === 'slow') promise.catch(asyncWriteFailed);
+    return r;
+}
+function fsCommit(batch) { return fsWrite(batch.commit()); }
+function fsSet(ref, data, opts) { return fsWrite(opts ? ref.set(data, opts) : ref.set(data)); }
+function checkPending() {   // كتابات قديمة من جلسة سابقة؟
+    if (!db || !isFirebaseReady || typeof db.waitForPendingWrites !== 'function') return;
+    const t = setTimeout(() => { startupPending = true; syncRefresh(); }, 600);
+    db.waitForPendingWrites().then(() => { clearTimeout(t); if (startupPending) markSynced(); startupPending = false; syncRefresh(); }).catch(() => clearTimeout(t));
+}
+async function syncNow() {
+    if (!isFirebaseReady || !db) return;
+    try { await db.enableNetwork(); } catch (e) { /* تجاهل */ }
+    let n = 0;
+    try { if (typeof syncLocalRecords === 'function') n = await syncLocalRecords(false); } catch (e) { /* تجاهل */ }
+    checkPending();
+    try { Swal.fire({ icon: 'success', title: n ? 'رُفع ' + n + ' سجل محفوظ محلياً' : 'تمت المزامنة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 }); } catch (e) { /* تجاهل */ }
+}
+function showSyncStatus() {
+    if (!IS_ADMIN_PAGE) return;
+    const online = navigator.onLine;
+    const dups = (typeof billDuplicateNumbers === 'function') ? billDuplicateNumbers() : [];
+    const loc = (typeof localOnlyCounts === 'function') ? localOnlyCounts() : '';
+    const row = (k, v) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #e5e7eb;"><span style="color:#64748b">${k}</span><b>${v}</b></div>`;
+    const html = `<div style="text-align:right;font-size:.9rem">` +
+        row('الاتصال', online ? '🟢 متصل' : '🔴 بدون إنترنت') +
+        row('بانتظار الإرسال', (pendingOps ? pendingOps + ' عملية' : (startupPending ? 'يوجد (من جلسة سابقة)' : 'لا شيء')) ) +
+        row('الحفظ بدون إنترنت', persistenceOn ? '✅ مفعّل' : '⚠️ غير مدعوم في هذا المتصفح') +
+        row('آخر مزامنة ناجحة', lastSyncAt ? new Date(lastSyncAt).toLocaleString('ar-IQ') : '—') +
+        (syncErrMsg ? row('آخر خطأ', escapeHtml(syncErrMsg)) : '') + loc +
+        (dups.length ? `<div style="margin-top:10px;color:#b45309;font-weight:700;font-size:.82rem">⚠️ أرقام فواتير مكررة (أُصدرت من أجهزة مختلفة بدون إنترنت): ${dups.map(escapeHtml).join('، ')}</div>` : '') + `</div>`;
+    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, confirmButtonText: '🔄 مزامنة الآن', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' }).then(r => { if (r.isConfirmed) syncNow(); });
+}
+document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
 
 async function initFirebase() {
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PUT_YOUR_API_KEY_HERE") {
@@ -163,6 +241,8 @@ async function initFirebase() {
         auth = firebase.auth();
         db = firebase.firestore();
         isFirebaseReady = true;
+        try { await db.enablePersistence({ synchronizeTabs: true }); persistenceOn = true; } catch (e) { persistenceOn = false; console.warn('Offline persistence:', e && e.code); }
+        syncRefresh();
 
         // الفرض الصارم لبقاء تسجيل الدخول دائماً
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
@@ -176,11 +256,13 @@ async function initFirebase() {
                 authBtn.title = 'خروج الصيدلي';
                 
                 // فحص ما إذا كانت قاعدة منتجات السحابة فارغة لرفع الـ 166 منتجاً لأول مرة
-                const snap = await db.collection('pharmacy_products').limit(1).get();
-                if (snap.empty && products.length > 0) {
-                    pushToCloud(false);
-                }
+                try {
+                    const snap = await db.collection('pharmacy_products').limit(1).get();
+                    if (snap.empty && products.length > 0 && navigator.onLine) pushToCloud(false);
+                } catch (e) { /* بدون اتصال: نكمل من النسخة المحلية */ }
                 startStockListener();
+                checkPending();
+                setTimeout(() => { if (typeof syncLocalRecords === 'function') syncLocalRecords(true).catch(() => {}); }, 4000);
                 setTimeout(autoMaintenance, 9000);   // نسخة احتياطية أسبوعية + تنظيف السلة والسجل
             } else {
                 document.body.classList.remove('admin-mode');
@@ -248,7 +330,7 @@ function saveLocal() {
 // 2. دالة حفظ المنتج الواحد في Firebase (خفيفة وسريعة جداً لأنها تحفظ الرابط فقط)
 async function saveSingleProductToCloud(product) {
     saveLocal();
-    if (isFirebaseReady && currentUser && !navigator.onLine) { requireOnline(); return false; }
+    if (isFirebaseReady && currentUser && !writesAllowed()) return false;
     
     if (!isFirebaseReady || !currentUser) {
         await Swal.fire({
@@ -265,7 +347,7 @@ async function saveSingleProductToCloud(product) {
     try {
         const wb = db.batch();
         writeProductBatch(wb, product);
-        await wb.commit();
+        await fsCommit(wb);
         syncStockLocal([product]);
         setSyncText("☁️ تم الحفظ");
         return true;
@@ -283,11 +365,11 @@ async function saveSingleProductToCloud(product) {
 // دالة حفظ الأقسام والتصنيفات (أو الرفع التأسيسي الأول)
 async function pushToCloud(onlyMetadata = false) {
     saveLocal();
-    if (isFirebaseReady && currentUser && !navigator.onLine) { requireOnline(); return; }
+    if (isFirebaseReady && currentUser && !writesAllowed()) return;
     if (isFirebaseReady && currentUser) {
         setSyncText("⏳ جاري الحفظ...");
         try {
-            await db.collection('pharmacy').doc('metadata').set({
+            await fsSet(db.collection('pharmacy').doc('metadata'), {
                 departments,
                 subCategories,
                 tabLabels,
@@ -305,7 +387,7 @@ async function pushToCloud(onlyMetadata = false) {
                     chunk.forEach(p => {
                         writeProductBatch(batch, p);
                     });
-                    await batch.commit();
+                    await fsCommit(batch);
                 }
             }
 
@@ -1026,12 +1108,12 @@ function closeSheet() {
 }
 
 function updateItemQty(id, delta) {
-    if (!requireOnline()) return;
+    if (!writesAllowed()) return;
     const p = products.find(x => x.id === id);
     if (!p) return;
     const oldQty = parseInt(p.qty) || 0;
     p.qty = Math.max(0, oldQty + delta);
-    saveSingleProductToCloud(p);
+    saveProductsDelta([{ p, dq: p.qty - oldQty, dl: 0 }]);
     logAction('qty', p, [{ f: 'الكمية', from: String(oldQty), to: String(p.qty) }]);
     renderAll();
     openSheet(id);
@@ -1442,7 +1524,7 @@ async function uploadImgBase64(event) {
 
 // 3. دالة زر "حفظ" داخل نافذة إضافة/تعديل الصنف
 async function saveFormProduct() {
-    if (!requireOnline()) return;
+    if (!writesAllowed()) return;
     const imgVal = document.getElementById('fImg').value.trim();
     if (imgVal.includes("⏳")) {
         return Swal.fire({
@@ -1521,7 +1603,7 @@ async function saveFormProduct() {
 }
 // دالة الحذف المصححة
 function deleteItem(id) {
-    if (!requireOnline()) return;
+    if (!writesAllowed()) return;
     Swal.fire({
         title: 'هل أنت متأكد؟',
         text: "سينتقل الصنف إلى «سلة المحذوفات» ويمكنك استعادته خلال 30 يوماً.",
@@ -1543,7 +1625,7 @@ function deleteItem(id) {
                     const delB = db.batch();
                     delB.delete(db.collection('pharmacy_products').doc(id.toString()));
                     delB.delete(db.collection('pharmacy_stock').doc(id.toString()));
-                    await delB.commit();
+                    await fsCommit(delB);
                 } catch (e) {
                     console.warn("Delete Cloud Error:", e);
                 }
@@ -1980,12 +2062,12 @@ function requireOnline() {
     return false;
 }
 
-function updateConnectionBadge() {
-    if (!navigator.onLine) setSyncText('📴 بدون إنترنت');
-    else if (syncState === 'off') setSyncText(isFirebaseReady ? '☁️ متصل' : '💾 محلي');
-}
+function updateConnectionBadge() { syncRefresh(); }
 window.addEventListener('offline', updateConnectionBadge);
-window.addEventListener('online', updateConnectionBadge);
+window.addEventListener('online', () => {
+    syncRefresh(); checkPending();
+    try { if (typeof syncLocalRecords === 'function') syncLocalRecords(true).catch(() => {}); } catch (e) { /* تجاهل */ }
+});
 
 // ============================================================================
 // 11. تنبيه الكمية القليلة
@@ -2118,7 +2200,7 @@ async function saveProductsBatch(list) {
         await Swal.fire({ icon: 'error', title: 'أنت غير مسجل الدخول!', text: 'سجّل دخول الصيدلي أولاً ليتم الحفظ في الإنترنت.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         return false;
     }
-    if (!requireOnline()) return false;
+    if (!writesAllowed()) return false;
     setSyncText('⏳ جاري الحفظ...');
     try {
         for (let i = 0; i < list.length; i += 20) {
@@ -2126,9 +2208,60 @@ async function saveProductsBatch(list) {
             list.slice(i, i + 20).forEach(p => {
                 writeProductBatch(batch, p);
             });
-            await batch.commit();
+            await fsCommit(batch);
         }
         syncStockLocal(list);
+        setSyncText('☁️ تم الحفظ');
+        return true;
+    } catch (err) {
+        setSyncText('❌ فشل الحفظ');
+        await Swal.fire({ icon: 'error', title: 'خطأ في السحابة', text: err.message, confirmButtonColor: '#0f1c38' });
+        return false;
+    }
+}
+
+// حفظ تغييرات المخزون كـ«فروقات» (increment) بدل الأرقام النهائية، حتى لا يضيع تغيير جهاز بتغيير جهاز آخر
+function deltaFromSnap(p, s) {
+    const d = { p, dq: (parseInt(p.qty) || 0) - (parseInt(s.qty) || 0), dl: (parseInt(p.loose) || 0) - (parseInt(s.loose) || 0) };
+    const a = getProductExpiryDates({ expiryDates: s.expiryDates, expiryDate: s.expiryDate }), b = getProductExpiryDates(p);
+    d.expAdd = b.filter(x => !a.includes(x)); d.expRemove = a.filter(x => !b.includes(x)); d.expChanged = !!(d.expAdd.length || d.expRemove.length);
+    if ((s.costPrice || 0) !== (p.costPrice || 0)) d.cost = p.costPrice || 0;
+    return d;
+}
+async function saveProductsDelta(entries) {
+    entries = (entries || []).filter(Boolean);
+    saveLocal();
+    if (!isFirebaseReady || !currentUser) {
+        await Swal.fire({ icon: 'error', title: 'أنت غير مسجل الدخول!', text: 'سجّل دخول الصيدلي أولاً ليتم الحفظ في الإنترنت.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        return false;
+    }
+    if (!writesAllowed()) return false;
+    const F = fv();
+    setSyncText('⏳ جاري الحفظ...');
+    try {
+        for (let i = 0; i < entries.length; i += 15) {
+            const batch = db.batch();
+            entries.slice(i, i + 15).forEach(e => {
+                const { pub, stock } = splitProduct(e.p);
+                batch.set(db.collection('pharmacy_products').doc(String(e.p.id)), pub);
+                const ref = db.collection('pharmacy_stock').doc(String(e.p.id));
+                const cur = stockMap[String(e.p.id)];
+                if (!F || !cur) { batch.set(ref, stock); return; }
+                const u = { id: e.p.id };
+                if (e.dq) u.qty = F.increment(e.dq);
+                if (e.dl) u.loose = F.increment(e.dl);
+                if (e.cost !== undefined) u.costPrice = e.cost;
+                if (e.expChanged) {
+                    if (e.expAdd.length && !e.expRemove.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayUnion(...e.expAdd);
+                    else if (e.expRemove.length && !e.expAdd.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayRemove(...e.expRemove);
+                    else u.expiryDates = getProductExpiryDates(e.p);
+                    u.expiryDate = getProductExpiryDates(e.p)[0] || '';
+                }
+                batch.set(ref, u, { merge: true });
+            });
+            await fsCommit(batch);
+        }
+        syncStockLocal(entries.map(e => e.p));
         setSyncText('☁️ تم الحفظ');
         return true;
     } catch (err) {
@@ -2170,7 +2303,7 @@ function filterIngredientRows() {
 }
 
 async function saveIngredients() {
-    if (!requireOnline()) return;
+    if (!writesAllowed()) return;
     const changed = [];
     document.querySelectorAll('#ingListContainer .ing-input').forEach(inp => {
         const v = inp.value.trim();
@@ -3295,7 +3428,7 @@ async function moveToTrash(p) {
     local.unshift(entry);
     lsPut(LS_TRASH, local.slice(0, 200));
     if (cloudReady()) {
-        try { await db.collection('pharmacy_trash').doc(String(p.id)).set(entry); }
+        try { await fsSet(db.collection('pharmacy_trash').doc(String(p.id)), entry); }
         catch (e) { console.warn('Trash cloud write failed (محفوظ محلياً):', e && e.message); }
     }
 }
@@ -3535,7 +3668,7 @@ const qtyStart = {};
 
 function quickQty(id, delta, ev) {
     if (ev) { ev.stopPropagation(); ev.preventDefault(); }
-    if (!requireOnline()) return;
+    if (!writesAllowed()) return;
     const p = products.find(x => x.id === id);
     if (!p) return;
     if (qtyStart[id] === undefined) qtyStart[id] = parseInt(p.qty) || 0;
@@ -3556,7 +3689,7 @@ async function flushQty(id) {
     if (!p || from === undefined) return;
     const to = parseInt(p.qty) || 0;
     if (from === to) return;
-    const ok = await saveSingleProductToCloud(p);
+    const ok = await saveProductsDelta([{ p, dq: to - from, dl: 0 }]);
     if (ok) logAction('qty', p, [{ f: 'الكمية', from: String(from), to: String(to) }]);
     updateExpiryBadge();
 }
