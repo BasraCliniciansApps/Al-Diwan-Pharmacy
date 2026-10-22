@@ -1741,3 +1741,6 @@ body.dark .rep-cards .rep-profit, [data-theme="dark"] .rep-cards .rep-profit { b
     body.printing-bill .bill-meta { margin: 10px 0 8px !important; }
     body.printing-bill .bill-foot { margin-top: 8px !important; }
 }
+
+.bill-sheet > .bill-parties { margin: 0 0 12px; }
+@media print { body.printing-bill .bill-sheet > .bill-parties { margin: 0 0 8px !important; } }
