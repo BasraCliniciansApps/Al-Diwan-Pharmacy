@@ -251,6 +251,8 @@
             <div class="scan-box">
                 <label class="icon-btn scan-btn" for="scanInput">📷 مسح العبوة بالكاميرا</label>
                 <input type="file" id="scanInput" accept="image/*" capture="environment" hidden onchange="scanProductImage(event)">
+                <label class="icon-btn scan-btn" for="scanGalleryInput">🖼️ من الاستوديو</label>
+                <input type="file" id="scanGalleryInput" accept="image/*" hidden onchange="scanProductImage(event)">
                 <select id="scanEngineSelect" class="scan-engine-select" onchange="setAiEngine(this.value)" title="محرك القراءة">
                     <option value="local">قراءة عادية (بدون ذكاء)</option>
                     <option value="gemini">Gemini API</option>
