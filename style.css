@@ -1362,9 +1362,6 @@ body.admin-page .admin-ribbon { display: flex; }
 /* =====================================================
    الفاتورة
    ===================================================== */
-.invoice-page { display: none; position: fixed; inset: 0; z-index: 2000; background: #e8ecf3; flex-direction: column; }
-.invoice-page.open { display: flex; }
-body.invoice-open { overflow: hidden; }
 .bill-toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #0f1c38; color: #fff; }
 .bill-tb-title { flex: 1; font-size: 1rem; }
 .bill-tb-btn {
@@ -1373,7 +1370,7 @@ body.invoice-open { overflow: hidden; }
 }
 .bill-toolbar .bill-tb-btn { border-color: transparent; }
 .bill-tb-primary { background: var(--gold); color: #0f1c38; border-color: var(--gold); }
-.bill-scroll { flex: 1; overflow-y: auto; padding: 14px 10px 40px; }
+.bill-scroll { padding: 14px 10px 40px; }
 .bill-sheet {
     max-width: 794px; margin: 0 auto; background: #fff; color: #111; border-radius: 6px; padding: 26px 26px 22px;
     box-shadow: 0 6px 24px rgba(15,28,56,.18); font-size: 0.92rem;
@@ -1449,20 +1446,20 @@ body.invoice-open { overflow: hidden; }
 
 @media print {
     @page { size: A4; margin: 12mm; }
-    body.printing-invoice > *:not(#invoicePage) { display: none !important; }
-    body.printing-invoice { background: #fff !important; overflow: visible !important; }
-    body.printing-invoice #invoicePage { position: static !important; display: block !important; background: #fff !important; }
-    body.printing-invoice .bill-scroll { overflow: visible !important; padding: 0 !important; }
-    body.printing-invoice .no-print { display: none !important; }
-    body.printing-invoice .bill-sheet { box-shadow: none !important; max-width: none !important; padding: 0 !important; border-radius: 0 !important; }
-    body.printing-invoice .bill-field input, body.printing-invoice .bill-field textarea { border-bottom: 1px solid #555 !important; }
-    body.printing-invoice .bill-date-input { display: none !important; }
-    body.printing-invoice .bill-date-txt { display: inline !important; border-bottom: 1px solid #555; padding: 6px 10px; }
-    body.printing-invoice .bill-trow input { border-bottom: 0 !important; }
-    body.printing-invoice .bill-table th, body.printing-invoice .bill-grand, body.printing-invoice .bill-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    body.printing-invoice .bill-table tr { page-break-inside: avoid; }
-    body.printing-invoice .bill-signs, body.printing-invoice .bill-bottom { page-break-inside: avoid; }
-    body.printing-invoice .bill-disc input:placeholder-shown, body.printing-invoice .bill-paid input:placeholder-shown { color: transparent; }
+    body.printing-bill > *:not(#billView) { display: none !important; }
+    body.printing-bill { background: #fff !important; overflow: visible !important; }
+    body.printing-bill #billView { position: static !important; display: block !important; background: #fff !important; }
+    body.printing-bill .bill-scroll { overflow: visible !important; padding: 0 !important; }
+    body.printing-bill .no-print { display: none !important; }
+    body.printing-bill .bill-sheet { box-shadow: none !important; max-width: none !important; padding: 0 !important; border-radius: 0 !important; }
+    body.printing-bill .bill-field input, body.printing-bill .bill-field textarea { border-bottom: 1px solid #555 !important; }
+    body.printing-bill .bill-date-input { display: none !important; }
+    body.printing-bill .bill-date-txt { display: inline !important; border-bottom: 1px solid #555; padding: 6px 10px; }
+    body.printing-bill .bill-trow input { border-bottom: 0 !important; }
+    body.printing-bill .bill-table th, body.printing-bill .bill-grand, body.printing-bill .bill-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body.printing-bill .bill-table tr { page-break-inside: avoid; }
+    body.printing-bill .bill-signs, body.printing-bill .bill-bottom { page-break-inside: avoid; }
+    body.printing-bill .bill-disc input:placeholder-shown, body.printing-bill .bill-paid input:placeholder-shown { color: transparent; }
 }
 :root[data-theme="dark"] .fs-head h3, :root[data-theme="dark"] .fs-chip, :root[data-theme="dark"] .fs-switch, :root[data-theme="dark"] .fs-x, :root[data-theme="dark"] .fs-search { color: var(--text-main); }
 :root[data-theme="dark"] .fs-x, :root[data-theme="dark"] .fs-search { background: var(--surface-2); border-color: var(--border); }
@@ -1470,7 +1467,7 @@ body.invoice-open { overflow: hidden; }
 :root[data-theme="dark"] .fs-chip.active b { color: #0f1c38; }
 :root[data-theme="dark"] .fs-switch i { background: #3a4868; }
 :root[data-theme="dark"] .fs-switch.on i { background: #16a34a; }
-:root[data-theme="dark"] .invoice-page { background: #0a1020; }
+:root[data-theme="dark"] .bill-view { background: #0a1020; }
 
 .bill-pv { display: none; font-weight: 800; }
 .bill-sheet input[type=number] { -moz-appearance: textfield; }
@@ -1482,13 +1479,13 @@ body.invoice-open { overflow: hidden; }
     .bill-table td textarea { min-width: 100px; }
 }
 @media print {
-    body.printing-invoice .has-pv input { display: none !important; }
-    body.printing-invoice .has-pv .bill-pv { display: inline; }
-    body.printing-invoice .bill-trow.bill-empty { display: none; }
-    body.printing-invoice .bill-table .c-n { display: table-cell !important; }
-    body.printing-invoice .bill-paid:has(.bill-pv:empty) { display: none; }
-    body.printing-invoice .bill-table td textarea { overflow: visible; }
-    body.printing-invoice .bill-sign-box { border-style: solid; border-color: #cbd5e1; }
+    body.printing-bill .has-pv input { display: none !important; }
+    body.printing-bill .has-pv .bill-pv { display: inline; }
+    body.printing-bill .bill-trow.bill-empty { display: none; }
+    body.printing-bill .bill-table .c-n { display: table-cell !important; }
+    body.printing-bill .bill-paid:has(.bill-pv:empty) { display: none; }
+    body.printing-bill .bill-table td textarea { overflow: visible; }
+    body.printing-bill .bill-sign-box { border-style: solid; border-color: #cbd5e1; }
 }
 :root[data-theme="dark"] .fs-apply { background: var(--gold) !important; color: #0f1c38 !important; border-color: var(--gold) !important; }
 .admin-top-strip { flex-wrap: nowrap; gap: 5px; }
@@ -1503,3 +1500,175 @@ body.admin-page .sync-icon-badge { padding: 0 6px; }
 .bill-check { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 700; color: #0f1c38; }
 .bill-check input { width: 20px; height: 20px; }
 @media (max-width: 560px) { .bill-toolbar .bill-tb-btn { padding: 0 10px; font-size: 0.8rem; } }
+
+.retail-box { border: 1.5px dashed var(--border); border-radius: 14px; padding: 12px; }
+.retail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.retail-grid small { display: block; color: var(--text-sub); font-size: 0.72rem; font-weight: 700; margin-bottom: 4px; }
+.retail-type { display: flex; gap: 6px; align-items: center; }
+.retail-type select { flex: 1; min-width: 0; }
+
+.fs-dd { margin-top: 12px; border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; }
+.fs-dd.open { border-color: var(--navy); }
+.fs-dd-trigger { width: 100%; display: flex; align-items: center; gap: 10px; min-height: 50px; padding: 0 14px; border: 0; background: transparent; font-family: inherit; cursor: pointer; color: var(--navy); }
+.fs-dd-title { font-weight: 800; font-size: 0.9rem; }
+.fs-dd-trigger em { flex: 1; text-align: left; font-style: normal; font-size: 0.82rem; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fs-dd-trigger.has em { color: var(--navy); font-weight: 800; }
+.fs-dd-trigger i { font-style: normal; transition: transform .2s; }
+.fs-dd.open .fs-dd-trigger i { transform: rotate(180deg); }
+.fs-dd-panel { border-top: 1px solid var(--border); padding: 8px 10px 10px; background: var(--surface-2, #f7f9fc); }
+.fs-dd-panel .fs-search { margin-bottom: 8px; background: #fff; }
+.fs-dd-list { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; }
+.fs-dd-row { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 0 8px; border-radius: 10px; cursor: pointer; font-size: 0.88rem; font-weight: 700; color: var(--navy); }
+.fs-dd-row.on { background: rgba(244,183,63,.18); }
+.fs-dd-row input { width: 20px; height: 20px; accent-color: #0f1c38; flex-shrink: 0; }
+.fs-dd-row span { flex: 1; }
+.fs-dd-row b { font-size: 0.74rem; color: var(--text-sub); }
+.fs-none { padding: 12px; color: var(--text-sub); font-size: 0.82rem; text-align: center; }
+:root[data-theme="dark"] .fs-dd-trigger, :root[data-theme="dark"] .fs-dd-row { color: var(--text-main); }
+:root[data-theme="dark"] .fs-dd-trigger.has em { color: var(--gold); }
+:root[data-theme="dark"] .fs-dd-panel .fs-search { background: var(--surface); }
+:root[data-theme="dark"] .fs-dd-row input { accent-color: #f4b73f; }
+
+
+/* =====================================================
+   واجهة الصيدلي: الشاشات
+   ===================================================== */
+.app-view, .splash-view { display: none; }
+body.admin-page #stockView { display: none; }
+body.admin-page[data-view="stock"] #stockView { display: block; }
+body.admin-page[data-view="splash"] .splash-view { display: flex; }
+body.admin-page[data-view="login"] #loginGate { display: flex; }
+body.admin-page[data-view="home"] #homeView { display: block; }
+body.admin-page[data-view="bill"] #billView { display: block; }
+body.admin-page #stockView #authBtn { display: none; }
+body.admin-page:not([data-view="stock"]) .bottom-nav { display: none; }
+
+.splash-view { position: fixed; inset: 0; z-index: 3500; background: #0f1c38; color: #f4b73f; flex-direction: column; align-items: center; justify-content: center; gap: 14px; }
+.splash-view img { width: 88px; height: 88px; border-radius: 22px; animation: cardPop .5s ease-out; }
+.splash-t { font-family: 'Aref Ruqaa', serif; font-size: 2rem; }
+
+.login-gate { min-height: 100vh; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(160deg, #0f1c38, #1b2f5c); }
+.gate-card { position: relative; width: min(100%, 380px); background: var(--surface, #fff); border-radius: 24px; padding: 28px 22px 22px; box-shadow: 0 24px 60px rgba(0,0,0,.45); text-align: center; display: flex; flex-direction: column; gap: 12px; }
+.gate-logo { width: 76px; height: 76px; border-radius: 20px; margin: 0 auto; }
+.gate-title { font-size: 2rem; color: var(--navy); }
+.gate-sub { font-size: 0.85rem; color: var(--text-sub); margin-top: -6px; }
+.gate-field { text-align: right; display: flex; flex-direction: column; gap: 6px; font-weight: 800; font-size: 0.82rem; color: var(--navy); }
+.gate-field input { min-height: 48px; padding: 0 14px; border: 1.5px solid var(--border); border-radius: 14px; font-family: inherit; font-size: 1rem; background: var(--surface-2, #f7f9fc); color: var(--text-main); }
+.gate-field input:focus { outline: none; border-color: var(--navy); }
+.gate-btn { min-height: 50px; border: 0; border-radius: 14px; background: var(--navy); color: #fff; font-family: inherit; font-weight: 900; font-size: 1rem; cursor: pointer; }
+.gate-btn:disabled { opacity: .6; }
+.gate-error { color: var(--danger, #b91c1c); font-size: 0.82rem; font-weight: 700; }
+.gate-theme { position: absolute; top: 12px; left: 12px; width: 40px; height: 40px; border: 0; border-radius: 12px; background: var(--surface-2, #eef1f6); cursor: pointer; }
+.gate-link { color: var(--text-sub); font-size: 0.8rem; text-decoration: none; margin-top: 4px; }
+
+.home-view { min-height: 100vh; padding: 16px 16px 40px; max-width: 760px; margin: 0 auto; }
+.home-top { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.home-logo { width: 54px; height: 54px; border-radius: 16px; }
+.home-title { flex: 1; }
+.home-title h1 { font-size: 1.7rem; color: var(--navy); line-height: 1.2; }
+.home-title small { color: var(--text-sub); font-weight: 700; }
+.home-icon { width: 44px; height: 44px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface, #fff); color: var(--navy); font-size: 1.1rem; cursor: pointer; }
+.home-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 18px; }
+.kpi { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 4px; border: 0; border-radius: 16px; background: var(--surface, #fff); box-shadow: var(--shadow-sm, 0 1px 3px rgba(0,0,0,.1)); font-family: inherit; cursor: pointer; }
+.kpi b { font-size: 1.25rem; font-weight: 900; color: var(--navy); }
+.kpi span { font-size: 0.68rem; font-weight: 800; color: var(--text-sub); }
+.kpi.k-out b { color: #b91c1c; } .kpi.k-low b { color: #c2410c; } .kpi.k-exp b { color: #a16207; } .kpi.k-sales b { color: #15803d; font-size: 1.05rem; }
+.home-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.home-tile { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 190px; border: 0; border-radius: 26px; font-family: inherit; cursor: pointer; color: #fff; box-shadow: 0 12px 30px rgba(15,28,56,.28); transition: transform .12s; }
+.home-tile:active { transform: scale(.97); }
+.home-tile b { font-size: 1.6rem; font-weight: 900; }
+.home-tile small { font-size: 0.78rem; opacity: .85; font-weight: 700; }
+.tile-bill { background: linear-gradient(150deg, #0f1c38, #26407a); }
+.tile-stock { background: linear-gradient(150deg, #b45309, #f4b73f); color: #0f1c38; }
+.home-quick { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+.home-quick button, .home-quick-link { flex: 1 1 calc(50% - 8px); min-height: 48px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); border-radius: 14px; background: var(--surface, #fff); color: var(--navy); font-family: inherit; font-weight: 800; font-size: 0.88rem; text-decoration: none; cursor: pointer; }
+
+/* صفحة الفواتير */
+.bill-view { min-height: 100vh; background: #e8ecf3; }
+.bill-toolbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #0f1c38; color: #fff; }
+.bill-tabs { position: sticky; top: 64px; z-index: 29; display: flex; gap: 6px; overflow-x: auto; padding: 8px 10px; background: #fff; border-bottom: 1px solid #d5dbe6; scrollbar-width: none; }
+.bill-tabs::-webkit-scrollbar { display: none; }
+.bill-tabs button { flex-shrink: 0; min-height: 42px; padding: 0 14px; border: 1.5px solid #d5dbe6; border-radius: 21px; background: #fff; color: #0f1c38; font-family: inherit; font-weight: 800; font-size: 0.82rem; cursor: pointer; }
+.bill-tabs button.active { background: #0f1c38; border-color: #0f1c38; color: #fff; }
+.bill-pane { display: none; max-width: 794px; margin: 0 auto; }
+.bill-pane.active { display: block; }
+.bill-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.bill-actions .bill-tb-primary { margin-inline-start: auto; }
+.bill-danger { color: #b91c1c; border-color: #fecaca; background: #fff5f5; }
+.bill-panel { display: flex; flex-direction: column; gap: 10px; }
+.bill-list-search { min-height: 46px; padding: 0 14px; border: 1.5px solid #cbd5e1; border-radius: 12px; font-family: inherit; font-size: 0.95rem; background: #fff; color: #111; }
+.bill-list { display: flex; flex-direction: column; gap: 8px; }
+.bill-card { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: #fff; border-radius: 14px; color: #111; box-shadow: 0 1px 3px rgba(15,28,56,.08); }
+.bill-card.cancelled { opacity: .6; }
+.bill-card-main { flex: 1; cursor: pointer; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; font-size: 0.9rem; min-width: 0; }
+.bill-card-main small { flex-basis: 100%; color: #64748b; font-size: 0.74rem; }
+.bill-card-amt { font-weight: 900; font-size: 1.02rem; color: #0f1c38; text-align: left; }
+.bill-card-amt small { display: block; font-size: 0.66rem; color: #64748b; font-weight: 700; }
+.tg { font-style: normal; font-size: 0.68rem; font-weight: 800; padding: 2px 8px; border-radius: 10px; }
+.tg.bad { background: #fee2e2; color: #b91c1c; } .tg.warn { background: #ffedd5; color: #c2410c; }
+.bill-pay { min-height: 40px; background: #f4b73f; border-color: #f4b73f; }
+.bill-none { padding: 30px; text-align: center; color: #64748b; font-weight: 700; }
+.bill-sum-card { display: flex; align-items: baseline; gap: 12px; padding: 14px 16px; background: #0f1c38; color: #fff; border-radius: 16px; }
+.bill-sum-card b { font-size: 1.4rem; color: #f4b73f; } .bill-sum-card small { margin-inline-start: auto; opacity: .8; }
+.bill-range { display: flex; gap: 6px; }
+.bill-range button { flex: 1; min-height: 42px; border: 1.5px solid #cbd5e1; border-radius: 12px; background: #fff; color: #0f1c38; font-family: inherit; font-weight: 800; cursor: pointer; }
+.bill-range button.active { background: #0f1c38; color: #fff; border-color: #0f1c38; }
+.rep-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rep-cards > div { background: #fff; border-radius: 14px; padding: 12px; color: #111; display: flex; flex-direction: column; gap: 2px; }
+.rep-cards span { font-size: 0.74rem; color: #64748b; font-weight: 700; } .rep-cards b { font-size: 1.2rem; color: #0f1c38; }
+.rep-h { margin: 8px 2px 0; color: #0f1c38; font-size: 0.9rem; }
+.rep-row, .rep-bar { display: flex; align-items: center; gap: 8px; background: #fff; border-radius: 10px; padding: 9px 12px; color: #111; font-size: 0.85rem; position: relative; }
+.rep-row span { flex: 1; font-weight: 700; } .rep-row small { color: #64748b; } .rep-row b, .rep-bar b { font-weight: 900; color: #0f1c38; }
+.rep-bar span { width: 78px; font-weight: 700; color: #475569; font-size: 0.78rem; } .rep-bar i { flex: 1; height: 10px; border-radius: 5px; background: linear-gradient(90deg, #f4b73f, #b45309); max-width: 100%; }
+
+.bill-stepper { display: flex; align-items: center; justify-content: center; gap: 2px; }
+.bill-step { width: 32px; height: 36px; border: 0; border-radius: 8px; background: #eef1f6; color: #0f1c38; font-size: 1.15rem; font-weight: 900; cursor: pointer; flex-shrink: 0; touch-action: manipulation; }
+.bill-step:active { background: #f4b73f; }
+.bill-table td.c-qty input { width: 44px; flex: 1; min-width: 0; padding: 4px 0; }
+.bill-table .c-qty { width: 130px; }
+.bill-unit { display: block; margin-top: 4px; min-height: 34px; padding: 0 8px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff7e0; font-family: inherit; font-size: 0.78rem; font-weight: 800; color: #0f1c38; }
+.bill-scan { background: #f4b73f; border-color: #f4b73f; }
+.bill-sheet.locked input, .bill-sheet.locked textarea, .bill-sheet.locked select, .bill-sheet.locked .bill-step, .bill-sheet.locked .c-del button { pointer-events: none; }
+.bill-sheet.locked .bill-add, .bill-sheet.locked .c-del, .bill-sheet.locked th.c-del { display: none; }
+.bill-sheet { position: relative; }
+.bill-sheet.cancelled::after { content: "ملغاة"; position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%) rotate(-18deg); font-size: 5rem; font-weight: 900; color: rgba(185, 28, 28, .22); border: 8px solid rgba(185, 28, 28, .22); padding: 0 28px; border-radius: 18px; pointer-events: none; }
+.bill-issued.bad { background: #fee2e2; color: #991b1b; }
+.bill-table tr.po-off { opacity: .45; }
+.bill-table td small { display: block; color: #64748b; font-weight: 600; font-size: 0.72rem; }
+.bill-table td.c-qty { text-align: center; }
+@media (max-width: 560px) {
+    .home-tile { min-height: 160px; } .home-tile b { font-size: 1.35rem; }
+    .home-kpis { gap: 6px; } .kpi span { font-size: 0.62rem; }
+    .bill-table .c-qty { width: 112px; } .bill-step { width: 28px; }
+}
+@media print {
+    body.printing-bill .bill-tabs, body.printing-bill .bill-toolbar { display: none !important; }
+    body.printing-bill .bill-pane:not(.print-active) { display: none !important; }
+    body.printing-bill .bill-pane.print-active { display: block !important; }
+    body.printing-bill .bill-step, body.printing-bill .bill-unit { display: none !important; }
+    body.printing-bill .c-qty .bill-pv { display: inline; }
+    body.printing-bill .bill-sheet.cancelled::after { display: block; }
+}
+:root[data-theme="dark"] .home-icon, :root[data-theme="dark"] .kpi, :root[data-theme="dark"] .home-quick button, :root[data-theme="dark"] .home-quick-link { background: var(--surface); color: var(--text-main); border-color: var(--border); }
+:root[data-theme="dark"] .kpi b, :root[data-theme="dark"] .home-title h1, :root[data-theme="dark"] .gate-title { color: var(--text-main); }
+:root[data-theme="dark"] .login-gate { background: linear-gradient(160deg, #070c18, #101a30); }
+:root[data-theme="dark"] .gate-btn { background: var(--gold); color: #0f1c38; }
+:root[data-theme="dark"] .gate-field { color: var(--text-main); }
+:root[data-theme="dark"] .gate-card { background: var(--surface); }
+.bill-table { table-layout: auto; }
+#poRows input[type=number] { background: #eef1f6; border-radius: 8px; text-align: center; width: 64px; min-height: 36px; }
+.bill-pane, .bill-sheet { min-width: 0; }
+@media (max-width: 560px) {
+    .bill-scroll { padding: 10px 8px 40px; }
+    .bill-sheet { padding: 14px 10px; }
+    .bill-table .c-n { display: none; }
+    .bill-table .c-qty { width: 92px; } .bill-table .c-price { width: 62px; } .bill-table .c-sum { width: 62px; font-size: 0.82rem; } .bill-table .c-del { width: 28px; padding: 0; }
+    .bill-step { width: 24px; height: 32px; font-size: 1rem; }
+    .bill-table td.c-qty input { width: 30px; padding: 2px 0; }
+    .bill-table td.c-price input { padding: 3px 1px; }
+    .c-del button { width: 26px; height: 26px; }
+    .bill-table td, .bill-table th { padding: 4px 3px; }
+    .bill-table th { font-size: 0.72rem; }
+    .bill-unit { font-size: 0.72rem; max-width: 100%; }
+    .bill-actions .bill-tb-btn { flex: 1 1 auto; padding: 0 8px; font-size: 0.78rem; }
+}

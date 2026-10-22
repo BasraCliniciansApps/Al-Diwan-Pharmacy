@@ -25,13 +25,17 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
-<body class="__BODYCLASS__">
+<body class="__BODYCLASS__" data-view="stock">
 
+<!--A--><div id="splashView" class="splash-view"><img src="icon.jpg" alt=""><div class="splash-t">صيدلية الديوان</div></div><!--/A-->
+
+<div id="stockView">
     <header class="top-bar">
         <div class="top-bar-inner">
             
             <!-- 1. شريط التحكم العلوي الصغير -->
             <div class="admin-top-strip">
+                <!--A--><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية" id="backHomeBtn">🏠</button><!--/A-->
                 <span id="syncBadge" class="sync-icon-badge">☁️</span>
                 <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي" aria-label="دخول الصيدلي">👤</button>
                 <button class="small-icon-btn" id="themeBtn" onclick="toggleTheme()" title="الوضع الداكن" aria-label="تبديل الوضع الداكن">🌓</button>
@@ -42,14 +46,13 @@
                     <span id="expiryBadgeCount" class="expiry-badge-dot" style="display:none;">0</span>
                 </button>
 
-                <button class="small-icon-btn admin-only" onclick="openInvoice()" title="فاتورة" aria-label="فاتورة" id="invoiceBtn">🧾</button>
                 <button class="small-icon-btn admin-only" onclick="openInventory()" title="وضع الجرد" aria-label="وضع الجرد" id="invBtn">📋</button>
                 <button class="small-icon-btn admin-only" onclick="openCategoryManager()" title="إعدادات الأقسام" aria-label="الإعدادات" id="gearBtn">⚙️</button>
                 <button class="small-icon-btn admin-only" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button>
             </div>
             
             <!-- 2. صف اسم الصيدلية والشعار (مستقل تماماً ولا يزاحمه شيء) -->
-            <!--A--><div class="admin-ribbon"><span>⚙️ لوحة الصيدلي</span><a href="./" title="معاينة صفحة الزبائن">صفحة الزبائن ↗</a></div><!--/A-->
+            <!--A--><div class="admin-ribbon"><span>📦 المخزن</span><a href="./" title="معاينة صفحة الزبائن">صفحة الزبائن ↗</a></div><!--/A-->
             <div class="app-header-row">
                 <div class="app-logo">
                     <div class="logo-icon">
@@ -125,6 +128,7 @@
             <span>النواقص</span>
         </button>
     </nav>
+</div><!-- /stockView -->
 
     <!-- نافذة تسجيل دخول الصيدلي (Firebase Auth) -->
     <div class="modal-overlay" id="loginModal">
@@ -343,8 +347,19 @@
                 <div id="expiryDatesWrap"></div>
                 <button type="button" class="icon-btn" onclick="addExpiryRow()" style="margin-top:6px;">+ إضافة تاريخ نفاذ آخر</button>
             </div>
-            <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="fPrice" min="0" value="0"></div>
-            <div class="form-group"><label>العدد المتوفر:</label><input type="number" id="fQty" min="0" value="5"></div>
+            <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="fPrice" min="0" value="0" oninput="retailAutoPrice()"></div>
+            <div class="form-group"><label>العدد المتوفر (عبوات):</label><input type="number" id="fQty" min="0" value="5"></div>
+            <div class="form-group retail-box">
+                <label>🧩 البيع بالتجزئة (اختياري)</label>
+                <div class="retail-grid">
+                    <div><small>عدد الأجزاء في العبوة</small><input type="number" id="fSubCount" min="0" placeholder="مثال: 10" oninput="retailAutoPrice()"></div>
+                    <div><small>نوع الجزء</small>
+                        <div class="retail-type"><select id="fSubType"></select><button type="button" class="xc-mini" onclick="addSubType()" aria-label="إضافة نوع">＋</button></div>
+                    </div>
+                    <div><small>سعر الجزء (يُحسب تلقائياً)</small><input type="number" id="fSubPrice" min="0" oninput="this.dataset.manual='1'"></div>
+                    <div><small>أجزاء مفتوحة من عبوة</small><input type="number" id="fLoose" min="0" value="0"></div>
+                </div>
+            </div>
             <div class="form-group"><label>تنبيه عند وصول الكمية إلى (اختياري):</label><input type="number" id="fMinQty" min="0" placeholder="اتركه فارغاً لاستخدام الحد العام من الإعدادات"></div>
             <div class="form-group"><label>كلمات مفتاحية لتسهيل البحث (اختياري):</label><input type="text" id="fKeywords" placeholder="مثال: مسكن، ألم رأس، بديل كذا..."></div>
             <div class="form-group">
@@ -463,11 +478,55 @@
         </div>
     </div>
 
-<!--A-->@@INVOICE_HTML@@<!--/A-->
+<!--A-->
+<div id="loginGate" class="app-view login-gate">
+    <div class="gate-card">
+        <img src="icon.jpg" alt="" class="gate-logo">
+        <h1 class="ruqaa-title gate-title">صيدلية الديوان</h1>
+        <p class="gate-sub">لوحة الصيدلي — سجّل دخولك للمتابعة</p>
+        <label class="gate-field"><span>البريد الإلكتروني</span><input type="email" id="gateEmail" dir="ltr" autocomplete="username" placeholder="admin@diwan.com" onkeydown="if(event.key==='Enter')document.getElementById('gatePass').focus()"></label>
+        <label class="gate-field"><span>كلمة المرور</span><input type="password" id="gatePass" dir="ltr" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')gateLogin()"></label>
+        <div id="gateError" class="gate-error" style="display:none;"></div>
+        <button type="button" class="gate-btn" id="gateBtn" onclick="gateLogin()">تسجيل الدخول</button>
+        <button type="button" class="gate-theme" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button>
+        <a href="./" class="gate-link">← صفحة الزبائن</a>
+    </div>
+</div>
+
+<div id="homeView" class="app-view home-view">
+    <div class="home-top">
+        <img src="icon.jpg" alt="" class="home-logo">
+        <div class="home-title"><h1 class="ruqaa-title">صيدلية الديوان</h1><small>لوحة الصيدلي</small></div>
+        <button type="button" class="home-icon" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button>
+        <button type="button" class="home-icon" onclick="gateLogout()" aria-label="تسجيل الخروج" title="تسجيل الخروج">⏻</button>
+    </div>
+    <div class="home-kpis" id="homeKpis"></div>
+    <div class="home-tiles">
+        <button type="button" class="home-tile tile-bill" onclick="showView('bill')">
+            <svg viewBox="0 0 24 24" width="54" height="54" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+            <b>فاتورة</b><small>إصدار وإدارة الفواتير</small>
+        </button>
+        <button type="button" class="home-tile tile-stock" onclick="showView('stock')">
+            <svg viewBox="0 0 24 24" width="54" height="54" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+            <b>مخزن</b><small>الأصناف والكميات</small>
+        </button>
+    </div>
+    <div class="home-quick">
+        <button type="button" onclick="goAddProduct()">➕ مادة جديدة</button>
+        <button type="button" onclick="showView('bill'); billTab('po')">🛒 طلب شراء</button>
+        <button type="button" onclick="showView('bill'); billTab('reports')">📊 تقارير</button>
+        <button type="button" onclick="showView('bill'); billTab('debt')">💳 الآجل</button>
+        <button type="button" onclick="goStock('out')">🚫 غير المتوفر</button>
+        <a href="./" class="home-quick-link">👁 صفحة الزبائن</a>
+    </div>
+</div>
+
+@@INVOICE_HTML@@
+<!--/A-->
     <script>window.APP_MODE='__MODE__';</script>
     <script src="seed.js"></script>
     <script src="data.js"></script>
-<!--A--><script src="invoice.js"></script><!--/A-->
+<!--A--><script src="invoice.js"></script><script src="admin.js"></script><!--/A-->
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});

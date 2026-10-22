@@ -1,33 +1,29 @@
 // =====================================================================
-// فاتورة الصيدلية (للصيدلي فقط) — جاهزة للطباعة A4
+// نظام الفواتير (للصيدلي فقط): جديدة، صادرة، آجل، تقارير، طلب شراء، إعدادات
 // =====================================================================
-const BILL_LS = { list: 'diwanInvoicesLocal', draft: 'diwanInvoiceDraft', seq: 'diwanInvoiceSeq', meta: 'diwanInvoiceMeta', sig: 'diwanInvoiceSig', stamp: 'diwanInvoiceStamp' };
+const BILL_LS = { list: 'diwanInvoicesLocal', draft: 'diwanInvoiceDraft', seq: 'diwanInvoiceSeq', meta: 'diwanInvoiceMeta', sig: 'diwanInvoiceSig', stamp: 'diwanInvoiceStamp', supplier: 'diwanPoSupplier' };
 let bill = null;
 let billSaveTimer = null;
+let billAll = [];            // كل الفواتير الصادرة (محلي + سحابي)
+let currentBillTab = 'new';
 
 function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
 function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* تجاهل */ } }
 function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { /* تجاهل */ } }
+const $b = id => document.getElementById(id);
 
 function todayLocalISO() {
     const d = new Date();
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
 }
 function fmtDateDMY(iso) {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso || '');
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
     return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
 }
-function fmtNum(n) {
-    n = Number(n) || 0;
-    return n.toLocaleString('en-US', { maximumFractionDigits: 2 });
-}
-function nextInvoiceNumber(peek) {
-    const n = (parseInt(lsGet(BILL_LS.seq)) || 0) + 1;
-    if (!peek) lsSet(BILL_LS.seq, String(n));
-    return 'INV-' + String(n).padStart(4, '0');
-}
+function fmtNum(n) { n = Number(n) || 0; return n.toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+function nextInvoiceNumber() { return 'INV-' + String((parseInt(lsGet(BILL_LS.seq)) || 0) + 1).padStart(4, '0'); }
 function emptyInvoice() {
-    return { id: '', no: nextInvoiceNumber(true), to: '', date: todayLocalISO(), items: [], discount: '', paid: '', customer: '', doctor: '', notes: '', issued: false, deduct: true };
+    return { id: '', no: nextInvoiceNumber(), to: '', date: todayLocalISO(), items: [], discount: '', paid: '', customer: '', doctor: '', notes: '', issued: false, cancelled: false, deduct: true };
 }
 
 // ---------- تفقيط المبلغ بالعربية ----------
@@ -65,6 +61,7 @@ function numberToArabicWords(num) {
     return parts.join(' و');
 }
 
+
 // ---------- الحالة والحفظ ----------
 function billChanged() {
     readInvoiceFields();
@@ -73,29 +70,37 @@ function billChanged() {
     billSaveTimer = setTimeout(() => lsSet(BILL_LS.draft, JSON.stringify(bill)), 300);
 }
 function readInvoiceFields() {
-    const v = id => document.getElementById(id).value;
+    const v = id => $b(id).value;
     bill.no = v('billNo'); bill.to = v('billTo'); bill.date = v('billDate');
     bill.discount = v('billDiscount'); bill.paid = v('billPaid');
     bill.customer = v('billCustomer'); bill.doctor = v('billDoctor'); bill.notes = v('billNotes');
-    bill.deduct = document.getElementById('billDeduct').checked;
+    bill.deduct = $b('billDeduct').checked;
 }
 function writeInvoiceFields() {
-    const set = (id, val) => { document.getElementById(id).value = val == null ? '' : val; };
+    const set = (id, val) => { $b(id).value = val == null ? '' : val; };
     set('billNo', bill.no); set('billTo', bill.to); set('billDate', bill.date);
     set('billDiscount', bill.discount); set('billPaid', bill.paid);
     set('billCustomer', bill.customer); set('billDoctor', bill.doctor); set('billNotes', bill.notes);
-    autoGrow(document.getElementById('billNotes'));
-    document.getElementById('billDeduct').checked = bill.deduct !== false;
+    autoGrow($b('billNotes'));
+    $b('billDeduct').checked = bill.deduct !== false;
     updateIssuedUI();
 }
 function updateIssuedUI() {
-    const note = document.getElementById('billIssuedNote'), btn = document.getElementById('billIssueBtn'), chk = document.getElementById('billDeduct');
+    const note = $b('billIssuedNote'), btn = $b('billIssueBtn'), chk = $b('billDeduct'), sheet = $b('billSheet');
+    const cancelBtn = $b('billCancelBtn'), draftBtn = $b('billDraftPrintBtn');
+    sheet.classList.toggle('locked', !!bill.issued);
+    sheet.classList.toggle('cancelled', !!bill.cancelled);
     if (bill.issued) {
         note.style.display = 'block';
-        note.innerText = '✅ صدرت هذه الفاتورة' + (bill.issuedAt ? ' بتاريخ ' + fmtDateDMY(String(bill.issuedAt).slice(0, 10)) : '') + (bill.deducted ? ' وتم خصم الكميات من المخزون.' : ' (بدون خصم من المخزون).');
-        btn.innerText = '🖨️ طباعة نسخة'; chk.disabled = true;
+        note.className = 'bill-issued no-print' + (bill.cancelled ? ' bad' : '');
+        note.innerText = bill.cancelled
+            ? '✖ هذه الفاتورة ملغاة' + (bill.cancelledAt ? ' بتاريخ ' + fmtDateDMY(bill.cancelledAt) : '') + (bill.deducted ? ' وأُرجعت الكميات للمخزن.' : '.')
+            : '✅ صدرت هذه الفاتورة' + (bill.issuedAt ? ' بتاريخ ' + fmtDateDMY(bill.issuedAt) : '') + (bill.deducted ? ' وتم خصم الكميات من المخزن.' : ' (بدون خصم من المخزن).');
+        btn.innerText = '🖨️ طباعة نسخة'; btn.style.display = bill.cancelled ? 'none' : '';
+        cancelBtn.style.display = bill.cancelled ? 'none' : ''; draftBtn.style.display = 'none'; chk.disabled = true;
     } else {
-        note.style.display = 'none'; btn.innerText = '✅ إصدار وطباعة'; chk.disabled = false;
+        note.style.display = 'none'; btn.style.display = ''; btn.innerText = '✅ إصدار وطباعة';
+        cancelBtn.style.display = 'none'; draftBtn.style.display = ''; chk.disabled = false;
     }
 }
 function autoGrow(el) { if (!el) return; el.style.height = 'auto'; el.style.height = Math.max(el.scrollHeight, 28) + 'px'; }
@@ -110,72 +115,101 @@ function billTotals() {
 }
 function recalcInvoice() {
     const t = billTotals();
-    document.getElementById('billSub').innerText = fmtNum(t.sub) + ' د.ع';
-    document.getElementById('billTotal').innerText = fmtNum(t.total) + ' د.ع';
-    document.getElementById('billRemRow').style.display = t.paid === null ? 'none' : 'flex';
-    document.getElementById('billRem').innerText = fmtNum(t.rem || 0) + ' د.ع';
-    document.getElementById('billDateTxt').innerText = fmtDateDMY(bill.date);
+    $b('billSub').innerText = fmtNum(t.sub) + ' د.ع';
+    $b('billTotal').innerText = fmtNum(t.total) + ' د.ع';
+    $b('billRemRow').style.display = t.paid === null ? 'none' : 'flex';
+    $b('billRem').innerText = fmtNum(t.rem || 0) + ' د.ع';
+    $b('billDateTxt').innerText = fmtDateDMY(bill.date);
     const w = numberToArabicWords(t.total);
-    document.getElementById('billWords').innerHTML = (t.total > 0 && w) ? `<span>المبلغ كتابةً:</span> ${escapeHtml(w)} دينار عراقي فقط لا غير` : '';
+    $b('billWords').innerHTML = (t.total > 0 && w) ? `<span>المبلغ كتابةً:</span> ${escapeHtml(w)} دينار عراقي فقط لا غير` : '';
     bill.items.forEach((it, i) => {
-        const el = document.getElementById('billSum' + i);
+        const el = $b('billSum' + i);
         if (el) el.innerText = fmtNum((parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0));
-        const pv = document.getElementById('billPv' + i);
-        if (pv) pv.innerText = it.price === '' ? '' : fmtNum(it.price);
+        const pv = $b('billPv' + i); if (pv) pv.innerText = it.price === '' ? '' : fmtNum(it.price);
+        const qv = $b('billQv' + i); if (qv) qv.innerText = fmtNum(it.qty) + (it.unit === 'part' && it.partType ? ' ' + it.partType : '');
     });
-    document.getElementById('billDiscTxt').innerText = t.disc ? fmtNum(t.disc) + ' د.ع' : '';
-    document.getElementById('billPaidTxt').innerText = t.paid === null ? '' : fmtNum(t.paid) + ' د.ع';
-    document.getElementById('billDiscRow').classList.toggle('bill-empty', !t.disc);
+    $b('billDiscTxt').innerText = t.disc ? fmtNum(t.disc) + ' د.ع' : '';
+    $b('billPaidTxt').innerText = t.paid === null ? '' : fmtNum(t.paid) + ' د.ع';
+    $b('billDiscRow').classList.toggle('bill-empty', !t.disc);
 }
+function itemProduct(it) { return it.pid ? products.find(x => x.id === it.pid) : null; }
 function renderInvoiceRows() {
-    const body = document.getElementById('billRows');
+    const body = $b('billRows');
     if (!bill.items.length) {
-        body.innerHTML = `<tr class="bill-empty no-print"><td colspan="6">لم تُضف مواد بعد. ابحث عن مادة بالأسفل أو أضف سطراً فارغاً.</td></tr>`;
+        body.innerHTML = `<tr class="bill-empty-row no-print"><td colspan="6">لم تُضف مواد بعد. ابحث بالاسم أو امسح الباركود أو أضف سطراً.</td></tr>`;
     } else {
-        body.innerHTML = bill.items.map((it, i) => `
+        body.innerHTML = bill.items.map((it, i) => {
+            const p = itemProduct(it);
+            const unitSel = p && hasRetail(p)
+                ? `<select class="bill-unit no-print" onchange="billSetUnit(${i}, this.value)"><option value="pack" ${it.unit !== 'part' ? 'selected' : ''}>عبوة</option><option value="part" ${it.unit === 'part' ? 'selected' : ''}>${escapeHtml(subTypeOf(p))} (جزء)</option></select>` : '';
+            return `
             <tr>
                 <td class="c-n">${i + 1}</td>
-                <td class="c-name"><textarea rows="1" dir="auto" oninput="billItemEdit(${i}, 'name', this.value); autoGrow(this)">${escapeHtml(it.name)}</textarea></td>
-                <td class="c-qty"><input type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(String(it.qty))}" oninput="billItemEdit(${i}, 'qty', this.value)"></td>
+                <td class="c-name"><textarea rows="1" dir="auto" oninput="billItemEdit(${i}, 'name', this.value); autoGrow(this)">${escapeHtml(it.name)}</textarea>${unitSel}</td>
+                <td class="c-qty has-pv"><div class="bill-stepper"><button type="button" class="bill-step" onclick="billStep(${i}, -1)" aria-label="إنقاص">−</button><input type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(String(it.qty))}" oninput="billItemEdit(${i}, 'qty', this.value)"><button type="button" class="bill-step" onclick="billStep(${i}, 1)" aria-label="زيادة">+</button></div><span class="bill-pv" id="billQv${i}"></span></td>
                 <td class="c-price has-pv"><input type="number" inputmode="decimal" min="0" value="${escapeHtml(String(it.price))}" oninput="billItemEdit(${i}, 'price', this.value)"><span class="bill-pv" id="billPv${i}"></span></td>
                 <td class="c-sum" id="billSum${i}">0</td>
                 <td class="c-del no-print"><button type="button" aria-label="حذف السطر" onclick="billRemoveRow(${i})">✕</button></td>
-            </tr>`).join('');
+            </tr>`;
+        }).join('');
         body.querySelectorAll('textarea').forEach(autoGrow);
     }
     recalcInvoice();
 }
-function billItemEdit(i, field, val) {
-    if (!bill.items[i]) return;
-    bill.items[i][field] = val;
+function billItemEdit(i, field, val) { if (!bill.items[i]) return; bill.items[i][field] = val; billChanged(); }
+function billStep(i, d) {
+    const it = bill.items[i]; if (!it) return;
+    it.qty = Math.max(0, (parseFloat(it.qty) || 0) + d);
+    const inp = $b('billRows').querySelectorAll('tr')[i].querySelector('.c-qty input'); if (inp) inp.value = it.qty;
     billChanged();
 }
+function billSetUnit(i, unit) {
+    const it = bill.items[i], p = itemProduct(it); if (!it || !p) return;
+    it.unit = unit; it.partType = unit === 'part' ? subTypeOf(p) : '';
+    it.price = unit === 'part' ? subPriceOf(p) : (p.price || '');
+    renderInvoiceRows(); billChanged();
+}
 function billRemoveRow(i) { bill.items.splice(i, 1); renderInvoiceRows(); billChanged(); }
-function billAddBlank() { bill.items.push({ name: '', qty: 1, price: '' }); renderInvoiceRows(); billChanged(); const t = document.querySelectorAll('#billRows textarea'); if (t.length) t[t.length - 1].focus(); }
+function billAddBlank() { bill.items.push({ name: '', qty: 1, price: '', unit: 'pack' }); renderInvoiceRows(); billChanged(); const t = document.querySelectorAll('#billRows textarea'); if (t.length) t[t.length - 1].focus(); }
 function billAddProduct(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
-    const existing = bill.items.find(it => it.pid === id);
+    const existing = bill.items.find(it => it.pid === id && it.unit !== 'part');
     if (existing) existing.qty = (parseFloat(existing.qty) || 0) + 1;
-    else bill.items.push({ pid: id, name: p.name, qty: 1, price: p.price || '' });
-    document.getElementById('billSearch').value = '';
-    document.getElementById('billResults').style.display = 'none';
+    else bill.items.push({ pid: id, name: p.name, qty: 1, price: p.price || '', unit: 'pack' });
+    $b('billSearch').value = ''; $b('billResults').style.display = 'none';
     renderInvoiceRows(); billChanged();
 }
 let billFound = [];
 function billSearchInput() {
-    const q = document.getElementById('billSearch').value;
-    const box = document.getElementById('billResults');
+    const q = $b('billSearch').value;
+    const box = $b('billResults');
     const qn = normSearch(q);
     if (!qn) { box.style.display = 'none'; billFound = []; return; }
     const toks = qn.split(' ');
     billFound = products.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(x => x[0]);
     box.innerHTML = billFound.length
-        ? billFound.map(p => `<button type="button" onclick="billAddProduct(${p.id})"><span dir="ltr">${escapeHtml(p.name)}</span><small>${escapeHtml(p.brand || '')}${p.price ? ' · ' + fmtNum(p.price) + ' د.ع' : ''}</small></button>`).join('')
-        : `<div class="bill-noresult">لا توجد نتائج — يمكنك إضافة سطر فارغ وكتابة الاسم يدوياً</div>`;
+        ? billFound.map(p => `<button type="button" onclick="billAddProduct(${p.id})"><span dir="ltr">${escapeHtml(p.name)}</span><small>${escapeHtml(p.brand || '')}${p.price ? ' · ' + fmtNum(p.price) + ' د.ع' : ''}${isInStock(p) ? '' : ' · غير متوفر'}</small></button>`).join('')
+        : `<div class="bill-noresult">لا توجد نتائج — يمكنك إضافة سطر وكتابة الاسم يدوياً</div>`;
     box.style.display = 'block';
 }
-function billAddFirstResult() { if (billFound.length) billAddProduct(billFound[0].id); }
+// Enter: باركود مكتوب/ممسوح بقارئ USB → الصنف المطابق، وإلا أول نتيجة بحث
+function billSearchEnter() {
+    const raw = $b('billSearch').value.trim();
+    const code = cleanBarcode(raw);
+    if (code && code.length >= 4 && /\d/.test(code)) {
+        const p = findByBarcode(code);
+        if (p) { billAddProduct(p.id); return; }
+    }
+    if (billFound.length) billAddProduct(billFound[0].id);
+}
+function billScan() { openBarcodeScanner(billAddByBarcode); }
+function billAddByBarcode(code) {
+    const p = findByBarcode(code);
+    if (!p) { Swal.fire({ icon: 'warning', title: 'لا يوجد صنف بهذا الباركود', text: code, toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 }); return; }
+    billAddProduct(p.id);
+    Swal.fire({ icon: 'success', title: 'أُضيف: ' + p.name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1200 });
+}
 
 // ---------- بيانات الصيدلية والصور ----------
 function defaultInvMeta() {
@@ -219,35 +253,30 @@ function billPickImage(key, input) {
 }
 function billClearImages() { lsDel(BILL_LS.sig); lsDel(BILL_LS.stamp); renderInvImages(); }
 
-// ---------- فتح/إغلاق/طباعة ----------
-function openInvoice() {
-    if (!currentUser) {
-        Swal.fire({ icon: 'info', title: 'سجّل الدخول أولاً', text: 'الفاتورة متاحة للصيدلي بعد تسجيل الدخول.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
-        return;
-    }
-    try { bill = JSON.parse(lsGet(BILL_LS.draft)); } catch (e) { bill = null; }
-    if (!bill || !Array.isArray(bill.items)) bill = emptyInvoice();
-    const m = getInvMeta();
-    document.getElementById('setAddr').value = m.addr; document.getElementById('setPhone').value = m.phone;
-    document.getElementById('setLic').value = m.lic; document.getElementById('setFoot').value = m.foot; document.getElementById('setRet').value = m.ret;
+
+// ---------- فتح الصفحات ----------
+function billTab(name) {
+    currentBillTab = name;
+    document.querySelectorAll('#billTabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('.bill-pane').forEach(p => { p.classList.toggle('active', p.id === 'billPane-' + name); p.classList.remove('print-active'); });
+    const pane = $b('billPane-' + name); if (pane && (name === 'new' || name === 'po')) pane.classList.add('print-active');
+    if (name === 'new') initBillEditor();
+    else if (name === 'settings') initBillSettings();
+    else if (name === 'po') renderPO();
+    else loadInvoices().then(() => { if (name === 'issued') renderIssuedList(); else if (name === 'debt') renderDebt(); else if (name === 'reports') renderReport(); });
+}
+function initBillEditor() {
+    if (!bill) { try { bill = JSON.parse(lsGet(BILL_LS.draft)); } catch (e) { bill = null; } if (!bill || !Array.isArray(bill.items)) bill = emptyInvoice(); }
     writeInvoiceFields(); renderInvoiceRows(); renderInvMeta(); renderInvImages();
-    const pg = document.getElementById('invoicePage');
-    pg.classList.add('open'); pg.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('invoice-open');
 }
-function closeInvoice() {
-    readInvoiceFields(); lsSet(BILL_LS.draft, JSON.stringify(bill));
-    const pg = document.getElementById('invoicePage');
-    pg.classList.remove('open'); pg.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('invoice-open');
+function initBillSettings() {
+    const m = getInvMeta();
+    $b('setAddr').value = m.addr; $b('setPhone').value = m.phone; $b('setLic').value = m.lic; $b('setRet').value = m.ret; $b('setFoot').value = m.foot;
 }
+function onShowBill() { billTab(currentBillTab || 'new'); }
 function newInvoice() {
     const hasData = bill && !bill.issued && (bill.items.length || bill.to || bill.customer || bill.doctor);
-    const go = () => {
-        bill = emptyInvoice();
-        lsSet(BILL_LS.draft, JSON.stringify(bill));
-        writeInvoiceFields(); renderInvoiceRows();
-    };
+    const go = () => { bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); billTab('new'); };
     if (!hasData) return go();
     Swal.fire({ icon: 'question', title: 'فاتورة جديدة؟', text: 'سيتم مسح الفاتورة الحالية.', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم، جديدة', cancelButtonText: 'إلغاء' })
         .then(r => { if (r.isConfirmed) go(); });
@@ -256,56 +285,65 @@ function printInvoice(draftOnly) {
     readInvoiceFields();
     if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'أضف مادة واحدة على الأقل قبل الطباعة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     lsSet(BILL_LS.draft, JSON.stringify(bill));
-    document.body.classList.add('printing-invoice');
-    document.querySelectorAll('#billRows textarea, #billNotes').forEach(autoGrow);
-    const done = () => { document.body.classList.remove('printing-invoice'); window.removeEventListener('afterprint', done); };
+    doPrint('billPane-new');
+}
+function doPrint(paneId) {
+    document.querySelectorAll('.bill-pane').forEach(p => p.classList.toggle('print-active', p.id === paneId));
+    document.body.classList.add('printing-bill');
+    document.querySelectorAll('#' + paneId + ' textarea').forEach(autoGrow);
+    const done = () => { document.body.classList.remove('printing-bill'); window.removeEventListener('afterprint', done); };
     window.addEventListener('afterprint', done);
     setTimeout(() => { window.print(); setTimeout(done, 1500); }, 50);
 }
 
-// ---------- إصدار الفاتورة: حفظ + خصم من المخزون + طباعة ----------
-function billSeqBump(no) {
-    const n = parseInt(String(no).replace(/\D/g, '')) || 0;
-    if (n > (parseInt(lsGet(BILL_LS.seq)) || 0)) lsSet(BILL_LS.seq, String(n));
-}
-function billStockLines() {
-    const lines = [];
+// ---------- خطة الخصم من المخزن (تدعم العبوة والتجزئة) ----------
+function billPlan() {
+    const map = new Map();
     bill.items.forEach(it => {
-        const need = parseFloat(it.qty) || 0;
-        const p = it.pid ? products.find(x => x.id === it.pid) : null;
-        if (p && need > 0) lines.push({ p, need, have: parseInt(p.qty) || 0 });
+        const p = itemProduct(it); const n = parseFloat(it.qty) || 0;
+        if (!p || n <= 0) return;
+        let e = map.get(p.id);
+        if (!e) { e = { p, from: { qty: parseInt(p.qty) || 0, loose: parseInt(p.loose) || 0 }, to: null, short: false, lines: [] }; e.to = { ...e.from }; map.set(p.id, e); }
+        const unit = it.unit === 'part' && hasRetail(p) ? 'part' : 'pack';
+        const sc = subCountOf(p);
+        const avail = unit === 'part' ? e.to.qty * sc + e.to.loose : e.to.qty;
+        if (avail < n) e.short = true;
+        e.to = stockAfterSale({ ...p, qty: e.to.qty, loose: e.to.loose }, n, unit);
+        e.lines.push({ pid: p.id, unit, n });
     });
-    return lines;
+    return [...map.values()];
 }
+function stockTxt(p, s) { return hasRetail(p) && s.loose ? `${s.qty}+${s.loose}` : String(s.qty); }
+
+// ---------- إصدار الفاتورة ----------
 async function issueInvoice() {
     readInvoiceFields();
     if (bill.issued) { printInvoice(); return; }
-    if (!bill.items.length) { printInvoice(); return; }   // يعرض تنبيه القائمة الفارغة
+    if (!bill.items.length) { printInvoice(); return; }
     const t = billTotals();
     const deduct = bill.deduct !== false;
-    const lines = deduct ? billStockLines() : [];
-    const short = lines.filter(l => l.have < l.need);
+    const plan = deduct ? billPlan() : [];
+    const short = plan.filter(e => e.short);
     const manual = bill.items.filter(it => !it.pid).length;
     const r = await Swal.fire({
         icon: 'question', title: 'إصدار الفاتورة ' + escapeHtml(bill.no),
         html: `المبلغ الكلي: <b>${fmtNum(t.total)} د.ع</b><br>` +
-            (deduct ? `سيتم خصم الكميات من المخزون (${lines.length} مادة).` : 'بدون خصم من المخزون.') +
+            (deduct ? `سيتم خصم الكميات من المخزن (${plan.length} مادة).` : 'بدون خصم من المخزن.') +
             (manual && deduct ? `<br><small>${manual} سطر مكتوب يدوياً لن يُخصم لأنه غير مرتبط بصنف.</small>` : '') +
-            (short.length ? `<div style="margin-top:10px;color:#b45309;font-weight:700;font-size:.85rem;">⚠️ كميات غير كافية في المخزون:<br>${short.map(l => escapeHtml(l.p.name) + ' (المتوفر ' + l.have + '، المطلوب ' + l.need + ')').join('<br>')}<br><small>ستصبح الكمية 0.</small></div>` : ''),
+            (short.length ? `<div style="margin-top:10px;color:#b45309;font-weight:700;font-size:.85rem;">⚠️ كميات غير كافية في المخزن:<br>${short.map(e => escapeHtml(e.p.name) + ' (المتوفر ' + stockLabel(e.p) + ')').join('<br>')}<br><small>ستصبح الكمية 0.</small></div>` : ''),
         showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'إصدار وطباعة', cancelButtonText: 'إلغاء'
     });
     if (!r.isConfirmed) return;
-    if (deduct && lines.length) {
+    let lines = [];
+    if (deduct && plan.length) {
         if (!requireOnline()) return;
-        const changed = [];
-        lines.forEach(l => { const to = Math.max(0, l.have - l.need); if (to !== l.have) changed.push({ p: l.p, from: l.have, to }); });
-        changed.forEach(c => { c.p.qty = c.to; });
-        const ok = await saveProductsBatch(changed.map(c => c.p));
-        if (!ok) { changed.forEach(c => { c.p.qty = c.from; }); renderAll(); return; }
-        changed.forEach(c => logAction('qty', c.p, [{ f: 'الكمية (فاتورة ' + bill.no + ')', from: String(c.from), to: String(c.to) }]));
+        plan.forEach(e => { e.p.qty = e.to.qty; e.p.loose = e.to.loose; });
+        const ok = await saveProductsBatch(plan.map(e => e.p));
+        if (!ok) { plan.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; }); renderAll(); return; }
+        plan.forEach(e => { logAction('qty', e.p, [{ f: 'الكمية (فاتورة ' + bill.no + ')', from: stockTxt(e.p, e.from), to: stockTxt(e.p, e.to) }]); lines = lines.concat(e.lines); });
         renderAll();
     }
-    bill.issued = true; bill.issuedAt = new Date().toISOString(); bill.deducted = !!(deduct && lines.length);
+    bill.issued = true; bill.issuedAt = todayLocalISO(); bill.issuedTs = new Date().toISOString(); bill.deducted = lines.length > 0; bill.deductedLines = lines;
     bill.id = bill.id || String(Date.now());
     billSeqBump(bill.no);
     lsSet(BILL_LS.draft, JSON.stringify(bill));
@@ -313,40 +351,183 @@ async function issueInvoice() {
     updateIssuedUI();
     printInvoice();
 }
+function billSeqBump(no) {
+    const n = parseInt(String(no).replace(/\D/g, '')) || 0;
+    if (n > (parseInt(lsGet(BILL_LS.seq)) || 0)) lsSet(BILL_LS.seq, String(n));
+}
+
+// ---------- إلغاء فاتورة وإرجاع الكميات ----------
+async function cancelInvoice(target) {
+    const b = target || bill;
+    if (!b || !b.issued || b.cancelled) return;
+    const r = await Swal.fire({ icon: 'warning', title: 'إلغاء الفاتورة ' + escapeHtml(b.no) + '؟', text: b.deducted ? 'ستُرجَع الكميات المخصومة إلى المخزن.' : 'لم تُخصم كميات بهذه الفاتورة.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، ألغِ', cancelButtonText: 'رجوع' });
+    if (!r.isConfirmed) return;
+    if (b.deducted && (b.deductedLines || []).length) {
+        if (!requireOnline()) return;
+        const touched = new Map();
+        (b.deductedLines || []).forEach(l => {
+            const p = products.find(x => x.id === l.pid); if (!p) return;
+            if (!touched.has(p.id)) touched.set(p.id, { p, from: { qty: parseInt(p.qty) || 0, loose: parseInt(p.loose) || 0 } });
+            if (l.unit === 'part' && hasRetail(p)) {
+                const tot = totalParts(p) + l.n, sc = subCountOf(p);
+                p.qty = Math.floor(tot / sc); p.loose = tot % sc;
+            } else p.qty = (parseInt(p.qty) || 0) + l.n;
+        });
+        const ok = await saveProductsBatch([...touched.values()].map(e => e.p));
+        if (!ok) { touched.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; }); renderAll(); return; }
+        touched.forEach(e => logAction('qty', e.p, [{ f: 'الكمية (إلغاء فاتورة ' + b.no + ')', from: stockTxt(e.p, e.from), to: stockTxt(e.p, { qty: parseInt(e.p.qty) || 0, loose: parseInt(e.p.loose) || 0 }) }]));
+        renderAll();
+    }
+    b.cancelled = true; b.cancelledAt = todayLocalISO();
+    await saveInvoiceRecord(b);
+    if (b === bill) { lsSet(BILL_LS.draft, JSON.stringify(bill)); updateIssuedUI(); }
+    if (currentBillTab !== 'new') billTab(currentBillTab);
+    Swal.fire({ icon: 'success', title: 'أُلغيت الفاتورة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
+}
 
 // ---------- أرشيف الفواتير ----------
+function invRemaining(b) {
+    if (!b.issued || b.cancelled || b.paid === '' || b.paid == null) return 0;
+    const sub = (b.items || []).reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), 0);
+    const disc = Math.min(Math.max(parseFloat(b.discount) || 0, 0), sub);
+    return Math.max(sub - disc - (parseFloat(b.paid) || 0), 0);
+}
+function invTotalOf(b) {
+    const sub = (b.items || []).reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), 0);
+    return sub - Math.min(Math.max(parseFloat(b.discount) || 0, 0), sub);
+}
 async function saveInvoiceRecord(b) {
-    const t = billTotals();
-    const rec = JSON.parse(JSON.stringify({ ...b, total: t.total }));
+    const rec = JSON.parse(JSON.stringify({ ...b, total: invTotalOf(b) }));
     let list = [];
     try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
     list = list.filter(x => x.id !== rec.id); list.unshift(rec);
-    lsSet(BILL_LS.list, JSON.stringify(list.slice(0, 200)));
+    lsSet(BILL_LS.list, JSON.stringify(list.slice(0, 300)));
+    billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec);
     if (cloudReady() && navigator.onLine) {
         try { await db.collection('pharmacy_invoices').doc(rec.id).set(rec); }
         catch (e) { Swal.fire({ icon: 'warning', title: 'حُفظت الفاتورة على هذا الجهاز فقط', text: 'أضف قاعدة pharmacy_invoices إلى قواعد Firestore لتُحفظ في السحابة أيضاً.', confirmButtonColor: '#0f1c38' }); }
     }
 }
-async function openInvoicesList() {
+async function loadInvoices() {
     const map = new Map();
     try { (JSON.parse(lsGet(BILL_LS.list)) || []).forEach(x => x && x.id && map.set(x.id, x)); } catch (e) { /* تجاهل */ }
     if (cloudReady() && navigator.onLine) {
-        try { const snap = await db.collection('pharmacy_invoices').orderBy('issuedAt', 'desc').limit(100).get(); snap.forEach(d => { const x = d.data(); if (x && x.id) map.set(x.id, x); }); } catch (e) { /* تجاهل */ }
+        try { const snap = await db.collection('pharmacy_invoices').orderBy('issuedTs', 'desc').limit(300).get(); snap.forEach(d => { const x = d.data(); if (x && x.id) map.set(x.id, x); }); } catch (e) { /* تجاهل */ }
     }
-    const arr = [...map.values()].sort((a, b) => String(b.issuedAt).localeCompare(String(a.issuedAt)));
-    window.__bills = arr;
-    const rows = arr.map((b, i) => `
-        <div class="sec-row" onclick="billOpenSaved(${i})" style="cursor:pointer;">
-            <div class="sec-main"><b dir="ltr">${escapeHtml(b.no || '')}</b> — ${escapeHtml(b.to || b.customer || 'بدون اسم')}<small>${escapeHtml(fmtDateDMY(b.date))} • ${fmtNum(b.total)} د.ع • ${(b.items || []).length} مادة</small></div>
-            <span class="sec-btn">فتح</span>
-        </div>`).join('');
-    Swal.fire({ title: '📚 الفواتير المحفوظة', html: `<div class="sec-list">${rows || '<div class="sec-empty">لا توجد فواتير صادرة بعد.</div>'}</div>`, confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
+    billAll = [...map.values()].sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
+    return billAll;
 }
-function billOpenSaved(i) {
-    const b = (window.__bills || [])[i];
-    if (!b) return;
-    if (typeof Swal !== 'undefined' && Swal.close) Swal.close();
+function billCardHtml(b, extra) {
+    const rem = invRemaining(b);
+    const tags = (b.cancelled ? '<em class="tg bad">ملغاة</em>' : '') + (rem > 0 ? `<em class="tg warn">آجل ${fmtNum(rem)}</em>` : '');
+    return `<div class="bill-card ${b.cancelled ? 'cancelled' : ''}">
+        <div class="bill-card-main" onclick="billOpenSaved('${b.id}')">
+            <b dir="ltr">${escapeHtml(b.no || '')}</b> <span>${escapeHtml(b.to || b.customer || 'بدون اسم')}</span> ${tags}
+            <small>${escapeHtml(fmtDateDMY(b.date))} • ${(b.items || []).length} مادة</small>
+        </div>
+        <div class="bill-card-amt">${fmtNum(invTotalOf(b))}<small>د.ع</small></div>
+        ${extra || ''}
+    </div>`;
+}
+function renderIssuedList() {
+    const q = ($b('billListSearch').value || '').trim().toLowerCase();
+    const arr = billAll.filter(b => !q || [b.no, b.to, b.customer, b.doctor].some(x => String(x || '').toLowerCase().includes(q)));
+    $b('billList').innerHTML = arr.map(b => billCardHtml(b)).join('') || '<div class="bill-none">لا توجد فواتير صادرة بعد.</div>';
+}
+function billOpenSaved(id) {
+    const b = billAll.find(x => x.id === id); if (!b) return;
     bill = JSON.parse(JSON.stringify(b));
     lsSet(BILL_LS.draft, JSON.stringify(bill));
-    writeInvoiceFields(); renderInvoiceRows();
+    billTab('new');
+    window.scrollTo(0, 0);
+}
+function renderDebt() {
+    const arr = billAll.filter(b => invRemaining(b) > 0);
+    const total = arr.reduce((s, b) => s + invRemaining(b), 0);
+    $b('debtSummary').innerHTML = `<span>إجمالي الآجل</span><b>${fmtNum(total)} د.ع</b><small>${arr.length} فاتورة</small>`;
+    $b('debtList').innerHTML = arr.map(b => billCardHtml(b, `<button type="button" class="bill-tb-btn bill-pay" onclick="payDebt('${b.id}')">تسديد</button>`)).join('') || '<div class="bill-none">لا توجد ديون 🎉</div>';
+}
+async function payDebt(id) {
+    const b = billAll.find(x => x.id === id); if (!b) return;
+    const rem = invRemaining(b);
+    const r = await Swal.fire({ title: 'تسديد دفعة — ' + escapeHtml(b.no), html: `المتبقي: <b>${fmtNum(rem)} د.ع</b>`, input: 'number', inputValue: rem, inputAttributes: { min: 0, max: rem }, showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'تسجيل الدفعة', cancelButtonText: 'إلغاء' });
+    const amt = parseFloat(r && r.value);
+    if (!r.isConfirmed || !(amt > 0)) return;
+    const pay = Math.min(amt, rem);
+    b.paid = (parseFloat(b.paid) || 0) + pay;
+    (b.payments = b.payments || []).push({ at: todayLocalISO(), amount: pay });
+    await saveInvoiceRecord(b);
+    if (bill && bill.id === b.id) bill = JSON.parse(JSON.stringify(b));
+    renderDebt();
+}
+
+// ---------- التقارير ----------
+let reportRange = 'today';
+function setReportRange(r) { reportRange = r; document.querySelectorAll('#reportRange button').forEach(x => x.classList.toggle('active', x.dataset.r === r)); renderReport(); }
+function reportInvoices() {
+    const today = todayLocalISO();
+    const d = new Date(); const ago = new Date(d.getTime() - 6 * 864e5);
+    const weekStart = ago.getFullYear() + '-' + String(ago.getMonth() + 1).padStart(2, '0') + '-' + String(ago.getDate()).padStart(2, '0');
+    return billAll.filter(b => b.issued && !b.cancelled && (reportRange === 'all' || (reportRange === 'today' && b.date === today) || (reportRange === 'week' && b.date >= weekStart) || (reportRange === 'month' && String(b.date).slice(0, 7) === today.slice(0, 7))));
+}
+function renderReport() {
+    const arr = reportInvoices();
+    let gross = 0, disc = 0, net = 0, owed = 0; const items = new Map(), days = new Map();
+    arr.forEach(b => {
+        const sub = (b.items || []).reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), 0);
+        const t = invTotalOf(b); gross += sub; disc += sub - t; net += t; owed += invRemaining(b);
+        days.set(b.date, (days.get(b.date) || 0) + t);
+        (b.items || []).forEach(it => { const k = (it.name || '—') + (it.unit === 'part' && it.partType ? ' (' + it.partType + ')' : ''); const e = items.get(k) || { q: 0, v: 0 }; e.q += parseFloat(it.qty) || 0; e.v += (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0); items.set(k, e); });
+    });
+    const top = [...items.entries()].sort((a, b) => b[1].v - a[1].v).slice(0, 10);
+    const dayRows = [...days.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 14);
+    const maxDay = Math.max(1, ...dayRows.map(x => x[1]));
+    $b('reportBody').innerHTML = `
+        <div class="rep-cards">
+            <div><span>الفواتير</span><b>${arr.length}</b></div>
+            <div><span>صافي المبيعات</span><b>${fmtNum(net)}</b></div>
+            <div><span>الخصومات</span><b>${fmtNum(disc)}</b></div>
+            <div><span>الآجل</span><b>${fmtNum(owed)}</b></div>
+        </div>
+        ${dayRows.length > 1 ? `<h4 class="rep-h">المبيعات اليومية</h4>` + dayRows.map(([d, v]) => `<div class="rep-bar"><span>${escapeHtml(fmtDateDMY(d))}</span><i style="width:${Math.max(4, Math.round(v / maxDay * 100))}%"></i><b>${fmtNum(v)}</b></div>`).join('') : ''}
+        <h4 class="rep-h">الأكثر مبيعاً</h4>
+        ${top.map(([n, e]) => `<div class="rep-row"><span dir="auto">${escapeHtml(n)}</span><small>× ${fmtNum(e.q)}</small><b>${fmtNum(e.v)}</b></div>`).join('') || '<div class="bill-none">لا مبيعات في هذه الفترة.</div>'}`;
+}
+function salesTodayTotal() { const t = todayLocalISO(); return billAll.filter(b => b.issued && !b.cancelled && b.date === t).reduce((s, b) => s + invTotalOf(b), 0); }
+
+// ---------- طلب الشراء ----------
+let poState = {};
+function poCandidates() { return products.filter(p => !isInStock(p) || isLowStock(p)).sort((a, b) => (parseInt(a.qty) || 0) - (parseInt(b.qty) || 0) || String(a.brand).localeCompare(String(b.brand))); }
+function renderPO() {
+    const m = getInvMeta();
+    $b('poPhLine').innerText = [m.addr, m.phone ? 'هاتف: ' + m.phone : ''].filter(Boolean).join('  |  ');
+    $b('poDateTxt').innerText = fmtDateDMY(todayLocalISO());
+    $b('poFoot').innerText = m.foot || '';
+    $b('poSupplier').value = lsGet(BILL_LS.supplier) || '';
+    const list = poCandidates();
+    list.forEach(p => { if (!poState[p.id]) poState[p.id] = { on: true, qty: Math.max(getMinQty(p) * 2 - (parseInt(p.qty) || 0), 1) }; });
+    $b('poRows').innerHTML = list.map(p => `
+        <tr class="${poState[p.id].on ? '' : 'po-off'}">
+            <td class="c-n no-print"><input type="checkbox" ${poState[p.id].on ? 'checked' : ''} onchange="poToggle(${p.id}, this.checked)"></td>
+            <td class="c-name"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')}</small></td>
+            <td class="c-qty">${escapeHtml(stockLabel(p))}</td>
+            <td class="c-qty has-pv"><input type="number" min="1" value="${poState[p.id].qty}" oninput="poQty(${p.id}, this.value)"><span class="bill-pv">${poState[p.id].qty}</span></td>
+        </tr>`).join('') || `<tr><td colspan="4" class="bill-empty-row">لا توجد مواد ناقصة 🎉</td></tr>`;
+}
+function poToggle(id, on) { poState[id].on = on; renderPO(); }
+function poQty(id, v) { poState[id].qty = Math.max(1, parseInt(v) || 1); const row = [...$b('poRows').querySelectorAll('input[type=number]')]; /* بدون إعادة رسم لتبقى لوحة المفاتيح */ }
+function poSelectAll(on) { poCandidates().forEach(p => { poState[p.id].on = on; }); renderPO(); }
+function poSaveSupplier() { lsSet(BILL_LS.supplier, $b('poSupplier').value); }
+function poSelected() { return poCandidates().filter(p => poState[p.id] && poState[p.id].on).map(p => ({ p, qty: poState[p.id].qty })); }
+function poPrint() {
+    if (!poSelected().length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد محددة', confirmButtonColor: '#0f1c38' }); return; }
+    document.querySelectorAll('#poRows tr').forEach((tr, i) => { const inp = tr.querySelector('input[type=number]'); const pv = tr.querySelector('.bill-pv'); if (inp && pv) pv.innerText = inp.value; });
+    doPrint('billPane-po');
+}
+function poShareWhatsApp() {
+    const sel = poSelected();
+    if (!sel.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد محددة', confirmButtonColor: '#0f1c38' }); return; }
+    const sup = ($b('poSupplier').value || '').trim();
+    const txt = `طلب شراء — صيدلية الديوان${sup ? '\nإلى: ' + sup : ''}\n${fmtDateDMY(todayLocalISO())}\n\n` + sel.map((x, i) => `${i + 1}) ${x.p.name}${x.p.brand ? ' (' + x.p.brand + ')' : ''} × ${x.qty}`).join('\n');
+    window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
 }

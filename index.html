@@ -25,13 +25,17 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 </head>
-<body class="customer">
+<body class="customer" data-view="stock">
 
+
+
+<div id="stockView">
     <header class="top-bar">
         <div class="top-bar-inner">
             
             <!-- 1. شريط التحكم العلوي الصغير -->
             <div class="admin-top-strip">
+                
                 <span id="syncBadge" class="sync-icon-badge">☁️</span>
                 <button class="small-icon-btn" id="authBtn" onclick="handleAuthClick()" title="دخول الصيدلي" aria-label="دخول الصيدلي">👤</button>
                 <button class="small-icon-btn" id="themeBtn" onclick="toggleTheme()" title="الوضع الداكن" aria-label="تبديل الوضع الداكن">🌓</button>
@@ -42,7 +46,6 @@
                     <span id="expiryBadgeCount" class="expiry-badge-dot" style="display:none;">0</span>
                 </button>
 
-                <button class="small-icon-btn admin-only" onclick="openInvoice()" title="فاتورة" aria-label="فاتورة" id="invoiceBtn">🧾</button>
                 <button class="small-icon-btn admin-only" onclick="openInventory()" title="وضع الجرد" aria-label="وضع الجرد" id="invBtn">📋</button>
                 <button class="small-icon-btn admin-only" onclick="openCategoryManager()" title="إعدادات الأقسام" aria-label="الإعدادات" id="gearBtn">⚙️</button>
                 <button class="small-icon-btn admin-only" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button>
@@ -125,6 +128,7 @@
             <span>النواقص</span>
         </button>
     </nav>
+</div><!-- /stockView -->
 
     <!-- نافذة تسجيل دخول الصيدلي (Firebase Auth) -->
     <div class="modal-overlay" id="loginModal">
@@ -343,8 +347,19 @@
                 <div id="expiryDatesWrap"></div>
                 <button type="button" class="icon-btn" onclick="addExpiryRow()" style="margin-top:6px;">+ إضافة تاريخ نفاذ آخر</button>
             </div>
-            <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="fPrice" min="0" value="0"></div>
-            <div class="form-group"><label>العدد المتوفر:</label><input type="number" id="fQty" min="0" value="5"></div>
+            <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="fPrice" min="0" value="0" oninput="retailAutoPrice()"></div>
+            <div class="form-group"><label>العدد المتوفر (عبوات):</label><input type="number" id="fQty" min="0" value="5"></div>
+            <div class="form-group retail-box">
+                <label>🧩 البيع بالتجزئة (اختياري)</label>
+                <div class="retail-grid">
+                    <div><small>عدد الأجزاء في العبوة</small><input type="number" id="fSubCount" min="0" placeholder="مثال: 10" oninput="retailAutoPrice()"></div>
+                    <div><small>نوع الجزء</small>
+                        <div class="retail-type"><select id="fSubType"></select><button type="button" class="xc-mini" onclick="addSubType()" aria-label="إضافة نوع">＋</button></div>
+                    </div>
+                    <div><small>سعر الجزء (يُحسب تلقائياً)</small><input type="number" id="fSubPrice" min="0" oninput="this.dataset.manual='1'"></div>
+                    <div><small>أجزاء مفتوحة من عبوة</small><input type="number" id="fLoose" min="0" value="0"></div>
+                </div>
+            </div>
             <div class="form-group"><label>تنبيه عند وصول الكمية إلى (اختياري):</label><input type="number" id="fMinQty" min="0" placeholder="اتركه فارغاً لاستخدام الحد العام من الإعدادات"></div>
             <div class="form-group"><label>كلمات مفتاحية لتسهيل البحث (اختياري):</label><input type="text" id="fKeywords" placeholder="مثال: مسكن، ألم رأس، بديل كذا..."></div>
             <div class="form-group">

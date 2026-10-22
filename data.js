@@ -45,6 +45,8 @@ const MAX_CUSTOM_TABS = 2;
 let customTabs = JSON.parse(localStorage.getItem('diwanCustomTabs')) || [];
 
 // حد تنبيه الكمية القليلة العام (يمكن تخصيصه لكل صنف من نموذج الصنف)
+const DEFAULT_SUB_TYPES = ['Strip', 'Tablet', 'Vial', 'Ampoule'];
+let subTypes = (() => { try { const a = JSON.parse(localStorage.getItem('diwanSubTypes')); return Array.isArray(a) && a.length ? a : DEFAULT_SUB_TYPES.slice(); } catch (e) { return DEFAULT_SUB_TYPES.slice(); } })();
 let lowStockThreshold = parseInt(localStorage.getItem('diwanLowThreshold'));
 if (isNaN(lowStockThreshold)) lowStockThreshold = 2;
 
@@ -89,7 +91,7 @@ products = products.map(p => ({
 // بيانات المخزون الحساسة (الكمية، الحد الأدنى، الصلاحية) تُحفظ في مجموعة خاصة بالصيدلي
 // ============================================================================
 const IS_ADMIN_PAGE = window.APP_MODE === 'admin';
-const STOCK_FIELDS = ['qty', 'minQty', 'expiryDate', 'expiryDates'];
+const STOCK_FIELDS = ['qty', 'loose', 'minQty', 'expiryDate', 'expiryDates'];
 let cloudPub = [];          // الأصناف العامة كما تصل من السحابة
 let stockMap = {};          // بيانات المخزون الخاصة (للصيدلي فقط)
 let unsubStock = null;
@@ -99,12 +101,12 @@ function splitProduct(p) {
     const pub = {};
     const stock = { id: full.id };
     Object.keys(full).forEach(k => { if (STOCK_FIELDS.includes(k)) stock[k] = full[k]; else pub[k] = full[k]; });
-    pub.inStock = (parseInt(full.qty) || 0) > 0;
+    pub.inStock = (parseInt(full.qty) || 0) > 0 || (parseInt(full.loose) || 0) > 0;
     return { pub, stock };
 }
 // هل الصنف متوفر؟ (يعمل في الصفحتين)
 function isInStock(p) {
-    if (p.qty !== undefined && p.qty !== null) return (parseInt(p.qty) || 0) > 0;
+    if (p.qty !== undefined && p.qty !== null) return (parseInt(p.qty) || 0) > 0 || (parseInt(p.loose) || 0) > 0;
     return p.inStock === true;
 }
 function rebuildProducts() {
@@ -138,6 +140,7 @@ function stopStockListener() {
 async function initFirebase() {
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PUT_YOUR_API_KEY_HERE") {
         document.getElementById('syncBadge').innerText = "💾 محلي";
+        setTimeout(() => { if (typeof onAdminAuth === 'function') onAdminAuth(null); }, 400);
         return;
     }
     try {
@@ -174,6 +177,7 @@ async function initFirebase() {
                 if (cloudPub.length) { rebuildProducts(); renderAll(); }
             }
             if (currentOpenId) openSheet(currentOpenId);
+            if (typeof onAdminAuth === 'function') onAdminAuth(user);
         });
 
         // 1. مراقبة الأقسام والتصنيفات من السحابة
@@ -185,6 +189,7 @@ async function initFirebase() {
                 if (data.tabLabels) tabLabels = { ...defaultTabLabels, ...data.tabLabels };
                 if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
                 if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
+                if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
                 saveLocal();
                 renderAll();
             }
@@ -217,6 +222,7 @@ function saveLocal() {
         localStorage.setItem('diwanTabLabels', JSON.stringify(tabLabels));
         localStorage.setItem('diwanCustomTabs', JSON.stringify(customTabs));
         localStorage.setItem('diwanLowThreshold', String(lowStockThreshold));
+        localStorage.setItem('diwanSubTypes', JSON.stringify(subTypes));
         localStorage.setItem('diwanProducts', JSON.stringify(products));
     } catch (e) {
         // إذا امتلأت ذاكرة المتصفح، نمسح النسخة المحلية القديمة لكي يقرأ المتصفح من السحابة المحدثة دائماً!
@@ -274,6 +280,7 @@ async function pushToCloud(onlyMetadata = false) {
                 tabLabels,
                 customTabs,
                 lowStockThreshold,
+                subTypes,
                 updatedAt: new Date().toISOString()
             });
 
@@ -769,9 +776,10 @@ function toggleFilter(kind, v) {
     renderAll(); renderFilterSheet();
 }
 function toggleInStockFilter() { filInStock = !filInStock; renderAll(); renderFilterSheet(); }
-let filterBrandQuery = '';
+let ddOpen = '';                       // القائمة المنسدلة المفتوحة حالياً في نافذة التصفية
+const ddQuery = { cat: '', brand: '', form: '' };
 function openFilterSheet() {
-    filterBrandQuery = '';
+    ddOpen = ''; ddQuery.cat = ddQuery.brand = ddQuery.form = '';
     renderFilterSheet();
     document.getElementById('filterBackdrop').classList.add('open');
     document.getElementById('filterSheet').classList.add('open');
@@ -780,36 +788,53 @@ function closeFilterSheet() {
     document.getElementById('filterBackdrop').classList.remove('open');
     document.getElementById('filterSheet').classList.remove('open');
 }
-function onFilterBrandSearch(v) { filterBrandQuery = v; renderFilterSheet(true); }
-function renderFilterSheet(keepFocus) {
+function toggleDD(kind) { ddOpen = ddOpen === kind ? '' : kind; ddQuery[kind] = ''; renderFilterSheet(); }
+function onDDSearch(kind, v) { ddQuery[kind] = v; renderFilterSheet(kind); }
+function renderFilterSheet(focusKind) {
     const box = document.getElementById('filterContent');
     if (!box) return;
+    const oldBody = box.querySelector('.fs-body');
+    const scroll = oldBody ? oldBody.scrollTop : 0;
     const base = getBaseFilteredByTab();
-    const group = (title, items, kind, set, extra) => items.length ? `
-        <div class="fs-group"><div class="fs-title">${title}</div>${extra || ''}
-        <div class="fs-chips">${items.map(([name, n]) => `<button type="button" class="fs-chip ${set.has(name) ? 'active' : ''}" onclick="toggleFilter('${kind}', this.dataset.v)" data-v="${escapeHtml(name)}"><span ${kind === 'brand' ? 'dir="ltr"' : ''}>${escapeHtml(name)}</span><b>${n}</b></button>`).join('')}</div></div>` : '';
     const count = (arr, fn) => { const m = new Map(); arr.forEach(p => { const ks = fn(p); (Array.isArray(ks) ? ks : [ks]).forEach(k => m.set(k, (m.get(k) || 0) + 1)); }); return m; };
-    const cats = [...count(base, catsOf)].filter(([k]) => k).sort((a, b) => subCategories.indexOf(a[0]) - subCategories.indexOf(b[0]));
-    let brands = [...count(base, brandOf)].sort((a, b) => a[0].localeCompare(b[0]));
-    const forms = [...count(base, formOf)].sort((a, b) => b[1] - a[1]);
-    const showBrandSearch = brands.length > 10;
-    const bq = filterBrandQuery.trim().toLowerCase();
-    if (bq) brands = brands.filter(([k]) => k.toLowerCase().includes(bq) || filBrands.has(k));
-    const brandSearch = showBrandSearch ? `<input type="search" class="fs-search" placeholder="ابحث عن شركة..." value="${escapeHtml(filterBrandQuery)}" oninput="onFilterBrandSearch(this.value)">` : '';
+    const lists = {
+        cat: [...count(base, catsOf)].filter(([k]) => k).sort((a, b) => subCategories.indexOf(a[0]) - subCategories.indexOf(b[0])),
+        brand: [...count(base, brandOf)].sort((a, b) => a[0].localeCompare(b[0])),
+        form: [...count(base, formOf)].sort((a, b) => b[1] - a[1])
+    };
+    const sets = { cat: filCats, brand: filBrands, form: filForms };
+    const titles = { cat: 'التصنيف', brand: 'الشركة', form: 'الشكل الدوائي' };
+    const dd = kind => {
+        const items = lists[kind], set = sets[kind];
+        if (!items.length) return '';
+        const open = ddOpen === kind;
+        const q = ddQuery[kind].trim().toLowerCase();
+        const shown = q ? items.filter(([k]) => k.toLowerCase().includes(q)) : items;
+        const summary = set.size === 0 ? 'الكل' : set.size === 1 ? [...set][0] : set.size + ' مختارة';
+        return `<div class="fs-dd ${open ? 'open' : ''}">
+            <button type="button" class="fs-dd-trigger ${set.size ? 'has' : ''}" onclick="toggleDD('${kind}')" aria-expanded="${open}">
+                <span class="fs-dd-title">${titles[kind]}</span><em dir="auto">${escapeHtml(summary)}</em><i>▾</i>
+            </button>
+            ${open ? `<div class="fs-dd-panel">
+                ${items.length > 8 ? `<input type="search" class="fs-search" data-kind="${kind}" placeholder="ابحث..." value="${escapeHtml(ddQuery[kind])}" oninput="onDDSearch('${kind}', this.value)">` : ''}
+                <div class="fs-dd-list">${shown.map(([name, n]) => `
+                    <label class="fs-dd-row ${set.has(name) ? 'on' : ''}"><input type="checkbox" ${set.has(name) ? 'checked' : ''} data-v="${escapeHtml(name)}" onchange="toggleFilter('${kind}', this.dataset.v)"><span ${kind === 'brand' ? 'dir="ltr"' : ''}>${escapeHtml(name)}</span><b>${n}</b></label>`).join('') || '<div class="fs-none">لا نتائج</div>'}</div>
+            </div>` : ''}
+        </div>`;
+    };
     const total = getFiltered().length;
     box.innerHTML = `
         <div class="fs-head"><h3>تصفية الأصناف</h3><button type="button" class="fs-x" onclick="closeFilterSheet()" aria-label="إغلاق">✕</button></div>
         <div class="fs-body">
             <button type="button" class="fs-switch ${filInStock ? 'on' : ''}" onclick="toggleInStockFilter()"><span>المتوفر فقط</span><i></i></button>
-            ${group('التصنيف', cats, 'cat', filCats)}
-            ${group('الشركة', brands, 'brand', filBrands, brandSearch)}
-            ${group('الشكل الدوائي', forms, 'form', filForms)}
+            ${dd('cat')}${dd('brand')}${dd('form')}
         </div>
         <div class="fs-foot">
             <button type="button" class="icon-btn" onclick="resetFilters()" ${activeFilterCount() ? '' : 'disabled'}>مسح الكل</button>
             <button type="button" class="icon-btn primary-btn fs-apply" onclick="closeFilterSheet()">عرض ${total} صنف</button>
         </div>`;
-    if (keepFocus) { const i = box.querySelector('.fs-search'); if (i) { i.focus(); const l = i.value.length; try { i.setSelectionRange(l, l); } catch (e) {} } }
+    const nb = box.querySelector('.fs-body'); if (nb) nb.scrollTop = scroll;
+    if (focusKind) { const i = box.querySelector('.fs-search[data-kind="' + focusKind + '"]'); if (i) { i.focus(); const l = i.value.length; try { i.setSelectionRange(l, l); } catch (e) {} } }
 }
 
 function handleSearch() {
@@ -900,6 +925,8 @@ function openSheet(id) {
     const lowInfo = isLowStock(p)
         ? `<div style="font-size:0.78rem; font-weight:800; color:#c2410c; margin-bottom:6px;">⚠️ كمية قليلة (حد التنبيه: ${getMinQty(p)})</div>`
         : '';
+    const retailInfo = hasRetail(p)
+        ? `<div class="sheet-section" style="font-size:0.84rem; font-weight:700;">🧩 تُباع بالتجزئة: <b>${escapeHtml(subTypeOf(p))}</b> بسعر <b>${fmtMoney(subPriceOf(p))} د.ع</b> <span style="color:var(--text-sub); font-weight:600;">(العبوة = ${subCountOf(p)} ${escapeHtml(subTypeOf(p))})</span></div>` : '';
     const altHtml = buildAlternativesHtml(p);
     const activeLine = p.activeIngredient
         ? `<p dir="ltr" style="font-size:0.82rem; font-weight:800; color:var(--primary-dark); text-align:left; margin-bottom:6px;">${escapeHtml(p.activeIngredient)}</p>`
@@ -937,6 +964,7 @@ function openSheet(id) {
             </div>
         </div>
 
+        ${retailInfo}
         ${altHtml}
 
         <!-- أزرار مشاركة المنتج إلى واتساب أو دايركت انستغرام -->
@@ -955,7 +983,7 @@ function openSheet(id) {
             <div class="admin-row">
                 <div class="qty-control-lg">
                     <button onclick="updateItemQty(${p.id}, -1)">-</button>
-                    <span style="font-weight:800; min-width:28px; text-align:center;">${p.qty}</span>
+                    <span style="font-weight:800; min-width:28px; text-align:center;">${stockLabel(p)}</span>
                     <button onclick="updateItemQty(${p.id}, 1)">+</button>
                 </div>
                 <div style="display:flex; gap:8px;">
@@ -1244,6 +1272,7 @@ function openFormModal(id = null) {
         document.getElementById('fQty').value = p.qty;
         document.getElementById('fImg').value = p.img || '';
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = p.price || 0;
+        fillRetailForm(p);
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = p.keywords || '';
         if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = p.barcode || '';
         setExpiryDatesInForm(getProductExpiryDates(p));
@@ -1263,6 +1292,7 @@ function openFormModal(id = null) {
         document.getElementById('fQty').value = 5;
         document.getElementById('fImg').value = '';
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = 0;
+        fillRetailForm(null);
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = '';
         if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = '';
         setExpiryDatesInForm([]);
@@ -1431,6 +1461,7 @@ async function saveFormProduct() {
         meta: fixMetaOrder(document.getElementById('fMeta').value.trim()),
         qty: parseInt(document.getElementById('fQty').value) || 0,
         price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
+        ...readRetailForm(),
         expiryDates: expiryDates,
         expiryDate: expiryDates[0] || '',   // الأقرب نفاذاً (للتوافق مع الأكواد القديمة)
         keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
@@ -2286,6 +2317,7 @@ function buildBackupObject() {
         tabLabels,
         customTabs,
         lowStockThreshold,
+        subTypes,
         products
     };
 }
@@ -2413,6 +2445,7 @@ async function applyBackupData(data) {
         if (data.tabLabels && typeof data.tabLabels === 'object') tabLabels = { ...defaultTabLabels, ...data.tabLabels };
         if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
         if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
+        if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
 
         await pushToCloud(false);
         renderAll();
@@ -3311,7 +3344,7 @@ async function openTrashModal() {
 }
 
 // ---------------- سجل التعديلات ----------------
-const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود' };
+const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'نوع الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة' };
 
 function diffProduct(a, b) {
     const out = [];
@@ -3921,3 +3954,79 @@ async function migrateStockPrivate() {
         Swal.fire({ icon: 'error', title: 'تعذر إكمال النقل', text: (e && e.message) || '', confirmButtonColor: '#0f1c38' });
     }
 }
+
+
+// ============================================================================
+// البيع بالتجزئة: عدد الأجزاء في العبوة + نوع الجزء + سعر الجزء
+// المخزون = عبوات كاملة (qty) + أجزاء مفتوحة من عبوة (loose)
+// ============================================================================
+function subCountOf(p) { const n = parseInt(p && p.subCount); return n > 1 ? n : 0; }
+function hasRetail(p) { return subCountOf(p) > 1; }
+function subTypeOf(p) { return (p && p.subType) || 'جزء'; }
+function subPriceOf(p) {
+    const sp = parseFloat(p && p.subPrice);
+    if (sp > 0) return sp;
+    return hasRetail(p) ? Math.round((parseFloat(p.price) || 0) / subCountOf(p)) : 0;
+}
+function totalParts(p) { return (parseInt(p.qty) || 0) * subCountOf(p) + (parseInt(p.loose) || 0); }
+// يحسب المخزون بعد بيع كمية: unit = 'pack' عبوات كاملة، أو 'part' أجزاء (يفتح عبوة عند الحاجة)
+function stockAfterSale(p, n, unit) {
+    const qty = parseInt(p.qty) || 0, loose = parseInt(p.loose) || 0, sc = subCountOf(p);
+    n = Math.max(0, parseFloat(n) || 0);
+    if (unit === 'part' && sc) {
+        const left = Math.max(0, qty * sc + loose - n);
+        return { qty: Math.floor(left / sc), loose: left % sc };
+    }
+    return { qty: Math.max(0, qty - n), loose };
+}
+function stockLabel(p) {
+    const q = parseInt(p.qty) || 0, l = parseInt(p.loose) || 0;
+    if (hasRetail(p) && l > 0) return `${q} عبوة + ${l} ${subTypeOf(p)}`;
+    return String(q);
+}
+function renderSubTypeSelect(selected) {
+    const sel = document.getElementById('fSubType');
+    if (!sel) return;
+    const list = subTypes.slice();
+    if (selected && !list.includes(selected)) list.push(selected);
+    sel.innerHTML = list.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+    sel.value = selected || list[0];
+}
+async function addSubType() {
+    const r = await Swal.fire({ title: 'نوع جزء جديد', input: 'text', inputPlaceholder: 'مثال: Sachet أو Pen', showCancelButton: true, confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+    const v = r && r.value ? String(r.value).trim() : '';
+    if (!v) return;
+    if (!subTypes.some(t => t.toLowerCase() === v.toLowerCase())) { subTypes.push(v); saveLocal(); pushToCloud(true); }
+    renderSubTypeSelect(v);
+}
+function retailAutoPrice() {
+    const sp = document.getElementById('fSubPrice'), cnt = parseInt(document.getElementById('fSubCount').value) || 0;
+    if (!sp || sp.dataset.manual === '1') return;
+    const price = parseFloat(document.getElementById('fPrice').value) || 0;
+    sp.value = cnt > 1 && price > 0 ? Math.round(price / cnt) : '';
+}
+function fillRetailForm(p) {
+    const cnt = document.getElementById('fSubCount'); if (!cnt) return;
+    cnt.value = p && subCountOf(p) ? subCountOf(p) : '';
+    renderSubTypeSelect(p && p.subType);
+    const sp = document.getElementById('fSubPrice');
+    const auto = p && hasRetail(p) && Math.round((parseFloat(p.price) || 0) / subCountOf(p)) === (parseFloat(p.subPrice) || 0);
+    sp.dataset.manual = (p && p.subPrice && !auto) ? '1' : '';
+    sp.value = p && parseFloat(p.subPrice) ? p.subPrice : '';
+    document.getElementById('fLoose').value = p && p.loose ? p.loose : 0;
+    if (p && hasRetail(p) && !sp.value) retailAutoPrice();
+}
+function readRetailForm() {
+    const cnt = parseInt(document.getElementById('fSubCount').value) || 0;
+    if (cnt < 2) return { subCount: 0, subType: '', subPrice: 0, loose: 0 };
+    const price = parseFloat(document.getElementById('fPrice').value) || 0;
+    const sp = parseFloat(document.getElementById('fSubPrice').value);
+    return {
+        subCount: cnt,
+        subType: document.getElementById('fSubType').value || 'جزء',
+        subPrice: sp > 0 ? sp : Math.round(price / cnt),
+        loose: Math.min(Math.max(parseInt(document.getElementById('fLoose').value) || 0, 0), cnt - 1)
+    };
+}
+
+function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
