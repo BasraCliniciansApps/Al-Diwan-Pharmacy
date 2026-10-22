@@ -259,6 +259,10 @@
                     <option value="firebase">Firebase AI Logic</option>
                 </select>
                 <button type="button" class="icon-btn scan-gear" onclick="openAiSettingsOverForm()" title="إعدادات الذكاء الصناعي">⚙️</button>
+                <div class="name-lookup-row">
+                    <input type="text" id="nameLookupInput" dir="ltr" placeholder="أو اكتب اسم المنتج (مثال: Differin 0.1%)" onkeydown="if(event.key==='Enter'){event.preventDefault();fillFromTypedName();}">
+                    <button type="button" class="icon-btn" onclick="fillFromTypedName()">🔎 املأ من الاسم</button>
+                </div>
                 <span id="scanStatus" class="scan-status"></span>
                 <small class="scan-hint" id="scanHint">صوّر واجهة العبوة بإضاءة جيدة، وسيقرأ التطبيق الاسم والتركيز والشكل والصلاحية. راجع القيم دائماً قبل الحفظ.</small>
             </div>
