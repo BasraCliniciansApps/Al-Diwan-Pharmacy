@@ -478,6 +478,7 @@ function openCategoryManager() {
     const lowInput = document.getElementById('lowThresholdInput');
     if (lowInput) lowInput.value = lowStockThreshold;
     alertMonths.forEach((m, i) => { const el = document.getElementById('alertM' + (i + 1)); if (el) el.value = m; });
+    { const w = document.getElementById('puWindowInput'); if (w && typeof puWindowMonths === 'function') w.value = puWindowMonths(); }
     loadAiSettingsToForm();
     document.getElementById('catModal').style.display = 'flex';
 }
@@ -4067,18 +4068,59 @@ async function addFormBarcode(code) {
     renderBarcodeChips();
 }
 
+// ---------- باركود غير معروف: صنف جديد أو ربطه بمادة موجودة (يمكن ربط أكثر من باركود بنفس المادة) ----------
+let bcAttach = { code: '', after: null, list: [] };
+async function offerUnknownBarcode(code, after, opts) {
+    opts = opts || {};
+    const r = await Swal.fire({
+        icon: 'question', title: 'باركود غير مسجّل',
+        html: `<div dir="ltr" style="font-weight:800; margin-bottom:6px;">${escapeHtml(code)}</div><div style="font-size:0.9rem;">لا يوجد صنف بهذا الباركود. ماذا تريد؟</div>`,
+        showCancelButton: true, showDenyButton: true, confirmButtonText: '🔗 إضافته لمادة موجودة', denyButtonText: '➕ صنف جديد', cancelButtonText: 'إغلاق',
+        confirmButtonColor: '#0f1c38', denyButtonColor: '#047857'
+    });
+    if (r.isConfirmed) openAttachBarcodePicker(code, after);
+    else if (r.isDenied) { if (opts.onNew) opts.onNew(code); else { openFormModal(); formBarcodes = [cleanBarcode(code)]; renderBarcodeChips(); } }
+}
+function openAttachBarcodePicker(code, after) {
+    bcAttach = { code, after, list: [] };
+    Swal.fire({
+        title: 'ابحث عن المادة', showConfirmButton: false, showCancelButton: true, cancelButtonText: 'إلغاء',
+        html: `<div dir="ltr" style="font-weight:800;margin-bottom:8px;">${escapeHtml(code)}</div><input id="bcAttSearch" class="swal2-input" style="margin:0 0 8px;width:100%" placeholder="اكتب اسم الدواء..." autocomplete="off"><div id="bcAttRes" style="max-height:46vh;overflow:auto;text-align:right"></div>`,
+        didOpen: () => {
+            const inp = document.getElementById('bcAttSearch'), box = document.getElementById('bcAttRes'); if (!inp) return;
+            inp.focus();
+            inp.addEventListener('input', () => {
+                const qn = normSearch(inp.value);
+                if (!qn) { box.innerHTML = ''; return; }
+                const toks = qn.split(' ');
+                const list = products.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(x => x[0]);
+                box.innerHTML = list.length ? list.map(p => productPickHtml(p, 'attachBarcodePick', barcodesOf(p).length ? barcodesOf(p).length + ' باركود' : 'بدون باركود')).join('') : '<div class="bill-noresult">لا توجد نتائج</div>';
+            });
+        }
+    });
+}
+async function attachBarcodePick(id) {
+    const p = products.find(x => x.id === id); if (!p) return;
+    const code = bcAttach.code, after = bcAttach.after;
+    try { Swal.close(); } catch (e) { /* تجاهل */ }
+    const old = { barcodes: p.barcodes, barcode: p.barcode };
+    const list = barcodesOf(p); if (!list.includes(code)) list.push(code);
+    p.barcodes = list; p.barcode = list[0];
+    const ok = await saveProductsDelta([{ p, dq: 0, dl: 0 }]);
+    if (!ok) { p.barcodes = old.barcodes; p.barcode = old.barcode; return; }
+    logAction('edit', p, [{ f: 'باركود', from: '', to: code }]);
+    renderAll();
+    Swal.fire({ icon: 'success', title: 'رُبط الباركود بـ ' + p.name, text: 'عدد باركودات المادة: ' + list.length, toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
+    if (typeof after === 'function') after(p);
+}
+
 // من شريط البحث: امسح باركوداً لفتح الصنف
 function scanBarcodeToSearch() {
     openBarcodeScanner(async (code) => {
         const p = findByBarcode(code);
         if (p) { openSheet(p.id); return; }
         if (document.body.classList.contains('admin-mode')) {
-            const r = await Swal.fire({
-                icon: 'question', title: 'باركود غير مسجّل',
-                html: `<div dir="ltr" style="font-weight:800; margin-bottom:6px;">${escapeHtml(code)}</div><div style="font-size:0.9rem;">لا يوجد صنف بهذا الباركود. هل تريد إضافة صنف جديد به؟</div>`,
-                showCancelButton: true, confirmButtonText: 'إضافة صنف', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38'
-            });
-            if (r.isConfirmed) { openFormModal(); formBarcodes = [cleanBarcode(code)]; renderBarcodeChips(); }
+            offerUnknownBarcode(code, p2 => openSheet(p2.id));
         } else {
             Swal.fire({ icon: 'info', title: 'لم يتم العثور على الصنف', text: 'هذا الباركود غير موجود في قائمتنا. اسأل الصيدلي.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         }

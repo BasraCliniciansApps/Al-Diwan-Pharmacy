@@ -206,10 +206,7 @@ function puAddByBarcode(code, gs1) {
     code = gs1 ? gs1.gtin : cleanBarcode(code);
     const p = findByBarcode(code);
     if (p) { puAddProduct(p.id); const it = pu.items.find(x => x.pid === p.id); if (it && gs1) { if (gs1.batch && !it.batch) it.batch = gs1.batch; if (gs1.exp && !it.expiry) it.expiry = gs1.exp; puRenderItems(); puChanged(); } Swal.fire({ icon: 'success', title: 'أُضيف: ' + p.name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1200 }); return; }
-    Swal.fire({ icon: 'question', title: 'باركود غير معروف', html: `<div dir="ltr" style="font-weight:800">${escapeHtml(code)}</div><div style="margin-top:6px">هل هو دواء موجود بباركود مختلف، أم صنف جديد؟</div>`, showCancelButton: true, showDenyButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: '➕ صنف جديد', denyButtonText: '🔗 ربطه بدواء موجود', cancelButtonText: 'إلغاء' }).then(r => {
-        if (r.isConfirmed) puCreateProduct('', code);
-        else if (r.isDenied) { puPendingBc = code; puShowPending(); $b('puSearch').focus(); }
-    });
+    offerUnknownBarcode(code, p2 => puAddProduct(p2.id), { onNew: c => puCreateProduct('', c) });
 }
 function puNew() {
     const has = pu && (pu.items.length || pu.supplier || pu.no) && !pu.editId;
@@ -537,7 +534,7 @@ async function syncLocalRecords(auto) {
 async function puBackfill() {
     await puLoad();
     const best = new Map();   // آخر سطر لكل مادة
-    const now = new Date().toISOString().slice(0, 7), yearAgo = new Date(Date.now() - 365 * 864e5).toISOString().slice(0, 10);
+    const now = new Date().toISOString().slice(0, 7), yearAgo = new Date(Date.now() - puWindowMonths() * 30.4375 * 864e5).toISOString().slice(0, 10);
     const exps = new Map();   // تواريخ نفاذ حديثة وغير منتهية
     puAll.filter(r => !r.cancelled).forEach(r => (r.items || []).forEach(l => {
         const k = l.pid, cur = best.get(k);
@@ -557,10 +554,18 @@ async function puBackfill() {
         if (ch.length) plan.push({ p, s, ch });
     });
     if (!plan.length) return Swal.fire({ icon: 'success', title: 'كل المواد محدّثة', text: 'لا يوجد ما يحتاج تحديثاً من سجل الوارد.', confirmButtonColor: '#0f1c38' });
-    const res = await Swal.fire({ icon: 'question', title: 'تحديث ' + plan.length + ' مادة من سجل الوارد؟', html: '<div style="text-align:right;max-height:240px;overflow:auto;font-size:.85rem">' + plan.slice(0, 40).map(x => '• <b dir="ltr">' + escapeHtml(x.p.name) + '</b>: ' + x.ch.join('، ')).join('<br>') + (plan.length > 40 ? '<br>...' : '') + '<br><small style="color:#64748b">النفاذ: تُضاف فقط التواريخ غير المنتهية من وارد آخر 12 شهراً. الكميات لا تتغير.</small></div>', showCancelButton: true, confirmButtonText: 'تحديث', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+    const res = await Swal.fire({ icon: 'question', title: 'تحديث ' + plan.length + ' مادة من سجل الوارد؟', html: '<div style="text-align:right;max-height:240px;overflow:auto;font-size:.85rem">' + plan.slice(0, 40).map(x => '• <b dir="ltr">' + escapeHtml(x.p.name) + '</b>: ' + x.ch.join('، ')).join('<br>') + (plan.length > 40 ? '<br>...' : '') + '<br><small style="color:#64748b">النفاذ: تُضاف فقط التواريخ غير المنتهية من وارد آخر ' + puWindowMonths() + ' شهراً (يمكن تغييرها من الإعدادات). الكميات لا تتغير.</small></div>', showCancelButton: true, confirmButtonText: 'تحديث', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
     if (!res.isConfirmed) { plan.forEach(x => Object.assign(x.p, x.s)); return; }
     const ok = await saveProductsDelta(plan.map(x => deltaFromSnap(x.p, x.s)));
     if (!ok) { plan.forEach(x => Object.assign(x.p, x.s)); renderAll(); return; }
     renderAll();
     Swal.fire({ icon: 'success', title: 'حُدّثت ' + plan.length + ' مادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
+}
+
+function puWindowMonths() { try { const n = parseInt(localStorage.getItem('diwanPuWindow')); return n >= 1 && n <= 60 ? n : 12; } catch (e) { return 12; } }
+function savePuWindow() {
+    const n = parseInt(document.getElementById('puWindowInput').value);
+    if (!(n >= 1 && n <= 60)) { Swal.fire({ icon: 'warning', title: 'أدخل عدد أشهر بين 1 و 60', confirmButtonColor: '#0f1c38' }); return; }
+    try { localStorage.setItem('diwanPuWindow', String(n)); } catch (e) { /* تجاهل */ }
+    Swal.fire({ icon: 'success', title: 'تم الحفظ', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 });
 }

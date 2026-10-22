@@ -213,7 +213,7 @@ function billSearchEnter() {
 function billScan() { openBarcodeScanner(billAddByBarcode); }
 function billAddByBarcode(code) {
     const p = findByBarcode(code);
-    if (!p) { Swal.fire({ icon: 'warning', title: 'لا يوجد صنف بهذا الباركود', text: code, toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 }); return; }
+    if (!p) { offerUnknownBarcode(code, p2 => billAddProduct(p2.id), { onNew: c => { openFormModal(); formBarcodes = [cleanBarcode(c)]; renderBarcodeChips(); } }); return; }
     billAddProduct(p.id);
     Swal.fire({ icon: 'success', title: 'أُضيف: ' + p.name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1200 });
 }
