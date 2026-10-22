@@ -578,7 +578,8 @@
                 </div>
 
                 <div class="bill-meta">
-                    <label class="bill-field bill-to"><span>إلى السيد / الشركة:</span><input id="billTo" placeholder="اكتب اسم الشركة" oninput="billChanged()"></label>
+                    <label class="bill-field"><span>اسم الزبون:</span><input id="billCustomer" oninput="billChanged()"></label>
+                    <label class="bill-field"><span>اسم الطبيب المعالج:</span><input id="billDoctor" oninput="billChanged()"></label>
                     <label class="bill-field bill-date"><span>التاريخ:</span>
                         <input type="date" id="billDate" class="bill-date-input" oninput="billChanged()">
                         <span class="bill-date-txt" id="billDateTxt"></span>
@@ -615,8 +616,7 @@
                 </div>
 
                 <div class="bill-parties">
-                    <label class="bill-field"><span>اسم الزبون:</span><input id="billCustomer" oninput="billChanged()"></label>
-                    <label class="bill-field"><span>اسم الطبيب:</span><input id="billDoctor" oninput="billChanged()"></label>
+                    <label class="bill-field bill-to"><span>إلى السيد / الشركة:</span><input id="billTo" placeholder="اكتب اسم الشركة" oninput="billChanged()"></label>
                 </div>
                 <label class="bill-field bill-notes"><span>ملاحظات:</span><textarea id="billNotes" rows="1" oninput="billChanged(); autoGrow(this)"></textarea></label>
 

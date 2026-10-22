@@ -1729,3 +1729,15 @@ body.dark .alerts-po-btn, [data-theme="dark"] .alerts-po-btn { background: #2a1d
 .rep-cards .rep-profit b { color: #047857; }
 body.dark .rep-cards .rep-profit, [data-theme="dark"] .rep-cards .rep-profit { background: #0f2a20; border-color: #047857; }
 #catModal .add-inline-row input[id^="alertM"] { width: 33%; min-width: 0; }
+
+/* v15: ورقة واحدة عند الطباعة */
+@media print {
+    html, body.printing-bill { height: auto !important; min-height: 0 !important; }
+    body.printing-bill .bill-view, body.printing-bill .bill-scroll { min-height: 0 !important; height: auto !important; }
+    body.printing-bill .bill-sheet { min-height: 0 !important; height: auto !important; margin: 0 !important; }
+    body.printing-bill .bill-sign-box { height: 78px !important; }
+    body.printing-bill .bill-parties { margin-top: 10px !important; }
+    body.printing-bill .bill-signs { margin-top: 16px !important; }
+    body.printing-bill .bill-meta { margin: 10px 0 8px !important; }
+    body.printing-bill .bill-foot { margin-top: 8px !important; }
+}

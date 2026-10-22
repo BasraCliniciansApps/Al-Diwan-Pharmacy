@@ -287,13 +287,21 @@ function printInvoice(draftOnly) {
     lsSet(BILL_LS.draft, JSON.stringify(bill));
     doPrint('billPane-new');
 }
+function fitSheetToPage(sheet) {   // يضبط المحتوى على ورقة A4 واحدة (هامش 12مم)
+    if (!sheet) return;
+    sheet.style.zoom = ''; sheet.style.width = '186mm';
+    const avail = 270 / 25.4 * 96;                 // الارتفاع المتاح بالبكسل
+    const h = sheet.getBoundingClientRect().height;
+    if (h > avail) { const z = Math.max(0.35, avail / h); sheet.style.zoom = z.toFixed(3); sheet.style.width = (186 / z).toFixed(1) + 'mm'; }
+}
 function doPrint(paneId) {
     document.querySelectorAll('.bill-pane').forEach(p => p.classList.toggle('print-active', p.id === paneId));
     document.body.classList.add('printing-bill');
     document.querySelectorAll('#' + paneId + ' textarea').forEach(autoGrow);
-    const done = () => { document.body.classList.remove('printing-bill'); window.removeEventListener('afterprint', done); };
+    const sheet = document.querySelector('#' + paneId + ' .bill-sheet');
+    const done = () => { document.body.classList.remove('printing-bill'); if (sheet) { sheet.style.zoom = ''; sheet.style.width = ''; } window.removeEventListener('afterprint', done); };
     window.addEventListener('afterprint', done);
-    setTimeout(() => { window.print(); setTimeout(done, 1500); }, 50);
+    setTimeout(() => { fitSheetToPage(sheet); window.print(); setTimeout(done, 1500); }, 50);
 }
 
 // ---------- خطة الخصم من المخزن (تدعم العبوة والتجزئة) ----------
