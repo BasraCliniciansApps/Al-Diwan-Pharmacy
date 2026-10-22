@@ -4258,3 +4258,65 @@ function readRetailForm() {
 }
 
 function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
+
+// ============================================================================
+// تنقّل الجوال: سحب النافذة للأسفل لإغلاقها، وزر الرجوع لا يُخرج من التطبيق بدون تأكيد
+// ============================================================================
+(function setupMobileNav() {
+    // 1) سحب النوافذ السفلية للأسفل
+    function swipeClose(sheetId, closeFn) {
+        const sh = document.getElementById(sheetId); if (!sh) return;
+        let y0 = 0, dy = 0, track = false;
+        sh.addEventListener('touchstart', e => {
+            if (e.touches.length !== 1) { track = false; return; }
+            track = sh.scrollTop <= 0; y0 = e.touches[0].clientY; dy = 0;
+        }, { passive: true });
+        sh.addEventListener('touchmove', e => {
+            if (!track) return;
+            dy = e.touches[0].clientY - y0;
+            if (dy > 0 && sh.scrollTop <= 0) {
+                if (e.cancelable) e.preventDefault();          // يمنع «السحب للتحديث» في المتصفح
+                sh.style.transition = 'none'; sh.style.transform = 'translateY(' + dy + 'px)';
+            } else if (dy < 0) { track = false; sh.style.transition = ''; sh.style.transform = ''; }
+        }, { passive: false });
+        const end = () => {
+            if (!track) return; track = false;
+            sh.style.transition = '';
+            if (dy > 90) { closeFn(); sh.style.transform = ''; }
+            else sh.style.transform = '';
+            dy = 0;
+        };
+        sh.addEventListener('touchend', end, { passive: true });
+        sh.addEventListener('touchcancel', end, { passive: true });
+    }
+    swipeClose('bottomSheet', () => closeSheet());
+    swipeClose('filterSheet', () => closeFilterSheet());
+
+    // 2) زر الرجوع
+    let exiting = false, asking = false;
+    try { history.replaceState({ g: 0 }, ''); history.pushState({ g: 1 }, ''); } catch (e) { return; }
+    function closeTopLayer() {
+        if (window.Swal && Swal.isVisible && Swal.isVisible()) { Swal.close(); return true; }
+        const z = document.getElementById('zoomModal');
+        if (z && z.style.display && z.style.display !== 'none') { z.style.display = 'none'; return true; }
+        const sb = document.getElementById('sheetBackdrop');
+        if (sb && sb.classList.contains('open')) { closeSheet(); return true; }
+        const fs = document.getElementById('filterSheet');
+        if (fs && fs.classList.contains('open')) { closeFilterSheet(); return true; }
+        return false;
+    }
+    window.addEventListener('popstate', async () => {
+        if (exiting) return;
+        try { history.pushState({ g: 1 }, ''); } catch (e) { /* تجاهل */ }
+        if (closeTopLayer()) return;
+        if (IS_ADMIN_PAGE && typeof currentView !== 'undefined' && !['home', 'login', 'splash'].includes(currentView)) {
+            if (currentView === 'bill' && typeof bill !== 'undefined' && bill && bill.editing) { try { cancelInvoiceEdit(); } catch (e) { /* تجاهل */ } }
+            showView('home'); return;
+        }
+        if (asking) return; asking = true;
+        let ok = false;
+        try { ok = (await Swal.fire({ icon: 'question', title: 'الخروج من التطبيق؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'خروج', cancelButtonText: 'البقاء' })).isConfirmed; } catch (e) { /* تجاهل */ }
+        asking = false;
+        if (ok) { exiting = true; history.go(-2); }
+    });
+})();
