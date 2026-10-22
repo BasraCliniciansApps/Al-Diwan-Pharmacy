@@ -1502,6 +1502,7 @@ async function saveFormProduct() {
     renderAll();
 
     const success = await saveSingleProductToCloud(obj);
+    if (typeof onProductSaved === 'function') onProductSaved(obj);
     if (success) {
         logAction(oldProduct ? 'edit' : 'add', obj, oldProduct ? diffProduct(oldProduct, obj) : []);
         Swal.fire({

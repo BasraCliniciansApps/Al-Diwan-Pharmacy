@@ -79,6 +79,8 @@ function puFillSupplierList() { const dl = $b('puSupList'); if (dl) dl.innerHTML
 function puInitNew() {
     if (!pu) { try { pu = JSON.parse(lsGet(PU_LS.draft)); } catch (e) { pu = null; } if (!pu || !Array.isArray(pu.items)) pu = emptyPurchase(); }
     puWriteFields(); puRenderItems(); puRecalc(); puFillSupplierList();
+    const eb = $b('puEditBar'); if (eb) { eb.style.display = pu.editId ? 'flex' : 'none'; }
+    $b('puSaveBtn').innerText = pu.editId ? '💾 حفظ التعديلات' : '✅ حفظ الوارد وإضافته للمخزن';
 }
 function puWriteFields() {
     $b('puSupplier').value = pu.supplier || ''; $b('puNo').value = pu.no || ''; $b('puDate').value = pu.date || todayLocalISO();
@@ -94,10 +96,13 @@ function puRecalc() {
     $b('puTotal').innerText = fmtNum(tot); $b('puNet').innerText = fmtNum(net); $b('puRem').innerText = fmtNum(rem);
     pu.items.forEach((it, i) => { const el = $b('puLine-' + i); if (el) el.innerText = fmtNum(puNum(it.qty) * puNum(it.cost)); });
 }
+function puThumb(pid) { const p = products.find(x => x.id === pid); return p && p.img ? `<img class="pk-img" src="${escapeHtml(p.img)}" alt="" onerror="this.style.visibility='hidden'">` : '<span class="pk-img pk-noimg">💊</span>'; }
+function puSub(pid) { const p = products.find(x => x.id === pid); return p ? [p.brand, fixMetaOrder(p.meta || ''), 'بالمخزن ' + stockLabel(p)].filter(Boolean).join(' · ') : ''; }
 function puRenderItems() {
+    $b('puCount').innerText = pu.items.length ? 'عدد المواد في الفاتورة: ' + pu.items.length : '';
     $b('puItems').innerHTML = pu.items.map((it, i) => `
         <div class="pu-item">
-            <div class="pu-item-h"><b dir="ltr">${escapeHtml(it.name)}</b><span>${escapeHtml(((products.find(p => p.id === it.pid) || {}).brand) || '')}</span><button type="button" class="pu-x" onclick="puRemoveItem(${i})" aria-label="حذف">✕</button></div>
+            <div class="pu-item-h">${puThumb(it.pid)}<span class="pu-item-t"><b dir="ltr">${escapeHtml(it.name)}</b><span>${escapeHtml(puSub(it.pid))}</span></span><button type="button" class="pu-x" onclick="puRemoveItem(${i})" aria-label="حذف">✕</button></div>
             <div class="pu-grid">
                 <label><span>العدد (عبوة)</span><input type="number" min="1" inputmode="numeric" value="${escapeHtml(it.qty)}" oninput="puItemEdit(${i},'qty',this.value)"></label>
                 <label><span>سعر الشراء</span><input type="number" min="0" inputmode="decimal" value="${escapeHtml(it.cost)}" oninput="puItemEdit(${i},'cost',this.value)"></label>
@@ -117,6 +122,22 @@ function puAddProduct(id) {
     else pu.items.push({ pid: id, name: p.name, qty: 1, cost: p.costPrice || '', expiry: '', batch: '' });
     $b('puSearch').value = ''; $b('puResults').style.display = 'none';
     puRenderItems(); puChanged();
+    const cards = document.querySelectorAll('#puItems .pu-item');   // التمرير للصنف المضاف وتمييزه
+    const idx = pu.items.findIndex(it => it.pid === id), card = cards[idx];
+    if (card) { card.classList.add('pu-flash'); card.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => card.classList.remove('pu-flash'), 1400); }
+}
+// ---- صنف غير موجود في المخزن: إنشاؤه من داخل الوارد ثم إضافته للفاتورة تلقائياً
+let puAwaiting = false;
+function puCreateProduct(name, barcode) {
+    puAwaiting = true;
+    openFormModal();
+    document.getElementById('fName').value = name || '';
+    document.getElementById('fQty').value = 0;   // الكمية تأتي من الوارد نفسه
+    if (barcode) { formBarcodes = [cleanBarcode(barcode)]; renderBarcodeChips(); }
+    $b('puResults').style.display = 'none';
+}
+function onProductSaved(obj) {
+    if (puAwaiting && currentView === 'purch') { puAwaiting = false; puAddProduct(obj.id); Swal.fire({ icon: 'success', title: 'أُضيف الصنف الجديد إلى الوارد', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 }); }
 }
 async function puAttachBarcode(p, code) {
     const list = barcodesOf(p); if (!list.includes(code)) list.push(code);
@@ -136,8 +157,8 @@ function puSearchInput() {
     const toks = qn.split(' ');
     puFound = products.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(x => x[0]);
     box.innerHTML = puFound.length
-        ? puFound.map(p => `<button type="button" onclick="puAddProduct(${p.id})"><span dir="ltr">${escapeHtml(p.name)}</span><small>${escapeHtml(p.brand || '')}${p.costPrice ? ' · شراء ' + fmtNum(p.costPrice) : ''}</small></button>`).join('')
-        : `<div class="bill-noresult">لا توجد نتائج — أضف الصنف أولاً من المخزن</div>`;
+        ? puFound.map(p => productPickHtml(p, 'puAddProduct', 'بالمخزن ' + stockLabel(p) + (p.costPrice ? ' · آخر شراء ' + fmtNum(p.costPrice) : ''))).join('')
+        : `<div class="bill-noresult">الصنف غير موجود في المخزن<button type="button" class="pu-newprod" onclick="puCreateProduct(decodeURIComponent('${encodeURIComponent($b('puSearch').value.trim())}'),'')">➕ إضافة «${escapeHtml($b('puSearch').value.trim())}» كصنف جديد</button></div>`;
     box.style.display = 'block';
 }
 function puSearchEnter() {
@@ -150,11 +171,13 @@ function puAddByBarcode(code) {
     code = cleanBarcode(code);
     const p = findByBarcode(code);
     if (p) { puAddProduct(p.id); Swal.fire({ icon: 'success', title: 'أُضيف: ' + p.name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1200 }); return; }
-    puPendingBc = code; puShowPending(); $b('puSearch').focus();
-    Swal.fire({ icon: 'info', title: 'باركود غير معروف', text: 'ابحث عن الدواء واختره لربط هذا الباركود به.', toast: true, position: 'bottom', showConfirmButton: false, timer: 3000 });
+    Swal.fire({ icon: 'question', title: 'باركود غير معروف', html: `<div dir="ltr" style="font-weight:800">${escapeHtml(code)}</div><div style="margin-top:6px">هل هو دواء موجود بباركود مختلف، أم صنف جديد؟</div>`, showCancelButton: true, showDenyButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: '➕ صنف جديد', denyButtonText: '🔗 ربطه بدواء موجود', cancelButtonText: 'إلغاء' }).then(r => {
+        if (r.isConfirmed) puCreateProduct('', code);
+        else if (r.isDenied) { puPendingBc = code; puShowPending(); $b('puSearch').focus(); }
+    });
 }
 function puNew() {
-    const has = pu && (pu.items.length || pu.supplier || pu.no);
+    const has = pu && (pu.items.length || pu.supplier || pu.no) && !pu.editId;
     const go = () => { pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puPendingBc = ''; puShowPending(); puInitNew(); };
     if (!has) return go();
     Swal.fire({ icon: 'question', title: 'وارد جديد؟', text: 'سيتم مسح البيانات الحالية.', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم', cancelButtonText: 'إلغاء' }).then(r => { if (r.isConfirmed) go(); });
@@ -166,6 +189,7 @@ function puExpiryPush(p, e) {   // يُرجع true إذا أُضيف تاريخ 
 }
 async function puSave() {
     puReadFields();
+    const editing = pu.editId ? puAll.find(x => x.id === pu.editId) : null;
     const supplier = pu.supplier.trim(), no = pu.no.trim();
     const items = pu.items.filter(it => parseInt(it.qty) > 0);
     const warn = t => Swal.fire({ icon: 'warning', title: t, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
@@ -177,34 +201,62 @@ async function puSave() {
         if (!r.isConfirmed) return;
     }
     await puLoad();
-    if (puAll.some(x => !x.cancelled && puKey(x.supplier) === puKey(supplier) && puKey(x.no) === puKey(no))) {
+    if (puAll.some(x => x.id !== pu.editId && !x.cancelled && puKey(x.supplier) === puKey(supplier) && puKey(x.no) === puKey(no))) {
         const r = await Swal.fire({ icon: 'warning', title: 'رقم الفاتورة مسجّل سابقاً لهذا المذخر', text: 'هل تريد تسجيلها مرة أخرى؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'تسجيل', cancelButtonText: 'رجوع' });
         if (!r.isConfirmed) return;
     }
     if (!requireOnline()) return;
     const total = items.reduce((s, it) => s + puNum(it.qty) * puNum(it.cost), 0), ret = puNum(pu.returnAmt);
     if (ret > total) return warn('مبلغ الاسترجاع أكبر من مجموع الفاتورة');
-    const lines = [], touched = [], snaps = [];
+    const oldLines = editing ? (editing.items || []) : [];
+    const oldBy = new Map(oldLines.map(l => [l.pid, l]));
+    const snaps = new Map(), lines = [];
+    const snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate }); };
+    // 1) الأصناف التي أُزيلت من الفاتورة عند التعديل: نُنقص كميتها السابقة
+    const newIds = new Set(items.map(it => it.pid));
+    oldLines.filter(l => !newIds.has(l.pid)).forEach(l => {
+        const p = products.find(x => x.id === l.pid); if (!p) return; snap(p);
+        p.qty = Math.max((parseInt(p.qty) || 0) - l.qty, 0);
+        if (l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
+        if (l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
+    });
+    // 2) الأصناف الحالية: الفرق بين الكمية الجديدة والقديمة
     items.forEach(it => {
-        const p = products.find(x => x.id === it.pid); if (!p) return;
-        const n = parseInt(it.qty) || 0, cost = puNum(it.cost);
-        snaps.push({ p, qty: p.qty, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate });
-        const line = { pid: p.id, name: p.name, qty: n, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: parseInt(p.qty) || 0, prevCost: p.costPrice || 0 };
-        p.qty = line.prevQty + n;
+        const p = products.find(x => x.id === it.pid); if (!p) return; snap(p);
+        const n = parseInt(it.qty) || 0, cost = puNum(it.cost), old = oldBy.get(it.pid);
+        const line = { pid: p.id, name: p.name, qty: n, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: old ? old.prevQty : (parseInt(p.qty) || 0), prevCost: old ? old.prevCost : (p.costPrice || 0), expAdded: old ? !!old.expAdded : false };
+        p.qty = Math.max((parseInt(p.qty) || 0) + n - (old ? old.qty : 0), 0);
+        if (old && old.expiry !== line.expiry && old.expAdded && old.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; line.expAdded = false; }
         if (cost > 0) p.costPrice = cost;
         if (line.expiry && puExpiryPush(p, line.expiry)) line.expAdded = true;
-        lines.push(line); touched.push(p);
+        lines.push(line);
     });
+    const touched = [...snaps.values()].map(s => s.p);
     const ok = await saveProductsBatch(touched);
     if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; }); renderAll(); return; }
-    lines.forEach(l => { const p = products.find(x => x.id === l.pid); logAction('qty', p, [{ f: 'الكمية (وارد ' + no + ' - ' + supplier + ')', from: String(l.prevQty), to: String(l.prevQty + l.qty) }]); });
+    lines.forEach(l => { const p = products.find(x => x.id === l.pid); const old = oldBy.get(l.pid); logAction('qty', p, [{ f: 'الكمية (' + (editing ? 'تعديل وارد ' : 'وارد ') + no + ' - ' + supplier + ')', from: String(old ? old.qty : l.prevQty), to: String(old ? l.qty : l.prevQty + l.qty) }]); });
     const paid = Math.min(puNum(pu.paid), Math.max(total - ret, 0));
-    const rec = { id: 'pu' + Date.now(), supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
+    let rec;
+    if (editing) {
+        const diff = paid - puNum(editing.paid);
+        rec = { ...editing, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, notes: pu.notes.trim(), editedAt: new Date().toISOString() };
+        rec.payments = (editing.payments || []).slice(); if (Math.abs(diff) > 0.001) rec.payments.push({ at: todayLocalISO(), amount: diff, adj: true });
+    } else {
+        rec = { id: 'pu' + Date.now(), supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
+    }
     await puSaveRecord(rec);
     await puUpsertSupplier(supplier);
     renderAll();
     pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew();
-    Swal.fire({ icon: 'success', title: 'حُفظ الوارد وأُضيفت الكميات للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
+    Swal.fire({ icon: 'success', title: editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ الوارد وأُضيفت الكميات للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
+    if (editing) puTab('log');
+}
+function puCancelEdit() { pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew(); }
+function puEdit(id) {
+    const r = puAll.find(x => x.id === id); if (!r || r.cancelled) return;
+    if (pu && pu.items.length && !pu.editId) { /* المسودة الحالية ستُستبدل */ }
+    pu = { editId: r.id, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, cost: l.cost, expiry: l.expiry || '', batch: l.batch || '' })) };
+    puTab('new'); window.scrollTo(0, 0);
 }
 
 // ---------- السجل ----------
@@ -236,7 +288,7 @@ function puOpen(id) {
             <div class="pu-d-scroll"><table class="bill-table"><thead><tr><th>المادة</th><th>العدد</th><th>السعر</th><th>الانتهاء</th><th>الدفعة</th><th>المجموع</th></tr></thead><tbody>${rows}</tbody></table></div>
             <div class="pu-d-tot"><div>المجموع: <b>${fmtNum(puTotalOf(r))}</b></div><div>الاسترجاع: <b>${fmtNum(r.returnAmt)}</b></div><div>الصافي: <b>${fmtNum(puNetOf(r))}</b></div><div>المدفوع: <b>${fmtNum(r.paid)}</b></div><div>المتبقي: <b>${fmtNum(puRemaining(r))}</b></div></div>
             <div class="pu-d-pays"><b>الدفعات:</b>${pays}</div>${r.notes ? `<div class="pu-d-pays"><b>ملاحظات:</b> ${escapeHtml(r.notes)}</div>` : ''}
-            <div class="pu-d-btns">${r.cancelled ? '' : btn('💳 تسديد', `puPay('${r.id}')`, 'bill-pay') + btn('↩️ مبلغ الاسترجاع', `puSetReturn('${r.id}')`) + btn('✖ إلغاء الوارد', `puCancel('${r.id}')`, 'bill-danger')}</div></div>`
+            <div class="pu-d-btns">${r.cancelled ? '' : btn('✏️ تعديل الفاتورة', `puEdit('${r.id}')`) + btn('💳 تسديد', `puPay('${r.id}')`, 'bill-pay') + btn('↩️ مبلغ الاسترجاع', `puSetReturn('${r.id}')`) + btn('✖ إلغاء الوارد', `puCancel('${r.id}')`, 'bill-danger')}</div></div>`
     });
 }
 async function puSetReturn(id) {
@@ -393,7 +445,7 @@ function puCmpInput() {
     if (!qn) { box.style.display = 'none'; return; }
     const toks = qn.split(' ');
     const found = products.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]);
-    box.innerHTML = found.map(p => `<button type="button" onclick="puCmpShow(${p.id})"><span dir="ltr">${escapeHtml(p.name)}</span><small>${escapeHtml(p.brand || '')}</small></button>`).join('') || '<div class="bill-noresult">لا توجد نتائج</div>';
+    box.innerHTML = found.map(p => productPickHtml(p, 'puCmpShow', '')).join('') || '<div class="bill-noresult">لا توجد نتائج</div>';
     box.style.display = 'block';
 }
 function puCmpShow(id) {

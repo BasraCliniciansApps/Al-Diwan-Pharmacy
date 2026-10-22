@@ -741,6 +741,8 @@
                 <button type="button" class="bill-tb-btn bill-scan" onclick="puScan()" aria-label="مسح باركود">▦ باركود</button>
             </div>
             <div class="pu-hint" id="puPendingHint" style="display:none;"></div>
+            <div class="pu-count" id="puCount"></div>
+            <div class="pu-editbar" id="puEditBar" style="display:none;"><span>✏️ أنت تعدّل فاتورة مسجّلة — سيُصحَّح المخزن تلقائياً بالفرق.</span><button type="button" onclick="puCancelEdit()">إلغاء التعديل</button></div>
             <div id="puItems"></div>
             <div class="pu-card pu-totals">
                 <div class="pu-trow"><span>مجموع الفاتورة</span><b id="puTotal">0</b></div>

@@ -180,6 +180,11 @@ function billAddProduct(id) {
     $b('billSearch').value = ''; $b('billResults').style.display = 'none';
     renderInvoiceRows(); billChanged();
 }
+function productPickHtml(p, fn, extra) {   // سطر نتيجة بحث: صورة + اسم + شركة + عبوة
+    const img = p.img ? `<img class="pk-img" src="${escapeHtml(p.img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<span class="pk-img pk-noimg">💊</span>';
+    const meta = fixMetaOrder(p.meta || '');
+    return `<button type="button" class="pk-row" onclick="${fn}(${p.id})">${img}<span class="pk-info"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml([p.brand, meta].filter(Boolean).join(' · '))}</small>${extra ? `<em>${extra}</em>` : ''}</span></button>`;
+}
 let billFound = [];
 function billSearchInput() {
     const q = $b('billSearch').value;
@@ -189,7 +194,7 @@ function billSearchInput() {
     const toks = qn.split(' ');
     billFound = products.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(x => x[0]);
     box.innerHTML = billFound.length
-        ? billFound.map(p => `<button type="button" onclick="billAddProduct(${p.id})"><span dir="ltr">${escapeHtml(p.name)}</span><small>${escapeHtml(p.brand || '')}${p.price ? ' · ' + fmtNum(p.price) + ' د.ع' : ''}${isInStock(p) ? '' : ' · غير متوفر'}</small></button>`).join('')
+        ? billFound.map(p => productPickHtml(p, 'billAddProduct', (p.price ? fmtNum(p.price) + ' د.ع' : '') + (isInStock(p) ? ' · المتوفر ' + stockLabel(p) : ' · غير متوفر'))).join('')
         : `<div class="bill-noresult">لا توجد نتائج — يمكنك إضافة سطر وكتابة الاسم يدوياً</div>`;
     box.style.display = 'block';
 }
