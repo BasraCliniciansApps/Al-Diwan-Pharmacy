@@ -505,6 +505,7 @@ function renderManagerLists() {
             <span>${d}</span>
             <div style="display:flex; gap:6px;">
                 <button class="icon-btn" onclick="renameDepartment(${i})">✏️ تعديل الاسم</button>
+                <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteManagerItem('dept', ${i})">🗑️</button>
             </div>
         </div>
     `).join('');
@@ -515,6 +516,7 @@ function renderManagerLists() {
             <span>${c}</span>
             <div style="display:flex; gap:6px;">
                 <button class="icon-btn" onclick="renameSubCategory(${i})">✏️ تعديل الاسم</button>
+                <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteManagerItem('cat', ${i})">🗑️</button>
             </div>
         </div>
     `).join('');
@@ -998,24 +1000,204 @@ function populateModalSelects() {
     document.getElementById('fCategory').innerHTML = subCategories.map(c => `<option value="${c}">${c}</option>`).join('');
 }
 
-// ---- شرائح الاختيار المتعدد في نموذج الصنف ----
+// ---- الاختيار المتعدد في نموذج الصنف ----
+// القسم والتصنيف: قائمة منسدلة واحدة (بحث + إضافة + تعديل + حذف). التبويبات: شرائح بسيطة.
 const EXTRA_KINDS = {
-    dept: { box: 'fExtraDepts', primary: 'fDepartment', options: () => departments.map(d => [d, d]) },
-    cat:  { box: 'fExtraCats',  primary: 'fCategory',   options: () => subCategories.map(c => [c, c]) },
-    type: { box: 'fExtraTypes', primary: 'fType',       options: () => [['rx', tabLabels.rx], ['cosmetic', tabLabels.cosmetic]].concat(customTabs.map(t => [t.id, t.name])) }
+    dept: { box: 'fExtraDepts', primary: 'fDepartment', combo: true,  list: () => departments,   noun: 'قسم',    placeholder: 'اختر أقساماً إضافية...' },
+    cat:  { box: 'fExtraCats',  primary: 'fCategory',   combo: true,  list: () => subCategories, noun: 'تصنيف',  placeholder: 'اختر تصنيفات إضافية...' },
+    type: { box: 'fExtraTypes', primary: 'fType',       combo: false, options: () => [['rx', tabLabels.rx], ['cosmetic', tabLabels.cosmetic]].concat(customTabs.map(t => [t.id, t.name])) }
 };
+const extraSel = { dept: new Set(), cat: new Set() };
+const xcState = { dept: { open: false, q: '' }, cat: { open: false, q: '' } };
+
+function primaryOf(kind) { return (document.getElementById(EXTRA_KINDS[kind].primary) || {}).value || ''; }
 
 function getExtraSelection(kind) {
-    const box = document.getElementById(EXTRA_KINDS[kind].box);
+    const k = EXTRA_KINDS[kind];
+    if (k.combo) {
+        const prim = primaryOf(kind);
+        return k.list().filter(x => extraSel[kind].has(x) && x !== prim);
+    }
+    const box = document.getElementById(k.box);
     if (!box) return [];
     return Array.from(box.querySelectorAll('input[type=checkbox]:checked')).map(i => i.value);
 }
 
-function renderExtraChips(kind, selected) {
+function renderXcTags(kind) {
+    const el = document.getElementById('xcTags_' + kind);
+    if (!el) return;
+    const sel = getExtraSelection(kind);
+    el.innerHTML = (sel.length
+        ? sel.map(n => `<span class="xc-tag">${escapeHtml(n)}</span>`).join('')
+        : `<span class="xc-ph">${EXTRA_KINDS[kind].placeholder}</span>`) + '<span class="xc-caret">▾</span>';
+}
+
+function renderExtraCombo(kind) {
     const k = EXTRA_KINDS[kind];
     const box = document.getElementById(k.box);
     if (!box) return;
-    const prim = (document.getElementById(k.primary) || {}).value || '';
+    const prim = primaryOf(kind);
+    const q = xcState[kind].q;
+    const items = k.list().map((name, i) => ({ name, i })).filter(o => o.name !== prim);
+    box.innerHTML = `
+        <button type="button" class="xc-trigger" id="xcTags_${kind}" onclick="toggleXc('${kind}')"></button>
+        <div class="xc-panel" id="xcPanel_${kind}" ${xcState[kind].open ? '' : 'hidden'}>
+            <input type="search" class="xc-search" id="xcSearch_${kind}" placeholder="🔍 ابحث..." value="${escapeHtml(q)}" oninput="filterXc('${kind}', this.value)">
+            <div class="xc-list">
+                ${items.map(o => `
+                    <div class="xc-item" data-name="${escapeHtml(o.name.toLowerCase())}">
+                        <label class="xc-check"><input type="checkbox" ${extraSel[kind].has(o.name) ? 'checked' : ''} onchange="toggleXcOpt('${kind}', ${o.i}, this.checked)"><span>${escapeHtml(o.name)}</span></label>
+                        <button type="button" class="xc-mini" title="تعديل الاسم" onclick="xcRename('${kind}', ${o.i})">✏️</button>
+                        <button type="button" class="xc-mini xc-del" title="حذف" onclick="xcDelete('${kind}', ${o.i})">🗑️</button>
+                    </div>`).join('') || '<div class="xc-empty">لا توجد خيارات أخرى</div>'}
+                <div class="xc-empty" id="xcNone_${kind}" hidden>لا توجد نتائج</div>
+            </div>
+            <div class="xc-add">
+                <input type="text" id="xcNew_${kind}" placeholder="➕ ${k.noun} جديد..." onkeydown="if(event.key==='Enter'){event.preventDefault();xcAdd('${kind}');}">
+                <button type="button" onclick="xcAdd('${kind}')">إضافة</button>
+            </div>
+        </div>`;
+    renderXcTags(kind);
+    if (q) filterXc(kind, q);
+}
+
+function toggleXc(kind) {
+    xcState[kind].open = !xcState[kind].open;
+    const p = document.getElementById('xcPanel_' + kind);
+    if (p) p.hidden = !xcState[kind].open;
+}
+
+function filterXc(kind, text) {
+    const q = String(text || '').trim().toLowerCase();
+    xcState[kind].q = text || '';
+    const box = document.getElementById(EXTRA_KINDS[kind].box);
+    if (!box) return;
+    let shown = 0;
+    box.querySelectorAll('.xc-item').forEach(it => {
+        const ok = !q || (it.dataset.name || '').includes(q);
+        it.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+    });
+    const none = document.getElementById('xcNone_' + kind);
+    if (none) none.hidden = shown > 0 || !box.querySelector('.xc-item');
+}
+
+function toggleXcOpt(kind, index, checked) {
+    const name = EXTRA_KINDS[kind].list()[index];
+    if (name === undefined) return;
+    if (checked) extraSel[kind].add(name); else extraSel[kind].delete(name);
+    renderXcTags(kind);
+}
+
+// إعادة بناء قوائم الاختيار في النموذج مع الاحتفاظ بالقيم الأساسية
+function repopulateFormSelects(keepDept, keepCat) {
+    populateModalSelects();
+    const dsel = document.getElementById('fDepartment'), csel = document.getElementById('fCategory');
+    if (dsel) dsel.value = departments.includes(keepDept) ? keepDept : departments[0];
+    if (csel) csel.value = subCategories.includes(keepCat) ? keepCat : subCategories[0];
+    ['dept', 'cat'].forEach(k => {
+        extraSel[k] = new Set(Array.from(extraSel[k]).filter(x => EXTRA_KINDS[k].list().includes(x)));
+        renderExtraCombo(k);
+    });
+}
+
+function xcAdd(kind) {
+    const inp = document.getElementById('xcNew_' + kind);
+    const val = ((inp && inp.value) || '').trim();
+    if (!val) return;
+    const list = EXTRA_KINDS[kind].list();
+    const keepD = primaryOf('dept'), keepC = primaryOf('cat');
+    if (list.includes(val)) { extraSel[kind].add(val); }
+    else { list.push(val); extraSel[kind].add(val); pushToCloud(true); }
+    renderManagerLists();
+    repopulateFormSelects(keepD, keepC);
+    renderAll();
+    const again = document.getElementById('xcNew_' + kind);
+    if (again) again.value = '';
+}
+
+function xcRename(kind, index) {
+    const list = EXTRA_KINDS[kind].list();
+    const old = list[index];
+    const keepD = primaryOf('dept'), keepC = primaryOf('cat');
+    if (kind === 'dept') renameDepartment(index); else renameSubCategory(index);
+    const now = list[index];
+    if (now !== old) {
+        if (extraSel[kind].has(old)) { extraSel[kind].delete(old); extraSel[kind].add(now); }
+    }
+    repopulateFormSelects(keepD === old ? now : keepD, keepC === old ? now : keepC);
+}
+
+// حذف قسم/تصنيف: الأصناف التي كان أساسياً لها تنتقل لأول خيار إضافي لها، وإلا لأول عنصر متبقٍ
+async function removeListItem(kind, index) {
+    const list = EXTRA_KINDS[kind].list();
+    const name = list[index];
+    if (name === undefined) return false;
+    if (list.length <= 1) {
+        await Swal.fire({ icon: 'info', title: 'لا يمكن الحذف', text: 'يجب أن يبقى ' + EXTRA_KINDS[kind].noun + ' واحد على الأقل.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        return false;
+    }
+    const field = kind === 'dept' ? 'department' : 'category';
+    const extra = kind === 'dept' ? 'extraDepartments' : 'extraCategories';
+    const fallback = list.find(x => x !== name);
+    const affected = products.filter(p => p[field] === name || extrasOf(p[extra]).includes(name));
+    const moved = products.filter(p => p[field] === name && !extrasOf(p[extra]).some(x => x !== name && list.includes(x)));
+    const r = await Swal.fire({
+        icon: 'warning',
+        title: 'حذف ' + EXTRA_KINDS[kind].noun + ' «' + name + '»؟',
+        html: `<div style="font-size:0.9rem; line-height:1.8;">${affected.length ? `يؤثر على ${affected.length} صنف. ${moved.length ? `${moved.length} منها ستنتقل إلى «${escapeHtml(fallback)}».` : ''} لن يُحذف أي صنف.` : 'لا توجد أصناف مرتبطة به.'}</div>`,
+        showCancelButton: true,
+        confirmButtonText: 'حذف',
+        cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#b91c1c'
+    });
+    if (!r.isConfirmed) return false;
+    products.forEach(p => {
+        const ex = extrasOf(p[extra]).filter(x => x !== name);
+        if (p[field] === name) {
+            const next = ex.find(x => x !== name && list.includes(x));
+            p[field] = next || fallback;
+            p[extra] = ex.filter(x => x !== p[field]);
+        } else if (extrasOf(p[extra]).length) {
+            p[extra] = ex;
+        }
+    });
+    list.splice(index, 1);
+    if (kind === 'cat' && activeSubCat === name) activeSubCat = 'الكل';
+    if (kind === 'dept' && activeDept === name) activeDept = list[0];
+    return true;
+}
+
+async function xcDelete(kind, index) {
+    const old = EXTRA_KINDS[kind].list()[index];
+    const keepD = primaryOf('dept'), keepC = primaryOf('cat');
+    if (!(await removeListItem(kind, index))) return;
+    extraSel[kind].delete(old);
+    pushToCloud(false);
+    renderManagerLists();
+    repopulateFormSelects(keepD, keepC);
+    renderAll();
+}
+
+// من نافذة الإعدادات
+async function deleteManagerItem(kind, index) {
+    if (!(await removeListItem(kind, index))) return;
+    pushToCloud(false);
+    renderManagerLists();
+    renderAll();
+}
+
+function renderExtraChips(kind, selected) {
+    const k = EXTRA_KINDS[kind];
+    if (k.combo) {
+        extraSel[kind] = new Set(selected || []);
+        xcState[kind] = { open: false, q: '' };
+        renderExtraCombo(kind);
+        return;
+    }
+    const box = document.getElementById(k.box);
+    if (!box) return;
+    const prim = primaryOf(kind);
     const sel = new Set(selected || []);
     const opts = k.options().filter(o => o[0] !== prim);
     box.innerHTML = opts.map(o => `<label class="chip-opt"><input type="checkbox" value="${escapeHtml(o[0])}" ${sel.has(o[0]) ? 'checked' : ''}><span>${escapeHtml(o[1])}</span></label>`).join('');
@@ -1025,7 +1207,10 @@ function renderExtraChips(kind, selected) {
 // عند تغيير الخيار الأساسي: نعيد الرسم مع الإبقاء على ما اختير سابقاً
 function refreshExtraChips(kind) {
     const kinds = kind ? [kind] : Object.keys(EXTRA_KINDS);
-    kinds.forEach(k => renderExtraChips(k, getExtraSelection(k)));
+    kinds.forEach(k => {
+        if (EXTRA_KINDS[k].combo) renderExtraCombo(k);
+        else renderExtraChips(k, getExtraSelection(k));
+    });
 }
 
 function setExtraSelections(p) {

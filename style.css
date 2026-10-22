@@ -1032,3 +1032,27 @@ body.admin-mode .status-dot.low { background: #f59e0b; }
 .chip-opt input:focus-visible + span { outline: 2px solid var(--gold); outline-offset: 2px; }
 
 .form-group .chip-opt { display: inline-block; margin: 0; width: auto; }
+
+/* قائمة الاختيار المتعدد المنسدلة (أقسام / تصنيفات) */
+.xc-trigger {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 6px; width: 100%; min-height: 42px;
+    padding: 6px 10px; background: #fff; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    cursor: pointer; text-align: right; font-family: inherit;
+}
+.xc-trigger:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.xc-tag { background: var(--navy); color: #fff; border-radius: 999px; padding: 2px 10px; font-size: 0.74rem; font-weight: 700; }
+.xc-ph { color: var(--text-sub); font-size: 0.82rem; }
+.xc-caret { margin-inline-start: auto; color: var(--text-sub); }
+.xc-panel { margin-top: 6px; border: 1.5px solid var(--border); border-radius: var(--radius-sm); background: #fff; overflow: hidden; }
+.xc-panel[hidden] { display: none; }
+.xc-search { width: 100%; height: 38px; padding: 0 12px; border: 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; background: var(--gold-soft); }
+.xc-list { max-height: 210px; overflow-y: auto; }
+.xc-item { display: flex; align-items: center; gap: 4px; padding: 2px 8px; border-bottom: 1px solid #f1f5f9; }
+.xc-check { flex: 1; display: flex !important; align-items: center; gap: 8px; margin: 0 !important; padding: 8px 0; cursor: pointer; font-size: 0.84rem; font-weight: 600; min-width: 0; }
+.xc-check input { width: 18px; height: 18px; flex-shrink: 0; accent-color: var(--navy); }
+.xc-mini { width: 30px; height: 30px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: #fff; cursor: pointer; font-size: 0.8rem; }
+.xc-del { background: #fee2e2; border-color: #fecaca; }
+.xc-empty { padding: 12px; text-align: center; color: var(--text-sub); font-size: 0.8rem; }
+.xc-add { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--border); background: #fafbfd; }
+.xc-add input { flex: 1; min-width: 0; height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 10px; font-size: 0.82rem; }
+.xc-add button { height: 36px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font-weight: 800; font-size: 0.8rem; cursor: pointer; }
