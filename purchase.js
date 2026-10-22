@@ -167,10 +167,11 @@ function puSearchEnter() {
     if (puFound.length) puAddProduct(puFound[0].id);
 }
 function puScan() { openBarcodeScanner(puAddByBarcode); }
-function puAddByBarcode(code) {
-    code = cleanBarcode(code);
+function puAddByBarcode(code, gs1) {
+    gs1 = gs1 || parseGS1(code);
+    code = gs1 ? gs1.gtin : cleanBarcode(code);
     const p = findByBarcode(code);
-    if (p) { puAddProduct(p.id); Swal.fire({ icon: 'success', title: 'أُضيف: ' + p.name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1200 }); return; }
+    if (p) { puAddProduct(p.id); const it = pu.items.find(x => x.pid === p.id); if (it && gs1) { if (gs1.batch && !it.batch) it.batch = gs1.batch; if (gs1.exp && !it.expiry) it.expiry = gs1.exp; puRenderItems(); puChanged(); } Swal.fire({ icon: 'success', title: 'أُضيف: ' + p.name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1200 }); return; }
     Swal.fire({ icon: 'question', title: 'باركود غير معروف', html: `<div dir="ltr" style="font-weight:800">${escapeHtml(code)}</div><div style="margin-top:6px">هل هو دواء موجود بباركود مختلف، أم صنف جديد؟</div>`, showCancelButton: true, showDenyButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: '➕ صنف جديد', denyButtonText: '🔗 ربطه بدواء موجود', cancelButtonText: 'إلغاء' }).then(r => {
         if (r.isConfirmed) puCreateProduct('', code);
         else if (r.isDenied) { puPendingBc = code; puShowPending(); $b('puSearch').focus(); }

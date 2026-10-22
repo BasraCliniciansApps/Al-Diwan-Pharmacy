@@ -3757,11 +3757,12 @@ function stopBarcodeCamera() {
 }
 
 function barcodeFound(code) {
-    const c = cleanBarcode(code);
+    const g = parseGS1(code);                       // باركود GS1: نحفظ GTIN فقط (الرقم التسلسلي يتغير لكل علبة)
+    const c = g ? g.gtin : cleanBarcode(code);
     if (!c) return;
     const cb = barcodeCallback;
     closeBarcodeScanner();
-    if (cb) cb(c);
+    if (cb) cb(c, g);
 }
 
 async function startBarcodeCamera() {
@@ -3771,12 +3772,22 @@ async function startBarcodeCamera() {
     }
     const video = document.getElementById('bcVideo');
     try {
-        if ('BarcodeDetector' in window) {
-            const det = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf', 'qr_code', 'data_matrix'] });
-            barcodeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        let det = null;
+        if ('BarcodeDetector' in window) {   // نستعمل الصيغ التي يدعمها الجهاز فعلاً (بعضها يرمي خطأ إن لم يُدعم)
+            try {
+                const want = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf', 'qr_code', 'data_matrix'];
+                const sup = BarcodeDetector.getSupportedFormats ? await BarcodeDetector.getSupportedFormats() : want;
+                const use = want.filter(f => sup.includes(f));
+                if (use.length) det = new BarcodeDetector({ formats: use });
+            } catch (e) { det = null; }
+        }
+        if (det) {
+            barcodeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
             video.srcObject = barcodeStream;
             await video.play();
-            setBarcodeStatus('وجّه الكاميرا نحو الباركود...');
+            try { const tr = barcodeStream.getVideoTracks()[0]; await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) { /* غير مدعوم */ }
+            setBarcodeStatus('وجّه الكاميرا نحو الباركود (قرّب واثبت قليلاً)...');
+            setTimeout(() => { if (barcodeStream && document.getElementById('barcodeModal').style.display === 'flex') setBarcodeStatus('لم يُقرأ بعد: حسّن الإضاءة وقرّب أو ابعد قليلاً، أو التقط صورة، أو اكتب الرقم.'); }, 7000);
             let last = 0;
             const tick = async (t) => {
                 if (!barcodeStream) return;
@@ -3793,7 +3804,9 @@ async function startBarcodeCamera() {
         } else {
             setBarcodeStatus('جاري تحميل قارئ الباركود...');
             const Z = await loadZXing();
-            zxingReader = new Z.BrowserMultiFormatReader();
+            const hints = new Map();
+            try { hints.set(Z.DecodeHintType.TRY_HARDER, true); hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.DATA_MATRIX, Z.BarcodeFormat.QR_CODE, Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.CODE_39, Z.BarcodeFormat.ITF]); } catch (e) { /* تجاهل */ }
+            zxingReader = new Z.BrowserMultiFormatReader(hints);
             setBarcodeStatus('وجّه الكاميرا نحو الباركود...');
             zxingReader.decodeFromVideoDevice(null, 'bcVideo', (result) => {
                 if (result) barcodeFound(result.getText());
@@ -3836,15 +3849,43 @@ function submitManualBarcode() {
     barcodeFound(v);
 }
 
+// ---- GS1 (DataMatrix/GS1-128 على علب الأدوية): (01)GTIN (17)انتهاء (10)دفعة (21)رقم تسلسلي لكل علبة ----
+function parseGS1(raw) {
+    let s = String(raw || '').replace(/^\]d2|^\]C1|^\]Q3/, '');
+    if (s.includes('(')) { const m = {}; s.replace(/\((\d{2,4})\)([^(]*)/g, (_, k, v) => { m[k] = v.replace(/[\x00-\x1f]/g, ''); }); if (!m['01']) return null; return { gtin: m['01'].slice(0, 14), batch: m['10'] || '', exp: gs1Exp(m['17']), serial: m['21'] || '' }; }
+    if (!/^01\d{14}/.test(s)) return null;
+    const out = { gtin: s.slice(2, 16), batch: '', exp: '', serial: '' };
+    let i = 16; const fixed = { '11': 6, '12': 6, '13': 6, '15': 6, '16': 6, '17': 6, '20': 2 };
+    while (i < s.length) {
+        const ai = s.substr(i, 2);
+        if (ai === '10' || ai === '21') { let j = i + 2; while (j < s.length && s[j] !== '\x1d') j++; const v = s.slice(i + 2, j); if (ai === '10') out.batch = v; else out.serial = v; i = j + 1; }
+        else if (fixed[ai]) { if (ai === '17') out.exp = gs1Exp(s.substr(i + 2, 6)); i += 2 + fixed[ai]; }
+        else break;
+    }
+    return out;
+}
+function gs1Exp(v) { const m = /^(\d{2})(\d{2})/.exec(v || ''); return m && +m[2] >= 1 && +m[2] <= 12 ? '20' + m[1] + '-' + m[2] : ''; }
+function barcodeKeys(code) {   // مفاتيح مطابقة: النص كاملاً، GTIN، ونواة الرقم (تتجاوز اختلاف EAN-13/GTIN-14)
+    const keys = new Set(), c = cleanBarcode(code);
+    if (!c) return keys;
+    keys.add(c);
+    const g = parseGS1(c);
+    const d = g ? g.gtin : (/^\d{8,14}$/.test(c) ? c : '');
+    if (g) keys.add(g.gtin);
+    let core = '';
+    if (d.length === 14) core = d.slice(1, 13); else if (d.length === 13) core = d.slice(0, 12); else if (d.length === 12) core = '0' + d.slice(0, 11);
+    if (core) keys.add('core:' + core);
+    return keys;
+}
 function barcodesOf(p) {   // كل باركودات الصنف (الأول هو الأساسي)
     const set = [];
     [p && p.barcode].concat(Array.isArray(p && p.barcodes) ? p.barcodes : []).forEach(b => { const c = cleanBarcode(b); if (c && !set.includes(c)) set.push(c); });
     return set;
 }
 function findByBarcode(code) {
-    const c = cleanBarcode(code);
-    if (!c) return undefined;
-    return products.find(p => barcodesOf(p).includes(c));
+    const ck = barcodeKeys(code);
+    if (!ck.size) return undefined;
+    return products.find(p => barcodesOf(p).some(b => { for (const k of barcodeKeys(b)) if (ck.has(k)) return true; return false; }));
 }
 // ---- قائمة الباركودات في نموذج الصنف ----
 let formBarcodes = [];
