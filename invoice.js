@@ -86,22 +86,24 @@ function writeInvoiceFields() {
     updateIssuedUI();
 }
 function updateIssuedUI() {
-    const note = $b('billIssuedNote'), btn = $b('billIssueBtn'), chk = $b('billDeduct'), sheet = $b('billSheet');
-    const cancelBtn = $b('billCancelBtn'), draftBtn = $b('billDraftPrintBtn');
-    sheet.classList.toggle('locked', !!bill.issued);
-    sheet.classList.toggle('cancelled', !!bill.cancelled);
-    if (bill.issued) {
+    const note = $b('billIssuedNote'), chk = $b('billDeduct'), sheet = $b('billSheet');
+    const show = (id, on) => { $b(id).style.display = on ? '' : 'none'; };
+    const issued = !!bill.issued, cancelled = !!bill.cancelled, editing = issued && !!bill.editing;
+    sheet.classList.toggle('locked', issued && !editing);
+    sheet.classList.toggle('cancelled', cancelled);
+    show('billNewBtn', !editing);
+    show('billPrintOnlyBtn', !issued); show('billIssueOnlyBtn', !issued); show('billIssueBtn', !issued);
+    show('billReprintBtn', issued && !editing && !cancelled); show('billEditBtn', issued && !editing && !cancelled); show('billCancelBtn', issued && !editing && !cancelled);
+    show('billEditBackBtn', editing); show('billSaveEditBtn', editing); show('billSaveEditPrintBtn', editing);
+    if (issued) {
         note.style.display = 'block';
-        note.className = 'bill-issued no-print' + (bill.cancelled ? ' bad' : '');
-        note.innerText = bill.cancelled
+        note.className = 'bill-issued no-print' + (cancelled ? ' bad' : '');
+        note.innerText = editing ? '✏️ وضع التعديل: عدّل ما تشاء ثم احفظ — سيُصحَّح المخزن تلقائياً بالفرق.'
+            : cancelled
             ? '✖ هذه الفاتورة ملغاة' + (bill.cancelledAt ? ' بتاريخ ' + fmtDateDMY(bill.cancelledAt) : '') + (bill.deducted ? ' وأُرجعت الكميات للمخزن.' : '.')
-            : '✅ صدرت هذه الفاتورة' + (bill.issuedAt ? ' بتاريخ ' + fmtDateDMY(bill.issuedAt) : '') + (bill.deducted ? ' وتم خصم الكميات من المخزن.' : ' (بدون خصم من المخزن).');
-        btn.innerText = '🖨️ طباعة نسخة'; btn.style.display = bill.cancelled ? 'none' : '';
-        cancelBtn.style.display = bill.cancelled ? 'none' : ''; draftBtn.style.display = 'none'; chk.disabled = true;
-    } else {
-        note.style.display = 'none'; btn.style.display = ''; btn.innerText = '✅ إصدار وطباعة';
-        cancelBtn.style.display = 'none'; draftBtn.style.display = ''; chk.disabled = false;
-    }
+            : '✅ صدرت هذه الفاتورة' + (bill.issuedAt ? ' بتاريخ ' + fmtDateDMY(bill.issuedAt) : '') + (bill.deducted ? ' وتم خصم الكميات من المخزن.' : ' (بدون خصم من المخزن).') + (bill.editedAt ? ' • عُدّلت بتاريخ ' + fmtDateDMY(bill.editedAt.slice(0, 10)) : '');
+        chk.disabled = true;
+    } else { note.style.display = 'none'; chk.disabled = false; }
 }
 function autoGrow(el) { if (!el) return; el.style.height = 'auto'; el.style.height = Math.max(el.scrollHeight, 28) + 'px'; }
 
@@ -272,6 +274,7 @@ function billTab(name) {
 }
 function initBillEditor() {
     if (!bill) { try { bill = JSON.parse(lsGet(BILL_LS.draft)); } catch (e) { bill = null; } if (!bill || !Array.isArray(bill.items)) bill = emptyInvoice(); }
+    if (bill.editing && !billEditBase) bill.editing = false;
     writeInvoiceFields(); renderInvoiceRows(); renderInvMeta(); renderInvImages();
 }
 function initBillSettings() {
@@ -329,7 +332,7 @@ function billPlan() {
 function stockTxt(p, s) { return hasRetail(p) && s.loose ? `${s.qty}+${s.loose}` : String(s.qty); }
 
 // ---------- إصدار الفاتورة ----------
-async function issueInvoice() {
+async function issueInvoice(doPrintAfter) {   // true/undefined: إصدار وطباعة، false: إصدار فقط
     readInvoiceFields();
     if (bill.issued) { printInvoice(); return; }
     if (!bill.items.length) { printInvoice(); return; }
@@ -344,10 +347,10 @@ async function issueInvoice() {
             (deduct ? `سيتم خصم الكميات من المخزن (${plan.length} مادة).` : 'بدون خصم من المخزن.') +
             (manual && deduct ? `<br><small>${manual} سطر مكتوب يدوياً لن يُخصم لأنه غير مرتبط بصنف.</small>` : '') +
             (short.length ? `<div style="margin-top:10px;color:#b45309;font-weight:700;font-size:.85rem;">⚠️ كميات غير كافية في المخزن:<br>${short.map(e => escapeHtml(e.p.name) + ' (المتوفر ' + stockLabel(e.p) + ')').join('<br>')}<br><small>ستصبح الكمية 0.</small></div>` : ''),
-        showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'إصدار وطباعة', cancelButtonText: 'إلغاء'
+        showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: doPrintAfter === false ? 'إصدار' : 'إصدار وطباعة', cancelButtonText: 'إلغاء'
     });
     if (!r.isConfirmed) return;
-    bill.items.forEach(it => { const p = itemProduct(it); const c = p ? parseFloat(p.costPrice) || 0 : 0; if (c > 0) { const sc = subCountOf(p); it.cost = it.unit === 'part' && hasRetail(p) ? c / sc : c; } else delete it.cost; });
+    billSnapCosts();
     let lines = [];
     if (deduct && plan.length) {
         if (!requireOnline()) return;
@@ -363,7 +366,67 @@ async function issueInvoice() {
     lsSet(BILL_LS.draft, JSON.stringify(bill));
     await saveInvoiceRecord(bill);
     updateIssuedUI();
-    printInvoice();
+    if (doPrintAfter === false) Swal.fire({ icon: 'success', title: 'صدرت الفاتورة ' + bill.no, toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    else printInvoice();
+}
+function billSnapCosts() {   // سعر الشراء وقت الإصدار (لحساب الربح لاحقاً)
+    bill.items.forEach(it => { const p = itemProduct(it); const c = p ? parseFloat(p.costPrice) || 0 : 0; if (c > 0) { const sc = subCountOf(p); it.cost = it.unit === 'part' && hasRetail(p) ? c / sc : c; } else delete it.cost; });
+}
+
+// ---------- تعديل فاتورة صادرة (مع تصحيح المخزن بالفرق) ----------
+let billEditBase = null;
+function restoreDeducted(lines, snap) {
+    (lines || []).forEach(l => {
+        const p = products.find(x => x.id === l.pid); if (!p) return; snap(p);
+        if (l.unit === 'part' && hasRetail(p)) { const tot = totalParts(p) + l.n, sc = subCountOf(p); p.qty = Math.floor(tot / sc); p.loose = tot % sc; }
+        else p.qty = (parseInt(p.qty) || 0) + l.n;
+    });
+}
+function editIssuedInvoice() {
+    if (!bill || !bill.issued || bill.cancelled) return;
+    billEditBase = JSON.parse(JSON.stringify(bill));
+    bill.editing = true; $b('billDeduct').checked = bill.deducted !== false;
+    updateIssuedUI(); renderInvoiceRows(); recalcInvoice();
+}
+function cancelInvoiceEdit() {
+    if (!billEditBase) { if (bill) bill.editing = false; updateIssuedUI(); return; }
+    bill = billEditBase; billEditBase = null; bill.editing = false;
+    lsSet(BILL_LS.draft, JSON.stringify(bill)); writeInvoiceFields(); renderInvoiceRows(); recalcInvoice();
+}
+async function saveInvoiceEdit(doPrintAfter) {
+    if (!bill || !bill.issued || !bill.editing) return;
+    readInvoiceFields();
+    if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'لا يمكن حفظ فاتورة بلا مواد. استعمل «إلغاء الفاتورة» بدلاً من ذلك.', confirmButtonColor: '#0f1c38' }); return; }
+    const old = billEditBase || bill;
+    const hadDeduct = !!old.deducted;
+    const snaps = new Map(), snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose }); };
+    let lines = [], plan = [];
+    if (hadDeduct) {
+        restoreDeducted(old.deductedLines, snap);      // 1) إرجاع ما خُصم سابقاً
+        plan = billPlan();                              // 2) خصم الفاتورة الجديدة
+        plan.forEach(e => { snap(e.p); });
+    }
+    const short = plan.filter(e => e.short);
+    const r = await Swal.fire({ icon: 'question', title: 'حفظ تعديل الفاتورة ' + escapeHtml(bill.no) + '؟', html: `المبلغ الكلي: <b>${fmtNum(billTotals().total)} د.ع</b>` + (hadDeduct ? '<br>سيُصحَّح المخزن بالفرق عن الفاتورة السابقة.' : '') + (short.length ? `<div style="margin-top:10px;color:#b45309;font-weight:700;font-size:.85rem;">⚠️ كميات غير كافية:<br>${short.map(e => escapeHtml(e.p.name) + ' (المتوفر ' + stockLabel(e.p) + ')').join('<br>')}</div>` : ''), showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'رجوع' });
+    const rollback = () => { snaps.forEach(s => { s.p.qty = s.qty; s.p.loose = s.loose; }); };
+    if (!r.isConfirmed) { rollback(); return; }
+    if (hadDeduct) {
+        if (!requireOnline()) { rollback(); return; }
+        plan.forEach(e => { e.p.qty = e.to.qty; e.p.loose = e.to.loose; lines = lines.concat(e.lines); });
+        const ok = await saveProductsBatch([...snaps.values()].map(s => s.p));
+        if (!ok) { rollback(); renderAll(); return; }
+        snaps.forEach(s => { const from = { qty: parseInt(s.qty) || 0, loose: parseInt(s.loose) || 0 }, to = { qty: parseInt(s.p.qty) || 0, loose: parseInt(s.p.loose) || 0 }; if (from.qty !== to.qty || from.loose !== to.loose) logAction('qty', s.p, [{ f: 'الكمية (تعديل فاتورة ' + bill.no + ')', from: stockTxt(s.p, from), to: stockTxt(s.p, to) }]); });
+        renderAll();
+    }
+    billSnapCosts();
+    bill.deducted = lines.length > 0; bill.deductedLines = lines;
+    bill.editing = false; bill.editedAt = new Date().toISOString(); billEditBase = null;
+    billSeqBump(bill.no);
+    lsSet(BILL_LS.draft, JSON.stringify(bill));
+    await saveInvoiceRecord(bill);
+    updateIssuedUI(); renderInvoiceRows(); recalcInvoice();
+    if (doPrintAfter) printInvoice();
+    else Swal.fire({ icon: 'success', title: 'حُفظ تعديل الفاتورة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
 }
 function billSeqBump(no) {
     const n = parseInt(String(no).replace(/\D/g, '')) || 0;

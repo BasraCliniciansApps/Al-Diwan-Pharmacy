@@ -564,10 +564,16 @@
         <!-- ===== فاتورة جديدة ===== -->
         <section class="bill-pane active print-active" id="billPane-new">
             <div class="bill-actions no-print">
-                <button type="button" class="bill-tb-btn" onclick="newInvoice()">＋ جديدة</button>
-                <button type="button" class="bill-tb-btn" id="billDraftPrintBtn" onclick="printInvoice(true)">🖨️ طباعة بدون إصدار</button>
+                <button type="button" class="bill-tb-btn" id="billNewBtn" onclick="newInvoice()">＋ جديدة</button>
+                <button type="button" class="bill-tb-btn" id="billPrintOnlyBtn" onclick="printInvoice(true)">🖨️ طباعة فقط</button>
+                <button type="button" class="bill-tb-btn" id="billIssueOnlyBtn" onclick="issueInvoice(false)">✅ إصدار فقط</button>
+                <button type="button" class="bill-tb-btn bill-tb-primary" id="billIssueBtn" onclick="issueInvoice(true)">🖨️ إصدار وطباعة</button>
+                <button type="button" class="bill-tb-btn" id="billReprintBtn" onclick="printInvoice()" style="display:none;">🖨️ طباعة نسخة</button>
+                <button type="button" class="bill-tb-btn" id="billEditBtn" onclick="editIssuedInvoice()" style="display:none;">✏️ تعديل الفاتورة</button>
                 <button type="button" class="bill-tb-btn bill-danger" id="billCancelBtn" onclick="cancelInvoice()" style="display:none;">✖ إلغاء الفاتورة</button>
-                <button type="button" class="bill-tb-btn bill-tb-primary" id="billIssueBtn" onclick="issueInvoice()">✅ إصدار وطباعة</button>
+                <button type="button" class="bill-tb-btn" id="billEditBackBtn" onclick="cancelInvoiceEdit()" style="display:none;">↩️ رجوع</button>
+                <button type="button" class="bill-tb-btn" id="billSaveEditBtn" onclick="saveInvoiceEdit(false)" style="display:none;">💾 حفظ التعديل فقط</button>
+                <button type="button" class="bill-tb-btn bill-tb-primary" id="billSaveEditPrintBtn" onclick="saveInvoiceEdit(true)" style="display:none;">🖨️ حفظ التعديل وطباعة</button>
             </div>
             <div class="bill-sheet" id="billSheet">
                 <div class="bill-letterhead">
