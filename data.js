@@ -442,11 +442,14 @@ function escTab(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+// تبويب غير المتوفر: «النواقص» للصيدلي، «غير متوفر» للزبون والطبيب
+function outTabLabel() { return IS_ADMIN_PAGE ? tabLabels.out : 'غير متوفر'; }
+
 function getTabTitle() {
     if (mainTab === 'all') return 'جميع الأصناف';
     if (mainTab === 'rx') return tabLabels.rx;
     if (mainTab === 'cosmetic') return tabLabels.cosmetic;
-    if (mainTab === 'out') return tabLabels.out;
+    if (mainTab === 'out') return outTabLabel();
     const t = customTabs.find(x => x.id === mainTab);
     return t ? t.name : 'جميع الأصناف';
 }
@@ -460,7 +463,7 @@ function renderBottomNav() {
         { key: 'rx', icon: '💊', name: tabLabels.rx },
         { key: 'cosmetic', icon: '✨', name: tabLabels.cosmetic },
         ...customTabs.map(t => ({ key: t.id, icon: t.icon || '🏷️', name: t.name })),
-        ...(IS_ADMIN_PAGE ? [{ key: 'out', icon: '⚠️', name: tabLabels.out }] : [])
+        { key: 'out', icon: IS_ADMIN_PAGE ? '⚠️' : '🚫', name: outTabLabel() }
     ];
     if (!tabs.some(t => t.key === mainTab)) mainTab = 'all';   // تبويب محذوف
     nav.innerHTML = tabs.map(t => `
@@ -709,7 +712,7 @@ function getBaseFilteredByTab() {
     return products.filter(p => {
         const matchDept = activeDept === ALL_DEPTS || deptsOf(p).includes(activeDept);
         if (!matchDept) return false;
-        if (mainTab === 'out') return (parseInt(p.qty) || 0) === 0;
+        if (mainTab === 'out') return !isInStock(p);
         if (mainTab === 'rx') return isRxItem(p) || inExtraTab(p, 'rx');
         if (mainTab === 'cosmetic') return (!isRxItem(p) && !isCustomItem(p)) || inExtraTab(p, 'cosmetic');
         if (customTabs.some(t => t.id === mainTab)) return p.type === mainTab || inExtraTab(p, mainTab);
@@ -841,7 +844,7 @@ function renderAll() {
         const outTab = mainTab === 'out' && !rawQ;
         container.innerHTML = `<div class="empty-state empty-wide">
             <div class="empty-ico">${outTab ? '🎉' : '🔎'}</div>
-            <div>${outTab ? 'لا توجد نواقص الآن' : rawQ ? 'لا توجد نتائج لـ «' + escapeHtml(rawQ) + '»' : activeFilterCount() ? 'لا توجد أصناف تطابق الفلاتر المختارة' : 'لا توجد أصناف هنا بعد'}</div>
+            <div>${outTab ? (IS_ADMIN_PAGE ? 'لا توجد نواقص الآن' : 'كل الأصناف متوفرة حالياً') : rawQ ? 'لا توجد نتائج لـ «' + escapeHtml(rawQ) + '»' : activeFilterCount() ? 'لا توجد أصناف تطابق الفلاتر المختارة' : 'لا توجد أصناف هنا بعد'}</div>
             ${rawQ ? '<button type="button" class="empty-btn" onclick="clearSearch()">مسح البحث</button>' : (activeFilterCount() ? '<button type="button" class="empty-btn" onclick="resetFilters()">مسح الفلاتر</button>' : '')}
         </div>`;
         return;
