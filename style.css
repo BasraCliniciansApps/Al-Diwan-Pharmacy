@@ -2002,3 +2002,8 @@ body:not(.admin-page) .app-header-row { justify-content: space-between; margin-b
 
 .pu-seq{cursor:pointer;color:var(--accent,#0d8a78);font-weight:800}
 @media print{.pu-seq{color:inherit}}
+
+.pu-seqbox{flex:0 0 auto;min-width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#0f1c38;color:#fff;font-weight:800;font-size:.9rem;cursor:pointer;margin-inline-end:8px}
+.pu-logbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pu-logbar select{padding:9px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:#fff}
+.pu-logbar .bill-list-search{flex:1 1 180px;min-width:0}

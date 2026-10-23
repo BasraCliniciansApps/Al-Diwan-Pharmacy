@@ -306,10 +306,10 @@ async function puSave() {
     let rec;
     if (editing) {
         const diff = paid - puNum(editing.paid);
-        rec = { ...editing, stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, notes: pu.notes.trim(), editedAt: new Date().toISOString() };
+        rec = { ...editing, seq: (editing.seq && puMonthOf({ ...editing, date: pu.date, useEntry: !!pu.useEntry }) === puMonthOf(editing)) ? editing.seq : puNextSeq(puMonthOf({ ...editing, date: pu.date, useEntry: !!pu.useEntry }), editing.id), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, notes: pu.notes.trim(), editedAt: new Date().toISOString() };
         rec.payments = (editing.payments || []).slice(); if (Math.abs(diff) > 0.001) rec.payments.push({ at: todayLocalISO(), amount: diff, adj: true });
     } else {
-        rec = { id: 'pu' + Date.now(), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
+        rec = { id: 'pu' + Date.now(), seq: puNextSeq((pu.useEntry ? todayLocalISO() : String(pu.date)).slice(0, 7)), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
     }
     await puSaveRecord(rec);
     await puUpsertSupplier(supplier);
@@ -327,10 +327,11 @@ function puEdit(id) {
 }
 
 // ---------- السجل ----------
-function puCardHtml(r, extra) {
+function puCardHtml(r, extra, withSeq) {
     const rem = puRemaining(r);
     const tags = (r.cancelled ? '<em class="tg bad">ملغى</em>' : '') + (rem > 0 ? `<em class="tg warn">متبقي ${fmtNum(rem)}</em>` : '') + (puNum(r.returnAmt) > 0 ? `<em class="tg">استرجاع ${fmtNum(r.returnAmt)}</em>` : '') + (r.stmt ? '<em class="tg">✓ كشف</em>' : '');
     return `<div class="bill-card ${r.cancelled ? 'cancelled' : ''}">
+        ${withSeq ? `<div class="pu-seqbox" onclick="puSeqEdit('${r.id}', event)" title="رقم القائمة في الشهر — انقر للتعديل">${r.seq || '؟'}</div>` : ''}
         <div class="bill-card-main" onclick="puOpen('${r.id}')">
             <b>${escapeHtml(r.supplier)}</b> <span dir="ltr">${escapeHtml(r.no)}</span> ${tags}
             <small>${escapeHtml(fmtDateDMY(r.date))} • ${(r.items || []).length} مادة</small>
@@ -354,10 +355,33 @@ async function puDeletePermanently(id) {
         Swal.fire({ icon: 'success', title: 'حُذف الوارد نهائياً', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
 }
+// ترقيم القوائم الشهري (عمود «ت» في الإكسل): يبدأ من 1 كل شهر ويتبع الإدخال، ويمكن تعديله بالنقر عليه
+function puMonthRecs(m) { return puAll.filter(r => !puIsBonusOnly(r) && puMonthOf(r) === m); }
+function puNextSeq(m, exceptId) { return puMonthRecs(m).filter(r => r.id !== exceptId).reduce((a, r) => Math.max(a, parseInt(r.seq) || 0), 0) + 1; }
+function puSeqCmp(a, b) { return ((parseInt(a.seq) || 1e9) - (parseInt(b.seq) || 1e9)) || String(a.createdTs || a.date).localeCompare(String(b.createdTs || b.date)); }
+function puMonthsList() { return [...new Set(puAll.filter(r => !puIsBonusOnly(r)).map(puMonthOf).filter(Boolean))].sort().reverse(); }
+function puLogFillMonths() {
+    const sel = $b('puLogMonth'); if (!sel) return;
+    const cur = sel.value, ms = puMonthsList();
+    sel.innerHTML = '<option value="">كل الأشهر</option>' + ms.map(m => `<option value="${m}">${m} (${puMonthRecs(m).length})</option>`).join('');
+    sel.value = ms.includes(cur) ? cur : (ms[0] || '');
+}
 function renderPuLog() {
-    const q = puKey($b('puLogSearch').value);
-    const arr = puAll.filter(r => !puIsBonusOnly(r)).filter(r => !q || [r.supplier, r.no].some(x => puKey(x).includes(q)));
-    $b('puLogList').innerHTML = arr.map(r => puCardHtml(r)).join('') || '<div class="bill-none">لا توجد واردات مسجّلة بعد.</div>';
+    puLogFillMonths();
+    const q = puKey($b('puLogSearch').value), m = $b('puLogMonth') ? $b('puLogMonth').value : '';
+    let arr = puAll.filter(r => !puIsBonusOnly(r)).filter(r => !m || puMonthOf(r) === m).filter(r => !q || [r.supplier, r.no].some(x => puKey(x).includes(q)));
+    arr = m ? arr.slice().sort(puSeqCmp) : arr.slice().sort((a, b) => puMonthOf(b).localeCompare(puMonthOf(a)) || puSeqCmp(a, b));
+    $b('puLogList').innerHTML = arr.map(r => puCardHtml(r, undefined, true)).join('') || '<div class="bill-none">لا توجد واردات مسجّلة بعد.</div>';
+}
+async function puSeqEdit(id, ev) {
+    if (ev) ev.stopPropagation();
+    const r = puAll.find(x => x.id === id); if (!r) return;
+    const res = await Swal.fire({ title: 'رقم القائمة في شهر ' + puMonthOf(r), text: 'يتطابق مع ترقيم القوائم الورقية', input: 'number', inputValue: r.seq || puNextSeq(puMonthOf(r), r.id), inputAttributes: { min: 1, step: 1 }, showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+    if (!res.isConfirmed) return;
+    const n = parseInt(res.value); if (!(n > 0)) return;
+    const dup = puMonthRecs(puMonthOf(r)).find(x => x.id !== r.id && parseInt(x.seq) === n);
+    if (dup) { const c = await Swal.fire({ icon: 'question', title: 'الرقم ' + n + ' مستخدم', text: 'مستخدم لقائمة ' + dup.supplier + ' (' + dup.no + '). المتابعة تعطي الرقمين نفسه.', showCancelButton: true, confirmButtonText: 'متابعة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' }); if (!c.isConfirmed) return; }
+    r.seq = n; await puSaveRecord(r); renderPuLog();
 }
 function puOpen(id) {
     const r = puAll.find(x => x.id === id); if (!r) return;
