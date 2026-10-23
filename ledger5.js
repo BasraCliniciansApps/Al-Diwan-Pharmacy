@@ -3,29 +3,21 @@
 // kind: breq في pharmacy_ledger. يعتمد على ledger.js و purchase.js
 // =====================================================================
 LG_REGS.push('breq');
-LG_HUB.splice(LG_HUB.length - 1, 0, ['breq', '🙋', 'طلبات البونص', 'ما طلبته من المذاخر وحالة استلامه']);
+LG_HUB.splice(LG_HUB.length - 1, 0, ['breq', '🙋', 'طلبات البونص', 'ما طلبته من المذاخر والمندوبين']);
 
-let lgBreqSeg = 'pending';
 const lgBreqs = () => lgAll.filter(e => e.kind === 'breq' && !e.del);
 function lgInitBreq() { lgFillSupSelect('lgqSup'); lgRenderBreq(); }
 function lgBreqFiltered() {
     const q = puKey(($b('lgqQ') || {}).value), sup = ($b('lgqSup') || {}).value;
-    return lgBreqs().filter(e => (lgBreqSeg === 'all' || (lgBreqSeg === 'got' ? !!e.received : !e.received)) && (!sup || puKey(e.supplier) === puKey(sup)) && (!q || [e.name, e.company, e.supplier, e.rep, e.listNo].some(x => puKey(x).includes(q))))
+    return lgBreqs().filter(e => (!sup || puKey(e.supplier) === puKey(sup)) && (!q || [e.name, e.company, e.supplier, e.rep, e.listNo].some(x => puKey(x).includes(q))))
         .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 }
-function lgBreqSeqSet(seg) { lgBreqSeg = seg; lgRenderBreq(); }
 function lgRenderBreq() {
     if (!$b('lgq-list')) return;
-    const all = lgBreqs(), arr = lgBreqFiltered(), got = all.filter(e => e.received).length;
-    $b('lgq-sum').innerHTML = `<span>طلبات البونص</span><b>${all.length - got} بانتظار الاستلام</b><small>${got} مستلمة • الإجمالي ${all.length}</small>`;
-    document.querySelectorAll('#lgq-seg button').forEach(b => b.classList.toggle('active', b.dataset.s === lgBreqSeg));
-    $b('lgq-list').innerHTML = arr.map(e => `<div class="bill-card"><div class="bill-card-main"><b dir="ltr">${escapeHtml(e.name)}</b> ${e.received ? '<em class="tg">✓ مستلم</em>' : '<em class="tg warn">بانتظار</em>'}<small>${escapeHtml(e.company || '')} • ${fmtNum(e.qty)} عبوة • ${escapeHtml(e.supplier || '')}${e.listNo ? ' • قائمة ' + escapeHtml(e.listNo) : ''}${e.date ? ' • ' + escapeHtml(fmtDateDMY(e.date)) : ''}${e.rep ? ' • المندوب ' + escapeHtml(e.rep) : ''}${e.received ? ' • ' + escapeHtml(e.received) : ''}</small></div>` +
-        `<button type="button" class="bill-tb-btn ${e.received ? '' : 'bill-pay'}" onclick="lgBreqToggle('${e.id}')">${e.received ? 'إلغاء الاستلام' : 'استلمتُه'}</button><button type="button" class="bill-tb-btn bill-danger" onclick="lgBreqDel('${e.id}')">🗑</button></div>`).join('') || '<div class="bill-none">لا توجد طلبات هنا.</div>';
-}
-async function lgBreqToggle(id) {
-    const e = lgAll.find(x => x.id === id); if (!e) return;
-    e.received = e.received ? '' : ('استُلم ' + fmtDateDMY(todayLocalISO()));
-    await lgSave(e); lgRenderBreq();
+    const all = lgBreqs(), arr = lgBreqFiltered();
+    $b('lgq-sum').innerHTML = `<span>طلبات البونص</span><b>${arr.length} طلب</b><small>الإجمالي ${all.length} • البونص المسجَّل يُعدّ مستلماً دائماً، وهذا سجل لما طُلب فقط</small>`;
+    $b('lgq-list').innerHTML = arr.map(e => `<div class="bill-card"><div class="bill-card-main"><b dir="ltr">${escapeHtml(e.name)}</b><small>${escapeHtml(e.company || '')} • ${fmtNum(e.qty)} عبوة • ${escapeHtml(e.supplier || '')}${e.listNo ? ' • قائمة ' + escapeHtml(e.listNo) : ''}${e.date ? ' • ' + escapeHtml(fmtDateDMY(e.date)) : ''}${e.rep ? ' • المندوب ' + escapeHtml(e.rep) : ''}${e.received ? ' • ' + escapeHtml(e.received) : ''}</small></div>` +
+        `<button type="button" class="bill-tb-btn bill-danger" onclick="lgBreqDel('${e.id}')">🗑</button></div>`).join('') || '<div class="bill-none">لا توجد طلبات هنا.</div>';
 }
 async function lgBreqDel(id) {
     const e = lgAll.find(x => x.id === id); if (!e) return;
