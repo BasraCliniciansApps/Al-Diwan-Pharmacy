@@ -93,7 +93,7 @@ function updateIssuedUI() {
     sheet.classList.toggle('cancelled', cancelled);
     show('billNewBtn', !editing);
     show('billPrintOnlyBtn', !issued); show('billIssueOnlyBtn', !issued); show('billIssueBtn', !issued);
-    show('billReprintBtn', issued && !editing && !cancelled); show('billEditBtn', issued && !editing && !cancelled); show('billCancelBtn', issued && !editing && !cancelled);
+    show('billReprintBtn', issued && !editing && !cancelled); show('billEditBtn', issued && !editing && !cancelled); show('billCancelBtn', issued && !editing && !cancelled); show('billDeleteBtn', issued && cancelled);
     show('billEditBackBtn', editing); show('billSaveEditBtn', editing); show('billSaveEditPrintBtn', editing);
     if (issued) {
         note.style.display = 'block';
@@ -463,6 +463,25 @@ async function cancelInvoice(target) {
     Swal.fire({ icon: 'success', title: 'أُلغيت الفاتورة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
 }
 
+// حذف نهائي لفاتورة ملغاة فقط (لا يمكن التراجع عنه)؛ الكميات أُرجعت أصلاً عند الإلغاء
+async function deleteInvoicePermanently(id) {
+    id = id || (bill && bill.id);
+    const b = billAll.find(x => x.id === id) || (bill && bill.id === id ? bill : null);
+    if (!b || !b.cancelled) { Swal.fire({ icon: 'info', title: 'الحذف النهائي للفواتير الملغاة فقط', text: 'ألغِ الفاتورة أولاً ثم احذفها.', confirmButtonColor: '#0f1c38' }); return; }
+    const r = await Swal.fire({ icon: 'warning', title: 'حذف الفاتورة ' + escapeHtml(b.no || '') + ' نهائياً؟', html: 'ستُحذف من هذا الجهاز ومن السحابة ولا يمكن استرجاعها.<br>لا يتأثر المخزون ولا حسابات المبيعات (فهي ملغاة أصلاً).', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'احذف نهائياً', cancelButtonText: 'تراجع' });
+    if (!r.isConfirmed) return;
+    if (cloudReady() && !navigator.onLine && !persistenceOn) { Swal.fire({ icon: 'error', title: 'لا يوجد اتصال', text: 'الحذف النهائي يحتاج اتصالاً حتى لا تعود الفاتورة من السحابة.', confirmButtonColor: '#0f1c38' }); return; }
+    try {
+        if (cloudReady()) await fsWrite(db.collection('pharmacy_invoices').doc(b.id).delete());
+        let list = []; try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
+        lsSet(BILL_LS.list, JSON.stringify(list.filter(x => x.id !== b.id)));
+        billAll = billAll.filter(x => x.id !== b.id);
+        if (bill && bill.id === b.id) { bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); }
+        billTab(currentBillTab === 'new' ? 'issued' : (currentBillTab || 'issued'));
+        Swal.fire({ icon: 'success', title: 'حُذفت الفاتورة نهائياً', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
+}
+
 // ---------- أرشيف الفواتير ----------
 function invRemaining(b) {
     if (!b.issued || b.cancelled || b.paid === '' || b.paid == null) return 0;
@@ -535,7 +554,7 @@ function billCardHtml(b, extra) {
             <small>${escapeHtml(fmtDateDMY(b.date))} • ${(b.items || []).length} مادة</small>
         </div>
         <div class="bill-card-amt">${fmtNum(invTotalOf(b))}<small>د.ع</small></div>
-        ${extra || ''}
+        ${extra || (b.cancelled ? `<button type="button" class="bill-tb-btn bill-danger" onclick="deleteInvoicePermanently('${b.id}')">🗑 حذف</button>` : '')}
     </div>`;
 }
 function renderIssuedList() {
