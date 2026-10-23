@@ -334,8 +334,23 @@ function puCardHtml(r, extra) {
             <small>${escapeHtml(fmtDateDMY(r.date))} • ${(r.items || []).length} مادة</small>
         </div>
         <div class="bill-card-amt">${fmtNum(puNetOf(r))}<small>د.ع</small></div>
-        ${extra || ''}
+        ${extra || (r.cancelled ? `<button type="button" class="bill-tb-btn bill-danger" onclick="puDeletePermanently('${r.id}')">🗑 حذف</button>` : '')}
     </div>`;
+}
+// حذف نهائي لوارد ملغى فقط؛ الكميات أُنقصت أصلاً عند الإلغاء ولا يدخل في المستحقات
+async function puDeletePermanently(id) {
+    const r = puAll.find(x => x.id === id);
+    if (!r || !r.cancelled) { Swal.fire({ icon: 'info', title: 'الحذف النهائي للوارد الملغى فقط', text: 'ألغِ الوارد أولاً ثم احذفه.', confirmButtonColor: '#0f1c38' }); return; }
+    const c = await Swal.fire({ icon: 'warning', title: 'حذف وارد ' + escapeHtml(r.supplier) + ' (' + escapeHtml(r.no) + ') نهائياً؟', html: 'سيُحذف من هذا الجهاز ومن السحابة ولا يمكن استرجاعه.<br>لا يتأثر المخزون ولا مستحقات المذاخر (فهو ملغى أصلاً).', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'احذف نهائياً', cancelButtonText: 'تراجع' });
+    if (!c.isConfirmed) return;
+    if (cloudReady() && !navigator.onLine && !persistenceOn) { Swal.fire({ icon: 'error', title: 'لا يوجد اتصال', text: 'الحذف النهائي يحتاج اتصالاً حتى لا يعود الوارد من السحابة.', confirmButtonColor: '#0f1c38' }); return; }
+    try {
+        if (cloudReady()) await fsWrite(db.collection('pharmacy_purchases').doc(r.id).delete());
+        puAll = puAll.filter(x => x.id !== r.id);
+        lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500)));
+        if (typeof renderPuLog === 'function' && $b('puLogList')) renderPuLog();
+        Swal.fire({ icon: 'success', title: 'حُذف الوارد نهائياً', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
 }
 function renderPuLog() {
     const q = puKey($b('puLogSearch').value);
@@ -353,7 +368,7 @@ function puOpen(id) {
             <div class="pu-d-scroll"><table class="bill-table"><thead><tr><th>المادة</th><th>العدد</th><th>السعر</th><th>الانتهاء</th><th>الدفعة</th><th>المجموع</th></tr></thead><tbody>${rows}</tbody></table></div>
             <div class="pu-d-tot"><div>المجموع: <b>${fmtNum(puTotalOf(r))}</b></div><div>الاسترجاع: <b>${fmtNum(puNum(r.returnAmt) + (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0))}</b></div><div>الصافي: <b>${fmtNum(puNetOf(r))}</b></div><div>المدفوع: <b>${fmtNum(r.paid)}</b></div><div>المتبقي: <b>${fmtNum(puRemaining(r))}</b></div></div>
             <div class="pu-d-pays"><b>الدفعات:</b>${pays}</div>${typeof lgLinkedHtml === 'function' ? lgLinkedHtml(r.id) : ''}${r.notes ? `<div class="pu-d-pays"><b>ملاحظات:</b> ${escapeHtml(r.notes)}</div>` : ''}
-            <div class="pu-d-btns">${r.cancelled ? '' : btn('✏️ تعديل الفاتورة', `puEdit('${r.id}')`) + btn('💳 تسديد', `puPay('${r.id}')`, 'bill-pay') + btn('📦 إرجاع مواد', `lgOpenReturn({listId:'${r.id}'})`) + btn('↩️ مبلغ الاسترجاع', `puSetReturn('${r.id}')`) + btn('✖ إلغاء الوارد', `puCancel('${r.id}')`, 'bill-danger')}</div></div>`
+            <div class="pu-d-btns">${r.cancelled ? btn('🗑 حذف نهائي', `puDeletePermanently('${r.id}')`, 'bill-danger') : btn('✏️ تعديل الفاتورة', `puEdit('${r.id}')`) + btn('💳 تسديد', `puPay('${r.id}')`, 'bill-pay') + btn('📦 إرجاع مواد', `lgOpenReturn({listId:'${r.id}'})`) + btn('↩️ مبلغ الاسترجاع', `puSetReturn('${r.id}')`) + btn('✖ إلغاء الوارد', `puCancel('${r.id}')`, 'bill-danger')}</div></div>`
     });
 }
 async function puSetReturn(id) {
