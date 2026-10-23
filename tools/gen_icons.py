@@ -10,7 +10,7 @@ MAP = {
  '🛒':'shopping-cart','📚':'library','💬':'message-circle','⬇️':'download','🏥':'hospital','🔗':'link','📉':'trending-down','📴':'wifi-off',
  '🤖':'bot','🔐':'lock','🔒':'lock','♻️':'recycle','🌐':'globe','📷':'camera','📸':'camera','🧾':'receipt-text','🏭':'warehouse',
  '👤':'user','🚫':'ban','⛔':'ban','📁':'folder','📖':'book-open','💡':'lightbulb','★':'star','⬆️':'arrow-up','💰':'wallet',
- '🔵':'dot','🟢':'dot','🔴':'dot','🟡':'dot','⭐':'star','📌':'pin','🔙':'arrow-right','✔️':'check','✔':'check','❗':'circle-alert','❓':'circle-help','ℹ️':'info','ℹ':'info','📝':'file-pen','📄':'file-text','🔧':'wrench','🛠️':'wrench','⏰':'alarm-clock','🕒':'clock','⬅️':'arrow-right','➡️':'arrow-left','▶️':'play','⏸️':'pause','📞':'phone','📱':'smartphone','✉️':'mail','💲':'banknote','🛑':'octagon-x','🆕':'sparkles','▦':'scan-barcode','⟳':'refresh-cw','🔽':'chevron-down','🔼':'chevron-up'}
+ '🔵':'dot','🟢':'dot','🔴':'dot','🟡':'dot','⭐':'star','📌':'pin','🔙':'arrow-right','✔️':'check','✔':'check','❗':'circle-alert','❓':'circle-help','ℹ️':'info','ℹ':'info','📝':'file-pen','📄':'file-text','🔧':'wrench','🛠️':'wrench','⏰':'alarm-clock','🕒':'clock','⬅️':'arrow-right','➡️':'arrow-left','▶️':'play','⏸️':'pause','📞':'phone','📱':'smartphone','✉️':'mail','💲':'banknote','🛑':'octagon-x','🆕':'sparkles','▦':'scan-barcode','⟳':'refresh-cw','⏻':'log-out','🚪':'log-out','☀️':'sun','🌙':'moon','🔽':'chevron-down','🔼':'chevron-up'}
 icons = {}
 for k, n in MAP.items():
     f = L + n + '.svg'
@@ -27,7 +27,7 @@ js = '''// أيقونات Lucide (رخصة ISC) — خطية أحادية الل
     var ICONS = %s;
     var MAP = %s;
     var RE = new RegExp('(' + Object.keys(MAP).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return k.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }).join('|') + ')\\\\uFE0F?', 'g');
-    var ANY = new RegExp('[\\\\u{1F300}-\\\\u{1FAFF}\\\\u2600-\\\\u27BF\\\\u2B50\\\\u2B06\\\\u2B07\\\\u25A6\\u27F3\\u2B05\\\\u2705\\\\u23F3\\\\u23F0\\\\u2139\\\\u2764]\\\\uFE0F?', 'gu');
+    var ANY = new RegExp('[\\\\u{1F300}-\\\\u{1FAFF}\\\\u2600-\\\\u27BF\\\\u2B50\\\\u2B06\\\\u2B07\\\\u23FB\\u25A6\\u27F3\\u2B05\\\\u2705\\\\u23F3\\\\u23F0\\\\u2139\\\\u2764]\\\\uFE0F?', 'gu');
     var SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, INPUT: 1, OPTION: 1, SELECT: 1, TITLE: 1, SVG: 1, svg: 1, NOSCRIPT: 1 };
     function svg(name) {
         return '<svg class="ic ic-' + name + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (name === 'dot' ? '<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/>' : ICONS[name]) + '</svg>';

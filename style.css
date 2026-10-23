@@ -1881,3 +1881,7 @@ body.admin-page[data-view="purch"] #purchView { display: block; }
 .ic { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -0.24em; flex-shrink: 0; margin-inline: 0.08em; }
 .ic-dot { width: .8em; height: .8em; vertical-align: -0.05em; }
 button .ic, .tile .ic { pointer-events: none; }
+
+/* v34: صف الشعار في صفحة الزبائن + زر الوضع */
+body:not(.admin-page) .app-header-row { justify-content: space-between; margin-bottom: 12px; }
+.small-icon-btn .ic, .gate-theme .ic { width: 1.25em; height: 1.25em; margin: 0; vertical-align: middle; }

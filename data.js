@@ -4304,8 +4304,11 @@ function applyTheme(t) {
     document.documentElement.setAttribute('data-theme', t);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', t === 'dark' ? '#0a1020' : '#0f1c38');
-    const btn = document.getElementById('themeBtn');
-    if (btn) { btn.innerHTML = t === 'dark' ? ICONS.sun : ICONS.moon; btn.title = t === 'dark' ? 'الوضع الفاتح' : 'الوضع الداكن'; }
+    // الأيقونة تعكس الوضع الحالي: شمس = نهاري، هلال = ليلي (كل أزرار التبديل في كل الصفحات)
+    document.querySelectorAll('button[onclick="toggleTheme()"]').forEach(btn => {
+        btn.innerHTML = (window.AppIcons && AppIcons.svg) ? AppIcons.svg(t === 'dark' ? 'moon' : 'sun') : (t === 'dark' ? ICONS.moon : ICONS.sun);
+        btn.title = t === 'dark' ? 'الوضع الليلي — اضغط للنهاري' : 'الوضع النهاري — اضغط لليلي';
+    });
 }
 
 function toggleTheme() {
