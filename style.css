@@ -1999,3 +1999,6 @@ body:not(.admin-page) .app-header-row { justify-content: space-between; margin-b
 .bk-rem button { border: 0; background: #0f1c38; color: #fff; border-radius: 9px; padding: 6px 12px; font: inherit; cursor: pointer; }
 [data-theme="dark"] .bk-rem.warn { background: #3b2f12; color: #fcd34d; border-color: #7c5e10; }
 [data-theme="dark"] .bk-rem.ok { background: #0f2f27; color: #6ee7b7; }
+
+.pu-seq{cursor:pointer;color:var(--accent,#0d8a78);font-weight:800}
+@media print{.pu-seq{color:inherit}}

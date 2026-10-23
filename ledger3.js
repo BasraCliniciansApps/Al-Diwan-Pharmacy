@@ -174,16 +174,17 @@ function lgXferData() {
     const xs = lgXfers().filter(e => lgInR(rg, e.date) && okP(e)), ps = lgXpays().filter(e => lgInR(rg, e.date) && okP(e));
     const t = (arr, f) => arr.filter(f).reduce((s, e) => s + puNum(e.amount), 0);
     const out = t(xs, e => e.dir === 'out'), inn = t(xs, e => e.dir === 'in'), recv = t(ps, e => e.dir === 'recv'), paid = t(ps, e => e.dir === 'paid');
-    return { rg, ph, xs, ps, out, inn, recv, paid, bal: out - inn - recv + paid, all: [...xs.map(e => ({ ...e, _t: 'x' })), ...ps.map(e => ({ ...e, _t: 'p' }))].sort(lgSortD) };
+    return { rg, ph, xs, ps, out, inn, recv, paid, bal: out - inn - recv + paid, all: [...xs.map(e => ({ ...e, _t: 'x' })), ...ps.map(e => ({ ...e, _t: 'p' }))].sort((a, b) => lgOrdCmp('xfer', e => e)(a, b) || lgSortD(a, b)) };
 }
 const lgXLabel = e => e._t === 'p' ? (e.dir === 'recv' ? 'دفعة مستلمة' : 'دفعة مدفوعة') : (e.dir === 'out' ? 'إرسال' : 'استلام') + ({ credit: ' (بالآجل)', consign: ' (على التصريف)', cash: ' (نقداً)' }[e.mode] || '');
 function lgRenderXfer() {
     if (!$b('lgxf-list')) return;
     const d = lgXferData();
+    lgSeqSet('xfer', d.all.map(e => ({ kind: 'lg', id: e.id })));
     $b('lgxf-sum').innerHTML = `<span>${d.ph ? escapeHtml(d.ph) + ' — ' : ''}الصافي ${d.bal >= 0 ? 'لك' : 'عليك'}</span><b>${fmtNum(Math.abs(d.bal))} د.ع</b><small>مُرسل ${fmtNum(d.out)} • مُستلَم ${fmtNum(d.inn)} • دفعات مستلمة ${fmtNum(d.recv)} • مدفوعة ${fmtNum(d.paid)}</small>`;
     $b('lgxf-list').innerHTML = d.all.map(e => `<div class="bill-card"><div class="bill-card-main" onclick="lgXferOpen('${e.id}')"><b>${escapeHtml(e.pharmacy || '')}</b> <em class="tg ${e._t === 'x' && e.dir === 'out' ? 'warn' : ''}">${lgXLabel(e)}</em><small>${escapeHtml(fmtDateDMY(e.date))}${e.items ? ' • ' + e.items.length + ' مادة' : ''}${e.note ? ' • ' + escapeHtml(e.note) : ''}</small></div><div class="bill-card-amt">${fmtNum(e.amount)}<small>د.ع</small></div></div>`).join('') || '<div class="bill-none">لا توجد مناقلات. أضف صيدلية ثم سجّل أول مناقلة.</div>';
     $b('lgxf-sheet').innerHTML = lgLetterhead('كشف المناقلة بين الصيدليات', escapeHtml(d.ph || 'كل الصيدليات') + ' — ' + escapeHtml(d.rg.label)) +
-        `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th class="pu-n">#</th><th>التاريخ</th>${d.ph ? '' : '<th>الصيدلية</th>'}<th>النوع</th><th>المواد</th><th>المبلغ</th></tr></thead><tbody>${d.all.map((e, i) => `<tr><td class="pu-n">${i + 1}</td><td>${escapeHtml(fmtDateDMY(e.date))}</td>${d.ph ? '' : `<td>${escapeHtml(e.pharmacy || '')}</td>`}<td>${lgXLabel(e)}</td><td dir="ltr" style="text-align:right">${escapeHtml(e.items ? lgItemsTxt(e) : (e.note || ''))}</td><td>${fmtNum(e.amount)}</td></tr>`).join('') || `<tr><td colspan="${d.ph ? 5 : 6}">لا توجد مناقلات.</td></tr>`}</tbody>` +
+        `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th class="pu-n">#</th><th>التاريخ</th>${d.ph ? '' : '<th>الصيدلية</th>'}<th>النوع</th><th>المواد</th><th>المبلغ</th></tr></thead><tbody>${d.all.map((e, i) => `<tr>${lgSeqCell('xfer', i + 1)}<td>${escapeHtml(fmtDateDMY(e.date))}</td>${d.ph ? '' : `<td>${escapeHtml(e.pharmacy || '')}</td>`}<td>${lgXLabel(e)}</td><td dir="ltr" style="text-align:right">${escapeHtml(e.items ? lgItemsTxt(e) : (e.note || ''))}</td><td>${fmtNum(e.amount)}</td></tr>`).join('') || `<tr><td colspan="${d.ph ? 5 : 6}">لا توجد مناقلات.</td></tr>`}</tbody>` +
         `<tfoot><tr><td colspan="${d.ph ? 4 : 5}">مُرسل ${fmtNum(d.out)} − مُستلَم ${fmtNum(d.inn)} − دفعات مستلمة ${fmtNum(d.recv)} + دفعات مدفوعة ${fmtNum(d.paid)}</td><td>${fmtNum(d.bal)}</td></tr></tfoot></table></div>` +
         `<div class="bill-bottom"><div class="bill-totals"><div class="bill-trow bill-grand"><span>الصافي ${d.bal >= 0 ? 'المستحق لنا' : 'المستحق علينا'}</span><b>${fmtNum(Math.abs(d.bal))} د.ع</b></div></div></div>`;
 }

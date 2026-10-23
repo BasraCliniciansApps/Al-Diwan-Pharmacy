@@ -115,3 +115,21 @@ function bkRenderReminder() {
     el.innerHTML = `<div class="bk-rem warn"><span>⚠️ ${txt}</span><button type="button" onclick="exportFullBackup()">تحميل الآن</button></div>`;
 }
 document.addEventListener('DOMContentLoaded', () => { bkRenderReminder(); setInterval(bkRenderReminder, 600000); });
+
+// ---------- استيراد السجل التاريخي (وارد/مردود/تسديد/...) من الإكسل: لا يمس المخزن أبداً ----------
+async function applyHistoryImport(data) {
+    const plan = bkPlan(data).filter(p => p.total);
+    const rows = plan.map(p => `${p.c.label}: <b>${p.add.length}</b> جديد، ${p.upd.length} محدَّث، ${p.keep} موجود بحاله`).join('<br>');
+    const nAdd = plan.reduce((s, p) => s + p.add.length, 0);
+    const ok = await Swal.fire({ title: 'استيراد السجل التاريخي؟', icon: 'question', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم، استورد', cancelButtonText: 'إلغاء',
+        html: `<div style="text-align:right;line-height:1.9;font-size:.92rem">${rows}<br><span style="color:#64748b">لا يتغير المخزن ولا كميات الأصناف ولا أسعارها. لا يُستبدل أي سجل موجود. تُنزَّل نسخة احتياطية كاملة قبل الاستيراد.</span></div>` });
+    if (!ok.isConfirmed) return;
+    if (!nAdd) { Swal.fire({ icon: 'info', title: 'لا جديد للاستيراد', text: 'كل هذه السجلات موجودة أصلاً.', confirmButtonColor: '#0f1c38' }); return; }
+    try {
+        await downloadFile(`diwan-before-history-import-${todayStamp()}.json`, JSON.stringify(buildFullBackup()), 'application/json');
+        await bkApplyPlan(plan);
+        if (typeof lgLoad === 'function') { try { await lgLoad(); } catch (e) { /* تجاهل */ } }
+        renderAll();
+        Swal.fire({ icon: 'success', title: 'تم استيراد السجل', text: plan.filter(p => p.add.length).map(p => `${p.c.label}: +${p.add.length}`).join('\n'), confirmButtonColor: '#0f1c38' });
+    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الاستيراد', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
+}

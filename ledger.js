@@ -100,7 +100,7 @@ function lgStmtData(from, to, sup, group) {
     });
     rets.filter(e => !e.listId && e.mode === 'net' && inR(lgMonthOfDate(e.date)) && okSup(e.supplier)).forEach(e => rows.push({ t: 'ret', m: lgMonthOfDate(e.date), date: e.date, ts: e.createdTs || '', sup: e.supplier, no: e.cnNo || '', total: 0, ret: puNum(e.amount), net: -puNum(e.amount), ev: e }));
     rets.filter(e => e.mode === 'unrec' && e.deductMonth && inR(e.deductMonth) && okSup(e.supplier)).forEach(e => rows.push({ t: 'ded', m: e.deductMonth, date: e.date, ts: e.createdTs || '', sup: e.supplier, no: e.cnNo || '', total: 0, ret: puNum(e.amount), net: -puNum(e.amount), ev: e }));
-    rows.sort((a, b) => (group ? puKey(a.sup).localeCompare(puKey(b.sup), 'ar') : 0) || String(a.date).localeCompare(String(b.date)) || String(a.ts).localeCompare(String(b.ts)));
+    rows.sort((a, b) => (group ? puKey(a.sup).localeCompare(puKey(b.sup), 'ar') : 0) || lgOrdCmp('stmt', x => x.r || x.ev)(a, b) || String(a.date).localeCompare(String(b.date)) || String(a.ts).localeCompare(String(b.ts)));
     const sum = list => ({ total: list.reduce((s, x) => s + x.total, 0), ret: list.reduce((s, x) => s + x.ret, 0), net: list.reduce((s, x) => s + x.net, 0), n: list.filter(x => x.t === 'inv').length });
     return { rows, sum: sum(rows), sumOf: sum };
 }
@@ -108,11 +108,11 @@ function lgRowLabel(x) { return x.t === 'inv' ? '' : x.t === 'ret' ? 'مردود
 function lgStmtRowHtml(x, i, detail) {
     const ck = (kind, id, on) => `<td class="pu-ck" onclick="lgToggleStmt('${kind}','${id}')">${on ? '✓' : ''}</td>`;
     if (x.t === 'inv') {
-        let h = `<tr><td class="pu-n">${i}</td>${ck('inv', x.r.id, x.r.stmt)}<td>${escapeHtml(x.sup)}</td><td dir="ltr">${escapeHtml(x.no)}</td><td>${escapeHtml(fmtDateDMY(x.date))}${x.r.useEntry ? ' <sup title="شهرها بتاريخ الإدخال">*</sup>' : ''}</td><td>${fmtNum(x.total)}</td><td>${x.ret ? fmtNum(x.ret) : ''}</td><td>${fmtNum(x.net)}</td></tr>`;
+        let h = `<tr>${lgSeqCell('stmt', i)}${ck('inv', x.r.id, x.r.stmt)}<td>${escapeHtml(x.sup)}</td><td dir="ltr">${escapeHtml(x.no)}</td><td>${escapeHtml(fmtDateDMY(x.date))}${x.r.useEntry ? ' <sup title="شهرها بتاريخ الإدخال">*</sup>' : ''}</td><td>${fmtNum(x.total)}</td><td>${x.ret ? fmtNum(x.ret) : ''}</td><td>${fmtNum(x.net)}</td></tr>`;
         if (detail) x.subs.forEach(e => { h += `<tr class="pu-sub"><td></td><td></td><td colspan="3">↩️ مردود: ${escapeHtml(e.reason || '')}${e.cnNo ? ' — فاتورة مردود ' + escapeHtml(e.cnNo) : ''}</td><td></td><td>${fmtNum(e.amount)}</td><td></td></tr>`; });
         return h;
     }
-    return `<tr class="pu-adj"><td class="pu-n">${i}</td>${ck('ev', x.ev.id, x.ev.stmt)}<td>${escapeHtml(x.sup)}</td><td colspan="2">${escapeHtml(lgRowLabel(x))}${x.no ? ' — ' + escapeHtml(x.no) : ''}</td><td></td><td>${fmtNum(x.ret)}</td><td>${fmtNum(x.net)}</td></tr>`;
+    return `<tr class="pu-adj">${lgSeqCell('stmt', i)}${ck('ev', x.ev.id, x.ev.stmt)}<td>${escapeHtml(x.sup)}</td><td colspan="2">${escapeHtml(lgRowLabel(x))}${x.no ? ' — ' + escapeHtml(x.no) : ''}</td><td></td><td>${fmtNum(x.ret)}</td><td>${fmtNum(x.net)}</td></tr>`;
 }
 function lgLetterhead(title, sub) {
     const meta = getInvMeta();
@@ -135,6 +135,7 @@ function renderPuMonth() {
     }
     if (!rg.year || detail) {
         let i = 0, lastSup = null, rowsHtml = '';
+        lgSeqSet('stmt', d.rows.map(x => x.t === 'inv' ? { kind: 'pu', id: x.r.id } : { kind: 'lg', id: x.ev.id }));
         d.rows.forEach(x => {
             if (group && lastSup !== puKey(x.sup)) { lastSup = puKey(x.sup); const t = d.sumOf(d.rows.filter(y => puKey(y.sup) === lastSup)); rowsHtml += `<tr class="pu-grp"><td colspan="5">${escapeHtml(x.sup)}</td><td>${fmtNum(t.total)}</td><td>${t.ret ? fmtNum(t.ret) : ''}</td><td>${fmtNum(t.net)}</td></tr>`; }
             rowsHtml += lgStmtRowHtml(x, ++i, detail);
@@ -201,7 +202,7 @@ function lgRetFiltered(kind) {
     } else {
         const y = $b('lgunrec-y').value; if (y) arr = arr.filter(e => String(e.date).slice(0, 4) === String(y));
     }
-    return arr.sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdTs).localeCompare(String(a.createdTs)));
+    return arr.sort((a, b) => lgOrdCmp(kind, e => e)(a, b) || String(b.date).localeCompare(String(a.date)) || String(b.createdTs).localeCompare(String(a.createdTs)));
 }
 function lgRetChips(e) {
     const th = lgDays(), age = lgDaysSince(e.date);
@@ -211,6 +212,7 @@ function lgRetChips(e) {
 function lgRenderRet(kind) {
     if (!$b('lg' + kind + '-list')) return;
     const arr = lgRetFiltered(kind), total = arr.reduce((s, e) => s + puNum(e.amount), 0);
+    lgSeqSet(kind, arr.map(e => ({ kind: 'lg', id: e.id })));
     if (kind === 'ret') {
         const pend = arr.filter(e => lgStatus(e) === 'pending'), late = pend.filter(e => lgDaysSince(e.date) > lgDays());
         $b('lgret-sum').innerHTML = `<span>مجموع المردود</span><b>${fmtNum(total)} د.ع</b><small>${arr.length} مردود • بانتظار فاتورة: ${pend.length}${late.length ? ' • <u style="color:#b91c1c">متأخر: ' + late.length + '</u>' : ''}</small>`;
@@ -221,7 +223,7 @@ function lgRenderRet(kind) {
     $b('lg' + kind + '-list').innerHTML = arr.map(e => `<div class="bill-card"><div class="bill-card-main" onclick="lgRetOpen('${e.id}')"><b>${escapeHtml(e.supplier)}</b> ${lgRetChips(e)}<small>${escapeHtml(fmtDateDMY(e.date))} • ${e.listNo ? 'قائمة ' + escapeHtml(e.listNo) : 'مردود عام'}${e.reason ? ' • ' + escapeHtml(e.reason) : ''}${(e.items || []).length ? ' • ' + e.items.length + ' مادة' : ''}</small></div><div class="bill-card-amt">${fmtNum(e.amount)}<small>د.ع</small></div></div>`).join('') || `<div class="bill-none">${kind === 'unrec' ? 'لا يوجد مردود غير مقطوع.' : 'لا يوجد مردود مسجّل بعد.'}</div>`;
     $b('lg' + kind + '-sheet').innerHTML = lgLetterhead(kind === 'unrec' ? 'المردود غير المقطوع' : 'سجل المردود إلى المذاخر', escapeHtml($b('lg' + kind + '-sup').value || 'كل المذاخر')) +
         `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th class="pu-n">#</th><th class="pu-ckh">الكشف</th><th>التاريخ</th><th>المذخر</th><th>قائمة الشراء</th><th>السبب</th><th>فاتورة المردود</th><th>المبلغ</th></tr></thead><tbody>` +
-        arr.map((e, i) => `<tr><td class="pu-n">${i + 1}</td><td class="pu-ck">${e.stmt ? '✓' : ''}</td><td>${escapeHtml(fmtDateDMY(e.date))}</td><td>${escapeHtml(e.supplier)}</td><td dir="ltr">${escapeHtml(e.listNo || 'عام')}</td><td>${escapeHtml(e.reason || '')}</td><td dir="ltr">${e.cnNo ? escapeHtml(e.cnNo) + (e.cnDate ? ' / ' + escapeHtml(fmtDateDMY(e.cnDate)) : '') : '—'}</td><td>${fmtNum(e.amount)}</td></tr>`).join('') +
+        arr.map((e, i) => `<tr>${lgSeqCell(kind, i + 1)}<td class="pu-ck">${e.stmt ? '✓' : ''}</td><td>${escapeHtml(fmtDateDMY(e.date))}</td><td>${escapeHtml(e.supplier)}</td><td dir="ltr">${escapeHtml(e.listNo || 'عام')}</td><td>${escapeHtml(e.reason || '')}</td><td dir="ltr">${e.cnNo ? escapeHtml(e.cnNo) + (e.cnDate ? ' / ' + escapeHtml(fmtDateDMY(e.cnDate)) : '') : '—'}</td><td>${fmtNum(e.amount)}</td></tr>`).join('') +
         `</tbody>${arr.length ? `<tfoot><tr><td colspan="7">المجموع</td><td>${fmtNum(total)}</td></tr></tfoot>` : ''}</table></div>`;
     lgTabBadge();
 }

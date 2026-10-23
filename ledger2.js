@@ -33,8 +33,8 @@ function lgPayFilter() {
     $b('lgpMW').style.display = t === 'month' ? '' : 'none'; $b('lgpYW').style.display = t === 'year' ? '' : 'none';
     const sup = $b('lgpSup').value, inR = e => { const m = lgMonthOfDate(e.date); return m >= rg.from && m <= rg.to; };
     const srt = (a, b) => String(a.date).localeCompare(String(b.date)) || String(a.createdTs).localeCompare(String(b.createdTs));
-    if (lgPaySeg === 'recv') return { rg, arr: lgRecvs().filter(inR).sort(srt) };
-    return { rg, arr: lgPays().filter(e => inR(e) && (!sup || puKey(e.supplier) === puKey(sup))).sort(srt) };
+    if (lgPaySeg === 'recv') return { rg, arr: lgRecvs().filter(inR).sort((a, b) => lgOrdCmp('recv', e => e)(a, b) || srt(a, b)) };
+    return { rg, arr: lgPays().filter(e => inR(e) && (!sup || puKey(e.supplier) === puKey(sup))).sort((a, b) => lgOrdCmp('pay', e => e)(a, b) || srt(a, b)) };
 }
 function lgMonthBreak(arr, key) {   // مجاميع شهرية لعمود رقمي
     const by = new Map(); arr.forEach(e => { const m = lgMonthOfDate(e.date); by.set(m, (by.get(m) || 0) + puNum(e[key])); });
@@ -44,6 +44,7 @@ function lgPayRender() {
     if (!$b('lgp-list')) return;
     if (lgPaySeg === 'bal') return lgRenderBalances();
     const { rg, arr } = lgPayFilter(), isRecv = lgPaySeg === 'recv';
+    lgSeqSet(lgPaySeg, arr.map(e => ({ kind: 'lg', id: e.id })));
     let sum, cards, sheet;
     if (isRecv) {
         const tot = arr.reduce((s, e) => s + puNum(e.amount), 0);
@@ -51,7 +52,7 @@ function lgPayRender() {
         cards = arr.map(e => `<div class="bill-card"><div class="bill-card-main" onclick="lgPayOpen('${e.id}')"><b>وصل ${escapeHtml(e.no || '—')}</b>${e.stmt ? ' <em class="tg">✓</em>' : ''}<small>${escapeHtml(fmtDateDMY(e.date))}${e.note ? ' • ' + escapeHtml(e.note) : ''}</small></div><div class="bill-card-amt">${fmtNum(e.amount)}<small>د.ع</small></div></div>`).join('');
         let rows = '', lastM = null, run = 0, i = 0;
         const flush = () => { if (lastM !== null) rows += `<tr class="pu-grp"><td colspan="3">مجموع شهر ${lgMonthLabel(lastM)}</td><td>${fmtNum(run)}</td><td></td></tr>`; run = 0; };
-        arr.forEach(e => { const m = lgMonthOfDate(e.date); if (m !== lastM) { flush(); lastM = m; } run += puNum(e.amount); rows += `<tr><td class="pu-n">${++i}</td><td dir="ltr">${escapeHtml(e.no || '')}</td><td>${escapeHtml(fmtDateDMY(e.date))}</td><td>${fmtNum(e.amount)}</td><td>${escapeHtml(e.note || '')}</td></tr>`; });
+        arr.forEach(e => { const m = lgMonthOfDate(e.date); if (m !== lastM) { flush(); lastM = m; } run += puNum(e.amount); rows += `<tr>${lgSeqCell('recv', ++i)}<td dir="ltr">${escapeHtml(e.no || '')}</td><td>${escapeHtml(fmtDateDMY(e.date))}</td><td>${fmtNum(e.amount)}</td><td>${escapeHtml(e.note || '')}</td></tr>`; });
         flush();
         const mb = rg.year || $b('lgpType').value === 'all' ? `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th>الشهر</th><th>المقبوض</th></tr></thead><tbody>${lgMonthBreak(arr, 'amount').map(([m, v]) => `<tr><td>${lgMonthLabel(m)}</td><td>${fmtNum(v)}</td></tr>`).join('')}</tbody></table></div>` : '';
         sheet = lgLetterhead('وصولات التسديد المقبوضة من الحسابات', escapeHtml(rg.label)) + mb + `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th class="pu-n">#</th><th>رقم الوصل</th><th>التاريخ</th><th>المبلغ</th><th>ملاحظات</th></tr></thead><tbody>${rows || '<tr><td colspan="5">لا توجد وصولات.</td></tr>'}</tbody>${arr.length ? `<tfoot><tr><td colspan="3">المجموع</td><td>${fmtNum(tot)}</td><td></td></tr></tfoot>` : ''}</table></div>`;
@@ -60,7 +61,7 @@ function lgPayRender() {
         sum = `<span>مسدَّد للمذاخر — ${escapeHtml(rg.label)}</span><b>${fmtNum(g)} د.ع</b><small>الخصم (ربحك): <b style="color:#fbbf24">${fmtNum(d)}</b> • الصافي المدفوع: ${fmtNum(net)} • ${arr.length} تسديد</small>`;
         cards = arr.map(e => `<div class="bill-card"><div class="bill-card-main" onclick="lgPayOpen('${e.id}')"><b>${escapeHtml(e.supplier)}</b> <em class="tg">${LG_BY[e.by] || ''}</em>${puNum(e.disc) > 0 ? `<em class="tg warn">خصم ${fmtNum(e.disc)}</em>` : ''}${e.stmt ? ' <em class="tg">✓</em>' : ''}<small>${escapeHtml(fmtDateDMY(e.date))}${e.no ? ' • وصل/قيد ' + escapeHtml(e.no) : ''}${e.note ? ' • ' + escapeHtml(e.note) : ''}</small></div><div class="bill-card-amt">${fmtNum(e.gross)}<small>د.ع</small></div></div>`).join('');
         const mb = rg.year || $b('lgpType').value === 'all' ? `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th>الشهر</th><th>المسدَّد</th><th>الخصم</th></tr></thead><tbody>${[...new Set(arr.map(e => lgMonthOfDate(e.date)))].sort().map(m => { const l = arr.filter(e => lgMonthOfDate(e.date) === m); return `<tr><td>${lgMonthLabel(m)}</td><td>${fmtNum(l.reduce((s, e) => s + puNum(e.gross), 0))}</td><td>${fmtNum(l.reduce((s, e) => s + puNum(e.disc), 0))}</td></tr>`; }).join('')}</tbody></table></div>` : '';
-        sheet = lgLetterhead('التسديد للمذاخر والخصومات', escapeHtml(rg.label) + ($b('lgpSup').value ? ' — ' + escapeHtml($b('lgpSup').value) : '')) + mb + `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th class="pu-n">#</th><th class="pu-ckh">✓</th><th>التاريخ</th><th>المذخر</th><th>من سدّد</th><th>الوصل/القيد</th><th>المبلغ</th><th>%</th><th>الخصم</th></tr></thead><tbody>${arr.map((e, i) => `<tr><td class="pu-n">${i + 1}</td><td class="pu-ck">${e.stmt ? '✓' : ''}</td><td>${escapeHtml(fmtDateDMY(e.date))}</td><td>${escapeHtml(e.supplier)}</td><td>${LG_BY[e.by] || ''}</td><td dir="ltr">${escapeHtml(e.no || '')}</td><td>${fmtNum(e.gross)}</td><td>${puNum(e.pct) ? fmtNum(e.pct) : ''}</td><td>${puNum(e.disc) ? fmtNum(e.disc) : ''}</td></tr>`).join('') || '<tr><td colspan="9">لا توجد تسديدات.</td></tr>'}</tbody>${arr.length ? `<tfoot><tr><td colspan="6">المجموع</td><td>${fmtNum(g)}</td><td></td><td>${fmtNum(d)}</td></tr></tfoot>` : ''}</table></div>`;
+        sheet = lgLetterhead('التسديد للمذاخر والخصومات', escapeHtml(rg.label) + ($b('lgpSup').value ? ' — ' + escapeHtml($b('lgpSup').value) : '')) + mb + `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th class="pu-n">#</th><th class="pu-ckh">✓</th><th>التاريخ</th><th>المذخر</th><th>من سدّد</th><th>الوصل/القيد</th><th>المبلغ</th><th>%</th><th>الخصم</th></tr></thead><tbody>${arr.map((e, i) => `<tr>${lgSeqCell('pay', i + 1)}<td class="pu-ck">${e.stmt ? '✓' : ''}</td><td>${escapeHtml(fmtDateDMY(e.date))}</td><td>${escapeHtml(e.supplier)}</td><td>${LG_BY[e.by] || ''}</td><td dir="ltr">${escapeHtml(e.no || '')}</td><td>${fmtNum(e.gross)}</td><td>${puNum(e.pct) ? fmtNum(e.pct) : ''}</td><td>${puNum(e.disc) ? fmtNum(e.disc) : ''}</td></tr>`).join('') || '<tr><td colspan="9">لا توجد تسديدات.</td></tr>'}</tbody>${arr.length ? `<tfoot><tr><td colspan="6">المجموع</td><td>${fmtNum(g)}</td><td></td><td>${fmtNum(d)}</td></tr></tfoot>` : ''}</table></div>`;
     }
     $b('lgp-sum').innerHTML = sum;
     $b('lgp-list').innerHTML = cards || `<div class="bill-none">${isRecv ? 'لا توجد وصولات في هذه الفترة.' : 'لا توجد تسديدات في هذه الفترة.'}</div>`;

@@ -182,6 +182,16 @@
         <section class="pu-pane" id="puPane-hub"><div class="lg-hub" id="lgHub"></div></section>
 
         <!-- ===== الملخص المالي ===== -->
+        <section class="pu-pane" id="puPane-breq">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>بحث</span><input type="search" id="lgqQ" oninput="lgRenderBreq()" placeholder="المادة أو الشركة أو المندوب"></label>
+                <label class="pu-mfield"><span>المذخر</span><select id="lgqSup" onchange="lgRenderBreq()"></select></label>
+            </div>
+            <div class="bill-actions no-print" id="lgq-seg"><button type="button" class="bill-tb-btn" data-s="pending" onclick="lgBreqSeqSet('pending')">بانتظار الاستلام</button><button type="button" class="bill-tb-btn" data-s="got" onclick="lgBreqSeqSet('got')">المستلمة</button><button type="button" class="bill-tb-btn" data-s="all" onclick="lgBreqSeqSet('all')">الكل</button><button type="button" class="bill-tb-btn bill-tb-primary" onclick="lgBreqAdd()">＋ طلب جديد</button><button type="button" class="bill-tb-btn" onclick="lgBreqCsv()">⬇️ Excel</button></div>
+            <div id="lgq-sum" class="bill-sum-card no-print"></div>
+            <div id="lgq-list" class="no-print"></div>
+        </section>
+
         <section class="pu-pane" id="puPane-sum">
             <div class="lg-filters no-print"><label class="pu-mfield"><span>السنة</span><input type="number" id="lgsYear" min="2000" max="2100" oninput="lgRenderSum()"></label></div>
             <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="lgSumCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-sum')">🖨️ طباعة</button></div>
