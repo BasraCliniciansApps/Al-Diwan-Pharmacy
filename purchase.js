@@ -16,6 +16,8 @@ const puLQ = l => (parseInt(l.qty) || 0) + (parseInt(l.bonus) || 0);   // الك
 function puTotalOf(r) { return (r.items || []).reduce((s, it) => s + puNum(it.qty) * puNum(it.cost), 0); }
 function puNetOf(r) { return Math.max(puTotalOf(r) - puNum(r.returnAmt) - (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0), 0); }
 function puRemaining(r) { return r.cancelled ? 0 : Math.max(puNetOf(r) - puNum(r.paid), 0); }
+// وارد «بونص فقط» مستورد: يظهر في سجل البونص ولا يظهر كقائمة شراء عادية
+const puIsBonusOnly = r => !!(r && (r.bonusOnly || String(r.no || '').startsWith('BONUS-')));
 const puKey = s => String(s || '').trim().toLowerCase();
 
 // ---------- التخزين (محلي + سحابة) ----------
@@ -65,7 +67,7 @@ function puSupplierNames() {
 function puLinesOf(pid) {
     const src = (puAll && puAll.length) ? puAll : puLocalList();
     const out = [];
-    src.filter(r => r && !r.cancelled).forEach(r => (r.items || []).filter(l => l.pid === pid).forEach(l => out.push({ r, l })));
+    src.filter(r => r && !r.cancelled && !puIsBonusOnly(r)).forEach(r => (r.items || []).filter(l => l.pid === pid).forEach(l => out.push({ r, l })));
     return out.sort((a, b) => String(b.r.date).localeCompare(String(a.r.date)) || String(b.r.createdTs).localeCompare(String(a.r.createdTs)));
 }
 function lastPurchaseHtml(p) {
@@ -354,7 +356,7 @@ async function puDeletePermanently(id) {
 }
 function renderPuLog() {
     const q = puKey($b('puLogSearch').value);
-    const arr = puAll.filter(r => !q || [r.supplier, r.no].some(x => puKey(x).includes(q)));
+    const arr = puAll.filter(r => !puIsBonusOnly(r)).filter(r => !q || [r.supplier, r.no].some(x => puKey(x).includes(q)));
     $b('puLogList').innerHTML = arr.map(r => puCardHtml(r)).join('') || '<div class="bill-none">لا توجد واردات مسجّلة بعد.</div>';
 }
 function puOpen(id) {
@@ -498,7 +500,7 @@ function puCmpShow(id) {
     const p = products.find(x => x.id === id); if (!p) return;
     $b('puCmpResults').style.display = 'none'; $b('puCmpSearch').value = p.name;
     const by = new Map();
-    puAll.filter(r => !r.cancelled).forEach(r => (r.items || []).filter(l => l.pid === id && l.cost > 0).forEach(l => {
+    puAll.filter(r => !r.cancelled && !puIsBonusOnly(r)).forEach(r => (r.items || []).filter(l => l.pid === id && l.cost > 0).forEach(l => {
         const k = puKey(r.supplier), e = by.get(k) || { name: r.supplier, last: null, count: 0, qty: 0 };
         e.count++; e.qty += l.qty; if (!e.last || String(r.date) >= String(e.last.date)) e.last = { date: r.date, cost: l.cost }; by.set(k, e);
     }));
@@ -537,7 +539,7 @@ async function puBackfill() {
     const best = new Map();   // آخر سطر لكل مادة
     const now = new Date().toISOString().slice(0, 7), yearAgo = new Date(Date.now() - puWindowMonths() * 30.4375 * 864e5).toISOString().slice(0, 10);
     const exps = new Map();   // تواريخ نفاذ حديثة وغير منتهية
-    puAll.filter(r => !r.cancelled).forEach(r => (r.items || []).forEach(l => {
+    puAll.filter(r => !r.cancelled && !puIsBonusOnly(r)).forEach(r => (r.items || []).forEach(l => {
         const k = l.pid, cur = best.get(k);
         if (!cur || String(r.date).localeCompare(cur.r.date) > 0 || (r.date === cur.r.date && String(r.createdTs).localeCompare(String(cur.r.createdTs)) > 0)) best.set(k, { r, l });
         if (l.expiry && l.expiry >= now && String(r.date) >= yearAgo) { if (!exps.has(k)) exps.set(k, new Set()); exps.get(k).add(l.expiry); }

@@ -93,7 +93,7 @@ function puStmtRange() {
 }
 function lgStmtData(from, to, sup, group) {
     const inR = m => m >= from && m <= to, okSup = s => !sup || puKey(s) === puKey(sup), rets = lgRets(), rows = [];
-    puAll.filter(r => !r.cancelled && inR(puMonthOf(r)) && okSup(r.supplier)).forEach(r => {
+    puAll.filter(r => !r.cancelled && !puIsBonusOnly(r) && inR(puMonthOf(r)) && okSup(r.supplier)).forEach(r => {
         const subs = rets.filter(e => e.listId === r.id && e.mode === 'net');
         const ret = puNum(r.returnAmt) + subs.reduce((s, e) => s + puNum(e.amount), 0), total = puTotalOf(r);
         rows.push({ t: 'inv', m: puMonthOf(r), date: r.date, ts: r.createdTs || '', sup: r.supplier, no: r.no, total, ret, net: total - ret, r, subs });
@@ -350,7 +350,7 @@ function lgOpenReturn(opts) {
     if (typeof Swal !== 'undefined' && Swal.close) Swal.close();
 }
 function lgrFillLists(sel) {
-    const sup = $b('lgrSup').value.trim(), arr = sup ? puAll.filter(r => !r.cancelled && puKey(r.supplier) === puKey(sup)).sort((a, b) => String(b.date).localeCompare(String(a.date))) : [];
+    const sup = $b('lgrSup').value.trim(), arr = sup ? puAll.filter(r => !r.cancelled && !puIsBonusOnly(r) && puKey(r.supplier) === puKey(sup)).sort((a, b) => String(b.date).localeCompare(String(a.date))) : [];
     $b('lgrList').innerHTML = '<option value="">بدون قائمة — مردود عام للمذخر</option>' + arr.map(r => `<option value="${r.id}">${escapeHtml(r.no)} — ${escapeHtml(fmtDateDMY(r.date))} — ${fmtNum(puTotalOf(r))}</option>`).join('');
     $b('lgrList').value = sel && arr.some(r => r.id === sel) ? sel : '';
     lgr.listId = $b('lgrList').value;
