@@ -2800,7 +2800,17 @@ async function applyBackupData(data) {
         if (data.pricingCfg) pricingCfg = normPricingCfg(data.pricingCfg);
         if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
 
-        await pushToCloud(false);
+        if (isImp) {   // الاستيراد: نكتب الأصناف الجديدة فقط ونُظهر أي خطأ من السحابة بوضوح
+            await pushToCloud(true);
+            const okSave = await saveProductsBatch(data.products);
+            if (!okSave) {
+                const bad = new Set(data.products.map(p => p.id));
+                products = products.filter(p => !bad.has(p.id) || existingIds.has(p.id));
+                saveLocal(); renderAll();
+                await Swal.fire({ icon: 'error', title: 'لم يُحفظ الاستيراد', text: 'لم تُحفظ الأصناف في السحابة، ولم يتغير شيء في أصنافك. أرسل نص الخطأ الظاهر قبل هذه النافذة.', confirmButtonColor: '#0f1c38' });
+                return;
+            }
+        } else await pushToCloud(false);
         let restRep = '';
         if (typeof bkRestoreRest === 'function') restRep = await bkRestoreRest(data);
         renderAll();
