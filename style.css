@@ -2081,3 +2081,31 @@ body:not(.admin-page) .app-header-row { justify-content: space-between; margin-b
     #billSheet .bill-totals .bill-grand { grid-column: 1 / -1; }
     #billSheet .bill-opts { padding: 2px 0; }
 }
+
+/* ===== v56: الرئيسية تتسع الشاشة بلا تمرير (نفس الستايل) ===== */
+@media (max-width: 600px) {
+    body.admin-page[data-view="home"] #homeView { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; padding-bottom: 10px; }
+    #homeView > .brand-bar { padding-top: 8px; }
+    #homeView > .page-title { padding-top: 2px; padding-bottom: 10px; }
+    #homeView #bkReminder:empty { display: none; }
+    #homeView #bkReminder > * { margin: 6px auto 0; padding-block: 6px; font-size: .78rem; }
+    #homeView .home-kpis { grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; margin-bottom: 0; }
+    #homeView .kpi { padding: 7px 2px; border-radius: 12px; }
+    #homeView .kpi b { font-size: 1.05rem; }
+    #homeView .kpi span { font-size: .6rem; }
+    #homeView .home-tiles { flex: 1 1 0; margin-top: 10px; gap: 10px; min-height: 120px; }
+    #homeView .home-tile { min-height: 0; height: auto; border-radius: 22px; gap: 4px; }
+    #homeView .home-tiles .home-tile svg { width: clamp(34px, 7dvh, 54px); height: clamp(34px, 7dvh, 54px); }
+    #homeView .home-tile b { font-size: 1.35rem; }
+    #homeView .home-tile small { font-size: .7rem; }
+    #homeView .home-tile.tile-purch { min-height: 64px; margin-top: 10px; }
+    #homeView .home-tile.tile-purch svg { width: 32px; height: 32px; }
+    #homeView .home-tile.tile-purch b { font-size: 1.15rem; }
+    #homeView .home-tiles3 { margin-top: 10px; gap: 8px; }
+    #homeView .home-tiles3 .home-tile { min-height: 74px; height: auto; border-radius: 18px; }
+    #homeView .home-tiles3 .home-tile svg { width: 28px; height: 28px; }
+    #homeView .home-tiles3 .home-tile b { font-size: .9rem; }
+    #homeView .home-quick { margin-top: 10px; gap: 6px; }
+    #homeView .home-quick button, #homeView .home-quick-link { min-height: 40px; font-size: .85rem; border-radius: 12px; }
+}
+@media (max-width: 600px) { body.admin-page[data-view="home"] { padding-bottom: 0 !important; } }
