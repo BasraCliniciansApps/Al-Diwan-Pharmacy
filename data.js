@@ -52,7 +52,7 @@ if (isNaN(lowStockThreshold)) lowStockThreshold = 2;
 let alertMonths = (() => { try { const a = JSON.parse(localStorage.getItem('diwanAlertMonths')); return Array.isArray(a) && a.length === 3 && a.every(n => n > 0) ? a : [1, 3, 6]; } catch (e) { return [1, 3, 6]; } })();
 
 // ---------------- التسعير حسب كتاب نقابة الصيادلة + سعر الصرف ----------------
-const DEFAULT_PRICING = { rate: 1500, bookNo: '1181', bookDate: '2019-07-29', round: 250,
+const DEFAULT_PRICING = { rate: 1500, bookNo: '1181', bookDate: '2019-07-29', round: 250, boundary: 'upper',
     brackets: [{ max: 5, pct: 40 }, { max: 15, pct: 30 }, { max: 25, pct: 20 }, { max: 50, pct: 15 }, { max: null, pct: 10 }] };
 function normPricingCfg(c) {
     const out = JSON.parse(JSON.stringify(DEFAULT_PRICING));
@@ -61,6 +61,7 @@ function normPricingCfg(c) {
     if (typeof c.bookNo === 'string') out.bookNo = c.bookNo;
     if (typeof c.bookDate === 'string') out.bookDate = c.bookDate;
     if (c.round >= 0) out.round = Number(c.round);
+    if (c.boundary === 'lower' || c.boundary === 'upper') out.boundary = c.boundary;
     if (Array.isArray(c.brackets) && c.brackets.length >= 2) {
         const b = c.brackets.map((x, k, a) => ({ max: k === a.length - 1 ? null : Number(x.max), pct: Number(x.pct) }));
         const ok = b.every((x, k) => x.pct >= 0 && (k === b.length - 1 || (x.max > 0 && (k === 0 || x.max > b[k - 1].max))));
@@ -73,11 +74,24 @@ function syndCalc(cost) {   // سعر البيع = سعر المذخر + نسب�
     cost = Number(cost) || 0;
     if (!(cost > 0)) return null;
     const usd = cost / pricingCfg.rate;
-    const br = pricingCfg.brackets.find(b => b.max === null || usd < b.max) || pricingCfg.brackets[pricingCfg.brackets.length - 1];
+    const br = pricingCfg.brackets.find(b => b.max === null || (pricingCfg.boundary === 'lower' ? usd <= b.max : usd < b.max)) || pricingCfg.brackets[pricingCfg.brackets.length - 1];
     let price = cost * (1 + br.pct / 100);
     const step = pricingCfg.round || 0;
     if (step > 0) price = Math.round(price / step) * step;
     return { usd, pct: br.pct, price };
+}
+function markupCalc(cost, pct) {   // سعر البيع = سعر الشراء + نسبة مئوية يدخلها الصيدلي
+    cost = Number(cost) || 0; pct = Number(pct);
+    if (!(cost > 0) || !(pct >= 0)) return 0;
+    let price = cost * (1 + pct / 100);
+    const step = pricingCfg.round || 0;
+    if (step > 0) price = Math.round(price / step) * step;
+    return price;
+}
+function markupHintHtml(cost, pct) {
+    if (!(Number(cost) > 0)) return 'أدخل سعر الشراء لتُحسب الإضافة.';
+    if (!(Number(pct) >= 0) || pct === '' || pct === null || pct === undefined) return 'أدخل نسبة الإضافة (%).';
+    return `سعر الشراء ${Number(cost).toLocaleString()} + ${Number(pct)}% ← <b>${markupCalc(cost, pct).toLocaleString()} د.ع</b>`;
 }
 function syndPrice(cost) { const r = syndCalc(cost); return r ? r.price : 0; }
 function syndBookText() {
@@ -94,6 +108,7 @@ function pricingInfoHtml(p) {
         const r = syndCalc(p.costPrice);
         return `<div style="font-size:0.76rem;margin-bottom:8px;color:#334155;">🏷️ مسعّر حسب كتاب النقابة${r ? ': سعر المذخر ' + fmtNum(p.costPrice) + ' + ' + r.pct + '% = <b>' + fmtNum(p.price) + '</b>' : ''}</div>`;
     }
+    if (p.pricing === 'percent') return `<div style="font-size:0.76rem;margin-bottom:8px;color:#334155;">🏷️ مسعّر بنسبة إضافة: سعر الشراء ${fmtNum(p.costPrice)} + ${Number(p.markupPct) || 0}% = <b>${fmtNum(p.price)}</b></div>`;
     if (p.pricing === 'manual') return '<div style="font-size:0.76rem;margin-bottom:8px;color:#64748b;">🏷️ التسعير: يدوي (ملصق الوزارة)</div>';
     return '';
 }
@@ -139,7 +154,7 @@ products = products.map(p => ({
 // بيانات المخزون الحساسة (الكمية، الحد الأدنى، الصلاحية) تُحفظ في مجموعة خاصة بالصيدلي
 // ============================================================================
 const IS_ADMIN_PAGE = window.APP_MODE === 'admin';
-const STOCK_FIELDS = ['qty', 'loose', 'minQty', 'expiryDate', 'expiryDates', 'costPrice', 'lastPurchase'];
+const STOCK_FIELDS = ['qty', 'loose', 'minQty', 'expiryDate', 'expiryDates', 'costPrice', 'lastPurchase', 'markupPct'];
 let cloudPub = [];          // الأصناف العامة كما تصل من السحابة
 let stockMap = {};          // بيانات المخزون الخاصة (للصيدلي فقط)
 let unsubStock = null;
@@ -1452,7 +1467,7 @@ function openFormModal(id = null) {
         formBarcodes = barcodesOf(p); renderBarcodeChips();
         setExpiryDatesInForm(getProductExpiryDates(p));
         setExtraSelections(p);
-        { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = p.pricing === 'syndicate' ? 'syndicate' : 'manual'; }
+        { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = (p.pricing === 'syndicate' || p.pricing === 'percent') ? p.pricing : 'manual'; const mk = document.getElementById('fMarkup'); if (mk) mk.value = p.markupPct != null ? p.markupPct : ''; }
     } else {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
@@ -1474,7 +1489,7 @@ function openFormModal(id = null) {
         formBarcodes = []; renderBarcodeChips();
         setExpiryDatesInForm([]);
         setExtraSelections(null);
-        { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = 'manual'; }
+        { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = 'manual'; const mk = document.getElementById('fMarkup'); if (mk) mk.value = ''; }
     }
     onPriceModeChange(true);
     refreshScanEngineLabel();
@@ -1484,10 +1499,13 @@ function openFormModal(id = null) {
 function onPriceModeChange(initial) {
     const pm = document.getElementById('fPriceMode'), pr = document.getElementById('fPrice'), hint = document.getElementById('fPriceHint'), cost = document.getElementById('fCost');
     if (!pm || !pr) return;
-    const syn = pm.value === 'syndicate';
-    pr.readOnly = syn;
-    if (hint) { hint.innerHTML = syn ? syndHintHtml(cost && cost.value) : 'اكتب السعر المطبوع على ملصق الوزارة.'; hint.style.display = ''; }
+    const syn = pm.value === 'syndicate', per = pm.value === 'percent';
+    const mkw = document.getElementById('fMarkupWrap'), mk = document.getElementById('fMarkup');
+    if (mkw) mkw.style.display = per ? '' : 'none';
+    pr.readOnly = syn || per;
+    if (hint) { hint.innerHTML = syn ? syndHintHtml(cost && cost.value) : per ? markupHintHtml(cost && cost.value, mk && mk.value) : 'اكتب السعر المطبوع على ملصق الوزارة.'; hint.style.display = ''; }
     if (syn && cost && Number(cost.value) > 0) { pr.value = syndPrice(cost.value); if (typeof retailAutoPrice === 'function') retailAutoPrice(); }
+    if (per && cost && Number(cost.value) > 0 && mk && mk.value !== '' && Number(mk.value) >= 0) { pr.value = markupCalc(cost.value, mk.value); if (typeof retailAutoPrice === 'function') retailAutoPrice(); }
 }
 let formSnapshot = '';
 function formSerialize() {
@@ -1649,6 +1667,12 @@ async function saveFormProduct() {
     if (document.getElementById('fPriceMode') && document.getElementById('fPriceMode').value === 'syndicate' && !(parseFloat(document.getElementById('fCost').value) > 0)) {
         return Swal.fire({ icon: 'warning', title: 'أدخل سعر الشراء', text: 'التسعير حسب كتاب النقابة يحتاج سعر الشراء (سعر المذخر) لحساب سعر البيع.', confirmButtonColor: '#0f1c38' });
     }
+    const isPer = document.getElementById('fPriceMode') && document.getElementById('fPriceMode').value === 'percent';
+    if (isPer) {
+        const c = parseFloat(document.getElementById('fCost').value), m = parseFloat((document.getElementById('fMarkup') || {}).value);
+        if (!(c > 0) || !(m >= 0)) return Swal.fire({ icon: 'warning', title: 'أدخل سعر الشراء ونسبة الإضافة', text: 'التسعير بنسبة مئوية يحتاج سعر الشراء ونسبة الإضافة (%) لحساب سعر البيع.', confirmButtonColor: '#0f1c38' });
+        document.getElementById('fPrice').value = markupCalc(c, m);
+    }
     const expiryDates = getExpiryDatesFromForm();
     const pendingBc = cleanBarcode((document.getElementById('fBarcode') || {}).value);
     if (pendingBc && !formBarcodes.includes(pendingBc)) formBarcodes.push(pendingBc);
@@ -1671,6 +1695,7 @@ async function saveFormProduct() {
         price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
         costPrice: document.getElementById('fCost') ? (parseFloat(document.getElementById('fCost').value) || 0) : 0,
         pricing: (document.getElementById('fPriceMode') && document.getElementById('fPriceMode').value) || 'manual',
+        ...(isPer ? { markupPct: parseFloat(document.getElementById('fMarkup').value) } : { markupPct: null }),
         ...readRetailForm(),
         ...((() => { const o = editId ? products.find(x => x.id === parseInt(editId)) : null; return o && o.lastPurchase ? { lastPurchase: o.lastPurchase } : {}; })()),
         expiryDates: expiryDates,
@@ -2214,7 +2239,7 @@ function buildLowStockSection() {
 
 function fillPricingForm() {
     const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
-    set('pcRate', pricingCfg.rate); set('pcBookNo', pricingCfg.bookNo); set('pcBookDate', pricingCfg.bookDate); set('pcRound', pricingCfg.round);
+    set('pcBoundary', pricingCfg.boundary); set('pcRate', pricingCfg.rate); set('pcBookNo', pricingCfg.bookNo); set('pcBookDate', pricingCfg.bookDate); set('pcRound', pricingCfg.round);
     const box = document.getElementById('pcRows'); if (!box) return;
     box.innerHTML = pricingCfg.brackets.map((b, i, a) => {
         const prev = i > 0 ? a[i - 1].max : null;
@@ -2225,7 +2250,7 @@ function fillPricingForm() {
 async function savePricingSettings() {
     const g = id => parseFloat(document.getElementById(id) && document.getElementById(id).value);
     const n = pricingCfg.brackets.length;
-    const next = { rate: g('pcRate'), bookNo: (document.getElementById('pcBookNo').value || '').trim(), bookDate: document.getElementById('pcBookDate').value, round: g('pcRound') || 0,
+    const next = { rate: g('pcRate'), bookNo: (document.getElementById('pcBookNo').value || '').trim(), bookDate: document.getElementById('pcBookDate').value, round: g('pcRound') || 0, boundary: (document.getElementById('pcBoundary') || {}).value === 'lower' ? 'lower' : 'upper',
         brackets: pricingCfg.brackets.map((b, i) => ({ max: i === n - 1 ? null : g('pcMax' + i), pct: g('pcPct' + i) })) };
     const bad = !(next.rate > 0) || next.brackets.some((b, i) => isNaN(b.pct) || b.pct < 0 || (i < n - 1 && !(b.max > 0)) || (i > 0 && i < n - 1 && !(b.max > next.brackets[i - 1].max)));
     if (bad) { Swal.fire({ icon: 'warning', title: 'تحقق من القيم', text: 'سعر الصرف رقم موجب، وحدود الشرائح تصاعدية، والنسب أرقام صحيحة.', confirmButtonColor: '#0f1c38' }); return; }
@@ -2235,7 +2260,7 @@ async function savePricingSettings() {
     await repriceAll();
 }
 async function repriceAll(silentIfNone) {   // يعيد تسعير كل المواد المعتمدة على كتاب النقابة
-    const list = products.filter(p => p.pricing === 'syndicate' && Number(p.costPrice) > 0).map(p => ({ p, old: Number(p.price) || 0, np: syndPrice(p.costPrice) })).filter(x => x.np > 0 && x.np !== x.old);
+    const list = products.filter(p => p.pricing === 'syndicate' && Number(p.costPrice) > 0 || p.pricing === 'percent' && Number(p.costPrice) > 0 && p.markupPct != null).map(p => ({ p, old: Number(p.price) || 0, np: p.pricing === 'percent' ? markupCalc(p.costPrice, p.markupPct) : syndPrice(p.costPrice) })).filter(x => x.np > 0 && x.np !== x.old);
     if (!list.length) { Swal.fire({ icon: 'success', title: 'تم حفظ إعدادات التسعير', text: 'لا توجد مواد تغيّر سعرها.', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 }); return; }
     const r = await Swal.fire({ icon: 'question', title: 'إعادة تسعير ' + list.length + ' مادة؟', html: '<div style="text-align:right;max-height:220px;overflow:auto;font-size:.85rem">' + list.slice(0, 30).map(x => '• <b dir="ltr">' + escapeHtml(x.p.name) + '</b>: ' + fmtNum(x.old) + ' ← ' + fmtNum(x.np)).join('<br>') + (list.length > 30 ? '<br>...' : '') + '</div>', showCancelButton: true, confirmButtonText: 'تطبيق الأسعار الجديدة', cancelButtonText: 'لاحقاً' });
     if (!r.isConfirmed) return;

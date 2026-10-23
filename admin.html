@@ -203,8 +203,9 @@
             </div>
 
             <div class="cat-manager-box" id="pricingBox" style="margin-top:16px;">
-                <h4>9. التسعير حسب كتاب النقابة وسعر الصرف</h4>
+                <h4>5. التسعير حسب كتاب النقابة وسعر الصرف</h4>
                 <div class="form-group"><label>سعر الصرف (دينار لكل 1 دولار):</label><input type="number" id="pcRate" min="1" inputmode="decimal"></div>
+                <div class="form-group"><label>إذا كان السعر بالدولار يساوي حد الشريحة بالضبط (مثلاً 5$):</label><select id="pcBoundary"><option value="upper">يدخل الشريحة الأعلى (مثلاً 5$ ← 30%)</option><option value="lower">يدخل الشريحة الأدنى (مثلاً 5$ ← 40%)</option></select></div>
                 <div class="form-group"><label>رقم الكتاب النقابي:</label><input type="text" id="pcBookNo" dir="ltr"></div>
                 <div class="form-group"><label>تاريخ الكتاب:</label><input type="date" id="pcBookDate"></div>
                 <div class="form-group"><label>تقريب السعر لأقرب (دينار، 0 = بدون تقريب):</label><input type="number" id="pcRound" min="0" inputmode="numeric"></div>
@@ -214,7 +215,7 @@
             </div>
 
             <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>5. النسخ الاحتياطي</h4>
+                <h4>6. النسخ الاحتياطي</h4>
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="exportBackupJson()">💾 تحميل نسخة احتياطية</button>
                     <button class="icon-btn" onclick="exportCsv()">📊 تصدير Excel (CSV)</button>
@@ -225,7 +226,7 @@
             </div>
 
             <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>8. أدوات سريعة</h4>
+                <h4>7. أدوات سريعة</h4>
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="closeCategoryManager(); openInventory()">📋 وضع الجرد</button>
                     <button class="icon-btn" onclick="installApp()">📲 تثبيت التطبيق</button>
@@ -233,7 +234,7 @@
             </div>
 
             <div class="cat-manager-box" id="securityBox" style="margin-top:16px;">
-                <h4>7. الأمان والسجلات</h4>
+                <h4>8. الأمان والسجلات</h4>
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="openTrashModal()">🗑️ سلة المحذوفات</button>
                     <button class="icon-btn" onclick="openLogModal()">📜 سجل التعديلات</button>
@@ -244,7 +245,7 @@
             </div>
 
             <div class="cat-manager-box" id="aiSettingsBox" style="margin-top:16px;">
-                <h4>6. الذكاء الصناعي لمسح العبوة (إعدادات هذا الجهاز)</h4>
+                <h4>9. الذكاء الصناعي لمسح العبوة (إعدادات هذا الجهاز)</h4>
                 <div class="form-group">
                     <label>محرك القراءة:</label>
                     <select id="aiEngineSelect" onchange="setAiEngine(this.value)">
@@ -390,7 +391,9 @@
                 <select id="fPriceMode" onchange="onPriceModeChange()">
                     <option value="manual">يدوي — مسعّر من الوزارة (ملصق التسعير)</option>
                     <option value="syndicate">حسب كتاب نقابة الصيادلة (سعر المذخر + نسبة)</option>
+                    <option value="percent">بنسبة مئوية أدخلها أنا (سعر الشراء + %)</option>
                 </select>
+                <div id="fMarkupWrap" style="display:none;margin-top:8px;"><label>نسبة الإضافة على سعر الشراء (%):</label><input type="number" id="fMarkup" min="0" step="any" inputmode="decimal" placeholder="مثال: 25" oninput="onPriceModeChange()"></div>
                 <small id="fPriceHint" style="display:block;margin-top:6px;color:#64748b;line-height:1.7;"></small>
             </div>
             <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="fPrice" min="0" value="0" oninput="retailAutoPrice()"></div>

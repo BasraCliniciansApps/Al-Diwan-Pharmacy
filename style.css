@@ -1760,8 +1760,8 @@ body.admin-page[data-view="purch"] #purchView { display: block; }
 .pu-pane { display: none; } .pu-pane.active { display: block; }
 .pu-card { background: #fff; border-radius: 14px; padding: 12px; color: #111; box-shadow: 0 1px 3px rgba(15,28,56,.08); margin-bottom: 10px; }
 .pu-form { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-.pu-form label, .pu-grid label, .pu-notes, .pu-mfield { display: flex; flex-direction: column; gap: 4px; font-size: .76rem; font-weight: 800; color: #475569; }
-.pu-form input, .pu-grid input, .pu-notes textarea, .pu-mfield input, .pu-mfield select, .pu-trow input { min-height: 42px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-family: inherit; font-size: .95rem; background: #fff; color: #111; width: 100%; box-sizing: border-box; }
+.pu-form label, .pu-grid label, .pu-price label, .pu-notes, .pu-mfield { display: flex; flex-direction: column; gap: 4px; font-size: .76rem; font-weight: 800; color: #475569; }
+.pu-form input, .pu-grid input, .pu-price input, .pu-price select, .pu-notes textarea, .pu-mfield input, .pu-mfield select, .pu-trow input { min-height: 42px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-family: inherit; font-size: .95rem; background: #fff; color: #111; width: 100%; box-sizing: border-box; }
 .pu-notes textarea { padding: 8px 10px; resize: vertical; }
 .pu-hint { background: #fef3c7; border: 1px solid #f59e0b; color: #78350f; border-radius: 10px; padding: 8px 12px; font-size: .84rem; font-weight: 700; margin-bottom: 8px; }
 .pu-hint button { border: 0; background: #f59e0b; color: #fff; border-radius: 8px; padding: 2px 10px; margin-inline-start: 8px; cursor: pointer; font-family: inherit; }
@@ -1788,7 +1788,7 @@ body.admin-page[data-view="purch"] #purchView { display: block; }
 .pu-cmp-results { position: static; }
 @media (max-width: 620px) { .pu-form { grid-template-columns: 1fr; } .pu-grid { grid-template-columns: 1fr 1fr; } }
 [data-theme="dark"] .pu-card, [data-theme="dark"] .pu-item { background: #1e293b; color: #e2e8f0; }
-[data-theme="dark"] .pu-form input, [data-theme="dark"] .pu-grid input, [data-theme="dark"] .pu-notes textarea, [data-theme="dark"] .pu-mfield input, [data-theme="dark"] .pu-mfield select, [data-theme="dark"] .pu-trow input { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+[data-theme="dark"] .pu-form input, [data-theme="dark"] .pu-grid input, [data-theme="dark"] .pu-price input, [data-theme="dark"] .pu-price select, [data-theme="dark"] .pu-notes textarea, [data-theme="dark"] .pu-mfield input, [data-theme="dark"] .pu-mfield select, [data-theme="dark"] .pu-trow input { background: #0f172a; color: #e2e8f0; border-color: #475569; }
 [data-theme="dark"] .pu-form label, [data-theme="dark"] .pu-grid label, [data-theme="dark"] .pu-notes, [data-theme="dark"] .pu-mfield, [data-theme="dark"] .pu-line, [data-theme="dark"] .pu-mextra { color: #94a3b8; }
 [data-theme="dark"] .pu-net, [data-theme="dark"] .pu-line b { color: #f1f5f9; }
 @media print {
@@ -1929,6 +1929,7 @@ body:not(.admin-page) .app-header-row { justify-content: space-between; margin-b
 .pc-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: .85rem; }
 .pc-row input { width: 76px !important; text-align: center; padding: 8px 6px !important; } .pc-l { color: #64748b; min-width: 62px; } .pc-fix { color: #94a3b8; }
 .pu-price { margin-top: 10px; padding: 10px; border-radius: 12px; background: #f6f8fc; border: 1px solid #e5eaf2; display: grid; gap: 8px; }
-.pu-price select, .pu-price input { width: 100%; }
+.pu-price select, .pu-price input { width: 100%; box-sizing: border-box; min-height: 42px; }
+.pu-price label { width: 100%; }
 .pu-syn { font-size: .8rem; color: #334155; line-height: 1.7; }
 [data-theme="dark"] .pu-price { background: #1e293b; border-color: #334155; } [data-theme="dark"] .pu-syn { color: #cbd5e1; }
