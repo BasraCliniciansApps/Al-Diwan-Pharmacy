@@ -158,14 +158,23 @@ const STOCK_FIELDS = ['qty', 'loose', 'minQty', 'expiryDate', 'expiryDates', 'co
 let cloudPub = [];          // الأصناف العامة كما تصل من السحابة
 let stockMap = {};          // بيانات المخزون الخاصة (للصيدلي فقط)
 let unsubStock = null;
+// التكلفة (سعر الشراء وآخر وارد ونسبة الربح) تُحفظ في مجموعة pharmacy_cost المقفلة على المالك بعد «فصل التكلفة»
+const COST_FIELDS = ['costPrice', 'lastPurchase', 'markupPct'];
+let costMap = {};           // بيانات التكلفة (للمالك فقط)
+let costSplitOn = false;    // هل فُصلت التكلفة؟ (علامة في pharmacy_cost/_meta)
+let unsubCost = null;
 
 function splitProduct(p) {
     const full = JSON.parse(JSON.stringify(p));
     const pub = {};
-    const stock = { id: full.id };
-    Object.keys(full).forEach(k => { if (STOCK_FIELDS.includes(k)) stock[k] = full[k]; else pub[k] = full[k]; });
+    const stock = { id: full.id }, cost = costSplitOn ? { id: full.id } : null;
+    Object.keys(full).forEach(k => {
+        if (cost && COST_FIELDS.includes(k)) cost[k] = full[k];
+        else if (STOCK_FIELDS.includes(k)) stock[k] = full[k];
+        else pub[k] = full[k];
+    });
     pub.inStock = (parseInt(full.qty) || 0) > 0 || (parseInt(full.loose) || 0) > 0;
-    return { pub, stock };
+    return { pub, stock, cost };
 }
 // هل الصنف متوفر؟ (يعمل في الصفحتين)
 function isInStock(p) {
@@ -184,16 +193,18 @@ function normalizeStockFields(o) {   // يُصلح الأجزاء المفتوح
 function rebuildProducts() {
     const merged = cloudPub.map(d => {
         const s = stockMap[String(d.id)];
-        const o = s ? { ...d, ...s } : { ...d };
+        const c = costMap[String(d.id)];
+        const o = { ...d, ...(s || {}), ...(c || {}) };
         o.meta = fixMetaOrder(o.meta);
         return normalizeStockFields(o);
     });
     products = merged.sort((a, b) => b.id - a.id);
 }
 function writeProductBatch(batch, p) {
-    const { pub, stock } = splitProduct(p);
+    const { pub, stock, cost } = splitProduct(p);
     batch.set(db.collection('pharmacy_products').doc(String(p.id)), pub);
     batch.set(db.collection('pharmacy_stock').doc(String(p.id)), stock);
+    if (cost) batch.set(db.collection('pharmacy_cost').doc(String(p.id)), cost);
 }
 function startStockListener() {
     if (!IS_ADMIN_PAGE || unsubStock || !db) return;
@@ -204,12 +215,22 @@ function startStockListener() {
         if (cloudPub.length) { rebuildProducts(); saveLocal(); renderAll(); }
     }, err => { console.warn('Stock listener:', err.message); if (unsubStock) { try { unsubStock(); } catch (e) { /* تجاهل */ } } unsubStock = null; setTimeout(() => { if (currentUser) startStockListener(); }, 4000); });   // إعادة التشغيل إن انقطع
 }
+function startCostListener() {
+    if (!IS_ADMIN_PAGE || unsubCost || !db) return;
+    unsubCost = db.collection('pharmacy_cost').onSnapshot(snap => {
+        const m = {}; let on = false;
+        snap.forEach(doc => { if (doc.id === '_meta') on = !!(doc.data() || {}).on; else m[doc.id] = doc.data(); });
+        costMap = m; costSplitOn = on;
+        if (cloudPub.length) { rebuildProducts(); saveLocal(); renderAll(); }
+    }, err => { console.warn('Cost listener:', err.message); if (unsubCost) { try { unsubCost(); } catch (e) { /* تجاهل */ } } unsubCost = null; costSplitOn = false; });
+}
 function syncStockLocal(list) {   // بعد نجاح الحفظ نحدّث نسخة المخزون محلياً فوراً (لا ننتظر المراقب)
-    (list || []).forEach(p => { stockMap[String(p.id)] = splitProduct(p).stock; });
+    (list || []).forEach(p => { const sp = splitProduct(p); stockMap[String(p.id)] = sp.stock; if (sp.cost) costMap[String(p.id)] = sp.cost; });
 }
 function stopStockListener() {
     if (unsubStock) { unsubStock(); unsubStock = null; }
-    stockMap = {};
+    if (unsubCost) { unsubCost(); unsubCost = null; }
+    stockMap = {}; costMap = {}; costSplitOn = false;
 }
 
 // مؤشر المزامنة: نقطة صغيرة بدون كلمات (أخضر متزامن، برتقالي جارٍ الحفظ، أحمر خطأ، رمادي بدون إنترنت/محلي)
@@ -327,7 +348,7 @@ async function initFirebase() {
                     const snap = await db.collection('pharmacy_products').limit(1).get();
                     if (snap.empty && products.length > 0 && navigator.onLine) pushToCloud(false);
                 } catch (e) { /* بدون اتصال: نكمل من النسخة المحلية */ }
-                startStockListener();
+                startStockListener(); startCostListener();
                 checkPending();
                 setTimeout(() => { if (typeof syncLocalRecords === 'function') syncLocalRecords(true).catch(() => {}); }, 4000);
                 setTimeout(autoMaintenance, 9000);   // نسخة احتياطية أسبوعية + تنظيف السلة والسجل
@@ -1757,6 +1778,7 @@ function deleteItem(id) {
                     const delB = db.batch();
                     delB.delete(db.collection('pharmacy_products').doc(id.toString()));
                     delB.delete(db.collection('pharmacy_stock').doc(id.toString()));
+                    if (costSplitOn) delB.delete(db.collection('pharmacy_cost').doc(id.toString()));
                     await fsCommit(delB);
                 } catch (e) {
                     console.warn("Delete Cloud Error:", e);
@@ -2412,16 +2434,16 @@ async function saveProductsDelta(entries) {
         for (let i = 0; i < entries.length; i += 15) {
             const batch = db.batch();
             entries.slice(i, i + 15).forEach(e => {
-                const { pub, stock } = splitProduct(e.p);
+                const { pub, stock, cost } = splitProduct(e.p);
                 batch.set(db.collection('pharmacy_products').doc(String(e.p.id)), pub);
                 const ref = db.collection('pharmacy_stock').doc(String(e.p.id));
                 const cur = stockMap[String(e.p.id)];
+                if (cost) batch.set(db.collection('pharmacy_cost').doc(String(e.p.id)), cost, { merge: true });
                 if (!F || !cur) { batch.set(ref, stock); return; }
                 const u = { id: e.p.id };
                 if (e.dq) u.qty = F.increment(e.dq);
                 if (e.dl) u.loose = F.increment(e.dl);
-                if (e.cost !== undefined) u.costPrice = e.cost;
-                if (e.lastSet) u.lastPurchase = e.last;
+                if (!costSplitOn) { if (e.cost !== undefined) u.costPrice = e.cost; if (e.lastSet) u.lastPurchase = e.last; }
                 if (e.expChanged) {
                     if (e.expAdd.length && !e.expRemove.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayUnion(...e.expAdd);
                     else if (e.expRemove.length && !e.expAdd.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayRemove(...e.expRemove);

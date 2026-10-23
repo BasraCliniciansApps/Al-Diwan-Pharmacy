@@ -199,6 +199,7 @@
                 </div>
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="openCatalog()">📋 سجل الأدوية</button>
+                    <button class="icon-btn" onclick="openCostSplit()">🔒 فصل سعر الشراء</button>
                     <button class="icon-btn" onclick="openIngredientModal()">🧪 إكمال المواد الفعالة</button>
                     <button class="icon-btn" onclick="openMissModal()">🔍 سجل البحث الفاشل</button>
                     <button class="icon-btn" onclick="puBackfill()">🔄 تحديث المواد من سجل الوارد</button>
@@ -627,7 +628,7 @@
     <script src="swal-skin.js"></script>
     <script src="seed.js"></script>
     <script src="data.js"></script>
-<!--A--><script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="backup.js"></script><script src="admin.js"></script><!--/A-->
+<!--A--><script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><!--/A-->
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});
