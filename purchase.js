@@ -56,10 +56,11 @@ async function puUpsertSupplier(name) {
     if (puSuppliers.some(s => puKey(s.name) === puKey(name))) return;
     await puSaveSupplierRec({ id: 's' + Date.now() + Math.floor(Math.random() * 99), name, phone: '' });
 }
-function puSupplierNames() {
+function puSupplierNames(openOnly) {
     const set = new Map();
     puSuppliers.forEach(s => set.set(puKey(s.name), s.name));
     puAll.forEach(r => { if (r.supplier && !set.has(puKey(r.supplier))) set.set(puKey(r.supplier), r.supplier); });
+    if (openOnly) { const closed = new Set(puSuppliers.filter(s => s.closed).map(s => puKey(s.name))); return [...set.entries()].filter(([k]) => !closed.has(k)).map(([, v]) => v).sort((a, b) => a.localeCompare(b, 'ar')); }
     return [...set.values()].sort((a, b) => a.localeCompare(b, 'ar'));
 }
 
@@ -98,7 +99,7 @@ function puTab(name) {
     });
 }
 function onShowPurch() { puTab(puTabName || 'new'); }
-function puFillSupplierList() { const dl = $b('puSupList'); if (dl) dl.innerHTML = puSupplierNames().map(n => `<option value="${escapeHtml(n)}"></option>`).join(''); }
+function puFillSupplierList() { const dl = $b('puSupList'); if (dl) dl.innerHTML = puSupplierNames(true).map(n => `<option value="${escapeHtml(n)}"></option>`).join(''); }
 
 // ---------- وارد جديد ----------
 function puInitNew() {
@@ -365,7 +366,7 @@ function puLogFillMonths() {
     const sel = $b('puLogMonth'); if (!sel) return;
     const cur = sel.value, ms = puMonthsList();
     sel.innerHTML = '<option value="">كل الأشهر</option>' + ms.map(m => `<option value="${m}">${m} (${puMonthRecs(m).length})</option>`).join('');
-    sel.value = ms.includes(cur) ? cur : (ms[0] || '');
+    if (!sel.dataset.init) { sel.dataset.init = '1'; sel.value = ms[0] || ''; } else sel.value = (cur === '' || ms.includes(cur)) ? cur : (ms[0] || '');
 }
 function renderPuLog() {
     puLogFillMonths();
@@ -495,19 +496,22 @@ function renderPuSuppliers() {
         const net = list.reduce((s, r) => s + puNetOf(r), 0), owed = list.reduce((s, r) => s + puRemaining(r), 0);
         const rec = puSuppliers.find(s => puKey(s.name) === puKey(n)) || {};
         const enc = encodeURIComponent(n);
-        return `<div class="bill-card"><div class="bill-card-main" onclick="puEditSupplier(decodeURIComponent('${enc}'))"><b>${escapeHtml(n)}</b>${owed > 0 ? `<em class="tg warn">مستحق ${fmtNum(owed)}</em>` : ''}<small>${rec.phone ? escapeHtml(rec.phone) + ' • ' : ''}${list.length} فاتورة • إجمالي التعامل ${fmtNum(net)} د.ع</small></div><button type="button" class="bill-tb-btn" onclick="puEditSupplier(decodeURIComponent('${enc}'))">تعديل</button></div>`;
+        return `<div class="bill-card ${rec.closed ? 'is-closed' : ''}"><div class="bill-card-main" onclick="puEditSupplier(decodeURIComponent('${enc}'))"><b>${escapeHtml(n)}</b>${rec.closed ? '<em class="tg">مغلق</em>' : ''}${owed > 0 ? `<em class="tg warn">مستحق ${fmtNum(owed)}</em>` : ''}<small>${rec.phone ? escapeHtml(rec.phone) + ' • ' : ''}${list.length} فاتورة • إجمالي التعامل ${fmtNum(net)} د.ع</small></div><button type="button" class="bill-tb-btn" onclick="puEditSupplier(decodeURIComponent('${enc}'))">تعديل</button></div>`;
     }).join('') || '<div class="bill-none">لا توجد مذاخر بعد — تُضاف تلقائياً عند أول وارد.</div>';
 }
 async function puEditSupplier(name) {
-    const rec = puSuppliers.find(s => puKey(s.name) === puKey(name)) || { id: '', name: '', phone: '' };
+    const isNew = !name, rec = puSuppliers.find(s => puKey(s.name) === puKey(name)) || { id: '', name: '', phone: '' };
     const res = await Swal.fire({
-        title: name ? 'تعديل المذخر' : 'إضافة مذخر', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
-        html: `<input id="swSupName" class="swal2-input" placeholder="اسم المذخر" value="${escapeHtml(rec.name || name)}"><input id="swSupPhone" class="swal2-input" dir="ltr" placeholder="الهاتف (اختياري)" value="${escapeHtml(rec.phone || '')}">`,
-        preConfirm: () => { const n = document.getElementById('swSupName').value.trim(); if (!n) { Swal.showValidationMessage('اكتب اسم المذخر'); return false; } return { name: n, phone: document.getElementById('swSupPhone').value.trim() }; }
+        title: isNew ? 'إضافة مذخر' : 'تعديل المذخر', showCancelButton: true, showDenyButton: !isNew, denyButtonText: '🗑 حذف المذخر', confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
+        html: `<div class="sw-form"><label>اسم المذخر<input id="swSupName" class="swal2-input" value="${escapeHtml(rec.name || name)}"></label>
+            <label>الهاتف (اختياري)<input id="swSupPhone" class="swal2-input" dir="ltr" inputmode="tel" value="${escapeHtml(rec.phone || '')}"></label>
+            <label class="pu-chk"><input type="checkbox" id="swSupClosed" ${rec.closed ? 'checked' : ''}><span>مذخر مغلق (يُخفى من اقتراحات الوارد الجديد ويبقى سجله)</span></label></div>`,
+        preConfirm: () => { const n = document.getElementById('swSupName').value.trim(); if (!n) { Swal.showValidationMessage('اكتب اسم المذخر'); return false; } return { name: n, phone: document.getElementById('swSupPhone').value.trim(), closed: document.getElementById('swSupClosed').checked }; }
     });
+    if (res.isDenied) { await puDeleteSupplier(rec.name || name); return; }
     if (!res.isConfirmed || !res.value) return;
     const nn = res.value.name, old = rec.name || name;
-    await puSaveSupplierRec({ id: rec.id || 's' + Date.now(), name: nn, phone: res.value.phone });
+    await puSaveSupplierRec({ id: rec.id || 's' + Date.now(), name: nn, phone: res.value.phone, closed: !!res.value.closed });
     if (old && puKey(old) !== puKey(nn)) {   // إعادة التسمية تنعكس على الواردات السابقة
         for (const r of puAll.filter(x => puKey(x.supplier) === puKey(old))) { r.supplier = nn; await puSaveRecord(r); }
     }
@@ -596,4 +600,24 @@ function savePuWindow() {
     if (!(n >= 1 && n <= 60)) { Swal.fire({ icon: 'warning', title: 'أدخل عدد أشهر بين 1 و 60', confirmButtonColor: '#0f1c38' }); return; }
     try { localStorage.setItem('diwanPuWindow', String(n)); } catch (e) { /* تجاهل */ }
     Swal.fire({ icon: 'success', title: 'تم الحفظ', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 });
+}
+
+// حذف مذخر: إن لم يكن له أي سجل يُحذف نهائياً، وإن كان له سجل يُغلق (يُخفى من الاقتراحات ويبقى تاريخه سليماً)
+async function puDeleteSupplier(name) {
+    const k = puKey(name), rec = puSuppliers.find(s => puKey(s.name) === k);
+    const used = puAll.filter(r => puKey(r.supplier) === k).length + (typeof lgAll !== 'undefined' ? lgAll.filter(e => puKey(e.supplier) === k).length : 0);
+    if (used) {
+        const c = await Swal.fire({ icon: 'question', title: 'إغلاق المذخر «' + escapeHtml(name) + '»؟', html: 'له ' + used + ' سجل (وارد/مردود/تسديد)، لذلك لا يُحذف حتى لا يضيع تاريخه وحساباته.<br>سيُغلق: يختفي من اقتراحات الوارد الجديد ويبقى في السجلات.', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'إغلاق المذخر', cancelButtonText: 'إلغاء' });
+        if (!c.isConfirmed) return;
+        await puSaveSupplierRec({ ...(rec || { id: 's' + Date.now(), name, phone: '' }), closed: true });
+    } else {
+        const c = await Swal.fire({ icon: 'warning', title: 'حذف المذخر «' + escapeHtml(name) + '» نهائياً؟', text: 'لا توجد له أي سجلات.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
+        if (!c.isConfirmed) return;
+        if (rec) {
+            try { if (cloudReady()) await fsWrite(db.collection('pharmacy_suppliers').doc(rec.id).delete()); }
+            catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف من السحابة', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); return; }
+            puSuppliers = puSuppliers.filter(x => x.id !== rec.id); lsSet(PU_LS.sup, JSON.stringify(puSuppliers));
+        }
+    }
+    puFillSupplierList(); renderPuSuppliers();
 }

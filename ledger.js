@@ -253,7 +253,7 @@ function lgRetOpen(id) {
 async function lgSetCn(id) {
     const e = lgAll.find(x => x.id === id); if (!e) return;
     const r = await Swal.fire({ title: 'فاتورة مردود المذخر', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
-        html: `<input id="swCnNo" class="swal2-input" dir="ltr" placeholder="رقم فاتورة المردود" value="${escapeHtml(e.cnNo || '')}"><input id="swCnDate" type="date" class="swal2-input" value="${escapeHtml(e.cnDate || todayLocalISO())}"><small>اترك الرقم فارغاً لإرجاع الحالة إلى «بانتظار فاتورة المردود».</small>`,
+        html: `<div class="sw-form"><label>رقم فاتورة المردود<input id="swCnNo" class="swal2-input" dir="ltr" value="${escapeHtml(e.cnNo || '')}"></label><label>تاريخ الفاتورة<input id="swCnDate" type="date" class="swal2-input" value="${escapeHtml(e.cnDate || todayLocalISO())}"></label><small>اترك الرقم فارغاً لإرجاع الحالة إلى «بانتظار فاتورة المردود».</small></div>`,
         preConfirm: () => ({ no: document.getElementById('swCnNo').value.trim(), date: document.getElementById('swCnDate').value }) });
     if (!r.isConfirmed || !r.value) return;
     e.cnNo = r.value.no; e.cnDate = r.value.no ? r.value.date : '';
@@ -262,7 +262,7 @@ async function lgSetCn(id) {
 async function lgSetDeduct(id) {
     const e = lgAll.find(x => x.id === id); if (!e) return;
     const r = await Swal.fire({ title: 'شهر اقتطاع المردود غير المقطوع', showCancelButton: true, showDenyButton: !!e.deductMonth, denyButtonText: 'إلغاء الاقتطاع', confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إغلاق',
-        html: `<div style="margin-bottom:6px">المبلغ: <b>${fmtNum(e.amount)}</b> د.ع</div><input id="swDedM" type="month" class="swal2-input" value="${escapeHtml(e.deductMonth || lgNowMonth())}"><small>يظهر هذا المبلغ مطروحاً في سجل الطلبيات لهذا الشهر. اتركه بلا شهر ليتراكم لحسابات نهاية السنة.</small>`,
+        html: `<div class="sw-form"><div class="sw-info">المبلغ: <b>${fmtNum(e.amount)}</b> د.ع</div><label>شهر الاقتطاع<input id="swDedM" type="month" class="swal2-input" value="${escapeHtml(e.deductMonth || lgNowMonth())}"></label><small>يظهر هذا المبلغ مطروحاً في سجل الطلبيات لهذا الشهر. اتركه بلا شهر ليتراكم لحسابات نهاية السنة.</small></div>`,
         preConfirm: () => document.getElementById('swDedM').value });
     if (r.isDenied) e.deductMonth = ''; else if (r.isConfirmed && r.value) e.deductMonth = r.value; else return;
     await lgSave(e); lgRenderRet('ret'); lgRenderRet('unrec');
@@ -271,11 +271,11 @@ async function lgEditRet(id) {
     const e = lgAll.find(x => x.id === id); if (!e) return;
     const hasItems = (e.items || []).length > 0;
     const r = await Swal.fire({ title: 'تعديل المردود', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
-        html: `<div style="text-align:right;display:grid;gap:6px"><label>التاريخ<input id="swRDate" type="date" class="swal2-input" value="${escapeHtml(e.date)}"></label>
+        html: `<div class="sw-form"><label>التاريخ<input id="swRDate" type="date" class="swal2-input" value="${escapeHtml(e.date)}"></label>
             <label>السبب<select id="swRReason" class="swal2-input">${LG_REASONS.map(x => `<option ${x === e.reason ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
             <label>المبلغ${hasItems ? ' (من المواد، غير قابل للتعديل)' : ''}<input id="swRAmt" type="number" class="swal2-input" value="${e.amount}" ${hasItems ? 'disabled' : ''}></label>
             <label>الاحتساب<select id="swRMode" class="swal2-input"><option value="net" ${e.mode !== 'unrec' ? 'selected' : ''}>يُخصم من كشف الشهر</option><option value="unrec" ${e.mode === 'unrec' ? 'selected' : ''}>مردود غير مقطوع</option></select></label>
-            <label>ملاحظات<input id="swRNote" class="swal2-input" value="${escapeHtml(e.note || '')}"></label>
+            <label>ملاحظات<textarea id="swRNote" class="swal2-textarea" rows="3">${escapeHtml(e.note || '')}</textarea></label>
             ${hasItems ? '<small>لتعديل المواد احذف المردود وسجّله من جديد.</small>' : ''}</div>`,
         preConfirm: () => ({ date: document.getElementById('swRDate').value, reason: document.getElementById('swRReason').value, amount: parseFloat(document.getElementById('swRAmt').value), mode: document.getElementById('swRMode').value, note: document.getElementById('swRNote').value.trim() }) });
     if (!r.isConfirmed || !r.value) return;
