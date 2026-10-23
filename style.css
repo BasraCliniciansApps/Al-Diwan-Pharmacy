@@ -1924,3 +1924,11 @@ body:not(.admin-page) .app-header-row { justify-content: space-between; margin-b
 @keyframes dwPop { from { opacity: 0; transform: scale(.92) translateY(8px); } to { opacity: 1; transform: none; } } @keyframes dwPopOut { to { opacity: 0; transform: scale(.95); } }
 
 .dw-btn-main.dw-btn-danger { background: #dc2626 !important; color: #fff !important; }
+
+/* v37: التسعير */
+.pc-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: .85rem; }
+.pc-row input { width: 76px !important; text-align: center; padding: 8px 6px !important; } .pc-l { color: #64748b; min-width: 62px; } .pc-fix { color: #94a3b8; }
+.pu-price { margin-top: 10px; padding: 10px; border-radius: 12px; background: #f6f8fc; border: 1px solid #e5eaf2; display: grid; gap: 8px; }
+.pu-price select, .pu-price input { width: 100%; }
+.pu-syn { font-size: .8rem; color: #334155; line-height: 1.7; }
+[data-theme="dark"] .pu-price { background: #1e293b; border-color: #334155; } [data-theme="dark"] .pu-syn { color: #cbd5e1; }

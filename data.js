@@ -51,6 +51,53 @@ let lowStockThreshold = parseInt(localStorage.getItem('diwanLowThreshold'));
 if (isNaN(lowStockThreshold)) lowStockThreshold = 2;
 let alertMonths = (() => { try { const a = JSON.parse(localStorage.getItem('diwanAlertMonths')); return Array.isArray(a) && a.length === 3 && a.every(n => n > 0) ? a : [1, 3, 6]; } catch (e) { return [1, 3, 6]; } })();
 
+// ---------------- التسعير حسب كتاب نقابة الصيادلة + سعر الصرف ----------------
+const DEFAULT_PRICING = { rate: 1500, bookNo: '1181', bookDate: '2019-07-29', round: 250,
+    brackets: [{ max: 5, pct: 40 }, { max: 15, pct: 30 }, { max: 25, pct: 20 }, { max: 50, pct: 15 }, { max: null, pct: 10 }] };
+function normPricingCfg(c) {
+    const out = JSON.parse(JSON.stringify(DEFAULT_PRICING));
+    if (!c || typeof c !== 'object') return out;
+    if (c.rate > 0) out.rate = Number(c.rate);
+    if (typeof c.bookNo === 'string') out.bookNo = c.bookNo;
+    if (typeof c.bookDate === 'string') out.bookDate = c.bookDate;
+    if (c.round >= 0) out.round = Number(c.round);
+    if (Array.isArray(c.brackets) && c.brackets.length >= 2) {
+        const b = c.brackets.map((x, k, a) => ({ max: k === a.length - 1 ? null : Number(x.max), pct: Number(x.pct) }));
+        const ok = b.every((x, k) => x.pct >= 0 && (k === b.length - 1 || (x.max > 0 && (k === 0 || x.max > b[k - 1].max))));
+        if (ok) out.brackets = b;
+    }
+    return out;
+}
+let pricingCfg = (() => { try { return normPricingCfg(JSON.parse(localStorage.getItem('diwanPricing'))); } catch (e) { return normPricingCfg(null); } })();
+function syndCalc(cost) {   // سعر البيع = سعر المذخر + نسبة الشريحة (الشريحة تُحدَّد بسعر المذخر بالدولار)
+    cost = Number(cost) || 0;
+    if (!(cost > 0)) return null;
+    const usd = cost / pricingCfg.rate;
+    const br = pricingCfg.brackets.find(b => b.max === null || usd < b.max) || pricingCfg.brackets[pricingCfg.brackets.length - 1];
+    let price = cost * (1 + br.pct / 100);
+    const step = pricingCfg.round || 0;
+    if (step > 0) price = Math.round(price / step) * step;
+    return { usd, pct: br.pct, price };
+}
+function syndPrice(cost) { const r = syndCalc(cost); return r ? r.price : 0; }
+function syndBookText() {
+    const d = pricingCfg.bookDate ? pricingCfg.bookDate.split('-').reverse().map(x => String(parseInt(x))).join('/') : '';
+    return 'كتاب نقابة الصيادلة' + (pricingCfg.bookNo ? ' رقم ' + pricingCfg.bookNo : '') + (d ? ' بتاريخ ' + d : '');
+}
+function syndHintHtml(cost) {
+    const r = syndCalc(cost);
+    if (!r) return 'أدخل سعر الشراء (سعر المذخر) ليُحسب السعر تلقائياً.';
+    return `سعر المذخر ${Number(cost).toLocaleString()} د.ع ≈ $${r.usd.toFixed(2)} ← نسبة ${r.pct}% ← <b>${r.price.toLocaleString()} د.ع</b><br><small>${escapeHtml(syndBookText())} · الصرف ${pricingCfg.rate.toLocaleString()}</small>`;
+}
+function pricingInfoHtml(p) {
+    if (p.pricing === 'syndicate') {
+        const r = syndCalc(p.costPrice);
+        return `<div style="font-size:0.76rem;margin-bottom:8px;color:#334155;">🏷️ مسعّر حسب كتاب النقابة${r ? ': سعر المذخر ' + fmtNum(p.costPrice) + ' + ' + r.pct + '% = <b>' + fmtNum(p.price) + '</b>' : ''}</div>`;
+    }
+    if (p.pricing === 'manual') return '<div style="font-size:0.76rem;margin-bottom:8px;color:#64748b;">🏷️ التسعير: يدوي (ملصق الوزارة)</div>';
+    return '';
+}
+
 const ALL_DEPTS = '__all__';
 const ALL_DEPTS_LABEL = 'كل الأقسام';
 let activeDept = ALL_DEPTS;   // تفتح الصفحة على كل الأصناف من كل الأقسام
@@ -290,6 +337,7 @@ async function initFirebase() {
                 if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
                 if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
                 if (Array.isArray(data.alertMonths) && data.alertMonths.length === 3) alertMonths = data.alertMonths;
+                if (data.pricingCfg) pricingCfg = normPricingCfg(data.pricingCfg);
                 if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
                 saveLocal();
                 renderAll();
@@ -324,6 +372,7 @@ function saveLocal() {
         localStorage.setItem('diwanCustomTabs', JSON.stringify(customTabs));
         localStorage.setItem('diwanLowThreshold', String(lowStockThreshold));
         localStorage.setItem('diwanAlertMonths', JSON.stringify(alertMonths));
+        localStorage.setItem('diwanPricing', JSON.stringify(pricingCfg));
         localStorage.setItem('diwanSubTypes', JSON.stringify(subTypes));
         localStorage.setItem('diwanProducts', JSON.stringify(products));
     } catch (e) {
@@ -381,6 +430,7 @@ async function pushToCloud(onlyMetadata = false) {
                 customTabs,
                 lowStockThreshold,
                 alertMonths,
+                pricingCfg,
                 subTypes,
                 updatedAt: new Date().toISOString()
             });
@@ -483,6 +533,7 @@ function openCategoryManager() {
     const lowInput = document.getElementById('lowThresholdInput');
     if (lowInput) lowInput.value = lowStockThreshold;
     alertMonths.forEach((m, i) => { const el = document.getElementById('alertM' + (i + 1)); if (el) el.value = m; });
+    fillPricingForm();
     { const w = document.getElementById('puWindowInput'); if (w && typeof puWindowMonths === 'function') w.value = puWindowMonths(); }
     loadAiSettingsToForm();
     setupSettingsAccordion();
@@ -1101,7 +1152,7 @@ function openSheet(id) {
 
         ${!IS_ADMIN_PAGE ? '' : `<div class="sheet-admin-box">
             <div style="font-size:0.8rem; font-weight:800; color:#b45309; margin-bottom:4px;">⚙️ تحكم الصيدلي المباشر</div>
-            ${lowInfo}${expiryInfo}${typeof lastPurchaseHtml === 'function' ? lastPurchaseHtml(p) : ''}
+            ${lowInfo}${expiryInfo}${pricingInfoHtml(p)}${typeof lastPurchaseHtml === 'function' ? lastPurchaseHtml(p) : ''}
             <div class="admin-row">
                 <div class="qty-control-lg">
                     <button onclick="updateItemQty(${p.id}, -1)">-</button>
@@ -1401,6 +1452,7 @@ function openFormModal(id = null) {
         formBarcodes = barcodesOf(p); renderBarcodeChips();
         setExpiryDatesInForm(getProductExpiryDates(p));
         setExtraSelections(p);
+        { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = p.pricing === 'syndicate' ? 'syndicate' : 'manual'; }
     } else {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
@@ -1422,10 +1474,20 @@ function openFormModal(id = null) {
         formBarcodes = []; renderBarcodeChips();
         setExpiryDatesInForm([]);
         setExtraSelections(null);
+        { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = 'manual'; }
     }
+    onPriceModeChange(true);
     refreshScanEngineLabel();
     modal.style.display = 'flex';
     formSnapshot = formSerialize();
+}
+function onPriceModeChange(initial) {
+    const pm = document.getElementById('fPriceMode'), pr = document.getElementById('fPrice'), hint = document.getElementById('fPriceHint'), cost = document.getElementById('fCost');
+    if (!pm || !pr) return;
+    const syn = pm.value === 'syndicate';
+    pr.readOnly = syn;
+    if (hint) { hint.innerHTML = syn ? syndHintHtml(cost && cost.value) : 'اكتب السعر المطبوع على ملصق الوزارة.'; hint.style.display = ''; }
+    if (syn && cost && Number(cost.value) > 0) { pr.value = syndPrice(cost.value); if (typeof retailAutoPrice === 'function') retailAutoPrice(); }
 }
 let formSnapshot = '';
 function formSerialize() {
@@ -1584,6 +1646,9 @@ async function saveFormProduct() {
         });
     }
 
+    if (document.getElementById('fPriceMode') && document.getElementById('fPriceMode').value === 'syndicate' && !(parseFloat(document.getElementById('fCost').value) > 0)) {
+        return Swal.fire({ icon: 'warning', title: 'أدخل سعر الشراء', text: 'التسعير حسب كتاب النقابة يحتاج سعر الشراء (سعر المذخر) لحساب سعر البيع.', confirmButtonColor: '#0f1c38' });
+    }
     const expiryDates = getExpiryDatesFromForm();
     const pendingBc = cleanBarcode((document.getElementById('fBarcode') || {}).value);
     if (pendingBc && !formBarcodes.includes(pendingBc)) formBarcodes.push(pendingBc);
@@ -1605,6 +1670,7 @@ async function saveFormProduct() {
         qty: parseInt(document.getElementById('fQty').value) || 0,
         price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
         costPrice: document.getElementById('fCost') ? (parseFloat(document.getElementById('fCost').value) || 0) : 0,
+        pricing: (document.getElementById('fPriceMode') && document.getElementById('fPriceMode').value) || 'manual',
         ...readRetailForm(),
         ...((() => { const o = editId ? products.find(x => x.id === parseInt(editId)) : null; return o && o.lastPurchase ? { lastPurchase: o.lastPurchase } : {}; })()),
         expiryDates: expiryDates,
@@ -2146,6 +2212,41 @@ function buildLowStockSection() {
     `).join('');
 }
 
+function fillPricingForm() {
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v; };
+    set('pcRate', pricingCfg.rate); set('pcBookNo', pricingCfg.bookNo); set('pcBookDate', pricingCfg.bookDate); set('pcRound', pricingCfg.round);
+    const box = document.getElementById('pcRows'); if (!box) return;
+    box.innerHTML = pricingCfg.brackets.map((b, i, a) => {
+        const prev = i > 0 ? a[i - 1].max : null;
+        const label = i === 0 ? 'أقل من' : (b.max === null ? 'أكثر من ' + prev : 'من ' + prev + ' إلى');
+        return `<div class="pc-row"><span class="pc-l">${label}</span>${b.max === null ? '<span class="pc-fix">$</span>' : `<input type="number" id="pcMax${i}" min="1" value="${b.max}"><span class="pc-fix">$</span>`}<span class="pc-l">نسبة</span><input type="number" id="pcPct${i}" min="0" value="${b.pct}"><span class="pc-fix">%</span></div>`;
+    }).join('');
+}
+async function savePricingSettings() {
+    const g = id => parseFloat(document.getElementById(id) && document.getElementById(id).value);
+    const n = pricingCfg.brackets.length;
+    const next = { rate: g('pcRate'), bookNo: (document.getElementById('pcBookNo').value || '').trim(), bookDate: document.getElementById('pcBookDate').value, round: g('pcRound') || 0,
+        brackets: pricingCfg.brackets.map((b, i) => ({ max: i === n - 1 ? null : g('pcMax' + i), pct: g('pcPct' + i) })) };
+    const bad = !(next.rate > 0) || next.brackets.some((b, i) => isNaN(b.pct) || b.pct < 0 || (i < n - 1 && !(b.max > 0)) || (i > 0 && i < n - 1 && !(b.max > next.brackets[i - 1].max)));
+    if (bad) { Swal.fire({ icon: 'warning', title: 'تحقق من القيم', text: 'سعر الصرف رقم موجب، وحدود الشرائح تصاعدية، والنسب أرقام صحيحة.', confirmButtonColor: '#0f1c38' }); return; }
+    pricingCfg = normPricingCfg(next);
+    saveLocal(); fillPricingForm();
+    pushToCloud(true);
+    await repriceAll();
+}
+async function repriceAll(silentIfNone) {   // يعيد تسعير كل المواد المعتمدة على كتاب النقابة
+    const list = products.filter(p => p.pricing === 'syndicate' && Number(p.costPrice) > 0).map(p => ({ p, old: Number(p.price) || 0, np: syndPrice(p.costPrice) })).filter(x => x.np > 0 && x.np !== x.old);
+    if (!list.length) { Swal.fire({ icon: 'success', title: 'تم حفظ إعدادات التسعير', text: 'لا توجد مواد تغيّر سعرها.', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 }); return; }
+    const r = await Swal.fire({ icon: 'question', title: 'إعادة تسعير ' + list.length + ' مادة؟', html: '<div style="text-align:right;max-height:220px;overflow:auto;font-size:.85rem">' + list.slice(0, 30).map(x => '• <b dir="ltr">' + escapeHtml(x.p.name) + '</b>: ' + fmtNum(x.old) + ' ← ' + fmtNum(x.np)).join('<br>') + (list.length > 30 ? '<br>...' : '') + '</div>', showCancelButton: true, confirmButtonText: 'تطبيق الأسعار الجديدة', cancelButtonText: 'لاحقاً' });
+    if (!r.isConfirmed) return;
+    list.forEach(x => { x.p.price = x.np; });
+    const ok = await saveProductsDelta(list.map(x => ({ p: x.p, dq: 0, dl: 0 })));
+    if (!ok) { list.forEach(x => { x.p.price = x.old; }); renderAll(); return; }
+    list.forEach(x => logAction('edit', x.p, [{ f: 'السعر (إعادة تسعير النقابة)', from: String(x.old), to: String(x.np) }]));
+    renderAll();
+    Swal.fire({ icon: 'success', title: 'أُعيد تسعير ' + list.length + ' مادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
+}
+
 function saveAlertMonths() {
     const a = ['alertM1', 'alertM2', 'alertM3'].map(id => parseInt(document.getElementById(id).value));
     if (a.some(n => isNaN(n) || n < 1) || !(a[0] < a[1] && a[1] < a[2])) {
@@ -2525,6 +2626,7 @@ function buildBackupObject() {
         customTabs,
         lowStockThreshold,
         alertMonths,
+        pricingCfg,
         subTypes,
         products
     };
@@ -2654,6 +2756,7 @@ async function applyBackupData(data) {
         if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
         if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
                 if (Array.isArray(data.alertMonths) && data.alertMonths.length === 3) alertMonths = data.alertMonths;
+        if (data.pricingCfg) pricingCfg = normPricingCfg(data.pricingCfg);
         if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
 
         await pushToCloud(false);

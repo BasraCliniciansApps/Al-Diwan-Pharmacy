@@ -116,11 +116,15 @@ function puRecalc() {
     $b('puTotal').innerText = fmtNum(tot); $b('puNet').innerText = fmtNum(net); $b('puRem').innerText = fmtNum(rem);
     pu.items.forEach((it, i) => {
         const sum = fmtNum(puNum(it.qty) * puNum(it.cost)), set = (id, v) => { const el = $b(id + i); if (el) el.innerText = v; };
+        { const el = $b('puPs-' + i); if (el) el.innerHTML = puPM(it) === 'syndicate' ? syndHintHtml(it.cost) : ''; }
         set('puLine-', sum); set('puBq-', fmtNum(puNum(it.qty))); set('puBc-', puNum(it.cost) > 0 ? fmtNum(it.cost) : '⚠ بلا سعر'); set('puBs-', sum);
     });
 }
 function puThumb(pid) { const p = products.find(x => x.id === pid); return p && p.img ? `<img class="pk-img" src="${escapeHtml(p.img)}" alt="" onerror="this.style.visibility='hidden'">` : '<span class="pk-img pk-noimg">💊</span>'; }
 function puSub(pid) { const p = products.find(x => x.id === pid); return p ? [p.brand, fixMetaOrder(p.meta || ''), 'بالمخزن ' + stockLabel(p)].filter(Boolean).join(' · ') : ''; }
+function puPM(it) { const p = products.find(x => x.id === it.pid); return it.pmode || (p && p.pricing === 'syndicate' ? 'syndicate' : 'manual'); }
+function puCurPrice(pid) { const p = products.find(x => x.id === pid); return p && p.price ? '(الحالي ' + fmtNum(p.price) + ')' : ''; }
+function puPriceMode(i, v) { const it = pu.items[i]; if (!it) return; it.pmode = v; const a = $b('puPm-' + i), b = $b('puPs-' + i); if (a) a.style.display = v === 'manual' ? 'block' : 'none'; if (b) b.style.display = v === 'syndicate' ? 'block' : 'none'; puRecalc(); puChanged(); }
 function puRenderItems() {
     $b('puCount').innerText = pu.items.length ? 'عدد المواد في الفاتورة: ' + pu.items.length : '';
     $b('puItems').innerHTML = pu.items.map((it, i) => `
@@ -138,6 +142,13 @@ function puRenderItems() {
                     <label><span>سعر الشراء</span><input type="number" min="0" inputmode="decimal" value="${escapeHtml(it.cost)}" oninput="puItemEdit(${i},'cost',this.value)"></label>
                     <label><span>تاريخ الانتهاء</span><input type="month" dir="ltr" value="${escapeHtml(it.expiry || '')}" oninput="puItemEdit(${i},'expiry',this.value)"></label>
                     <label><span>رقم الدفعة (اختياري)</span><input dir="ltr" value="${escapeHtml(it.batch || '')}" oninput="puItemEdit(${i},'batch',this.value)"></label>
+                </div>
+                <div class="pu-price">
+                    <label><span>طريقة تسعير البيع</span><select onchange="puPriceMode(${i},this.value)">
+                        <option value="manual" ${puPM(it) === 'manual' ? 'selected' : ''}>يدوي — مسعّر من الوزارة (ملصق)</option>
+                        <option value="syndicate" ${puPM(it) === 'syndicate' ? 'selected' : ''}>حسب كتاب نقابة الصيادلة</option></select></label>
+                    <label id="puPm-${i}" style="display:${puPM(it) === 'manual' ? 'block' : 'none'}"><span>سعر البيع المطبوع على الملصق ${puCurPrice(it.pid)}</span><input type="number" min="0" inputmode="decimal" placeholder="اتركه فارغاً للإبقاء على السعر الحالي" value="${escapeHtml(it.pprice || '')}" oninput="puItemEdit(${i},'pprice',this.value)"></label>
+                    <div id="puPs-${i}" class="pu-syn" style="display:${puPM(it) === 'syndicate' ? 'block' : 'none'}"></div>
                 </div>
                 <div class="pu-line">المجموع: <b id="puLine-${i}">0</b> د.ع</div>
             </div>
@@ -243,7 +254,7 @@ async function puSave() {
     const oldLines = editing ? (editing.items || []) : [];
     const oldBy = new Map(oldLines.map(l => [l.pid, l]));
     const snaps = new Map(), lines = [];
-    const snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); };
+    const snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose, costPrice: p.costPrice, price: p.price, pricing: p.pricing, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); };
     // 1) الأصناف التي أُزيلت من الفاتورة عند التعديل: نُنقص كميتها السابقة
     const newIds = new Set(items.map(it => it.pid));
     oldLines.filter(l => !newIds.has(l.pid)).forEach(l => {
@@ -260,6 +271,7 @@ async function puSave() {
         p.qty = Math.max((parseInt(p.qty) || 0) + n - (old ? old.qty : 0), 0);
         if (old && old.expiry !== line.expiry && old.expAdded && old.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; line.expAdded = false; }
         if (cost > 0) p.costPrice = cost;
+        { const pm = puPM(it); if (pm === 'syndicate') { p.pricing = 'syndicate'; if (cost > 0) p.price = syndPrice(cost); } else { p.pricing = 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
         if (line.expiry && puExpiryPush(p, line.expiry)) line.expAdded = true;
         const lp = p.lastPurchase;
         if (!lp || String(pu.date) >= String(lp.date || '')) p.lastPurchase = { supplier, no, date: pu.date, qty: n, cost, batch: line.batch, expiry: line.expiry };
@@ -267,7 +279,7 @@ async function puSave() {
     });
     const touched = [...snaps.values()].map(s => s.p);
     const ok = await saveProductsDelta([...snaps.values()].map(s => deltaFromSnap(s.p, s)));
-    if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; s.p.lastPurchase = s.lastPurchase; }); renderAll(); return; }
+    if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; s.p.lastPurchase = s.lastPurchase; s.p.price = s.price; s.p.pricing = s.pricing; }); renderAll(); return; }
     // تحقق من وصول الكميات للسحابة فعلاً
     try {
         if (cloudReady() && navigator.onLine && pendingOps === 0) {

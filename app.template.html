@@ -204,6 +204,17 @@
                 </div>
             </div>
 
+            <div class="cat-manager-box" id="pricingBox" style="margin-top:16px;">
+                <h4>9. التسعير حسب كتاب النقابة وسعر الصرف</h4>
+                <div class="form-group"><label>سعر الصرف (دينار لكل 1 دولار):</label><input type="number" id="pcRate" min="1" inputmode="decimal"></div>
+                <div class="form-group"><label>رقم الكتاب النقابي:</label><input type="text" id="pcBookNo" dir="ltr"></div>
+                <div class="form-group"><label>تاريخ الكتاب:</label><input type="date" id="pcBookDate"></div>
+                <div class="form-group"><label>تقريب السعر لأقرب (دينار، 0 = بدون تقريب):</label><input type="number" id="pcRound" min="0" inputmode="numeric"></div>
+                <div class="form-group"><label>الشرائح (سعر المذخر بالدولار ← نسبة الإضافة):</label><div id="pcRows"></div></div>
+                <button type="button" class="icon-btn primary-btn" onclick="savePricingSettings()">💾 حفظ وإعادة تسعير المواد</button>
+                <small style="display:block;margin-top:8px;color:#64748b;line-height:1.7;">تغيير سعر الصرف أو النسب يعيد حساب أسعار كل المواد المسعّرة «حسب كتاب النقابة» دفعة واحدة، بعد تأكيدك. المواد اليدوية لا تتأثر.</small>
+            </div>
+
             <div class="cat-manager-box" style="margin-top:16px;">
                 <h4>5. النسخ الاحتياطي</h4>
                 <div class="tools-grid">
@@ -377,8 +388,15 @@
                 <div id="expiryDatesWrap"></div>
                 <button type="button" class="icon-btn" onclick="addExpiryRow()" style="margin-top:6px;">+ إضافة تاريخ نفاذ آخر</button>
             </div>
+            <div class="form-group"><label>طريقة التسعير:</label>
+                <select id="fPriceMode" onchange="onPriceModeChange()">
+                    <option value="manual">يدوي — مسعّر من الوزارة (ملصق التسعير)</option>
+                    <option value="syndicate">حسب كتاب نقابة الصيادلة (سعر المذخر + نسبة)</option>
+                </select>
+                <small id="fPriceHint" style="display:block;margin-top:6px;color:#64748b;line-height:1.7;"></small>
+            </div>
             <div class="form-group"><label>السعر (دينار عراقي):</label><input type="number" id="fPrice" min="0" value="0" oninput="retailAutoPrice()"></div>
-            <div class="form-group"><label>سعر الشراء للعبوة (اختياري، خاص بالصيدلي ولا يظهر للزبائن):</label><input type="number" id="fCost" min="0" placeholder="لحساب الربح في التقارير"></div>
+            <div class="form-group"><label>سعر الشراء للعبوة (اختياري، خاص بالصيدلي ولا يظهر للزبائن):</label><input type="number" id="fCost" min="0" oninput="onPriceModeChange()" placeholder="لحساب الربح في التقارير"></div>
             <div class="form-group"><label>العدد المتوفر (عبوات):</label><input type="number" id="fQty" min="0" value="5"></div>
             <div class="form-group retail-box">
                 <label>🧩 البيع بالتجزئة (اختياري)</label>
