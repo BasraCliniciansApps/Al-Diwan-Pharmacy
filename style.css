@@ -1876,3 +1876,8 @@ body.admin-page[data-view="purch"] #purchView { display: block; }
 .cat-manager-box.open .cmb-body { display: block; animation: cmbIn .18s ease-out; }
 .cat-manager-box.open .cmb-head { margin-bottom: 0; }
 @keyframes cmbIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+/* v33: أيقونات Lucide أحادية اللون بدل الإيموجي */
+.ic { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: -0.24em; flex-shrink: 0; margin-inline: 0.08em; }
+.ic-dot { width: .8em; height: .8em; vertical-align: -0.05em; }
+button .ic, .tile .ic { pointer-events: none; }
