@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- دوال مساعدة ----
+    function signedIn() { return request.auth != null; }
+    function isOwner() { return signedIn() && request.auth.uid == 'VrZUN6AMvTPMklvhlZcwKlqJciY2'; }
+    function userPath() { return /databases/$(database)/documents/pharmacy_users/$(request.auth.uid); }
+    function isStaff() { return signedIn() && exists(userPath()) && get(userPath()).data.active == true; }
+    function perm(p) { return isStaff() && get(userPath()).data.perms.get(p, false) == true; }
+
+    // ---- الأصناف العامة (يقرأها الزبائن) ----
+    match /pharmacy_products/{id} {
+      allow read: if true;
+      allow create, delete: if isOwner() || perm('stockEdit');
+      // البائع يحدّث حالة التوفر فقط (inStock) عند البيع
+      allow update: if isOwner() || perm('stockEdit')
+                    || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock']));
+    }
+    match /pharmacy/{id} {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // ---- المخزون الخاص: الكميات وتواريخ الانتهاء ----
+    match /pharmacy_stock/{id} {
+      allow read: if isOwner() || perm('stockView') || perm('sell');
+      allow create, delete: if isOwner() || perm('stockEdit');
+      // البائع يغيّر الكمية فقط
+      allow update: if isOwner() || perm('stockEdit')
+                    || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty', 'loose']));
+    }
+
+    // ---- سعر الشراء وآخر وارد: للمالك فقط ----
+    match /pharmacy_cost/{id} {
+      allow read, write: if isOwner();
+    }
+
+    // ---- الفواتير ----
+    match /pharmacy_invoices/{id} {
+      allow read: if isOwner() || perm('sell');
+      allow create: if isOwner() || perm('sell');
+      // البائع يعدّل فواتيره هو فقط، ولا يحذف
+      allow update: if isOwner() || (perm('sell') && resource.data.byUid == request.auth.uid && request.resource.data.byUid == request.auth.uid);
+      allow delete: if isOwner();
+    }
+
+    // ---- الوارد والمذاخر والسجلات المالية ----
+    match /pharmacy_purchases/{id}  { allow read, write: if isOwner() || perm('purchases'); }
+    match /pharmacy_suppliers/{id}  { allow read, write: if isOwner() || perm('purchases'); }
+    match /pharmacy_ledger/{id}     { allow read, write: if isOwner() || perm('purchases'); }
+
+    // ---- السلة والسجل والنسخ ----
+    match /pharmacy_trash/{id}   { allow read, write: if isOwner() || perm('stockEdit'); }
+    match /pharmacy_log/{id} {
+      allow create: if isOwner() || isStaff();
+      allow read, update, delete: if isOwner();
+    }
+    match /pharmacy_backups/{id} { allow read, write: if isOwner(); }
+
+    // ---- سجل البحث الفاشل (تكتبه صفحة الزبائن): أبقِ قاعدتك الحالية إن كانت مختلفة ----
+    match /pharmacy_search_misses/{id} {
+      allow create, update: if true;
+      allow read, delete: if isOwner();
+    }
+
+    // ---- المستخدمون ----
+    match /pharmacy_users/{uid} {
+      allow read: if isOwner() || (signedIn() && request.auth.uid == uid);
+      allow write: if isOwner();
+    }
+    // اسم المستخدم → بريده الداخلي (قراءة مستند واحد قبل الدخول، بلا قائمة)
+    match /pharmacy_logins/{login} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if isOwner();
+    }
+  }
+}

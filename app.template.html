@@ -200,6 +200,7 @@
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="openCatalog()">📋 سجل الأدوية</button>
                     <button class="icon-btn" onclick="openCostSplit()">🔒 فصل سعر الشراء</button>
+                    <button class="icon-btn" onclick="openUsers()">👥 المستخدمون والصلاحيات</button>
                     <button class="icon-btn" onclick="openIngredientModal()">🧪 إكمال المواد الفعالة</button>
                     <button class="icon-btn" onclick="openMissModal()">🔍 سجل البحث الفاشل</button>
                     <button class="icon-btn" onclick="puBackfill()">🔄 تحديث المواد من سجل الوارد</button>
@@ -541,7 +542,7 @@
         <img src="icon.jpg" alt="" class="gate-logo">
         <h1 class="ruqaa-title gate-title">صيدلية الديوان</h1>
         <p class="gate-sub">لوحة الصيدلي — سجّل دخولك للمتابعة</p>
-        <label class="gate-field"><span>البريد الإلكتروني</span><input type="email" id="gateEmail" dir="ltr" autocomplete="username" placeholder="admin@diwan.com" onkeydown="if(event.key==='Enter')document.getElementById('gatePass').focus()"></label>
+        <label class="gate-field"><span>اسم المستخدم أو البريد</span><input type="text" id="gateEmail" dir="ltr" autocomplete="username" placeholder="admin@diwan.com" onkeydown="if(event.key==='Enter')document.getElementById('gatePass').focus()"></label>
         <label class="gate-field"><span>كلمة المرور</span><input type="password" id="gatePass" dir="ltr" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')gateLogin()"></label>
         <div id="gateError" class="gate-error" style="display:none;"></div>
         <button type="button" class="gate-btn" id="gateBtn" onclick="gateLogin()">تسجيل الدخول</button>

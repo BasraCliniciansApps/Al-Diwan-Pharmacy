@@ -4,7 +4,9 @@
 let currentView = 'splash';
 let splashTimer = null;
 
+const VIEW_PERM = { bill: 'sell', stock: 'stockView', purch: 'purchases', alerts: 'stockView', catalog: 'stockEdit' };
 function showView(v) {
+    if (VIEW_PERM[v] && typeof can === 'function' && !can(VIEW_PERM[v])) v = 'home';
     currentView = v;
     document.body.dataset.view = v;
     window.scrollTo(0, 0);
@@ -24,15 +26,21 @@ function onAdminAuth(user) {
 }
 
 async function gateLogin() {
-    const email = document.getElementById('gateEmail').value.trim();
+    let email = document.getElementById('gateEmail').value.trim();
     const pass = document.getElementById('gatePass').value;
     const err = document.getElementById('gateError'), btn = document.getElementById('gateBtn');
     const fail = m => { err.innerText = m; err.style.display = 'block'; };
     err.style.display = 'none';
-    if (!email || !pass) return fail('أدخل البريد الإلكتروني وكلمة المرور');
+    if (!email || !pass) return fail('أدخل اسم المستخدم (أو البريد) وكلمة المرور');
     if (!isFirebaseReady || !auth) return fail('الاتصال بـ Firebase غير جاهز. تأكد من الإنترنت ثم أعد تحميل الصفحة.');
     btn.disabled = true; btn.innerText = 'جاري التحقق...';
     try {
+        if (!email.includes('@')) {   // اسم مستخدم: نجلب بريده الداخلي
+            let em = '';
+            try { const ld = await db.collection('pharmacy_logins').doc(loginKey(email)).get(); em = ld.exists ? (ld.data() || {}).email : ''; } catch (e) { /* تجاهل */ }
+            if (!em) return fail('بيانات الدخول غير صحيحة');
+            email = em;
+        }
         await auth.signInWithEmailAndPassword(email, pass);
         document.getElementById('gatePass').value = '';
     } catch (e) {
@@ -59,7 +67,7 @@ async function refreshHome() {
     let exp = 0; try { exp = getExpiringProducts().length; } catch (e) { /* تجاهل */ }
     const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}" onclick="${onclick}"><b>${val}</b><span>${label}</span></button>`;
     const alertsTotal = products.filter(p => alertKinds(p).any).length;
-    if (typeof puLoad === 'function') puLoad().then(puHomeBadge).catch(() => {});
+    if (typeof puLoad === 'function' && can('purchases')) puLoad().then(puHomeBadge).catch(() => {});
     const hb = document.getElementById('homeAlertCount');
     if (hb) { hb.innerText = alertsTotal; hb.style.display = alertsTotal ? 'flex' : 'none'; }
     const sb = document.getElementById('stockAlertCount');

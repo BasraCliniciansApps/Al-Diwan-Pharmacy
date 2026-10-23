@@ -55,3 +55,103 @@ async function costSplitStep2() {
         Swal.fire({ icon: 'success', title: 'تم التأمين', text: 'صارت التكلفة في مجموعة مقفلة عليك فقط.', confirmButtonColor: '#0f1c38' });
     } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر التأمين', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
 }
+
+// ============================================================================
+// المستخدمون والصلاحيات
+// كل موظف حساب Firebase حقيقي (بريد داخلي + رمز سري)، وصلاحياته في pharmacy_users/{uid}،
+// وقواعد Firestore (firestore.rules) هي التي تفرضها فعلاً، والواجهة تُخفي الأزرار فقط.
+// ============================================================================
+const PERM_LABELS = { sell: 'إصدار الفواتير (البيع)', stockView: 'عرض المخزن والكميات', stockEdit: 'تعديل المواد والكميات والجرد', purchases: 'الوارد والمذاخر والسجلات' };
+const PERM_PRESETS = { seller: { sell: true, stockView: true }, manager: { sell: true, stockView: true, stockEdit: true } };
+function loginKey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/[\/#?\[\]\.]/g, ''); }
+
+async function resolveRole(user) {
+    userRole = 'staff'; userPerms = {}; userName = '';
+    if (user.uid === OWNER_UID) { userRole = 'owner'; userName = 'المالك'; return true; }
+    let doc = null;
+    try { const s = await db.collection('pharmacy_users').doc(user.uid).get(); doc = s.exists ? s.data() : null; } catch (e) { doc = null; }
+    if (!doc || doc.active === false) {
+        try { await auth.signOut(); } catch (e) { /* تجاهل */ }
+        currentUser = null; document.body.classList.remove('admin-mode', 'role-staff');
+        showView('login');
+        const err = document.getElementById('gateError'); if (err) { err.innerText = doc ? 'هذا الحساب معطّل. راجع المالك.' : 'هذا الحساب غير مفعّل في النظام. راجع المالك.'; err.style.display = 'block'; }
+        return false;
+    }
+    userPerms = doc.perms || {}; userName = doc.name || '';
+    return true;
+}
+function applyRoleUI() {
+    const b = document.body;
+    b.classList.toggle('role-staff', userRole !== 'owner');
+    Object.keys(PERM_LABELS).forEach(p => b.classList.toggle('can-' + p.toLowerCase(), can(p)));
+    const t = document.querySelector('#homeView .page-title');
+    if (t) t.textContent = userRole === 'owner' ? '🏠 الرئيسية' : '👤 ' + userName;
+}
+
+// ---------- إدارة المستخدمين (للمالك) ----------
+function secAuth() {
+    const app = firebase.apps.find(a => a.name === 'sec') || firebase.initializeApp(firebaseConfig, 'sec');
+    return app.auth();
+}
+const permBoxes = (cur) => Object.keys(PERM_LABELS).map(p => `<label class="pu-chk"><input type="checkbox" class="uPerm" data-p="${p}" ${cur && cur[p] ? 'checked' : ''}><span>${PERM_LABELS[p]}</span></label>`).join('');
+const readPerms = () => { const o = {}; document.querySelectorAll('.uPerm').forEach(c => { if (c.checked) o[c.dataset.p] = true; }); if (o.sell || o.stockEdit || o.purchases) o.stockView = true; return o; };
+let usersCache = [];
+async function openUsers() {
+    try { closeCategoryManager(); } catch (e) { /* تجاهل */ }
+    if (userRole !== 'owner') return;
+    if (!requireOnline()) return;
+    let rows = '';
+    try {
+        const snap = await db.collection('pharmacy_users').get(); usersCache = [];
+        snap.forEach(d => usersCache.push({ uid: d.id, ...d.data() }));
+        rows = usersCache.map(u => `<div class="bill-card ${u.active === false ? 'is-closed' : ''}" style="text-align:right"><div class="bill-card-main" onclick="Swal.close();userEdit('${u.uid}')"><b>${escapeHtml(u.name)}</b>${u.active === false ? '<em class="tg bad">معطّل</em>' : ''}<small>${Object.keys(u.perms || {}).filter(p => PERM_LABELS[p] && p !== 'stockView').map(p => PERM_LABELS[p]).join(' • ') || 'عرض فقط'}</small></div><button type="button" class="bill-tb-btn" onclick="Swal.close();userEdit('${u.uid}')">تعديل</button></div>`).join('') || '<div class="bill-none">لا يوجد مستخدمون بعد.</div>';
+    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر قراءة المستخدمين', html: 'أضف قواعد المستخدمين في Firebase أولاً (ملف firestore.rules).<br><small>' + escapeHtml(e.message || '') + '</small>', confirmButtonColor: '#0f1c38' }); return; }
+    Swal.fire({ title: 'المستخدمون والصلاحيات', showConfirmButton: true, confirmButtonText: '➕ إضافة مستخدم', showCancelButton: true, cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', html: '<div class="sw-form">' + rows + '</div>' }).then(r => { if (r.isConfirmed) userAdd(); });
+}
+async function userAdd() {
+    const r = await Swal.fire({ title: 'مستخدم جديد', showCancelButton: true, confirmButtonText: 'إنشاء', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
+        html: `<div class="sw-form"><label>الاسم (يدخل به)<input id="uName" class="swal2-input"></label><label>الرمز السري (6 خانات فأكثر)<input id="uPin" class="swal2-input" dir="ltr" autocomplete="off"></label><small>الصلاحيات:</small>${permBoxes(PERM_PRESETS.seller)}</div>`,
+        preConfirm: () => { const n = document.getElementById('uName').value.trim(), pin = document.getElementById('uPin').value.trim(); if (!n) { Swal.showValidationMessage('اكتب الاسم'); return false; } if (pin.length < 6) { Swal.showValidationMessage('الرمز 6 خانات على الأقل'); return false; } return { n, pin, perms: readPerms() }; } });
+    if (!r.isConfirmed || !r.value) return;
+    await userCreate(r.value.n, r.value.pin, r.value.perms);
+    openUsers();
+}
+async function userCreate(name, pin, perms, replaceUid) {
+    const key = loginKey(name);
+    Swal.fire({ title: 'جاري الإنشاء...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+    try {
+        const ex = await db.collection('pharmacy_logins').doc(key).get();
+        if (ex.exists && !replaceUid) throw new Error('الاسم مستخدم. اختر اسماً آخر.');
+        const email = Math.random().toString(36).slice(2, 10) + Date.now().toString(36) + '@diwan.local';
+        const sa = secAuth();
+        const cred = await sa.createUserWithEmailAndPassword(email, pin);
+        const uid = cred.user.uid; await sa.signOut();
+        await db.collection('pharmacy_users').doc(uid).set({ name, login: key, email, perms, active: true, createdAt: new Date().toISOString() });
+        await db.collection('pharmacy_logins').doc(key).set({ email });
+        if (replaceUid) { try { await db.collection('pharmacy_users').doc(replaceUid).delete(); } catch (e) { /* تجاهل */ } }
+        Swal.close();
+        Swal.fire({ icon: 'success', title: 'تم', text: 'يدخل ' + name + ' من نفس صفحة الدخول باسمه ورمزه.', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
+        return true;
+    } catch (e) {
+        Swal.fire({ icon: 'error', title: 'تعذر الإنشاء', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' });
+        return false;
+    }
+}
+async function userEdit(uid) {
+    const u = usersCache.find(x => x.uid === uid); if (!u) return;
+    const r = await Swal.fire({ title: 'تعديل ' + escapeHtml(u.name), showCancelButton: true, showDenyButton: true, confirmButtonText: 'حفظ', denyButtonText: '🗑 حذف', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
+        html: `<div class="sw-form"><small>الصلاحيات:</small>${permBoxes(u.perms)}<label class="pu-chk"><input type="checkbox" id="uActive" ${u.active === false ? '' : 'checked'}><span>الحساب فعّال</span></label><label>رمز سري جديد (اتركه فارغاً بلا تغيير)<input id="uPin" class="swal2-input" dir="ltr" autocomplete="off"></label></div>`,
+        preConfirm: () => { const pin = document.getElementById('uPin').value.trim(); if (pin && pin.length < 6) { Swal.showValidationMessage('الرمز 6 خانات على الأقل'); return false; } return { pin, perms: readPerms(), active: document.getElementById('uActive').checked }; } });
+    if (r.isDenied) {
+        const c = await Swal.fire({ icon: 'warning', title: 'حذف ' + escapeHtml(u.name) + '؟', text: 'لن يستطيع الدخول بعد الآن.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
+        if (c.isConfirmed) { try { await db.collection('pharmacy_users').doc(uid).delete(); if (u.login) await db.collection('pharmacy_logins').doc(u.login).delete(); } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message, confirmButtonColor: '#0f1c38' }); } }
+        return openUsers();
+    }
+    if (!r.isConfirmed || !r.value) return openUsers();
+    try {
+        if (r.value.pin) { if (await userCreate(u.name, r.value.pin, r.value.perms, uid)) { if (r.value.active === false) { /* الحساب الجديد فعّال دائماً */ } } return openUsers(); }
+        await db.collection('pharmacy_users').doc(uid).update({ perms: r.value.perms, active: r.value.active });
+        if (u.login) { if (r.value.active) await db.collection('pharmacy_logins').doc(u.login).set({ email: u.email }); else await db.collection('pharmacy_logins').doc(u.login).delete(); }
+    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحفظ', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
+    openUsers();
+}

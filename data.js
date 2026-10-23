@@ -159,6 +159,9 @@ let cloudPub = [];          // الأصناف العامة كما تصل من ا
 let stockMap = {};          // بيانات المخزون الخاصة (للصيدلي فقط)
 let unsubStock = null;
 // التكلفة (سعر الشراء وآخر وارد ونسبة الربح) تُحفظ في مجموعة pharmacy_cost المقفلة على المالك بعد «فصل التكلفة»
+const OWNER_UID = 'VrZUN6AMvTPMklvhlZcwKlqJciY2';
+let userRole = 'staff', userPerms = {}, userName = '';   // الدور: owner أو staff (بصلاحيات userPerms)
+function can(p) { return !p || userRole === 'owner' || !!(userPerms && userPerms[p]); }
 const COST_FIELDS = ['costPrice', 'lastPurchase', 'markupPct'];
 let costMap = {};           // بيانات التكلفة (للمالك فقط)
 let costSplitOn = false;    // هل فُصلت التكلفة؟ (علامة في pharmacy_cost/_meta)
@@ -339,21 +342,25 @@ async function initFirebase() {
             currentUser = user;
             const authBtn = document.getElementById('authBtn');
             if (user) {
+                if (typeof resolveRole === 'function' && !(await resolveRole(user))) return;   // مستخدم غير مسموح: خرج تلقائياً
                 document.body.classList.add('admin-mode');
+                if (typeof applyRoleUI === 'function') applyRoleUI();
                 authBtn.innerHTML = ICONS.lock;
                 authBtn.title = 'خروج الصيدلي';
                 
                 // فحص ما إذا كانت قاعدة منتجات السحابة فارغة لرفع الـ 166 منتجاً لأول مرة
                 try {
                     const snap = await db.collection('pharmacy_products').limit(1).get();
-                    if (snap.empty && products.length > 0 && navigator.onLine) pushToCloud(false);
+                    if (snap.empty && products.length > 0 && navigator.onLine && userRole === 'owner') pushToCloud(false);
                 } catch (e) { /* بدون اتصال: نكمل من النسخة المحلية */ }
-                startStockListener(); startCostListener();
+                if (can('stockView') || can('sell')) startStockListener();
+                if (userRole === 'owner') startCostListener();
                 checkPending();
-                setTimeout(() => { if (typeof syncLocalRecords === 'function') syncLocalRecords(true).catch(() => {}); }, 4000);
-                setTimeout(autoMaintenance, 9000);   // نسخة احتياطية أسبوعية + تنظيف السلة والسجل
+                if (userRole === 'owner') setTimeout(() => { if (typeof syncLocalRecords === 'function') syncLocalRecords(true).catch(() => {}); }, 4000);
+                if (userRole === 'owner') setTimeout(autoMaintenance, 9000);   // نسخة احتياطية أسبوعية + تنظيف السلة والسجل
             } else {
-                document.body.classList.remove('admin-mode');
+                document.body.classList.remove('admin-mode', 'role-staff');
+                userRole = 'staff'; userPerms = {}; userName = '';
                 authBtn.innerHTML = ICONS.user;
                 authBtn.title = 'دخول الصيدلي';
                 stopStockListener();
@@ -1073,7 +1080,7 @@ function productCardHtml(p, tagHtml) {
                     <div class="bento-title">${p.name}</div>
                     <div style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? Number(p.price).toLocaleString() + ' د.ع' : (IS_ADMIN_PAGE ? '0 د.ع' : '')}</div>
                     <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
-                    ${!IS_ADMIN_PAGE ? '' : `<div class="quick-qty" onclick="event.stopPropagation()">
+                    ${(!IS_ADMIN_PAGE || !can('stockEdit')) ? '' : `<div class="quick-qty" onclick="event.stopPropagation()">
                         <button type="button" aria-label="إنقاص الكمية" onclick="quickQty(${p.id}, -1, event)">−</button>
                         <span class="qs-num" id="qs_${p.id}">${Number(p.qty) || 0}</span>
                         <button type="button" aria-label="زيادة الكمية" onclick="quickQty(${p.id}, 1, event)">+</button>
@@ -1186,7 +1193,7 @@ function openSheet(id) {
             </button>
         </div>
 
-        ${!IS_ADMIN_PAGE ? '' : `<div class="sheet-admin-box">
+        ${(!IS_ADMIN_PAGE || !can('stockEdit')) ? '' : `<div class="sheet-admin-box">
             <div style="font-size:0.8rem; font-weight:800; color:#b45309; margin-bottom:4px;">⚙️ تحكم الصيدلي المباشر</div>
             ${lowInfo}${expiryInfo}${pricingInfoHtml(p)}${typeof lastPurchaseHtml === 'function' ? lastPurchaseHtml(p) : ''}
             <div class="admin-row"><div class="qty-control-lg">
@@ -2435,10 +2442,11 @@ async function saveProductsDelta(entries) {
             const batch = db.batch();
             entries.slice(i, i + 15).forEach(e => {
                 const { pub, stock, cost } = splitProduct(e.p);
-                batch.set(db.collection('pharmacy_products').doc(String(e.p.id)), pub);
+                if (can('stockEdit')) batch.set(db.collection('pharmacy_products').doc(String(e.p.id)), pub);
+                else batch.update(db.collection('pharmacy_products').doc(String(e.p.id)), { inStock: pub.inStock });   // البائع يحدّث حالة التوفر فقط
                 const ref = db.collection('pharmacy_stock').doc(String(e.p.id));
                 const cur = stockMap[String(e.p.id)];
-                if (cost) batch.set(db.collection('pharmacy_cost').doc(String(e.p.id)), cost, { merge: true });
+                if (cost && userRole === 'owner') batch.set(db.collection('pharmacy_cost').doc(String(e.p.id)), cost, { merge: true });
                 if (!F || !cur) { batch.set(ref, stock); return; }
                 const u = { id: e.p.id };
                 if (e.dq) u.qty = F.increment(e.dq);

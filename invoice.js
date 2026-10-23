@@ -263,6 +263,7 @@ function billClearImages() { lsDel(BILL_LS.sig); lsDel(BILL_LS.stamp); renderInv
 
 // ---------- فتح الصفحات ----------
 function billTab(name) {
+    if (typeof userRole !== 'undefined' && userRole !== 'owner' && !['new', 'issued'].includes(name)) name = 'new';
     currentBillTab = name;
     document.querySelectorAll('#billTabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     document.querySelectorAll('.bill-pane').forEach(p => { p.classList.toggle('active', p.id === 'billPane-' + name); p.classList.remove('print-active'); });
@@ -495,6 +496,7 @@ function invTotalOf(b) {
 }
 async function saveInvoiceRecord(b) {
     const rec = JSON.parse(JSON.stringify({ ...b, total: invTotalOf(b) }));
+    if (!rec.byUid && typeof currentUser !== 'undefined' && currentUser) { rec.byUid = currentUser.uid; rec.by = (typeof userName !== 'undefined' && userName) || (userRole === 'owner' ? 'المالك' : ''); }
     let list = [];
     try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
     list = list.filter(x => x.id !== rec.id); list.unshift(rec);
@@ -551,7 +553,7 @@ function billCardHtml(b, extra) {
     return `<div class="bill-card ${b.cancelled ? 'cancelled' : ''}">
         <div class="bill-card-main" onclick="billOpenSaved('${b.id}')">
             <b dir="ltr">${escapeHtml(b.no || '')}</b> <span>${escapeHtml(b.to || b.customer || 'بدون اسم')}</span> ${tags}
-            <small>${escapeHtml(fmtDateDMY(b.date))} • ${(b.items || []).length} مادة</small>
+            <small>${escapeHtml(fmtDateDMY(b.date))} • ${(b.items || []).length} مادة${b.by ? ' • ' + escapeHtml(b.by) : ''}</small>
         </div>
         <div class="bill-card-amt">${fmtNum(invTotalOf(b))}<small>د.ع</small></div>
         ${extra || (b.cancelled ? `<button type="button" class="bill-tb-btn bill-danger" onclick="deleteInvoicePermanently('${b.id}')">🗑 حذف</button>` : '')}

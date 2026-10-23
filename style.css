@@ -2139,3 +2139,11 @@ body:not(.admin-page) .app-header-row { justify-content: space-between; margin-b
 .zoom-bar { display: flex; gap: 10px; }
 .zoom-btn { min-height: 46px; padding: 0 18px; border: 0; border-radius: 12px; background: #f5a623; color: #0f1c38; font: 800 .95rem inherit; font-family: inherit; cursor: pointer; }
 .zoom-btn.ghost { background: rgba(255,255,255,.18); color: #fff; }
+
+/* ===== v62: إخفاء ما لا يملك المستخدم صلاحيته (والتنفيذ الفعلي في قواعد Firestore) ===== */
+body.role-staff:not(.can-sell) .tile-bill, body.role-staff:not(.can-stockview) .tile-stock, body.role-staff:not(.can-purchases) .tile-purch,
+body.role-staff:not(.can-stockedit) .tile-inv, body.role-staff:not(.can-stockview) .tile-alert, body.role-staff .tile-gear,
+body.role-staff:not(.can-stockedit) .home-quick button[onclick^="goAddProduct"], body.role-staff .home-quick button[onclick*="billTab('debt')"], body.role-staff .home-quick button[onclick*="billTab('reports')"],
+body.role-staff #bkReminder, body.role-staff #billTabs [data-tab="debt"], body.role-staff #billTabs [data-tab="reports"], body.role-staff #billTabs [data-tab="po"], body.role-staff #billTabs [data-tab="settings"],
+body.role-staff:not(.can-stockedit) .sheet-admin-box, body.role-staff:not(.can-stockedit) .quick-qty { display: none !important; }
+body.role-staff .kpi.k-sales { display: none !important; }
