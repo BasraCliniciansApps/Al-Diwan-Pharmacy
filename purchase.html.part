@@ -7,7 +7,9 @@
         <button type="button" data-tab="new" class="active" onclick="puTab('new')">➕ وارد جديد</button>
         <button type="button" data-tab="log" onclick="puTab('log')">📚 السجل</button>
         <button type="button" data-tab="debt" onclick="puTab('debt')">💳 مستحقات المذاخر</button>
-        <button type="button" data-tab="month" onclick="puTab('month')">🗓️ كشف شهري</button>
+        <button type="button" data-tab="month" onclick="puTab('month')">🗓️ سجل الطلبيات</button>
+        <button type="button" data-tab="ret" onclick="puTab('ret')" id="puTabRet">↩️ المردود</button>
+        <button type="button" data-tab="unrec" onclick="puTab('unrec')">📌 غير المقطوع</button>
         <button type="button" data-tab="sup" onclick="puTab('sup')">🏭 المذاخر والأسعار</button>
     </div>
 
@@ -19,6 +21,8 @@
                     <label><span>المذخر المجهز</span><input id="puSupplier" list="puSupList" autocomplete="off" placeholder="اسم المذخر" oninput="puChanged()"><datalist id="puSupList"></datalist></label>
                     <label><span>رقم فاتورة المذخر</span><input id="puNo" dir="ltr" autocomplete="off" oninput="puChanged()"></label>
                     <label><span>تاريخ فاتورة المذخر</span><input type="date" id="puDate" oninput="puChanged()"></label>
+                    <label class="pu-chk"><input type="checkbox" id="puStmt" onchange="puChanged()"><span>✓ استلمتُ كشف المذخر لهذه القائمة</span></label>
+                    <label class="pu-chk"><input type="checkbox" id="puUseEntry" onchange="puChanged()"><span>اعتماد تاريخ الإدخال (اليوم) لتحديد شهرها بدل تاريخ القائمة</span></label>
                 </div>
             </div>
             <div class="bill-add">
@@ -62,15 +66,55 @@
             </div>
         </section>
 
-        <!-- ===== الكشف الشهري ===== -->
+        <!-- ===== سجل الطلبيات (شهري/سنوي) ===== -->
         <section class="pu-pane" id="puPane-month">
-            <div class="bill-actions no-print">
-                <label class="pu-mfield"><span>الشهر</span><input type="month" id="puMonth" oninput="renderPuMonth()"></label>
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الفترة</span><select id="puPType" onchange="puInitMonth(true)"><option value="month">شهر</option><option value="year">سنة كاملة</option></select></label>
+                <label class="pu-mfield" id="puMonthWrap"><span>الشهر</span><input type="month" id="puMonth" oninput="renderPuMonth()"></label>
+                <label class="pu-mfield" id="puYearWrap" style="display:none"><span>السنة</span><input type="number" id="puYear" min="2000" max="2100" oninput="renderPuMonth()"></label>
                 <label class="pu-mfield"><span>المذخر</span><select id="puMonthSup" onchange="renderPuMonth()"></select></label>
+                <label class="pu-chk"><input type="checkbox" id="puDetail" checked onchange="renderPuMonth()"><span>تفصيل القوائم</span></label>
+                <label class="pu-chk"><input type="checkbox" id="puGroup" onchange="renderPuMonth()"><span>تجميع حسب المذخر</span></label>
+            </div>
+            <div class="bill-actions no-print">
                 <button type="button" class="bill-tb-btn" onclick="puMonthCsv()">⬇️ Excel</button>
                 <button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-month')">🖨️ طباعة</button>
             </div>
+            <div class="no-print" id="puCloseBar"></div>
             <div class="bill-sheet" id="puMonthSheet"></div>
+        </section>
+
+        <!-- ===== سجل المردود ===== -->
+        <section class="pu-pane" id="puPane-ret">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>المذخر</span><select id="lgret-sup" onchange="lgRenderRet('ret')"></select></label>
+                <label class="pu-mfield"><span>الحالة</span><select id="lgret-st" onchange="lgRenderRet('ret')"><option value="">الكل</option><option value="pending">بانتظار فاتورة المردود</option><option value="done">صدرت فاتورة المردود</option><option value="nostmt">بدون كشف</option></select></label>
+                <label class="pu-mfield"><span>الشهر (اختياري)</span><input type="month" id="lgret-m" oninput="lgRenderRet('ret')"></label>
+                <label class="pu-mfield"><span>تنبيه بعد (يوم)</span><input type="number" id="lgret-days" min="1" oninput="lgSaveDays(this.value)"></label>
+            </div>
+            <div class="bill-actions no-print">
+                <button type="button" class="bill-tb-btn bill-tb-primary" onclick="lgOpenReturn({})">＋ تسجيل مردود</button>
+                <button type="button" class="bill-tb-btn" onclick="lgRetCsv('ret')">⬇️ Excel</button>
+                <button type="button" class="bill-tb-btn" onclick="puPrint('puPane-ret')">🖨️ طباعة</button>
+            </div>
+            <div id="lgret-sum" class="bill-sum-card no-print"></div>
+            <div id="lgret-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lgret-sheet"></div>
+        </section>
+
+        <!-- ===== المردود غير المقطوع ===== -->
+        <section class="pu-pane" id="puPane-unrec">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>المذخر</span><select id="lgunrec-sup" onchange="lgRenderRet('unrec')"></select></label>
+                <label class="pu-mfield"><span>السنة (اختياري)</span><input type="number" id="lgunrec-y" min="2000" max="2100" oninput="lgRenderRet('unrec')"></label>
+            </div>
+            <div class="bill-actions no-print">
+                <button type="button" class="bill-tb-btn" onclick="lgRetCsv('unrec')">⬇️ Excel</button>
+                <button type="button" class="bill-tb-btn" onclick="puPrint('puPane-unrec')">🖨️ طباعة</button>
+            </div>
+            <div id="lgunrec-sum" class="bill-sum-card no-print"></div>
+            <div id="lgunrec-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lgunrec-sheet"></div>
         </section>
 
         <!-- ===== المذاخر والأسعار ===== -->

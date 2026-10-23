@@ -10,10 +10,10 @@ let puTabName = 'new';
 let puPendingBc = '';          // باركود جديد بانتظار ربطه بدواء
 let puDraftTimer = null;
 
-function emptyPurchase() { return { supplier: '', no: '', date: todayLocalISO(), items: [], returnAmt: '', paid: '', notes: '' }; }
+function emptyPurchase() { return { supplier: '', no: '', date: todayLocalISO(), items: [], returnAmt: '', paid: '', notes: '', stmt: false, useEntry: false }; }
 const puNum = v => parseFloat(v) || 0;
 function puTotalOf(r) { return (r.items || []).reduce((s, it) => s + puNum(it.qty) * puNum(it.cost), 0); }
-function puNetOf(r) { return Math.max(puTotalOf(r) - puNum(r.returnAmt), 0); }
+function puNetOf(r) { return Math.max(puTotalOf(r) - puNum(r.returnAmt) - (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0), 0); }
 function puRemaining(r) { return r.cancelled ? 0 : Math.max(puNetOf(r) - puNum(r.paid), 0); }
 const puKey = s => String(s || '').trim().toLowerCase();
 
@@ -86,10 +86,11 @@ function puTab(name) {
     document.querySelectorAll('#puTabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     document.querySelectorAll('.pu-pane').forEach(p => { p.classList.toggle('active', p.id === 'puPane-' + name); p.classList.remove('print-active'); });
     if (name === 'month') $b('puPane-month').classList.add('print-active');
+    if (typeof lgTabBadge === 'function') lgTabBadge();
     if (name === 'new') puInitNew();
-    puLoad().then(() => {
+    (typeof lgLoad === 'function' ? Promise.all([puLoad(), lgLoad()]) : puLoad()).then(() => {
         puFillSupplierList();
-        if (name === 'log') renderPuLog(); else if (name === 'debt') renderPuDebt(); else if (name === 'month') puInitMonth(); else if (name === 'sup') renderPuSuppliers();
+        if (name === 'log') renderPuLog(); else if (name === 'debt') renderPuDebt(); else if (name === 'month') puInitMonth(); else if (name === 'ret') lgInitRet('ret'); else if (name === 'unrec') lgInitRet('unrec'); else if (name === 'sup') renderPuSuppliers();
     });
 }
 function onShowPurch() { puTab(puTabName || 'new'); }
@@ -105,10 +106,12 @@ function puInitNew() {
 function puWriteFields() {
     $b('puSupplier').value = pu.supplier || ''; $b('puNo').value = pu.no || ''; $b('puDate').value = pu.date || todayLocalISO();
     $b('puReturn').value = pu.returnAmt === '' ? '' : pu.returnAmt; $b('puPaid').value = pu.paid === '' ? '' : pu.paid; $b('puNotes').value = pu.notes || '';
+    if ($b('puStmt')) $b('puStmt').checked = !!pu.stmt; if ($b('puUseEntry')) $b('puUseEntry').checked = !!pu.useEntry;
 }
 function puReadFields() {
     pu.supplier = $b('puSupplier').value; pu.no = $b('puNo').value; pu.date = $b('puDate').value || todayLocalISO();
     pu.returnAmt = $b('puReturn').value; pu.paid = $b('puPaid').value; pu.notes = $b('puNotes').value;
+    pu.stmt = !!($b('puStmt') && $b('puStmt').checked); pu.useEntry = !!($b('puUseEntry') && $b('puUseEntry').checked);
 }
 function puChanged() { puReadFields(); puRecalc(); clearTimeout(puDraftTimer); puDraftTimer = setTimeout(() => lsSet(PU_LS.draft, JSON.stringify(pu)), 300); }
 function puRecalc() {
@@ -252,6 +255,7 @@ async function puSave() {
         if (!r.isConfirmed) return;
     }
     if (!writesAllowed()) return;
+    if (typeof lgGuardClosed === 'function' && !(await lgGuardClosed([pu.date, editing && editing.date].filter(Boolean).map(d => puMonthOf({ date: d, useEntry: pu.useEntry, createdTs: editing && editing.createdTs }))))) return;
     const total = items.reduce((s, it) => s + puNum(it.qty) * puNum(it.cost), 0), ret = puNum(pu.returnAmt);
     if (ret > total) return warn('مبلغ الاسترجاع أكبر من مجموع الفاتورة');
     const oldLines = editing ? (editing.items || []) : [];
@@ -296,10 +300,10 @@ async function puSave() {
     let rec;
     if (editing) {
         const diff = paid - puNum(editing.paid);
-        rec = { ...editing, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, notes: pu.notes.trim(), editedAt: new Date().toISOString() };
+        rec = { ...editing, stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, notes: pu.notes.trim(), editedAt: new Date().toISOString() };
         rec.payments = (editing.payments || []).slice(); if (Math.abs(diff) > 0.001) rec.payments.push({ at: todayLocalISO(), amount: diff, adj: true });
     } else {
-        rec = { id: 'pu' + Date.now(), supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
+        rec = { id: 'pu' + Date.now(), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
     }
     await puSaveRecord(rec);
     await puUpsertSupplier(supplier);
@@ -312,14 +316,14 @@ function puCancelEdit() { pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringif
 function puEdit(id) {
     const r = puAll.find(x => x.id === id); if (!r || r.cancelled) return;
     if (pu && pu.items.length && !pu.editId) { /* المسودة الحالية ستُستبدل */ }
-    pu = { editId: r.id, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, cost: l.cost, expiry: l.expiry || '', batch: l.batch || '' })) };
+    pu = { editId: r.id, stmt: !!r.stmt, useEntry: !!r.useEntry, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, cost: l.cost, expiry: l.expiry || '', batch: l.batch || '' })) };
     puTab('new'); window.scrollTo(0, 0);
 }
 
 // ---------- السجل ----------
 function puCardHtml(r, extra) {
     const rem = puRemaining(r);
-    const tags = (r.cancelled ? '<em class="tg bad">ملغى</em>' : '') + (rem > 0 ? `<em class="tg warn">متبقي ${fmtNum(rem)}</em>` : '') + (puNum(r.returnAmt) > 0 ? `<em class="tg">استرجاع ${fmtNum(r.returnAmt)}</em>` : '');
+    const tags = (r.cancelled ? '<em class="tg bad">ملغى</em>' : '') + (rem > 0 ? `<em class="tg warn">متبقي ${fmtNum(rem)}</em>` : '') + (puNum(r.returnAmt) > 0 ? `<em class="tg">استرجاع ${fmtNum(r.returnAmt)}</em>` : '') + (r.stmt ? '<em class="tg">✓ كشف</em>' : '');
     return `<div class="bill-card ${r.cancelled ? 'cancelled' : ''}">
         <div class="bill-card-main" onclick="puOpen('${r.id}')">
             <b>${escapeHtml(r.supplier)}</b> <span dir="ltr">${escapeHtml(r.no)}</span> ${tags}
@@ -343,15 +347,16 @@ function puOpen(id) {
         title: escapeHtml(r.supplier) + ' — ' + escapeHtml(r.no), showConfirmButton: false, showCloseButton: true, width: 640,
         html: `<div class="pu-detail"><div class="pu-d-meta">${escapeHtml(fmtDateDMY(r.date))}${r.cancelled ? ' • <b style="color:#b91c1c">ملغى</b>' : ''}</div>
             <div class="pu-d-scroll"><table class="bill-table"><thead><tr><th>المادة</th><th>العدد</th><th>السعر</th><th>الانتهاء</th><th>الدفعة</th><th>المجموع</th></tr></thead><tbody>${rows}</tbody></table></div>
-            <div class="pu-d-tot"><div>المجموع: <b>${fmtNum(puTotalOf(r))}</b></div><div>الاسترجاع: <b>${fmtNum(r.returnAmt)}</b></div><div>الصافي: <b>${fmtNum(puNetOf(r))}</b></div><div>المدفوع: <b>${fmtNum(r.paid)}</b></div><div>المتبقي: <b>${fmtNum(puRemaining(r))}</b></div></div>
-            <div class="pu-d-pays"><b>الدفعات:</b>${pays}</div>${r.notes ? `<div class="pu-d-pays"><b>ملاحظات:</b> ${escapeHtml(r.notes)}</div>` : ''}
-            <div class="pu-d-btns">${r.cancelled ? '' : btn('✏️ تعديل الفاتورة', `puEdit('${r.id}')`) + btn('💳 تسديد', `puPay('${r.id}')`, 'bill-pay') + btn('↩️ مبلغ الاسترجاع', `puSetReturn('${r.id}')`) + btn('✖ إلغاء الوارد', `puCancel('${r.id}')`, 'bill-danger')}</div></div>`
+            <div class="pu-d-tot"><div>المجموع: <b>${fmtNum(puTotalOf(r))}</b></div><div>الاسترجاع: <b>${fmtNum(puNum(r.returnAmt) + (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0))}</b></div><div>الصافي: <b>${fmtNum(puNetOf(r))}</b></div><div>المدفوع: <b>${fmtNum(r.paid)}</b></div><div>المتبقي: <b>${fmtNum(puRemaining(r))}</b></div></div>
+            <div class="pu-d-pays"><b>الدفعات:</b>${pays}</div>${typeof lgLinkedHtml === 'function' ? lgLinkedHtml(r.id) : ''}${r.notes ? `<div class="pu-d-pays"><b>ملاحظات:</b> ${escapeHtml(r.notes)}</div>` : ''}
+            <div class="pu-d-btns">${r.cancelled ? '' : btn('✏️ تعديل الفاتورة', `puEdit('${r.id}')`) + btn('💳 تسديد', `puPay('${r.id}')`, 'bill-pay') + btn('📦 إرجاع مواد', `lgOpenReturn({listId:'${r.id}'})`) + btn('↩️ مبلغ الاسترجاع', `puSetReturn('${r.id}')`) + btn('✖ إلغاء الوارد', `puCancel('${r.id}')`, 'bill-danger')}</div></div>`
     });
 }
 async function puSetReturn(id) {
     const r = puAll.find(x => x.id === id); if (!r) return;
     const res = await Swal.fire({ title: 'مبلغ الاسترجاع', html: `مجموع الفاتورة: <b>${fmtNum(puTotalOf(r))} د.ع</b>`, input: 'number', inputValue: puNum(r.returnAmt) || '', inputAttributes: { min: 0, max: puTotalOf(r) }, showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء' });
     if (!res.isConfirmed) return;
+    if (typeof lgGuardClosed === 'function' && !(await lgGuardClosed([puMonthOf(r)]))) return;
     r.returnAmt = Math.min(Math.max(puNum(res.value), 0), puTotalOf(r));
     if (puNum(r.paid) > puNetOf(r)) r.paid = puNetOf(r);
     await puSaveRecord(r); puRefreshCurrent();
@@ -361,6 +366,7 @@ async function puCancel(id) {
     const res = await Swal.fire({ icon: 'warning', title: 'إلغاء الوارد؟', text: 'ستُنقص الكميات المضافة من المخزن ويُلغى مبلغها من المستحقات.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، إلغاء', cancelButtonText: 'رجوع' });
     if (!res.isConfirmed) return;
     if (!writesAllowed()) return;
+    if (typeof lgGuardClosed === 'function' && !(await lgGuardClosed([puMonthOf(r)]))) return;
     const touched = [], csnaps = new Map();
     (r.items || []).forEach(l => {
         const p = products.find(x => x.id === l.pid); if (!p) return;
@@ -377,7 +383,7 @@ async function puCancel(id) {
     r.cancelled = true; r.cancelledAt = todayLocalISO();
     await puSaveRecord(r); renderAll(); puRefreshCurrent();
 }
-function puRefreshCurrent() { if (puTabName === 'log') renderPuLog(); else if (puTabName === 'debt') renderPuDebt(); else if (puTabName === 'month') renderPuMonth(); else if (puTabName === 'sup') renderPuSuppliers(); }
+function puRefreshCurrent() { if (puTabName === 'log') renderPuLog(); else if (puTabName === 'debt') renderPuDebt(); else if (puTabName === 'month') renderPuMonth(); else if (puTabName === 'ret') lgRenderRet('ret'); else if (puTabName === 'unrec') lgRenderRet('unrec'); else if (puTabName === 'sup') renderPuSuppliers(); }
 
 // ---------- المستحقات ----------
 async function puPay(id) {
@@ -426,47 +432,7 @@ function puHomeBadge() {
 
 // ---------- الكشف الشهري ----------
 function puMonthNow() { return todayLocalISO().slice(0, 7); }
-function puInitMonth() {
-    if (!$b('puMonth').value) $b('puMonth').value = puMonthNow();
-    const sel = $b('puMonthSup'), cur = sel.value;
-    sel.innerHTML = '<option value="">كل المذاخر</option>' + puSupplierNames().map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join('');
-    sel.value = cur; renderPuMonth();
-}
-function puMonthRows() {
-    const m = $b('puMonth').value || puMonthNow(), sup = $b('puMonthSup').value;
-    return puAll.filter(r => !r.cancelled && String(r.date).slice(0, 7) === m && (!sup || puKey(r.supplier) === puKey(sup))).sort((a, b) => String(a.date).localeCompare(String(b.date)) || String(a.createdTs).localeCompare(String(b.createdTs)));
-}
-function renderPuMonth() {
-    const m = $b('puMonth').value || puMonthNow(), sup = $b('puMonthSup').value, rows = puMonthRows(), meta = getInvMeta();
-    const tot = rows.reduce((s, r) => s + puTotalOf(r), 0), ret = rows.reduce((s, r) => s + puNum(r.returnAmt), 0), net = tot - ret;
-    const paid = rows.reduce((s, r) => s + puNum(r.paid), 0), rem = rows.reduce((s, r) => s + puRemaining(r), 0);
-    const [yy, mm] = m.split('-');
-    $b('puMonthSheet').innerHTML = `
-        <div class="bill-letterhead">
-            <img src="icon.jpg" alt="" class="bill-logo">
-            <div class="bill-ph"><div class="bill-ph-name">صيدلية الديوان</div><div class="bill-ph-line">${escapeHtml(meta.addr || '')}</div><div class="bill-ph-line">${meta.phone ? 'هاتف: ' + escapeHtml(meta.phone) : ''}</div></div>
-            <div class="bill-title-box"><div class="bill-title">كشف الوارد الشهري</div><div class="pu-mtitle">${mm}/${yy}${sup ? ' — ' + escapeHtml(sup) : ''}</div></div>
-        </div>
-        <table class="bill-table pu-mtable">
-            <thead><tr><th class="pu-n">#</th><th>المذخر</th><th>رقم الفاتورة</th><th>التاريخ</th><th>المبلغ</th><th>الاسترجاع</th><th>المبلغ الكلي (بعد الاسترجاع)</th></tr></thead>
-            <tbody>${rows.map((r, i) => `<tr><td class="pu-n">${i + 1}</td><td>${escapeHtml(r.supplier)}</td><td dir="ltr">${escapeHtml(r.no)}</td><td>${escapeHtml(fmtDateDMY(r.date))}</td><td>${fmtNum(puTotalOf(r))}</td><td>${puNum(r.returnAmt) ? fmtNum(r.returnAmt) : '—'}</td><td><b>${fmtNum(puNetOf(r))}</b></td></tr>`).join('') || '<tr><td colspan="7" class="bill-empty-row">لا توجد واردات في هذا الشهر.</td></tr>'}</tbody>
-            ${rows.length ? `<tfoot><tr><td colspan="4">المجموع</td><td>${fmtNum(tot)}</td><td>${fmtNum(ret)}</td><td>${fmtNum(net)}</td></tr></tfoot>` : ''}
-        </table>
-        <div class="bill-bottom"><div class="bill-totals"><div class="bill-trow bill-grand"><span>التوتل الشهري</span><b>${fmtNum(net)} د.ع</b></div></div></div>
-        <div class="bill-words">${net > 0 ? 'المبلغ كتابةً: ' + escapeHtml(numberToArabicWords(net)) + ' دينار عراقي فقط لا غير' : ''}</div>
-        <div class="pu-mextra no-print"><span>المدفوع: <b>${fmtNum(paid)}</b></span><span>المتبقي للمذاخر: <b>${fmtNum(rem)}</b></span><span>عدد الفواتير: <b>${rows.length}</b></span></div>`;
-}
-function puMonthCsv() {
-    const rows = puMonthRows(), q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
-    const lines = [['المذخر', 'رقم الفاتورة', 'التاريخ', 'المبلغ', 'الاسترجاع', 'المبلغ الكلي بعد الاسترجاع'].map(q).join(',')];
-    let tot = 0, ret = 0, net = 0;
-    rows.forEach(r => { const t = puTotalOf(r), rt = puNum(r.returnAmt), n = puNetOf(r); tot += t; ret += rt; net += n; lines.push([r.supplier, r.no, r.date, t, rt, n].map(q).join(',')); });
-    lines.push(['المجموع', '', '', tot, ret, net].map(q).join(','));
-    lines.push(['التوتل الشهري', '', '', '', '', net].map(q).join(','));
-    const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'purchases-' + ($b('puMonth').value || puMonthNow()) + '.csv';
-    document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
-}
+// (سجل الطلبيات الشهري/السنوي: انظر ledger.js)
 function puPrint(paneId) {
     document.querySelectorAll('.pu-pane').forEach(p => p.classList.toggle('print-active', p.id === paneId));
     document.body.classList.add('printing-purch');
@@ -539,6 +505,7 @@ async function syncLocalRecords(auto) {
             let sup = []; try { sup = JSON.parse(lsGet(PU_LS.sup)) || []; } catch (e) { sup = []; }
             for (const s of sup) if (!sh.has(s.id)) { await fsSet(db.collection('pharmacy_suppliers').doc(s.id), s); n++; }
         } catch (e) { /* القواعد */ }
+        try { if (typeof lgSyncLocal === 'function') n += await lgSyncLocal(); } catch (e) { /* القواعد */ }
         lsSet('diwanNeedsPush', '0');
         try { sessionStorage.setItem('diwanSess', sessionStorage.getItem('diwanSess') || String(Date.now())); lsSet('diwanPushedOnce', sessionStorage.getItem('diwanSess')); } catch (e) { /* تجاهل */ }
     } finally { syncingLocal = false; }
