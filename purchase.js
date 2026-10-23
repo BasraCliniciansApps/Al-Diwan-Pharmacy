@@ -337,6 +337,7 @@ function puCardHtml(r, extra, withSeq) {
             <small>${escapeHtml(fmtDateDMY(r.date))} • ${(r.items || []).length} مادة</small>
         </div>
         <div class="bill-card-amt">${fmtNum(puNetOf(r))}<small>د.ع</small></div>
+        ${withSeq && !r.cancelled ? `<button type="button" class="stmt-ck ${r.stmt ? 'on' : ''}" onclick="event.stopPropagation();lgToggleStmt('inv','${r.id}')" aria-label="وصل الكشف" title="وصل كشف هذه القائمة">${r.stmt ? '✓' : ''}<small>كشف</small></button>` : ''}
         ${extra || (r.cancelled ? `<button type="button" class="bill-tb-btn bill-danger" onclick="puDeletePermanently('${r.id}')">🗑 حذف</button>` : '')}
     </div>`;
 }

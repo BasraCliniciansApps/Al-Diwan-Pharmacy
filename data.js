@@ -1168,22 +1168,18 @@ function openSheet(id) {
         ${!IS_ADMIN_PAGE ? '' : `<div class="sheet-admin-box">
             <div style="font-size:0.8rem; font-weight:800; color:#b45309; margin-bottom:4px;">⚙️ تحكم الصيدلي المباشر</div>
             ${lowInfo}${expiryInfo}${pricingInfoHtml(p)}${typeof lastPurchaseHtml === 'function' ? lastPurchaseHtml(p) : ''}
-            <div class="admin-row">
-                <div class="qty-control-lg">
+            <div class="admin-row"><div class="qty-control-lg">
                     <button onclick="updateItemQty(${p.id}, -1)">-</button>
                     <span style="font-weight:800; min-width:28px; text-align:center;">${stockLabel(p)}</span>
                     <button onclick="updateItemQty(${p.id}, 1)">+</button>
-                </div>
-                <div style="display:flex; gap:8px;">
-                    <button class="icon-btn" onclick="closeSheet(); openFormModal(${p.id});">✏️ تعديل الصنف</button>
-                    <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteItem(${p.id})">🗑️ حذف</button>
-                </div>
-            </div>
-            ${typeof lgxOpen === 'function' ? `<div class="admin-row" style="margin-top:8px; gap:8px; flex-wrap:wrap;">
-                <button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('exp'); lgxOpen('exp',{pid:${p.id}});">🗑️ منتهي / تالف</button>
+            </div></div>
+            <div class="act-grid">
+                <button class="icon-btn" onclick="closeSheet(); openFormModal(${p.id});">✏️ تعديل الصنف</button>
+                ${typeof lgxOpen === 'function' ? `<button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('exp'); lgxOpen('exp',{pid:${p.id}});">🗑️ منتهي / تالف</button>
                 <button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('xfer'); lgxOpen('xfer',{pid:${p.id}});">🔁 مناقلة</button>
-                <button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('ret'); lgOpenReturn({pid:${p.id}});">↩️ إرجاع لمذخر</button>
-            </div>` : ''}
+                <button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('ret'); lgOpenReturn({pid:${p.id}});">↩️ إرجاع لمذخر</button>` : ''}
+                <button class="icon-btn act-del" onclick="deleteItem(${p.id})">🗑️ حذف الصنف</button>
+            </div>
         </div>`}
     `;
 
