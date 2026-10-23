@@ -196,6 +196,7 @@
                     </div>
                 </div>
                 <div class="tools-grid">
+                    <button class="icon-btn" onclick="openCatalog()">📋 سجل الأدوية</button>
                     <button class="icon-btn" onclick="openIngredientModal()">🧪 إكمال المواد الفعالة</button>
                     <button class="icon-btn" onclick="openMissModal()">🔍 سجل البحث الفاشل</button>
                     <button class="icon-btn" onclick="puBackfill()">🔄 تحديث المواد من سجل الوارد</button>
@@ -583,6 +584,20 @@
         <button type="button" onclick="showView('bill'); billTab('debt')">💳 الآجل</button>
         <button type="button" onclick="showView('bill'); billTab('reports')">📊 تقارير</button>
         <a href="./" class="home-quick-link">👁 صفحة الزبائن</a>
+    </div>
+</div>
+
+<div id="catalogView" class="app-view bill-view cat-view" dir="rtl">
+    <div class="bill-top no-print">
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button></div></div>
+    <div class="page-title">📋 سجل الأدوية</div>
+    </div>
+    <div class="bill-scroll">
+        <div class="bill-panel">
+            <input type="search" class="bill-list-search" id="catSearch" placeholder="🔍 ابحث باسم الدواء أو الشركة أو الباركود..." oninput="catInput()">
+            <div class="cat-sum" id="catSum"></div>
+            <div class="cat-list" id="catList"></div>
+        </div>
     </div>
 </div>
 
@@ -984,7 +999,7 @@
     <script src="swal-skin.js"></script>
     <script src="seed.js"></script>
     <script src="data.js"></script>
-<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="backup.js"></script><script src="admin.js"></script>
+<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="backup.js"></script><script src="admin.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});

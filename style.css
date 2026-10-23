@@ -1717,6 +1717,7 @@ body.admin-page .top-bar-inner { padding-top: 12px; }
 .exp-tag { position: absolute; left: 8px; bottom: 8px; padding: 4px 9px; border-radius: 10px; font-size: 0.68rem; font-weight: 900; z-index: 2; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
 .t-exp { background: #991b1b; color: #fff; } .t-m1 { background: #ea580c; color: #fff; } .t-m3 { background: #f59e0b; color: #1f1300; } .t-m6 { background: #fde68a; color: #713f12; } .t-low { background: #dbeafe; color: #1e3a8a; }
 body.admin-page[data-view="alerts"] #alertsView { display: block; }
+body.admin-page[data-view="catalog"] #catalogView { display: block; }
 :root[data-theme="dark"] .alerts-select { color: var(--text-main); }
 :root[data-theme="dark"] .home-view > .brand-bar, :root[data-theme="dark"] .home-view > .page-title, :root[data-theme="dark"] .alerts-view > .brand-bar, :root[data-theme="dark"] .alerts-view > .page-title, :root[data-theme="dark"] .bill-top .brand-bar, :root[data-theme="dark"] .bill-top .page-title { background: #0b1326; }
 
@@ -2110,3 +2111,23 @@ body:not(.admin-page) .app-header-row { justify-content: space-between; margin-b
 .bill-card.is-closed { opacity: .6; }
 :root[data-theme="dark"] .dw-pop .swal2-input, :root[data-theme="dark"] .dw-pop .swal2-textarea, :root[data-theme="dark"] .dw-pop .swal2-select { background: var(--surface-2); color: var(--text-main); border-color: var(--border); }
 :root[data-theme="dark"] .dw-text .sw-info { background: var(--surface-2); }
+
+/* ===== v59: سجل الأدوية ===== */
+.cat-sum { display: flex; gap: 8px; flex-wrap: wrap; font-size: .78rem; font-weight: 800; color: #475569; }
+.cat-sum span { padding: 5px 10px; background: #fff; border-radius: 999px; box-shadow: 0 1px 2px rgba(15,28,56,.08); }
+.cat-ok { color: #15803d; } .cat-no { color: #b91c1c; }
+.cat-list { display: flex; flex-direction: column; gap: 6px; }
+.cat-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(15,28,56,.08); }
+.cat-n { flex: 0 0 auto; min-width: 34px; text-align: center; font-weight: 900; font-size: .78rem; color: #64748b; }
+.cat-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; cursor: pointer; text-align: left; }
+.cat-main b { font-size: .9rem; color: #0f1c38; overflow-wrap: anywhere; }
+.cat-main small { color: #64748b; font-size: .72rem; overflow-wrap: anywhere; }
+.cat-btn { flex: 0 0 auto; width: 46px; min-height: 46px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 2px solid; border-radius: 12px; font: 900 1.15rem/1 inherit; cursor: pointer; padding: 2px 0; background: #fff; }
+.cat-btn small { font-size: .58rem; font-weight: 800; }
+.cat-merge { border-color: #cbd5e1; color: #0f1c38; }
+.cat-bc.none { border-color: #dc2626; background: #fee2e2; color: #b91c1c; }
+.cat-bc.has { border-color: #16a34a; background: #dcfce7; color: #15803d; }
+.cat-btn:active { transform: scale(.94); }
+@media (min-width: 900px) { .cat-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } }
+:root[data-theme="dark"] .cat-row, :root[data-theme="dark"] .cat-sum span { background: var(--surface); }
+:root[data-theme="dark"] .cat-main b { color: var(--text-main); }

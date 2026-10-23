@@ -13,6 +13,7 @@ function showView(v) {
     else if (v === 'bill') { onShowBill(); }
     else if (v === 'purch') { onShowPurch(); }
     else if (v === 'alerts') { renderAlerts(); }
+    else if (v === 'catalog') { renderCatalog(); }
 }
 
 // يُستدعى من data.js عند تغيّر حالة الدخول
