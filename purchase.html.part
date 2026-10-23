@@ -10,6 +10,7 @@
         <button type="button" data-tab="month" onclick="puTab('month')">🗓️ سجل الطلبيات</button>
         <button type="button" data-tab="ret" onclick="puTab('ret')" id="puTabRet">↩️ المردود</button>
         <button type="button" data-tab="unrec" onclick="puTab('unrec')">📌 غير المقطوع</button>
+        <button type="button" data-tab="pay" onclick="puTab('pay')">💳 التسديد والحسابات</button>
         <button type="button" data-tab="sup" onclick="puTab('sup')">🏭 المذاخر والأسعار</button>
     </div>
 
@@ -115,6 +116,29 @@
             <div id="lgunrec-sum" class="bill-sum-card no-print"></div>
             <div id="lgunrec-list" class="no-print"></div>
             <div class="bill-sheet print-only" id="lgunrec-sheet"></div>
+        </section>
+
+        <!-- ===== التسديد والحسابات ===== -->
+        <section class="pu-pane" id="puPane-pay">
+            <div class="lg-seg no-print" id="lgpSeg">
+                <button type="button" data-seg="recv" onclick="lgPaySegSet('recv')">🏛️ مقبوض من الحسابات</button>
+                <button type="button" data-seg="sup" onclick="lgPaySegSet('sup')">🏭 مسدَّد للمذاخر والخصم</button>
+                <button type="button" data-seg="bal" onclick="lgPaySegSet('bal')">⚖️ أرصدة المذاخر</button>
+            </div>
+            <div class="lg-filters no-print" id="lgpFilters">
+                <label class="pu-mfield"><span>الفترة</span><select id="lgpType" onchange="lgPayRender()"><option value="month">شهر</option><option value="year">سنة</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield" id="lgpMW"><span>الشهر</span><input type="month" id="lgpMonth" oninput="lgPayRender()"></label>
+                <label class="pu-mfield" id="lgpYW" style="display:none"><span>السنة</span><input type="number" id="lgpYear" min="2000" max="2100" oninput="lgPayRender()"></label>
+                <label class="pu-mfield" id="lgpSW"><span>المذخر</span><select id="lgpSup" onchange="lgPayRender()"></select></label>
+            </div>
+            <div class="bill-actions no-print">
+                <button type="button" class="bill-tb-btn bill-tb-primary" id="lgpAdd" onclick="lgPayAdd()">＋ إضافة</button>
+                <button type="button" class="bill-tb-btn" onclick="lgPayCsv()">⬇️ Excel</button>
+                <button type="button" class="bill-tb-btn" onclick="puPrint('puPane-pay')">🖨️ طباعة</button>
+            </div>
+            <div id="lgp-sum" class="bill-sum-card no-print"></div>
+            <div id="lgp-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lgp-sheet"></div>
         </section>
 
         <!-- ===== المذاخر والأسعار ===== -->

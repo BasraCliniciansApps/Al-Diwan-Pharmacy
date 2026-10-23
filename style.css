@@ -1973,3 +1973,8 @@ body:not(.admin-page) .app-header-row { justify-content: space-between; margin-b
 .pu-mtable td { word-break: normal; } .pu-mtable td:nth-child(n+4), .pu-mtable th { white-space: nowrap; } .pu-mtable td:nth-child(3) { min-width: 64px; }
 @media print { .pu-tw { overflow: visible; } .pu-mtable th, .pu-mtable td { font-size: .8rem; } }
 @media (max-width: 480px) { .pu-mtable th, .pu-mtable td { padding: 5px 3px; font-size: .66rem; } .pu-ck { min-width: 20px; } .pu-ckh { width: 30px; } .pu-mtable .pu-n { width: 18px; } }
+
+.lg-seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 10px 2px 0; }
+.lg-seg button { min-height: 44px; border: 1.5px solid #d5dbe6; border-radius: 12px; background: #fff; color: #0f1c38; font-family: inherit; font-weight: 800; font-size: .72rem; padding: 4px 6px; cursor: pointer; line-height: 1.4; }
+.lg-seg button.active { background: #0f1c38; color: #fff; border-color: #0f1c38; }
+[data-theme="dark"] .lg-seg button { background: #1e293b; color: #e2e8f0; border-color: #334155; } [data-theme="dark"] .lg-seg button.active { background: #f59e0b; color: #0f1c38; border-color: #f59e0b; }
