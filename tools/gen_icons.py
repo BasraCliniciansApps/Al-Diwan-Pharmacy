@@ -10,8 +10,9 @@ MAP = {
  '🛒':'shopping-cart','📚':'library','💬':'message-circle','⬇️':'download','🏥':'hospital','🔗':'link','📉':'trending-down','📴':'wifi-off',
  '🤖':'bot','🔐':'lock','🔒':'lock','♻️':'recycle','🌐':'globe','📷':'camera','📸':'camera','🧾':'receipt-text','🏭':'warehouse',
  '👤':'user','🚫':'ban','⛔':'ban','📁':'folder','📖':'book-open','💡':'lightbulb','★':'star','⬆️':'arrow-up','💰':'wallet',
- '🔵':'dot','🟢':'dot','🔴':'dot','🟡':'dot','⭐':'star','📌':'pin','🔙':'arrow-right','✔️':'check','✔':'check','❗':'circle-alert','❓':'circle-help','ℹ️':'info','ℹ':'info','📝':'file-pen','📄':'file-text','🔧':'wrench','🛠️':'wrench','⏰':'alarm-clock','🕒':'clock','⬅️':'arrow-right','➡️':'arrow-left','▶️':'play','⏸️':'pause','📞':'phone','📱':'smartphone','✉️':'mail','💲':'banknote','🛑':'octagon-x','🆕':'sparkles','▦':'scan-barcode','⟳':'refresh-cw','⏻':'log-out','🚪':'log-out','☀️':'sun','🌙':'moon','🔽':'chevron-down','🔼':'chevron-up'}
+ '🔵':'dot','🟢':'dot','🔴':'dot','🟡':'dot','⭐':'star','📌':'pin','🔙':'arrow-right','✔️':'check','✔':'check','❗':'circle-alert','❓':'circle-question-mark','ℹ️':'info','ℹ':'info','📝':'file-pen','📄':'file-text','🔧':'wrench','🛠️':'wrench','⏰':'alarm-clock','🕒':'clock','⬅️':'arrow-right','➡️':'arrow-left','▶️':'play','⏸️':'pause','📞':'phone','📱':'smartphone','✉️':'mail','💲':'banknote','🛑':'octagon-x','🆕':'sparkles','▦':'scan-barcode','⟳':'refresh-cw','⏻':'log-out','🚪':'log-out','☀️':'sun','🌙':'moon','🔽':'chevron-down','🔼':'chevron-up'}
 icons = {}
+EXTRA = ['circle-question-mark','circle-x','info','circle-check','triangle-alert','x']
 for k, n in MAP.items():
     f = L + n + '.svg'
     if not os.path.exists(f): print('MISSING', k, n); continue
@@ -19,6 +20,11 @@ for k, n in MAP.items():
     inner = re.search(r'<svg[^>]*>(.*)</svg>', s, re.S).group(1)
     inner = re.sub(r'\s+', ' ', inner).strip()
     icons[n] = inner
+for n in EXTRA:
+    f = L + n + '.svg'
+    if os.path.exists(f):
+        icons[n] = re.sub(r'\s+', ' ', re.search(r'<svg[^>]*>(.*)</svg>', open(f).read(), re.S).group(1)).strip()
+    else: print('MISSING extra', n)
 keys = sorted(MAP.keys(), key=lambda x: -len(x))
 js = '''// أيقونات Lucide (رخصة ISC) — خطية أحادية اللون، مدمجة داخل التطبيق (تعمل بدون إنترنت).
 // تستبدل أي إيموجي يظهر في الواجهة بأيقونة مطابقة وتأخذ لون النص المحيط.

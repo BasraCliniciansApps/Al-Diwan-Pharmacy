@@ -1885,3 +1885,42 @@ button .ic, .tile .ic { pointer-events: none; }
 /* v34: صف الشعار في صفحة الزبائن + زر الوضع */
 body:not(.admin-page) .app-header-row { justify-content: space-between; margin-bottom: 12px; }
 .small-icon-btn .ic, .gate-theme .ic { width: 1.25em; height: 1.25em; margin: 0; vertical-align: middle; }
+
+/* v36: شكل النوافذ المنبثقة */
+.dw-pop { font-family: inherit !important; padding: 22px 18px 18px !important; box-shadow: 0 22px 60px rgba(10,20,40,.38) !important; border-radius: 22px !important; background: var(--surface, #fff) !important; color: var(--text-main, #0f1c38) !important; }
+.dw-card { width: min(320px, 90vw) !important; }
+.dw-sheet { width: 100% !important; max-width: 520px !important; margin: 0 auto !important; border-radius: 26px 26px 0 0 !important; padding: 26px 18px calc(18px + env(safe-area-inset-bottom)) !important; }
+.dw-sheet::before { content: ''; position: absolute; top: 9px; left: 50%; transform: translateX(-50%); width: 42px; height: 4px; border-radius: 9px; background: #cdd4e2; }
+.swal2-container.dw-cont-sheet { padding: 0 !important; align-items: flex-end !important; }
+.swal2-container.dw-cont-card { padding: 16px !important; }
+.dw-ic { width: 52px !important; height: 52px !important; min-height: 0 !important; border: 0 !important; border-radius: 16px !important; margin: 4px auto 12px !important; padding: 12px; display: flex !important; align-items: center; justify-content: center; }
+.dw-ic .swal2-icon-content { width: 100%; height: 100%; font-size: 0 !important; display: flex; align-items: center; justify-content: center; }
+.dw-ic svg { width: 100%; height: 100%; }
+.dw-ic-none { display: none !important; }
+.dw-ic-question, .dw-ic-info { background: #e8eefc; color: #1e3a8a; }
+.dw-ic-warning { background: #fdf3d8; color: #b7791f; }
+.dw-ic-error { background: #fde8e8; color: #b91c1c; }
+.dw-ic-success { background: #e1f6ea; color: #15803d; }
+.dw-title { font-size: 1.1rem !important; font-weight: 800 !important; color: var(--primary-dark, #0f1c38) !important; padding: 0 !important; margin: 0 0 6px !important; line-height: 1.5; }
+.dw-text { font-size: .9rem !important; line-height: 1.75 !important; color: var(--text-sub, #64748b) !important; margin: 2px 0 0 !important; padding: 0 !important; }
+.dw-actions { width: 100% !important; margin: 18px 0 0 !important; gap: 8px !important; display: flex !important; }
+.dw-card .dw-actions { flex-direction: row-reverse; }
+.dw-sheet .dw-actions { flex-direction: column; }
+.dw-sheet .dw-btn-main { order: 1; } .dw-sheet .dw-btn-deny { order: 2; } .dw-sheet .dw-btn-ghost { order: 3; }
+.dw-btn { flex: 1; height: 46px; border-radius: 14px !important; border: 0 !important; font: inherit !important; font-weight: 800 !important; font-size: .95rem !important; cursor: pointer; box-shadow: none !important; padding: 0 16px !important; margin: 0 !important; }
+.dw-sheet .dw-btn { width: 100%; height: 50px; flex: none; }
+.dw-btn-main { background: var(--primary-dark, #0f1c38); color: #fff !important; }
+.dw-btn-ghost { background: #eef1f6 !important; color: #475569 !important; }
+.dw-btn-deny { background: #fee2e2 !important; color: #b91c1c !important; }
+.dw-btn:active { transform: scale(.98); }
+[data-theme="dark"] .dw-title { color: #f1f5f9 !important; } [data-theme="dark"] .dw-text { color: #aab6cf !important; }
+[data-theme="dark"] .dw-btn-ghost { background: #1e293b !important; color: #cbd5e1 !important; } [data-theme="dark"] .dw-sheet::before { background: #334155; }
+[data-theme="dark"] .dw-btn-main { background: #f5c24b; color: #0f1c38 !important; }
+[data-theme="dark"] .dw-ic-question, [data-theme="dark"] .dw-ic-info { background: #1e2a4d; color: #93b4ff; } [data-theme="dark"] .dw-ic-warning { background: #3a2e12; color: #f5c24b; }
+[data-theme="dark"] .dw-ic-error { background: #3b1a1a; color: #f87171; } [data-theme="dark"] .dw-ic-success { background: #12301f; color: #4ade80; }
+.dw-in-sheet { animation: dwUp .28s cubic-bezier(.16,1,.3,1); } .dw-out-sheet { animation: dwDown .2s ease-in forwards; }
+.dw-in-card { animation: dwPop .22s cubic-bezier(.16,1,.3,1); } .dw-out-card { animation: dwPopOut .15s ease-in forwards; }
+@keyframes dwUp { from { transform: translateY(100%); } to { transform: none; } } @keyframes dwDown { to { transform: translateY(100%); } }
+@keyframes dwPop { from { opacity: 0; transform: scale(.92) translateY(8px); } to { opacity: 1; transform: none; } } @keyframes dwPopOut { to { opacity: 0; transform: scale(.95); } }
+
+.dw-btn-main.dw-btn-danger { background: #dc2626 !important; color: #fff !important; }
