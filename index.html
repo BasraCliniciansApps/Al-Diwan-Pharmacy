@@ -215,12 +215,13 @@
             <div class="cat-manager-box" style="margin-top:16px;">
                 <h4>6. النسخ الاحتياطي</h4>
                 <div class="tools-grid">
-                    <button class="icon-btn" onclick="exportBackupJson()">💾 تحميل نسخة احتياطية</button>
+                    <button class="icon-btn" onclick="exportFullBackup()" style="grid-column: 1 / -1;">💾 نسخة احتياطية كاملة (كل شيء)</button>
+                    <button class="icon-btn" onclick="exportBackupJson()">📦 الأصناف فقط</button>
                     <button class="icon-btn" onclick="exportCsv()">📊 تصدير Excel (CSV)</button>
                     <label class="icon-btn" for="restoreInput" style="grid-column: 1 / -1;">♻️ استرجاع من نسخة احتياطية</label>
                     <input type="file" id="restoreInput" accept=".json,application/json" hidden onchange="restoreBackup(event)">
                 </div>
-                <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">النسخة تحفظ الأصناف والأقسام والإعدادات. الصور تبقى في GitHub ولا تدخل في النسخة.</p>
+                <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">النسخة الكاملة تحفظ الأصناف والمخزون والوارد والمذاخر والفواتير وكل السجلات والإعدادات. الصور تبقى في GitHub. الاسترجاع يعرض معاينة قبل التطبيق ولا يستبدل سجلاً أحدث.</p>
             </div>
 
             <div class="cat-manager-box" style="margin-top:16px;">

@@ -217,12 +217,13 @@
             <div class="cat-manager-box" style="margin-top:16px;">
                 <h4>6. النسخ الاحتياطي</h4>
                 <div class="tools-grid">
-                    <button class="icon-btn" onclick="exportBackupJson()">💾 تحميل نسخة احتياطية</button>
+                    <button class="icon-btn" onclick="exportFullBackup()" style="grid-column: 1 / -1;">💾 نسخة احتياطية كاملة (كل شيء)</button>
+                    <button class="icon-btn" onclick="exportBackupJson()">📦 الأصناف فقط</button>
                     <button class="icon-btn" onclick="exportCsv()">📊 تصدير Excel (CSV)</button>
                     <label class="icon-btn" for="restoreInput" style="grid-column: 1 / -1;">♻️ استرجاع من نسخة احتياطية</label>
                     <input type="file" id="restoreInput" accept=".json,application/json" hidden onchange="restoreBackup(event)">
                 </div>
-                <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">النسخة تحفظ الأصناف والأقسام والإعدادات. الصور تبقى في GitHub ولا تدخل في النسخة.</p>
+                <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">النسخة الكاملة تحفظ الأصناف والمخزون والوارد والمذاخر والفواتير وكل السجلات والإعدادات. الصور تبقى في GitHub. الاسترجاع يعرض معاينة قبل التطبيق ولا يستبدل سجلاً أحدث.</p>
             </div>
 
             <div class="cat-manager-box" style="margin-top:16px;">
@@ -546,6 +547,7 @@
 <div id="homeView" class="app-view home-view">
     <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="toggleTheme()" id="themeBtn2" aria-label="الوضع الداكن">🌓</button><button type="button" class="small-icon-btn" onclick="gateLogout()" aria-label="تسجيل الخروج" title="تسجيل الخروج">⏻</button></div></div>
 <div class="page-title">🏠 الرئيسية</div>
+    <div id="bkReminder"></div>
     <div class="home-kpis" id="homeKpis"></div>
     <div class="home-tiles">
         <button type="button" class="home-tile tile-bill" onclick="showView('bill')">
@@ -980,7 +982,7 @@
     <script src="swal-skin.js"></script>
     <script src="seed.js"></script>
     <script src="data.js"></script>
-<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="admin.js"></script>
+<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="backup.js"></script><script src="admin.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});

@@ -2755,6 +2755,7 @@ async function applyBackupData(data) {
             return;
         }
         if (!requireOnline()) return;
+        if (typeof bkRefresh === 'function' && data.version >= 2) await bkRefresh();
         const existingIds = new Set(products.map(p => p.id));
         const replaced = data.products.filter(p => existingIds.has(p.id)).length;
         const added = data.products.length - replaced;
@@ -2767,6 +2768,7 @@ async function applyBackupData(data) {
                 أصناف جديدة ستُضاف: <b>${added}</b><br>
                 أصناف موجودة ستُستبدل بنسختها القديمة: <b>${replaced}</b><br>
                 <span style="color:#64748b;">لن يُحذف أي صنف موجود حالياً غير موجود في النسخة. والصور لا تتأثر (هي محفوظة في GitHub).</span>
+                ${typeof bkPreviewHtml === 'function' ? bkPreviewHtml(data) : ''}
             </div>`,
             icon: 'question',
             showCancelButton: true,
@@ -2790,8 +2792,10 @@ async function applyBackupData(data) {
         if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
 
         await pushToCloud(false);
+        let restRep = '';
+        if (typeof bkRestoreRest === 'function') restRep = await bkRestoreRest(data);
         renderAll();
-        Swal.fire({ icon: 'success', title: 'تم الاسترجاع', text: `${data.products.length} صنف`, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        Swal.fire({ icon: 'success', title: 'تم الاسترجاع', text: `${data.products.length} صنف` + (restRep ? '\n' + restRep : ''), confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
     } catch (err) {
         Swal.fire({ icon: 'error', title: 'تعذر الاسترجاع', text: err.message || String(err), confirmButtonColor: '#0f1c38' });
     }
@@ -3829,7 +3833,8 @@ async function purgeOldLog() {
 // ---------------- نسخ احتياطية سحابية تلقائية ----------------
 async function createCloudBackup(force) {
     if (!cloudReady() || !navigator.onLine || !products.length) return false;
-    const json = JSON.stringify(buildBackupObject());
+    let json = typeof buildFullBackup === 'function' ? JSON.stringify(buildFullBackup()) : JSON.stringify(buildBackupObject());
+    if (json.length > 900000) json = JSON.stringify(buildBackupObject());   // الكاملة أكبر من حد المستند: نحفظ الأصناف فقط سحابياً
     if (json.length > 900000) { console.warn('النسخة أكبر من حد المستند (1MB)'); return false; }
     const id = todayStamp();
     await db.collection('pharmacy_backups').doc(id).set({ id, at: new Date().toISOString(), count: products.length, json, by: actorName() });

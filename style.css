@@ -1992,3 +1992,10 @@ body:not(.admin-page) .app-header-row { justify-content: space-between; margin-b
 .lg-verdict { margin: 12px 0; padding: 12px; border: 2px solid; border-radius: 14px; text-align: center; font-weight: 900; }
 [data-theme="dark"] .lg-hub-card { background: #1e293b; color: #e2e8f0; border-color: #334155; } [data-theme="dark"] .lg-hub-card small { color: #94a3b8; } [data-theme="dark"] .lg-back { background: #334155; color: #e2e8f0; }
 @media print { .lg-verdict { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+
+.bk-rem { margin: 0 16px 10px; padding: 9px 12px; border-radius: 12px; font-size: .82rem; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.bk-rem.warn { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+.bk-rem.ok { background: #ecfdf5; color: #065f46; justify-content: center; }
+.bk-rem button { border: 0; background: #0f1c38; color: #fff; border-radius: 9px; padding: 6px 12px; font: inherit; cursor: pointer; }
+[data-theme="dark"] .bk-rem.warn { background: #3b2f12; color: #fcd34d; border-color: #7c5e10; }
+[data-theme="dark"] .bk-rem.ok { background: #0f2f27; color: #6ee7b7; }
