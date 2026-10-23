@@ -113,3 +113,44 @@ async function catMerge(s, d) {
     }
 }
 function openCatalog() { try { closeCategoryManager(); } catch (e) { /* تجاهل */ } showView('catalog'); }
+
+// ---------- صورة المادة من نافذة التفاصيل: لا صورة = إضافة، وجود صورة = عرض مع تبديل ----------
+function sheetImgTap(id) {
+    const p = products.find(x => x.id === id); if (!p) return;
+    if (p.img && String(p.img).trim()) zoomImage(p.img, id); else sheetImgPick(id);
+}
+function sheetImgPick(id) {
+    const inp = document.getElementById('quickImgInput'); if (!inp) return;
+    inp.value = ''; inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) quickImgUpload(id, f); };
+    inp.click();
+}
+async function quickImgUpload(id, file) {
+    const p = products.find(x => x.id === id); if (!p) return;
+    if (!file.type.startsWith('image/')) { Swal.fire({ icon: 'warning', title: 'صيغة غير مدعومة', text: 'اختر صورة صحيحة.', confirmButtonColor: '#0f1c38' }); return; }
+    if (!writesAllowed()) return;
+    let token = localStorage.getItem('diwan_gh_token');
+    if (!token) {
+        const r = await Swal.fire({ title: 'مفتاح GitHub (لأول مرة فقط)', text: 'الصق المفتاح (يبدأ بـ ghp_) لحفظه في جهازك ورفع الصور:', input: 'text', inputPlaceholder: 'ghp_...', showCancelButton: true, confirmButtonText: 'حفظ ومتابعة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+        if (!r.isConfirmed || !String(r.value || '').trim()) return;
+        token = r.value.trim(); localStorage.setItem('diwan_gh_token', token);
+    }
+    document.getElementById('zoomModal').style.display = 'none';
+    Swal.fire({ title: 'جاري رفع الصورة...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+    try {
+        const dataUrl = await new Promise((res, rej) => { const fr = new FileReader(); fr.onerror = () => rej(new Error('تعذر قراءة الصورة')); fr.onload = () => res(fr.result); fr.readAsDataURL(file); });
+        const b64 = await new Promise((res, rej) => {
+            const im = new Image(); im.onerror = () => rej(new Error('الصورة غير صالحة'));
+            im.onload = () => { const cv = document.createElement('canvas'), max = 600; let w = im.width, h = im.height; if (w > h && w > max) { h *= max / w; w = max; } else if (h > max) { w *= max / h; h = max; } cv.width = w; cv.height = h; cv.getContext('2d').drawImage(im, 0, 0, w, h); res(cv.toDataURL('image/jpeg', 0.82).split(',')[1]); };
+            im.src = dataUrl;
+        });
+        const fileName = 'med_' + Date.now() + '.jpg', path = 'images/' + fileName;
+        const resp = await fetch('https://api.github.com/repos/BasraCliniciansApps/Al-Diwan-Pharmacy/contents/' + path, { method: 'PUT', headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'صورة دواء: ' + fileName, content: b64, branch: 'main' }) });
+        const out = await resp.json();
+        if (!resp.ok || !out.content) { if (resp.status === 401) localStorage.removeItem('diwan_gh_token'); throw new Error(out.message || 'فشل الرفع إلى GitHub'); }
+        const old = p.img; p.img = 'https://raw.githubusercontent.com/BasraCliniciansApps/Al-Diwan-Pharmacy/main/' + path;
+        if (!(await saveProductsDelta([{ p, dq: 0, dl: 0 }]))) { p.img = old; Swal.close(); return; }
+        logAction('edit', p, [{ f: 'الصورة', from: old || '', to: p.img }]);
+        renderAll(); try { openSheet(p.id); } catch (e) { /* تجاهل */ }
+        Swal.fire({ icon: 'success', title: old ? 'تم تبديل الصورة' : 'تمت إضافة الصورة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
+    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر رفع الصورة', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
+}

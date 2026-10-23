@@ -1122,7 +1122,7 @@ function openSheet(id) {
 
     document.getElementById('sheetContent').innerHTML = `
         <div class="sheet-header">
-            <div class="sheet-img-box" onclick="zoomImage('${p.img}')">
+            <div class="sheet-img-box" onclick="${IS_ADMIN_PAGE ? `sheetImgTap(${p.id})` : `zoomImage('${p.img}')`}">${IS_ADMIN_PAGE ? `<span class="img-edit-tag">${p.img ? '🔍' : '📷'}</span>` : ''}
                 <img src="${p.img}" alt="" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2250%22 height=%2250%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%224%22/></svg>'">
             </div>
             <div class="sheet-title-area">
@@ -1778,9 +1778,11 @@ function deleteItem(id) {
     });
 }
 
-function zoomImage(src) {
+function zoomImage(src, pid) {
     if (!src) return;
     document.getElementById('zoomImg').src = src;
+    const bar = document.getElementById('zoomBar'); if (bar) bar.style.display = (pid && IS_ADMIN_PAGE) ? 'flex' : 'none';
+    window.__zoomPid = pid || 0;
     document.getElementById('zoomModal').style.display = 'flex';
 }
 // ============================================================================

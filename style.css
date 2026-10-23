@@ -2131,3 +2131,11 @@ body:not(.admin-page) .app-header-row { justify-content: space-between; margin-b
 @media (min-width: 900px) { .cat-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } }
 :root[data-theme="dark"] .cat-row, :root[data-theme="dark"] .cat-sum span { background: var(--surface); }
 :root[data-theme="dark"] .cat-main b { color: var(--text-main); }
+
+/* ===== v60: صورة المادة (إضافة/تبديل) ===== */
+.sheet-img-box { position: relative; }
+.img-edit-tag { position: absolute; bottom: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: rgba(15,28,56,.85); color: #fff; font-size: .75rem; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+.img-zoom-modal { flex-direction: column; gap: 14px; }
+.zoom-bar { display: flex; gap: 10px; }
+.zoom-btn { min-height: 46px; padding: 0 18px; border: 0; border-radius: 12px; background: #f5a623; color: #0f1c38; font: 800 .95rem inherit; font-family: inherit; cursor: pointer; }
+.zoom-btn.ghost { background: rgba(255,255,255,.18); color: #fff; }
