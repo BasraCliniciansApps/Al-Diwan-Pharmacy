@@ -2761,9 +2761,15 @@ async function applyBackupData(data) {
         const added = data.products.length - replaced;
         const when = data.exportedAt ? new Date(data.exportedAt).toLocaleDateString('ar') : 'غير معروف';
 
+        const isImp = !!(data.importMeta && data.importMeta.kind);
         const ok = await Swal.fire({
-            title: 'استرجاع النسخة الاحتياطية؟',
-            html: `<div style="text-align:right; line-height:1.9; font-size:0.92rem;">
+            title: isImp ? 'استيراد أصناف جديدة؟' : 'استرجاع النسخة الاحتياطية؟',
+            html: isImp ? `<div style="text-align:right; line-height:1.9; font-size:0.92rem;">
+                أصناف جديدة ستُضاف: <b>${added}</b><br>
+                أصناف موجودة سيُستبدل بها: <b>${replaced}</b><br>
+                أصناف رُبطت بأصناف موجودة ولن تتكرر: <b>${Number(data.importMeta.linked) || 0}</b><br>
+                <span style="color:#64748b;">تدخل الأصناف بالكمية صفر وبدون سعر بيع، ضمن «قسم غير مصنّف». قبل الاستيراد تُنزَّل نسخة احتياطية كاملة تلقائياً.</span>
+            </div>` : `<div style="text-align:right; line-height:1.9; font-size:0.92rem;">
                 تاريخ النسخة: <b>${escapeHtml(when)}</b><br>
                 أصناف جديدة ستُضاف: <b>${added}</b><br>
                 أصناف موجودة ستُستبدل بنسختها القديمة: <b>${replaced}</b><br>
@@ -2777,6 +2783,9 @@ async function applyBackupData(data) {
             cancelButtonText: 'إلغاء'
         });
         if (!ok.isConfirmed) return;
+        if (isImp && typeof buildFullBackup === 'function') {   // نسخة احتياطية تلقائية قبل الاستيراد
+            await downloadFile(`diwan-before-import-${todayStamp()}.json`, JSON.stringify(buildFullBackup()), 'application/json');
+        }
 
         const byId = new Map(products.map(p => [p.id, p]));
         data.products.forEach(p => byId.set(p.id, p));
@@ -2795,7 +2804,7 @@ async function applyBackupData(data) {
         let restRep = '';
         if (typeof bkRestoreRest === 'function') restRep = await bkRestoreRest(data);
         renderAll();
-        Swal.fire({ icon: 'success', title: 'تم الاسترجاع', text: `${data.products.length} صنف` + (restRep ? '\n' + restRep : ''), confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        Swal.fire({ icon: 'success', title: isImp ? 'تم الاستيراد' : 'تم الاسترجاع', text: `${data.products.length} صنف` + (restRep ? '\n' + restRep : ''), confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
     } catch (err) {
         Swal.fire({ icon: 'error', title: 'تعذر الاسترجاع', text: err.message || String(err), confirmButtonColor: '#0f1c38' });
     }
