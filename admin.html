@@ -777,13 +777,7 @@
         <button type="button" data-tab="new" class="active" onclick="puTab('new')">➕ وارد جديد</button>
         <button type="button" data-tab="log" onclick="puTab('log')">📚 السجل</button>
         <button type="button" data-tab="debt" onclick="puTab('debt')">💳 مستحقات المذاخر</button>
-        <button type="button" data-tab="month" onclick="puTab('month')">🗓️ سجل الطلبيات</button>
-        <button type="button" data-tab="ret" onclick="puTab('ret')" id="puTabRet">↩️ المردود</button>
-        <button type="button" data-tab="unrec" onclick="puTab('unrec')">📌 غير المقطوع</button>
-        <button type="button" data-tab="pay" onclick="puTab('pay')">💳 التسديد والحسابات</button>
-        <button type="button" data-tab="bonus" onclick="puTab('bonus')">🎁 البونص</button>
-        <button type="button" data-tab="xfer" onclick="puTab('xfer')">🔁 المناقلة</button>
-        <button type="button" data-tab="exp" onclick="puTab('exp')">🗑️ المنتهي والتالف</button>
+        <button type="button" data-tab="hub" onclick="puTab('hub')" id="puTabHub">📚 السجلات</button>
         <button type="button" data-tab="sup" onclick="puTab('sup')">🏭 المذاخر والأسعار</button>
     </div>
 
@@ -954,6 +948,17 @@
             <div class="bill-sheet print-only" id="lge-sheet"></div>
         </section>
 
+        <!-- ===== السجلات (الرئيسية) ===== -->
+        <section class="pu-pane" id="puPane-hub"><div class="lg-hub" id="lgHub"></div></section>
+
+        <!-- ===== الملخص المالي ===== -->
+        <section class="pu-pane" id="puPane-sum">
+            <div class="lg-filters no-print"><label class="pu-mfield"><span>السنة</span><input type="number" id="lgsYear" min="2000" max="2100" oninput="lgRenderSum()"></label></div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="lgSumCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-sum')">🖨️ طباعة</button></div>
+            <div class="pu-card no-print" id="lgsSet"></div>
+            <div class="bill-sheet" id="lgsBody"></div>
+        </section>
+
         <!-- ===== المذاخر والأسعار ===== -->
         <section class="pu-pane" id="puPane-sup">
             <div class="bill-panel">
@@ -975,7 +980,7 @@
     <script src="swal-skin.js"></script>
     <script src="seed.js"></script>
     <script src="data.js"></script>
-<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="admin.js"></script>
+<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="admin.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});

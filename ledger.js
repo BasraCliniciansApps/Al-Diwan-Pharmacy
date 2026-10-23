@@ -64,7 +64,6 @@ function lgDays() { const n = parseInt(lsGet(LG_LS.days)); return n >= 1 ? n : 3
 function lgSaveDays(v) { const n = parseInt(v); if (n >= 1) { lsSet(LG_LS.days, String(n)); lgRenderRet('ret'); } }
 const lgDaysSince = d => Math.max(Math.floor((Date.now() - new Date((d || todayLocalISO()) + 'T00:00:00').getTime()) / 864e5), 0);
 const lgStatus = e => e.cnNo ? 'done' : 'pending';
-function lgTabBadge() { const b = $b('puTabRet'); if (!b) return; const n = lgRets().filter(e => lgStatus(e) === 'pending').length; b.textContent = '↩️ المردود' + (n ? ' (' + n + ')' : ''); }
 
 // ---------- تبديل علامة «الكشف» ----------
 async function lgToggleStmt(kind, id) {

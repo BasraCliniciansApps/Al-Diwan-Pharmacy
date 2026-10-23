@@ -6,7 +6,7 @@ MAP = {
  '🔍':'search','🔎':'search','✏️':'pencil','🖋️':'pencil','🗑️':'trash','⚙️':'settings','➕':'plus','🌓':'sun-moon','💊':'pill',
  '💾':'save','☁️':'cloud','🏷️':'tag','🖨️':'printer','🏠':'house','🏡':'house','📦':'package','💳':'credit-card','📥':'package-open',
  '📅':'calendar-days','🗓️':'calendar-days','🎉':'party-popper','🔔':'bell','✨':'sparkles','🧪':'flask-conical','🔄':'refresh-cw',
- '📊':'chart-column','📋':'clipboard-list','🗂️':'folders','📲':'smartphone','📜':'scroll-text','👁':'eye','🖼️':'image','🧩':'puzzle',
+ '↩️':'undo-2','↩':'undo-2','📑':'file-text','🎁':'gift','🔁':'repeat','📊':'chart-column','📋':'clipboard-list','🗂️':'folders','📲':'smartphone','📜':'scroll-text','👁':'eye','🖼️':'image','🧩':'puzzle',
  '🛒':'shopping-cart','📚':'library','💬':'message-circle','⬇️':'download','🏥':'hospital','🔗':'link','📉':'trending-down','📴':'wifi-off',
  '🤖':'bot','🔐':'lock','🔒':'lock','♻️':'recycle','🌐':'globe','📷':'camera','📸':'camera','🧾':'receipt-text','🏭':'warehouse',
  '👤':'user','🚫':'ban','⛔':'ban','📁':'folder','📖':'book-open','💡':'lightbulb','★':'star','⬆️':'arrow-up','💰':'wallet',

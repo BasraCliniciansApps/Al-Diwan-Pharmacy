@@ -84,14 +84,15 @@ function lastPurchaseHtml(p) {
 // ---------- التبويبات ----------
 function puTab(name) {
     puTabName = name;
-    document.querySelectorAll('#puTabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    document.querySelectorAll('#puTabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === name || (b.dataset.tab === 'hub' && typeof LG_REGS !== 'undefined' && LG_REGS.includes(name))));
+    if (typeof lgHubInit === 'function') lgHubInit();
     document.querySelectorAll('.pu-pane').forEach(p => { p.classList.toggle('active', p.id === 'puPane-' + name); p.classList.remove('print-active'); });
     if (name === 'month') $b('puPane-month').classList.add('print-active');
     if (typeof lgTabBadge === 'function') lgTabBadge();
     if (name === 'new') puInitNew();
     (typeof lgLoad === 'function' ? Promise.all([puLoad(), lgLoad()]) : puLoad()).then(() => {
         puFillSupplierList();
-        if (name === 'log') renderPuLog(); else if (name === 'debt') renderPuDebt(); else if (name === 'month') puInitMonth(); else if (name === 'ret') lgInitRet('ret'); else if (name === 'unrec') lgInitRet('unrec'); else if (name === 'pay') lgInitPay(); else if (name === 'bonus') lgInitBonus(); else if (name === 'xfer') lgInitXfer(); else if (name === 'exp') lgInitExp(); else if (name === 'sup') renderPuSuppliers();
+        if (name === 'log') renderPuLog(); else if (name === 'debt') renderPuDebt(); else if (name === 'month') puInitMonth(); else if (name === 'ret') lgInitRet('ret'); else if (name === 'unrec') lgInitRet('unrec'); else if (name === 'pay') lgInitPay(); else if (name === 'bonus') lgInitBonus(); else if (name === 'xfer') lgInitXfer(); else if (name === 'exp') lgInitExp(); else if (name === 'hub') lgRenderHub(); else if (name === 'sum') lgInitSum(); else if (name === 'sup') renderPuSuppliers();
     });
 }
 function onShowPurch() { puTab(puTabName || 'new'); }
@@ -386,7 +387,7 @@ async function puCancel(id) {
     r.cancelled = true; r.cancelledAt = todayLocalISO();
     await puSaveRecord(r); renderAll(); puRefreshCurrent();
 }
-function puRefreshCurrent() { if (puTabName === 'log') renderPuLog(); else if (puTabName === 'debt') renderPuDebt(); else if (puTabName === 'month') renderPuMonth(); else if (puTabName === 'ret') lgRenderRet('ret'); else if (puTabName === 'unrec') lgRenderRet('unrec'); else if (puTabName === 'pay') lgPayRender(); else if (puTabName === 'bonus') lgRenderBonus(); else if (puTabName === 'xfer') lgRenderXfer(); else if (puTabName === 'exp') lgRenderExp(); else if (puTabName === 'sup') renderPuSuppliers(); }
+function puRefreshCurrent() { if (puTabName === 'log') renderPuLog(); else if (puTabName === 'debt') renderPuDebt(); else if (puTabName === 'month') renderPuMonth(); else if (puTabName === 'ret') lgRenderRet('ret'); else if (puTabName === 'unrec') lgRenderRet('unrec'); else if (puTabName === 'pay') lgPayRender(); else if (puTabName === 'bonus') lgRenderBonus(); else if (puTabName === 'xfer') lgRenderXfer(); else if (puTabName === 'exp') lgRenderExp(); else if (puTabName === 'sum') lgRenderSum(true); else if (puTabName === 'hub') lgRenderHub(); else if (puTabName === 'sup') renderPuSuppliers(); }
 
 // ---------- المستحقات ----------
 async function puPay(id) {
