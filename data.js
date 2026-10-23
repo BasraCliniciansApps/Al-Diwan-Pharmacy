@@ -1179,6 +1179,11 @@ function openSheet(id) {
                     <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteItem(${p.id})">🗑️ حذف</button>
                 </div>
             </div>
+            ${typeof lgxOpen === 'function' ? `<div class="admin-row" style="margin-top:8px; gap:8px; flex-wrap:wrap;">
+                <button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('exp'); lgxOpen('exp',{pid:${p.id}});">🗑️ منتهي / تالف</button>
+                <button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('xfer'); lgxOpen('xfer',{pid:${p.id}});">🔁 مناقلة</button>
+                <button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('ret'); lgOpenReturn({pid:${p.id}});">↩️ إرجاع لمذخر</button>
+            </div>` : ''}
         </div>`}
     `;
 

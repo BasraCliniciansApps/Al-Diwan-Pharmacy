@@ -12,6 +12,7 @@ let puDraftTimer = null;
 
 function emptyPurchase() { return { supplier: '', no: '', date: todayLocalISO(), items: [], returnAmt: '', paid: '', notes: '', stmt: false, useEntry: false }; }
 const puNum = v => parseFloat(v) || 0;
+const puLQ = l => (parseInt(l.qty) || 0) + (parseInt(l.bonus) || 0);   // الكمية الداخلة للمخزن = المشتراة + البونص
 function puTotalOf(r) { return (r.items || []).reduce((s, it) => s + puNum(it.qty) * puNum(it.cost), 0); }
 function puNetOf(r) { return Math.max(puTotalOf(r) - puNum(r.returnAmt) - (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0), 0); }
 function puRemaining(r) { return r.cancelled ? 0 : Math.max(puNetOf(r) - puNum(r.paid), 0); }
@@ -90,7 +91,7 @@ function puTab(name) {
     if (name === 'new') puInitNew();
     (typeof lgLoad === 'function' ? Promise.all([puLoad(), lgLoad()]) : puLoad()).then(() => {
         puFillSupplierList();
-        if (name === 'log') renderPuLog(); else if (name === 'debt') renderPuDebt(); else if (name === 'month') puInitMonth(); else if (name === 'ret') lgInitRet('ret'); else if (name === 'unrec') lgInitRet('unrec'); else if (name === 'pay') lgInitPay(); else if (name === 'sup') renderPuSuppliers();
+        if (name === 'log') renderPuLog(); else if (name === 'debt') renderPuDebt(); else if (name === 'month') puInitMonth(); else if (name === 'ret') lgInitRet('ret'); else if (name === 'unrec') lgInitRet('unrec'); else if (name === 'pay') lgInitPay(); else if (name === 'bonus') lgInitBonus(); else if (name === 'xfer') lgInitXfer(); else if (name === 'exp') lgInitExp(); else if (name === 'sup') renderPuSuppliers();
     });
 }
 function onShowPurch() { puTab(puTabName || 'new'); }
@@ -143,6 +144,7 @@ function puRenderItems() {
                 <div class="pu-item-h">${puThumb(it.pid)}<span class="pu-item-t"><b dir="ltr">${escapeHtml(it.name)}</b><span>${escapeHtml(puSub(it.pid))}</span></span></div>
                 <div class="pu-grid">
                     <label><span>العدد (عبوة)</span><input type="number" min="1" inputmode="numeric" value="${escapeHtml(it.qty)}" oninput="puItemEdit(${i},'qty',this.value)"></label>
+                    <label><span>بونص (مجاني)</span><input type="number" min="0" inputmode="numeric" placeholder="0" value="${escapeHtml(it.bonus || '')}" oninput="puItemEdit(${i},'bonus',this.value)"></label>
                     <label><span>سعر الشراء</span><input type="number" min="0" inputmode="decimal" value="${escapeHtml(it.cost)}" oninput="puItemEdit(${i},'cost',this.value)"></label>
                     <label><span>تاريخ الانتهاء</span><input type="month" dir="ltr" value="${escapeHtml(it.expiry || '')}" oninput="puItemEdit(${i},'expiry',this.value)"></label>
                     <label><span>رقم الدفعة (اختياري)</span><input dir="ltr" value="${escapeHtml(it.batch || '')}" oninput="puItemEdit(${i},'batch',this.value)"></label>
@@ -170,7 +172,7 @@ function puAddProduct(id) {
     const ex = pu.items.find(it => it.pid === id);
     pu.items.forEach(it => { it.open = false; });   // القديمة تنطوي والجديدة تُفتح
     if (ex) { ex.qty = (parseInt(ex.qty) || 0) + 1; ex.open = true; }
-    else pu.items.push({ pid: id, name: p.name, qty: 1, cost: p.costPrice || '', expiry: '', batch: '', open: true });
+    else pu.items.push({ pid: id, name: p.name, qty: 1, bonus: '', cost: p.costPrice || '', expiry: '', batch: '', open: true });
     $b('puSearch').value = ''; $b('puResults').style.display = 'none';
     puRenderItems(); puChanged();
     const cards = document.querySelectorAll('#puItems .pu-item');   //    // التمرير للصنف المضاف وتمييزه
@@ -240,12 +242,12 @@ async function puSave() {
     puReadFields();
     const editing = pu.editId ? puAll.find(x => x.id === pu.editId) : null;
     const supplier = pu.supplier.trim(), no = pu.no.trim();
-    const items = pu.items.filter(it => parseInt(it.qty) > 0);
+    const items = pu.items.filter(it => parseInt(it.qty) > 0 || parseInt(it.bonus) > 0);
     const warn = t => Swal.fire({ icon: 'warning', title: t, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
     if (!supplier) return warn('اكتب اسم المذخر');
     if (!no) return warn('اكتب رقم فاتورة المذخر');
     if (!items.length) return warn('أضف مادة واحدة على الأقل بعدد صحيح');
-    if (items.some(it => !(puNum(it.cost) > 0))) {
+    if (items.some(it => parseInt(it.qty) > 0 && !(puNum(it.cost) > 0))) {
         const r = await Swal.fire({ icon: 'question', title: 'بعض المواد بلا سعر شراء', text: 'لن يُحسب لها ربح ولن يتغير سعر شرائها. متابعة؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'متابعة', cancelButtonText: 'رجوع' });
         if (!r.isConfirmed) return;
     }
@@ -266,19 +268,20 @@ async function puSave() {
     const newIds = new Set(items.map(it => it.pid));
     oldLines.filter(l => !newIds.has(l.pid)).forEach(l => {
         const p = products.find(x => x.id === l.pid); if (!p) return; snap(p);
-        p.qty = Math.max((parseInt(p.qty) || 0) - l.qty, 0);
+        p.qty = Math.max((parseInt(p.qty) || 0) - puLQ(l), 0);
         if (l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
         if (l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
     });
     // 2) الأصناف الحالية: الفرق بين الكمية الجديدة والقديمة
     items.forEach(it => {
         const p = products.find(x => x.id === it.pid); if (!p) return; snap(p);
-        const n = parseInt(it.qty) || 0, cost = puNum(it.cost), old = oldBy.get(it.pid);
-        const line = { pid: p.id, name: p.name, qty: n, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: old ? old.prevQty : (parseInt(p.qty) || 0), prevCost: old ? old.prevCost : (p.costPrice || 0), expAdded: old ? !!old.expAdded : false };
-        p.qty = Math.max((parseInt(p.qty) || 0) + n - (old ? old.qty : 0), 0);
+        const n = parseInt(it.qty) || 0, bn = parseInt(it.bonus) || 0, cost = puNum(it.cost), old = oldBy.get(it.pid);
+        const line = { pid: p.id, name: p.name, qty: n, bonus: bn, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: old ? old.prevQty : (parseInt(p.qty) || 0), prevCost: old ? old.prevCost : (p.costPrice || 0), expAdded: old ? !!old.expAdded : false };
+        p.qty = Math.max((parseInt(p.qty) || 0) + n + bn - (old ? puLQ(old) : 0), 0);
         if (old && old.expiry !== line.expiry && old.expAdded && old.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; line.expAdded = false; }
         if (cost > 0) p.costPrice = cost;
         { const pm = puPM(it); if (pm === 'percent') { const mk = puNum(puMk(it)); p.pricing = 'percent'; p.markupPct = mk; if (cost > 0) p.price = markupCalc(cost, mk); } else if (pm === 'syndicate') { p.markupPct = null; p.pricing = 'syndicate'; if (cost > 0) p.price = syndPrice(cost); } else { p.markupPct = null; p.pricing = 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
+        line.bonusSale = bn * (Number(p.price) || 0);
         if (line.expiry && puExpiryPush(p, line.expiry)) line.expAdded = true;
         const lp = p.lastPurchase;
         if (!lp || String(pu.date) >= String(lp.date || '')) p.lastPurchase = { supplier, no, date: pu.date, qty: n, cost, batch: line.batch, expiry: line.expiry };
@@ -295,7 +298,7 @@ async function puSave() {
             if (bad.length) Swal.fire({ icon: 'warning', title: 'تنبيه: لم تصل بعض الكميات للسحابة', text: 'الأصناف: ' + bad.join('، ') + '. تأكد من قواعد pharmacy_stock ومن الاتصال ثم أعد المحاولة.', confirmButtonColor: '#0f1c38' });
         }
     } catch (e) { /* تجاهل */ }
-    lines.forEach(l => { const p = products.find(x => x.id === l.pid); const old = oldBy.get(l.pid); logAction('qty', p, [{ f: 'الكمية (' + (editing ? 'تعديل وارد ' : 'وارد ') + no + ' - ' + supplier + ')', from: String(old ? old.qty : l.prevQty), to: String(old ? l.qty : l.prevQty + l.qty) }]); });
+    lines.forEach(l => { const p = products.find(x => x.id === l.pid); const old = oldBy.get(l.pid); logAction('qty', p, [{ f: 'الكمية (' + (editing ? 'تعديل وارد ' : 'وارد ') + no + ' - ' + supplier + ')', from: String(old ? puLQ(old) : l.prevQty), to: String(old ? puLQ(l) : l.prevQty + puLQ(l)) }]); });
     const paid = Math.min(puNum(pu.paid), Math.max(total - ret, 0));
     let rec;
     if (editing) {
@@ -316,7 +319,7 @@ function puCancelEdit() { pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringif
 function puEdit(id) {
     const r = puAll.find(x => x.id === id); if (!r || r.cancelled) return;
     if (pu && pu.items.length && !pu.editId) { /* المسودة الحالية ستُستبدل */ }
-    pu = { editId: r.id, stmt: !!r.stmt, useEntry: !!r.useEntry, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, cost: l.cost, expiry: l.expiry || '', batch: l.batch || '' })) };
+    pu = { editId: r.id, stmt: !!r.stmt, useEntry: !!r.useEntry, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, bonus: l.bonus || '', cost: l.cost, expiry: l.expiry || '', batch: l.batch || '' })) };
     puTab('new'); window.scrollTo(0, 0);
 }
 
@@ -340,7 +343,7 @@ function renderPuLog() {
 }
 function puOpen(id) {
     const r = puAll.find(x => x.id === id); if (!r) return;
-    const rows = (r.items || []).map(it => `<tr><td dir="ltr">${escapeHtml(it.name)}</td><td>${fmtNum(it.qty)}</td><td>${fmtNum(it.cost)}</td><td dir="ltr">${escapeHtml(it.expiry || '—')}</td><td dir="ltr">${escapeHtml(it.batch || '—')}</td><td>${fmtNum(it.qty * it.cost)}</td></tr>`).join('');
+    const rows = (r.items || []).map(it => `<tr><td dir="ltr">${escapeHtml(it.name)}</td><td>${fmtNum(it.qty)}${it.bonus ? ' <small>+' + fmtNum(it.bonus) + ' بونص</small>' : ''}</td><td>${fmtNum(it.cost)}</td><td dir="ltr">${escapeHtml(it.expiry || '—')}</td><td dir="ltr">${escapeHtml(it.batch || '—')}</td><td>${fmtNum(it.qty * it.cost)}</td></tr>`).join('');
     const pays = (r.payments || []).map(p => `<div>${escapeHtml(fmtDateDMY(p.at))} — ${fmtNum(p.amount)} د.ع</div>`).join('') || '<div>لا دفعات</div>';
     const btn = (label, fn, cls) => `<button type="button" class="bill-tb-btn ${cls || ''}" onclick="Swal.close();${fn}">${label}</button>`;
     Swal.fire({
@@ -371,7 +374,7 @@ async function puCancel(id) {
     (r.items || []).forEach(l => {
         const p = products.find(x => x.id === l.pid); if (!p) return;
         if (!csnaps.has(p.id)) csnaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase });
-        p.qty = Math.max((parseInt(p.qty) || 0) - l.qty, 0);
+        p.qty = Math.max((parseInt(p.qty) || 0) - puLQ(l), 0);
         if (l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
         if (l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
         touched.push(p);
@@ -383,7 +386,7 @@ async function puCancel(id) {
     r.cancelled = true; r.cancelledAt = todayLocalISO();
     await puSaveRecord(r); renderAll(); puRefreshCurrent();
 }
-function puRefreshCurrent() { if (puTabName === 'log') renderPuLog(); else if (puTabName === 'debt') renderPuDebt(); else if (puTabName === 'month') renderPuMonth(); else if (puTabName === 'ret') lgRenderRet('ret'); else if (puTabName === 'unrec') lgRenderRet('unrec'); else if (puTabName === 'pay') lgPayRender(); else if (puTabName === 'sup') renderPuSuppliers(); }
+function puRefreshCurrent() { if (puTabName === 'log') renderPuLog(); else if (puTabName === 'debt') renderPuDebt(); else if (puTabName === 'month') renderPuMonth(); else if (puTabName === 'ret') lgRenderRet('ret'); else if (puTabName === 'unrec') lgRenderRet('unrec'); else if (puTabName === 'pay') lgPayRender(); else if (puTabName === 'bonus') lgRenderBonus(); else if (puTabName === 'xfer') lgRenderXfer(); else if (puTabName === 'exp') lgRenderExp(); else if (puTabName === 'sup') renderPuSuppliers(); }
 
 // ---------- المستحقات ----------
 async function puPay(id) {

@@ -781,6 +781,9 @@
         <button type="button" data-tab="ret" onclick="puTab('ret')" id="puTabRet">↩️ المردود</button>
         <button type="button" data-tab="unrec" onclick="puTab('unrec')">📌 غير المقطوع</button>
         <button type="button" data-tab="pay" onclick="puTab('pay')">💳 التسديد والحسابات</button>
+        <button type="button" data-tab="bonus" onclick="puTab('bonus')">🎁 البونص</button>
+        <button type="button" data-tab="xfer" onclick="puTab('xfer')">🔁 المناقلة</button>
+        <button type="button" data-tab="exp" onclick="puTab('exp')">🗑️ المنتهي والتالف</button>
         <button type="button" data-tab="sup" onclick="puTab('sup')">🏭 المذاخر والأسعار</button>
     </div>
 
@@ -911,6 +914,46 @@
             <div class="bill-sheet print-only" id="lgp-sheet"></div>
         </section>
 
+
+        <section class="pu-pane" id="puPane-bonus">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الفترة</span><select id="lgbType" onchange="lgRenderBonus()"><option value="month">شهر</option><option value="year">سنة</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield" id="lgbMW"><span>الشهر</span><input type="month" id="lgbMonth" oninput="lgRenderBonus()"></label>
+                <label class="pu-mfield" id="lgbYW" style="display:none"><span>السنة</span><input type="number" id="lgbYear" min="2000" max="2100" oninput="lgRenderBonus()"></label>
+                <label class="pu-mfield"><span>المذخر</span><select id="lgbSup" onchange="lgRenderBonus()"></select></label>
+            </div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="lgBonusCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-bonus')">🖨️ طباعة</button></div>
+            <div id="lgb-sum" class="bill-sum-card no-print"></div>
+            <div id="lgb-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lgb-sheet"></div>
+        </section>
+
+        <section class="pu-pane" id="puPane-xfer">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الفترة</span><select id="lgfType" onchange="lgRenderXfer()"><option value="month">شهر</option><option value="year">سنة</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield" id="lgfMW"><span>الشهر</span><input type="month" id="lgfMonth" oninput="lgRenderXfer()"></label>
+                <label class="pu-mfield" id="lgfYW" style="display:none"><span>السنة</span><input type="number" id="lgfYear" min="2000" max="2100" oninput="lgRenderXfer()"></label>
+                <label class="pu-mfield lg-wide"><span>الصيدلية (اختر لفتح سجلها)</span><select id="lgxfSel" onchange="lgRenderXfer()"></select></label>
+            </div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn bill-tb-primary" onclick="lgxOpen('xfer',{pharmacy:$b('lgxfSel').value})">＋ مناقلة</button><button type="button" class="bill-tb-btn" onclick="lgAddPharmacy()">＋ صيدلية</button><button type="button" class="bill-tb-btn" onclick="lgXpayForm()">💵 دفعة</button><button type="button" class="bill-tb-btn" onclick="lgXferCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn" onclick="puPrint('puPane-xfer')">🖨️ طباعة</button></div>
+            <div id="lgxf-sum" class="bill-sum-card no-print"></div>
+            <div id="lgxf-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lgxf-sheet"></div>
+        </section>
+
+        <section class="pu-pane" id="puPane-exp">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الفترة</span><select id="lgeType" onchange="lgRenderExp()"><option value="month">شهر</option><option value="year">سنة</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield" id="lgeMW"><span>الشهر</span><input type="month" id="lgeMonth" oninput="lgRenderExp()"></label>
+                <label class="pu-mfield" id="lgeYW" style="display:none"><span>السنة</span><input type="number" id="lgeYear" min="2000" max="2100" oninput="lgRenderExp()"></label>
+                <label class="pu-mfield"><span>السبب</span><select id="lgeWhy" onchange="lgRenderExp()"><option value="">الكل</option><option>منتهي الصلاحية</option><option>تالف</option><option>كسر</option><option>تلف تخزين</option><option>أخرى</option></select></label>
+            </div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn bill-tb-primary" onclick="lgxOpen('exp',{})">＋ تسجيل منتهي / تالف</button><button type="button" class="bill-tb-btn" onclick="lgExpCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn" onclick="puPrint('puPane-exp')">🖨️ طباعة</button></div>
+            <div id="lge-sum" class="bill-sum-card no-print"></div>
+            <div id="lge-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lge-sheet"></div>
+        </section>
+
         <!-- ===== المذاخر والأسعار ===== -->
         <section class="pu-pane" id="puPane-sup">
             <div class="bill-panel">
@@ -932,7 +975,7 @@
     <script src="swal-skin.js"></script>
     <script src="seed.js"></script>
     <script src="data.js"></script>
-<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="admin.js"></script>
+<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="admin.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').catch(() => {});

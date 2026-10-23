@@ -343,6 +343,7 @@ function lgOpenReturn(opts) {
     $b('lgrReason').selectedIndex = 0; $b('lgrDeduct').checked = true; $b('lgrStmt').checked = false; $b('lgrSearch').value = ''; $b('lgrResults').style.display = 'none'; $b('lgrMode').value = 'net';
     lgrFillLists(lgr.listId);
     if (r) lgrLoadListLines(r);
+    if (opts.pid) { const pp = products.find(x => x.id === opts.pid); if (pp) lgr.lines.push({ pid: pp.id, name: pp.name, qty: 1, cost: pp.costPrice || 0, max: parseInt(pp.qty) || 0, fromList: false }); }
     lgrRender(); lgrAutoMode();
     $b('lgRet').style.display = 'flex';
     if (typeof Swal !== 'undefined' && Swal.close) Swal.close();
