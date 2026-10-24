@@ -23,11 +23,14 @@ function ptExpParse(s) {   // 0627 أو 06/27 أو 6/2027 ← 2027-06
 }
 function ptExpShow(e) { return /^\d{4}-\d{2}$/.test(e || '') ? e.slice(5) + '/' + e.slice(2, 4) : ''; }
 function ptExpEdit(i, v) { const it = pu.items[i]; if (!it) return; const e = ptExpParse(v); it.expiry = e; const inp = $b('ptx-' + i); if (inp) inp.classList.toggle('bad', !!v.trim() && !e); puChanged(); }
+function ptToggle(i) { const it = pu.items[i]; if (!it) return; it.open = !it.open; puRenderTable(); if (it.open) { const el = $b('ptr-' + i); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }
 function puRenderTable() {
     const box = $b('puTable'); if (!box) return;
-    box.innerHTML = pu.items.map((it, i) => `<div class="pt-row" id="ptr-${i}">
-        <div class="pt-top"><b dir="ltr" class="pt-nm">${ptEsc(it.name)}</b><span class="pt-sum" id="pts-${i}"></span><button type="button" class="pt-ret ${puNum(it.ret) > 0 ? 'on' : ''}" onclick="ptRet(${i})" title="مردود لهذه المادة">↩️${puNum(it.ret) > 0 ? ' ' + puNum(it.ret) : ''}</button><button type="button" class="pu-x" onclick="puRemoveItem(${i})" aria-label="حذف">✕</button></div>
-        <div class="pt-in">
+    box.innerHTML = pu.items.map((it, i) => `<div class="pt-row ${it.open ? 'open' : 'closed'}" id="ptr-${i}">
+        <div class="pt-top" onclick="ptToggle(${i})"><span class="pu-chev">${it.open ? '▾' : '▸'}</span><b dir="ltr" class="pt-nm">${ptEsc(it.name)}</b>
+            <span class="pt-mini"><span id="ptq-${i}">${ptEsc(it.qty)}</span> × <span id="ptc-${i}">${puNum(it.cost) > 0 ? fmtNum(it.cost) : '⚠'}</span> = <b class="pt-sum" id="pts-${i}"></b></span>
+            <button type="button" class="pt-ret ${puNum(it.ret) > 0 ? 'on' : ''}" onclick="event.stopPropagation();ptRet(${i})" title="مردود لهذه المادة">↩️${puNum(it.ret) > 0 ? ' ' + puNum(it.ret) : ''}</button><button type="button" class="pu-x" onclick="event.stopPropagation();puRemoveItem(${i})" aria-label="حذف">✕</button></div>
+        <div class="pt-in" style="display:${it.open ? 'grid' : 'none'}">
             <label><span>عدد</span><input type="number" min="1" inputmode="numeric" value="${ptEsc(it.qty)}" oninput="puItemEdit(${i},'qty',this.value)" onfocus="this.select()"></label>
             <label><span>بونص</span><input type="number" min="0" inputmode="numeric" placeholder="0" value="${ptEsc(it.bonus || '')}" oninput="puItemEdit(${i},'bonus',this.value)" onfocus="this.select()"></label>
             <label><span>سعر الشراء</span><input type="number" min="0" inputmode="decimal" value="${ptEsc(it.cost)}" oninput="puItemEdit(${i},'cost',this.value)" onfocus="this.select()"></label>
@@ -35,7 +38,7 @@ function puRenderTable() {
         </div></div>`).join('') || '<div class="bill-none">اكتب اسم المادة فوق، وبعدها العدد والسعر، واضغط Enter.</div>';
     puRecalc();
 }
-function ptRecalc() { pu.items.forEach((it, i) => { const el = $b('pts-' + i); if (el) el.innerText = fmtNum(puNum(it.qty) * puNum(it.cost)); }); }
+function ptRecalc() { pu.items.forEach((it, i) => { const el = $b('pts-' + i); if (el) el.innerText = fmtNum(puNum(it.qty) * puNum(it.cost)); const q = $b('ptq-' + i), c = $b('ptc-' + i); if (q) q.innerText = it.qty; if (c) c.innerText = puNum(it.cost) > 0 ? fmtNum(it.cost) : '⚠'; }); }
 // نلفّ الدوال الموجودة بدل تغييرها
 { const _pri = puRenderItems; puRenderItems = function () { _pri(); puRenderTable(); ptApplyView(); }; }
 { const _prc = puRecalc; puRecalc = function () { _prc(); ptRecalc(); }; }

@@ -2280,7 +2280,7 @@ body.rv-open { overflow: hidden; }
 /* v85: وضع التأسيس */
 .setup-bar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
 .setup-bar.on { padding: 10px 12px; border: 1px solid #f59e0b; background: #fffbeb; border-radius: 12px; color: #78350f; }
-.setup-bar.on span { flex: 1 1 200px; font-size: .78rem; line-height: 1.7; }
+.setup-bar.on > span { flex: 1 1 200px; font-size: .78rem; line-height: 1.7; }
 .setup-bar button { border: 1px solid #cbd5e1; background: #fff; border-radius: 10px; padding: 7px 12px; font: 700 .8rem inherit; color: #0f1c38; cursor: pointer; }
 .cat-unc { border: 1px solid #f59e0b; background: #fffbeb; color: #92400e; border-radius: 999px; padding: 3px 10px; font: 700 .76rem inherit; cursor: pointer; }
 .cat-unc.on { background: #f59e0b; color: #fff; }
@@ -2307,3 +2307,25 @@ body.rv-open { overflow: hidden; }
 
 .pt-ret { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; height: 30px; min-width: 34px; padding: 0 6px; font: 800 .78rem inherit; cursor: pointer; }
 .pt-ret.on { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+
+/* v89: مفتاح وضع التأسيس (أخضر = مشتغل، أحمر = مطفأ) */
+.setup-bar.off { padding: 10px 12px; border: 1px solid #fecaca; background: #fef2f2; border-radius: 12px; color: #7f1d1d; flex-wrap: nowrap; }
+.setup-bar.on { border-color: #86efac; background: #f0fdf4; color: #14532d; flex-wrap: nowrap; }
+.setup-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.setup-txt b { font-size: .92rem; }
+.setup-txt span { font-size: .76rem; line-height: 1.6; }
+.setup-sw { position: relative; flex: 0 0 auto; width: 58px; height: 32px; display: inline-block; cursor: pointer; }
+.setup-sw input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 2; }
+.setup-sw i { position: absolute; inset: 0; border-radius: 999px; background: #dc2626; transition: background .2s; }
+.setup-sw i::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: inset-inline-start .2s; }
+.setup-sw input:checked + i { background: #16a34a; }
+.setup-sw input:checked + i::after { inset-inline-start: 29px; }
+.setup-sw.ro { opacity: .6; }
+
+.pt-top { cursor: pointer; }
+.pt-mini { font-size: .78rem; color: #475569; white-space: nowrap; }
+.pt-row.closed { padding: 6px 8px; }
+.pt-row.open { border-color: #0f1c38; }
+.pt-row.closed .pt-top { margin-bottom: 0; }
+
+.setup-txt span { flex: 0 0 auto; }
