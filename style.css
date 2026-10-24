@@ -2186,3 +2186,28 @@ body.role-staff .kpi.k-sales { display: none !important; }
 .cat-sub .cat-price { justify-self: end; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; direction: rtl; }
 .cat-qty button, .cat-qty input, .cat-price { flex: 0 0 auto; }
 .cat-qty input { width: 56px; }
+
+/* ===== v70: نافذة التسعير السريع (تصميم معتمد) ===== */
+.qp { display: flex; flex-direction: column; text-align: right; }
+.qp .qrow { margin-top: 12px; }
+.qp .qf { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.qp .qf > span { font-size: .78rem; font-weight: 800; color: #475569; }
+.qp .qin { width: 100%; height: 46px; margin: 0; padding: 0 12px; border: 1.5px solid #cbd5e1; border-radius: 11px; background: #fff; font: 700 .95rem inherit; color: #0f1c38; box-sizing: border-box; box-shadow: none; }
+.qp .qin.ltr { direction: ltr; text-align: left; }
+.qp .qin[readonly] { background: #f8fafc; }
+.qp .qg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.qp .qg3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.qp .qstep { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; height: 46px; border: 1.5px solid #cbd5e1; border-radius: 11px; overflow: hidden; direction: ltr; background: #fff; }
+.qp .qstep button { border: 0; background: #f1f5f9; font: 900 1.3rem/1 inherit; color: #0f1c38; cursor: pointer; padding: 0; }
+.qp .qstep button:active { background: #e2e8f0; }
+.qp .qstep input { min-width: 0; width: 100%; border: 0; border-inline: 1.5px solid #cbd5e1; text-align: center; font: 800 1rem inherit; color: #0f1c38; background: #fff; padding: 0; margin: 0; border-radius: 0; box-shadow: none; }
+.qp .qbc { display: grid; grid-template-columns: minmax(0, 1fr) 46px; gap: 6px; }
+.qp .qbc input { font-size: .85rem; padding: 0 8px; }
+.qp .qbc button { border: 1.5px solid #cbd5e1; border-radius: 11px; background: #f1f5f9; font-size: 1.2rem; cursor: pointer; padding: 0; }
+.qp .qsep { height: 1px; background: #e2e8f0; margin-top: 14px; }
+.qp .qnote { margin-top: 8px; color: #b91c1c; font-size: .7rem; line-height: 1.6; font-weight: 600; }
+.qp .qsec { margin-top: 12px; border: 1px dashed #cbd5e1; border-radius: 13px; padding: 10px 10px 12px; }
+.qp .qsec h4 { margin: 0 0 8px; font-size: .82rem; color: #334155; }
+.qp-pop .swal2-actions { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; width: 100%; margin: 14px 0 0; }
+.qp-pop .swal2-actions button { height: 48px; margin: 0; width: 100%; border-radius: 12px; font-weight: 800; }
+:root[data-theme="dark"] .qp .qin, :root[data-theme="dark"] .qp .qstep, :root[data-theme="dark"] .qp .qstep input { background: var(--surface); color: var(--text-main); }

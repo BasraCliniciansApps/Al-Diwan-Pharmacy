@@ -193,18 +193,27 @@ function catPriceHtml(p, isNew, pre) {
     const sub = (!isNew && p && subCountOf(p)) ? p : null;
     const types = subTypes.slice(); if (sub && sub.subType && !types.includes(sub.subType)) types.push(sub.subType);
     const pm = (p && p.pricing) || 'manual';
-    return `<div class="sw-form qp">
-        <label>اسم الدواء<input id="qpName" class="swal2-input" dir="ltr" value="${escapeHtml((p && p.name) || preName)}" placeholder="مثال: Panadol 500mg tablet"></label>
-        <div class="qp-2"><label>العدد (عبوات)<input id="qpQty" type="number" inputmode="numeric" min="0" class="swal2-input" value="${p ? (parseInt(p.qty) || 0) : ''}" placeholder="0"></label>
-        <label>الباركود<span class="qp-bc"><input id="qpBc" class="swal2-input" dir="ltr" inputmode="numeric" value="${escapeHtml(p ? (barcodesOf(p)[0] || '') : preBc)}" placeholder="اكتب أو امسح"><button type="button" id="qpScan">▦</button></span></label></div>
-        <label>طريقة التسعير<select id="qpMode" class="swal2-input"><option value="manual">يدوي — ملصق الوزارة</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></label>
-        <div class="qp-2"><label>سعر الشراء<input id="qpCost" type="number" inputmode="decimal" min="0" class="swal2-input" value="${p && p.costPrice ? p.costPrice : ''}"></label>
-        <label id="qpMkW">نسبة الإضافة %<input id="qpMk" type="number" inputmode="decimal" min="0" step="any" class="swal2-input" value="${p && p.markupPct != null ? p.markupPct : ''}"></label></div>
-        <label>سعر البيع (د.ع)<input id="qpPrice" type="number" inputmode="decimal" min="0" class="swal2-input" value="${p && p.price ? p.price : ''}"></label>
-        <div class="sw-info" id="qpHint"></div>
-        <div class="qp-ret"><b>🧩 البيع بالتجزئة (اختياري)</b><div class="qp-2"><label>عدد الأجزاء<input id="qpSc" type="number" inputmode="numeric" min="0" class="swal2-input" value="${sub ? subCountOf(sub) : ''}"></label>
-        <label>نوع الجزء<select id="qpSt" class="swal2-input">${types.map(t => `<option value="${escapeHtml(t)}"${sub && sub.subType === t ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label></div>
-        <label>سعر الجزء (يُحسب تلقائياً)<input id="qpSp" type="number" inputmode="decimal" min="0" class="swal2-input" value="${sub && sub.subPrice ? sub.subPrice : ''}" data-manual="${sub && sub.subPrice && Math.round((parseFloat(sub.price) || 0) / subCountOf(sub)) !== (parseFloat(sub.subPrice) || 0) ? 1 : ''}"></label></div>
+    return `<div class="qp">
+        <div class="qf"><span>اسم الدواء</span><input id="qpName" class="qin ltr" dir="ltr" value="${escapeHtml((p && p.name) || preName)}" placeholder="مثال: Panadol 500mg tablet"></div>
+        <div class="qg2 qrow">
+            <div class="qf"><span>العدد (عبوات)</span><div class="qstep"><button type="button" id="qpMinus">−</button><input id="qpQty" type="number" inputmode="numeric" min="0" value="${p ? (parseInt(p.qty) || 0) : 0}" onfocus="this.select()"><button type="button" id="qpPlus">+</button></div></div>
+            <div class="qf"><span>الباركود</span><div class="qbc"><input id="qpBc" class="qin ltr" dir="ltr" inputmode="numeric" value="${escapeHtml(p ? (barcodesOf(p)[0] || '') : preBc)}" placeholder="اكتب أو امسح"><button type="button" id="qpScan" aria-label="مسح">▦</button></div></div>
+        </div>
+        <div class="qsep"></div>
+        <div class="qf qrow"><span>طريقة التسعير</span><select id="qpMode" class="qin"><option value="manual">يدوي — ملصق الوزارة</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></div>
+        <div class="qg2 qrow">
+            <div class="qf"><span>سعر الشراء (د.ع)</span><input id="qpCost" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${p && p.costPrice ? p.costPrice : ''}"></div>
+            <div class="qf"><span>سعر البيع (د.ع)</span><input id="qpPrice" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${p && p.price ? p.price : ''}"></div>
+        </div>
+        <div class="qf qrow" id="qpMkW"><span>نسبة الإضافة على سعر الشراء (%)</span><input id="qpMk" type="number" inputmode="decimal" min="0" step="any" class="qin ltr" dir="ltr" value="${p && p.markupPct != null ? p.markupPct : ''}"></div>
+        <div class="qnote" id="qpHint"></div>
+        <div class="qsec"><h4>🧩 البيع بالتجزئة (اختياري)</h4>
+            <div class="qg3">
+                <div class="qf"><span>عدد الأجزاء</span><input id="qpSc" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${sub ? subCountOf(sub) : ''}"></div>
+                <div class="qf"><span>نوع الجزء</span><select id="qpSt" class="qin ltr" dir="ltr">${types.map(t => `<option value="${escapeHtml(t)}"${sub && sub.subType === t ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></div>
+                <div class="qf"><span>سعر الجزء</span><input id="qpSp" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${sub && sub.subPrice ? sub.subPrice : ''}" data-manual="${sub && sub.subPrice && Math.round((parseFloat(sub.price) || 0) / subCountOf(sub)) !== (parseFloat(sub.subPrice) || 0) ? 1 : ''}"></div>
+            </div>
+        </div>
     </div>`;
 }
 function catPriceWire(p) {
@@ -214,8 +223,8 @@ function catPriceWire(p) {
         const m = mode.value, cost = $('qpCost').value, mk = $('qpMk').value;
         $('qpMkW').style.display = m === 'percent' ? '' : 'none';
         $('qpPrice').readOnly = m !== 'manual';
-        if (m === 'syndicate') { $('qpHint').innerHTML = syndHintHtml(cost); if (Number(cost) > 0) $('qpPrice').value = syndPrice(cost); }
-        else if (m === 'percent') { $('qpHint').innerHTML = markupHintHtml(cost, mk); if (Number(cost) > 0 && mk !== '' && Number(mk) >= 0) $('qpPrice').value = markupCalc(cost, mk); }
+        if (m === 'syndicate') { { const r = syndCalc(cost); $('qpHint').innerHTML = r ? `سعر المذخر ${Number(cost).toLocaleString()} ≈ $${r.usd.toFixed(2)} ← نسبة ${r.pct}% ← ${r.price.toLocaleString()} د.ع · ${escapeHtml(syndBookText())} · الصرف ${pricingCfg.rate.toLocaleString()}` : 'أدخل سعر الشراء (سعر المذخر) ليُحسب السعر تلقائياً.'; } if (Number(cost) > 0) $('qpPrice').value = syndPrice(cost); }
+        else if (m === 'percent') { $('qpHint').innerHTML = markupHintHtml(cost, mk).replace(/<\/?b>/g, ''); if (Number(cost) > 0 && mk !== '' && Number(mk) >= 0) $('qpPrice').value = markupCalc(cost, mk); }
         else $('qpHint').textContent = 'اكتب السعر المطبوع على ملصق الوزارة.';
         const sc = parseInt($('qpSc').value) || 0, sp = $('qpSp'), price = parseFloat($('qpPrice').value) || 0;
         if (sp.dataset.manual !== '1') sp.value = sc > 1 && price > 0 ? Math.round(price / sc) : '';
@@ -223,6 +232,7 @@ function catPriceWire(p) {
     ['qpMode', 'qpCost', 'qpMk', 'qpPrice', 'qpSc'].forEach(id => $(id).addEventListener('input', refresh));
     mode.addEventListener('change', refresh);
     $('qpSp').addEventListener('input', () => { $('qpSp').dataset.manual = '1'; });
+    const qq = $('qpQty'); $('qpMinus').addEventListener('click', () => { qq.value = Math.max(0, (parseInt(qq.value) || 0) - 1); }); $('qpPlus').addEventListener('click', () => { qq.value = (parseInt(qq.value) || 0) + 1; });
     $('qpScan').addEventListener('click', () => openBarcodeScanner(code => { const c = cleanBarcode(code); if ($('qpBc')) $('qpBc').value = c; }));
     refresh();
 }
@@ -241,7 +251,7 @@ async function catPrice(id, pre) {
     const p = id ? products.find(x => x.id === id) : null; if (id && !p) return;
     if (!writesAllowed()) return;
     const isNew = !p;
-    const r = await Swal.fire({ title: isNew ? '➕ مادة جديدة' : 'تسعير وتعديل سريع', html: catPriceHtml(p, isNew, pre), showCancelButton: true, confirmButtonText: isNew ? 'إضافة' : 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 520px)', customClass: { popup: 'dw-pop' },
+    const r = await Swal.fire({ title: isNew ? '➕ مادة جديدة' : 'تسعير وتعديل سريع', html: catPriceHtml(p, isNew, pre), showCancelButton: true, confirmButtonText: isNew ? 'إضافة' : 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 520px)', customClass: { popup: 'dw-pop qp-pop' },
         didOpen: () => { catPriceWire(p); if (isNew) document.getElementById('qpName').focus(); }, preConfirm: catPriceRead });
     if (!r.isConfirmed || !r.value) return;
     const v = r.value;
