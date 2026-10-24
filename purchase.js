@@ -431,7 +431,7 @@ function puOpen(id) {
             <div class="pu-d-scroll"><table class="bill-table"><thead><tr><th>المادة</th><th>العدد</th><th>السعر</th><th>الانتهاء</th><th>الدفعة</th><th>المجموع</th></tr></thead><tbody>${rows}</tbody></table></div>
             <div class="pu-d-tot"><div>المجموع: <b>${fmtNum(puTotalOf(r))}</b></div><div>الاسترجاع: <b>${fmtNum(puNum(r.returnAmt) + (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0))}</b></div><div>الصافي: <b>${fmtNum(puNetOf(r))}</b></div><div>المدفوع: <b>${fmtNum(r.paid)}</b></div><div>المتبقي: <b>${fmtNum(puRemaining(r))}</b></div></div>
             <div class="pu-d-pays"><b>الدفعات:</b>${pays}</div>${typeof lgLinkedHtml === 'function' ? lgLinkedHtml(r.id) : ''}${r.notes ? `<div class="pu-d-pays"><b>ملاحظات:</b> ${escapeHtml(r.notes)}</div>` : ''}
-            <div class="pu-d-btns">${r.cancelled ? btn('🗑 حذف نهائي', `puDeletePermanently('${r.id}')`, 'bill-danger') : btn('✏️ تعديل الفاتورة', `puEdit('${r.id}')`) + btn('💳 تسديد', `puPay('${r.id}')`, 'bill-pay') + btn('📦 إرجاع مواد', `lgOpenReturn({listId:'${r.id}'})`) + btn('↩️ مبلغ الاسترجاع', `puSetReturn('${r.id}')`) + btn('✖ إلغاء الوارد', `puCancel('${r.id}')`, 'bill-danger')}</div></div>`
+            <div class="pu-d-btns"><button type="button" class="bill-tb-btn" onclick="puOneOut('${r.id}','print')">🖨️ طباعة</button><button type="button" class="bill-tb-btn" onclick="puOneOut('${r.id}','csv')">⬇️ Excel</button>${r.cancelled ? btn('🗑 حذف نهائي', `puDeletePermanently('${r.id}')`, 'bill-danger') : btn('✏️ تعديل الفاتورة', `puEdit('${r.id}')`) + btn('💳 تسديد', `puPay('${r.id}')`, 'bill-pay') + btn('📦 إرجاع مواد', `lgOpenReturn({listId:'${r.id}'})`) + btn('↩️ مبلغ الاسترجاع', `puSetReturn('${r.id}')`) + btn('✖ إلغاء الوارد', `puCancel('${r.id}')`, 'bill-danger')}</div></div>`
     });
 }
 async function puSetReturn(id) {
@@ -681,12 +681,21 @@ async function puSelOut(kind) {
     const recs = puSelRecs(); if (!recs.length) return;
     const r = await Swal.fire({ title: kind === 'csv' ? 'شكل جدول Excel' : 'شكل الطباعة', html: `<div class="sw-form"><div class="sw-info"><b>${fmtNum(recs.length)}</b> قائمة محددة. اختر شكل الجدول:</div></div>`, showCancelButton: true, showDenyButton: true, confirmButtonText: '📄 سطر لكل قائمة', denyButtonText: '📋 سطر لكل مادة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', denyButtonColor: '#0f766e' });
     if (!r.isConfirmed && !r.isDenied) return;
-    const mode = r.isConfirmed ? 'lists' : 'items', tbl = puSelTable(recs, mode);
-    if (kind === 'csv') { lgCsvDownload('orders-selected-' + mode + '-' + todayLocalISO() + '.csv', [[tbl.title], [], tbl.head, ...tbl.rows, tbl.foot]); return; }
+    puOutRender(kind, recs, r.isConfirmed ? 'lists' : 'items');
+}
+function puOutRender(kind, recs, mode, title) {
+    const tbl = puSelTable(recs, mode); if (title) tbl.title = title;
+    if (kind === 'csv') { lgCsvDownload('orders-' + (title ? 'invoice' : 'selected-' + mode) + '-' + todayLocalISO() + '.csv', [[tbl.title], [], tbl.head, ...tbl.rows, tbl.foot]); return; }
     const esc = escapeHtml, td = (v, i) => `<td${i >= tbl.numFrom ? ' class="num"' : ''}>${esc(v)}</td>`;
     $b('puSelSheet').innerHTML = `<h2 class="psp-t">${esc(tbl.title)}</h2><div class="psp-d">${esc(fmtDateDMY(todayLocalISO()))} · ${fmtNum(recs.length)} قائمة</div>
         <table class="bill-table psp-tb"><thead><tr>${tbl.head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${tbl.rows.map(row => `<tr>${row.map(td).join('')}</tr>`).join('')}</tbody><tfoot><tr>${tbl.foot.map((v, i) => `<th${i >= tbl.numFrom ? ' class="num"' : ''}>${esc(v)}</th>`).join('')}</tr></tfoot></table>`;
     puPrint('puPane-sel');
+}
+// طباعة / Excel لقائمة وارد واحدة من نافذة تفاصيلها (تفصيل المواد)
+function puOneOut(id, kind) {
+    const r = puAll.find(x => x.id === id); if (!r) return;
+    if (kind === 'print') { try { Swal.close(); } catch (e) { /* تجاهل */ } }
+    puOutRender(kind, [r], 'items', 'قائمة وارد — ' + r.supplier + ' — ' + r.no + ' — ' + fmtDateDMY(r.date));
 }
 function puSelTable(recs, mode) {
     const n = v => puNum(v), f = v => (v === '' || v == null) ? '' : fmtNum(v);
