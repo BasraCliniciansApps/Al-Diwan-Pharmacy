@@ -2151,3 +2151,7 @@ body.role-staff .kpi.k-sales { display: none !important; }
 /* ===== v63: زر نفاذ آخر وارد ===== */
 .lp-exp { display: inline-block; margin-inline-start: 4px; padding: 1px 9px; min-height: 24px; border: 1px solid #10b981; border-radius: 999px; background: #fff; color: #047857; font: 800 .7rem inherit; font-family: inherit; cursor: pointer; vertical-align: middle; }
 .lp-exp.done { background: #d1fae5; border-color: #a7f3d0; color: #065f46; }
+
+/* v66 أشكال دوائية إضافية */
+.badge-inj { background: #fee2e2; color: #b91c1c; }
+.badge-other { background: #e5e7eb; color: #374151; }

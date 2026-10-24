@@ -895,16 +895,39 @@ function isCustomItem(item) {
     return !!item.type && customTabs.some(t => t.id === item.type);
 }
 
+// الأشكال الدوائية: id / الاسم المعروض / لون الشارة / كلمات التعرّف التلقائي (بالترتيب: الأدق أولاً)
+const FORMS = [
+    { id: 'lozenge',  txt: 'أقراص مص / لوزنجز', cls: 'badge-oral',  re: /lozenge|pastille|لوزنج|اقراص مص|أقراص مص/ },
+    { id: 'effer',    txt: 'أقراص فوّارة',       cls: 'badge-oral',  re: /effervescent|fizz|فوار|فوّار/ },
+    { id: 'chew',     txt: 'أقراص للمضغ',        cls: 'badge-oral',  re: /chewable|chew tab|للمضغ/ },
+    { id: 'eyedrop',  txt: 'قطرات عين / أذن / أنف', cls: 'badge-syrup', re: /eye\s*drop|ear\s*drop|nasal\s*drop|ophthalmic|otic|قطرة عين|قطرات عين|قطرة اذن|قطرة أذن|قطرة انف|قطرة أنف/ },
+    { id: 'inject',   txt: 'حقن / أمبولات',      cls: 'badge-inj',   re: /inject|\binj\b|ampoule|ampule|\bvial\b|syringe|حقنة|حقن|امبول|أمبول|فايل/ },
+    { id: 'supp',     txt: 'تحاميل',             cls: 'badge-oint',  re: /suppositor|\bsupp\b|pessar|تحميل|تحاميل/ },
+    { id: 'patch',    txt: 'لصقات',              cls: 'badge-gel',   re: /\bpatch|plaster|لصق/ },
+    { id: 'inhaler',  txt: 'استنشاق / نيبولايزر', cls: 'badge-spray', re: /inhaler|nebul|respules|استنشاق|نيبول/ },
+    { id: 'sachet',   txt: 'أكياس / بودرة',      cls: 'badge-syrup', re: /sachet|granule|\bpowder\b|بودرة|اكياس|أكياس|ساشيه|ساشت/ },
+    { id: 'mouth',    txt: 'غسول فم / معجون أسنان', cls: 'badge-wash', re: /mouth\s*wash|mouthwash|toothpaste|tooth paste|غسول فم|معجون اسنان|معجون أسنان/ },
+    { id: 'foam',     txt: 'رغوة (Foam)',        cls: 'badge-wash',  re: /\bfoam\b|mousse|رغوة|موس/ },
+    { id: 'paste',    txt: 'معجون (Paste)',      cls: 'badge-oint',  re: /\bpaste\b|معجون/ },
+    { id: 'oil',      txt: 'زيت (Oil)',          cls: 'badge-oint',  re: /\boil\b|زيت/ },
+    { id: 'oral',     txt: 'أقراص / كبسول',      cls: 'badge-oral',  re: /tablet|capsule|\btab\b|\bcap\b|\bcaps\b|film coated|اقراص|أقراص|كبسول/ },
+    { id: 'syrup',    txt: 'شراب / قطرات',       cls: 'badge-syrup', re: /syrup|suspension|drops?\b|elixir|شراب|قطرة|قطرات/ },
+    { id: 'oint',     txt: 'مرهم (Oint)',        cls: 'badge-oint',  re: /ointment|مرهم/ },
+    { id: 'gel',      txt: 'جل (Gel)',           cls: 'badge-gel',   re: /\bgel\b|emulgel|جل/ },
+    { id: 'wash',     txt: 'غسول / شامبو',       cls: 'badge-wash',  re: /shampoo|wash|cleanser|soap|\bbar\b|غسول|شامبو|صابون/ },
+    { id: 'spray',    txt: 'محلول / بخاخ',       cls: 'badge-spray', re: /spray|solution|lotion|serum|محلول|بخاخ|لوشن|سيروم/ },
+    { id: 'cream',    txt: 'كريم (Cream)',       cls: 'badge-cream', re: /cream|كريم/ },
+    { id: 'other',    txt: 'أخرى',               cls: 'badge-other', re: null }
+];
 function getFormBadge(item) {
+    if (item.form) { const f = FORMS.find(x => x.id === item.form); if (f) return { txt: f.txt, cls: f.cls }; }
     const str = `${item.name} ${item.meta}`.toLowerCase();
-    if (str.includes('lozenge') || str.includes('pastille') || str.includes('لوزنج') || str.includes('أقراص مص') || str.includes('اقراص مص')) return {txt: 'أقراص مص / لوزنجز', cls: 'badge-oral'};
-    if (str.includes('tablet') || str.includes('capsule')) return {txt: 'أقراص / كبسول', cls: 'badge-oral'};
-    if (str.includes('syrup') || str.includes('suspension') || str.includes('drops')) return {txt: 'شراب / قطرات', cls: 'badge-syrup'};
-    if (str.includes('ointment') || str.includes('مرهم')) return {txt: 'مرهم (Oint)', cls: 'badge-oint'};
-    if (str.includes('gel') || str.includes('جل')) return {txt: 'جل (Gel)', cls: 'badge-gel'};
-    if (str.includes('shampoo') || str.includes('wash') || str.includes('cleanser') || str.includes('soap') || str.includes('bar')) return {txt: 'غسول / شامبو', cls: 'badge-wash'};
-    if (str.includes('spray') || str.includes('solution') || str.includes('lotion') || str.includes('serum')) return {txt: 'محلول / بخاخ', cls: 'badge-spray'};
-    return {txt: 'كريم (Cream)', cls: 'badge-cream'};
+    const f = FORMS.find(x => x.re && x.re.test(str));
+    return f ? { txt: f.txt, cls: f.cls } : { txt: 'كريم (Cream)', cls: 'badge-cream' };   // الافتراضي القديم
+}
+function fillFormSelect() {
+    const el = document.getElementById('fForm');
+    if (el && !el.options.length) el.innerHTML = '<option value="">تلقائي (حسب الاسم والعبوة)</option>' + FORMS.map(f => `<option value="${f.id}">${f.txt}</option>`).join('');
 }
 
 function renderDepartmentsBar() {
@@ -1481,6 +1504,7 @@ function openFormModal(id = null) {
         document.getElementById('fDepartment').value = p.department || departments[0];
         document.getElementById('fCategory').value = p.category;
         if (document.getElementById('fType')) document.getElementById('fType').value = p.type || (isRxItem(p) ? 'rx' : 'cosmetic');
+        fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = p.form || '';
         if (document.getElementById('fActive')) document.getElementById('fActive').value = p.activeIngredient || '';
         if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = (p.minQty === null || p.minQty === undefined) ? '' : p.minQty;
         document.getElementById('fBrand').value = p.brand;
@@ -1503,6 +1527,7 @@ function openFormModal(id = null) {
         document.getElementById('editId').value = '';
         document.getElementById('fDepartment').value = activeDept === ALL_DEPTS ? (departments[0] || '') : activeDept;
         if (document.getElementById('fType')) document.getElementById('fType').value = '';
+        fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = '';
         if (document.getElementById('fActive')) document.getElementById('fActive').value = '';
         if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = '';
         if (document.getElementById('scanStatus')) document.getElementById('scanStatus').innerText = '';
@@ -1715,6 +1740,7 @@ async function saveFormProduct() {
         extraDepartments: getExtraSelection('dept').filter(x => x !== document.getElementById('fDepartment').value),
         extraCategories: getExtraSelection('cat').filter(x => x !== document.getElementById('fCategory').value),
         extraTypes: getExtraSelection('type').filter(x => x !== (document.getElementById('fType').value || '')),
+        form: document.getElementById('fForm') ? document.getElementById('fForm').value : '',
         activeIngredient: document.getElementById('fActive') ? document.getElementById('fActive').value.trim() : '',
         minQty: (document.getElementById('fMinQty') && document.getElementById('fMinQty').value !== '') ? (parseInt(document.getElementById('fMinQty').value) || 0) : null,
         brand: document.getElementById('fBrand').value.trim() || 'GENERIC',
@@ -3814,7 +3840,7 @@ async function openTrashModal() {
 }
 
 // ---------------- سجل التعديلات ----------------
-const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'نوع الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة', costPrice: 'سعر الشراء' };
+const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', form: 'الشكل الدوائي', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'نوع الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة', costPrice: 'سعر الشراء' };
 
 function diffProduct(a, b) {
     const out = [];
