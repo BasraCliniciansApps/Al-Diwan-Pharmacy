@@ -213,6 +213,7 @@ function catPriceHtml(p, isNew, pre) {
                 <div class="qf"><span>نوع الجزء</span><select id="qpSt" class="qin ltr" dir="ltr">${types.map(t => `<option value="${escapeHtml(t)}"${sub && sub.subType === t ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></div>
                 <div class="qf"><span>سعر الجزء</span><input id="qpSp" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${sub && sub.subPrice ? sub.subPrice : ''}" data-manual="${sub && sub.subPrice && Math.round((parseFloat(sub.price) || 0) / subCountOf(sub)) !== (parseFloat(sub.subPrice) || 0) ? 1 : ''}"></div>
             </div>
+            <div class="qf qrow"><span>أجزاء مفتوحة من عبوة (تتحول لعلب إذا زادت عن عدد الأجزاء)</span><input id="qpLoose" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${p ? (parseInt(p.loose) || 0) : 0}"></div>
         </div>
     </div>`;
 }
@@ -244,7 +245,7 @@ function catPriceRead() {
     if (mode === 'percent' && (!(cost > 0) || !(mk >= 0))) { Swal.showValidationMessage('التسعير بنسبة يحتاج سعر الشراء ونسبة الإضافة'); return false; }
     if (mode === 'syndicate' && !(cost > 0)) { Swal.showValidationMessage('أدخل سعر الشراء (سعر المذخر) لحساب السعر'); return false; }
     const sc = parseInt($('qpSc').value) || 0, sp = parseFloat($('qpSp').value);
-    return { name, qty: Math.max(0, parseInt($('qpQty').value) || 0), bc: cleanBarcode($('qpBc').value), pricing: mode, costPrice: cost, price, markupPct: mode === 'percent' ? mk : null,
+    return { name, qty: Math.max(0, parseInt($('qpQty').value) || 0), loose: Math.max(0, parseInt($('qpLoose').value) || 0), bc: cleanBarcode($('qpBc').value), pricing: mode, costPrice: cost, price, markupPct: mode === 'percent' ? mk : null,
         retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || 'جزء', subPrice: sp > 0 ? sp : Math.round(price / sc) } };
 }
 async function catPrice(id, pre) {
@@ -259,19 +260,19 @@ async function catPrice(id, pre) {
     if (isNew) {
         const dept = (activeDept && activeDept !== ALL_DEPTS) ? activeDept : (departments[0] || 'قسم الجلدية');
         const obj = { id: Date.now(), department: dept, category: subCategories[0] || '', type: '', extraDepartments: [], extraCategories: [], extraTypes: [], form: '', activeIngredient: '', minQty: null, brand: 'GENERIC', name: v.name, details: '', meta: '',
-            qty: v.qty, price: v.price, costPrice: v.costPrice, pricing: v.pricing, markupPct: v.markupPct, ...v.retail, loose: 0, expiryDates: [], expiryDate: '', keywords: '', barcode: v.bc, barcodes: v.bc ? [v.bc] : [], img: '' };
+            qty: v.qty, price: v.price, costPrice: v.costPrice, pricing: v.pricing, markupPct: v.markupPct, ...v.retail, ...(() => { const n = catNorm(v.qty, v.loose, v.retail.subCount); return { qty: n.q, loose: n.l }; })(), expiryDates: [], expiryDate: '', keywords: '', barcode: v.bc, barcodes: v.bc ? [v.bc] : [], img: '' };
         products.unshift(obj); renderAll(); renderCatalog();
         const ok = await saveSingleProductToCloud(obj);
         if (typeof onProductSaved === 'function') onProductSaved(obj);
         if (ok) { logAction('add', obj, []); Swal.fire({ icon: 'success', title: 'أُضيفت المادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 }); }
         return;
     }
-    const old = JSON.parse(JSON.stringify(p)), oldQty = parseInt(p.qty) || 0;
-    Object.assign(p, { name: v.name, qty: v.qty, price: v.price, costPrice: v.costPrice, pricing: v.pricing, markupPct: v.markupPct, ...v.retail });
-    if (!v.retail.subCount) p.loose = 0; else p.loose = Math.min(parseInt(p.loose) || 0, v.retail.subCount - 1);
+    const old = JSON.parse(JSON.stringify(p)), oldQty = parseInt(p.qty) || 0, oldLoose = parseInt(p.loose) || 0;
+    const nn = catNorm(v.qty, v.loose, v.retail.subCount);
+    Object.assign(p, { name: v.name, qty: nn.q, loose: nn.l, price: v.price, costPrice: v.costPrice, pricing: v.pricing, markupPct: v.markupPct, ...v.retail });
     const bcs = barcodesOf(p).filter(b => b !== v.bc); if (v.bc) bcs.unshift(v.bc);
     p.barcodes = v.bc ? bcs : barcodesOf(old); p.barcode = p.barcodes[0] || '';
-    const ok = await saveProductsDelta([{ p, dq: v.qty - oldQty, dl: 0, cost: p.costPrice }]);
+    const ok = await saveProductsDelta([{ p, dq: nn.q - oldQty, dl: nn.l - oldLoose, cost: p.costPrice }]);
     if (!ok) { Object.assign(p, old); renderCatalog(); return; }
     const ch = diffProduct(old, p); if (ch.length) logAction('edit', p, ch);
     renderAll(); renderCatalog();
@@ -313,3 +314,5 @@ async function openCountDialog(id) {
     if (typeof currentOpenId !== 'undefined' && currentOpenId === id) { try { openSheet(id); } catch (e) { /* تجاهل */ } }
     Swal.fire({ icon: 'success', title: 'تم تعديل العدد', toast: true, position: 'bottom', showConfirmButton: false, timer: 1400 });
 }
+
+function catNorm(boxes, parts, sc) { boxes = Math.max(0, parseInt(boxes) || 0); parts = Math.max(0, parseInt(parts) || 0); sc = parseInt(sc) || 0; if (sc < 2) return { q: boxes, l: 0 }; const t = boxes * sc + parts; return { q: Math.floor(t / sc), l: t % sc }; }

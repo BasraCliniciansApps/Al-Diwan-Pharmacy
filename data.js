@@ -1108,7 +1108,7 @@ function productCardHtml(p, tagHtml) {
                     <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
                     ${(!IS_ADMIN_PAGE || !can('stockEdit')) ? '' : `<div class="quick-qty" onclick="event.stopPropagation()">
                         <button type="button" aria-label="إنقاص الكمية" onclick="quickQty(${p.id}, -1, event)">−</button>
-                        <span class="qs-num" id="qs_${p.id}">${Number(p.qty) || 0}</span>
+                        <span class="qs-num" id="qs_${p.id}"${hasRetail(p) ? ` onclick="openCountDialog(${p.id})" title="تعديل العلب والأجزاء" style="cursor:pointer;text-decoration:underline dotted"` : ''}>${qtyShort(p)}</span>
                         <button type="button" aria-label="زيادة الكمية" onclick="quickQty(${p.id}, 1, event)">+</button>
                     </div>`}
                 </div>
@@ -1734,6 +1734,7 @@ async function saveFormProduct() {
     const pendingBc = cleanBarcode((document.getElementById('fBarcode') || {}).value);
     if (pendingBc && !formBarcodes.includes(pendingBc)) formBarcodes.push(pendingBc);
     const editId = document.getElementById('editId').value;
+    try { formNormLoose(); } catch (e) { /* تجاهل */ }
     const obj = {
         id: editId ? parseInt(editId) : Date.now(),
         department: document.getElementById('fDepartment').value,
@@ -3999,6 +4000,13 @@ function downloadCloudBackup(i) {
 const qtyTimers = {};
 const qtyStart = {};
 
+// عرض العدد المختصر: علب + أجزاء مفتوحة (للأصناف التي لها تجزئة)
+function qtyShort(p) { const q = parseInt(p.qty) || 0, l = parseInt(p.loose) || 0; return (hasRetail(p) && l > 0) ? `${q}+${l}` : String(q); }
+function normCount(p, boxes, parts) {   // يحوّل الأجزاء الزائدة إلى علب كاملة
+    const sc = hasRetail(p) ? subCountOf(p) : 0; boxes = Math.max(0, parseInt(boxes) || 0); parts = Math.max(0, parseInt(parts) || 0);
+    if (!sc) return { q: boxes, l: 0 };
+    const t = boxes * sc + parts; return { q: Math.floor(t / sc), l: t % sc };
+}
 function quickQty(id, delta, ev) {
     if (ev) { ev.stopPropagation(); ev.preventDefault(); }
     if (!writesAllowed()) return;
@@ -4007,7 +4015,7 @@ function quickQty(id, delta, ev) {
     if (qtyStart[id] === undefined) qtyStart[id] = parseInt(p.qty) || 0;
     p.qty = Math.max(0, (parseInt(p.qty) || 0) + delta);
     const num = document.getElementById('qs_' + id);
-    if (num) num.innerText = p.qty;
+    if (num) num.innerText = qtyShort(p);
     const dot = document.getElementById('qd_' + id);
     if (dot) dot.className = p.qty > 0 ? (isLowStock(p) ? 'status-dot low' : 'status-dot') : 'status-dot out';
     saveLocal();
@@ -4064,11 +4072,11 @@ function openExpiryModal() {
 }
 
 // ---------------- وضع الجرد ----------------
-let invCounts = {};
+let invCounts = {}, invLoose = {};
 let invQuery = '';
 
 function openInventory() {
-    invCounts = {};
+    invCounts = {}; invLoose = {};
     invQuery = '';
     const q = document.getElementById('invSearch');
     if (q) q.value = '';
@@ -4088,11 +4096,10 @@ function invVisibleItems() {
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 }
 
+function invCur(p) { return { q: invCounts[p.id] !== undefined ? invCounts[p.id] : (parseInt(p.qty) || 0), l: invLoose[p.id] !== undefined ? invLoose[p.id] : (parseInt(p.loose) || 0) }; }
+function invIsChanged(p) { const c = invCur(p); return c.q !== (parseInt(p.qty) || 0) || (hasRetail(p) && c.l !== (parseInt(p.loose) || 0)); }
 function invChangedCount() {
-    return Object.keys(invCounts).filter(id => {
-        const p = products.find(x => String(x.id) === id);
-        return p && invCounts[id] !== (parseInt(p.qty) || 0);
-    }).length;
+    return products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined) && invIsChanged(p)).length;
 }
 
 function renderInventory() {
@@ -4100,16 +4107,16 @@ function renderInventory() {
     const box = document.getElementById('invList');
     if (!box) return;
     box.innerHTML = items.length ? items.map(p => {
-        const cur = parseInt(p.qty) || 0;
-        const val = invCounts[p.id] !== undefined ? invCounts[p.id] : cur;
-        const changed = val !== cur;
+        const cur = parseInt(p.qty) || 0, rt = hasRetail(p), c = invCur(p), val = c.q;
+        const changed = invIsChanged(p);
         return `<div class="inv-row ${changed ? 'changed' : ''}" id="inv_${p.id}">
-            <div class="inv-info"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')} • المسجّل: ${cur}</small></div>
+            <div class="inv-info"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')} • المسجّل: ${escapeHtml(stockLabel(p))}</small></div>
             <div class="inv-step">
                 <button type="button" onclick="invStep(${p.id}, -1)">−</button>
                 <input type="number" inputmode="numeric" min="0" value="${val}" onchange="invSet(${p.id}, this.value)" id="invIn_${p.id}">
                 <button type="button" onclick="invStep(${p.id}, 1)">+</button>
             </div>
+            ${rt ? `<label class="inv-parts" title="${escapeHtml(subTypeOf(p))} مفتوحة"><span>🧩 ${escapeHtml(subTypeOf(p))}</span><input type="number" inputmode="numeric" min="0" value="${c.l}" onchange="invSetLoose(${p.id}, this.value)" id="invLp_${p.id}"></label>` : ''}
         </div>`;
     }).join('') : '<div class="empty-state"><div class="empty-ico">🔎</div><div>لا توجد أصناف مطابقة.</div></div>';
     refreshInvFooter();
@@ -4126,20 +4133,29 @@ function refreshInvFooter() {
 function invSet(id, v) {
     const p = products.find(x => x.id === id);
     if (!p) return;
-    const n = Math.max(0, parseInt(v) || 0);
-    invCounts[id] = n;
-    const row = document.getElementById('inv_' + id);
-    if (row) row.classList.toggle('changed', n !== (parseInt(p.qty) || 0));
-    const inp = document.getElementById('invIn_' + id);
-    if (inp) inp.value = n;
+    invCounts[id] = Math.max(0, parseInt(v) || 0);
+    invRefreshRow(p);
+}
+function invSetLoose(id, v) {
+    const p = products.find(x => x.id === id);
+    if (!p) return;
+    if (invCounts[id] === undefined) invCounts[id] = parseInt(p.qty) || 0;
+    const n = normCount(p, invCounts[id], v);   // أجزاء تزيد عن العبوة تتحول لعلب تلقائياً
+    invCounts[id] = n.q; invLoose[id] = n.l;
+    invRefreshRow(p);
+}
+function invRefreshRow(p) {
+    const c = invCur(p);
+    const row = document.getElementById('inv_' + p.id); if (row) row.classList.toggle('changed', invIsChanged(p));
+    const inp = document.getElementById('invIn_' + p.id); if (inp) inp.value = c.q;
+    const lp = document.getElementById('invLp_' + p.id); if (lp) lp.value = c.l;
     refreshInvFooter();
 }
 
 function invStep(id, d) {
     const p = products.find(x => x.id === id);
     if (!p) return;
-    const cur = invCounts[id] !== undefined ? invCounts[id] : (parseInt(p.qty) || 0);
-    invSet(id, cur + d);
+    invSet(id, invCur(p).q + d);
 }
 
 function invFilter(v) {
@@ -4148,11 +4164,7 @@ function invFilter(v) {
 }
 
 async function saveInventory() {
-    const changed = [];
-    Object.keys(invCounts).forEach(id => {
-        const p = products.find(x => String(x.id) === id);
-        if (p && invCounts[id] !== (parseInt(p.qty) || 0)) changed.push({ p, from: parseInt(p.qty) || 0, to: invCounts[id] });
-    });
+    const changed = products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined) && invIsChanged(p)).map(p => { const c = invCur(p); return { p, from: parseInt(p.qty) || 0, fromL: parseInt(p.loose) || 0, to: c.q, toL: hasRetail(p) ? c.l : (parseInt(p.loose) || 0), fromLabel: stockLabel(p) }; });
     if (!changed.length) return;
     const r = await Swal.fire({
         title: 'تطبيق نتائج الجرد؟',
@@ -4160,15 +4172,15 @@ async function saveInventory() {
         icon: 'question', showCancelButton: true, confirmButtonText: 'نعم، طبّق', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38'
     });
     if (!r.isConfirmed) return;
-    changed.forEach(c => { c.p.qty = c.to; });
+    changed.forEach(c => { c.p.qty = c.to; c.p.loose = c.toL; });
     const ok = await saveProductsBatch(changed.map(c => c.p));
     if (ok) {
-        changed.forEach(c => logAction('qty', c.p, [{ f: 'الكمية (جرد)', from: String(c.from), to: String(c.to) }]));
+        changed.forEach(c => logAction('qty', c.p, [{ f: 'الكمية (جرد)', from: c.fromLabel, to: stockLabel(c.p) }]));
         closeInventory();
         renderAll();
         Swal.fire({ icon: 'success', title: `تم تحديث ${changed.length} صنف`, toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     } else {
-        changed.forEach(c => { c.p.qty = c.from; });   // نُرجع القيم القديمة عند فشل الحفظ
+        changed.forEach(c => { c.p.qty = c.from; c.p.loose = c.fromL; });   // نُرجع القيم القديمة عند فشل الحفظ
         saveLocal();
         renderInventory();
     }
@@ -4674,6 +4686,12 @@ function readRetailForm() {
     };
 }
 
+function formNormLoose() {   // أجزاء مفتوحة ≥ عدد أجزاء العبوة → تتحول لعلب كاملة تلقائياً
+    const sc = parseInt((document.getElementById('fSubCount') || {}).value) || 0, lo = document.getElementById('fLoose'), qt = document.getElementById('fQty');
+    if (!lo || !qt || sc < 2) return;
+    const n = normCount({ subCount: sc }, parseInt(qt.value) || 0, parseInt(lo.value) || 0);
+    qt.value = n.q; lo.value = n.l;
+}
 function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }); }
 
 // ============================================================================

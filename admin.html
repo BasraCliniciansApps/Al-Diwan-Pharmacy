@@ -413,7 +413,7 @@
                         <div class="retail-type"><select id="fSubType"></select><button type="button" class="xc-mini" onclick="addSubType()" aria-label="إضافة نوع">＋</button></div>
                     </div>
                     <div><small>سعر الجزء (يُحسب تلقائياً)</small><input type="number" id="fSubPrice" min="0" oninput="this.dataset.manual='1'"></div>
-                    <div><small>أجزاء مفتوحة من عبوة</small><input type="number" id="fLoose" min="0" value="0"></div>
+                    <div><small>أجزاء مفتوحة من عبوة</small><input type="number" id="fLoose" min="0" value="0" onchange="formNormLoose()"></div>
                 </div>
             </div>
             <div class="form-group"><label>تنبيه عند وصول الكمية إلى (اختياري):</label><input type="number" id="fMinQty" min="0" placeholder="اتركه فارغاً لاستخدام الحد العام من الإعدادات"></div>

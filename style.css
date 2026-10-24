@@ -2267,3 +2267,8 @@ body.rv-open { overflow: hidden; }
 
 .cat-qty .cat-parts { width: auto; min-width: 48px; padding: 0 8px; font: 800 .85rem inherit; border-color: #94a3b8; color: #475569; }
 .cat-qty .cat-parts.on { border-color: #7e22ce; background: #f3e8ff; color: #7e22ce; }
+
+/* ===== v82: أجزاء مفتوحة بالجرد ===== */
+.inv-row { flex-wrap: wrap; }
+.inv-parts { flex: 0 0 100%; display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: .78rem; font-weight: 800; color: #7e22ce; }
+.inv-parts input { width: 76px; height: 38px; text-align: center; border: 1px solid #c4b5fd; border-radius: 10px; background: #faf5ff; font: 800 .95rem inherit; color: #0f1c38; }
