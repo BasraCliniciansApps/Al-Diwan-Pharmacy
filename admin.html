@@ -144,6 +144,8 @@
         <div class="modal-card">
             <h3 style="margin-bottom:14px; color:var(--primary-dark);">🗂️ إدارة الأقسام والتصنيفات</h3>
             
+            <div class="cat-manager-box" id="taxSeedBox"></div>
+
             <div class="cat-manager-box">
                 <h4>1. الأقسام الرئيسية (مثل: قسم الجلدية)</h4>
                 <div id="deptListManager" class="manager-list"></div>
@@ -355,7 +357,7 @@
             </div>
             <div class="form-group">
                 <label>القسم الرئيسي:</label>
-                <select id="fDepartment" onchange="refreshExtraChips('dept')"></select>
+                <select id="fDepartment" onchange="onDeptChanged()"></select>
                 <div class="extra-group"><small>يظهر أيضاً في قسم:</small><div id="fExtraDepts" class="xc"></div></div>
             </div>
             <div class="form-group">
@@ -1010,7 +1012,7 @@
     <script src="swal-skin.js"></script>
     <script src="seed.js"></script>
     <script src="data.js"></script>
-<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script>
+<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="taxonomy.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             const hadCtl = !!navigator.serviceWorker.controller;

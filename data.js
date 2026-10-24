@@ -35,6 +35,18 @@ const defaultSubCategories = [
 let products = JSON.parse(localStorage.getItem('diwanProducts')) || defaultProducts;
 let departments = JSON.parse(localStorage.getItem('diwanDepts')) || defaultDepartments;
 let subCategories = JSON.parse(localStorage.getItem('diwanSubCats')) || defaultSubCategories;
+// ربط التصنيفات الفرعية بالأقسام + علامة «قديم» للأقسام والتصنيفات التي كانت قبل تحميل التصنيف الجاهز (تُخفى تلقائياً حين لا تبقى مادة مرتبطة بها)
+let deptSubs = {}, taxLegacy = { d: [], c: [] };
+try { deptSubs = JSON.parse(localStorage.getItem('diwanDeptSubs')) || {}; const tl = JSON.parse(localStorage.getItem('diwanTaxLegacy')); if (tl && Array.isArray(tl.d) && Array.isArray(tl.c)) taxLegacy = tl; } catch (e) { /* تجاهل */ }
+function taxUsed(field, extra) { const u = new Set(); products.forEach(p => { if (p[field]) u.add(p[field]); extrasOf(p[extra]).forEach(x => u.add(x)); }); return u; }
+function deptList() { const u = taxUsed('department', 'extraDepartments'); const l = departments.filter(d => !taxLegacy.d.includes(d) || u.has(d)); return l.length ? l : departments.slice(); }   // القديم الفارغ يختفي
+function subsFor(dept, keep) {   // تصنيفات القسم المختار + ما أضفته بلا قسم؛ والقديم يظهر فقط إن كانت مادتك عليه
+    const assigned = new Set(); Object.values(deptSubs).forEach(a => (a || []).forEach(c => assigned.add(c)));
+    const own = (deptSubs[dept] || []).filter(c => subCategories.includes(c));
+    let l = own.length ? own.concat(subCategories.filter(c => !assigned.has(c) && !taxLegacy.c.includes(c))) : subCategories.filter(c => !assigned.has(c));
+    if (keep && subCategories.includes(keep) && !l.includes(keep)) l = l.concat(keep);
+    return l.length ? l : subCategories.slice();
+}
 
 // أسماء تبويبات الشريط السفلي (قابلة للتعديل من إعدادات ⚙️)
 const defaultTabLabels = { all: 'كل القسم', rx: 'الادوية', cosmetic: 'كوزمتك', out: 'النواقص' };
@@ -379,6 +391,8 @@ async function initFirebase() {
                 const data = doc.data();
                 if (data.departments) departments = data.departments;
                 if (data.subCategories) subCategories = data.subCategories;
+                if (data.deptSubs && typeof data.deptSubs === 'object') deptSubs = data.deptSubs;
+                if (data.taxLegacy && Array.isArray(data.taxLegacy.d) && Array.isArray(data.taxLegacy.c)) taxLegacy = data.taxLegacy;
                 if (data.tabLabels) tabLabels = { ...defaultTabLabels, ...data.tabLabels };
                 if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
                 if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
@@ -414,6 +428,8 @@ function saveLocal() {
     try {
         localStorage.setItem('diwanDepts', JSON.stringify(departments));
         localStorage.setItem('diwanSubCats', JSON.stringify(subCategories));
+        localStorage.setItem('diwanDeptSubs', JSON.stringify(deptSubs));
+        localStorage.setItem('diwanTaxLegacy', JSON.stringify(taxLegacy));
         localStorage.setItem('diwanTabLabels', JSON.stringify(tabLabels));
         localStorage.setItem('diwanCustomTabs', JSON.stringify(customTabs));
         localStorage.setItem('diwanLowThreshold', String(lowStockThreshold));
@@ -472,6 +488,8 @@ async function pushToCloud(onlyMetadata = false) {
             await fsSet(db.collection('pharmacy').doc('metadata'), {
                 departments,
                 subCategories,
+                deptSubs,
+                taxLegacy,
                 tabLabels,
                 customTabs,
                 lowStockThreshold,
@@ -609,9 +627,11 @@ function closeCategoryManager() {
 
 function renderManagerLists() {
     const deptContainer = document.getElementById('deptListManager');
+    const dUsed = taxUsed('department', 'extraDepartments'), cUsed = taxUsed('category', 'extraCategories');
+    const cnt = (f, ex, n) => products.filter(p => p[f] === n || extrasOf(p[ex]).includes(n)).length;
     deptContainer.innerHTML = departments.map((d, i) => `
         <div class="manager-item">
-            <span>${d}</span>
+            <span>${escapeHtml(d)}${taxLegacy.d.includes(d) ? ` <em class="tg warn">قديم${dUsed.has(d) ? ' — ' + cnt('department', 'extraDepartments', d) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
             <div style="display:flex; gap:6px;">
                 <button class="icon-btn" onclick="renameDepartment(${i})">✏️ تعديل الاسم</button>
                 <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteManagerItem('dept', ${i})">🗑️</button>
@@ -620,9 +640,10 @@ function renderManagerLists() {
     `).join('');
 
     const subContainer = document.getElementById('subCatListManager');
+    const ownerOf = c => Object.keys(deptSubs).find(d => (deptSubs[d] || []).includes(c)) || '';
     subContainer.innerHTML = subCategories.map((c, i) => `
         <div class="manager-item">
-            <span>${c}</span>
+            <span>${escapeHtml(c)}${ownerOf(c) ? ` <small style="color:var(--text-sub)">· ${escapeHtml(ownerOf(c))}</small>` : ''}${taxLegacy.c.includes(c) ? ` <em class="tg warn">قديم${cUsed.has(c) ? ' — ' + cnt('category', 'extraCategories', c) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
             <div style="display:flex; gap:6px;">
                 <button class="icon-btn" onclick="renameSubCategory(${i})">✏️ تعديل الاسم</button>
                 <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteManagerItem('cat', ${i})">🗑️</button>
@@ -755,6 +776,8 @@ function renameDepartment(index) {
     if (newName && newName.trim() && newName.trim() !== oldName) {
         const clean = newName.trim();
         departments[index] = clean;
+        if (deptSubs[oldName]) { deptSubs[clean] = deptSubs[oldName]; delete deptSubs[oldName]; }
+        taxLegacy.d = taxLegacy.d.map(x => x === oldName ? clean : x);
         products.forEach(p => {
             if (p.department === oldName) p.department = clean;
             if (extrasOf(p.extraDepartments).includes(oldName)) p.extraDepartments = p.extraDepartments.map(x => x === oldName ? clean : x);
@@ -783,6 +806,8 @@ function renameSubCategory(index) {
     if (newName && newName.trim() && newName.trim() !== oldName) {
         const clean = newName.trim();
         subCategories[index] = clean;
+        Object.keys(deptSubs).forEach(d => { deptSubs[d] = (deptSubs[d] || []).map(x => x === oldName ? clean : x); });
+        taxLegacy.c = taxLegacy.c.map(x => x === oldName ? clean : x);
         products.forEach(p => {
             if (p.category === oldName) p.category = clean;
             if (extrasOf(p.extraCategories).includes(oldName)) p.extraCategories = p.extraCategories.map(x => x === oldName ? clean : x);
@@ -937,9 +962,10 @@ function fillFormSelect() {
 
 function renderDepartmentsBar() {
     const bar = document.getElementById('departmentsBar');
-    if (activeDept !== ALL_DEPTS && !departments.includes(activeDept)) activeDept = ALL_DEPTS;
+    const dl = deptList();
+    if (activeDept !== ALL_DEPTS && !dl.includes(activeDept)) activeDept = ALL_DEPTS;
     bar.innerHTML = `<button class="dept-chip ${activeDept === ALL_DEPTS ? 'active' : ''}" onclick="selectDepartment('${ALL_DEPTS}')">🗂️ ${ALL_DEPTS_LABEL}</button>` +
-        departments.map(d => `
+        dl.map(d => `
         <button class="dept-chip ${activeDept === d ? 'active' : ''}" onclick="selectDepartment(this.dataset.d)" data-d="${escapeHtml(d)}">
             🏥 ${escapeHtml(d)}
         </button>
@@ -1276,9 +1302,17 @@ function populateModalSelects() {
             <option value="cosmetic">${escTab(tabLabels.cosmetic)}</option>` +
             customTabs.map(t => `<option value="${t.id}">${escTab(t.name)}</option>`).join('');
     }
-    document.getElementById('fDepartment').innerHTML = departments.map(d => `<option value="${d}">${d}</option>`).join('');
-    document.getElementById('fCategory').innerHTML = subCategories.map(c => `<option value="${c}">${c}</option>`).join('');
+    document.getElementById('fDepartment').innerHTML = deptList().map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+    refreshCatSelect();
 }
+function refreshCatSelect(keep) {   // تصنيفات القسم المختار فقط. keep = قيمة المادة الحالية (تبقى حتى لو قديمة)
+    const ds = document.getElementById('fDepartment'), cs = document.getElementById('fCategory'); if (!cs) return;
+    const prev = cs.value;
+    cs.innerHTML = subsFor(ds ? ds.value : '', keep).map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+    const want = keep !== undefined && keep !== '' ? keep : prev;
+    if (want && [...cs.options].some(o => o.value === want)) cs.value = want;
+}
+function onDeptChanged() { refreshCatSelect(); refreshExtraChips('dept'); refreshExtraChips('cat'); }
 
 // ---- الاختيار المتعدد في نموذج الصنف ----
 // القسم والتصنيف: قائمة منسدلة واحدة (بحث + إضافة + تعديل + حذف). التبويبات: شرائح بسيطة.
@@ -1373,8 +1407,8 @@ function toggleXcOpt(kind, index, checked) {
 function repopulateFormSelects(keepDept, keepCat) {
     populateModalSelects();
     const dsel = document.getElementById('fDepartment'), csel = document.getElementById('fCategory');
-    if (dsel) dsel.value = departments.includes(keepDept) ? keepDept : departments[0];
-    if (csel) csel.value = subCategories.includes(keepCat) ? keepCat : subCategories[0];
+    if (dsel) { if (departments.includes(keepDept) && ![...dsel.options].some(o => o.value === keepDept)) dsel.insertAdjacentHTML('beforeend', `<option value="${escapeHtml(keepDept)}">${escapeHtml(keepDept)}</option>`); dsel.value = departments.includes(keepDept) ? keepDept : deptList()[0]; }
+    if (csel) { refreshCatSelect(keepCat); if (!subCategories.includes(keepCat)) csel.value = csel.options[0] ? csel.options[0].value : ''; }
     ['dept', 'cat'].forEach(k => {
         extraSel[k] = new Set(Array.from(extraSel[k]).filter(x => EXTRA_KINDS[k].list().includes(x)));
         renderExtraCombo(k);
@@ -1388,7 +1422,7 @@ function xcAdd(kind) {
     const list = EXTRA_KINDS[kind].list();
     const keepD = primaryOf('dept'), keepC = primaryOf('cat');
     if (list.includes(val)) { extraSel[kind].add(val); }
-    else { list.push(val); extraSel[kind].add(val); pushToCloud(true); }
+    else { list.push(val); extraSel[kind].add(val); if (kind === 'cat' && keepD && deptSubs[keepD]) deptSubs[keepD].push(val); pushToCloud(true); }
     renderManagerLists();
     repopulateFormSelects(keepD, keepC);
     renderAll();
@@ -1413,6 +1447,10 @@ async function removeListItem(kind, index) {
     const list = EXTRA_KINDS[kind].list();
     const name = list[index];
     if (name === undefined) return false;
+    if ((kind === 'dept' ? taxLegacy.d : taxLegacy.c).includes(name)) {   // القديم: لا يُحذف نهائياً وفيه مواد
+        const n = products.filter(p => kind === 'dept' ? (p.department === name || extrasOf(p.extraDepartments).includes(name)) : (p.category === name || extrasOf(p.extraCategories).includes(name))).length;
+        if (n > 0) { await Swal.fire({ icon: 'info', title: 'لا يمكن حذفه الآن', text: 'فيه ' + n + ' مادة مربوطة بـ«' + name + '». انقلها لقسم/تصنيف جديد أولاً، وبعدها يُحذف أو يختفي لوحده.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return false; }
+    }
     if (list.length <= 1) {
         await Swal.fire({ icon: 'info', title: 'لا يمكن الحذف', text: 'يجب أن يبقى ' + EXTRA_KINDS[kind].noun + ' واحد على الأقل.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         return false;
@@ -1443,6 +1481,8 @@ async function removeListItem(kind, index) {
         }
     });
     list.splice(index, 1);
+    if (kind === 'cat') { Object.keys(deptSubs).forEach(d => { deptSubs[d] = (deptSubs[d] || []).filter(x => x !== name); }); taxLegacy.c = taxLegacy.c.filter(x => x !== name); }
+    if (kind === 'dept') { delete deptSubs[name]; taxLegacy.d = taxLegacy.d.filter(x => x !== name); }
     if (kind === 'cat') filCats.delete(name);
     if (kind === 'dept' && activeDept === name) activeDept = ALL_DEPTS;
     return true;
@@ -1506,7 +1546,9 @@ function openFormModal(id = null) {
         const p = products.find(x => x.id === id);
         document.getElementById('formModalTitle').innerText = 'تعديل بيانات الصنف';
         document.getElementById('editId').value = p.id;
-        document.getElementById('fDepartment').value = p.department || departments[0];
+        document.getElementById('fDepartment').value = p.department || deptList()[0];
+        if (document.getElementById('fDepartment').value !== (p.department || '')) { const o = document.createElement('option'); o.value = o.textContent = p.department || ''; document.getElementById('fDepartment').appendChild(o); document.getElementById('fDepartment').value = p.department || ''; }
+        refreshCatSelect(p.category);
         document.getElementById('fCategory').value = p.category;
         if (document.getElementById('fType')) document.getElementById('fType').value = p.type || (isRxItem(p) ? 'rx' : 'cosmetic');
         fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = p.form || ''; if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = p.formOther || ''; onFormChange();
@@ -1530,7 +1572,7 @@ function openFormModal(id = null) {
     } else {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
-        document.getElementById('fDepartment').value = activeDept === ALL_DEPTS ? (departments[0] || '') : activeDept;
+        document.getElementById('fDepartment').value = activeDept === ALL_DEPTS ? (deptList()[0] || '') : activeDept; refreshCatSelect('');
         if (document.getElementById('fType')) document.getElementById('fType').value = '';
         fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = ''; if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = ''; onFormChange();
         if (document.getElementById('fActive')) document.getElementById('fActive').value = '';
@@ -2718,6 +2760,8 @@ function buildBackupObject() {
         exportedAt: new Date().toISOString(),
         departments,
         subCategories,
+        deptSubs,
+        taxLegacy,
         tabLabels,
         customTabs,
         lowStockThreshold,
@@ -2861,6 +2905,8 @@ async function applyBackupData(data) {
 
         if (Array.isArray(data.departments)) departments = [...new Set([...departments, ...data.departments])];
         if (Array.isArray(data.subCategories)) subCategories = [...new Set([...subCategories, ...data.subCategories])];
+        if (data.deptSubs && typeof data.deptSubs === 'object') deptSubs = { ...deptSubs, ...data.deptSubs };
+        if (data.taxLegacy && Array.isArray(data.taxLegacy.d)) taxLegacy = { d: [...new Set([...taxLegacy.d, ...data.taxLegacy.d])], c: [...new Set([...taxLegacy.c, ...(data.taxLegacy.c || [])])] };
         if (data.tabLabels && typeof data.tabLabels === 'object') tabLabels = { ...defaultTabLabels, ...data.tabLabels };
         if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
         if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
