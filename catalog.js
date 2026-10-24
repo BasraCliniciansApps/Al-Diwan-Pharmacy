@@ -22,6 +22,7 @@ function renderCatalog() {
                 <button type="button" class="cat-price ${parseFloat(p.price) > 0 ? '' : 'none'}" onclick="catPrice(${p.id})">💲 ${parseFloat(p.price) > 0 ? fmtNum(p.price) : 'بلا سعر'} <small>تسعير</small></button>
             </div></div>`;
     }).join('') || '<div class="bill-none">لا توجد مواد مطابقة.</div>';
+    if (catQ.trim()) box.insertAdjacentHTML('beforeend', `<button type="button" class="cat-add ${arr.length ? '' : 'big'}" onclick="catPrice(0, catQ.trim())">➕ إضافة «${escapeHtml(catQ.trim())}» كمادة جديدة</button>`);
     if (arr.length > SHOW) box.insertAdjacentHTML('beforeend', `<div class="bill-none">يظهر أول ${SHOW} من ${fmtNum(arr.length)} — استعمل البحث لتضييق القائمة.</div>`);
 }
 
@@ -186,15 +187,16 @@ async function catQtyFlush(id) {
 }
 
 // ---------- نافذة التسعير السريع / إضافة مادة جديدة ----------
-function catPriceHtml(p, isNew) {
+function catPriceHtml(p, isNew, pre) {
+    const preBc = pre && /^\d{6,}$/.test(pre) ? pre : '', preName = pre && !preBc ? pre : '';
     const q = id => document.getElementById(id);
     const sub = (!isNew && p && subCountOf(p)) ? p : null;
     const types = subTypes.slice(); if (sub && sub.subType && !types.includes(sub.subType)) types.push(sub.subType);
     const pm = (p && p.pricing) || 'manual';
     return `<div class="sw-form qp">
-        <label>اسم الدواء<input id="qpName" class="swal2-input" dir="ltr" value="${escapeHtml((p && p.name) || '')}" placeholder="مثال: Panadol 500mg tablet"></label>
+        <label>اسم الدواء<input id="qpName" class="swal2-input" dir="ltr" value="${escapeHtml((p && p.name) || preName)}" placeholder="مثال: Panadol 500mg tablet"></label>
         <div class="qp-2"><label>العدد (عبوات)<input id="qpQty" type="number" inputmode="numeric" min="0" class="swal2-input" value="${p ? (parseInt(p.qty) || 0) : ''}" placeholder="0"></label>
-        <label>الباركود<span class="qp-bc"><input id="qpBc" class="swal2-input" dir="ltr" inputmode="numeric" value="${escapeHtml(p ? (barcodesOf(p)[0] || '') : '')}" placeholder="اكتب أو امسح"><button type="button" id="qpScan">▦</button></span></label></div>
+        <label>الباركود<span class="qp-bc"><input id="qpBc" class="swal2-input" dir="ltr" inputmode="numeric" value="${escapeHtml(p ? (barcodesOf(p)[0] || '') : preBc)}" placeholder="اكتب أو امسح"><button type="button" id="qpScan">▦</button></span></label></div>
         <label>طريقة التسعير<select id="qpMode" class="swal2-input"><option value="manual">يدوي — ملصق الوزارة</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></label>
         <div class="qp-2"><label>سعر الشراء<input id="qpCost" type="number" inputmode="decimal" min="0" class="swal2-input" value="${p && p.costPrice ? p.costPrice : ''}"></label>
         <label id="qpMkW">نسبة الإضافة %<input id="qpMk" type="number" inputmode="decimal" min="0" step="any" class="swal2-input" value="${p && p.markupPct != null ? p.markupPct : ''}"></label></div>
@@ -235,11 +237,11 @@ function catPriceRead() {
     return { name, qty: Math.max(0, parseInt($('qpQty').value) || 0), bc: cleanBarcode($('qpBc').value), pricing: mode, costPrice: cost, price, markupPct: mode === 'percent' ? mk : null,
         retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || 'جزء', subPrice: sp > 0 ? sp : Math.round(price / sc) } };
 }
-async function catPrice(id) {
+async function catPrice(id, pre) {
     const p = id ? products.find(x => x.id === id) : null; if (id && !p) return;
     if (!writesAllowed()) return;
     const isNew = !p;
-    const r = await Swal.fire({ title: isNew ? '➕ مادة جديدة' : 'تسعير وتعديل سريع', html: catPriceHtml(p, isNew), showCancelButton: true, confirmButtonText: isNew ? 'إضافة' : 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 520px)', customClass: { popup: 'dw-pop' },
+    const r = await Swal.fire({ title: isNew ? '➕ مادة جديدة' : 'تسعير وتعديل سريع', html: catPriceHtml(p, isNew, pre), showCancelButton: true, confirmButtonText: isNew ? 'إضافة' : 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 520px)', customClass: { popup: 'dw-pop' },
         didOpen: () => { catPriceWire(p); if (isNew) document.getElementById('qpName').focus(); }, preConfirm: catPriceRead });
     if (!r.isConfirmed || !r.value) return;
     const v = r.value;
