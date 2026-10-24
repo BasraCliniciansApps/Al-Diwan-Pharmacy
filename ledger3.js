@@ -134,12 +134,12 @@ async function lgxSave() {
     if (touch) {
         if (!writesAllowed()) return;
         if (dec) {
-            const short = lines.filter(l => { const p = products.find(x => x.id === l.pid); return p && l.qty > (parseInt(p.qty) || 0); });
+            const short = lines.filter(l => { const p = products.find(x => x.id === l.pid); return p && !setupSkip(p) && l.qty > (parseInt(p.qty) || 0); });
             if (short.length) { const r = await Swal.fire({ icon: 'question', title: 'الكمية أكبر من الموجود في المخزن', text: short.map(l => l.name).join('، ') + ' — سيصبح رصيدها صفراً. متابعة؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'متابعة', cancelButtonText: 'رجوع' }); if (!r.isConfirmed) return; }
         }
         const snaps = new Map(), touched = [];
         lines.forEach(l => {
-            const p = products.find(x => x.id === l.pid); if (!p) return;
+            const p = products.find(x => x.id === l.pid); if (!p || setupSkip(p)) return;
             if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase });
             if (dec) {
                 p.qty = Math.max((parseInt(p.qty) || 0) - l.qty, 0);
@@ -212,7 +212,7 @@ async function lgDelEvent(id) {   // حذف مناقلة / منتهي / دفعة
     if (hasStock && r.value) {
         if (!writesAllowed()) return;
         const wasDec = e.kind === 'exp' || e.dir === 'out', snaps = new Map(), touched = [];
-        e.items.forEach(l => { const p = products.find(x => x.id === l.pid); if (!p) return; if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); p.qty = Math.max((parseInt(p.qty) || 0) + (wasDec ? 1 : -1) * puNum(l.qty), 0); if (wasDec && l.expiry) puExpiryPush(p, l.expiry); touched.push(p); });
+        e.items.forEach(l => { const p = products.find(x => x.id === l.pid); if (!p || setupSkip(p)) return; if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); p.qty = Math.max((parseInt(p.qty) || 0) + (wasDec ? 1 : -1) * puNum(l.qty), 0); if (wasDec && l.expiry) puExpiryPush(p, l.expiry); touched.push(p); });
         if (touched.length && !(await saveProductsDelta([...new Set(touched)].map(p => deltaFromSnap(p, snaps.get(p.id)))))) { touched.forEach(p => Object.assign(p, snaps.get(p.id))); return; }
         renderAll();
     }

@@ -154,8 +154,10 @@ products = products.map(p => ({
 // بيانات المخزون الحساسة (الكمية، الحد الأدنى، الصلاحية) تُحفظ في مجموعة خاصة بالصيدلي
 // ============================================================================
 const IS_ADMIN_PAGE = window.APP_MODE === 'admin';
-const STOCK_FIELDS = ['qty', 'loose', 'minQty', 'expiryDate', 'expiryDates', 'costPrice', 'lastPurchase', 'markupPct'];
+const STOCK_FIELDS = ['qty', 'loose', 'counted', 'minQty', 'expiryDate', 'expiryDates', 'costPrice', 'lastPurchase', 'markupPct'];
 let cloudPub = [];          // الأصناف العامة كما تصل من السحابة
+let setupMode = false;       // وضع التأسيس: المواد غير المجرودة لا تتأثر بالوارد والبيع والمردود (علامة في pharmacy_stock/_setup)
+function setupSkip(p) { return setupMode && !!p && p.counted !== true; }   // true = لا تغيّر كمية هذه المادة تلقائياً
 let stockMap = {};          // بيانات المخزون الخاصة (للصيدلي فقط)
 let unsubStock = null;
 // التكلفة (سعر الشراء وآخر وارد ونسبة الربح) تُحفظ في مجموعة pharmacy_cost المقفلة على المالك بعد «فصل التكلفة»
@@ -213,8 +215,9 @@ function startStockListener() {
     if (!IS_ADMIN_PAGE || unsubStock || !db) return;
     unsubStock = db.collection('pharmacy_stock').onSnapshot(snap => {
         const m = {};
-        snap.forEach(doc => { m[doc.id] = doc.data(); });
-        stockMap = m;
+        let sm = false;
+        snap.forEach(doc => { if (doc.id === '_setup') sm = !!(doc.data() || {}).on; else m[doc.id] = doc.data(); });
+        stockMap = m; setupMode = sm;
         if (cloudPub.length) { rebuildProducts(); saveLocal(); renderAll(); }
     }, err => { console.warn('Stock listener:', err.message); if (unsubStock) { try { unsubStock(); } catch (e) { /* تجاهل */ } } unsubStock = null; setTimeout(() => { if (currentUser) startStockListener(); }, 4000); });   // إعادة التشغيل إن انقطع
 }
@@ -233,7 +236,7 @@ function syncStockLocal(list) {   // بعد نجاح الحفظ نحدّث نس�
 function stopStockListener() {
     if (unsubStock) { unsubStock(); unsubStock = null; }
     if (unsubCost) { unsubCost(); unsubCost = null; }
-    stockMap = {}; costMap = {}; costSplitOn = false;
+    stockMap = {}; costMap = {}; costSplitOn = false; setupMode = false;
 }
 
 // مؤشر المزامنة: نقطة صغيرة بدون كلمات (أخضر متزامن، برتقالي جارٍ الحفظ، أحمر خطأ، رمادي بدون إنترنت/محلي)
@@ -1257,7 +1260,7 @@ function updateItemQty(id, delta) {
     if (!p) return;
     const oldQty = parseInt(p.qty) || 0;
     p.qty = Math.max(0, oldQty + delta);
-    saveProductsDelta([{ p, dq: p.qty - oldQty, dl: 0 }]);
+    saveProductsDelta([{ p, dq: p.qty - oldQty, dl: 0, mark: true }]);
     logAction('qty', p, [{ f: 'الكمية', from: String(oldQty), to: String(p.qty) }]);
     renderAll();
     openSheet(id);
@@ -1752,6 +1755,8 @@ async function saveFormProduct() {
         details: document.getElementById('fDetails').value.trim(),
         meta: fixMetaOrder(document.getElementById('fMeta').value.trim()),
         qty: parseInt(document.getElementById('fQty').value) || 0,
+        ...((() => { const o = editId ? products.find(x => x.id === parseInt(editId)) : null, q = parseInt(document.getElementById('fQty').value) || 0, l = parseInt((document.getElementById('fLoose') || {}).value) || 0;
+            return (o && o.counted) || (o ? (q !== (parseInt(o.qty) || 0) || l !== (parseInt(o.loose) || 0)) : (q > 0 || l > 0)) ? { counted: true } : {}; })()),
         price: document.getElementById('fPrice') ? (parseFloat(document.getElementById('fPrice').value) || 0) : 0,
         costPrice: document.getElementById('fCost') ? (parseFloat(document.getElementById('fCost').value) || 0) : 0,
         pricing: (document.getElementById('fPriceMode') && document.getElementById('fPriceMode').value) || 'manual',
@@ -2472,6 +2477,7 @@ async function saveProductsDelta(entries) {
         for (let i = 0; i < entries.length; i += 15) {
             const batch = db.batch();
             entries.slice(i, i + 15).forEach(e => {
+                if (e.mark && can('stockEdit')) e.p.counted = true;   // ضبط العدد يدوياً = المادة صارت مجرودة
                 const { pub, stock, cost } = splitProduct(e.p);
                 if (can('stockEdit')) batch.set(db.collection('pharmacy_products').doc(String(e.p.id)), pub);
                 else batch.update(db.collection('pharmacy_products').doc(String(e.p.id)), { inStock: pub.inStock });   // البائع يحدّث حالة التوفر فقط
@@ -2482,6 +2488,7 @@ async function saveProductsDelta(entries) {
                 const u = { id: e.p.id };
                 if (e.dq) u.qty = F.increment(e.dq);
                 if (e.dl) u.loose = F.increment(e.dl);
+                if (e.mark && can('stockEdit')) u.counted = true;
                 if (!costSplitOn) { if (e.cost !== undefined) u.costPrice = e.cost; if (e.lastSet) u.lastPurchase = e.last; }
                 if (e.expChanged) {
                     if (e.expAdd.length && !e.expRemove.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayUnion(...e.expAdd);
@@ -4030,7 +4037,7 @@ async function flushQty(id) {
     if (!p || from === undefined) return;
     const to = parseInt(p.qty) || 0;
     if (from === to) return;
-    const ok = await saveProductsDelta([{ p, dq: to - from, dl: 0 }]);
+    const ok = await saveProductsDelta([{ p, dq: to - from, dl: 0, mark: true }]);
     if (ok) logAction('qty', p, [{ f: 'الكمية', from: String(from), to: String(to) }]);
     updateExpiryBadge();
 }
@@ -4165,15 +4172,17 @@ function invFilter(v) {
 
 async function saveInventory() {
     const changed = products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined) && invIsChanged(p)).map(p => { const c = invCur(p); return { p, from: parseInt(p.qty) || 0, fromL: parseInt(p.loose) || 0, to: c.q, toL: hasRetail(p) ? c.l : (parseInt(p.loose) || 0), fromLabel: stockLabel(p) }; });
-    if (!changed.length) return;
+    const same = setupMode ? products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined) && !invIsChanged(p) && p.counted !== true) : [];   // مجرودة بنفس رصيد التطبيق: تُعتمد كمؤسَّسة
+    if (!changed.length && !same.length) return;
     const r = await Swal.fire({
         title: 'تطبيق نتائج الجرد؟',
-        html: `<div style="font-size:0.9rem; line-height:1.8;">سيتم تعديل كمية <b>${changed.length}</b> صنف.</div>`,
+        html: `<div style="font-size:0.9rem; line-height:1.8;">سيتم تعديل كمية <b>${changed.length}</b> صنف.${same.length ? `<br>و اعتماد <b>${same.length}</b> صنف كمجرود (رصيدها مطابق).` : ''}</div>`,
         icon: 'question', showCancelButton: true, confirmButtonText: 'نعم، طبّق', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38'
     });
     if (!r.isConfirmed) return;
     changed.forEach(c => { c.p.qty = c.to; c.p.loose = c.toL; });
-    const ok = await saveProductsBatch(changed.map(c => c.p));
+    const canMark = can('stockEdit'); if (canMark) { changed.forEach(c => { c.p.counted = true; }); same.forEach(p => { p.counted = true; }); }
+    const ok = await saveProductsBatch(changed.map(c => c.p).concat(same));
     if (ok) {
         changed.forEach(c => logAction('qty', c.p, [{ f: 'الكمية (جرد)', from: c.fromLabel, to: stockLabel(c.p) }]));
         closeInventory();

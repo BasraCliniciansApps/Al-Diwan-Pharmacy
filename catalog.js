@@ -1,20 +1,43 @@
 // سجل الأدوية: كل الأصناف بتسلسل الإدخال، مع زر ضم لمادة أخرى وزر قراءة/ربط الباركود
-let catQ = '';
+let catQ = '', catUncounted = false;
 function catRankMap() { const m = new Map(); products.slice().sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)).forEach((p, i) => m.set(p.id, i + 1)); return m; }
+async function toggleSetupMode(on) {
+    if (userRole !== 'owner' || !db || !currentUser) return;
+    const r = await Swal.fire({ icon: 'question', title: on ? 'تشغيل وضع التأسيس؟' : 'إيقاف وضع التأسيس؟', confirmButtonColor: '#0f1c38', showCancelButton: true, confirmButtonText: on ? 'تشغيل' : 'إيقاف', cancelButtonText: 'رجوع', width: 'min(94vw, 460px)',
+        html: on ? '<div style="text-align:right;font-size:.88rem;line-height:1.9">• المواد اللي ما جردتها: الوارد والبيع والمردود <b>ما يغيّرون كميتها</b> (القوائم تنحفظ بالسجل والمستحقات).<br>• المادة تصير «مجرودة» أول ما تضبط عددها (سجل الأدوية، الجرد، تعديل المادة).<br>• خذ نسخة احتياطية قبل ما تبدأ.</div>' : '<div style="text-align:right;font-size:.88rem;line-height:1.9">من الإيقاف: <b>كل المواد</b> (حتى غير المجرودة) ترجع تتأثر بالوارد والبيع كالمعتاد.<br>تأكد انتهى الجرد.</div>' });
+    if (!r.isConfirmed) return;
+    try { await db.collection('pharmacy_stock').doc('_setup').set({ on: !!on, at: new Date().toISOString(), by: actorName() }); }
+    catch (e) { Swal.fire({ icon: 'error', title: 'تعذّر الحفظ', text: e.message, confirmButtonColor: '#0f1c38' }); return; }
+    setupMode = !!on; renderAll(); renderCatalog();
+    Swal.fire({ icon: 'success', title: on ? 'وضع التأسيس شغّال' : 'وضع التأسيس متوقف', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
+}
+function catToggleUnc() { catUncounted = !catUncounted; renderCatalog(); }
+async function catConfirm(id) {   // اعتماد الرصيد الحالي للمادة كمجرود بدون تغيير العدد
+    const p = products.find(x => x.id === id); if (!p || !writesAllowed()) return;
+    const ok = await saveProductsDelta([{ p, dq: 0, dl: 0, mark: true }]);
+    if (ok) { logAction('qty', p, [{ f: 'اعتماد الرصيد كمجرود (وضع التأسيس)', from: stockLabel(p), to: stockLabel(p) }]); renderCatalog(); }
+}
 function catInput() { catQ = (document.getElementById('catSearch') || {}).value || ''; renderCatalog(); }
 function renderCatalog() {
     const box = document.getElementById('catList'); if (!box) return;
     const rank = catRankMap(), qn = normSearch(catQ);
     let arr = products.slice().sort((a, b) => rank.get(a.id) - rank.get(b.id));
     if (qn) { const toks = qn.split(' '); arr = arr.filter(p => searchScore(p, qn, toks) > 0); }
+    const unc = setupMode ? products.filter(p => p.counted !== true).length : 0;
+    if (!setupMode) catUncounted = false;
+    if (catUncounted) arr = arr.filter(p => p.counted !== true);
     const withBc = products.filter(p => barcodesOf(p).length).length;
     const sum = document.getElementById('catSum');
-    if (sum) sum.innerHTML = `<span>${fmtNum(products.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><span class="cat-no">🔴 بلا باركود ${fmtNum(products.length - withBc)}</span>`;
+    if (sum) sum.innerHTML = `<span>${fmtNum(products.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><span class="cat-no">🔴 بلا باركود ${fmtNum(products.length - withBc)}</span>${setupMode ? `<button type="button" class="cat-unc ${catUncounted ? 'on' : ''}" onclick="catToggleUnc()">🧮 لم تُجرد ${fmtNum(unc)} من ${fmtNum(products.length)}</button>` : ''}`;
+    const sb = document.getElementById('catSetup');
+    if (sb) sb.innerHTML = setupMode
+        ? `<div class="setup-bar on"><b>🧮 وضع التأسيس شغّال</b><span>الوارد والبيع والمردود <u>لا تغيّر</u> كمية أي مادة «لم تُجرد». المادة تصير مجرودة أول ما تضبط عددها${unc ? '' : ' — كل المواد انجردت 🎉'}.</span>${userRole === 'owner' ? '<button type="button" onclick="toggleSetupMode(false)">إيقاف الوضع</button>' : ''}</div>`
+        : (userRole === 'owner' ? '<div class="setup-bar"><button type="button" onclick="toggleSetupMode(true)">🧮 تشغيل وضع التأسيس (أثناء إدخال أرصدة الصيدلية)</button></div>' : '');
     const SHOW = 300, part = arr.slice(0, SHOW);
     box.innerHTML = part.map(p => {
         const n = barcodesOf(p).length, meta = [p.brand, fixMetaOrder(p.meta || '')].filter(Boolean).join(' · ');
         return `<div class="cat-row"><span class="cat-n">${rank.get(p.id)}</span>
-            <div class="cat-main" onclick="catPrice(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b><small dir="ltr">${escapeHtml(meta) || '—'}</small></div>
+            <div class="cat-main" onclick="catPrice(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b>${setupMode && p.counted !== true ? `<span class="cat-uncT" onclick="event.stopPropagation();catConfirm(${p.id})" title="اضغط لاعتماد الرصيد الحالي كمجرود">لم تُجرد ✓</span>` : ''}<small dir="ltr">${escapeHtml(meta) || '—'}</small></div>
             <button type="button" class="cat-btn cat-merge" onclick="catMergeStart(${p.id})" title="ضم لمادة أخرى">⇄<small>ضم</small></button>
             <button type="button" class="cat-btn cat-bc ${n ? 'has' : 'none'}" onclick="catBarcode(${p.id})" title="${n ? n + ' باركود' : 'بلا باركود'}">▦<small>${n ? n : 'ربط'}</small></button>
             <div class="cat-sub">
@@ -181,7 +204,7 @@ async function catQtyFlush(id) {
     const p = products.find(x => x.id === id), from = catQStart[id]; delete catQStart[id];
     if (!p || from === undefined) return;
     const to = parseInt(p.qty) || 0; if (from === to) return;
-    const ok = await saveProductsDelta([{ p, dq: to - from, dl: 0 }]);
+    const ok = await saveProductsDelta([{ p, dq: to - from, dl: 0, mark: true }]);
     if (!ok) { p.qty = from; catQtyShow(p); return; }
     logAction('qty', p, [{ f: 'الكمية', from: String(from), to: String(to) }]);
 }
@@ -261,6 +284,7 @@ async function catPrice(id, pre) {
         const dept = (activeDept && activeDept !== ALL_DEPTS) ? activeDept : (departments[0] || 'قسم الجلدية');
         const obj = { id: Date.now(), department: dept, category: subCategories[0] || '', type: '', extraDepartments: [], extraCategories: [], extraTypes: [], form: '', activeIngredient: '', minQty: null, brand: 'GENERIC', name: v.name, details: '', meta: '',
             qty: v.qty, price: v.price, costPrice: v.costPrice, pricing: v.pricing, markupPct: v.markupPct, ...v.retail, ...(() => { const n = catNorm(v.qty, v.loose, v.retail.subCount); return { qty: n.q, loose: n.l }; })(), expiryDates: [], expiryDate: '', keywords: '', barcode: v.bc, barcodes: v.bc ? [v.bc] : [], img: '' };
+        if (obj.qty > 0 || obj.loose > 0) obj.counted = true;
         products.unshift(obj); renderAll(); renderCatalog();
         const ok = await saveSingleProductToCloud(obj);
         if (typeof onProductSaved === 'function') onProductSaved(obj);
@@ -272,7 +296,7 @@ async function catPrice(id, pre) {
     Object.assign(p, { name: v.name, qty: nn.q, loose: nn.l, price: v.price, costPrice: v.costPrice, pricing: v.pricing, markupPct: v.markupPct, ...v.retail });
     const bcs = barcodesOf(p).filter(b => b !== v.bc); if (v.bc) bcs.unshift(v.bc);
     p.barcodes = v.bc ? bcs : barcodesOf(old); p.barcode = p.barcodes[0] || '';
-    const ok = await saveProductsDelta([{ p, dq: nn.q - oldQty, dl: nn.l - oldLoose, cost: p.costPrice }]);
+    const ok = await saveProductsDelta([{ p, dq: nn.q - oldQty, dl: nn.l - oldLoose, cost: p.costPrice, mark: nn.q !== oldQty || nn.l !== oldLoose }]);
     if (!ok) { Object.assign(p, old); renderCatalog(); return; }
     const ch = diffProduct(old, p); if (ch.length) logAction('edit', p, ch);
     renderAll(); renderCatalog();
@@ -305,9 +329,9 @@ async function openCountDialog(id) {
         } });
     if (!r.isConfirmed || !r.value) return;
     const nq = r.value.q, nl = sc ? r.value.l : (parseInt(p.loose) || 0), oldLabel = stockLabel(p);
-    if (nq === q0 && nl === l0) return;
+    if (nq === q0 && nl === l0 && !setupSkip(p)) return;   // في وضع التأسيس التأكيد بنفس العدد يعتمد المادة كمجرودة
     p.qty = nq; p.loose = nl;
-    const ok = await saveProductsDelta([{ p, dq: nq - q0, dl: nl - l0 }]);
+    const ok = await saveProductsDelta([{ p, dq: nq - q0, dl: nl - l0, mark: true }]);
     if (!ok) { p.qty = q0; p.loose = l0; return; }
     logAction('qty', p, [{ f: 'الكمية', from: oldLabel, to: stockLabel(p) }]);
     renderAll(); try { if (document.getElementById('catList')) renderCatalog(); } catch (e) { /* تجاهل */ }

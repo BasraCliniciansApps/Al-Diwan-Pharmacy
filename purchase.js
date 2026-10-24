@@ -315,7 +315,8 @@ async function puSave() {
         const p = products.find(x => x.id === it.pid); if (!p) return; snap(p);
         const n = parseInt(it.qty) || 0, bn = parseInt(it.bonus) || 0, cost = puNum(it.cost), old = oldBy.get(it.pid);
         const line = { pid: p.id, name: p.name, qty: n, bonus: bn, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: (old && old.applied !== false) ? old.prevQty : (parseInt(p.qty) || 0), prevCost: (old && old.applied !== false) ? old.prevCost : (p.costPrice || 0), expAdded: (old && old.applied !== false) ? !!old.expAdded : false };
-        const applied = old ? (old.applied === false ? upd : true) : upd;   // السطر القديم المحدَّث يبقى محدَّثاً؛ غير المحدَّث يتبع الخيار
+        const applied = old ? old.applied !== false : (upd && !setupSkip(p));   // السطر القديم يبقى على حاله؛ الجديد لا يحدّث مادة غير مجرودة (وضع التأسيس)
+        if (!applied && !old) line.setupSkip = !!(upd && setupSkip(p));
         line.applied = applied;
         if (!applied) { lines.push(line); return; }   // «لا تحدّث المخزن»: يُسجَّل السطر فقط بدون أي تغيير بالمخزن
         p.qty = Math.max((parseInt(p.qty) || 0) + n + bn - (old ? puLQ(old) : 0), 0);
@@ -427,7 +428,7 @@ async function puSeqEdit(id, ev) {
 }
 function puOpen(id) {
     const r = puAll.find(x => x.id === id); if (!r) return;
-    const rows = (r.items || []).map(it => `<tr><td dir="ltr">${escapeHtml(it.name)}${it.applied === false ? ' <em class="tg warn">لم يُحدَّث</em>' : ''}</td><td>${fmtNum(it.qty)}${it.bonus ? ' <small>+' + fmtNum(it.bonus) + ' بونص</small>' : ''}</td><td>${fmtNum(it.cost)}</td><td dir="ltr">${escapeHtml(it.expiry || '—')}</td><td dir="ltr">${escapeHtml(it.batch || '—')}</td><td>${fmtNum(it.qty * it.cost)}</td></tr>`).join('');
+    const rows = (r.items || []).map(it => `<tr><td dir="ltr">${escapeHtml(it.name)}${it.applied === false ? ' <em class="tg warn">' + (it.setupSkip ? 'مؤجَّل — التأسيس' : 'لم يُحدَّث') + '</em>' : ''}</td><td>${fmtNum(it.qty)}${it.bonus ? ' <small>+' + fmtNum(it.bonus) + ' بونص</small>' : ''}</td><td>${fmtNum(it.cost)}</td><td dir="ltr">${escapeHtml(it.expiry || '—')}</td><td dir="ltr">${escapeHtml(it.batch || '—')}</td><td>${fmtNum(it.qty * it.cost)}</td></tr>`).join('');
     const pays = (r.payments || []).map(p => `<div>${escapeHtml(fmtDateDMY(p.at))} — ${fmtNum(p.amount)} د.ع</div>`).join('') || '<div>لا دفعات</div>';
     const btn = (label, fn, cls) => `<button type="button" class="bill-tb-btn ${cls || ''}" onclick="Swal.close();${fn}">${label}</button>`;
     Swal.fire({
@@ -724,7 +725,7 @@ async function puApplyDialog(id) {
     const items = r.items || [];
     const rows = items.map((l, i) => {
         const p = products.find(x => x.id === l.pid), un = l.applied === false;
-        return `<label class="pu-chk pa-row"><input type="checkbox" class="paCk" data-i="${i}" ${un && p ? 'checked' : ''} ${p ? '' : 'disabled'}><span dir="ltr"><b>${escapeHtml(l.name)}</b> — ${fmtNum(puNum(l.qty))}${l.bonus ? ' + ' + fmtNum(puNum(l.bonus)) + ' بونص' : ''}</span>${p ? (un ? '<em class="tg warn">لم يُحدَّث</em>' : '<em class="tg">محدَّث</em>') : '<em class="tg bad">المادة محذوفة</em>'}</label>`;
+        return `<label class="pu-chk pa-row"><input type="checkbox" class="paCk" data-i="${i}" ${un && p && !l.setupSkip ? 'checked' : ''} ${p ? '' : 'disabled'}><span dir="ltr"><b>${escapeHtml(l.name)}</b> — ${fmtNum(puNum(l.qty))}${l.bonus ? ' + ' + fmtNum(puNum(l.bonus)) + ' بونص' : ''}</span>${p ? (un ? '<em class="tg warn">' + (l.setupSkip ? 'مؤجَّل — التأسيس' : 'لم يُحدَّث') + '</em>' : '<em class="tg">محدَّث</em>') : '<em class="tg bad">المادة محذوفة</em>'}</label>`;
     }).join('');
     const res = await Swal.fire({ title: 'تحديث المخزن من هذه القائمة', showCancelButton: true, confirmButtonText: '📦 حدّث المخزن', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 520px)', customClass: { popup: 'dw-pop' },
         html: `<div class="sw-form"><div class="sw-info">${escapeHtml(r.supplier)} — <span dir="ltr">${escapeHtml(r.no)}</span><br><small>اختر المواد اللي تريد إضافة كمياتها للمخزن. اللي عليها «محدَّث» لا تحدّثها مرة ثانية حتى لا تتكرر الكمية.</small></div><div class="pa-list">${rows}</div></div>`,

@@ -337,7 +337,7 @@ async function lgDelRet(id) {
     if (hasStock && r.value) {
         if (!writesAllowed()) return;
         const snaps = new Map(), touched = [];
-        e.items.forEach(l => { const p = products.find(x => x.id === l.pid); if (!p) return; if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); p.qty = (parseInt(p.qty) || 0) + puNum(l.qty); touched.push(p); });
+        e.items.forEach(l => { const p = products.find(x => x.id === l.pid); if (!p || setupSkip(p)) return; if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); p.qty = (parseInt(p.qty) || 0) + puNum(l.qty); touched.push(p); });
         if (touched.length && !(await saveProductsDelta([...new Set(touched)].map(p => deltaFromSnap(p, snaps.get(p.id)))))) { touched.forEach(p => { p.qty = snaps.get(p.id).qty; }); return; }
         renderAll();
     }
@@ -459,10 +459,10 @@ async function lgrSave() {
     const deduct = $b('lgrDeduct').checked && lines.length > 0;
     if (deduct) {
         if (!writesAllowed()) return;
-        const short = lines.filter(l => { const p = products.find(x => x.id === l.pid); return p && l.qty > (parseInt(p.qty) || 0); });
+        const short = lines.filter(l => { const p = products.find(x => x.id === l.pid); return p && !setupSkip(p) && l.qty > (parseInt(p.qty) || 0); });
         if (short.length) { const r = await Swal.fire({ icon: 'question', title: 'الكمية أكبر من الموجود في المخزن', text: short.map(l => l.name).join('، ') + ' — سيصبح رصيدها صفراً. متابعة؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'متابعة', cancelButtonText: 'رجوع' }); if (!r.isConfirmed) return; }
         const snaps = new Map(), touched = [];
-        lines.forEach(l => { const p = products.find(x => x.id === l.pid); if (!p) return; if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); p.qty = Math.max((parseInt(p.qty) || 0) - l.qty, 0); touched.push(p); });
+        lines.forEach(l => { const p = products.find(x => x.id === l.pid); if (!p || setupSkip(p)) return; if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); p.qty = Math.max((parseInt(p.qty) || 0) - l.qty, 0); touched.push(p); });
         if (touched.length && !(await saveProductsDelta([...new Set(touched)].map(p => deltaFromSnap(p, snaps.get(p.id)))))) { touched.forEach(p => { p.qty = snaps.get(p.id).qty; }); renderAll(); return; }
         lines.forEach(l => { const p = products.find(x => x.id === l.pid); const o = snaps.get(l.pid); if (p && o) logAction('qty', p, [{ f: 'الكمية (مردود إلى ' + sup + ')', from: String(o.qty), to: String(p.qty) }]); });
         renderAll();

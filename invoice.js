@@ -318,7 +318,7 @@ function billPlan() {
     const map = new Map();
     bill.items.forEach(it => {
         const p = itemProduct(it); const n = parseFloat(it.qty) || 0;
-        if (!p || n <= 0) return;
+        if (!p || n <= 0 || setupSkip(p)) return;   // وضع التأسيس: المادة غير المجرودة لا يُخصم منها
         let e = map.get(p.id);
         if (!e) { e = { p, from: { qty: parseInt(p.qty) || 0, loose: parseInt(p.loose) || 0 }, to: null, short: false, lines: [] }; e.to = { ...e.from }; map.set(p.id, e); }
         const unit = it.unit === 'part' && hasRetail(p) ? 'part' : 'pack';

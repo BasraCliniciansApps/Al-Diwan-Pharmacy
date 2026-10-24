@@ -603,6 +603,7 @@
         <div class="bill-panel">
             <button type="button" class="cat-add" onclick="catPrice(0)">➕ مادة جديدة (اسم + عدد + باركود + تسعير)</button>
             <input type="search" class="bill-list-search" id="catSearch" placeholder="🔍 ابحث باسم الدواء أو الشركة أو الباركود..." oninput="catInput()">
+            <div id="catSetup"></div>
             <div class="cat-sum" id="catSum"></div>
             <div class="cat-list" id="catList"></div>
         </div>
@@ -816,7 +817,6 @@
                     <label><span>رقم فاتورة المذخر</span><input id="puNo" dir="ltr" autocomplete="off" oninput="puChanged()"></label>
                     <label><span>تاريخ فاتورة المذخر</span><input type="date" id="puDate" oninput="puChanged()"></label>
                     <label class="pu-chk"><input type="checkbox" id="puStmt" onchange="puChanged()"><span>✓ استلمتُ كشف المذخر لهذه القائمة</span></label>
-                    <label class="pu-chk"><input type="checkbox" id="puUpdStock" checked onchange="puChanged()"><span>📦 تحديث المخزن (إضافة كميات هذه القائمة للمخزن)</span></label>
                     <label class="pu-chk"><input type="checkbox" id="puUseEntry" onchange="puChanged()"><span>اعتماد تاريخ الإدخال (اليوم) لتحديد شهرها بدل تاريخ القائمة</span></label>
                 </div>
             </div>
