@@ -1008,7 +1008,14 @@
 <script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('sw.js').catch(() => {});
+            const hadCtl = !!navigator.serviceWorker.controller;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {   // نسخة جديدة فعّلت نفسها → أعد التحميل تلقائياً (بعد إغلاق أي نافذة مفتوحة)
+                if (!hadCtl || window.__swReloaded) return;
+                const busy = () => document.querySelector('.swal2-container') || ['formModal', 'barcodeModal'].some(i => { const m = document.getElementById(i); return m && m.style.display && m.style.display !== 'none'; }) || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '');
+                const go = () => { if (busy()) return setTimeout(go, 4000); window.__swReloaded = 1; location.reload(); };
+                go();
+            });
+            navigator.serviceWorker.register('sw.js').then(r => { try { r.update(); } catch (e) { /* تجاهل */ } }).catch(() => {});
         }
     </script>
 </body>
