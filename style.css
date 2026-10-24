@@ -2285,3 +2285,22 @@ body.rv-open { overflow: hidden; }
 .cat-unc { border: 1px solid #f59e0b; background: #fffbeb; color: #92400e; border-radius: 999px; padding: 3px 10px; font: 700 .76rem inherit; cursor: pointer; }
 .cat-unc.on { background: #f59e0b; color: #fff; }
 .cat-uncT { display: inline-block; margin-inline-start: 6px; padding: 1px 7px; border-radius: 999px; background: #fef3c7; color: #92400e; font: 700 .66rem inherit; vertical-align: middle; cursor: pointer; }
+
+/* v87: الوارد السريع (جدول) */
+.pu-viewbar { display: flex; gap: 6px; margin: 8px 0; }
+.pu-viewbar button { flex: 1; padding: 8px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; font: 800 .82rem inherit; color: #0f1c38; cursor: pointer; }
+.pu-viewbar button.active { background: #0f1c38; color: #fff; border-color: #0f1c38; }
+.pt-add { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid #cbd5e1; border-radius: 14px; background: #f8fafc; margin-bottom: 10px; }
+.pt-add input, .pt-row input { width: 100%; box-sizing: border-box; height: 42px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; font: 700 .95rem inherit; text-align: center; }
+.pt-add > input, .pt-namewrap input { text-align: right; }
+.pt-namewrap { position: relative; }
+.pt-namewrap .bill-results { position: absolute; z-index: 20; inset-inline: 0; top: 100%; margin-top: 4px; }
+.pt-in { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.pt-in label { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.pt-in label span { font-size: .68rem; color: #64748b; font-weight: 700; text-align: center; }
+.pt-addbtn { height: 44px; border: 0; border-radius: 12px; background: #0f1c38; color: #fff; font: 800 .95rem inherit; cursor: pointer; }
+.pt-row { border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; margin-bottom: 8px; background: #fff; }
+.pt-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.pt-nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-sum { font-weight: 800; color: #0f1c38; font-size: .88rem; white-space: nowrap; }
+.pt-row input.bad, .pt-add input.bad { border-color: #dc2626; background: #fef2f2; }

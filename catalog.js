@@ -1,5 +1,5 @@
 // سجل الأدوية: كل الأصناف بتسلسل الإدخال، مع زر ضم لمادة أخرى وزر قراءة/ربط الباركود
-let catQ = '', catUncounted = false;
+let catQ = '', catUncounted = false, catIncomplete = false;
 function catRankMap() { const m = new Map(); products.slice().sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)).forEach((p, i) => m.set(p.id, i + 1)); return m; }
 async function toggleSetupMode(on) {
     if (userRole !== 'owner' || !db || !currentUser) return;
@@ -26,9 +26,12 @@ function renderCatalog() {
     const unc = setupMode ? products.filter(p => p.counted !== true).length : 0;
     if (!setupMode) catUncounted = false;
     if (catUncounted) arr = arr.filter(p => p.counted !== true);
+    const inc = products.filter(p => p.incomplete).length;
+    if (!inc) catIncomplete = false;
+    if (catIncomplete) arr = arr.filter(p => p.incomplete);
     const withBc = products.filter(p => barcodesOf(p).length).length;
     const sum = document.getElementById('catSum');
-    if (sum) sum.innerHTML = `<span>${fmtNum(products.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><span class="cat-no">🔴 بلا باركود ${fmtNum(products.length - withBc)}</span>${setupMode ? `<button type="button" class="cat-unc ${catUncounted ? 'on' : ''}" onclick="catToggleUnc()">🧮 لم تُجرد ${fmtNum(unc)} من ${fmtNum(products.length)}</button>` : ''}`;
+    if (sum) sum.innerHTML = `<span>${fmtNum(products.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><span class="cat-no">🔴 بلا باركود ${fmtNum(products.length - withBc)}</span>${inc ? `<button type="button" class="cat-unc ${catIncomplete ? 'on' : ''}" onclick="catIncomplete = !catIncomplete; renderCatalog()">✏️ ناقصة التفاصيل ${fmtNum(inc)}</button>` : ''}${setupMode ? `<button type="button" class="cat-unc ${catUncounted ? 'on' : ''}" onclick="catToggleUnc()">🧮 لم تُجرد ${fmtNum(unc)} من ${fmtNum(products.length)}</button>` : ''}`;
     const sb = document.getElementById('catSetup');
     if (sb) sb.innerHTML = setupMode
         ? `<div class="setup-bar on"><b>🧮 وضع التأسيس شغّال</b><span>الوارد والبيع والمردود <u>لا تغيّر</u> كمية أي مادة «لم تُجرد». المادة تصير مجرودة أول ما تضبط عددها${unc ? '' : ' — كل المواد انجردت 🎉'}.</span>${userRole === 'owner' ? '<button type="button" onclick="toggleSetupMode(false)">إيقاف الوضع</button>' : ''}</div>`
@@ -37,7 +40,7 @@ function renderCatalog() {
     box.innerHTML = part.map(p => {
         const n = barcodesOf(p).length, meta = [p.brand, fixMetaOrder(p.meta || '')].filter(Boolean).join(' · ');
         return `<div class="cat-row"><span class="cat-n">${rank.get(p.id)}</span>
-            <div class="cat-main" onclick="catPrice(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b>${setupMode && p.counted !== true ? `<span class="cat-uncT" onclick="event.stopPropagation();catConfirm(${p.id})" title="اضغط لاعتماد الرصيد الحالي كمجرود">لم تُجرد ✓</span>` : ''}<small dir="ltr">${escapeHtml(meta) || '—'}</small></div>
+            <div class="cat-main" onclick="catPrice(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b>${p.incomplete ? '<span class="cat-uncT" style="background:#e0e7ff;color:#3730a3" title="أُضيفت من الوارد بدون تفاصيل">ناقصة</span>' : ''}${setupMode && p.counted !== true ? `<span class="cat-uncT" onclick="event.stopPropagation();catConfirm(${p.id})" title="اضغط لاعتماد الرصيد الحالي كمجرود">لم تُجرد ✓</span>` : ''}<small dir="ltr">${escapeHtml(meta) || '—'}</small></div>
             <button type="button" class="cat-btn cat-merge" onclick="catMergeStart(${p.id})" title="ضم لمادة أخرى">⇄<small>ضم</small></button>
             <button type="button" class="cat-btn cat-bc ${n ? 'has' : 'none'}" onclick="catBarcode(${p.id})" title="${n ? n + ' باركود' : 'بلا باركود'}">▦<small>${n ? n : 'ربط'}</small></button>
             <div class="cat-sub">

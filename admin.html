@@ -832,6 +832,21 @@
             <div class="pu-hint" id="puPendingHint" style="display:none;"></div>
             <div class="pu-count" id="puCount"></div>
             <div class="pu-editbar" id="puEditBar" style="display:none;"><span>✏️ أنت تعدّل فاتورة مسجّلة — سيُصحَّح المخزن تلقائياً بالفرق.</span><button type="button" onclick="puCancelEdit()">إلغاء التعديل</button></div>
+            <div class="pu-viewbar no-print" id="puViewBar"><button type="button" data-v="table" onclick="puSetView('table')">⚡ جدول سريع</button><button type="button" data-v="cards" onclick="puSetView('cards')">🗂️ بطاقات</button></div>
+            <div id="puFast" class="pt-wrap">
+                <div class="pt-add">
+                    <div class="pt-namewrap"><input id="ptName" placeholder="اسم المادة..." autocomplete="off" oninput="ptNameInput()" onkeydown="ptKey(event,'name')"><div id="ptRes" class="bill-results" style="display:none;"></div></div>
+                    <input id="ptBrand" placeholder="الشركة (للمادة الجديدة)" autocomplete="off" style="display:none" onkeydown="ptKey(event,'brand')">
+                    <div class="pt-in">
+                        <label><span>عدد</span><input id="ptQty" type="number" min="1" inputmode="numeric" onkeydown="ptKey(event,'qty')"></label>
+                        <label><span>بونص</span><input id="ptBonus" type="number" min="0" inputmode="numeric" placeholder="0" onkeydown="ptKey(event,'bonus')"></label>
+                        <label><span>سعر الشراء</span><input id="ptCost" type="number" min="0" inputmode="decimal" onkeydown="ptKey(event,'cost')"></label>
+                        <label><span>انتهاء</span><input id="ptExp" type="text" inputmode="numeric" dir="ltr" placeholder="MMYY" onkeydown="ptKey(event,'exp')"></label>
+                    </div>
+                    <button type="button" class="pt-addbtn" onclick="ptCommit()">＋ أضف للقائمة</button>
+                </div>
+                <div id="puTable"></div>
+            </div>
             <div id="puItems"></div>
             <div class="pu-card pu-totals">
                 <div class="pu-trow"><span>مجموع الفاتورة</span><b id="puTotal">0</b></div>
@@ -1012,7 +1027,7 @@
     <script src="swal-skin.js"></script>
     <script src="seed.js"></script>
     <script src="data.js"></script>
-<script src="invoice.js"></script><script src="purchase.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="taxonomy.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script>
+<script src="invoice.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="taxonomy.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             const hadCtl = !!navigator.serviceWorker.controller;
