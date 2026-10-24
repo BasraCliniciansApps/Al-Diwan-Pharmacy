@@ -897,6 +897,7 @@ function isCustomItem(item) {
 
 function getFormBadge(item) {
     const str = `${item.name} ${item.meta}`.toLowerCase();
+    if (str.includes('lozenge') || str.includes('pastille') || str.includes('لوزنج') || str.includes('أقراص مص') || str.includes('اقراص مص')) return {txt: 'أقراص مص / لوزنجز', cls: 'badge-oral'};
     if (str.includes('tablet') || str.includes('capsule')) return {txt: 'أقراص / كبسول', cls: 'badge-oral'};
     if (str.includes('syrup') || str.includes('suspension') || str.includes('drops')) return {txt: 'شراب / قطرات', cls: 'badge-syrup'};
     if (str.includes('ointment') || str.includes('مرهم')) return {txt: 'مرهم (Oint)', cls: 'badge-oint'};
