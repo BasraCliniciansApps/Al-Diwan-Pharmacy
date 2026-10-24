@@ -4,7 +4,7 @@
 let currentView = 'splash';
 let splashTimer = null;
 
-const VIEW_PERM = { bill: 'sell', stock: 'stockView', purch: 'purchases', alerts: 'stockView', catalog: 'stockEdit' };
+const VIEW_PERM = { bill: 'sell', stock: 'stockView', purch: 'purchases', alerts: 'stockView', catalog: 'catalog' };
 function showView(v) {
     if (VIEW_PERM[v] && typeof can === 'function' && !can(VIEW_PERM[v])) v = 'home';
     currentView = v;

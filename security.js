@@ -61,8 +61,8 @@ async function costSplitStep2() {
 // كل موظف حساب Firebase حقيقي (بريد داخلي + رمز سري)، وصلاحياته في pharmacy_users/{uid}،
 // وقواعد Firestore (firestore.rules) هي التي تفرضها فعلاً، والواجهة تُخفي الأزرار فقط.
 // ============================================================================
-const PERM_LABELS = { sell: 'إصدار الفواتير (البيع)', stockView: 'عرض المخزن والكميات', stockEdit: 'تعديل المواد والكميات والجرد', purchases: 'الوارد والمذاخر والسجلات' };
-const PERM_PRESETS = { seller: { sell: true, stockView: true }, manager: { sell: true, stockView: true, stockEdit: true } };
+const PERM_LABELS = { sell: 'إصدار الفواتير (البيع)', stockView: 'عرض المخزن والكميات', stockEdit: 'تعديل المواد والكميات والجرد', purchases: 'الوارد والمذاخر والسجلات', catalog: 'سجل الأدوية (تسعير وكميات وإضافة سريعة — يشمل تعديل المواد)' };
+const PERM_PRESETS = { seller: { sell: true, stockView: true }, manager: { sell: true, stockView: true, stockEdit: true, catalog: true } };
 function loginKey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/[\/#?\[\]\.]/g, ''); }
 
 async function resolveRole(user) {
@@ -94,7 +94,7 @@ function secAuth() {
     return app.auth();
 }
 const permBoxes = (cur) => Object.keys(PERM_LABELS).map(p => `<label class="pu-chk"><input type="checkbox" class="uPerm" data-p="${p}" ${cur && cur[p] ? 'checked' : ''}><span>${PERM_LABELS[p]}</span></label>`).join('');
-const readPerms = () => { const o = {}; document.querySelectorAll('.uPerm').forEach(c => { if (c.checked) o[c.dataset.p] = true; }); if (o.sell || o.stockEdit || o.purchases) o.stockView = true; return o; };
+const readPerms = () => { const o = {}; document.querySelectorAll('.uPerm').forEach(c => { if (c.checked) o[c.dataset.p] = true; }); if (o.catalog) o.stockEdit = true; if (o.sell || o.stockEdit || o.purchases) o.stockView = true; return o; };
 let usersCache = [];
 async function openUsers() {
     try { closeCategoryManager(); } catch (e) { /* تجاهل */ }

@@ -2211,3 +2211,7 @@ body.role-staff .kpi.k-sales { display: none !important; }
 .qp-pop .swal2-actions { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; width: 100%; margin: 14px 0 0; }
 .qp-pop .swal2-actions button { height: 48px; margin: 0; width: 100%; border-radius: 12px; font-weight: 800; }
 :root[data-theme="dark"] .qp .qin, :root[data-theme="dark"] .qp .qstep, :root[data-theme="dark"] .qp .qstep input { background: var(--surface); color: var(--text-main); }
+
+/* ===== v72: زر سجل الأدوية بالرئيسية (3 بالصف الأول + 2 بالثاني — نفس الارتفاع بلا سكرول) ===== */
+.home-quick button, .home-quick-link { flex: 1 1 calc(33.333% - 6px); padding: 0 4px; font-size: .8rem; white-space: nowrap; }
+body.role-staff:not(.can-catalog) .home-quick button[onclick^="openCatalog"] { display: none !important; }
