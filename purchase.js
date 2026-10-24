@@ -705,9 +705,9 @@ function puSelTable(recs, mode) {
             if (!r.cancelled) { tot += t; ret += rt; net += nt; paid += pd; rem += rm; }
             return [r.seq || i + 1, r.supplier, r.no, fmtDateDMY(r.date), (r.items || []).length, f(t), f(rt), f(nt), f(pd), f(rm), (r.cancelled ? 'ملغى' : '') + (r.stmt ? (r.cancelled ? ' · ' : '') + 'كشف ✓' : '')];
         });
-        return { title: 'قوائم الوارد المحددة', head: ['ت', 'المذخر', 'رقم القائمة', 'التاريخ', 'المواد', 'المبلغ', 'المردود', 'الصافي', 'المدفوع', 'المتبقي', 'ملاحظة'], rows, foot: ['', 'المجموع (غير الملغاة)', '', '', '', f(tot), f(ret), f(net), f(paid), f(rem), ''], numFrom: 4 };
+        return { title: 'قوائم الوارد المحددة', head: ['ت', 'المذخر', 'رقم القائمة', 'التاريخ', 'المواد', 'المبلغ', 'المردود', 'الصافي', 'المدفوع', 'المتبقي', 'ملاحظة'], rows, foot: ['', 'المجموع', '', '', '', f(tot), f(ret), f(net), f(paid), f(rem), ''], numFrom: 4 };
     }
     let all = 0, k = 0; const rows = [];
     recs.forEach(r => (r.items || []).forEach(it => { const t = n(it.qty) * n(it.cost); k++; if (!r.cancelled) all += t; rows.push([k, r.supplier, r.no, fmtDateDMY(r.date), it.name, f(n(it.qty)), it.bonus ? f(n(it.bonus)) : '', f(n(it.cost)), f(t), it.expiry || '', it.batch || '']); }));
-    return { title: 'تفصيل مواد قوائم الوارد المحددة', head: ['ت', 'المذخر', 'رقم القائمة', 'التاريخ', 'المادة', 'العدد', 'بونص', 'السعر', 'المجموع', 'الانتهاء', 'الدفعة'], rows, foot: ['', 'المجموع (غير الملغاة)', '', '', '', '', '', '', f(all), '', ''], numFrom: 5 };
+    return { title: 'تفصيل مواد قوائم الوارد المحددة', head: ['ت', 'المذخر', 'رقم القائمة', 'التاريخ', 'المادة', 'العدد', 'بونص', 'السعر', 'المجموع', 'الانتهاء', 'الدفعة'], rows, foot: ['', 'المجموع', '', '', '', '', '', '', f(all), '', ''], numFrom: 5 };
 }
