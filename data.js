@@ -1224,7 +1224,7 @@ function openSheet(id) {
             ${lowInfo}${expiryInfo}${pricingInfoHtml(p)}${typeof lastPurchaseHtml === 'function' ? lastPurchaseHtml(p) : ''}
             <div class="admin-row"><div class="qty-control-lg">
                     <button onclick="updateItemQty(${p.id}, -1)">-</button>
-                    <span style="font-weight:800; min-width:28px; text-align:center;">${stockLabel(p)}</span>
+                    <span style="font-weight:800; min-width:28px; text-align:center;${hasRetail(p) ? 'cursor:pointer;text-decoration:underline dotted;' : ''}" ${hasRetail(p) ? `onclick="openCountDialog(${p.id})" title="تعديل العلب والأجزاء"` : ''}>${stockLabel(p)}${hasRetail(p) ? ' ✎' : ''}</span>
                     <button onclick="updateItemQty(${p.id}, 1)">+</button>
             </div></div>
             <div class="act-grid">

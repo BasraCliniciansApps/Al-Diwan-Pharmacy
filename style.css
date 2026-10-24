@@ -2264,3 +2264,6 @@ body.rv-open { overflow: hidden; }
 }
 .rv-h, .rv-d { position: sticky; right: 0; width: calc(100vw - 52px); max-width: 100%; box-sizing: border-box; }
 @media print { body.printing-rv .rv-h, body.printing-rv .rv-d { position: static; width: auto; } }
+
+.cat-qty .cat-parts { width: auto; min-width: 48px; padding: 0 8px; font: 800 .85rem inherit; border-color: #94a3b8; color: #475569; }
+.cat-qty .cat-parts.on { border-color: #7e22ce; background: #f3e8ff; color: #7e22ce; }

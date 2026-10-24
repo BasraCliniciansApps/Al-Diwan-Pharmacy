@@ -18,7 +18,7 @@ function renderCatalog() {
             <button type="button" class="cat-btn cat-merge" onclick="catMergeStart(${p.id})" title="ضم لمادة أخرى">⇄<small>ضم</small></button>
             <button type="button" class="cat-btn cat-bc ${n ? 'has' : 'none'}" onclick="catBarcode(${p.id})" title="${n ? n + ' باركود' : 'بلا باركود'}">▦<small>${n ? n : 'ربط'}</small></button>
             <div class="cat-sub">
-                <div class="cat-qty"><button type="button" onclick="catQty(${p.id},-1)" aria-label="نقص">−</button><input type="number" inputmode="numeric" min="0" id="cq${p.id}" value="${parseInt(p.qty) || 0}" onchange="catQtySet(${p.id},this.value)" onfocus="this.select()"><button type="button" onclick="catQty(${p.id},1)" aria-label="زيادة">+</button></div>
+                <div class="cat-qty"><button type="button" onclick="catQty(${p.id},-1)" aria-label="نقص">−</button><input type="number" inputmode="numeric" min="0" id="cq${p.id}" value="${parseInt(p.qty) || 0}" onchange="catQtySet(${p.id},this.value)" onfocus="this.select()"><button type="button" onclick="catQty(${p.id},1)" aria-label="زيادة">+</button>${hasRetail(p) ? `<button type="button" class="cat-parts ${(parseInt(p.loose) || 0) > 0 ? 'on' : ''}" onclick="openCountDialog(${p.id})" title="تعديل العلب والأجزاء">🧩 ${parseInt(p.loose) || 0}</button>` : ''}</div>
                 <button type="button" class="cat-price ${parseFloat(p.price) > 0 ? '' : 'none'}" onclick="catPrice(${p.id})">💲 ${parseFloat(p.price) > 0 ? fmtNum(p.price) : 'بلا سعر'} <small>تسعير</small></button>
             </div></div>`;
     }).join('') || '<div class="bill-none">لا توجد مواد مطابقة.</div>';
@@ -276,4 +276,40 @@ async function catPrice(id, pre) {
     const ch = diffProduct(old, p); if (ch.length) logAction('edit', p, ch);
     renderAll(); renderCatalog();
     Swal.fire({ icon: 'success', title: 'تم الحفظ', toast: true, position: 'bottom', showConfirmButton: false, timer: 1400 });
+}
+
+// ---------- تعديل العدد بالعلب والأجزاء (يتحول تلقائياً بين الأجزاء والعلب الكاملة) ----------
+async function openCountDialog(id) {
+    const p = products.find(x => x.id === id); if (!p || !writesAllowed()) return;
+    const sc = hasRetail(p) ? subCountOf(p) : 0, ty = subTypeOf(p) || 'جزء';
+    const q0 = parseInt(p.qty) || 0, l0 = parseInt(p.loose) || 0;
+    const r = await Swal.fire({ title: 'تعديل العدد', showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 460px)', customClass: { popup: 'dw-pop qp-pop' },
+        html: `<div class="qp"><div class="sw-info" dir="ltr"><b>${escapeHtml(p.name)}</b></div>
+            <div class="${sc ? 'qg2' : ''} qrow"><div class="qf"><span>علب كاملة</span><input id="ctBox" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${q0}" onfocus="this.select()"></div>
+            ${sc ? `<div class="qf"><span>${escapeHtml(ty)} مفتوحة</span><input id="ctPart" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${l0}" onfocus="this.select()"></div>` : ''}</div>
+            ${sc ? `<div class="qf qrow"><span>المجموع بالأجزاء (العبوة = ${sc} ${escapeHtml(ty)}) — عدّله فتتحول العلب والأجزاء تلقائياً</span><input id="ctTot" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${q0 * sc + l0}" onfocus="this.select()"></div><div class="qnote" id="ctNote" style="color:#475569"></div>` : ''}</div>`,
+        didOpen: () => {
+            if (!sc) return;
+            const $ = i => document.getElementById(i), note = () => { const b = parseInt($('ctBox').value) || 0, pr = parseInt($('ctPart').value) || 0; $('ctNote').textContent = `= ${b} عبوة + ${pr} ${ty}`; };
+            const fromParts = () => { const b = parseInt($('ctBox').value) || 0, pr = parseInt($('ctPart').value) || 0; $('ctTot').value = b * sc + pr; note(); };
+            $('ctBox').addEventListener('input', fromParts); $('ctPart').addEventListener('input', fromParts);
+            $('ctTot').addEventListener('input', () => { const t = Math.max(0, parseInt($('ctTot').value) || 0); $('ctBox').value = Math.floor(t / sc); $('ctPart').value = t % sc; note(); });
+            note();
+        },
+        preConfirm: () => {
+            const b = Math.max(0, parseInt(document.getElementById('ctBox').value) || 0);
+            if (!sc) return { q: b, l: 0 };
+            const t = b * sc + Math.max(0, parseInt(document.getElementById('ctPart').value) || 0);
+            return { q: Math.floor(t / sc), l: t % sc };   // الأجزاء المفتوحة دائماً أقل من عبوة
+        } });
+    if (!r.isConfirmed || !r.value) return;
+    const nq = r.value.q, nl = sc ? r.value.l : (parseInt(p.loose) || 0), oldLabel = stockLabel(p);
+    if (nq === q0 && nl === l0) return;
+    p.qty = nq; p.loose = nl;
+    const ok = await saveProductsDelta([{ p, dq: nq - q0, dl: nl - l0 }]);
+    if (!ok) { p.qty = q0; p.loose = l0; return; }
+    logAction('qty', p, [{ f: 'الكمية', from: oldLabel, to: stockLabel(p) }]);
+    renderAll(); try { if (document.getElementById('catList')) renderCatalog(); } catch (e) { /* تجاهل */ }
+    if (typeof currentOpenId !== 'undefined' && currentOpenId === id) { try { openSheet(id); } catch (e) { /* تجاهل */ } }
+    Swal.fire({ icon: 'success', title: 'تم تعديل العدد', toast: true, position: 'bottom', showConfirmButton: false, timer: 1400 });
 }
