@@ -2215,3 +2215,18 @@ body.role-staff .kpi.k-sales { display: none !important; }
 /* ===== v72: زر سجل الأدوية بالرئيسية (3 بالصف الأول + 2 بالثاني — نفس الارتفاع بلا سكرول) ===== */
 .home-quick button, .home-quick-link { flex: 1 1 calc(33.333% - 6px); padding: 0 4px; font-size: .8rem; white-space: nowrap; }
 body.role-staff:not(.can-catalog) .home-quick button[onclick^="openCatalog"] { display: none !important; }
+
+/* ===== v74: تحديد قوائم الوارد للطباعة / Excel ===== */
+.pu-selbar { margin: 8px 0; display: flex; flex-direction: column; gap: 8px; }
+.pu-selbar > .bill-tb-btn { width: 100%; min-height: 44px; }
+.psb-info { text-align: center; font-weight: 800; font-size: .88rem; color: #0f1c38; padding: 8px; background: #f1f5f9; border-radius: 10px; }
+.psb-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.psb-grid .bill-tb-btn { min-height: 44px; white-space: nowrap; font-size: .82rem; padding: 0 6px; }
+.psb-grid .bill-tb-btn:disabled { opacity: .45; }
+.psb-end { border: 0; background: none; color: #b91c1c; font: 800 .82rem inherit; cursor: pointer; padding: 4px; }
+.sel-ck { flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px; border: 2px solid #94a3b8; background: #fff; color: #fff; font: 900 1rem/1 inherit; cursor: pointer; padding: 0; }
+.sel-ck.on { background: #0f766e; border-color: #0f766e; }
+.psp-t { text-align: center; margin: 0 0 4px; font-size: 1.1rem; } .psp-d { text-align: center; color: #475569; font-size: .8rem; margin-bottom: 10px; }
+.psp-tb { width: 100%; border-collapse: collapse; font-size: .78rem; } .psp-tb th, .psp-tb td { border: 1px solid #cbd5e1; padding: 5px 6px; text-align: right; } .psp-tb td.num, .psp-tb th.num { text-align: left; direction: ltr; }
+.psp-tb thead th { background: #f1f5f9; } .psp-tb tfoot th { background: #f8fafc; }
+@media print { .psp-tb { font-size: 9pt; } .psp-tb tr { page-break-inside: avoid; } }

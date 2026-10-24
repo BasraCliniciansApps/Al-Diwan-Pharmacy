@@ -364,8 +364,9 @@ function puCardHtml(r, extra, withSeq) {
     const rem = puRemaining(r);
     const tags = (r.cancelled ? '<em class="tg bad">ملغى</em>' : '') + (rem > 0 ? `<em class="tg warn">متبقي ${fmtNum(rem)}</em>` : '') + (puNum(r.returnAmt) > 0 ? `<em class="tg">استرجاع ${fmtNum(r.returnAmt)}</em>` : '') + (r.stmt ? '<em class="tg">✓ كشف</em>' : '');
     return `<div class="bill-card ${r.cancelled ? 'cancelled' : ''}">
+        ${withSeq && puSelMode ? `<button type="button" class="sel-ck ${puSel.has(r.id) ? 'on' : ''}" onclick="puSelToggle('${r.id}',event)" aria-label="تحديد">${puSel.has(r.id) ? '✓' : ''}</button>` : ''}
         ${withSeq ? `<div class="pu-seqbox" onclick="puSeqEdit('${r.id}', event)" title="رقم القائمة في الشهر — انقر للتعديل">${r.seq || '؟'}</div>` : ''}
-        <div class="bill-card-main" onclick="puOpen('${r.id}')">
+        <div class="bill-card-main" onclick="${withSeq && puSelMode ? `puSelToggle('${r.id}',event)` : `puOpen('${r.id}')`}">
             <b>${escapeHtml(r.supplier)}</b> <span dir="ltr">${escapeHtml(r.no)}</span> ${tags}
             <small>${escapeHtml(fmtDateDMY(r.date))} • ${(r.items || []).length} مادة</small>
         </div>
@@ -405,7 +406,9 @@ function renderPuLog() {
     const q = puKey($b('puLogSearch').value), m = $b('puLogMonth') ? $b('puLogMonth').value : '';
     let arr = puAll.filter(r => !puIsBonusOnly(r)).filter(r => !m || puMonthOf(r) === m).filter(r => !q || [r.supplier, r.no].some(x => puKey(x).includes(q)));
     arr = m ? arr.slice().sort(puSeqCmp) : arr.slice().sort((a, b) => puMonthOf(b).localeCompare(puMonthOf(a)) || puSeqCmp(a, b));
+    puLogShown = arr.map(r => r.id);
     $b('puLogList').innerHTML = arr.map(r => puCardHtml(r, undefined, true)).join('') || '<div class="bill-none">لا توجد واردات مسجّلة بعد.</div>';
+    puSelBarRender();
 }
 async function puSeqEdit(id, ev) {
     if (ev) ev.stopPropagation();
@@ -652,4 +655,51 @@ async function puDeleteSupplier(name) {
         }
     }
     puFillSupplierList(); renderPuSuppliers();
+}
+
+
+// ---------- تحديد قوائم وارد للطباعة / Excel ----------
+let puSelMode = false, puLogShown = []; const puSel = new Set();
+function puSelRecs() { return puAll.filter(r => puSel.has(r.id)).sort((a, b) => puMonthOf(a).localeCompare(puMonthOf(b)) || puSeqCmp(a, b)); }
+function puSelBarRender() {
+    const bar = $b('puSelBar'); if (!bar) return;
+    if (!puSelMode) { bar.innerHTML = '<button type="button" class="bill-tb-btn" onclick="puSelStart()">☑️ تحديد قوائم للطباعة أو Excel</button>'; return; }
+    const recs = puSelRecs(), net = recs.reduce((s, r) => s + (r.cancelled ? 0 : puNetOf(r)), 0), none = !recs.length;
+    bar.innerHTML = `<div class="psb-info"><b>${fmtNum(recs.length)}</b> قائمة محددة${recs.length ? ` · الصافي <b>${fmtNum(net)}</b> د.ع` : ''}</div>
+        <div class="psb-grid"><button type="button" class="bill-tb-btn" onclick="puSelAllShown()">☑️ تحديد المعروض (${fmtNum(puLogShown.length)})</button>
+        <button type="button" class="bill-tb-btn" onclick="puSelClear()" ${none ? 'disabled' : ''}>🧹 مسح التحديد</button>
+        <button type="button" class="bill-tb-btn" onclick="puSelOut('csv')" ${none ? 'disabled' : ''}>⬇️ Excel</button>
+        <button type="button" class="bill-tb-btn bill-tb-primary" onclick="puSelOut('print')" ${none ? 'disabled' : ''}>🖨️ طباعة</button></div>
+        <button type="button" class="psb-end" onclick="puSelEnd()">✕ إنهاء التحديد</button>`;
+}
+function puSelStart() { puSelMode = true; renderPuLog(); }
+function puSelEnd() { puSelMode = false; puSel.clear(); renderPuLog(); }
+function puSelClear() { puSel.clear(); renderPuLog(); }
+function puSelAllShown() { puLogShown.forEach(id => puSel.add(id)); renderPuLog(); }
+function puSelToggle(id, ev) { if (ev) ev.stopPropagation(); if (puSel.has(id)) puSel.delete(id); else puSel.add(id); renderPuLog(); }
+async function puSelOut(kind) {
+    const recs = puSelRecs(); if (!recs.length) return;
+    const r = await Swal.fire({ title: kind === 'csv' ? 'شكل جدول Excel' : 'شكل الطباعة', html: `<div class="sw-form"><div class="sw-info"><b>${fmtNum(recs.length)}</b> قائمة محددة. اختر شكل الجدول:</div></div>`, showCancelButton: true, showDenyButton: true, confirmButtonText: '📄 سطر لكل قائمة', denyButtonText: '📋 سطر لكل مادة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', denyButtonColor: '#0f766e' });
+    if (!r.isConfirmed && !r.isDenied) return;
+    const mode = r.isConfirmed ? 'lists' : 'items', tbl = puSelTable(recs, mode);
+    if (kind === 'csv') { lgCsvDownload('orders-selected-' + mode + '-' + todayLocalISO() + '.csv', [[tbl.title], [], tbl.head, ...tbl.rows, tbl.foot]); return; }
+    const esc = escapeHtml, td = (v, i) => `<td${i >= tbl.numFrom ? ' class="num"' : ''}>${esc(v)}</td>`;
+    $b('puSelSheet').innerHTML = `<h2 class="psp-t">${esc(tbl.title)}</h2><div class="psp-d">${esc(fmtDateDMY(todayLocalISO()))} · ${fmtNum(recs.length)} قائمة</div>
+        <table class="bill-table psp-tb"><thead><tr>${tbl.head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${tbl.rows.map(row => `<tr>${row.map(td).join('')}</tr>`).join('')}</tbody><tfoot><tr>${tbl.foot.map((v, i) => `<th${i >= tbl.numFrom ? ' class="num"' : ''}>${esc(v)}</th>`).join('')}</tr></tfoot></table>`;
+    puPrint('puPane-sel');
+}
+function puSelTable(recs, mode) {
+    const n = v => puNum(v), f = v => (v === '' || v == null) ? '' : fmtNum(v);
+    if (mode === 'lists') {
+        let tot = 0, ret = 0, net = 0, paid = 0, rem = 0;
+        const rows = recs.map((r, i) => {
+            const t = puTotalOf(r), nt = puNetOf(r), rt = t - nt, pd = n(r.paid), rm = puRemaining(r);
+            if (!r.cancelled) { tot += t; ret += rt; net += nt; paid += pd; rem += rm; }
+            return [r.seq || i + 1, r.supplier, r.no, fmtDateDMY(r.date), (r.items || []).length, f(t), f(rt), f(nt), f(pd), f(rm), (r.cancelled ? 'ملغى' : '') + (r.stmt ? (r.cancelled ? ' · ' : '') + 'كشف ✓' : '')];
+        });
+        return { title: 'قوائم الوارد المحددة', head: ['ت', 'المذخر', 'رقم القائمة', 'التاريخ', 'المواد', 'المبلغ', 'المردود', 'الصافي', 'المدفوع', 'المتبقي', 'ملاحظة'], rows, foot: ['', 'المجموع (غير الملغاة)', '', '', '', f(tot), f(ret), f(net), f(paid), f(rem), ''], numFrom: 4 };
+    }
+    let all = 0, k = 0; const rows = [];
+    recs.forEach(r => (r.items || []).forEach(it => { const t = n(it.qty) * n(it.cost); k++; if (!r.cancelled) all += t; rows.push([k, r.supplier, r.no, fmtDateDMY(r.date), it.name, f(n(it.qty)), it.bonus ? f(n(it.bonus)) : '', f(n(it.cost)), f(t), it.expiry || '', it.batch || '']); }));
+    return { title: 'تفصيل مواد قوائم الوارد المحددة', head: ['ت', 'المذخر', 'رقم القائمة', 'التاريخ', 'المادة', 'العدد', 'بونص', 'السعر', 'المجموع', 'الانتهاء', 'الدفعة'], rows, foot: ['', 'المجموع (غير الملغاة)', '', '', '', '', '', '', f(all), '', ''], numFrom: 5 };
 }

@@ -53,9 +53,11 @@
             <div class="bill-panel">
                 <div class="pu-logbar"><select id="puLogMonth" onchange="renderPuLog()" aria-label="الشهر"></select>
                 <input type="search" class="bill-list-search" id="puLogSearch" placeholder="🔍 ابحث باسم المذخر أو رقم الفاتورة..." oninput="renderPuLog()"></div>
+                <div class="pu-selbar no-print" id="puSelBar"></div>
                 <div class="bill-list" id="puLogList"></div>
             </div>
         </section>
+        <section class="pu-pane" id="puPane-sel"><div class="bill-sheet" id="puSelSheet"></div></section>
 
         <!-- ===== المستحقات ===== -->
         <section class="pu-pane" id="puPane-debt">
