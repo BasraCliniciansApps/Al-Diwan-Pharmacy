@@ -515,12 +515,26 @@ function puHomeBadge() {
 // ---------- الكشف الشهري ----------
 function puMonthNow() { return todayLocalISO().slice(0, 7); }
 // (سجل الطلبيات الشهري/السنوي: انظر ledger.js)
-function puPrint(paneId) {
+async function puPrint(paneId) {
+    // أغلق أي نافذة SweetAlert تماماً قبل الطباعة: وإلا تبقى عالقة (انتهاء حركة الإغلاق لا يحدث أثناء الطباعة) وتحجب اللمس
+    try { if (window.Swal && Swal.isVisible && Swal.isVisible()) Swal.close(); } catch (e) { /* تجاهل */ }
+    await new Promise(r => setTimeout(r, 400));
+    document.querySelectorAll('.swal2-container').forEach(e => e.remove());
+    document.body.classList.remove('swal2-shown', 'swal2-height-auto', 'swal2-no-backdrop', 'swal2-toast-shown'); document.body.style.paddingRight = '';
     document.querySelectorAll('.pu-pane').forEach(p => p.classList.toggle('print-active', p.id === paneId));
     document.body.classList.add('printing-purch');
-    const done = () => { document.body.classList.remove('printing-purch'); window.removeEventListener('afterprint', done); };
-    window.addEventListener('afterprint', done);
-    setTimeout(() => { window.print(); setTimeout(done, 1500); }, 50);
+    let fin = false;
+    const done = () => {
+        if (fin) return; fin = true;
+        document.body.classList.remove('printing-purch');
+        document.querySelectorAll('.pu-pane').forEach(p => p.classList.remove('print-active'));
+        document.querySelectorAll('.swal2-container').forEach(e => e.remove());
+        document.body.classList.remove('swal2-shown', 'swal2-height-auto');
+        window.removeEventListener('afterprint', done); window.removeEventListener('focus', done); document.removeEventListener('visibilitychange', onVis);
+    };
+    const onVis = () => { if (document.visibilityState === 'visible') setTimeout(done, 300); };
+    window.addEventListener('afterprint', done); window.addEventListener('focus', () => setTimeout(done, 300), { once: true }); document.addEventListener('visibilitychange', onVis);
+    setTimeout(() => { try { window.print(); } catch (e) { done(); } setTimeout(done, 8000); }, 80);
 }
 
 // ---------- المذاخر والأسعار ----------
