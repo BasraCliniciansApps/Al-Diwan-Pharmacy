@@ -375,7 +375,8 @@
             <div class="form-group"><label>المادة الفعالة والاستخدام:</label><textarea id="fDetails" rows="3"></textarea></div>
             <!-- ... الحقول السابقة ... -->
             <div class="form-group"><label>العبوة (مثال: 30 Tablets):</label><input type="text" id="fMeta" dir="ltr"></div>
-            <div class="form-group"><label>الشكل الدوائي (اختياري — يتحدد تلقائياً، اختر لتغييره):</label><select id="fForm"></select></div>
+            <div class="form-group"><label>الشكل الدوائي (اختياري — يتحدد تلقائياً، اختر لتغييره):</label><select id="fForm" onchange="onFormChange()"></select></div>
+            <div class="form-group" id="fFormOtherWrap" style="display:none"><label>اكتب الشكل الدوائي:</label><input type="text" id="fFormOther" placeholder="مثال: لبخة، علكة، مسحوق للفم..."></div>
             <div class="form-group">
                 <label>الباركودات (اختياري، يمكن أكثر من باركود للدواء الواحد):</label>
                 <div class="add-inline-row">

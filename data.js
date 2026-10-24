@@ -920,11 +920,13 @@ const FORMS = [
     { id: 'other',    txt: 'أخرى',               cls: 'badge-other', re: null }
 ];
 function getFormBadge(item) {
+    if (item.form === 'other' && item.formOther) return { txt: String(item.formOther), cls: 'badge-other' };
     if (item.form) { const f = FORMS.find(x => x.id === item.form); if (f) return { txt: f.txt, cls: f.cls }; }
     const str = `${item.name} ${item.meta}`.toLowerCase();
     const f = FORMS.find(x => x.re && x.re.test(str));
     return f ? { txt: f.txt, cls: f.cls } : { txt: 'كريم (Cream)', cls: 'badge-cream' };   // الافتراضي القديم
 }
+function onFormChange() { const w = document.getElementById('fFormOtherWrap'), v = document.getElementById('fForm'); if (w && v) w.style.display = v.value === 'other' ? '' : 'none'; }
 function fillFormSelect() {
     const el = document.getElementById('fForm');
     if (el && !el.options.length) el.innerHTML = '<option value="">تلقائي (حسب الاسم والعبوة)</option>' + FORMS.map(f => `<option value="${f.id}">${f.txt}</option>`).join('');
@@ -1504,7 +1506,7 @@ function openFormModal(id = null) {
         document.getElementById('fDepartment').value = p.department || departments[0];
         document.getElementById('fCategory').value = p.category;
         if (document.getElementById('fType')) document.getElementById('fType').value = p.type || (isRxItem(p) ? 'rx' : 'cosmetic');
-        fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = p.form || '';
+        fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = p.form || ''; if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = p.formOther || ''; onFormChange();
         if (document.getElementById('fActive')) document.getElementById('fActive').value = p.activeIngredient || '';
         if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = (p.minQty === null || p.minQty === undefined) ? '' : p.minQty;
         document.getElementById('fBrand').value = p.brand;
@@ -1527,7 +1529,7 @@ function openFormModal(id = null) {
         document.getElementById('editId').value = '';
         document.getElementById('fDepartment').value = activeDept === ALL_DEPTS ? (departments[0] || '') : activeDept;
         if (document.getElementById('fType')) document.getElementById('fType').value = '';
-        fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = '';
+        fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = ''; if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = ''; onFormChange();
         if (document.getElementById('fActive')) document.getElementById('fActive').value = '';
         if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = '';
         if (document.getElementById('scanStatus')) document.getElementById('scanStatus').innerText = '';
@@ -1741,6 +1743,7 @@ async function saveFormProduct() {
         extraCategories: getExtraSelection('cat').filter(x => x !== document.getElementById('fCategory').value),
         extraTypes: getExtraSelection('type').filter(x => x !== (document.getElementById('fType').value || '')),
         form: document.getElementById('fForm') ? document.getElementById('fForm').value : '',
+        formOther: (document.getElementById('fForm') && document.getElementById('fForm').value === 'other' && document.getElementById('fFormOther')) ? document.getElementById('fFormOther').value.trim() : '',
         activeIngredient: document.getElementById('fActive') ? document.getElementById('fActive').value.trim() : '',
         minQty: (document.getElementById('fMinQty') && document.getElementById('fMinQty').value !== '') ? (parseInt(document.getElementById('fMinQty').value) || 0) : null,
         brand: document.getElementById('fBrand').value.trim() || 'GENERIC',
@@ -3840,7 +3843,7 @@ async function openTrashModal() {
 }
 
 // ---------------- سجل التعديلات ----------------
-const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', form: 'الشكل الدوائي', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'نوع الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة', costPrice: 'سعر الشراء' };
+const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', form: 'الشكل الدوائي', formOther: 'الشكل (أخرى)', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'نوع الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة', costPrice: 'سعر الشراء' };
 
 function diffProduct(a, b) {
     const out = [];
