@@ -4236,6 +4236,21 @@ function barcodeFound(code) {
     if (cb) cb(c, g);
 }
 
+// باركودات بيضاء على خلفية ملونة (معكوسة) لا يقرأها الكاشف مباشرة: نرسم الإطار رمادياً ونعكسه ثم نقرأه
+function barcodeInvertedCanvas(src, w, h, boost) {
+    const max = 1280, k = Math.min(1, max / Math.max(w, h)), cw = Math.round(w * k), ch = Math.round(h * k);
+    const cv = barcodeInvertedCanvas.cv || (barcodeInvertedCanvas.cv = document.createElement('canvas'));
+    cv.width = cw; cv.height = ch; const cx = cv.getContext('2d', { willReadFrequently: true });
+    cx.drawImage(src, 0, 0, cw, ch);
+    const im = cx.getImageData(0, 0, cw, ch), d = im.data;
+    for (let i = 0; i < d.length; i += 4) {
+        let g = 255 - (d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114);
+        if (boost) g = g < 128 ? Math.max(0, (g - 40) * 1.4) : Math.min(255, 128 + (g - 128) * 1.6);   // تباين أعلى لتخفيف لمعان البلاستيك
+        d[i] = d[i + 1] = d[i + 2] = g;
+    }
+    cx.putImageData(im, 0, 0);
+    return cv;
+}
 async function startBarcodeCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setBarcodeStatus('الكاميرا غير متاحة في هذا المتصفح. اكتب الرقم يدوياً أو صوّر الباركود.', true);
@@ -4259,14 +4274,19 @@ async function startBarcodeCamera() {
             try { const tr = barcodeStream.getVideoTracks()[0]; await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) { /* غير مدعوم */ }
             setBarcodeStatus('وجّه الكاميرا نحو الباركود (قرّب واثبت قليلاً)...');
             setTimeout(() => { if (barcodeStream && document.getElementById('barcodeModal').style.display === 'flex') setBarcodeStatus('لم يُقرأ بعد: حسّن الإضاءة وقرّب أو ابعد قليلاً، أو التقط صورة، أو اكتب الرقم.'); }, 7000);
-            let last = 0;
+            let last = 0, invTick = 0;
             const tick = async (t) => {
                 if (!barcodeStream) return;
                 if (t - last > 220) {
                     last = t;
                     try {
-                        const found = await det.detect(video);
+                        let found = await det.detect(video);
                         if (found && found.length) { barcodeFound(found[0].rawValue); return; }
+                        if (video.videoWidth) {   // لم يُقرأ عادياً: جرّب النسخة المعكوسة (باركود أبيض على أحمر/أسود) بالتناوب
+                            invTick = (invTick || 0) + 1;
+                            found = await det.detect(barcodeInvertedCanvas(video, video.videoWidth, video.videoHeight, invTick % 2 === 0));
+                            if (found && found.length) { barcodeFound(found[0].rawValue); return; }
+                        }
                     } catch (e) { /* إطار غير جاهز */ }
                 }
                 barcodeRaf = requestAnimationFrame(tick);
@@ -4298,7 +4318,9 @@ async function barcodeFromPhoto(event) {
         if ('BarcodeDetector' in window) {
             const bmp = await createImageBitmap(file);
             const det = new BarcodeDetector();
-            const found = await det.detect(bmp);
+            let found = await det.detect(bmp);
+            if (!(found && found.length)) found = await det.detect(barcodeInvertedCanvas(bmp, bmp.width, bmp.height, false));
+            if (!(found && found.length)) found = await det.detect(barcodeInvertedCanvas(bmp, bmp.width, bmp.height, true));
             if (found && found.length) code = found[0].rawValue;
         } else {
             const Z = await loadZXing();
