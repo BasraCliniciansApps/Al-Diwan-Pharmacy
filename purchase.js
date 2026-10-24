@@ -71,16 +71,48 @@ function puLinesOf(pid) {
     src.filter(r => r && !r.cancelled && !puIsBonusOnly(r)).forEach(r => (r.items || []).filter(l => l.pid === pid).forEach(l => out.push({ r, l })));
     return out.sort((a, b) => String(b.r.date).localeCompare(String(a.r.date)) || String(b.r.createdTs).localeCompare(String(a.r.createdTs)));
 }
+function puLastExpBtn(p, arr) {   // زر صغير: استدعاء/إدخال تاريخ نفاذ آخر وارد
+    const lp = p.lastPurchase, exp = (lp && lp.expiry) || (arr[0] && arr[0].l.expiry) || '';
+    if (!lp && !arr.length) return '';
+    const has = exp && getProductExpiryDates(p).includes(exp);
+    return `<button type="button" class="lp-exp ${has ? 'done' : ''}" onclick="puLastExpiry(${p.id})" title="${has ? 'تاريخ النفاذ مضاف' : 'إضافة تاريخ نفاذ هذا الوارد'}">${has ? '✓ نفاذ' : '📅 نفاذ'}</button>`;
+}
+async function puLastExpiry(pid) {
+    const p = products.find(x => x.id === pid); if (!p || !can('stockEdit') || !writesAllowed()) return;
+    const arr = puLinesOf(pid), top = arr[0], lp = p.lastPurchase;
+    let exp = (lp && lp.expiry) || (top && top.l.expiry) || '';
+    if (exp && getProductExpiryDates(p).includes(exp)) { Swal.fire({ icon: 'info', title: 'تاريخ النفاذ ' + exp + ' مضاف أصلاً', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 }); return; }
+    let fromUser = false;
+    if (!exp) {
+        const r = await Swal.fire({ title: 'تاريخ نفاذ آخر وارد', showCancelButton: true, confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
+            html: `<div class="sw-form"><div class="sw-info" dir="ltr"><b>${escapeHtml(p.name)}</b></div><label>الشهر والسنة<input id="swLpExp" type="month" class="swal2-input"></label><small>يُضاف لتواريخ نفاذ المادة ويُسجَّل على فاتورة الوارد.</small></div>`,
+            preConfirm: () => { const v = document.getElementById('swLpExp').value; if (!v) { Swal.showValidationMessage('اختر الشهر'); return false; } return v; } });
+        if (!r.isConfirmed || !r.value) return;
+        exp = r.value; fromUser = true;
+    }
+    const before = getProductExpiryDates(p).slice();
+    puExpiryPush(p, exp);
+    const add = getProductExpiryDates(p).filter(e => !before.includes(e));
+    if (fromUser) {
+        if (top) { top.l.expiry = exp; top.l.expAdded = true; await puSaveRecord(top.r); }
+        if (lp) p.lastPurchase = { ...lp, expiry: exp };
+    }
+    const ok = await saveProductsDelta([{ p, dq: 0, dl: 0, expChanged: true, expAdd: add, expRemove: [], ...(fromUser && lp ? { lastSet: true, last: p.lastPurchase } : {}) }]);
+    if (!ok) { p.expiryDates = before; p.expiryDate = before[0] || ''; return; }
+    logAction('edit', p, [{ f: 'تاريخ النفاذ', from: '', to: exp }]);
+    renderAll(); try { openSheet(pid); } catch (e) { /* تجاهل */ }
+    Swal.fire({ icon: 'success', title: 'أُضيف تاريخ النفاذ ' + exp, toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
+}
 function lastPurchaseHtml(p) {
     const arr = puLinesOf(p.id);
     const cur = p.costPrice ? `<div style="font-size:0.78rem;margin-bottom:6px;font-weight:700;">💰 سعر الشراء الحالي: ${fmtNum(p.costPrice)} د.ع</div>` : '';
     const lp = p.lastPurchase;
     if (lp && (!arr.length || String(lp.date || '') >= String(arr[0].r.date || ''))) {
         const rows = arr.length ? arr.slice(0, 3).map(x => `<div style="font-size:0.74rem;color:#64748b;">• <b>${escapeHtml(x.r.supplier)}</b> — ${escapeHtml(fmtDateDMY(x.r.date))} — ${fmtNum(x.l.qty)} عبوة${x.l.cost ? ' × ' + fmtNum(x.l.cost) : ''}</div>`).join('') : '';
-        return cur + `<div style="font-size:0.78rem; margin-bottom:8px; padding:6px 8px; border-radius:8px; background:#ecfdf5;"><div style="font-weight:800;color:#065f46;">📥 آخر وارد: <b>${escapeHtml(lp.supplier)}</b> — ${escapeHtml(fmtDateDMY(lp.date))} — ${fmtNum(lp.qty)} عبوة${lp.cost ? ' × ' + fmtNum(lp.cost) : ''} — فاتورة <span dir="ltr">${escapeHtml(lp.no)}</span>${lp.expiry ? ' — نفاذ <span dir="ltr">' + escapeHtml(lp.expiry) + '</span>' : ''}</div>${rows}</div>`;
+        return cur + `<div style="font-size:0.78rem; margin-bottom:8px; padding:6px 8px; border-radius:8px; background:#ecfdf5;"><div style="font-weight:800;color:#065f46;">📥 آخر وارد: <b>${escapeHtml(lp.supplier)}</b> — ${escapeHtml(fmtDateDMY(lp.date))} — ${fmtNum(lp.qty)} عبوة${lp.cost ? ' × ' + fmtNum(lp.cost) : ''} — فاتورة <span dir="ltr">${escapeHtml(lp.no)}</span>${lp.expiry ? ' — نفاذ <span dir="ltr">' + escapeHtml(lp.expiry) + '</span>' : ''} ${puLastExpBtn(p, arr)}</div>${rows}</div>`;
     }
     if (!arr.length) return cur + '<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📥 لا يوجد وارد مسجّل لهذا الصنف</div>';
-    const row = (x, first) => `<div style="${first ? 'font-weight:800;color:#065f46;' : 'font-size:0.74rem;color:#64748b;'}">${first ? '📥 آخر وارد: ' : '• '}<b>${escapeHtml(x.r.supplier)}</b> — ${escapeHtml(fmtDateDMY(x.r.date))} — ${fmtNum(x.l.qty)} عبوة${x.l.cost ? ' × ' + fmtNum(x.l.cost) : ''} — فاتورة <span dir="ltr">${escapeHtml(x.r.no)}</span>${x.l.batch ? ' — دفعة <span dir="ltr">' + escapeHtml(x.l.batch) + '</span>' : ''}</div>`;
+    const row = (x, first) => `<div style="${first ? 'font-weight:800;color:#065f46;' : 'font-size:0.74rem;color:#64748b;'}">${first ? '📥 آخر وارد: ' : '• '}<b>${escapeHtml(x.r.supplier)}</b> — ${escapeHtml(fmtDateDMY(x.r.date))} — ${fmtNum(x.l.qty)} عبوة${x.l.cost ? ' × ' + fmtNum(x.l.cost) : ''} — فاتورة <span dir="ltr">${escapeHtml(x.r.no)}</span>${x.l.batch ? ' — دفعة <span dir="ltr">' + escapeHtml(x.l.batch) + '</span>' : ''}${first ? ' ' + puLastExpBtn(p, arr) : ''}</div>`;
     return cur + `<div style="font-size:0.78rem; margin-bottom:8px; padding:6px 8px; border-radius:8px; background:#ecfdf5;">${row(arr[0], true)}${arr.slice(1, 4).map(x => row(x, false)).join('')}</div>`;
 }
 
