@@ -144,8 +144,13 @@ async function quickImgUpload(id, file) {
             im.src = dataUrl;
         });
         const fileName = 'med_' + Date.now() + '.jpg', path = 'images/' + fileName;
-        const resp = await fetch('https://api.github.com/repos/BasraCliniciansApps/Al-Diwan-Pharmacy/contents/' + path, { method: 'PUT', headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'صورة دواء: ' + fileName, content: b64, branch: 'main' }) });
-        const out = await resp.json();
+        let resp, out;
+        for (let i = 0; i < 5; i++) { // تعارض لحظي بالفرع (is at … but expected) → إعادة المحاولة
+            resp = await fetch('https://api.github.com/repos/BasraCliniciansApps/Al-Diwan-Pharmacy/contents/' + path, { method: 'PUT', headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'صورة دواء: ' + fileName, content: b64, branch: 'main' }) });
+            out = await resp.json().catch(() => ({}));
+            if (resp.ok || !(resp.status === 409 || /but expected|is at/i.test(out.message || ''))) break;
+            await new Promise(r => setTimeout(r, 1200 * (i + 1)));
+        }
         if (!resp.ok || !out.content) { if (resp.status === 401) localStorage.removeItem('diwan_gh_token'); throw new Error(out.message || 'فشل الرفع إلى GitHub'); }
         const old = p.img; p.img = 'https://raw.githubusercontent.com/BasraCliniciansApps/Al-Diwan-Pharmacy/main/' + path;
         if (!(await saveProductsDelta([{ p, dq: 0, dl: 0 }]))) { p.img = old; Swal.close(); return; }
