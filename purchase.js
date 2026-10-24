@@ -515,26 +515,15 @@ function puHomeBadge() {
 // ---------- الكشف الشهري ----------
 function puMonthNow() { return todayLocalISO().slice(0, 7); }
 // (سجل الطلبيات الشهري/السنوي: انظر ledger.js)
-async function puPrint(paneId) {
-    // أغلق أي نافذة SweetAlert تماماً قبل الطباعة: وإلا تبقى عالقة (انتهاء حركة الإغلاق لا يحدث أثناء الطباعة) وتحجب اللمس
-    try { if (window.Swal && Swal.isVisible && Swal.isVisible()) Swal.close(); } catch (e) { /* تجاهل */ }
-    await new Promise(r => setTimeout(r, 400));
-    document.querySelectorAll('.swal2-container').forEach(e => e.remove());
-    document.body.classList.remove('swal2-shown', 'swal2-height-auto', 'swal2-no-backdrop', 'swal2-toast-shown'); document.body.style.paddingRight = '';
-    document.querySelectorAll('.pu-pane').forEach(p => p.classList.toggle('print-active', p.id === paneId));
-    document.body.classList.add('printing-purch');
-    let fin = false;
-    const done = () => {
-        if (fin) return; fin = true;
-        document.body.classList.remove('printing-purch');
-        document.querySelectorAll('.pu-pane').forEach(p => p.classList.remove('print-active'));
-        document.querySelectorAll('.swal2-container').forEach(e => e.remove());
-        document.body.classList.remove('swal2-shown', 'swal2-height-auto');
-        window.removeEventListener('afterprint', done); window.removeEventListener('focus', done); document.removeEventListener('visibilitychange', onVis);
-    };
-    const onVis = () => { if (document.visibilityState === 'visible') setTimeout(done, 300); };
-    window.addEventListener('afterprint', done); window.addEventListener('focus', () => setTimeout(done, 300), { once: true }); document.addEventListener('visibilitychange', onVis);
-    setTimeout(() => { try { window.print(); } catch (e) { done(); } setTimeout(done, 8000); }, 80);
+const PU_PANE_TITLES = { month: 'تقرير الوارد الشهري', ret: 'سجل المردود', unrec: 'المردود غير المقطوع', pay: 'مدفوعات المذاخر', bonus: 'البونص', xfer: 'التبادل بين الصيدليات', exp: 'المنتهي والتالف', sum: 'الملخص المالي' };
+function puPrint(paneId) {   // معاينة داخل التطبيق لمحتوى التبويب (بدون عناصر التحكم) مع زر الطباعة
+    const pane = document.getElementById(paneId); if (!pane) return;
+    const c = pane.cloneNode(true);
+    c.querySelectorAll('.no-print, button, input, select, textarea, script, label.pu-chk').forEach(e => e.remove());
+    c.querySelectorAll('[onclick]').forEach(e => e.removeAttribute('onclick'));
+    c.removeAttribute('id'); c.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
+    c.classList.remove('pu-pane', 'active', 'print-active'); c.style.display = 'block';
+    openReport({ title: PU_PANE_TITLES[paneId.replace('puPane-', '')] || 'تقرير', html: c.innerHTML });
 }
 
 // ---------- المذاخر والأسعار ----------
@@ -699,16 +688,12 @@ async function puSelOut(kind) {
 }
 function puOutRender(kind, recs, mode, title) {
     const tbl = puSelTable(recs, mode); if (title) tbl.title = title;
-    if (kind === 'csv') { lgCsvDownload('orders-' + (title ? 'invoice' : 'selected-' + mode) + '-' + todayLocalISO() + '.csv', [[tbl.title], [], tbl.head, ...tbl.rows, tbl.foot]); return; }
-    const esc = escapeHtml, td = (v, i) => `<td${i >= tbl.numFrom ? ' class="num"' : ''}>${esc(v)}</td>`;
-    $b('puSelSheet').innerHTML = `<h2 class="psp-t">${esc(tbl.title)}</h2><div class="psp-d">${esc(fmtDateDMY(todayLocalISO()))} · ${fmtNum(recs.length)} قائمة</div>
-        <table class="bill-table psp-tb"><thead><tr>${tbl.head.map(h => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${tbl.rows.map(row => `<tr>${row.map(td).join('')}</tr>`).join('')}</tbody><tfoot><tr>${tbl.foot.map((v, i) => `<th${i >= tbl.numFrom ? ' class="num"' : ''}>${esc(v)}</th>`).join('')}</tr></tfoot></table>`;
-    puPrint('puPane-sel');
+    lgCsvDownload('orders-' + (title ? 'invoice' : 'selected-' + mode) + '-' + todayLocalISO() + '.csv', [[tbl.title], [], tbl.head, ...tbl.rows, tbl.foot], tbl.title);
 }
 // طباعة / Excel لقائمة وارد واحدة من نافذة تفاصيلها (تفصيل المواد)
 function puOneOut(id, kind) {
     const r = puAll.find(x => x.id === id); if (!r) return;
-    if (kind === 'print') { try { Swal.close(); } catch (e) { /* تجاهل */ } }
+    try { Swal.close(); } catch (e) { /* تجاهل */ }
     puOutRender(kind, [r], 'items', 'قائمة وارد — ' + r.supplier + ' — ' + r.no + ' — ' + fmtDateDMY(r.date));
 }
 function puSelTable(recs, mode) {

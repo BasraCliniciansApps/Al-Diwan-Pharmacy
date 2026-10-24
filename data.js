@@ -4692,6 +4692,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     let exiting = false, asking = false;
     try { history.replaceState({ g: 0 }, ''); history.pushState({ g: 1 }, ''); } catch (e) { return; }
     function closeTopLayer() {
+        if (document.getElementById('reportViewer')) { closeReport(); return true; }
         if (window.Swal && Swal.isVisible && Swal.isVisible()) { Swal.close(); return true; }
         const z = document.getElementById('zoomModal');
         if (z && z.style.display && z.style.display !== 'none') { z.style.display = 'none'; return true; }

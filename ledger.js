@@ -163,9 +163,54 @@ async function lgToggleClose(m) {
     await lgSave({ id: 'close-' + m, kind: 'close', month: m, date: todayLocalISO(), del: closed, createdTs: new Date().toISOString() });
     renderPuMonth();
 }
-function lgCsvDownload(name, lines) {
+function lgCsvSave(name, lines) {
     const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
     downloadFile(name, '﻿' + lines.map(l => l.map(q).join(',')).join('\r\n'), 'text/csv;charset=utf-8');
+}
+// كل تصدير Excel/طباعة يمرّ الآن بنافذة معاينة داخل التطبيق (فيها زرا Excel وطباعة) بدل العمل بالخلفية
+const RV_TITLES = { 'orders': 'قوائم الوارد', 'returns': 'سجل المردود', 'unrecovered-returns': 'المردود غير المقطوع', 'supplier-payments': 'مدفوعات المذاخر', 'bonus': 'البونص', 'transfers': 'التبادل بين الصيدليات', 'expired': 'المنتهي والتالف', 'financial-summary': 'الملخص المالي' };
+function lgCsvDownload(name, lines, title) {
+    let L = lines.map(r => r.slice()), t = title || '';
+    while (L.length && L[0].every(c => c === '' || c == null)) L.shift();
+    if (L.length > 2 && L[0].length === 1) { t = t || L[0][0]; L.shift(); while (L.length && L[0].every(c => c === '' || c == null)) L.shift(); }
+    if (!t) { const k = Object.keys(RV_TITLES).sort((a, b) => b.length - a.length).find(x => String(name).startsWith(x)); t = k ? RV_TITLES[k] : 'تقرير'; }
+    openReport({ title: t, lines: L, csvLines: lines, csvName: name });
+}
+function rvTableFromLines(lines) {
+    const esc = escapeHtml, isNum = v => /\d/.test(String(v)) && /^[\d,.\-+%$ ✓]+$/.test(String(v).trim());
+    let out = '', open = false, head = true;
+    const close = () => { if (open) { out += '</tbody></table>'; open = false; } };
+    lines.forEach(r => {
+        if (!r.length || r.every(c => c === '' || c == null)) { close(); head = true; return; }
+        const cells = r.map((c, i) => `<${head ? 'th' : 'td'}${!head && isNum(c) ? ' class="num"' : ''}>${esc(c == null ? '' : c)}</${head ? 'th' : 'td'}>`).join('');
+        if (head) { close(); out += `<table class="rv-tb"><thead><tr>${cells}</tr></thead><tbody>`; open = true; head = false; return; }
+        const tot = /^المجموع/.test(String(r[0] || '')) || /^المجموع/.test(String(r[1] || ''));
+        out += `<tr${tot ? ' class="tot"' : ''}>${cells}</tr>`;
+    });
+    close(); return out;
+}
+let rvState = null;
+function openReport(o) {
+    closeReport(true);
+    const html = o.html || rvTableFromLines(o.lines || []);
+    const d = document.createElement('div'); d.id = 'reportViewer'; d.setAttribute('dir', 'rtl');
+    d.innerHTML = `<div class="rv-top"><b>${escapeHtml(o.title || 'تقرير')}</b><button type="button" class="rv-x" onclick="closeReport()" aria-label="إغلاق">✕</button></div>
+        <div class="rv-body"><div class="rv-sheet"><h2 class="rv-h">${escapeHtml(o.title || 'تقرير')}</h2><div class="rv-d">${escapeHtml(fmtDateDMY(todayLocalISO()))}</div>${html}</div></div>
+        <div class="rv-bar">${o.lines && o.csvName ? '<button type="button" class="rv-b" onclick="rvExcel()">⬇️ Excel</button>' : ''}<button type="button" class="rv-b rv-p" onclick="rvPrint()">🖨️ طباعة</button><button type="button" class="rv-b rv-c" onclick="closeReport()">إغلاق</button></div>`;
+    document.body.appendChild(d); document.body.classList.add('rv-open'); rvState = o;
+}
+function closeReport(silent) {
+    const d = document.getElementById('reportViewer'); if (d) d.remove();
+    document.body.classList.remove('rv-open', 'printing-rv'); rvState = null;
+}
+function rvExcel() { if (rvState && rvState.csvName) lgCsvSave(rvState.csvName, rvState.csvLines || rvState.lines); }
+function rvPrint() {
+    document.body.classList.add('printing-rv');
+    let fin = false;
+    const done = () => { if (fin) return; fin = true; document.body.classList.remove('printing-rv'); window.removeEventListener('afterprint', done); document.removeEventListener('visibilitychange', onVis); };
+    const onVis = () => { if (document.visibilityState === 'visible') setTimeout(done, 300); };
+    window.addEventListener('afterprint', done); document.addEventListener('visibilitychange', onVis);
+    setTimeout(() => { try { window.print(); } catch (e) { done(); } setTimeout(done, 8000); }, 80);
 }
 function puMonthCsv() {
     const rg = puStmtRange(), sup = $b('puMonthSup').value, d = lgStmtData(rg.from, rg.to, sup, $b('puGroup').checked), s = d.sum;

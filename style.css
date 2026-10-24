@@ -2236,3 +2236,31 @@ html, body { overscroll-behavior-y: contain; }
 #ptrInd { position: fixed; top: -44px; left: 50%; transform: translate(-50%, 0); z-index: 9000; width: 40px; height: 40px; border-radius: 50%; background: #0f1c38; color: #f5a623; display: none; align-items: center; justify-content: center; font: 900 1.2rem/1 inherit; box-shadow: 0 4px 14px rgba(0,0,0,.3); transition: transform .15s; }
 #ptrInd.pull { display: flex; } #ptrInd.ready { background: #16a34a; color: #fff; }
 #ptrInd.spin span { display: inline-block; animation: ptrspin .8s linear infinite; } @keyframes ptrspin { to { transform: rotate(360deg); } }
+
+/* ===== v78: نافذة معاينة التقارير (طباعة / Excel) داخل التطبيق ===== */
+body.rv-open { overflow: hidden; }
+#reportViewer { position: fixed; inset: 0; z-index: 10050; background: var(--bg, #f1f5f9); display: flex; flex-direction: column; }
+.rv-top { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; background: #0f1c38; color: #fff; }
+.rv-top b { font-size: 1rem; } .rv-x { width: 38px; height: 38px; border: 0; border-radius: 10px; background: rgba(255,255,255,.14); color: #fff; font-size: 1.1rem; cursor: pointer; }
+.rv-body { flex: 1 1 auto; overflow: auto; padding: 12px; -webkit-overflow-scrolling: touch; }
+.rv-sheet { background: #fff; color: #0f1c38; border-radius: 14px; padding: 14px; box-shadow: 0 1px 4px rgba(15,28,56,.12); min-width: min-content; }
+.rv-h { margin: 0 0 2px; text-align: center; font-size: 1.1rem; } .rv-d { text-align: center; color: #64748b; font-size: .78rem; margin-bottom: 12px; }
+.rv-tb { width: 100%; border-collapse: collapse; font-size: .78rem; margin-bottom: 14px; }
+.rv-tb th, .rv-tb td { border: 1px solid #cbd5e1; padding: 6px 7px; text-align: right; vertical-align: top; }
+.rv-tb th { background: #f1f5f9; white-space: nowrap; } .rv-tb td.num { text-align: center; direction: ltr; white-space: nowrap; }
+.rv-tb tr.tot td { background: #f8fafc; font-weight: 800; }
+.rv-bar { flex: 0 0 auto; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #e2e8f0; }
+.rv-b { height: 48px; border-radius: 12px; border: 2px solid #cbd5e1; background: #fff; color: #0f1c38; font: 800 .92rem inherit; cursor: pointer; }
+.rv-p { background: #0f1c38; border-color: #0f1c38; color: #fff; } .rv-c { color: #475569; }
+:root[data-theme="dark"] .rv-bar, :root[data-theme="dark"] .rv-b:not(.rv-p) { background: var(--surface); color: var(--text-main); }
+@media print {
+    body.printing-rv > *:not(#reportViewer) { display: none !important; }
+    body.printing-rv { overflow: visible !important; height: auto !important; background: #fff !important; }
+    body.printing-rv #reportViewer { position: static !important; display: block !important; background: #fff !important; }
+    body.printing-rv .rv-top, body.printing-rv .rv-bar { display: none !important; }
+    body.printing-rv .rv-body { overflow: visible !important; padding: 0 !important; }
+    body.printing-rv .rv-sheet { box-shadow: none !important; border-radius: 0 !important; padding: 0 !important; }
+    body.printing-rv .rv-tb { font-size: 9pt; } body.printing-rv .rv-tb tr { page-break-inside: avoid; }
+}
+.rv-h, .rv-d { position: sticky; right: 0; width: calc(100vw - 52px); max-width: 100%; box-sizing: border-box; }
+@media print { body.printing-rv .rv-h, body.printing-rv .rv-d { position: static; width: auto; } }
