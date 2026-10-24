@@ -144,3 +144,51 @@ function renderAlerts() {
 // الشاشة الأولى: انتظر حالة الدخول، وإلا اذهب لشاشة الدخول
 document.body.dataset.view = 'splash';
 splashTimer = setTimeout(() => { if (currentView === 'splash') showView('login'); }, 3500);
+
+// ============================================================================
+// سحب للأسفل للتحديث (بدون إعادة تحميل التطبيق): يجلب أحدث البيانات ويبقى بنفس الشاشة والتبويب
+// ============================================================================
+let ptrBusy = false;
+async function softRefresh() {
+    if (ptrBusy) return; ptrBusy = true;
+    const y = window.scrollY;
+    try {
+        if (typeof syncLocalRecords === 'function' && isFirebaseReady && navigator.onLine) { try { await syncLocalRecords(false); } catch (e) { /* تجاهل */ } }
+        const jobs = [];
+        if (typeof puLoad === 'function' && can('purchases')) jobs.push(puLoad());
+        if (typeof loadInvoices === 'function' && can('sell')) jobs.push(loadInvoices());
+        if (typeof lgLoad === 'function' && can('purchases')) jobs.push(lgLoad());
+        await Promise.allSettled(jobs);
+        const editing = (currentView === 'purch' && (puTabName || 'new') === 'new') || (currentView === 'bill' && (currentBillTab || 'new') === 'new');
+        if (!editing && currentView !== 'splash' && currentView !== 'login') showView(currentView);   // يبقى بنفس الشاشة والتبويب
+        window.scrollTo(0, y);
+        try { Swal.fire({ icon: 'success', title: 'تم التحديث', toast: true, position: 'bottom', showConfirmButton: false, timer: 1200 }); } catch (e) { /* تجاهل */ }
+    } catch (e) { /* تجاهل */ }
+    ptrBusy = false;
+}
+(function setupPullToRefresh() {
+    const ind = document.createElement('div'); ind.id = 'ptrInd'; ind.innerHTML = '<span>↓</span>'; document.body.appendChild(ind);
+    const BLOCK = '#bottomSheet, .bottom-sheet, .modal-card, .swal2-container, #barcodeModal, #zoomModal, #formModal, input, textarea, select, .pu-d-scroll, .no-ptr';
+    let sy = 0, dy = 0, on = false, sc = null;
+    const scrollParent = el => { for (let e = el; e && e !== document.body && e !== document.documentElement; e = e.parentElement) { const o = getComputedStyle(e).overflowY; if ((o === 'auto' || o === 'scroll') && e.scrollHeight > e.clientHeight + 1) return e; } return null; };
+    document.addEventListener('touchstart', ev => {
+        on = false; if (ptrBusy || ev.touches.length !== 1 || currentView === 'splash' || currentView === 'login') return;
+        if (ev.target.closest && ev.target.closest(BLOCK)) return;
+        sc = scrollParent(ev.target);
+        if ((sc ? sc.scrollTop : window.scrollY) > 0) return;
+        sy = ev.touches[0].clientY; dy = 0; on = true;
+    }, { passive: true });
+    document.addEventListener('touchmove', ev => {
+        if (!on) return;
+        dy = ev.touches[0].clientY - sy;
+        if (dy <= 0 || (sc ? sc.scrollTop : window.scrollY) > 0) { ind.className = ''; ind.style.transform = ''; if (dy <= 0) on = false; return; }
+        const t = Math.min(dy * 0.5, 64);
+        ind.className = 'pull' + (dy > 80 ? ' ready' : ''); ind.style.transform = 'translate(-50%,' + t + 'px)'; ind.firstChild.textContent = dy > 80 ? '⟳' : '↓';
+    }, { passive: true });
+    const end = () => {
+        if (!on) return; on = false;
+        const go = dy > 80; ind.className = go ? 'pull spin' : ''; ind.style.transform = go ? 'translate(-50%,48px)' : '';
+        if (go) softRefresh().finally(() => { ind.className = ''; ind.style.transform = ''; });
+    };
+    document.addEventListener('touchend', end, { passive: true }); document.addEventListener('touchcancel', end, { passive: true });
+})();

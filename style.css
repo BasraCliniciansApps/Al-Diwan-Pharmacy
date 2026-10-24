@@ -2230,3 +2230,9 @@ body.role-staff:not(.can-catalog) .home-quick button[onclick^="openCatalog"] { d
 .psp-tb { width: 100%; border-collapse: collapse; font-size: .78rem; } .psp-tb th, .psp-tb td { border: 1px solid #cbd5e1; padding: 5px 6px; text-align: right; } .psp-tb td.num, .psp-tb th.num { text-align: left; direction: ltr; }
 .psp-tb thead th { background: #f1f5f9; } .psp-tb tfoot th { background: #f8fafc; }
 @media print { .psp-tb { font-size: 9pt; } .psp-tb tr { page-break-inside: avoid; } }
+
+/* ===== v76: سحب للأسفل للتحديث بلا إعادة تحميل ===== */
+html, body { overscroll-behavior-y: contain; }
+#ptrInd { position: fixed; top: -44px; left: 50%; transform: translate(-50%, 0); z-index: 9000; width: 40px; height: 40px; border-radius: 50%; background: #0f1c38; color: #f5a623; display: none; align-items: center; justify-content: center; font: 900 1.2rem/1 inherit; box-shadow: 0 4px 14px rgba(0,0,0,.3); transition: transform .15s; }
+#ptrInd.pull { display: flex; } #ptrInd.ready { background: #16a34a; color: #fff; }
+#ptrInd.spin span { display: inline-block; animation: ptrspin .8s linear infinite; } @keyframes ptrspin { to { transform: rotate(360deg); } }
