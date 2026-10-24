@@ -211,7 +211,7 @@ function catPriceHtml(p, isNew, pre) {
             <div class="qg3">
                 <div class="qf"><span>عدد الأجزاء</span><input id="qpSc" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${sub ? subCountOf(sub) : ''}"></div>
                 <div class="qf"><span>نوع الجزء</span><select id="qpSt" class="qin ltr" dir="ltr">${types.map(t => `<option value="${escapeHtml(t)}"${sub && sub.subType === t ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></div>
-                <div class="qf"><span>سعر الجزء</span><input id="qpSp" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${sub && sub.subPrice ? sub.subPrice : ''}" data-manual="${sub && sub.subPrice && Math.round((parseFloat(sub.price) || 0) / subCountOf(sub)) !== (parseFloat(sub.subPrice) || 0) ? 1 : ''}"></div>
+                <div class="qf"><span>سعر الجزء</span><input id="qpSp" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${sub && sub.subPrice ? sub.subPrice : ''}" data-manual="${sub && sub.subPrice && (Math.round((parseFloat(sub.price) || 0) / subCountOf(sub)) !== (parseFloat(sub.subPrice) || 0) && subPriceCalc(sub.price, subCountOf(sub)) !== (parseFloat(sub.subPrice) || 0)) ? 1 : ''}"></div>
             </div>
             <div class="qf qrow"><span>أجزاء مفتوحة من عبوة (تتحول لعلب إذا زادت عن عدد الأجزاء)</span><input id="qpLoose" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${p ? (parseInt(p.loose) || 0) : 0}"></div>
         </div>
@@ -228,7 +228,7 @@ function catPriceWire(p) {
         else if (m === 'percent') { $('qpHint').innerHTML = markupHintHtml(cost, mk).replace(/<\/?b>/g, ''); if (Number(cost) > 0 && mk !== '' && Number(mk) >= 0) $('qpPrice').value = markupCalc(cost, mk); }
         else $('qpHint').textContent = 'اكتب السعر المطبوع على ملصق الوزارة.';
         const sc = parseInt($('qpSc').value) || 0, sp = $('qpSp'), price = parseFloat($('qpPrice').value) || 0;
-        if (sp.dataset.manual !== '1') sp.value = sc > 1 && price > 0 ? Math.round(price / sc) : '';
+        if (sp.dataset.manual !== '1') sp.value = sc > 1 && price > 0 ? subPriceCalc(price, sc) : '';
     };
     ['qpMode', 'qpCost', 'qpMk', 'qpPrice', 'qpSc'].forEach(id => $(id).addEventListener('input', refresh));
     mode.addEventListener('change', refresh);
@@ -246,7 +246,7 @@ function catPriceRead() {
     if (mode === 'syndicate' && !(cost > 0)) { Swal.showValidationMessage('أدخل سعر الشراء (سعر المذخر) لحساب السعر'); return false; }
     const sc = parseInt($('qpSc').value) || 0, sp = parseFloat($('qpSp').value);
     return { name, qty: Math.max(0, parseInt($('qpQty').value) || 0), loose: Math.max(0, parseInt($('qpLoose').value) || 0), bc: cleanBarcode($('qpBc').value), pricing: mode, costPrice: cost, price, markupPct: mode === 'percent' ? mk : null,
-        retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || 'جزء', subPrice: sp > 0 ? sp : Math.round(price / sc) } };
+        retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || 'جزء', subPrice: sp > 0 ? sp : subPriceCalc(price, sc) } };
 }
 async function catPrice(id, pre) {
     const p = id ? products.find(x => x.id === id) : null; if (id && !p) return;

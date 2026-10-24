@@ -4656,22 +4656,26 @@ async function addSubType() {
     if (!subTypes.some(t => t.toLowerCase() === v.toLowerCase())) { subTypes.push(v); saveLocal(); pushToCloud(true); }
     renderSubTypeSelect(v);
 }
+// سعر الجزء التلقائي = سعر العبوة ÷ عدد الأجزاء مقرّباً للأعلى لأقرب 250 دينار
+const SUB_ROUND = 250;
+function subPriceCalc(price, cnt) { price = parseFloat(price) || 0; cnt = parseInt(cnt) || 0; return cnt > 1 && price > 0 ? Math.ceil(price / cnt / SUB_ROUND) * SUB_ROUND : 0; }
 function retailAutoPrice() {
     const sp = document.getElementById('fSubPrice'), cnt = parseInt(document.getElementById('fSubCount').value) || 0;
     if (!sp || sp.dataset.manual === '1') return;
     const price = parseFloat(document.getElementById('fPrice').value) || 0;
-    sp.value = cnt > 1 && price > 0 ? Math.round(price / cnt) : '';
+    sp.value = cnt > 1 && price > 0 ? subPriceCalc(price, cnt) : '';
 }
 function fillRetailForm(p) {
     const cnt = document.getElementById('fSubCount'); if (!cnt) return;
     cnt.value = p && subCountOf(p) ? subCountOf(p) : '';
     renderSubTypeSelect(p && p.subType);
     const sp = document.getElementById('fSubPrice');
-    const auto = p && hasRetail(p) && Math.round((parseFloat(p.price) || 0) / subCountOf(p)) === (parseFloat(p.subPrice) || 0);
+    const auto = p && hasRetail(p) && (Math.round((parseFloat(p.price) || 0) / subCountOf(p)) === (parseFloat(p.subPrice) || 0) || subPriceCalc(p.price, subCountOf(p)) === (parseFloat(p.subPrice) || 0));
     sp.dataset.manual = (p && p.subPrice && !auto) ? '1' : '';
     sp.value = p && parseFloat(p.subPrice) ? p.subPrice : '';
     document.getElementById('fLoose').value = p && p.loose ? p.loose : 0;
     if (p && hasRetail(p) && !sp.value) retailAutoPrice();
+    else if (auto && sp.dataset.manual !== '1') sp.value = subPriceCalc(p.price, subCountOf(p)) || sp.value;   // قيمة تلقائية قديمة ← تُحدَّث للتقريب الجديد
 }
 function readRetailForm() {
     const cnt = parseInt(document.getElementById('fSubCount').value) || 0;
@@ -4681,7 +4685,7 @@ function readRetailForm() {
     return {
         subCount: cnt,
         subType: document.getElementById('fSubType').value || 'جزء',
-        subPrice: sp > 0 ? sp : Math.round(price / cnt),
+        subPrice: sp > 0 ? sp : subPriceCalc(price, cnt),
         loose: Math.min(Math.max(parseInt(document.getElementById('fLoose').value) || 0, 0), cnt - 1)
     };
 }
