@@ -353,9 +353,11 @@ async function puSave() {
     await puSaveRecord(rec);
     await puUpsertSupplier(supplier);
     renderAll();
+    const retMap = {}; (pu.items || []).forEach(it => { if (puNum(it.ret) > 0) retMap[it.pid] = puNum(it.ret); });   // مواد علّمتها «مردود» أثناء الإدخال
     pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew();
     Swal.fire({ icon: 'success', title: editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ الوارد وأُضيفت الكميات للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
     if (editing) puTab('log');
+    else if (Object.keys(retMap).length && typeof ptOpenReturnFor === 'function') ptOpenReturnFor(rec, retMap);
 }
 function puCancelEdit() { pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew(); }
 function puEdit(id) {

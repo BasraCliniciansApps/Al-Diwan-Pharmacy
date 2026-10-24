@@ -26,7 +26,7 @@ function ptExpEdit(i, v) { const it = pu.items[i]; if (!it) return; const e = pt
 function puRenderTable() {
     const box = $b('puTable'); if (!box) return;
     box.innerHTML = pu.items.map((it, i) => `<div class="pt-row" id="ptr-${i}">
-        <div class="pt-top"><b dir="ltr" class="pt-nm">${ptEsc(it.name)}</b><span class="pt-sum" id="pts-${i}"></span><button type="button" class="pu-x" onclick="puRemoveItem(${i})" aria-label="حذف">✕</button></div>
+        <div class="pt-top"><b dir="ltr" class="pt-nm">${ptEsc(it.name)}</b><span class="pt-sum" id="pts-${i}"></span><button type="button" class="pt-ret ${puNum(it.ret) > 0 ? 'on' : ''}" onclick="ptRet(${i})" title="مردود لهذه المادة">↩️${puNum(it.ret) > 0 ? ' ' + puNum(it.ret) : ''}</button><button type="button" class="pu-x" onclick="puRemoveItem(${i})" aria-label="حذف">✕</button></div>
         <div class="pt-in">
             <label><span>عدد</span><input type="number" min="1" inputmode="numeric" value="${ptEsc(it.qty)}" oninput="puItemEdit(${i},'qty',this.value)" onfocus="this.select()"></label>
             <label><span>بونص</span><input type="number" min="0" inputmode="numeric" placeholder="0" value="${ptEsc(it.bonus || '')}" oninput="puItemEdit(${i},'bonus',this.value)" onfocus="this.select()"></label>
@@ -89,4 +89,22 @@ async function ptCommit() {
     ptSel = null; ptNewMode = false; ptFound = []; $b('ptBrand').style.display = 'none'; $b('ptRes').style.display = 'none';
     puRenderItems(); puChanged();
     $b('ptName').focus();
+}
+
+// ↩️ مردود لسطر: يُحدَّد العدد المراد إرجاعه، وبعد حفظ الوارد تفتح نافذة المردود معبّأة تلقائياً (تُسجَّل بسجل المردود بضغطة تأكيد)
+async function ptRet(i) {
+    const it = pu.items[i]; if (!it) return;
+    const r = await Swal.fire({ title: 'مردود «' + escapeHtml(it.name) + '»', input: 'number', inputValue: puNum(it.ret) > 0 ? puNum(it.ret) : (parseInt(it.qty) || 1), inputAttributes: { min: 0, inputmode: 'numeric' },
+        inputLabel: 'العدد المراد إرجاعه للمذخر (0 = إلغاء الإرجاع)', showCancelButton: true, confirmButtonText: 'تعيين', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38',
+        inputValidator: v => (parseInt(v) || 0) > (parseInt(it.qty) || 0) ? 'أكبر من عدد الفاتورة' : undefined });
+    if (!r.isConfirmed) return;
+    it.ret = Math.max(parseInt(r.value) || 0, 0) || ''; puRenderItems(); puChanged();
+}
+function ptOpenReturnFor(rec, retMap) {
+    try {
+        lgOpenReturn({ listId: rec.id });
+        (lgr.lines || []).forEach(l => { if (retMap[l.pid]) l.qty = Math.min(retMap[l.pid], l.max); });
+        lgrRender(); lgrAutoMode();
+        Swal.fire({ icon: 'info', title: 'راجع المردود واضغط حفظ', text: 'عبّينا لك المواد اللي علّمتها «مردود». تأكد من الأعداد والسعر ثم احفظ.', toast: true, position: 'bottom', showConfirmButton: false, timer: 3500 });
+    } catch (e) { /* إن لم تتوفر شاشة المردود يبقى الوارد محفوظاً */ }
 }
