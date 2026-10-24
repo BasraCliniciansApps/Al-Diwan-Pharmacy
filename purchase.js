@@ -10,9 +10,9 @@ let puTabName = 'new';
 let puPendingBc = '';          // باركود جديد بانتظار ربطه بدواء
 let puDraftTimer = null;
 
-function emptyPurchase() { return { supplier: '', no: '', date: todayLocalISO(), items: [], returnAmt: '', paid: '', notes: '', stmt: false, useEntry: false }; }
+function emptyPurchase() { return { supplier: '', no: '', date: todayLocalISO(), items: [], returnAmt: '', paid: '', notes: '', stmt: false, useEntry: false, updStock: true }; }
 const puNum = v => parseFloat(v) || 0;
-const puLQ = l => (parseInt(l.qty) || 0) + (parseInt(l.bonus) || 0);   // الكمية الداخلة للمخزن = المشتراة + البونص
+const puLQ = l => l.applied === false ? 0 : (parseInt(l.qty) || 0) + (parseInt(l.bonus) || 0);   // الكمية الداخلة للمخزن = المشتراة + البونص
 function puTotalOf(r) { return (r.items || []).reduce((s, it) => s + puNum(it.qty) * puNum(it.cost), 0); }
 function puNetOf(r) { return Math.max(puTotalOf(r) - puNum(r.returnAmt) - (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0), 0); }
 function puRemaining(r) { return r.cancelled ? 0 : Math.max(puNetOf(r) - puNum(r.paid), 0); }
@@ -144,11 +144,13 @@ function puWriteFields() {
     $b('puSupplier').value = pu.supplier || ''; $b('puNo').value = pu.no || ''; $b('puDate').value = pu.date || todayLocalISO();
     $b('puReturn').value = pu.returnAmt === '' ? '' : pu.returnAmt; $b('puPaid').value = pu.paid === '' ? '' : pu.paid; $b('puNotes').value = pu.notes || '';
     if ($b('puStmt')) $b('puStmt').checked = !!pu.stmt; if ($b('puUseEntry')) $b('puUseEntry').checked = !!pu.useEntry;
+    if ($b('puUpdStock')) $b('puUpdStock').checked = pu.updStock !== false;
 }
 function puReadFields() {
     pu.supplier = $b('puSupplier').value; pu.no = $b('puNo').value; pu.date = $b('puDate').value || todayLocalISO();
     pu.returnAmt = $b('puReturn').value; pu.paid = $b('puPaid').value; pu.notes = $b('puNotes').value;
     pu.stmt = !!($b('puStmt') && $b('puStmt').checked); pu.useEntry = !!($b('puUseEntry') && $b('puUseEntry').checked);
+    if ($b('puUpdStock')) pu.updStock = $b('puUpdStock').checked;
 }
 function puChanged() { puReadFields(); puRecalc(); clearTimeout(puDraftTimer); puDraftTimer = setTimeout(() => lsSet(PU_LS.draft, JSON.stringify(pu)), 300); }
 function puRecalc() {
@@ -297,7 +299,7 @@ async function puSave() {
     const total = items.reduce((s, it) => s + puNum(it.qty) * puNum(it.cost), 0), ret = puNum(pu.returnAmt);
     if (ret > total) return warn('مبلغ الاسترجاع أكبر من مجموع الفاتورة');
     const oldLines = editing ? (editing.items || []) : [];
-    const oldBy = new Map(oldLines.map(l => [l.pid, l]));
+    const oldBy = new Map(oldLines.map(l => [l.pid, l])), upd = pu.updStock !== false;
     const snaps = new Map(), lines = [];
     const snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose, costPrice: p.costPrice, price: p.price, pricing: p.pricing, markupPct: p.markupPct, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); };
     // 1) الأصناف التي أُزيلت من الفاتورة عند التعديل: نُنقص كميتها السابقة
@@ -305,14 +307,17 @@ async function puSave() {
     oldLines.filter(l => !newIds.has(l.pid)).forEach(l => {
         const p = products.find(x => x.id === l.pid); if (!p) return; snap(p);
         p.qty = Math.max((parseInt(p.qty) || 0) - puLQ(l), 0);
-        if (l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
-        if (l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
+        if (l.applied !== false && l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
+        if (l.applied !== false && l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
     });
     // 2) الأصناف الحالية: الفرق بين الكمية الجديدة والقديمة
     items.forEach(it => {
         const p = products.find(x => x.id === it.pid); if (!p) return; snap(p);
         const n = parseInt(it.qty) || 0, bn = parseInt(it.bonus) || 0, cost = puNum(it.cost), old = oldBy.get(it.pid);
-        const line = { pid: p.id, name: p.name, qty: n, bonus: bn, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: old ? old.prevQty : (parseInt(p.qty) || 0), prevCost: old ? old.prevCost : (p.costPrice || 0), expAdded: old ? !!old.expAdded : false };
+        const line = { pid: p.id, name: p.name, qty: n, bonus: bn, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: (old && old.applied !== false) ? old.prevQty : (parseInt(p.qty) || 0), prevCost: (old && old.applied !== false) ? old.prevCost : (p.costPrice || 0), expAdded: (old && old.applied !== false) ? !!old.expAdded : false };
+        const applied = old ? (old.applied === false ? upd : true) : upd;   // السطر القديم المحدَّث يبقى محدَّثاً؛ غير المحدَّث يتبع الخيار
+        line.applied = applied;
+        if (!applied) { lines.push(line); return; }   // «لا تحدّث المخزن»: يُسجَّل السطر فقط بدون أي تغيير بالمخزن
         p.qty = Math.max((parseInt(p.qty) || 0) + n + bn - (old ? puLQ(old) : 0), 0);
         if (old && old.expiry !== line.expiry && old.expAdded && old.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; line.expAdded = false; }
         if (cost > 0) p.costPrice = cost;
@@ -334,7 +339,7 @@ async function puSave() {
             if (bad.length) Swal.fire({ icon: 'warning', title: 'تنبيه: لم تصل بعض الكميات للسحابة', text: 'الأصناف: ' + bad.join('، ') + '. تأكد من قواعد pharmacy_stock ومن الاتصال ثم أعد المحاولة.', confirmButtonColor: '#0f1c38' });
         }
     } catch (e) { /* تجاهل */ }
-    lines.forEach(l => { const p = products.find(x => x.id === l.pid); const old = oldBy.get(l.pid); logAction('qty', p, [{ f: 'الكمية (' + (editing ? 'تعديل وارد ' : 'وارد ') + no + ' - ' + supplier + ')', from: String(old ? puLQ(old) : l.prevQty), to: String(old ? puLQ(l) : l.prevQty + puLQ(l)) }]); });
+    lines.filter(l => l.applied !== false).forEach(l => { const p = products.find(x => x.id === l.pid); const old = oldBy.get(l.pid); logAction('qty', p, [{ f: 'الكمية (' + (editing ? 'تعديل وارد ' : 'وارد ') + no + ' - ' + supplier + ')', from: String(old ? puLQ(old) : l.prevQty), to: String(old ? puLQ(l) : l.prevQty + puLQ(l)) }]); });
     const paid = Math.min(puNum(pu.paid), Math.max(total - ret, 0));
     let rec;
     if (editing) {
@@ -422,7 +427,7 @@ async function puSeqEdit(id, ev) {
 }
 function puOpen(id) {
     const r = puAll.find(x => x.id === id); if (!r) return;
-    const rows = (r.items || []).map(it => `<tr><td dir="ltr">${escapeHtml(it.name)}</td><td>${fmtNum(it.qty)}${it.bonus ? ' <small>+' + fmtNum(it.bonus) + ' بونص</small>' : ''}</td><td>${fmtNum(it.cost)}</td><td dir="ltr">${escapeHtml(it.expiry || '—')}</td><td dir="ltr">${escapeHtml(it.batch || '—')}</td><td>${fmtNum(it.qty * it.cost)}</td></tr>`).join('');
+    const rows = (r.items || []).map(it => `<tr><td dir="ltr">${escapeHtml(it.name)}${it.applied === false ? ' <em class="tg warn">لم يُحدَّث</em>' : ''}</td><td>${fmtNum(it.qty)}${it.bonus ? ' <small>+' + fmtNum(it.bonus) + ' بونص</small>' : ''}</td><td>${fmtNum(it.cost)}</td><td dir="ltr">${escapeHtml(it.expiry || '—')}</td><td dir="ltr">${escapeHtml(it.batch || '—')}</td><td>${fmtNum(it.qty * it.cost)}</td></tr>`).join('');
     const pays = (r.payments || []).map(p => `<div>${escapeHtml(fmtDateDMY(p.at))} — ${fmtNum(p.amount)} د.ع</div>`).join('') || '<div>لا دفعات</div>';
     const btn = (label, fn, cls) => `<button type="button" class="bill-tb-btn ${cls || ''}" onclick="Swal.close();${fn}">${label}</button>`;
     Swal.fire({
@@ -431,7 +436,7 @@ function puOpen(id) {
             <div class="pu-d-scroll"><table class="bill-table"><thead><tr><th>المادة</th><th>العدد</th><th>السعر</th><th>الانتهاء</th><th>الدفعة</th><th>المجموع</th></tr></thead><tbody>${rows}</tbody></table></div>
             <div class="pu-d-tot"><div>المجموع: <b>${fmtNum(puTotalOf(r))}</b></div><div>الاسترجاع: <b>${fmtNum(puNum(r.returnAmt) + (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0))}</b></div><div>الصافي: <b>${fmtNum(puNetOf(r))}</b></div><div>المدفوع: <b>${fmtNum(r.paid)}</b></div><div>المتبقي: <b>${fmtNum(puRemaining(r))}</b></div></div>
             <div class="pu-d-pays"><b>الدفعات:</b>${pays}</div>${typeof lgLinkedHtml === 'function' ? lgLinkedHtml(r.id) : ''}${r.notes ? `<div class="pu-d-pays"><b>ملاحظات:</b> ${escapeHtml(r.notes)}</div>` : ''}
-            <div class="pu-d-btns"><button type="button" class="bill-tb-btn" onclick="puOneOut('${r.id}','print')">🖨️ طباعة</button><button type="button" class="bill-tb-btn" onclick="puOneOut('${r.id}','csv')">⬇️ Excel</button>${r.cancelled ? btn('🗑 حذف نهائي', `puDeletePermanently('${r.id}')`, 'bill-danger') : btn('✏️ تعديل الفاتورة', `puEdit('${r.id}')`) + btn('💳 تسديد', `puPay('${r.id}')`, 'bill-pay') + btn('📦 إرجاع مواد', `lgOpenReturn({listId:'${r.id}'})`) + btn('↩️ مبلغ الاسترجاع', `puSetReturn('${r.id}')`) + btn('✖ إلغاء الوارد', `puCancel('${r.id}')`, 'bill-danger')}</div></div>`
+            <div class="pu-d-btns"><button type="button" class="bill-tb-btn" onclick="puOneOut('${r.id}','print')">🖨️ طباعة</button><button type="button" class="bill-tb-btn" onclick="puOneOut('${r.id}','csv')">⬇️ Excel</button>${r.cancelled ? btn('🗑 حذف نهائي', `puDeletePermanently('${r.id}')`, 'bill-danger') : btn('✏️ تعديل الفاتورة', `puEdit('${r.id}')`) + btn('📦 تحديث المخزن', `puApplyDialog('${r.id}')`) + btn('💳 تسديد', `puPay('${r.id}')`, 'bill-pay') + btn('📦 إرجاع مواد', `lgOpenReturn({listId:'${r.id}'})`) + btn('↩️ مبلغ الاسترجاع', `puSetReturn('${r.id}')`) + btn('✖ إلغاء الوارد', `puCancel('${r.id}')`, 'bill-danger')}</div></div>`
     });
 }
 async function puSetReturn(id) {
@@ -454,8 +459,8 @@ async function puCancel(id) {
         const p = products.find(x => x.id === l.pid); if (!p) return;
         if (!csnaps.has(p.id)) csnaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase });
         p.qty = Math.max((parseInt(p.qty) || 0) - puLQ(l), 0);
-        if (l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
-        if (l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
+        if (l.applied !== false && l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
+        if (l.applied !== false && l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
         touched.push(p);
     });
     r.cancelled = true;   // مؤقتاً لإعادة حساب «آخر وارد» دون هذه الفاتورة
@@ -710,4 +715,46 @@ function puSelTable(recs, mode) {
     let all = 0, k = 0; const rows = [];
     recs.forEach(r => (r.items || []).forEach(it => { const t = n(it.qty) * n(it.cost); k++; if (!r.cancelled) all += t; rows.push([k, r.supplier, r.no, fmtDateDMY(r.date), it.name, f(n(it.qty)), it.bonus ? f(n(it.bonus)) : '', f(n(it.cost)), f(t), it.expiry || '', it.batch || '']); }));
     return { title: 'تفصيل مواد قوائم الوارد المحددة', head: ['ت', 'المذخر', 'رقم القائمة', 'التاريخ', 'المادة', 'العدد', 'بونص', 'السعر', 'المجموع', 'الانتهاء', 'الدفعة'], rows, foot: ['', 'المجموع', '', '', '', '', '', '', f(all), '', ''], numFrom: 5 };
+}
+
+
+// ---------- تحديث المخزن من قائمة وارد موجودة (اختيار المواد) ----------
+async function puApplyDialog(id) {
+    const r = puAll.find(x => x.id === id); if (!r) return;
+    const items = r.items || [];
+    const rows = items.map((l, i) => {
+        const p = products.find(x => x.id === l.pid), un = l.applied === false;
+        return `<label class="pu-chk pa-row"><input type="checkbox" class="paCk" data-i="${i}" ${un && p ? 'checked' : ''} ${p ? '' : 'disabled'}><span dir="ltr"><b>${escapeHtml(l.name)}</b> — ${fmtNum(puNum(l.qty))}${l.bonus ? ' + ' + fmtNum(puNum(l.bonus)) + ' بونص' : ''}</span>${p ? (un ? '<em class="tg warn">لم يُحدَّث</em>' : '<em class="tg">محدَّث</em>') : '<em class="tg bad">المادة محذوفة</em>'}</label>`;
+    }).join('');
+    const res = await Swal.fire({ title: 'تحديث المخزن من هذه القائمة', showCancelButton: true, confirmButtonText: '📦 حدّث المخزن', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 520px)', customClass: { popup: 'dw-pop' },
+        html: `<div class="sw-form"><div class="sw-info">${escapeHtml(r.supplier)} — <span dir="ltr">${escapeHtml(r.no)}</span><br><small>اختر المواد اللي تريد إضافة كمياتها للمخزن. اللي عليها «محدَّث» لا تحدّثها مرة ثانية حتى لا تتكرر الكمية.</small></div><div class="pa-list">${rows}</div></div>`,
+        preConfirm: () => { const sel = [...document.querySelectorAll('.paCk:checked')].map(c => parseInt(c.dataset.i)); if (!sel.length) { Swal.showValidationMessage('اختر مادة واحدة على الأقل'); return false; } return sel; } });
+    if (!res.isConfirmed || !res.value) return;
+    await puApplyLines(r, res.value);
+}
+async function puApplyLines(r, idxs) {
+    if (!writesAllowed()) return;
+    const snaps = new Map(), done = [];
+    idxs.forEach(i => {
+        const l = (r.items || [])[i]; if (!l) return;
+        const p = products.find(x => x.id === l.pid); if (!p) return;
+        if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase, line: l });
+        const before = parseInt(p.qty) || 0, n = (parseInt(l.qty) || 0) + (parseInt(l.bonus) || 0), cost = puNum(l.cost);
+        l.prevQty = before; l.prevCost = p.costPrice || 0;
+        p.qty = before + n;
+        if (cost > 0) p.costPrice = cost;
+        if (l.expiry && puExpiryPush(p, l.expiry)) l.expAdded = true;
+        const lp = p.lastPurchase;
+        if (!lp || String(r.date) >= String(lp.date || '')) p.lastPurchase = { supplier: r.supplier, no: r.no, date: r.date, qty: parseInt(l.qty) || 0, cost, batch: l.batch || '', expiry: l.expiry || '' };
+        done.push({ p, l, before, n });
+    });
+    if (!done.length) return;
+    const ok = await saveProductsDelta([...snaps.values()].map(s => deltaFromSnap(s.p, s)));
+    if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; s.p.lastPurchase = s.lastPurchase; }); return; }
+    done.forEach(d => { d.l.applied = true; logAction('qty', d.p, [{ f: 'الكمية (تحديث المخزن من وارد ' + r.no + ' - ' + r.supplier + ')', from: String(d.before), to: String(d.before + d.n) }]); });
+    await puSaveRecord(r);
+    try { renderAll(); } catch (e) { /* تجاهل */ }
+    if ($b('puLogList')) renderPuLog();
+    Swal.fire({ icon: 'success', title: 'تم تحديث المخزن (' + done.length + ' مادة)', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    puOpen(r.id);
 }

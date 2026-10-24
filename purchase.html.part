@@ -20,6 +20,7 @@
                     <label><span>رقم فاتورة المذخر</span><input id="puNo" dir="ltr" autocomplete="off" oninput="puChanged()"></label>
                     <label><span>تاريخ فاتورة المذخر</span><input type="date" id="puDate" oninput="puChanged()"></label>
                     <label class="pu-chk"><input type="checkbox" id="puStmt" onchange="puChanged()"><span>✓ استلمتُ كشف المذخر لهذه القائمة</span></label>
+                    <label class="pu-chk"><input type="checkbox" id="puUpdStock" checked onchange="puChanged()"><span>📦 تحديث المخزن (إضافة كميات هذه القائمة للمخزن)</span></label>
                     <label class="pu-chk"><input type="checkbox" id="puUseEntry" onchange="puChanged()"><span>اعتماد تاريخ الإدخال (اليوم) لتحديد شهرها بدل تاريخ القائمة</span></label>
                 </div>
             </div>

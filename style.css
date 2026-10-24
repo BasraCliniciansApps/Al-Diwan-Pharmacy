@@ -2272,3 +2272,7 @@ body.rv-open { overflow: hidden; }
 .inv-row { flex-wrap: wrap; }
 .inv-parts { flex: 0 0 100%; display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: .78rem; font-weight: 800; color: #7e22ce; }
 .inv-parts input { width: 76px; height: 38px; text-align: center; border: 1px solid #c4b5fd; border-radius: 10px; background: #faf5ff; font: 800 .95rem inherit; color: #0f1c38; }
+
+.pa-list { display: flex; flex-direction: column; gap: 6px; max-height: 50vh; overflow: auto; }
+.pa-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 10px; text-align: right; }
+.pa-row span { flex: 1; min-width: 0; font-size: .82rem; overflow-wrap: anywhere; }
