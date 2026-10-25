@@ -150,8 +150,9 @@ async function learnClear() {
 // زر «قواعدي» داخل صندوق الإدخال السريع وإدارة الأقسام
 if (typeof qkInit === 'function') {
     const _qi = qkInit;
-    qkInit = function () { _qi(); const b = document.getElementById('qkBox'); if (b && !document.getElementById('lnBtn')) b.insertAdjacentHTML('beforeend', '<div class="qk-row"><div><b>قواعدي (التعلّم)</b><small>شوف اللي تعلّمه التطبيق من اختياراتك</small></div><button type="button" id="lnBtn" class="ln-btn" onclick="learnOpen()">فتح</button></div>'); };
+    qkInit = function () { _qi(); const b = document.getElementById('qkBox'); if (b && !document.getElementById('lnBtn')) b.insertAdjacentHTML('beforeend', `<div class="qk-row"><div><b>التعلّم من اختياراتي بصمت</b><small>يتذكّر تصنيفاتك وأشكالك ويطبّقها لاحقاً <a href="#" id="lnBtn" onclick="learnOpen();return false" style="color:#0369a1;font-weight:700">قواعدي</a></small></div><label class="setup-sw"><input type="checkbox" id="lnSw" ${learnOn() ? 'checked' : ''} onchange="learnToggle(this.checked)" aria-label="التعلّم من اختياراتي"><i></i></label></div>`); const sw = document.getElementById('lnSw'); if (sw) sw.checked = learnOn(); };
 }
+function learnToggle(v) { learnData.off = !v; learnSave(); learnPush(); const sw = document.getElementById('lnSw'); if (sw) sw.checked = !!v; }
 if (typeof renderTaxSeedBox === 'function') {
     const _rb = renderTaxSeedBox;
     renderTaxSeedBox = function () { _rb(); const box = document.getElementById('taxSeedBox'); if (box && !box.querySelector('.ln-btn2')) box.insertAdjacentHTML('beforeend', '<button type="button" class="ln-btn2" onclick="learnOpen()">🧠 قواعدي — اللي تعلّمه التطبيق من اختياراتك</button>'); };
