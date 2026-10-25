@@ -2669,3 +2669,15 @@ body.ss-lock { overflow: hidden; }
 [dir="ltr"] .inv-sw input:checked + i::after { transform: translateX(18px); }
 [data-theme="dark"] .inv-rt { background: #1e293b; border-color: #334155; } [data-theme="dark"] .inv-rtbar { color: #e2e8f0; }
 [data-theme="dark"] .inv-rtbody input, [data-theme="dark"] .inv-rtbody select { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+
+/* v161: تعميم ارتفاع الحقول الموحّد على بقية التطبيق (بدون أزرار الاختيار والملفات والحقول الصغيرة داخل الجداول) */
+.form-group input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]),
+.form-group select, .add-inline-row input:not([type=checkbox]), .add-inline-row select,
+.swal2-input, .swal2-select, .xc-search, .tr-search, .fs-search, .alerts-search, .bill-list-search, .ing-input, .scan-engine-select,
+.lg-pop input:not([type=checkbox]):not([type=radio]), .lg-pop select,
+.search-container input[type=search], #searchInput {
+    box-sizing: border-box; min-height: var(--field-h); padding-block: 0; border-radius: var(--field-r); font-size: var(--field-fs); font-family: inherit;
+}
+.form-group input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]), .form-group select,
+.swal2-input, .swal2-select, .xc-search, .tr-search, .fs-search, .alerts-search, .bill-list-search { height: var(--field-h); }
+.swal2-input, .swal2-select { margin: 8px 0; }
