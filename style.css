@@ -2789,3 +2789,4 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .fs-draft-act { display: flex; gap: 8px; margin-top: 8px; } .fs-draft-act .g { background: #e2e8f0; color: #0f1c38; }
 .fs-err { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,.2) !important; animation: fsShake .3s; }
 @keyframes fsShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+.bn-px { margin-inline-start: auto; padding: 4px 10px; font-size: .74rem; min-height: 0; }

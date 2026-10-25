@@ -31,9 +31,9 @@ const lgItemsTxt = e => (e.items || []).map(l => l.name + ' ×' + l.qty).join('�
 function lgInitBonus() { lgRgInit('lgb'); lgFillSupSelect('lgbSup'); lgRenderBonus(); }
 function lgBonusRows() {
     const rg = lgRg('lgb'), sup = $b('lgbSup').value, rows = [];
-    puAll.filter(r => !r.cancelled && lgInR(rg, r.useEntry ? puMonthOf(r) + '-01' : r.date) && (!sup || puKey(r.supplier) === puKey(sup))).forEach(r => (r.items || []).filter(l => parseInt(l.bonus) > 0).forEach(l => {
+    puAll.filter(r => !r.cancelled && lgInR(rg, r.useEntry ? puMonthOf(r) + '-01' : r.date) && (!sup || puKey(r.supplier) === puKey(sup))).forEach(r => (r.items || []).forEach((l, li) => { if (!(parseInt(l.bonus) > 0)) return;
         const q = parseInt(l.bonus) || 0, cost = puNum(l.cost);
-        rows.push({ date: r.date, sup: r.supplier, no: r.no, name: l.name, qty: q, cost, vCost: q * cost, rid: r.id, vSale: puNum(l.bonusSale) || (q * (Number((products.find(x => x.id === l.pid) || products.find(x => puKey(x.name) === puKey(l.name)) || {}).price) || 0)), createdTs: r.createdTs });
+        rows.push({ date: r.date, sup: r.supplier, no: r.no, name: l.name, qty: q, cost, vCost: q * cost, rid: r.id, li, bo: puIsBonusOnly(r), vSale: puNum(l.bonusSale) || (q * (Number((products.find(x => x.id === l.pid) || products.find(x => puKey(x.name) === puKey(l.name)) || {}).price) || 0)), createdTs: r.createdTs });
     }));
     lgAll.filter(e => e.kind === 'breq' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.supplier || (e.rep ? 'مندوب ' + e.rep : 'بدون مذخر'), no: e.listNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: 0, createdTs: e.createdTs, xid: e.id, rep: e.rep }));
     return { rg, rows: rows.sort(lgSortD) };
@@ -46,11 +46,31 @@ function lgRenderBonus() {
     $b('lgb-list').innerHTML = sorted.map(x => {
         const dk = x.date || '', head = dk !== lastD ? `<div class="bn-day">${x.date ? escapeHtml(fmtDateDMY(x.date)) : 'بلا تاريخ'}</div>` : ''; lastD = dk;
         const val = x.xid ? `<button type="button" class="bill-tb-btn bill-danger bn-del" onclick="event.stopPropagation();lgBreqDel('${x.xid}')">🗑</button>` : `<span class="bn-v ${x.vSale > 0 ? '' : 'none'}">${x.vSale > 0 ? fmtNum(x.vSale) : '—'}</span>`;
-        return head + `<div class="bn-card" style="cursor:pointer" onclick="${x.xid ? `lgBreqAdd('${x.xid}')` : `lgBonusOpenInv('${x.rid}')`}"><div class="bn-r1"><b class="bn-n" dir="ltr">${escapeHtml(x.name)}</b>${val}</div><div class="bn-r2"><em class="tg">🎁 ${fmtNum(x.qty)} مجاني</em>${x.xid ? '<em class="bn-tag">هدية/عرض</em>' : ''}</div><div class="bn-r3">${escapeHtml(x.sup)}${x.no ? ' • قائمة ' + escapeHtml(x.no) : ''}</div></div>`;
+        return head + `<div class="bn-card" style="cursor:pointer" onclick="${x.xid ? `lgBreqAdd('${x.xid}')` : x.bo ? `lgBonusLine('${x.rid}',${x.li})` : `lgBonusOpenInv('${x.rid}')`}"><div class="bn-r1"><b class="bn-n" dir="ltr">${escapeHtml(x.name)}</b>${val}</div><div class="bn-r2"><em class="tg">🎁 ${fmtNum(x.qty)} مجاني</em>${x.xid ? '<em class="bn-tag">هدية/عرض</em>' : `<button type="button" class="bill-tb-btn bn-px" onclick="event.stopPropagation();lgBonusLine('${x.rid}',${x.li})">💲 سعر / حذف</button>`}</div><div class="bn-r3">${escapeHtml(x.sup)}${x.no ? ' • قائمة ' + escapeHtml(x.no) : ''}</div></div>`;
     }).join('') || '<div class="bill-none">لا يوجد بونص في هذه الفترة. أضفه من خانة «بونص» عند إدخال الوارد.</div>';
     const mb = (rg.year || rg.all) ? `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th>الشهر</th><th>العدد</th><th>بالكلفة</th><th>بسعر البيع</th></tr></thead><tbody>${[...new Set(rows.map(x => lgMonthOfDate(x.date)))].sort().map(m => { const l = rows.filter(x => lgMonthOfDate(x.date) === m), s = k => l.reduce((a, x) => a + x[k], 0); return `<tr><td>${lgMonthLabel(m)}</td><td>${fmtNum(s('qty'))}</td><td>${fmtNum(s('vCost'))}</td><td>${fmtNum(s('vSale'))}</td></tr>`; }).join('')}</tbody></table></div>` : '';
     $b('lgb-sheet').innerHTML = lgLetterhead('سجل البونص (المواد المجانية)', escapeHtml(rg.label) + ($b('lgbSup').value ? ' — ' + escapeHtml($b('lgbSup').value) : '')) + mb +
         `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th class="pu-n">#</th><th>التاريخ</th><th>المذخر</th><th>القائمة</th><th>المادة</th><th>العدد</th><th>سعر الشراء</th><th>بالكلفة</th><th>بسعر البيع</th></tr></thead><tbody>${rows.map((x, i) => `<tr><td class="pu-n">${i + 1}</td><td>${escapeHtml(fmtDateDMY(x.date))}</td><td>${escapeHtml(x.sup)}</td><td dir="ltr">${escapeHtml(x.no)}</td><td dir="ltr">${escapeHtml(x.name)}</td><td>${fmtNum(x.qty)}</td><td>${fmtNum(x.cost)}</td><td>${fmtNum(x.vCost)}</td><td>${fmtNum(x.vSale)}</td></tr>`).join('') || '<tr><td colspan="9">لا يوجد بونص.</td></tr>'}</tbody>${rows.length ? `<tfoot><tr><td colspan="5">المجموع</td><td>${fmtNum(t('qty'))}</td><td></td><td>${fmtNum(t('vCost'))}</td><td>${fmtNum(t('vSale'))}</td></tr></tfoot>` : ''}</table></div>`;
+}
+// تعديل سطر بونص داخل وارد: سعر البيع الإجمالي، وحذف السطر إن كان وارد بونص فقط (مستورد) دون أي أثر على المخزن
+async function lgBonusLine(rid, li) {
+    const r = puAll.find(x => x.id === rid), l = r && (r.items || [])[li]; if (!l) return;
+    const bo = puIsBonusOnly(r), q = parseInt(l.bonus) || 0;
+    const res = await Swal.fire({ title: escapeHtml(l.name), showCancelButton: true, showDenyButton: bo, denyButtonText: 'حذف هذا السطر', denyButtonColor: '#b91c1c', confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
+        html: `<div style="text-align:right;font-size:.85rem;line-height:1.8">${bo ? 'وارد بونص مستورد' : 'قائمة ' + escapeHtml(r.no || '')} — ${fmtNum(q)} مجاني</div><label style="display:block;text-align:right;font-size:.8rem;font-weight:800;margin-top:8px">سعر البيع الإجمالي لهذا البونص (د.ع)<input id="swBP" type="number" inputmode="numeric" min="0" class="swal2-input" style="margin:4px 0 0;width:100%" value="${puNum(l.bonusSale) || ''}"></label>`,
+        preConfirm: () => Number(document.getElementById('swBP').value) || 0 });
+    if (res.isDenied && bo) {
+        const c = await Swal.fire({ icon: 'warning', title: 'حذف هذا السطر؟', text: 'لا يتأثر المخزن ولا مستحقات المذاخر.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
+        if (!c.isConfirmed) return;
+        r.items.splice(li, 1);
+        try {
+            if (!r.items.length) { if (cloudReady()) await fsWrite(db.collection('pharmacy_purchases').doc(r.id).delete()); puAll = puAll.filter(x => x.id !== r.id); lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500))); }
+            else await puSaveRecord(r);
+        } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
+        lgRenderBonus(); return;
+    }
+    if (!res.isConfirmed) return;
+    l.bonusSale = res.value; await puSaveRecord(r); lgRenderBonus();
 }
 function lgBonusOpenInv(id) { showView('purch'); puEdit(id); }
 function lgBonusCsv() {
