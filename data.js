@@ -935,6 +935,7 @@ const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye
 const mkForm = (id, txt, cls, g, re) => ({ id, txt, cls, g, re: re || null });
 // الترتيب مهم للاكتشاف التلقائي (الأول المطابق يفوز): الأخص قبل الأعم. وما بلا نمط يُختار يدوياً فقط.
 const FORMS = [
+    mkForm('razor', 'Razor / Shaving', 'badge-other', 'Other', /^(?!.*(surgical|scalpel|cream|foam|gel|lotion|after|مشرط)).*(razors?\b|shavers?\b|gillette|\bblades?\b|shaving|شفرة حلاقة|ماكينة حلاقة|مكينة حلاقة)/),
     mkForm('alcoholswab', 'Alcohol Swabs', 'badge-wash', 'Antiseptics & Sanitizers', /alcohol\s*(swabs?|pads?|prep)|isopropyl[^,]*(swabs?|pads?)|swabs?[^,]*alcohol/),
     mkForm('antisepticwipes', 'Antiseptic Wipes', 'badge-wash', 'Antiseptics & Sanitizers', /(disinfect|antiseptic|sanit)\w*[^,]*wipes?|wipes?[^,]*(disinfect|antiseptic|alcohol)/),
     mkForm('handsan', 'Hand Sanitizer', 'badge-wash', 'Antiseptics & Sanitizers', /hand\s*(sanitizer|sanitiser|rub)|sanitizer|sanitiser|معقم (ايدي|أيدي)/),

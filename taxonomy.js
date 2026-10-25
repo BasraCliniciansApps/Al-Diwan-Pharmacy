@@ -89,6 +89,7 @@ const TAX_KW = [
     [/gauze|swabs?\b|شاش/i, 'الضمادات والمستلزمات الجراحية', 'شاش معقم'],
     [/elastic\s*bandage|crepe|bandage|ضماد ضاغط|رباط/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات ضاغطة ومرنة'],
     [/scalpel|surgical\s*blade|forceps|surgical\s*scissors|مشرط/i, 'الضمادات والمستلزمات الجراحية', 'أدوات الجراحة والمشارط'],
+    [/^(?!.*(surgical|scalpel|cream|foam|gel|lotion|after|مشرط)).*(razors?\b|shavers?\b|gillette|\bblades?\b|shaving|شفرة حلاقة|ماكينة حلاقة|مكينة حلاقة)/i, 'العناية الشخصية والتجميل', 'الحلاقة والعناية بالرجل'],
     [/(surgical|sterile|examination)\s*gloves?|قفازات جراحية/i, 'الضمادات والمستلزمات الجراحية', 'قفازات جراحية معقمة'],
     [/surgical\s*(mask|drape|gown|cap)|face\s*mask/i, 'الضمادات والمستلزمات الجراحية', 'كمامات وأغطية جراحية'],
     [/dressing|wound\s*care|ضماد/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات الجروح العامة'],
