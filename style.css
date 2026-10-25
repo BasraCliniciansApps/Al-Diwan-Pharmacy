@@ -2625,6 +2625,8 @@ body.ss-lock { overflow: hidden; }
 .tr-xadd > button#trXB { grid-column: 1 / -1; min-height: 40px; font-size: .84rem; font-weight: 700; }
 .tr-xadd > button#trXB::after { content: ' إضافة'; font-size: .8rem; }
 .sw-form > label { font-size: .8rem; font-weight: 700; }
-.swal2-popup:has(.tr-xbox) .swal2-actions { gap: 8px; flex-wrap: nowrap; width: 100%; margin-top: 14px; }
-.swal2-popup:has(.tr-xbox) .swal2-actions button { flex: 1 1 0; min-width: 0; margin: 0; padding: 10px 6px; font-size: .8rem; white-space: nowrap; }
+.swal2-popup:has(.tr-xbox) { padding: 1.3em 1.2em 1.2em; }
+.swal2-popup:has(.tr-xbox) .swal2-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin: 16px 0 0; padding: 0; }
+.swal2-popup:has(.tr-xbox) .swal2-actions button { margin: 0; min-height: 46px; padding: 0 16px; font-size: .88rem; line-height: 1.3; white-space: normal; }
+.swal2-popup:has(.tr-xbox) .swal2-actions .swal2-confirm { grid-column: 1 / -1; order: -1; }
 .swal2-popup:has(.tr-xbox) .swal2-title { font-size: 1rem; }
