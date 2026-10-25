@@ -350,12 +350,13 @@ async function puSave() {
         const applied = old ? old.applied !== false : (upd && !setupSkip(p));   // السطر القديم يبقى على حاله؛ الجديد لا يحدّث مادة غير مجرودة (وضع التأسيس)
         if (!applied && !old) line.setupSkip = !!(upd && setupSkip(p));
         line.applied = applied;
-        if (!applied && line.setupSkip) {   // مادة غير مجرودة (وضع التأسيس): الكمية ما تتغير لكن السعر والكلفة يُحفظان وتُحسب قيمة البونص
-            if (cost > 0) p.costPrice = cost;
+        // السعر والكلفة يُحفظان دائماً (وضع التأسيس يحمي الكمية فقط)
+        if (cost > 0) p.costPrice = cost;
         { const pm = puPM(it); if (pm === 'percent') { const mk = puNum(puMk(it)); p.pricing = 'percent'; p.markupPct = mk; if (cost > 0) p.price = markupCalc(cost, mk); } else if (pm === 'syndicate') { p.markupPct = null; p.pricing = 'syndicate'; if (cost > 0) p.price = syndPrice(cost); } else { p.markupPct = null; p.pricing = 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
+        if (!applied) {   // مادة غير مجرودة / «لا تحدّث المخزن»: الكمية ما تتغير لكن قيمة البونص تنحسب
             line.bonusSale = bn * (Number(p.price) || 0);
+            lines.push(line); return;
         }
-        if (!applied) { lines.push(line); return; }   // «لا تحدّث المخزن»: يُسجَّل السطر فقط بدون أي تغيير بالمخزن
         p.qty = Math.max((parseInt(p.qty) || 0) + n + bn - (old ? puLQ(old) : 0), 0);
         if (old && old.expiry !== line.expiry && old.expAdded && old.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; line.expAdded = false; }
         if (cost > 0) p.costPrice = cost;
