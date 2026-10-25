@@ -973,7 +973,7 @@ const FORMS = [
     mkForm('catheter', 'Catheter / Bag', 'badge-other', 'Dressings & Supplies', /catheter|foley|urine\s*bag|colostomy|قسطرة/),
     mkForm('whitestrips', 'Whitening Strips', 'badge-gel', 'Oral Care', /whiten\w*[^,]*strips?|strips?[^,]*whiten|teeth\s*strips?|tooth\s*strips?|شرائط تبييض/),
     mkForm('breathstrips', 'Breath Strips', 'badge-gel', 'Oral Care', /breath[^,]*(strips?|film)|(strips?|film)[^,]*breath|fresh[^,]*strips?|mint[^,]*strips?|oral\s*strips?|mouth\s*strips?|شرائط (رائحة|معطر)/),
-    mkForm('interdental', 'Interdental Brush', 'badge-other', 'Oral Care', /interdental|inter-dental|فرش(اة)? بين الاسنان|فرش(اة)? بين الأسنان/),
+    mkForm('interdental', 'Interdental Brush', 'badge-other', 'Oral Care', /interdental|inter-dental|inter-?\s*d[a-z]{2,6}al|l-?\s*shaped[^,]*brush|inter-?\s*d[a-z]{2,6}al|l-?\s*shaped[^,]*brush|فرش(اة)? بين الاسنان|فرش(اة)? بين الأسنان/),
     mkForm('etoothbrush', 'Electric Toothbrush', 'badge-other', 'Oral Care', /(electric|sonic|rechargeable|power|smart)\s*tooth\s*brush|tooth\s*brush\s*(electric|sonic)|فرشاة\s*(اسنان\s*|أسنان\s*)?كهربائي/),
     mkForm('lipbalm', 'Lip Balm / Stick', 'badge-oint', 'Topical', /lip\s*(balm|care|stick|gloss|salve|butter|therap\w*|moistur\w*|mask|scrub|treatment)|lipstick|lip\s*protector|مرطب شفاه|بلسم شفاه|احمر شفاه|أحمر شفاه/),
     mkForm('serum', 'Serum', 'badge-gel', 'Topical', /\bserum\b|سيروم/),

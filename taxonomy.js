@@ -135,7 +135,7 @@ const TAX_KW = [
     [/lens[^,]*(solution|disinfect)|multi-?purpose\s*solution|معقم عدسات/i, 'المعقمات والمطهرات', 'مطهرات العدسات والأجهزة'],
     [/disinfect\w*|surface\s*spray|chlorine|bleach|معقم أسطح/i, 'المعقمات والمطهرات', 'مطهرات الأسطح والأدوات'],
     [/^(?!.*(mouth|throat|gargle|lozenge|cream|ointment|shampoo)).*(betadine|povidone|iodine|chlorhexidine|savlon|dettol|cetrimide|antiseptic|مطهر)/i, 'المعقمات والمطهرات', 'مطهرات الجروح والجلد'],
-    [/floss|interdental|inter-dental|خيط اسنان|خيط أسنان|بين الاسنان|بين الأسنان/i, 'الفم والأسنان', 'خيط أسنان وفرش بين الأسنان'],
+    [/floss|interdental|inter-dental|inter-?\s*d[a-z]{2,6}al|l-?\s*shaped[^,]*brush|tooth\s*picks?|خلة\s*اسنان|خلة\s*أسنان|خيط اسنان|خيط أسنان|بين الاسنان|بين الأسنان/i, 'الفم والأسنان', 'خيط أسنان وفرش بين الأسنان'],
     [/tooth\s*paste|toothpaste|dentifrice|tooth\s*brush|toothbrush|معجون اسنان|معجون أسنان|فرشاة/i, 'الفم والأسنان', 'معاجين وفُرش'],
     [/whiten\w*[^,]*strips?|strips?[^,]*whiten|teeth\s*strips?|tooth\s*strips?|شرائط تبييض|teeth\s*whiten|تبييض الاسنان|تبييض الأسنان/i, 'الفم والأسنان', 'تبييض الأسنان'],
     [/mouth\s*wash|mouthwash|mouth\s*rinse|غسول فم/i, 'الفم والأسنان', 'غسول الفم'],
