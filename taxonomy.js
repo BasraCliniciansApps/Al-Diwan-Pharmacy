@@ -18,7 +18,7 @@ const TAX_SEED = {
     'الدم والتخثر': ['مضادات التخثر', 'مضادات الصفيحات', 'أدوية فقر الدم', 'مرقئات'],
     'الأورام والمناعة': ['أدوية الأورام', 'مثبطات المناعة', 'أدوية بيولوجية'],
     'اللقاحات والأمصال': ['لقاحات', 'أمصال'],
-    'الفيتامينات والمعادن والمكملات': ['فيتامينات متعددة', 'فيتامين د وكالسيوم', 'حديد ومعادن', 'أوميغا 3 وزيوت', 'مكملات رياضية', 'مكملات الشعر والبشرة'],
+    'الفيتامينات والمعادن والمكملات': ['فيتامينات متعددة', 'فيتامين د وكالسيوم', 'حديد ومعادن', 'أوميغا 3 وزيوت', 'مكملات رياضية', 'مكملات الشعر والبشرة', 'فيتامين ب والأعصاب', 'فيتامين C والمناعة', 'فيتامين E ومضادات الأكسدة', 'زنك وسيلينيوم ومعادن نادرة', 'مغنيسيوم', 'ميلاتونين والنوم والاسترخاء', 'التوتر والمزاج', 'الذاكرة والتركيز والدماغ', 'خصوبة الرجال', 'خصوبة النساء', 'الحمل والرضاعة', 'صحة الرجل والبروستات', 'صحة المرأة وسن اليأس', 'المفاصل والغضاريف', 'صحة العيون', 'القلب والدورة الدموية', 'السكر والتمثيل الغذائي', 'الوزن والحرق', 'الكبد والتنظيف', 'الهضم والألياف', 'الطاقة ومكافحة التعب', 'المسالك البولية', 'الغدة الدرقية', 'كولاجين وببتيدات', 'أحماض أمينية وكرياتين', 'كبار السن (50+)'],
     'الأم والطفل': ['حليب أطفال', 'حفاضات', 'مكملات الأطفال', 'شرابات الأطفال', 'مستلزمات الرضاعة'],
     'الفم والأسنان': ['معاجين وفُرش', 'غسول الفم', 'جل فموي', 'أدوية اللثة والفم'],
     'العناية الشخصية والتجميل': ['العناية بالبشرة', 'العناية بالشعر', 'العطور ومزيلات العرق', 'العناية بالجسم', 'المكياج', 'العناية بالأظافر'],
@@ -27,11 +27,22 @@ const TAX_SEED = {
     'المحاليل والمستهلكات والإسعافات': ['محاليل وريدية', 'محاقن وإبر', 'إسعافات أولية', 'قطن وشاش']
 };
 function taxSeeded() { return Object.keys(TAX_SEED).every(d => departments.includes(d)); }
+function taxMissingSubs() { const out = []; Object.keys(TAX_SEED).forEach(d => { if (!departments.includes(d)) return; const have = deptSubs[d] || []; TAX_SEED[d].forEach(s => { if (!have.includes(s) && !(taxLegacy.c || []).includes(s)) out.push([d, s]); }); }); return out; }
+async function taxAddNew() {
+    if (!writesAllowed()) return;
+    const miss = taxMissingSubs(); if (!miss.length) return;
+    const h = Prog.start('إضافة التصنيفات الجديدة', { text: 'حفظ ' + fmtNum(miss.length) + ' تصنيف...' });
+    miss.forEach(([d, s]) => { deptSubs[d] = (deptSubs[d] || []).concat(s); if (!subCategories.includes(s)) subCategories.push(s); });
+    try { await pushToCloud(true); } catch (e) { h.fail('تعذر الحفظ', e && e.message); return; }
+    renderManagerLists(); try { renderAll(); } catch (e) { /* تجاهل */ }
+    h.ok('أُضيف ' + fmtNum(miss.length) + ' تصنيف جديد');
+}
 function renderTaxSeedBox() {
     const box = document.getElementById('taxSeedBox'); if (!box) return;
     const subs = Object.values(TAX_SEED).reduce((n, a) => n + a.length, 0);
+    const nm = taxSeeded() ? taxMissingSubs().length : 0;
     box.innerHTML = taxSeeded()
-        ? `<h4>✅ الأقسام الجاهزة محمَّلة</h4><small style="display:block;color:var(--text-sub);line-height:1.8">القديم معلَّم «قديم» ويختفي لوحده لما ما تبقى مادة عليه. تقدر تعدّل أو تضيف أو تحذف أي قسم أو تصنيف. وحذف القديم النهائي يكون من 🗑️ بعد نقل مواده.</small>`
+        ? (nm ? `<h4>🆕 ${fmtNum(nm)} تصنيف جديد متوفر</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تصنيفات إضافية (مثل الخصوبة والميلاتونين والمفاصل...). تنضاف للأقسام بدون ما تلمس موادك أو تعديلاتك.</small><button type="button" class="icon-btn primary-btn" onclick="taxAddNew()">➕ إضافة التصنيفات الجديدة</button><hr style="margin:12px 0;border:none;border-top:1px solid #e2e8f0">` : '') + `<h4>✅ الأقسام الجاهزة محمَّلة</h4><small style="display:block;color:var(--text-sub);line-height:1.8">القديم معلَّم «قديم» ويختفي لوحده لما ما تبقى مادة عليه. تقدر تعدّل أو تضيف أو تحذف أي قسم أو تصنيف. وحذف القديم النهائي يكون من 🗑️ بعد نقل مواده.</small>`
         : `<h4>📥 الأقسام الجاهزة (${Object.keys(TAX_SEED).length} قسم، ${subs} تصنيف)</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تضيف أقسام علاجية جاهزة وتصنيفاتها. <b>لا تغيّر أي مادة</b>، والأقسام القديمة تبقى وتُعلَّم «قديم». تقدر تعدّل الكل بعدها.</small><button type="button" class="icon-btn primary-btn" onclick="taxSeed()">📥 تحميل الأقسام الجاهزة</button>`;
 }
 async function taxSeed() {
@@ -163,6 +174,9 @@ async function taxRvApply() {
     const r = await Swal.fire({ icon: 'question', title: 'تطبيق التصنيف على ' + list.length + ' مادة؟', confirmButtonColor: '#0f1c38', showCancelButton: true, confirmButtonText: 'تطبيق', cancelButtonText: 'رجوع', width: 'min(94vw, 460px)',
         html: '<div style="text-align:right;font-size:.88rem;line-height:1.9">• يتغير <b>القسم والتصنيف والشكل</b> فقط. الأسعار والكميات ما تنلمس.<br>• يفضّل تاخذ نسخة احتياطية قبل.<br>• اللي ما عتمدته يبقى كما هو.</div>' });
     if (!r.isConfirmed) return;
+    let addedSub = false;   // التصنيفات المختارة تنضاف لقوائم الأقسام إن لم تكن موجودة
+    list.forEach(p => { const e = taxRv[p.id]; if (e.s && !(deptSubs[e.d] || []).includes(e.s)) { deptSubs[e.d] = (deptSubs[e.d] || []).concat(e.s); if (!subCategories.includes(e.s)) subCategories.push(e.s); addedSub = true; } });
+    if (addedSub) { try { await pushToCloud(true); } catch (e) { /* تجاهل */ } }
     const olds = new Map();
     list.forEach(p => { const e = taxRv[p.id]; olds.set(p.id, { department: p.department, category: p.category, form: p.form, formOther: p.formOther }); p.department = e.d; if (e.s) p.category = e.s; if (e.f) { p.form = e.f; } });
     const h = Prog.start('تطبيق التصنيف', { text: 'حفظ ' + fmtNum(list.length) + ' مادة...' });
