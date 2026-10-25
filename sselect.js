@@ -12,17 +12,26 @@ function ssSync(sel) {
     b.querySelector('.ss-t').textContent = empty && !t ? 'اختر…' : (t || 'اختر…'); b.classList.toggle('ss-empty', empty);
     b.disabled = sel.disabled;
 }
-function ssInit() {
-    SS_IDS.forEach(id => {
-        const sel = document.getElementById(id); if (!sel || sel.dataset.ss) return; sel.dataset.ss = '1';
-        sel.classList.add('ss-native'); sel.tabIndex = -1;
-        sel.insertAdjacentHTML('afterend', `<button type="button" class="ss-btn" data-for="${id}" aria-haspopup="listbox"><span class="ss-t"></span><i>▾</i></button>`);
-        const b = sel.nextElementSibling; b.addEventListener('click', () => ssOpen(sel));
-        sel.addEventListener('change', () => ssSync(sel)); ssSync(sel);
-        const lab = sel.closest('.form-group') && sel.closest('.form-group').querySelector('label'); if (lab) lab.addEventListener('click', e => { e.preventDefault(); ssOpen(sel); });
-    });
+const SS_DYN = '#trD, #trS, #trF, #trXD, #trXS';   // قوائم شاشة مراجعة التصنيف (تُبنى ديناميكياً)
+function ssTitle(sel) {
+    const fg = sel.closest('.form-group'), lb = sel.closest('label') || (fg && fg.querySelector('label'));
+    let t = '';
+    if (lb) t = lb.contains(sel) ? [...lb.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('') : lb.textContent;
+    t = t.replace(/\(.*?\)/g, '').replace(/[:：]\s*$/, '').trim();
+    if (!t) t = ({ trD: 'القسم', trS: 'التصنيف', trF: 'الشكل الدوائي', trXD: 'القسم الإضافي', trXS: 'التصنيف الإضافي' })[sel.id] || 'اختر';
+    return t;
 }
-setInterval(() => { SS_IDS.forEach(id => { const sel = document.getElementById(id), b = sel && document.querySelector(`.ss-btn[data-for="${id}"]`); if (sel && b && b.dataset.v !== sel.value + '|' + sel.options.length) ssSync(sel); }); }, 350);   // يلتقط التغيير البرمجي (التعبئة التلقائية)
+function ssAttach(sel) {
+    if (!sel || sel.dataset.ss) return; sel.dataset.ss = '1';
+    sel.classList.add('ss-native'); sel.tabIndex = -1;
+    sel.insertAdjacentHTML('afterend', `<button type="button" class="ss-btn" data-for="${sel.id}" aria-haspopup="listbox"><span class="ss-t"></span><i>▾</i></button>`);
+    const b = sel.nextElementSibling; b.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); ssOpen(sel); });
+    sel.addEventListener('change', () => ssSync(sel)); ssSync(sel);
+    const fg = sel.closest('.form-group'), lab = fg && fg.querySelector('label'); if (lab && !lab.contains(sel)) lab.addEventListener('click', e => { e.preventDefault(); ssOpen(sel); });
+}
+function ssInit() { SS_IDS.forEach(id => ssAttach(document.getElementById(id))); document.querySelectorAll(SS_DYN).forEach(ssAttach); }
+try { new MutationObserver(() => { if (document.querySelector('.swal2-container #trD, .swal2-container #trXD')) document.querySelectorAll(SS_DYN).forEach(ssAttach); }).observe(document.body || document.documentElement, { childList: true, subtree: true }); } catch (e) { /* تجاهل */ }
+setInterval(() => { document.querySelectorAll('.ss-btn').forEach(b => { const sel = document.getElementById(b.dataset.for); if (sel && b.dataset.v !== sel.value + '|' + sel.options.length) ssSync(sel); }); }, 350);   // يلتقط التغيير البرمجي (التعبئة التلقائية)
 function ssItems(sel) {
     const out = []; let grp = '';
     [...sel.children].forEach(ch => {
@@ -37,7 +46,7 @@ function ssOpen(sel) {
     if (sel.disabled) return;
     ssClose(); ssCur = sel;
     const items = ssItems(sel), lab = sel.closest('.form-group') && sel.closest('.form-group').querySelector('label');
-    const title = lab ? lab.textContent.replace(/\(.*?\)/g, '').replace(/[:：]\s*$/, '').trim() : 'اختر';
+    const title = ssTitle(sel);
     const el = document.createElement('div'); el.className = 'ss-ov'; el.id = 'ssOv';
     el.innerHTML = `<div class="ss-bd"></div><div class="ss-sheet" role="dialog" aria-label="${ssEsc(title)}"><div class="ss-hd"><b>${ssEsc(title)}</b><button type="button" class="ss-x" aria-label="إغلاق">✕</button></div><div class="ss-sr"><input type="text" inputmode="search" id="ssQ" placeholder="ابحث…" autocomplete="off" enterkeyhint="done"><span id="ssN"></span></div><div class="ss-list" id="ssList" role="listbox"></div></div>`;
     document.body.appendChild(el); document.body.classList.add('ss-lock');

@@ -157,3 +157,41 @@ if (typeof renderTaxSeedBox === 'function') {
     const _rb = renderTaxSeedBox;
     renderTaxSeedBox = function () { _rb(); const box = document.getElementById('taxSeedBox'); if (box && !box.querySelector('.ln-btn2')) box.insertAdjacentHTML('beforeend', '<button type="button" class="ln-btn2" onclick="learnOpen()">🧠 قواعدي — اللي تعلّمه التطبيق من اختياراتك</button>'); };
 }
+
+// =====================================================================
+// حفظ قرارات «مراجعة التصنيف» (✓/✕/التعديلات) بالسحابة حتى ما تضيع لو انمسح المتصفح أو انحذف التطبيق.
+// تنحفظ بوثيقة pharmacy/taxreview وتُدمج بين الأجهزة (الأحدث لكل مادة يفوز).
+// =====================================================================
+if (typeof taxRvSave === 'function' && typeof taxRv !== 'undefined') {
+    let rvSnap = {}, rvT = null, rvLoaded = false, rvTries = 0;
+    const rvKey = e => JSON.stringify([e.d, e.s, e.f, e.x, e.st]);
+    Object.keys(taxRv).forEach(id => { rvSnap[id] = rvKey(taxRv[id]); });
+    const rvPush = () => {
+        clearTimeout(rvT);
+        rvT = setTimeout(() => {
+            try {
+                if (!rvLoaded || typeof isFirebaseReady === 'undefined' || !isFirebaseReady || !currentUser || !navigator.onLine) return;
+                fsSet(db.collection('pharmacy').doc('taxreview'), { rv: taxRv, updatedAt: new Date().toISOString() }).catch(() => { });
+            } catch (e) { /* تجاهل */ }
+        }, 3000);
+    };
+    const _rs = taxRvSave;
+    taxRvSave = function () {
+        try { const now = Date.now(); Object.keys(taxRv).forEach(id => { const k = rvKey(taxRv[id]); if (rvSnap[id] !== k) { rvSnap[id] = k; taxRv[id].t = now; } }); } catch (e) { /* تجاهل */ }
+        _rs.apply(this, arguments); rvPush();
+    };
+    const rvLoad = () => {
+        if (rvLoaded || ++rvTries > 40) return;
+        try {
+            if (typeof isFirebaseReady === 'undefined' || !isFirebaseReady || !currentUser) { setTimeout(rvLoad, 3000); return; }
+            db.collection('pharmacy').doc('taxreview').get().then(snap => {
+                const c = snap.exists ? ((snap.data() || {}).rv || {}) : {}; let n = 0;
+                Object.keys(c).forEach(id => { const l = taxRv[id]; if (!l || (c[id].t || 0) > (l.t || 0)) { taxRv[id] = c[id]; rvSnap[id] = rvKey(c[id]); n++; } });
+                rvLoaded = true; try { _rs(); } catch (e) { /* تجاهل */ }
+                if (n) { try { if (document.getElementById('taxRv') && document.getElementById('taxRv').style.display !== 'none') taxRvRender(true); } catch (e) { /* تجاهل */ } }
+                if (Object.keys(taxRv).some(id => !c[id] || (taxRv[id].t || 0) > (c[id].t || 0))) rvPush();   // ما عند السحابة يُرفع
+            }).catch(() => { setTimeout(rvLoad, 5000); });
+        } catch (e) { setTimeout(rvLoad, 5000); }
+    };
+    setTimeout(rvLoad, 2500);
+}
