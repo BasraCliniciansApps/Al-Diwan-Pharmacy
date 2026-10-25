@@ -2388,3 +2388,5 @@ body.rv-open { overflow: hidden; }
 .swal2-container { z-index: 99990 !important; }
 .tr-btns button { font-family: Arial, sans-serif; }
 .tr-no { font-size: 1.05rem; }
+
+.tr-btns button { display: grid; place-items: center; padding: 0; }
