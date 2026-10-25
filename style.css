@@ -2403,7 +2403,6 @@ body.rv-open { overflow: hidden; }
 .qk-hint:empty { display: none; }
 
 /* v100: تصنيفات إضافية للمركّبات */
-.tr-x { color: #0f766e; font-weight: 700; margin-top: 2px; }
 .tr-xbox { margin-top: 10px; padding: 8px; border: 1px dashed #cbd5e1; border-radius: 10px; }
 .tr-xbox > b { display: block; font-size: .8rem; margin-bottom: 6px; }
 .tr-chip { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 6px 6px; padding: 4px 8px; border-radius: 999px; background: #ecfeff; border: 1px solid #99f6e4; font-size: .74rem; }
@@ -2411,3 +2410,11 @@ body.rv-open { overflow: hidden; }
 .tr-xadd { display: flex; gap: 6px; }
 .tr-xadd select { flex: 1; min-width: 0; font-size: .78rem; padding: 6px; }
 .tr-xadd button { flex: 0 0 38px; border: 0; border-radius: 8px; background: #0f1c38; color: #fff; font-size: 1.1rem; cursor: pointer; }
+
+/* v102: عرض التصنيف سطراً لكل تصنيف (الأساسي ثم الإضافية) */
+.tr-ln { display: block; line-height: 1.7; font-size: .78rem; color: #334155; }
+.tr-ln.main { font-weight: 700; }
+.tr-ln.extra { color: #0f766e; }
+.tr-ln.extra::before { content: '＋ '; font-weight: 800; }
+.tr-tags { margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; }
+.tr-f { white-space: nowrap; }
