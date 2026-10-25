@@ -805,3 +805,26 @@ async function puApplyLines(r, idxs) {
     Swal.fire({ icon: 'success', title: 'تم تحديث المخزن (' + done.length + ' مادة)', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     puOpen(r.id);
 }
+
+// ---------- نموذج تعديل المادة: عرض آخر سعر شراء من الوارد (للتسعير على أساسه) ----------
+(function () {
+    const orig = window.openFormModal; if (typeof orig !== 'function') return;
+    window.openFormModal = function (id) {
+        const r = orig.apply(this, arguments);
+        try { puCostHint(id); } catch (e) { /* تجاهل */ }
+        return r;
+    };
+})();
+function puCostHint(id) {
+    const old = document.getElementById('fCostHint'); if (old) old.remove();
+    const inp = document.getElementById('fCost'); if (!inp || !id) return;
+    const p = products.find(x => x.id === id); if (!p) return;
+    const src = (puAll && puAll.length) ? puAll : puLocalList(), out = [];
+    src.filter(r => r && !r.cancelled).forEach(r => (r.items || []).forEach(l => { if ((l.pid === id || (!l.pid && puKey(l.name) === puKey(p.name))) && puNum(l.cost) > 0 && puNum(l.qty) > 0) out.push({ r, l }); }));
+    out.sort((a, b) => String(b.r.date).localeCompare(String(a.r.date)));
+    const x = out[0];
+    const d = document.createElement('div'); d.id = 'fCostHint'; d.style.cssText = 'margin-top:6px;font-size:.8rem;font-weight:700;color:#065f46;background:#ecfdf5;border-radius:10px;padding:8px 10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+    if (x) d.innerHTML = `<span>📥 آخر سعر شراء بالوارد: <b>${fmtNum(x.l.cost)}</b> (${escapeHtml(x.r.supplier)} — ${escapeHtml(fmtDateDMY(x.r.date))})</span>` + (puNum(inp.value) === puNum(x.l.cost) ? '' : `<button type="button" class="bill-tb-btn" onclick="document.getElementById('fCost').value='${x.l.cost}';document.getElementById('fCost').dispatchEvent(new Event('input'));this.parentNode.remove()">استخدمه</button>`);
+    else d.innerHTML = '<span style="color:#64748b">لا يوجد سعر شراء مسجّل لهذه المادة بالوارد.</span>';
+    inp.insertAdjacentElement('afterend', d);
+}
