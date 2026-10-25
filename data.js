@@ -86,7 +86,8 @@ function syndCalc(cost) {   // سعر البيع = سعر المذخر + نسب�
     cost = Number(cost) || 0;
     if (!(cost > 0)) return null;
     const usd = cost / pricingCfg.rate;
-    const br = pricingCfg.brackets.find(b => b.max === null || (pricingCfg.boundary === 'lower' ? usd <= b.max : usd < b.max)) || pricingCfg.brackets[pricingCfg.brackets.length - 1];
+    const u2 = Math.round(usd * 100) / 100;   // المقارنة بالدولار المعروض (سنتين) حتى 5.0006$ تُعدّ 5.00$
+    const br = pricingCfg.brackets.find(b => b.max === null || (pricingCfg.boundary === 'lower' ? u2 <= b.max : u2 < b.max)) || pricingCfg.brackets[pricingCfg.brackets.length - 1];
     let price = cost * (1 + br.pct / 100);
     const step = pricingCfg.round || 0;
     if (step > 0) price = Math.round(price / step) * step;
