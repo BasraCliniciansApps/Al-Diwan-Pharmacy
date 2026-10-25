@@ -24,15 +24,17 @@ const TAX_SEED = {
     'العناية الشخصية والتجميل': ['العناية بالبشرة', 'العناية بالشعر', 'العطور ومزيلات العرق', 'العناية بالجسم', 'المكياج', 'العناية بالأظافر', 'صابون ومنظفات', 'الحلاقة والعناية بالرجل', 'العناية النسائية الحميمة', 'العناية بالشفاه', 'العناية بالقدم واليد', 'العناية بالعين والهالات', 'صبغات الشعر', 'أدوات التجميل', 'التسمير والعناية بعد الشمس', 'العناية بالرجال'],
     'الأعشاب والمنتجات الطبيعية': ['أعشاب وشاي طبي', 'زيوت طبيعية', 'عسل ومنتجات النحل', 'مشروبات وشاي أعشاب', 'مستخلصات نباتية', 'بذور وحبوب طبية', 'علاجات طبيعية للنوم والتوتر', 'مغلي الجهاز الهضمي', 'ماء الورد والزهور', 'صموغ وراتنجات', 'بخور ومعطرات', 'تحلية طبيعية'],
     'الأجهزة والمستلزمات الطبية': ['قياس السكر والضغط', 'موازين الحرارة', 'كمامات وقفازات', 'دعامات وضمادات', 'أجهزة التنفس والبخاخ', 'أجهزة قياس الضغط', 'أجهزة السكر وشرائطها', 'موازين', 'عكازات وكراسي', 'دعامات الظهر والركبة', 'جوارب طبية', 'أجهزة العلاج الطبيعي', 'اختبارات سريعة', 'مستلزمات الإنسولين', 'وسائد وفرش طبية', 'مقاييس وسماعات'],
-    'المحاليل والمستهلكات والإسعافات': ['محاليل وريدية', 'محاقن وإبر', 'إسعافات أولية', 'قطن وشاش', 'مطهرات ومعقمات', 'ضمادات وبلاستر', 'خيوط جراحية', 'قساطر وأكياس البول', 'مستلزمات الجراحة', 'أكياس فغر', 'قفازات الفحص', 'كحول وبيتادين']
+    'المحاليل والمستهلكات والإسعافات': ['محاليل وريدية', 'محاقن وإبر', 'إسعافات أولية', 'قطن وشاش', 'مطهرات ومعقمات', 'ضمادات وبلاستر', 'خيوط جراحية', 'قساطر وأكياس البول', 'مستلزمات الجراحة', 'أكياس فغر', 'قفازات الفحص', 'كحول وبيتادين'],
+    'الضمادات والمستلزمات الجراحية': ['ضمادات الجروح العامة', 'ضمادات مقاومة للماء', 'ضمادات الحروق', 'ضمادات الجروح المزمنة والقرحة', 'بلاستر لاصق', 'لاصق طبي وشرائط', 'شاش معقم', 'ضمادات ضاغطة ومرنة', 'لواصق إغلاق الجروح', 'ضمادات العيون والأذن', 'مستلزمات العمليات الصغرى', 'أدوات الجراحة والمشارط', 'قفازات جراحية معقمة', 'كمامات وأغطية جراحية', 'مستلزمات الغيار والتعقيم']
 };
-function taxSeeded() { return Object.keys(TAX_SEED).every(d => departments.includes(d)); }
-function taxMissingSubs() { const out = []; Object.keys(TAX_SEED).forEach(d => { if (!departments.includes(d)) return; const have = deptSubs[d] || []; TAX_SEED[d].forEach(s => { if (!have.includes(s) && !(taxLegacy.c || []).includes(s)) out.push([d, s]); }); }); return out; }
+const TAX_BASE = 22;   // الأقسام الجاهزة الأصلية؛ ما بعدها أقسام أُضيفت لاحقاً (تنضاف بزر «إضافة التصنيفات الجديدة»)
+function taxSeeded() { return Object.keys(TAX_SEED).slice(0, TAX_BASE).every(d => departments.includes(d)); }
+function taxMissingSubs() { const out = []; Object.keys(TAX_SEED).forEach((d, i) => { if (!departments.includes(d) && i < TAX_BASE) return; const have = departments.includes(d) ? (deptSubs[d] || []) : []; TAX_SEED[d].forEach(s => { if (!have.includes(s) && !(taxLegacy.c || []).includes(s)) out.push([d, s]); }); }); return out; }
 async function taxAddNew() {
     if (!writesAllowed()) return;
     const miss = taxMissingSubs(); if (!miss.length) return;
-    const h = Prog.start('إضافة التصنيفات الجديدة', { text: 'حفظ ' + fmtNum(miss.length) + ' تصنيف...' });
-    miss.forEach(([d, s]) => { deptSubs[d] = (deptSubs[d] || []).concat(s); if (!subCategories.includes(s)) subCategories.push(s); });
+    const h = Prog.start('إضافة الأقسام والتصنيفات الجديدة', { text: 'حفظ ' + fmtNum(miss.length) + ' تصنيف...' });
+    miss.forEach(([d, s]) => { if (!departments.includes(d)) departments.push(d); deptSubs[d] = (deptSubs[d] || []).concat(s); if (!subCategories.includes(s)) subCategories.push(s); });
     try { await pushToCloud(true); } catch (e) { h.fail('تعذر الحفظ', e && e.message); return; }
     renderManagerLists(); try { renderAll(); } catch (e) { /* تجاهل */ }
     h.ok('أُضيف ' + fmtNum(miss.length) + ' تصنيف جديد');
@@ -75,11 +77,24 @@ function taxKey(n) { return String(n || '').toLowerCase().split(/\s\d|\s*\(|\s[x
 let taxFirstIdx = null;
 // قواعد بالكلمات (أولوية على الجدول) للمنتجات الواضحة: [regex، القسم، التصنيف]
 const TAX_KW = [
+    [/water-?proof[^,]*(dressing|plaster|bandage|film)|(dressing|plaster|bandage)[^,]*water-?proof|ضماد[^,]*ماء/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات مقاومة للماء'],
+    [/hydrocolloid|foam\s*dressing|bed\s*sore|pressure\s*(ulcer|sore)|alginate|ulcer\s*dressing/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات الجروح المزمنة والقرحة'],
+    [/burn[^,]*dressing|tulle|paraffin\s*gauze|jelonet/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات الحروق'],
+    [/steri-?strip|wound\s*closure|skin\s*closure|suture\s*strip/i, 'الضمادات والمستلزمات الجراحية', 'لواصق إغلاق الجروح'],
+    [/eye\s*(pad|patch|dressing)|ear\s*dressing/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات العيون والأذن'],
+    [/^(?!.*(nasal|pain|medicated|joint|hot|cold)).*(band-?aid|adhesive\s*(bandage|strips?)|\bplasters?\b|بلاستر)/i, 'الضمادات والمستلزمات الجراحية', 'بلاستر لاصق'],
+    [/surgical\s*tape|medical\s*tape|micropore|paper\s*tape|zinc\s*oxide\s*tape|لاصق طبي/i, 'الضمادات والمستلزمات الجراحية', 'لاصق طبي وشرائط'],
+    [/gauze|swabs?\b|شاش/i, 'الضمادات والمستلزمات الجراحية', 'شاش معقم'],
+    [/elastic\s*bandage|crepe|bandage|ضماد ضاغط|رباط/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات ضاغطة ومرنة'],
+    [/scalpel|surgical\s*blade|forceps|surgical\s*scissors|مشرط/i, 'الضمادات والمستلزمات الجراحية', 'أدوات الجراحة والمشارط'],
+    [/(surgical|sterile|examination)\s*gloves?|قفازات جراحية/i, 'الضمادات والمستلزمات الجراحية', 'قفازات جراحية معقمة'],
+    [/surgical\s*(mask|drape|gown|cap)|face\s*mask/i, 'الضمادات والمستلزمات الجراحية', 'كمامات وأغطية جراحية'],
+    [/dressing|wound\s*care|ضماد/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات الجروح العامة'],
     [/floss|interdental|inter-dental|خيط اسنان|خيط أسنان|بين الاسنان|بين الأسنان/i, 'الفم والأسنان', 'خيط أسنان وفرش بين الأسنان'],
     [/tooth\s*paste|toothpaste|dentifrice|tooth\s*brush|toothbrush|معجون اسنان|معجون أسنان|فرشاة/i, 'الفم والأسنان', 'معاجين وفُرش'],
     [/whiten\w*[^,]*strips?|strips?[^,]*whiten|teeth\s*strips?|tooth\s*strips?|شرائط تبييض|teeth\s*whiten|تبييض الاسنان|تبييض الأسنان/i, 'الفم والأسنان', 'تبييض الأسنان'],
     [/mouth\s*wash|mouthwash|mouth\s*rinse|غسول فم/i, 'الفم والأسنان', 'غسول الفم'],
-    [/breath|oral\s*strips?|mouth\s*strips?|رائحة الفم|معطر فم/i, 'الفم والأسنان', 'معطرات الفم ورائحة الفم'],
+    [/breath[^,]*(strips?|film|spray|mints?|freshener|drops)|(strips?|film|spray|mints?)[^,]*breath|oral\s*strips?|mouth\s*strips?|رائحة الفم|معطر فم/i, 'الفم والأسنان', 'معطرات الفم ورائحة الفم'],
     [/lip\s*(balm|care|stick|gloss|salve|butter)|lipstick|مرطب شفاه|بلسم شفاه/i, 'العناية الشخصية والتجميل', 'العناية بالشفاه']
 ];
 function taxKwHit(name) {

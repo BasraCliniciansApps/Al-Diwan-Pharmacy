@@ -931,10 +931,26 @@ function isCustomItem(item) {
 }
 
 // الأشكال الدوائية: id / الاسم المعروض / لون الشارة / كلمات التعرّف التلقائي (بالترتيب: الأدق أولاً)
-const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye / Ear / Nose', 'Inhalation', 'Rectal & Vaginal', 'Oral Care', 'Other'];
+const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye / Ear / Nose', 'Inhalation', 'Rectal & Vaginal', 'Oral Care', 'Dressings & Supplies', 'Other'];
 const mkForm = (id, txt, cls, g, re) => ({ id, txt, cls, g, re: re || null });
 // الترتيب مهم للاكتشاف التلقائي (الأول المطابق يفوز): الأخص قبل الأعم. وما بلا نمط يُختار يدوياً فقط.
 const FORMS = [
+    mkForm('waterproofdress', 'Waterproof Dressing', 'badge-gel', 'Dressings & Supplies', /water-?proof[^,]*(dressing|plaster|bandage|film)|(dressing|plaster|bandage)[^,]*water-?proof|ضماد[^,]*ماء/),
+    mkForm('hydrocolloid', 'Hydrocolloid Dressing', 'badge-gel', 'Dressings & Supplies', /hydrocolloid/),
+    mkForm('foamdress', 'Foam Dressing', 'badge-gel', 'Dressings & Supplies', /foam\s*dressing|silicone\s*foam|alginate/),
+    mkForm('tulle', 'Tulle / Paraffin Gauze', 'badge-gel', 'Dressings & Supplies', /tulle|paraffin\s*gauze|jelonet|burn\s*dressing/),
+    mkForm('wounddress', 'Wound Dressing', 'badge-gel', 'Dressings & Supplies', /dressing|wound\s*care|ضماد/),
+    mkForm('plaster', 'Adhesive Plaster / Band-Aid', 'badge-gel', 'Dressings & Supplies', /^(?!.*(nasal|pain|medicated|joint|hot|cold)).*(band-?aid|adhesive\s*(bandage|strips?)|\bplasters?\b|بلاستر)/),
+    mkForm('surgtape', 'Surgical / Medical Tape', 'badge-gel', 'Dressings & Supplies', /surgical\s*tape|medical\s*tape|micropore|paper\s*tape|zinc\s*oxide\s*tape|لاصق طبي/),
+    mkForm('gauze', 'Gauze / Swabs', 'badge-gel', 'Dressings & Supplies', /gauze|swabs?\b|شاش/),
+    mkForm('bandage', 'Elastic / Crepe Bandage', 'badge-gel', 'Dressings & Supplies', /elastic\s*bandage|crepe|bandage|ضماد ضاغط|رباط/),
+    mkForm('cotton', 'Cotton', 'badge-gel', 'Dressings & Supplies', /cotton|قطن/),
+    mkForm('gloves', 'Gloves', 'badge-other', 'Dressings & Supplies', /gloves?\b|قفاز/),
+    mkForm('syringe', 'Syringe / Needle', 'badge-inj', 'Dressings & Supplies', /\bsyringes?\b(?!.*(pre-?filled))|\bneedles?\b|محقنة|محاقن|إبرة/),
+    mkForm('suture', 'Suture', 'badge-other', 'Dressings & Supplies', /suture|catgut|vicryl|خيط جراحي|خيوط جراحية/),
+    mkForm('scalpel', 'Scalpel / Surgical Blade', 'badge-other', 'Dressings & Supplies', /scalpel|surgical\s*blade|مشرط/),
+    mkForm('mask', 'Surgical Mask', 'badge-other', 'Dressings & Supplies', /\bmasks?\b|كمامة|كمامات/),
+    mkForm('catheter', 'Catheter / Bag', 'badge-other', 'Dressings & Supplies', /catheter|foley|urine\s*bag|colostomy|قسطرة/),
     mkForm('whitestrips', 'Whitening Strips', 'badge-gel', 'Oral Care', /whiten\w*[^,]*strips?|strips?[^,]*whiten|teeth\s*strips?|tooth\s*strips?|شرائط تبييض/),
     mkForm('breathstrips', 'Breath Strips', 'badge-gel', 'Oral Care', /breath[^,]*(strips?|film)|(strips?|film)[^,]*breath|fresh[^,]*strips?|mint[^,]*strips?|oral\s*strips?|mouth\s*strips?|شرائط (رائحة|معطر)/),
     mkForm('interdental', 'Interdental Brush', 'badge-other', 'Oral Care', /interdental|inter-dental|فرش(اة)? بين الاسنان|فرش(اة)? بين الأسنان/),
