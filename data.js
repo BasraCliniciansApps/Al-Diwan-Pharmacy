@@ -935,6 +935,11 @@ const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye
 const mkForm = (id, txt, cls, g, re) => ({ id, txt, cls, g, re: re || null });
 // الترتيب مهم للاكتشاف التلقائي (الأول المطابق يفوز): الأخص قبل الأعم. وما بلا نمط يُختار يدوياً فقط.
 const FORMS = [
+    mkForm('ovule', 'Vaginal Ovule', 'badge-oint', 'Rectal & Vaginal', /\bovules?\b|\bovula\b|بيوض/),
+    mkForm('vagsupp', 'Vaginal Suppository (Pessary)', 'badge-oint', 'Rectal & Vaginal', /pessar(y|ies)|vaginal\s*(suppositor\w*|capsules?|inserts?|pessar\w*)|vag\s*supp|تحميلة مهبلية/),
+    mkForm('vagtab', 'Vaginal Tablet', 'badge-oint', 'Rectal & Vaginal', /vaginal\s*tab(let)?s?|vag\s*tabs?|حبة مهبلية/),
+    mkForm('vagcream', 'Vaginal Cream', 'badge-cream', 'Rectal & Vaginal', /vaginal\s*(cream|gel)|كريم مهبلي/),
+    mkForm('douche', 'Vaginal Wash', 'badge-wash', 'Rectal & Vaginal', /vaginal\s*(douche|wash)|intimate\s*(wash|cleanser)|غسول مهبلي|douche/),
     mkForm('razor', 'Razor / Shaving', 'badge-other', 'Other', /^(?!.*(surgical|scalpel|cream|foam|gel|lotion|after|مشرط)).*(razors?\b|shavers?\b|gillette|\bblades?\b|shaving|شفرة حلاقة|ماكينة حلاقة|مكينة حلاقة)/),
     mkForm('alcoholswab', 'Alcohol Swabs', 'badge-wash', 'Antiseptics & Sanitizers', /alcohol\s*(swabs?|pads?|prep)|isopropyl[^,]*(swabs?|pads?)|swabs?[^,]*alcohol/),
     mkForm('antisepticwipes', 'Antiseptic Wipes', 'badge-wash', 'Antiseptics & Sanitizers', /(disinfect|antiseptic|sanit)\w*[^,]*wipes?|wipes?[^,]*(disinfect|antiseptic|alcohol)/),
@@ -1015,10 +1020,6 @@ const FORMS = [
     mkForm('depot', 'Depot Injection', 'badge-inj', 'Injectables'),
     mkForm('enema', 'Enema', 'badge-oint', 'Rectal & Vaginal', /enema|حقنة شرجية/),
     mkForm('supp', 'Suppository', 'badge-oint', 'Rectal & Vaginal', /suppositor|\bsupp\b|pessar|تحميل|تحاميل/),
-    mkForm('vagsupp', 'Vaginal Suppository (Pessary)', 'badge-oint', 'Rectal & Vaginal'),
-    mkForm('vagtab', 'Vaginal Tablet', 'badge-oint', 'Rectal & Vaginal'),
-    mkForm('vagcream', 'Vaginal Cream', 'badge-cream', 'Rectal & Vaginal'),
-    mkForm('douche', 'Vaginal Wash', 'badge-wash', 'Rectal & Vaginal'),
     mkForm('patch', 'Patch', 'badge-gel', 'Topical', /\bpatch|plaster|لصق/),
     mkForm('inhaler', 'Inhaler / Nebulizer', 'badge-spray', 'Inhalation', /inhaler|nebul|respules|استنشاق|نيبول/),
     mkForm('mdi', 'MDI Inhaler', 'badge-spray', 'Inhalation'),
