@@ -2390,3 +2390,14 @@ body.rv-open { overflow: hidden; }
 .tr-no { font-size: 1.05rem; }
 
 .tr-btns button { display: grid; place-items: center; padding: 0; }
+
+/* v96: الإدخال السريع */
+.qk-box { margin: 0 0 8px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; overflow: hidden; }
+.qk-box summary { cursor: pointer; padding: 10px 12px; font-weight: 800; font-size: .86rem; color: #0f1c38; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.qk-box summary::-webkit-details-marker { display: none; }
+.qk-box summary em { font-style: normal; font-weight: 600; font-size: .72rem; color: #64748b; }
+.qk-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; border-top: 1px solid #e2e8f0; }
+.qk-row b { display: block; font-size: .82rem; color: #0f1c38; }
+.qk-row small { display: block; font-size: .72rem; color: #64748b; margin-top: 2px; line-height: 1.5; }
+.qk-hint { min-height: 0; margin: -2px 2px 8px; font-size: .76rem; font-weight: 700; color: #047857; line-height: 1.6; }
+.qk-hint:empty { display: none; }
