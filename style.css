@@ -2630,3 +2630,13 @@ body.ss-lock { overflow: hidden; }
 .swal2-popup:has(.tr-xbox) .swal2-actions button { margin: 0; min-height: 46px; padding: 0 16px; font-size: .88rem; line-height: 1.3; white-space: normal; }
 .swal2-popup:has(.tr-xbox) .swal2-actions .swal2-confirm { grid-column: 1 / -1; order: -1; }
 .swal2-popup:has(.tr-xbox) .swal2-title { font-size: 1rem; }
+
+/* v155: التجزئة داخل بطاقة الوارد (قابلة للطي) */
+.pu-retail { margin-top: 10px; border: 1px solid #e5eaf2; border-radius: 12px; background: #f6f8fc; overflow: hidden; }
+.pu-rbar { display: flex; align-items: center; gap: 8px; padding: 11px 12px; cursor: pointer; font-size: .84rem; font-weight: 800; color: #334155; }
+.pu-rbar small { margin-inline-start: auto; font-weight: 700; color: #64748b; font-size: .74rem; }
+.pu-rbody { display: grid; gap: 8px; padding: 4px 12px 12px; }
+.pu-rbody label { display: flex; flex-direction: column; gap: 4px; font-size: .76rem; font-weight: 800; color: #475569; }
+.pu-rbody input, .pu-rbody select { width: 100%; box-sizing: border-box; min-height: 42px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-family: inherit; font-size: .95rem; background: #fff; color: #111; }
+[data-theme="dark"] .pu-retail { background: #1e293b; border-color: #334155; } [data-theme="dark"] .pu-rbar { color: #e2e8f0; }
+[data-theme="dark"] .pu-rbody input, [data-theme="dark"] .pu-rbody select { background: #0f172a; color: #e2e8f0; border-color: #475569; }

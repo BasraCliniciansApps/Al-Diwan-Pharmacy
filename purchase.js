@@ -159,7 +159,7 @@ function puRecalc() {
     pu.items.forEach((it, i) => {
         const sum = fmtNum(puNum(it.qty) * puNum(it.cost)), set = (id, v) => { const el = $b(id + i); if (el) el.innerText = v; };
         { const el = $b('puPs-' + i); if (el) el.innerHTML = puPM(it) === 'syndicate' ? syndHintHtml(it.cost) : puPM(it) === 'percent' ? markupHintHtml(it.cost, it.pmarkup) : ''; }
-        set('puLine-', sum); set('puBq-', fmtNum(puNum(it.qty))); set('puBc-', puNum(it.cost) > 0 ? fmtNum(it.cost) : '⚠ بلا سعر'); set('puBs-', sum);
+        puRetailRefresh(i); set('puLine-', sum); set('puBq-', fmtNum(puNum(it.qty))); set('puBc-', puNum(it.cost) > 0 ? fmtNum(it.cost) : '⚠ بلا سعر'); set('puBs-', sum);
     });
 }
 function puThumb(pid) { const p = products.find(x => x.id === pid); return p && p.img ? `<img class="pk-img" src="${escapeHtml(p.img)}" alt="" onerror="this.style.visibility='hidden'">` : '<span class="pk-img pk-noimg">💊</span>'; }
@@ -196,10 +196,42 @@ function puRenderItems() {
                     <label id="puPm-${i}" style="display:${puPM(it) === 'manual' ? 'block' : 'none'}"><span>سعر البيع المطبوع على الملصق ${puCurPrice(it.pid)}</span><input type="number" min="0" inputmode="decimal" placeholder="اتركه فارغاً للإبقاء على السعر الحالي" value="${escapeHtml(it.pprice || '')}" oninput="puItemEdit(${i},'pprice',this.value)"></label>
                     <div id="puPs-${i}" class="pu-syn" style="display:${puPM(it) === 'syndicate' || puPM(it) === 'percent' ? 'block' : 'none'}"></div>
                 </div>
+                ${puRetailHtml(it, i)}
                 <div class="pu-line">المجموع: <b id="puLine-${i}">0</b> د.ع</div>
             </div>
         </div>`).join('') || '<div class="bill-none">ابحث عن دواء أو امسح باركوده لإضافته إلى الفاتورة الواردة.</div>';
     puRecalc();
+}
+// ---- التجزئة داخل بطاقة الوارد (قابلة للطي) ----
+function puRC(it) { const p = products.find(x => x.id === it.pid); return it.rsc != null ? it.rsc : (p && subCountOf(p) ? subCountOf(p) : ''); }
+function puRT(it) { const p = products.find(x => x.id === it.pid); return it.rst || (p ? subTypeOf(p) : (subTypes[0] || 'جزء')); }
+function puRP(it) { const p = products.find(x => x.id === it.pid); return it.rsp != null ? it.rsp : (p && p.subPrice && hasRetail(p) ? p.subPrice : ''); }
+function puRetailPrice(it) {   // سعر الجزء المتوقع: اليدوي أو من سعر البيع الجديد
+    if (puNum(puRP(it)) > 0) return puNum(puRP(it));
+    const p = products.find(x => x.id === it.pid); const pm = puPM(it), cost = puNum(it.cost);
+    let price = p ? Number(p.price) || 0 : 0;
+    if (pm === 'percent' && cost > 0) price = markupCalc(cost, puNum(puMk(it))); else if (pm === 'syndicate' && cost > 0) price = syndPrice(cost); else if (puNum(it.pprice) > 0) price = puNum(it.pprice);
+    return subPriceCalc(price, puNum(puRC(it)));
+}
+function puRetailHtml(it, i) {
+    const c = puNum(puRC(it)), on = c > 1;
+    const types = subTypes.slice(); if (!types.includes(puRT(it))) types.push(puRT(it));
+    return `<div class="pu-retail ${it.ropen ? 'open' : ''}" id="puR-${i}">
+        <div class="pu-rbar" onclick="puRToggle(${i})"><span class="pu-chev">${it.ropen ? '▾' : '▸'}</span><span>🧩 التجزئة وتسعيرها</span><small id="puRs-${i}">${on ? c + ' ' + escapeHtml(puRT(it)) + ' • ' + fmtNum(puRetailPrice(it)) + ' د.ع' : 'غير مفعّلة'}</small></div>
+        <div class="pu-rbody" style="display:${it.ropen ? 'grid' : 'none'}">
+            <label><span>عدد الأجزاء في العبوة</span><input type="number" min="0" inputmode="numeric" placeholder="مثال: 10" value="${escapeHtml(String(puRC(it)))}" oninput="puRetailEdit(${i},'rsc',this.value)"></label>
+            <label><span>نوع الجزء</span><select onchange="puRetailEdit(${i},'rst',this.value)">${types.map(t => `<option value="${escapeHtml(t)}" ${t === puRT(it) ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
+            <label><span>سعر الجزء (فارغ = يُحسب تلقائياً)</span><input type="number" min="0" inputmode="decimal" placeholder="تلقائي" value="${escapeHtml(String(puRP(it)))}" oninput="puRetailEdit(${i},'rsp',this.value)"></label>
+            <div class="pu-syn" id="puRh-${i}">${on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' : 'اتركه فارغاً إذا المادة ما تُباع بالتجزئة.'}</div>
+        </div></div>`;
+}
+function puRToggle(i) { const it = pu.items[i]; if (!it) return; it.ropen = !it.ropen; const el = $b('puR-' + i); if (!el) return; el.classList.toggle('open', it.ropen); el.querySelector('.pu-rbody').style.display = it.ropen ? 'grid' : 'none'; el.querySelector('.pu-chev').textContent = it.ropen ? '▾' : '▸'; puChanged(); }
+function puRetailEdit(i, f, v) { const it = pu.items[i]; if (!it) return; it[f] = v; puRetailRefresh(i); puChanged(); }
+function puRetailRefresh(i) {
+    const it = pu.items[i]; if (!it) return; const c = puNum(puRC(it)), on = c > 1;
+    const s = $b('puRs-' + i), h = $b('puRh-' + i);
+    if (s) s.textContent = on ? c + ' ' + puRT(it) + ' • ' + fmtNum(puRetailPrice(it)) + ' د.ع' : 'غير مفعّلة';
+    if (h) h.innerHTML = on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' : 'اتركه فارغاً إذا المادة ما تُباع بالتجزئة.';
 }
 function puToggle(i) { if (!pu.items[i]) return; pu.items[i].open = !pu.items[i].open; puRenderItems(); if (pu.items[i].open) { const el = $b('puItem-' + i); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }
 function puItemEdit(i, f, v) { if (!pu.items[i]) return; pu.items[i][f] = v; puChanged(); }
@@ -323,6 +355,11 @@ async function puSave() {
         if (old && old.expiry !== line.expiry && old.expAdded && old.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; line.expAdded = false; }
         if (cost > 0) p.costPrice = cost;
         { const pm = puPM(it); if (pm === 'percent') { const mk = puNum(puMk(it)); p.pricing = 'percent'; p.markupPct = mk; if (cost > 0) p.price = markupCalc(cost, mk); } else if (pm === 'syndicate') { p.markupPct = null; p.pricing = 'syndicate'; if (cost > 0) p.price = syndPrice(cost); } else { p.markupPct = null; p.pricing = 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
+        if (it.rsc != null || it.rst != null || it.rsp != null) {   // تعديل التجزئة من بطاقة الوارد
+            const rc = Math.round(puNum(puRC(it)));
+            if (rc > 1) { p.subCount = rc; p.subType = puRT(it); p.subPrice = puNum(puRP(it)) > 0 ? puNum(puRP(it)) : subPriceCalc(p.price, rc); }
+            else { p.subCount = ''; p.subPrice = ''; p.loose = 0; }
+        }
         line.bonusSale = bn * (Number(p.price) || 0);
         if (line.expiry && puExpiryPush(p, line.expiry)) line.expAdded = true;
         const lp = p.lastPurchase;
