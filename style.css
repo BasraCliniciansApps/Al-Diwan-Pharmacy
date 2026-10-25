@@ -2759,3 +2759,8 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .bento-card { display: flex; flex-direction: column; }
 .bento-card .bento-body { flex: 1 1 auto; display: flex; flex-direction: column; }
 .bento-card .bento-title { flex: 1 1 auto; }
+
+/* v169: السعر ثابت مباشرة فوق وسم الحجم (نفس المستوى بكل البطاقات مهما كان طول الاسم) */
+.bento-card .bento-title { flex: 0 0 auto; margin-bottom: 0; min-height: calc(1.35em * 2); }
+.bento-card .bento-price { margin-top: auto; padding-top: 8px; margin-bottom: 5px !important; }
+.bento-card .bento-sub { margin-top: 0; }
