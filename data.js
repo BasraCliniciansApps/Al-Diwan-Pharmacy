@@ -951,6 +951,7 @@ const FORMS = [
     mkForm('adultdiaper', 'Adult Diaper / Pad', 'badge-other', 'Pads & Diapers', /adult[^,]*(diapers?|pads?|briefs?)|incontinence|(حفاض|حفاظ)[^,]*(بالغين|مسنين|كبار)/i),
     mkForm('sanpad', 'Sanitary Pad / Liner', 'badge-other', 'Pads & Diapers', /sanitary\s*(pads?|napkins?|towels?)|panty\s*liners?|period\s*pads?|فوط\s*(صحية|نسائية)/i),
     mkForm('babydiaper', 'Baby Diaper', 'badge-other', 'Pads & Diapers', /diapers?|pampers|huggies|molfix|nappy|nappies|حفاض|حفاظ/i),
+    mkForm('condom', 'Condom', 'badge-other', 'Other', /condoms?|واقي\s*ذكري|عازل\s*ذكري/i),
     mkForm('alcoholswab', 'Alcohol Swabs', 'badge-wash', 'Antiseptics & Sanitizers', /alcohol\s*(swabs?|pads?|prep)|isopropyl[^,]*(swabs?|pads?)|swabs?[^,]*alcohol/),
     mkForm('antisepticwipes', 'Antiseptic Wipes', 'badge-wash', 'Antiseptics & Sanitizers', /(disinfect|antiseptic|sanit)\w*[^,]*wipes?|wipes?[^,]*(disinfect|antiseptic|alcohol)/),
     mkForm('handsan', 'Hand Sanitizer', 'badge-wash', 'Antiseptics & Sanitizers', /hand\s*(sanitizer|sanitiser|rub)|sanitizer|sanitiser|معقم (ايدي|أيدي)/),
