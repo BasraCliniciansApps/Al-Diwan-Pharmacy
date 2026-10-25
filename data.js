@@ -931,10 +931,13 @@ function isCustomItem(item) {
 }
 
 // الأشكال الدوائية: id / الاسم المعروض / لون الشارة / كلمات التعرّف التلقائي (بالترتيب: الأدق أولاً)
-const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye / Ear / Nose', 'Inhalation', 'Rectal & Vaginal', 'Other'];
+const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye / Ear / Nose', 'Inhalation', 'Rectal & Vaginal', 'Oral Care', 'Other'];
 const mkForm = (id, txt, cls, g, re) => ({ id, txt, cls, g, re: re || null });
 // الترتيب مهم للاكتشاف التلقائي (الأول المطابق يفوز): الأخص قبل الأعم. وما بلا نمط يُختار يدوياً فقط.
 const FORMS = [
+    mkForm('toothpaste', 'Toothpaste', 'badge-oint', 'Oral Care', /tooth\s*paste|toothpaste|dentifrice|معجون اسنان|معجون أسنان/),
+    mkForm('toothbrush', 'Toothbrush', 'badge-other', 'Oral Care', /tooth\s*brush|toothbrush|interdental|فرشاة اسنان|فرشاة أسنان|فرشاة/),
+    mkForm('floss', 'Dental Floss', 'badge-other', 'Oral Care', /floss|خيط اسنان|خيط أسنان/),
     mkForm('gummy', 'Gummies', 'badge-oral', 'Oral Solid', /gumm(y|ies)|pectin|جمي|علك مطاطي/),
     mkForm('lollipop', 'Lollipop', 'badge-oral', 'Oral Solid', /loll[iy]pops?|مصاصة/),
     mkForm('oralvial', 'Oral Vial / Drinkable Ampoule', 'badge-syrup', 'Oral Liquid', /oral\s*(vial|ampoule|amp)\b|drinkable/),
@@ -988,7 +991,7 @@ const FORMS = [
     mkForm('dpi', 'DPI (Powder Inhaler)', 'badge-spray', 'Inhalation'),
     mkForm('nebsol', 'Nebulizer Solution', 'badge-spray', 'Inhalation'),
     mkForm('inhcap', 'Inhalation Capsule', 'badge-spray', 'Inhalation'),
-    mkForm('mouth', 'Mouthwash / Toothpaste', 'badge-wash', 'Other', /mouth\s*wash|mouthwash|toothpaste|tooth paste|غسول فم|معجون اسنان|معجون أسنان/),
+    mkForm('mouth', 'Mouthwash', 'badge-wash', 'Oral Care', /mouth\s*wash|mouthwash|mouth\s*rinse|gargle|غسول فم/),
     mkForm('foam', 'Foam', 'badge-wash', 'Topical', /\bfoam\b|mousse|رغوة|موس/),
     mkForm('paste', 'Paste', 'badge-oint', 'Topical', /\bpaste\b|معجون/),
     mkForm('oil', 'Oil', 'badge-oint', 'Topical', /\boil\b|زيت/),
