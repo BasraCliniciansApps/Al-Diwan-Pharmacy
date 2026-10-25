@@ -155,3 +155,22 @@ async function applyHistoryImport(data) {
         Swal.fire({ icon: 'success', title: 'تم استيراد السجل', text: plan.filter(p => p.add.length || p.upd.length).map(p => `${p.c.label}: +${p.add.length}` + (p.fill ? ` (ترقيم ${p.fill})` : '')).join('\n'), confirmButtonColor: '#0f1c38' });
     } catch (e) { h.fail('تعذر الاستيراد', e.message || String(e)); Swal.fire({ icon: 'error', title: 'تعذر الاستيراد', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
 }
+
+// ---------- تصحيح: أسعار بيع البونص المستوردة من الإكسل (يملأ bonusSale الناقص فقط، لا يمس المخزن) ----------
+async function applyBonusPatch(data) {
+    const nz = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, '');
+    const sums = new Map();
+    (data.patch || []).forEach(x => { const k = x.id + '|' + nz(x.name); sums.set(k, (sums.get(k) || 0) + (Number(x.sale) || 0)); });
+    const upd = new Map(); let n = 0;
+    (puAll || []).forEach(r => (r.items || []).forEach(it => {
+        const k = r.id + '|' + nz(it.name);
+        if (sums.has(k) && !(Number(it.bonusSale) > 0)) { it.bonusSale = sums.get(k); upd.set(r.id, r); n++; sums.delete(k); }
+    }));
+    if (!n) { Swal.fire({ icon: 'info', title: 'لا شيء للتصحيح', text: 'أسعار البونص مضافة أصلاً أو السجلات غير موجودة.', confirmButtonColor: '#0f1c38' }); return; }
+    const ok = await Swal.fire({ title: 'إضافة أسعار بيع البونص؟', icon: 'question', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم، طبّق', cancelButtonText: 'إلغاء',
+        html: `<div style="text-align:right;line-height:1.9;font-size:.92rem">سيتم تعبئة سعر البيع لـ <b>${n}</b> مادة بونص في <b>${upd.size}</b> قائمة وارد.<br><span style="color:#64748b">لا يتغير المخزن ولا الكميات ولا أسعار المواد.</span></div>` });
+    if (!ok.isConfirmed) return;
+    const h = Prog.start('إضافة أسعار البونص', { text: 'حفظ ' + upd.size + ' قائمة...', indeterminate: false });
+    try { let i = 0; for (const r of upd.values()) { await puSaveRecord(r); h.tick(++i, upd.size); } renderAll(); if (typeof lgRenderBonus === 'function') lgRenderBonus(); h.ok('تمت تعبئة ' + n + ' مادة'); }
+    catch (e) { h.fail('تعذر الحفظ', e.message || String(e)); }
+}
