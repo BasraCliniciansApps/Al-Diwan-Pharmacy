@@ -11,7 +11,7 @@ def build(mode):
         s = re.sub(r'<!--/?A-->', '', s)
         s = re.sub(r'<!--C-->.*?<!--/C-->', '', s, flags=re.S)
         title, cls = 'لوحة الصيدلي | صيدلية الديوان', 'admin-page'
-        s = s.replace('href="manifest.json"', 'href="manifest-admin.json"').replace('content="صيدلية الديوان"', 'content="الديوان - صيدلي"')
+        s = s.replace('href="manifest.json"', 'href="manifest-admin.json"')
     else:
         s = re.sub(r'<!--A-->.*?<!--/A-->', '', s, flags=re.S)
         s = re.sub(r'<!--/?C-->', '', s)
