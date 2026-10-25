@@ -1262,7 +1262,7 @@ function productCardHtml(p, tagHtml) {
                 <div class="bento-body">
                     <div class="bento-brand">${p.brand}</div>
                     <div class="bento-title">${p.name}</div>
-                    <div style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? Number(p.price).toLocaleString() + ' د.ع' : (IS_ADMIN_PAGE ? '0 د.ع' : '')}</div>
+                    <div class="bento-price" style="font-weight: 900; color: #b45309; font-size: 0.9rem; margin-bottom: 5px;">${p.price ? Number(p.price).toLocaleString() + ' د.ع' : (IS_ADMIN_PAGE ? '0 د.ع' : '')}</div>
                     <div class="bento-sub" dir="ltr">&lrm;${cleanMeta}</div>
                     ${(!IS_ADMIN_PAGE || !can('stockEdit')) ? '' : `<div class="quick-qty" onclick="event.stopPropagation()">
                         <button type="button" aria-label="إنقاص الكمية" onclick="quickQty(${p.id}, -1, event)">−</button>

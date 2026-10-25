@@ -2754,3 +2754,8 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .sc-set, .sc-row, .pu-grid, .inv-rtbody, .retail-grid { align-items: stretch; }
 .sc-set > label, .sc-row > label, .pu-grid > label, .inv-rtbody > label, .pu-rbody > label { justify-content: space-between; }
 .sc-set > label > span, .sc-row > label > span, .pu-grid > label > span, .inv-rtbody > label > span { line-height: 1.35; }
+
+/* v169: السعر والحجم ثابتان بنفس المستوى بكل البطاقات (الاسم الطويل ياخذ المساحة الزايدة فوق) */
+.bento-card { display: flex; flex-direction: column; }
+.bento-card .bento-body { flex: 1 1 auto; display: flex; flex-direction: column; }
+.bento-card .bento-title { flex: 1 1 auto; }
