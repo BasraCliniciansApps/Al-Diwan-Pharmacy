@@ -100,6 +100,7 @@ function taxKey(n) { return String(n || '').toLowerCase().split(/\s\d|\s*\(|\s[x
 let taxFirstIdx = null;
 // قواعد بالكلمات (أولوية على الجدول) للمنتجات الواضحة: [regex، القسم، التصنيف]
 const TAX_KW = [
+    [/lozenges?|pastilles?|لوزنج|اقراص\s*مص|أقراص\s*مص|strepsils/i, 'الأذن والأنف والحنجرة', 'أقراص مص للحلق'],
     [/(fitting|tighten\w*|tightening)\s*insert\w*|vaginal\s*(tighten\w*|insert\w*)|شد\s*المهبل/i, 'النسائية والتوليد والهرمونات', 'العناية الحميمة وشد المهبل'],
     [/orlistat|onlefit|xenical|alli\b|zeroxen|اورليستات|أورليستات|زينيكال/i, 'السمنة والتنحيف', 'أدوية السمنة', [['السكري والغدد الصماء', 'أدوية السمنة']]],
     [/phentermine|sibutramine|appetite|سيبوترامين|كابح\s*الشهية/i, 'السمنة والتنحيف', 'مثبطات الشهية'],
