@@ -43,21 +43,30 @@ function taxApplyRenames() {   // يعيد تسمية تصنيف محمَّل س
     return [...touched];
 }
 function taxMissingSubs() { const out = []; Object.keys(TAX_SEED).forEach((d, i) => { if (!departments.includes(d) && i < TAX_BASE) return; const have = departments.includes(d) ? (deptSubs[d] || []) : []; TAX_SEED[d].forEach(s => { if (!have.includes(s) && !(taxLegacy.c || []).includes(s)) out.push([d, s]); }); }); return out; }
-async function taxAddNew() {
-    if (!writesAllowed()) return;
-    const renamed = taxApplyRenames(), miss = taxMissingSubs(); if (!miss.length && !renamed.length) return;
-    const h = Prog.start('إضافة الأقسام والتصنيفات الجديدة', { text: 'حفظ ' + fmtNum(miss.length) + ' تصنيف...' });
-    miss.forEach(([d, s]) => { if (!departments.includes(d)) departments.push(d); deptSubs[d] = (deptSubs[d] || []).concat(s); if (!subCategories.includes(s)) subCategories.push(s); });
-    try { await pushToCloud(true); if (renamed.length) await saveProductsDelta(renamed.map(p => ({ p, dq: 0, dl: 0 }))); } catch (e) { h.fail('تعذر الحفظ', e && e.message); return; }
-    renderManagerLists(); try { renderAll(); } catch (e) { /* تجاهل */ }
-    h.ok('أُضيف ' + fmtNum(miss.length) + ' تصنيف جديد' + (renamed.length ? ' وحُدّث اسم تصنيف لـ ' + fmtNum(renamed.length) + ' مادة' : ''));
+async function taxAddNew(btn) {
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الإضافة...'; }
+    const h = Prog.start('إضافة الأقسام والتصنيفات الجديدة', { text: 'تجهيز...' });
+    try {
+        if (!writesAllowed()) { h.fail('لا يوجد اتصال', 'الإضافة تُحفظ في السحابة، اتصل بالإنترنت وأعد المحاولة'); renderManagerLists(); return; }
+        const renamed = taxApplyRenames(), miss = taxMissingSubs();
+        if (!miss.length && !renamed.length) { h.ok('كل التصنيفات موجودة أصلاً'); renderManagerLists(); return; }
+        miss.forEach(([d, s]) => { if (!departments.includes(d)) departments.push(d); deptSubs[d] = (deptSubs[d] || []).concat(s); if (!subCategories.includes(s)) subCategories.push(s); });
+        renderManagerLists(); try { renderAll(); } catch (e) { /* تجاهل */ }   // تظهر محلياً فوراً
+        h.set(null, 'حفظ ' + fmtNum(miss.length) + ' تصنيف في السحابة...');
+        await pushToCloud(true);
+        if (renamed.length) { h.set(null, 'تحديث اسم التصنيف في ' + fmtNum(renamed.length) + ' مادة...'); await saveProductsDelta(renamed.map(p => ({ p, dq: 0, dl: 0 }))); }
+        h.ok('أُضيف ' + fmtNum(miss.length) + ' تصنيف جديد' + (renamed.length ? ' وحُدّث اسم تصنيف لـ ' + fmtNum(renamed.length) + ' مادة' : ''));
+    } catch (e) {
+        h.fail('تعذرت الإضافة', (e && e.message) || String(e));
+        try { renderManagerLists(); } catch (x) { /* تجاهل */ }
+    }
 }
 function renderTaxSeedBox() {
     const box = document.getElementById('taxSeedBox'); if (!box) return;
     const subs = Object.values(TAX_SEED).reduce((n, a) => n + a.length, 0);
     const nm = taxSeeded() ? taxMissingSubs().length + taxPendingRenames().length : 0;
     box.innerHTML = taxSeeded()
-        ? (nm ? `<h4>🆕 ${fmtNum(nm)} تصنيف جديد متوفر</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تصنيفات إضافية (مثل الخصوبة والميلاتونين والمفاصل...). تنضاف للأقسام بدون ما تلمس موادك أو تعديلاتك.</small><button type="button" class="icon-btn primary-btn" onclick="taxAddNew()">➕ إضافة التصنيفات الجديدة</button><hr style="margin:12px 0;border:none;border-top:1px solid #e2e8f0">` : '') + `<h4>✅ الأقسام الجاهزة محمَّلة</h4><small style="display:block;color:var(--text-sub);line-height:1.8">القديم معلَّم «قديم» ويختفي لوحده لما ما تبقى مادة عليه. تقدر تعدّل أو تضيف أو تحذف أي قسم أو تصنيف. وحذف القديم النهائي يكون من 🗑️ بعد نقل مواده.</small>`
+        ? (nm ? `<h4>🆕 ${fmtNum(nm)} تصنيف جديد متوفر</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تصنيفات إضافية (مثل الخصوبة والميلاتونين والمفاصل...). تنضاف للأقسام بدون ما تلمس موادك أو تعديلاتك.</small><button type="button" class="icon-btn primary-btn" onclick="taxAddNew(this)">➕ إضافة التصنيفات الجديدة</button><hr style="margin:12px 0;border:none;border-top:1px solid #e2e8f0">` : '') + `<h4>✅ الأقسام الجاهزة محمَّلة</h4><small style="display:block;color:var(--text-sub);line-height:1.8">القديم معلَّم «قديم» ويختفي لوحده لما ما تبقى مادة عليه. تقدر تعدّل أو تضيف أو تحذف أي قسم أو تصنيف. وحذف القديم النهائي يكون من 🗑️ بعد نقل مواده.</small>`
         : `<h4>📥 الأقسام الجاهزة (${Object.keys(TAX_SEED).length} قسم، ${subs} تصنيف)</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تضيف أقسام علاجية جاهزة وتصنيفاتها. <b>لا تغيّر أي مادة</b>، والأقسام القديمة تبقى وتُعلَّم «قديم». تقدر تعدّل الكل بعدها.</small><button type="button" class="icon-btn primary-btn" onclick="taxSeed()">📥 تحميل الأقسام الجاهزة</button>`;
 }
 async function taxSeed() {
