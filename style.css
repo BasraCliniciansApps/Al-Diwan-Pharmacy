@@ -2355,3 +2355,31 @@ body.rv-open { overflow: hidden; }
 .tr-foot { display: flex; gap: 8px; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #e2e8f0; }
 .tr-foot button { flex: 1; height: 46px; border-radius: 12px; border: 1px solid #0f1c38; background: #fff; color: #0f1c38; font: 800 .88rem inherit; cursor: pointer; }
 .tr-foot .tr-apply { background: #0f1c38; color: #fff; }
+
+/* v91: شريط التقدّم الموحّد */
+#progBox { position: fixed; top: calc(10px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(94vw, 520px); z-index: 100000; direction: rtl; background: #fff; border: 1px solid #e2e8f0; border-right: 5px solid #0f1c38; border-radius: 14px; padding: 11px 13px 10px; box-shadow: 0 10px 30px rgba(15, 28, 56, .22); font-family: inherit; animation: pgIn .22s ease-out; }
+#progBox[hidden] { display: none; }
+@keyframes pgIn { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+#progBox.pg-ok { border-right-color: #16a34a; background: #f0fdf4; }
+#progBox.pg-err { border-right-color: #dc2626; background: #fef2f2; }
+#progBox.pg-warn { border-right-color: #d97706; }
+#progBox.pg-stuck { border-right-color: #dc2626; }
+.pg-top { display: flex; align-items: center; gap: 10px; }
+.pg-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pg-t b { font-size: .92rem; color: #0f1c38; }
+.pg-t span { font-size: .78rem; color: #475569; line-height: 1.6; overflow-wrap: anywhere; }
+.pg-spin { flex: 0 0 22px; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #cbd5e1; border-top-color: #0f1c38; animation: pgSpin .8s linear infinite; }
+@keyframes pgSpin { to { transform: rotate(360deg); } }
+.pg-i { flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: .85rem; color: #fff; }
+.pg-i.ok { background: #16a34a; } .pg-i.err { background: #dc2626; }
+.pg-x { flex: 0 0 auto; width: 30px; height: 30px; border: 0; border-radius: 9px; background: rgba(15, 28, 56, .08); color: #0f1c38; cursor: pointer; font-size: .85rem; }
+.pg-bar { height: 8px; border-radius: 99px; background: #e2e8f0; overflow: hidden; margin-top: 9px; }
+.pg-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #0f1c38, #2563eb); transition: width .35s ease; }
+.pg-ok .pg-fill { background: #16a34a; } .pg-err .pg-fill { background: #dc2626; } .pg-warn .pg-fill { background: #d97706; }
+.pg-bar.ind .pg-fill { width: 40% !important; animation: pgInd 1.2s ease-in-out infinite; }
+@keyframes pgInd { 0% { margin-right: 0; } 50% { margin-right: 60%; } 100% { margin-right: 0; } }
+.pg-meta { display: flex; gap: 12px; margin-top: 6px; font-size: .74rem; color: #64748b; }
+.pg-meta b { color: #0f1c38; }
+.pg-note { margin-top: 6px; font-size: .76rem; font-weight: 700; color: #b45309; line-height: 1.7; }
+.pg-stuck .pg-note { color: #b91c1c; }
+.pg-why { margin-top: 6px; font-size: .74rem; color: #7f1d1d; background: #fee2e2; border-radius: 8px; padding: 6px 8px; line-height: 1.7; overflow-wrap: anywhere; }

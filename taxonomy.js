@@ -43,9 +43,10 @@ async function taxSeed() {
     const newD = Object.keys(TAX_SEED), newC = new Set(Object.values(TAX_SEED).flat());
     taxLegacy = { d: [...new Set([...taxLegacy.d, ...oldD.filter(d => !newD.includes(d))])], c: [...new Set([...taxLegacy.c, ...oldC.filter(c => !newC.has(c))])] };
     newD.forEach(d => { if (!departments.includes(d)) departments.push(d); deptSubs[d] = TAX_SEED[d].slice(); TAX_SEED[d].forEach(c => { if (!subCategories.includes(c)) subCategories.push(c); }); });
-    await pushToCloud(false);
+    const h = Prog.start('تحميل الأقسام الجاهزة', { text: 'حفظ الأقسام في السحابة...' });
+    try { await pushToCloud(true); } catch (e) { h.fail('تعذر الحفظ', e && e.message); return; }
     renderManagerLists(); renderAll();
-    Swal.fire({ icon: 'success', title: 'تم تحميل الأقسام الجاهزة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    h.ok('تم تحميل ' + Object.keys(TAX_SEED).length + ' قسم وتصنيفاتها');
 }
 { const _rml = renderManagerLists; renderManagerLists = function () { _rml(); renderTaxSeedBox(); }; }
 
@@ -164,11 +165,12 @@ async function taxRvApply() {
     if (!r.isConfirmed) return;
     const olds = new Map();
     list.forEach(p => { const e = taxRv[p.id]; olds.set(p.id, { department: p.department, category: p.category, form: p.form, formOther: p.formOther }); p.department = e.d; if (e.s) p.category = e.s; if (e.f) { p.form = e.f; } });
+    const h = Prog.start('تطبيق التصنيف', { text: 'حفظ ' + fmtNum(list.length) + ' مادة...' });
     const ok = await saveProductsDelta(list.map(p => ({ p, dq: 0, dl: 0 })));
-    if (!ok) { list.forEach(p => Object.assign(p, olds.get(p.id))); renderAll(); return; }
+    if (!ok) { list.forEach(p => Object.assign(p, olds.get(p.id))); renderAll(); h.fail('لم يُطبَّق التصنيف', 'رجعت المواد لحالتها السابقة'); return; }
+    h.ok('طُبّق التصنيف على ' + fmtNum(list.length) + ' مادة');
     list.forEach(p => { logAction('edit', p, [{ f: 'القسم/التصنيف (مراجعة التصنيف)', from: String(olds.get(p.id).department) + ' › ' + String(olds.get(p.id).category), to: p.department + ' › ' + p.category }]); delete taxRv[p.id]; });
     taxRvSave(); renderAll(); taxRvRender();
-    Swal.fire({ icon: 'success', title: 'طُبّق التصنيف على ' + list.length + ' مادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
 }
 // زر الدخول لمراجعة التصنيف داخل مربع «الأقسام الجاهزة»
 { const _rts = renderTaxSeedBox; renderTaxSeedBox = function () { _rts(); const box = document.getElementById('taxSeedBox'); if (!box || !taxSeeded()) return; const n = taxRvList().length; box.insertAdjacentHTML('beforeend', `<button type="button" class="icon-btn primary-btn" style="margin-top:10px" onclick="taxRvOpen()">🧭 مراجعة التصنيف (صح / خطأ) — ${fmtNum(n)} مادة</button>`); }; }

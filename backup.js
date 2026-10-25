@@ -10,9 +10,13 @@ function bkInvExtras() {   // إعدادات الفواتير المحلية (ت
     return o;
 }
 async function bkRefresh() {   // نقرأ أحدث نسخة من السحابة قبل التصدير حتى لا يفوت شيء
+    progTick(0, 3, 'قراءة الوارد من السحابة...');
     try { if (typeof puLoad === 'function') await puLoad(); } catch (e) { /* تجاهل */ }
+    progTick(1, 3, 'قراءة الفواتير من السحابة...');
     try { if (typeof loadInvoices === 'function') await loadInvoices(); } catch (e) { /* تجاهل */ }
+    progTick(2, 3, 'قراءة السجلات من السحابة...');
     try { if (typeof lgLoad === 'function') await lgLoad(); } catch (e) { /* تجاهل */ }
+    progTick(3, 3);
 }
 function buildFullBackup() {
     const base = buildBackupObject();
@@ -31,14 +35,17 @@ function bkCountsLine(c) {
     return `${c.products || 0} صنف • ${c.purchases || 0} وارد • ${c.suppliers || 0} مذخر • ${c.invoices || 0} فاتورة • ${c.ledger || 0} سجل`;
 }
 async function exportFullBackup() {
+    const h = Prog.start('تجهيز النسخة الكاملة', { text: 'بدء...' });
     try {
-        if (cloudReady() && navigator.onLine) await bkRefresh();
+        if (cloudReady() && navigator.onLine) { h.span(0, 60); await bkRefresh(); }
+        h.set(65, 'جمع البيانات...'); h.span(65, 100);
         const data = buildFullBackup();
+        h.set(80, 'تحويل الملف...');
         await downloadFile(`diwan-full-backup-${todayStamp()}.json`, JSON.stringify(data), 'application/json');
         lsPut(BK_LS, Date.now());
         bkRenderReminder();
-        Swal.fire({ icon: 'success', title: 'تم تجهيز النسخة الكاملة', text: bkCountsLine(data.counts), confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر إنشاء النسخة', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
+        h.ok('النسخة جاهزة — ' + bkCountsLine(data.counts));
+    } catch (e) { h.fail('تعذر إنشاء النسخة', e.message || String(e)); }
 }
 
 // ---------- الدمج الآمن: لا نستبدل سجلاً أحدث ----------
@@ -66,6 +73,7 @@ function bkPlan(data) {   // لكل مجموعة: ما سيُضاف وما سي�
     });
 }
 async function bkApplyPlan(plan) {
+    const totalItems = plan.reduce((s, p) => s + p.add.length + p.upd.length, 0); let doneItems = 0;
     for (const p of plan) {
         const items = p.add.concat(p.upd); if (!items.length) continue;
         const map = new Map((bkCurrent(p.c.key) || []).map(x => [x.id, x]));
@@ -78,6 +86,8 @@ async function bkApplyPlan(plan) {
         if (cloudReady()) {
             for (let i = 0; i < items.length; i += 20) {
                 await Promise.all(items.slice(i, i + 20).map(x => fsSet(db.collection(p.c.coll).doc(String(x.id)), JSON.parse(JSON.stringify(x)))));
+                doneItems += Math.min(20, items.length - i);
+                progTick(doneItems, totalItems, 'رفع ' + p.c.label + ': ' + fmtNum(doneItems) + ' من ' + fmtNum(totalItems));
             }
         }
     }
@@ -134,11 +144,14 @@ async function applyHistoryImport(data) {
         html: `<div style="text-align:right;line-height:1.9;font-size:.92rem">${rows}<br><span style="color:#64748b">لا يتغير المخزن ولا كميات الأصناف ولا أسعارها. لا يُستبدل أي سجل موجود. تُنزَّل نسخة احتياطية كاملة قبل الاستيراد.</span></div>` });
     if (!ok.isConfirmed) return;
     if (!nAdd) { Swal.fire({ icon: 'info', title: 'لا جديد للاستيراد', text: 'كل هذه السجلات موجودة أصلاً ولا ينقصها رقم «ت».', confirmButtonColor: '#0f1c38' }); return; }
+    const h = Prog.start('استيراد السجل التاريخي', { text: 'نسخة احتياطية قبل الاستيراد...' });
     try {
-        await downloadFile(`diwan-before-history-import-${todayStamp()}.json`, JSON.stringify(buildFullBackup()), 'application/json');
+        h.span(0, 15); await downloadFile(`diwan-before-history-import-${todayStamp()}.json`, JSON.stringify(buildFullBackup()), 'application/json');
+        h.set(15, 'رفع السجلات...'); h.span(15, 95);
         await bkApplyPlan(plan);
+        h.set(96, 'تحديث السجل...');
         if (typeof lgLoad === 'function') { try { await lgLoad(); } catch (e) { /* تجاهل */ } }
-        renderAll();
+        renderAll(); h.ok('تم استيراد ' + fmtNum(nAdd) + ' سجل');
         Swal.fire({ icon: 'success', title: 'تم استيراد السجل', text: plan.filter(p => p.add.length || p.upd.length).map(p => `${p.c.label}: +${p.add.length}` + (p.fill ? ` (ترقيم ${p.fill})` : '')).join('\n'), confirmButtonColor: '#0f1c38' });
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الاستيراد', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
+    } catch (e) { h.fail('تعذر الاستيراد', e.message || String(e)); Swal.fire({ icon: 'error', title: 'تعذر الاستيراد', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
 }

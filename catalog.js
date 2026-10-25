@@ -167,9 +167,10 @@ async function quickImgUpload(id, file) {
         token = r.value.trim(); localStorage.setItem('diwan_gh_token', token);
     }
     document.getElementById('zoomModal').style.display = 'none';
-    Swal.fire({ title: 'جاري رفع الصورة...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+    const h = Prog.start('رفع صورة المادة', { text: 'قراءة الصورة...', indeterminate: false });
     try {
         const dataUrl = await new Promise((res, rej) => { const fr = new FileReader(); fr.onerror = () => rej(new Error('تعذر قراءة الصورة')); fr.onload = () => res(fr.result); fr.readAsDataURL(file); });
+        h.set(10, 'تصغير الصورة...');
         const b64 = await new Promise((res, rej) => {
             const im = new Image(); im.onerror = () => rej(new Error('الصورة غير صالحة'));
             im.onload = () => { const cv = document.createElement('canvas'), max = 600; let w = im.width, h = im.height; if (w > h && w > max) { h *= max / w; w = max; } else if (h > max) { w *= max / h; h = max; } cv.width = w; cv.height = h; cv.getContext('2d').drawImage(im, 0, 0, w, h); res(cv.toDataURL('image/jpeg', 0.82).split(',')[1]); };
@@ -177,19 +178,22 @@ async function quickImgUpload(id, file) {
         });
         const fileName = 'med_' + Date.now() + '.jpg', path = 'images/' + fileName;
         let resp, out;
+        h.set(25, 'رفع الصورة إلى GitHub...');
         for (let i = 0; i < 5; i++) { // تعارض لحظي بالفرع (is at … but expected) → إعادة المحاولة
-            resp = await fetch('https://api.github.com/repos/BasraCliniciansApps/Al-Diwan-Pharmacy/contents/' + path, { method: 'PUT', headers: { Authorization: 'token ' + token, 'Content-Type': 'application/json' }, body: JSON.stringify({ message: 'صورة دواء: ' + fileName, content: b64, branch: 'main' }) });
-            out = await resp.json().catch(() => ({}));
+            resp = await progPutJson('https://api.github.com/repos/BasraCliniciansApps/Al-Diwan-Pharmacy/contents/' + path, { Authorization: 'token ' + token, 'Content-Type': 'application/json' }, { message: 'صورة دواء: ' + fileName, content: b64, branch: 'main' }, (l, t) => h.set(25 + 55 * l / t));
+            out = resp.json || {};
             if (resp.ok || !(resp.status === 409 || /but expected|is at/i.test(out.message || ''))) break;
+            h.set(null, 'تعارض لحظي — إعادة المحاولة ' + (i + 2) + ' من 5...');
             await new Promise(r => setTimeout(r, 1200 * (i + 1)));
         }
         if (!resp.ok || !out.content) { if (resp.status === 401) localStorage.removeItem('diwan_gh_token'); throw new Error(out.message || 'فشل الرفع إلى GitHub'); }
+        h.set(85, 'حفظ رابط الصورة في المادة...');
         const old = p.img; p.img = 'https://raw.githubusercontent.com/BasraCliniciansApps/Al-Diwan-Pharmacy/main/' + path;
-        if (!(await saveProductsDelta([{ p, dq: 0, dl: 0 }]))) { p.img = old; Swal.close(); return; }
+        if (!(await saveProductsDelta([{ p, dq: 0, dl: 0 }]))) { p.img = old; h.fail('رُفعت الصورة لكن لم يُحفظ رابطها', 'جرّب مرة ثانية'); return; }
         logAction('edit', p, [{ f: 'الصورة', from: old || '', to: p.img }]);
         renderAll(); try { openSheet(p.id); } catch (e) { /* تجاهل */ }
-        Swal.fire({ icon: 'success', title: old ? 'تم تبديل الصورة' : 'تمت إضافة الصورة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر رفع الصورة', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
+        h.ok(old ? 'تم تبديل الصورة' : 'تمت إضافة الصورة');
+    } catch (e) { h.fail('تعذر رفع الصورة', (e && e.message) || String(e)); }
 }
 
 

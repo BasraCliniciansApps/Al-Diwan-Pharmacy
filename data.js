@@ -311,11 +311,13 @@ async function hardRefresh() {   // تحديث كامل: مسح الكاش وإ�
 }
 async function syncNow() {
     if (!isFirebaseReady || !db) return;
+    const h = Prog.start('مزامنة مع السحابة', { text: 'جاري الاتصال...' });
     try { await db.enableNetwork(); } catch (e) { /* تجاهل */ }
     let n = 0;
-    try { if (typeof syncLocalRecords === 'function') n = await syncLocalRecords(false); } catch (e) { /* تجاهل */ }
+    h.set(null, 'رفع السجلات المحفوظة محلياً...');
+    try { if (typeof syncLocalRecords === 'function') n = await syncLocalRecords(false); } catch (e) { h.fail('تعذرت المزامنة', e && e.message); return; }
     checkPending();
-    try { Swal.fire({ icon: 'success', title: n ? 'رُفع ' + n + ' سجل محفوظ محلياً' : 'تمت المزامنة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 }); } catch (e) { /* تجاهل */ }
+    h.ok(n ? 'رُفع ' + n + ' سجل محفوظ محلياً' : 'تمت المزامنة — كل شيء محدّث');
 }
 function showSyncStatus() {
     if (!IS_ADMIN_PAGE) return;
@@ -500,14 +502,19 @@ async function pushToCloud(onlyMetadata = false) {
             });
 
             if (!onlyMetadata) {
-                for (let i = 0; i < products.length; i += 20) {
-                    const batch = db.batch();
-                    const chunk = products.slice(i, i + 20);
-                    chunk.forEach(p => {
-                        writeProductBatch(batch, p);
-                    });
-                    await fsCommit(batch);
-                }
+                const PO = Prog.open('جاري رفع الأصناف للسحابة');
+                try {
+                    for (let i = 0; i < products.length; i += 20) {
+                        const batch = db.batch();
+                        const chunk = products.slice(i, i + 20);
+                        chunk.forEach(p => {
+                            writeProductBatch(batch, p);
+                        });
+                        await fsCommit(batch);
+                        progTick(Math.min(i + 20, products.length), products.length, 'رُفع ' + fmtNum(Math.min(i + 20, products.length)) + ' من ' + fmtNum(products.length) + ' صنف');
+                    }
+                    Prog.end(PO, 'ok', 'تم رفع ' + fmtNum(products.length) + ' صنف');
+                } catch (e) { Prog.end(PO, 'fail', 'فشل الرفع', e && e.message); throw e; }
             }
 
             setSyncText("☁️ تم الحفظ");
@@ -1734,6 +1741,7 @@ async function uploadImgBase64(event) {
 
     const imgInput = document.getElementById('fImg');
     imgInput.value = "⏳ جاري رفع الصورة إلى مجلد الصور...";
+    const PH = Prog.start('رفع الصورة', { text: 'تصغير الصورة...', indeterminate: false });
 
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -1755,34 +1763,17 @@ async function uploadImgBase64(event) {
 
             try {
                 const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${filePath}`;
-                const response = await fetch(apiUrl, {
-                    method: "PUT",
-                    headers: {
-                        "Authorization": `token ${githubToken}`,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        message: `إضافة صورة دواء في مجلد الصور: ${fileName}`,
-                        content: base64Content,
-                        branch: GITHUB_BRANCH
-                    })
-                });
-
-                const result = await response.json();
+                PH.set(20, 'رفع الصورة إلى GitHub...');
+                const response = await progPutJson(apiUrl, { "Authorization": `token ${githubToken}`, "Content-Type": "application/json" },
+                    { message: `إضافة صورة دواء في مجلد الصور: ${fileName}`, content: base64Content, branch: GITHUB_BRANCH },
+                    (l, t) => PH.set(20 + 75 * l / t));
+                const result = response.json || {};
 
                 if (response.ok && result.content) {
                     // الرابط المباشر يشير إلى داخل فولدر images
                     const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${filePath}`;
                     imgInput.value = rawUrl;
-
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'تم حفظ الصورة في فولدر (images) بنجاح!',
-                        toast: true,
-                        position: 'bottom',
-                        showConfirmButton: false,
-                        timer: 2000
-                    });
+                    PH.ok('تم رفع الصورة — اضغط «حفظ» لتثبيتها في المادة');
                 } else {
                     if (response.status === 401) {
                         localStorage.removeItem('diwan_gh_token');
@@ -1791,12 +1782,7 @@ async function uploadImgBase64(event) {
                 }
             } catch (err) {
                 imgInput.value = "";
-                Swal.fire({
-                    icon: 'error',
-                    title: 'تعذر رفع الصورة إلى GitHub',
-                    text: 'السبب: ' + err.message,
-                    confirmButtonColor: '#0f1c38'
-                });
+                PH.fail('تعذر رفع الصورة إلى GitHub', 'السبب: ' + err.message);
             }
         };
         img.src = e.target.result;
@@ -2276,22 +2262,23 @@ async function scanWithOcr(event) {
     const status = document.getElementById('scanStatus');
     const setStatus = (t) => { if (status) status.innerText = t; };
 
+    const h = Prog.start('قراءة العبوة (مسح عادي)', { text: 'تجهيز الصورة...', indeterminate: false });
     try {
         setStatus('⏳ جاري تجهيز الصورة...');
         const canvas = await prepareImageForOcr(file);
 
-        setStatus('⏳ تحميل أداة القراءة (أول مرة فقط)...');
+        setStatus('⏳ تحميل أداة القراءة (أول مرة فقط)...'); h.set(8, 'تحميل أداة القراءة (أول مرة فقط، قد تأخذ وقت)...');
         await loadTesseract();
 
-        setStatus('⏳ جاري القراءة... 0%');
+        setStatus('⏳ جاري القراءة... 0%'); h.set(20, 'جاري القراءة...');
         const result = await Tesseract.recognize(canvas, 'eng', {
             logger: m => {
-                if (m.status === 'recognizing text') setStatus(`⏳ جاري القراءة... ${Math.round(m.progress * 100)}%`);
+                if (m.status === 'recognizing text') { setStatus(`⏳ جاري القراءة... ${Math.round(m.progress * 100)}%`); h.set(20 + 75 * m.progress, 'جاري القراءة...'); }
             }
         });
         const data = result.data || {};
         const parsed = parseProductText(data.text || '', data.lines || []);
-        setStatus('');
+        setStatus(''); h.ok('تمت القراءة');
 
         const fullName = [parsed.name, parsed.potency].filter(Boolean).join(' ');
         const rows = [
@@ -2342,7 +2329,7 @@ async function scanWithOcr(event) {
             if (parsed.expiry) setExpiryDatesInForm([...getExpiryDatesFromForm(), parsed.expiry]);
         }
     } catch (err) {
-        setStatus('');
+        setStatus(''); h.fail('تعذر المسح', err.message || String(err));
         Swal.fire({ icon: 'error', title: 'تعذر المسح', text: err.message || String(err), confirmButtonColor: '#0f1c38' });
     } finally {
         input.value = ''; // للسماح باختيار نفس الصورة مرة أخرى
@@ -2436,11 +2423,12 @@ async function repriceAll(silentIfNone) {   // يعيد تسعير كل المو
     const r = await Swal.fire({ icon: 'question', title: 'إعادة تسعير ' + list.length + ' مادة؟', html: '<div style="text-align:right;max-height:220px;overflow:auto;font-size:.85rem">' + list.slice(0, 30).map(x => '• <b dir="ltr">' + escapeHtml(x.p.name) + '</b>: ' + fmtNum(x.old) + ' ← ' + fmtNum(x.np)).join('<br>') + (list.length > 30 ? '<br>...' : '') + '</div>', showCancelButton: true, confirmButtonText: 'تطبيق الأسعار الجديدة', cancelButtonText: 'لاحقاً' });
     if (!r.isConfirmed) return;
     list.forEach(x => { x.p.price = x.np; });
+    const h = Prog.start('إعادة التسعير', { text: 'حفظ ' + fmtNum(list.length) + ' مادة...' });
     const ok = await saveProductsDelta(list.map(x => ({ p: x.p, dq: 0, dl: 0 })));
-    if (!ok) { list.forEach(x => { x.p.price = x.old; }); renderAll(); return; }
+    if (!ok) { list.forEach(x => { x.p.price = x.old; }); renderAll(); h.fail('لم تُحفظ الأسعار', 'رجعت الأسعار القديمة'); return; }
+    h.ok('أُعيد تسعير ' + fmtNum(list.length) + ' مادة');
     list.forEach(x => logAction('edit', x.p, [{ f: 'السعر (إعادة تسعير النقابة)', from: String(x.old), to: String(x.np) }]));
     renderAll();
-    Swal.fire({ icon: 'success', title: 'أُعيد تسعير ' + list.length + ' مادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
 }
 
 function saveAlertMonths() {
@@ -2539,6 +2527,7 @@ async function saveProductsBatch(list) {
     }
     if (!writesAllowed()) return false;
     setSyncText('⏳ جاري الحفظ...');
+    const PO = list.length > 30 ? Prog.open('جاري الحفظ في السحابة') : null;
     try {
         for (let i = 0; i < list.length; i += 20) {
             const batch = db.batch();
@@ -2546,11 +2535,14 @@ async function saveProductsBatch(list) {
                 writeProductBatch(batch, p);
             });
             await fsCommit(batch);
+            progTick(Math.min(i + 20, list.length), list.length, 'حُفظ ' + fmtNum(Math.min(i + 20, list.length)) + ' من ' + fmtNum(list.length));
         }
         syncStockLocal(list);
         setSyncText('☁️ تم الحفظ');
+        Prog.end(PO, 'ok', 'تم حفظ ' + fmtNum(list.length) + ' مادة');
         return true;
     } catch (err) {
+        Prog.end(PO, 'quiet');
         setSyncText('❌ فشل الحفظ');
         await Swal.fire({ icon: 'error', title: 'خطأ في السحابة', text: err.message, confirmButtonColor: '#0f1c38' });
         return false;
@@ -2576,6 +2568,7 @@ async function saveProductsDelta(entries) {
     if (!writesAllowed()) return false;
     const F = fv();
     setSyncText('⏳ جاري الحفظ...');
+    const PO = entries.length > 30 ? Prog.open('جاري الحفظ في السحابة') : null;
     try {
         for (let i = 0; i < entries.length; i += 15) {
             const batch = db.batch();
@@ -2602,11 +2595,14 @@ async function saveProductsDelta(entries) {
                 batch.set(ref, u, { merge: true });
             });
             await fsCommit(batch);
+            progTick(Math.min(i + 15, entries.length), entries.length, 'حُفظ ' + fmtNum(Math.min(i + 15, entries.length)) + ' من ' + fmtNum(entries.length));
         }
         syncStockLocal(entries.map(e => e.p));
         setSyncText('☁️ تم الحفظ');
+        Prog.end(PO, 'ok', 'تم حفظ ' + fmtNum(entries.length) + ' مادة');
         return true;
     } catch (err) {
+        Prog.end(PO, 'quiet');
         setSyncText('❌ فشل الحفظ');
         await Swal.fire({ icon: 'error', title: 'خطأ في السحابة', text: err.message, confirmButtonColor: '#0f1c38' });
         return false;
@@ -2837,29 +2833,43 @@ function todayStamp() {
     return new Date().toISOString().slice(0, 10);
 }
 
-async function downloadFile(filename, content, mime) {
-    const blob = new Blob([content], { type: mime });
-    // على الهواتف: قائمة المشاركة تتيح الحفظ في الملفات أو الإرسال لنفسك
+function fmtBytes(n) { return n < 1024 ? n + ' بايت' : n < 1048576 ? (n / 1024).toFixed(0) + ' ك.ب' : (n / 1048576).toFixed(1) + ' م.ب'; }
+// يحاول الحفظ/المشاركة؛ يرجع 'shared' | 'downloaded' | 'cancelled' | 'blocked' (المتصفح منع لأن الضغطة انتهت صلاحيتها بعد الانتظار)
+async function dlTry(blob, filename, mime) {
     const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
     if (isMobile && navigator.canShare && navigator.share) {
         try {
             const file = new File([blob], filename, { type: mime });
-            if (navigator.canShare({ files: [file] })) {
-                await navigator.share({ files: [file], title: filename });
-                return;
-            }
+            if (navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: filename }); return 'shared'; }
         } catch (e) {
-            if (e && e.name === 'AbortError') return;   // أغلق المستخدم القائمة
+            if (e && e.name === 'AbortError') return 'cancelled';   // أغلق المستخدم القائمة
+            if (e && e.name === 'NotAllowedError') return 'blocked';
         }
     }
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    try {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 60000);
+        return isMobile && /iPhone|iPad/i.test(navigator.userAgent) ? 'blocked' : 'downloaded';
+    } catch (e) { return 'blocked'; }
+}
+async function downloadFile(filename, content, mime) {
+    const PO = Prog.open('جاري تجهيز الملف', { text: filename });
+    try {
+        PO.h.text_('تجهيز الملف...');
+        const blob = new Blob([content], { type: mime });
+        const size = fmtBytes(blob.size);
+        let r = await dlTry(blob, filename, mime);
+        if (r === 'blocked') {   // ضغطة جديدة من المستخدم تسمح بالحفظ
+            Prog.end(PO, 'quiet');
+            await Swal.fire({ icon: 'success', title: 'الملف جاهز', html: `<div style="line-height:1.9;font-size:.92rem"><b dir="ltr">${escapeHtml(filename)}</b><br>الحجم: ${size}<br><small style="color:#64748b">اضغط «حفظ الملف» وبعدها اختر «حفظ في الملفات» أو أرسله لنفسك.</small></div>`, showCancelButton: true, confirmButtonText: '💾 حفظ الملف', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38',
+                preConfirm: async () => { const x = await dlTry(blob, filename, mime); if (x === 'blocked') { try { window.open(URL.createObjectURL(blob), '_blank'); } catch (e) { /* تجاهل */ } } return true; } });
+            return;
+        }
+        if (r === 'cancelled') { Prog.end(PO, 'quiet'); return; }
+        Prog.end(PO, 'ok', (r === 'shared' ? 'تمت المشاركة' : 'تم التنزيل') + ' — ' + filename + ' (' + size + ')');
+    } catch (e) { Prog.end(PO, 'fail', 'تعذر تجهيز الملف', e && e.message); throw e; }
 }
 
 function exportBackupJson() {
@@ -2905,7 +2915,8 @@ async function restoreBackup(event) {
         if (!requireOnline()) return;
 
         let data;
-        try { data = JSON.parse(await file.text()); } catch (e) { data = null; }
+        const rh = Prog.start('قراءة الملف', { text: file.name + ' (' + fmtBytes(file.size) + ')' });
+        try { data = JSON.parse(await file.text()); rh.ok('تمت قراءة الملف'); } catch (e) { data = null; rh.fail('تعذر قراءة الملف', 'الملف تالف أو ليس نسخة احتياطية'); }
         const problem = validateBackup(data);
         if (problem) {
             await Swal.fire({ icon: 'error', title: 'ملف غير صالح', text: problem, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
@@ -2921,6 +2932,7 @@ async function restoreBackup(event) {
 }
 
 async function applyBackupData(data) {
+    let PH = null;
     try {
         if (!currentUser) {
             await Swal.fire({ icon: 'error', title: 'سجّل دخول الصيدلي أولاً', text: 'الاسترجاع يكتب في السحابة، لذلك يحتاج تسجيل الدخول.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
@@ -2956,9 +2968,11 @@ async function applyBackupData(data) {
             cancelButtonText: 'إلغاء'
         });
         if (!ok.isConfirmed) return;
+        PH = Prog.start(isImp ? 'استيراد الأصناف' : 'استرجاع النسخة الاحتياطية', { text: 'بدء...' });
         if (isImp && typeof buildFullBackup === 'function') {   // نسخة احتياطية تلقائية قبل الاستيراد
-            await downloadFile(`diwan-before-import-${todayStamp()}.json`, JSON.stringify(buildFullBackup()), 'application/json');
+            PH.span(0, 10); await downloadFile(`diwan-before-import-${todayStamp()}.json`, JSON.stringify(buildFullBackup()), 'application/json');
         }
+        PH.set(10, 'تجهيز البيانات...');
 
         const byId = new Map(products.map(p => [p.id, p]));
         data.products.forEach(p => byId.set(p.id, p));
@@ -2976,21 +2990,26 @@ async function applyBackupData(data) {
         if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
 
         if (isImp) {   // الاستيراد: نكتب الأصناف الجديدة فقط ونُظهر أي خطأ من السحابة بوضوح
-            await pushToCloud(true);
+            PH.set(12, 'حفظ الإعدادات...'); await pushToCloud(true);
+            PH.span(15, 90);
             const okSave = await saveProductsBatch(data.products);
             if (!okSave) {
                 const bad = new Set(data.products.map(p => p.id));
                 products = products.filter(p => !bad.has(p.id) || existingIds.has(p.id));
                 saveLocal(); renderAll();
+                if (PH) PH.fail('لم يُحفظ الاستيراد', 'لم تُحفظ الأصناف في السحابة ولم يتغير شيء في أصنافك');
                 await Swal.fire({ icon: 'error', title: 'لم يُحفظ الاستيراد', text: 'لم تُحفظ الأصناف في السحابة، ولم يتغير شيء في أصنافك. أرسل نص الخطأ الظاهر قبل هذه النافذة.', confirmButtonColor: '#0f1c38' });
                 return;
             }
-        } else await pushToCloud(false);
+        } else { PH.span(12, 70); await pushToCloud(false); }
         let restRep = '';
+        PH.span(70, 98);
         if (typeof bkRestoreRest === 'function') restRep = await bkRestoreRest(data);
         renderAll();
+        PH.ok((isImp ? 'تم الاستيراد' : 'تم الاسترجاع') + ' — ' + fmtNum(data.products.length) + ' صنف');
         Swal.fire({ icon: 'success', title: isImp ? 'تم الاستيراد' : 'تم الاسترجاع', text: `${data.products.length} صنف` + (restRep ? '\n' + restRep : ''), confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
     } catch (err) {
+        if (PH) PH.fail('تعذر الاسترجاع', err.message || String(err));
         Swal.fire({ icon: 'error', title: 'تعذر الاسترجاع', text: err.message || String(err), confirmButtonColor: '#0f1c38' });
     }
 }
@@ -3609,14 +3628,16 @@ async function scanProductImage(event) {
         }
 
         let res;
+        const h = Prog.start('قراءة العبوة بالذكاء الصناعي', { text: 'تجهيز الصورة...' });
         try {
             setScanStatusText('⏳ جاري تجهيز الصورة...');
             const img = await prepareImageForAi(file);
-            setScanStatusText('🤖 ' + AI_ENGINES[engine] + ' يقرأ العبوة...');
+            setScanStatusText('🤖 ' + AI_ENGINES[engine] + ' يقرأ العبوة...'); h.set(null, AI_ENGINES[engine] + ' يقرأ العبوة (قد تأخذ حتى دقيقة)...');
             const text = await callAiEngine(engine, { prompt: buildAiPrompt(), img, json: true });
             res = normalizeAiResult(parseAiJson(text));
+            h.ok('تمت القراءة');
         } catch (err) {
-            setScanStatusText('');
+            setScanStatusText(''); h.fail('تعذرت القراءة', err && err.message);
             await handleAiScanError(err, file);
             return;
         }

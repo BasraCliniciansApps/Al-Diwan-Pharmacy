@@ -20,40 +20,46 @@ async function openCostSplit() {
 }
 async function costSplitStep1() {
     if (!requireOnline() || !writesAllowed()) return;
-    Swal.fire({ title: 'جاري النسخ...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+    const h = Prog.start('تأمين التكلفة — الخطوة ①', { text: 'نسخة احتياطية...', indeterminate: false });
     try {
         await downloadFile('diwan-before-cost-split-' + todayStamp() + '.json', JSON.stringify(buildFullBackup()), 'application/json');
+        h.set(15, 'فحص القاعدة...');
         try { await db.collection('pharmacy_cost').doc('_meta').set({ on: false, test: true }); }
-        catch (e) { Swal.fire({ icon: 'error', title: 'القاعدة غير مضافة بعد', html: 'أضف هذه القاعدة في Firebase ثم أعد المحاولة:<div class="sw-info" dir="ltr" style="font-size:.7rem;white-space:pre-wrap;text-align:left">' + escapeHtml(COST_RULE) + '</div>', confirmButtonColor: '#0f1c38' }); return; }
+        catch (e) { h.fail('القاعدة غير مضافة بعد'); Swal.fire({ icon: 'error', title: 'القاعدة غير مضافة بعد', html: 'أضف هذه القاعدة في Firebase ثم أعد المحاولة:<div class="sw-info" dir="ltr" style="font-size:.7rem;white-space:pre-wrap;text-align:left">' + escapeHtml(COST_RULE) + '</div>', confirmButtonColor: '#0f1c38' }); return; }
         const docs = products.map(p => { const o = { id: p.id }; COST_FIELDS.forEach(f => { if (p[f] !== undefined && p[f] !== null) o[f] = p[f]; }); return o; });
         for (let i = 0; i < docs.length; i += 20) {
             const b = db.batch();
             docs.slice(i, i + 20).forEach(o => b.set(db.collection('pharmacy_cost').doc(String(o.id)), JSON.parse(JSON.stringify(o))));
             await fsCommit(b);
+            h.set(20 + 65 * Math.min(i + 20, docs.length) / docs.length, 'نسخ ' + fmtNum(Math.min(i + 20, docs.length)) + ' من ' + fmtNum(docs.length));
         }
+        h.set(90, 'التحقق من النسخ...');
         const snap = await db.collection('pharmacy_cost').get();
         const n = snap.docs.filter(d => d.id !== '_meta').length;
         if (n < docs.length) throw new Error('عدد المستندات المنسوخة ' + n + ' أقل من المتوقع ' + docs.length);
         await db.collection('pharmacy_cost').doc('_meta').set({ on: true, at: new Date().toISOString(), count: n });
         costSplitOn = true; docs.forEach(o => { costMap[String(o.id)] = o; });
+        h.ok('نُسخت التكلفة (' + fmtNum(n) + ' صنف)');
         Swal.fire({ icon: 'success', title: 'تم نسخ التكلفة', html: 'نُسخ <b>' + fmtNum(n) + '</b> صنفاً إلى المكان المقفل.<br>تصفّح التطبيق وتأكد أن الأسعار وآخر وارد كما هي، ثم نفّذ الخطوة ② من نفس الزر.', confirmButtonColor: '#0f1c38' });
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الإكمال', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
+    } catch (e) { h.fail('تعذر الإكمال', (e && e.message) || String(e)); Swal.fire({ icon: 'error', title: 'تعذر الإكمال', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
 }
 async function costSplitStep2() {
     if (!requireOnline() || !writesAllowed()) return;
     const ids = costLeftovers(), F = fv(); if (!F) return;
     const c = await Swal.fire({ icon: 'warning', title: 'تأمين التكلفة؟', text: 'ستُحذف التكلفة من المكان القديم لـ ' + ids.length + ' مستند. تأكد أنك رأيت الأسعار وآخر وارد سليمة في التطبيق.', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم، أمّن', cancelButtonText: 'إلغاء' });
     if (!c.isConfirmed) return;
-    Swal.fire({ title: 'جاري التأمين...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+    const h = Prog.start('تأمين التكلفة — الخطوة ②', { text: 'جاري التأمين...', indeterminate: false });
     try {
         for (let i = 0; i < ids.length; i += 20) {
             const b = db.batch();
             ids.slice(i, i + 20).forEach(id => { const u = {}; COST_FIELDS.forEach(f => { u[f] = F.delete(); }); b.update(db.collection('pharmacy_stock').doc(id), u); });
             await fsCommit(b);
+            h.set(95 * Math.min(i + 20, ids.length) / ids.length, 'أُمّن ' + fmtNum(Math.min(i + 20, ids.length)) + ' من ' + fmtNum(ids.length));
         }
         ids.forEach(id => { if (stockMap[id]) COST_FIELDS.forEach(f => { delete stockMap[id][f]; }); });
+        h.ok('تم تأمين التكلفة');
         Swal.fire({ icon: 'success', title: 'تم التأمين', text: 'صارت التكلفة في مجموعة مقفلة عليك فقط.', confirmButtonColor: '#0f1c38' });
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر التأمين', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
+    } catch (e) { h.fail('تعذر التأمين', (e && e.message) || String(e)); Swal.fire({ icon: 'error', title: 'تعذر التأمين', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
 }
 
 // ============================================================================
@@ -118,7 +124,7 @@ async function userAdd() {
 }
 async function userCreate(name, pin, perms, replaceUid) {
     const key = loginKey(name);
-    Swal.fire({ title: 'جاري الإنشاء...', allowOutsideClick: false, showConfirmButton: false, didOpen: () => Swal.showLoading() });
+    const h = Prog.start('إنشاء المستخدم', { text: 'جاري الإنشاء...' });
     try {
         const ex = await db.collection('pharmacy_logins').doc(key).get();
         if (ex.exists && !replaceUid) throw new Error('الاسم مستخدم. اختر اسماً آخر.');
@@ -129,11 +135,10 @@ async function userCreate(name, pin, perms, replaceUid) {
         await db.collection('pharmacy_users').doc(uid).set({ name, login: key, email, perms, active: true, createdAt: new Date().toISOString() });
         await db.collection('pharmacy_logins').doc(key).set({ email });
         if (replaceUid) { try { await db.collection('pharmacy_users').doc(replaceUid).delete(); } catch (e) { /* تجاهل */ } }
-        Swal.close();
-        Swal.fire({ icon: 'success', title: 'تم', text: 'يدخل ' + name + ' من نفس صفحة الدخول باسمه ورمزه.', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
+        h.ok('تم إنشاء ' + name + ' — يدخل من صفحة الدخول باسمه ورمزه');
         return true;
     } catch (e) {
-        Swal.fire({ icon: 'error', title: 'تعذر الإنشاء', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' });
+        h.fail('تعذر الإنشاء', (e && e.message) || String(e));
         return false;
     }
 }
