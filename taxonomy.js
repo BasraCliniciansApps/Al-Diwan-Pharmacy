@@ -99,6 +99,7 @@ function taxKey(n) { return String(n || '').toLowerCase().split(/\s\d|\s*\(|\s[x
 let taxFirstIdx = null;
 // قواعد بالكلمات (أولوية على الجدول) للمنتجات الواضحة: [regex، القسم، التصنيف]
 const TAX_KW = [
+    [/^(?=.*(baby|kids?|infant|children|اطفال|أطفال|طفل)).*(vaseline|petroleum\s*jelly|فازلين)/i, 'الأم والطفل', 'العناية ببشرة الطفل', [['الجلدية', 'ترطيب البشرة']]],
     [/alcohol\s*(swab|pad|prep)|rubbing\s*alcohol|medical\s*alcohol|isopropyl|ethanol|كحول طبي|^alcohol\b/i, 'المعقمات والمطهرات', 'كحول طبي'],
     [/water-?proof[^,]*(dressing|plaster|bandage|film)|(dressing|plaster|bandage)[^,]*water-?proof|ضماد[^,]*ماء/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات مقاومة للماء'],
     [/hydrocolloid|foam\s*dressing|bed\s*sore|pressure\s*(ulcer|sore)|alginate|ulcer\s*dressing/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات الجروح المزمنة والقرحة'],
@@ -150,6 +151,7 @@ function taxFormOf(p) {   // الشكل المقترح: المحدّد يدوي�
 }
 function taxRvList() { return products.filter(p => taxLegacy.d.includes(p.department)); }
 function taxExtraOf(p) {   // تصنيفات إضافية مقترحة للمركّبات: [[القسم، التصنيف], ...]
+    for (const e of TAX_KW) if (e[3] && e[0].test(p.name || '')) return e[3].filter(c => (TAX_SEED[c[0]] || []).includes(c[1]));
     const k = taxKeys(p.name).map(x => TAX_EXTRA[x]).find(Boolean); if (!k) return [];
     return k.map(c => [TAX_DEPTS[c[0] - 1], (TAX_SEED[TAX_DEPTS[c[0] - 1]] || [])[c[1] - 1]]).filter(c => c[0] && c[1]);
 }
