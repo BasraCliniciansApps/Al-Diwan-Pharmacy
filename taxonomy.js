@@ -104,6 +104,7 @@ const TAX_KW = [
     [/postpartum|post-?partum|maternity\s*(belt|girdle|support)|abdomen\s*(belt|band|support)|belly\s*(band|belt)|مشد\s*(النفاس|الولادة|البطن)|نفاس/i, 'الأم والطفل', 'مستلزمات النفاس'],
     [/tongue\s*(scraper|cleaner|brush)|منظف\s*(ال)?لسان|مكشطة\s*(ال)?لسان/i, 'الفم والأسنان', 'منظفات اللسان'],
     [/anti-?\s*d\b|rhophylac|rhogam|rh\s*immune|immun[eo]?\s*globulin|immunoglobulin|\bivig\b|غلوبيولين/i, 'اللقاحات والأمصال', 'غلوبيولينات مناعية (Anti-D / IVIG)', [['النسائية والتوليد والهرمونات', 'أدوية الولادة والرحم']]],
+    [/^(?=.*(patch|sticker|لصاق|لصق)).*(fever\s*track|temperature|thermo|track|monitor|تتبع|قياس\s*(ال)?حرارة|حرارة\s*(ال)?جسم)/i, 'الأجهزة والمستلزمات الطبية', 'موازين الحرارة'],
     [/^(?=.*(patch|plaster|pad|لصق)).*(fever|cooling|حمى|حرارة|خافض)/i, 'المسكنات والعظام والعضلات', 'باراسيتامول وخافضات الحرارة', [['المسكنات والعظام والعضلات', 'مسكنات وخافضات حرارة للأطفال']]],
     [/^(?=.*(patch|plaster|لصق|لصقة)).*(pain|joint|muscle|arthritis|ache|hot|heat|warm|cool|salonpas|capsicum|knee|back|neck|shoulder|رقبة|ظهر|مفاصل|الم|ألم|مسكن)/i, 'المسكنات والعظام والعضلات', 'لصقات مسكنة'],
     [/(fitting|tighten\w*|tightening)\s*insert\w*|vaginal\s*(tighten\w*|insert\w*)|شد\s*المهبل/i, 'النسائية والتوليد والهرمونات', 'العناية الحميمة وشد المهبل'],
