@@ -2749,3 +2749,8 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .sc-set { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 8px; } .sc-set label { display: flex; flex-direction: column; gap: 4px; font-size: .74rem; font-weight: 800; color: #475569; }
 .sc-set input { min-height: var(--field-h, 46px); box-sizing: border-box; padding: 0 12px; border: 1.5px solid #cbd5e1; border-radius: var(--field-r, 12px); font-size: 16px; font-family: inherit; width: 100%; }
 [data-theme="dark"] .sc-head, [data-theme="dark"] .sc-sec, [data-theme="dark"] .sc-res { background: #1e293b; border-color: #334155; } [data-theme="dark"] .sc-head b, [data-theme="dark"] .sc-price b, [data-theme="dark"] .sc-grid3 b, [data-theme="dark"] .sc-res b, [data-theme="dark"] .sc-res span { color: #e2e8f0; } [data-theme="dark"] .sc-grid3 > div { background: #0f172a; } [data-theme="dark"] .sc-opt.on { background: #2e1065; } [data-theme="dark"] .sc-lim { background: #1e1b4b; color: #e2e8f0; }
+
+/* v168: محاذاة الحقول بالصفوف: العناوين فوق والحقول بنفس الخط السفلي حتى لو عنوان نزل سطرين */
+.sc-set, .sc-row, .pu-grid, .inv-rtbody, .retail-grid { align-items: stretch; }
+.sc-set > label, .sc-row > label, .pu-grid > label, .inv-rtbody > label, .pu-rbody > label { justify-content: space-between; }
+.sc-set > label > span, .sc-row > label > span, .pu-grid > label > span, .inv-rtbody > label > span { line-height: 1.35; }

@@ -141,8 +141,8 @@ function shScanHtml() {
     ${opt('safe', '🔒', 'الخصم المحمي', 'يعرض للبائع حدّاً آمناً أقل من الحد الحقيقي، ولا يكشف سعر الشراء')}
     ${opt('exact', '📊', 'الخصم الكامل', 'يعرض أعلى خصم بدون خسارة بالضبط (يمكن للبائع يستنتج سعر الشراء منه)')}
     <div class="sc-set" ${c.mode === 'safe' ? '' : 'style="opacity:.5"'}>
-        <label><span>هامش الأمان (٪ ربح يبقى لك)</span><input type="number" min="0" step="any" inputmode="decimal" value="${c.margin}" onchange="scSetNum('margin',this.value)"></label>
-        <label><span>تقريب الحد لأقل مضاعف</span><input type="number" min="1" step="1" inputmode="numeric" value="${c.step}" onchange="scSetNum('step',this.value)"></label>
+        <label><span>هامش الأمان (٪ ربح)</span><input type="number" min="0" step="any" inputmode="decimal" value="${c.margin}" onchange="scSetNum('margin',this.value)"></label>
+        <label><span>التقريب لأقل مضاعف</span><input type="number" min="1" step="1" inputmode="numeric" value="${c.step}" onchange="scSetNum('step',this.value)"></label>
     </div>
     <div class="qk-row"><div><b>إعادة حساب حد الخصم لكل المواد</b><small>اضغطه بعد تغيير الطريقة أو الهامش. بعدها يتحدث تلقائياً مع كل تعديل سعر أو كلفة</small></div><button type="button" class="ln-btn" onclick="scRecalcAll()">إعادة حساب</button></div>
     <h5 class="sc-h">الخصائص الظاهرة</h5>
