@@ -577,6 +577,10 @@
         <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/><path d="M8 5.5l8 3.8"/></svg>
         <span class="tile-txt"><b>الوارد</b><small id="homePuOwed">فواتير المذاخر والدفعات</small></span>
     </button>
+    <button type="button" class="home-tile tile-purch tile-scan" onclick="showView('scan')">
+        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="tile-txt"><b>فاحص المادة</b><small>سعر البيع والشراء والنفاذ وحد الخصم</small></span>
+    </button>
     <div class="home-tiles3">
         <button type="button" class="home-tile tile-sm tile-inv" onclick="openInventory()">
             <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9z"/><path d="M9 13l2 2 4-4"/></svg>
@@ -598,6 +602,21 @@
         <button type="button" onclick="showView('bill'); billTab('debt')">💳 الآجل</button>
         <button type="button" onclick="showView('bill'); billTab('reports')">📊 تقارير</button>
         <a href="./" class="home-quick-link">👁 صفحة الزبائن</a>
+    </div>
+</div>
+
+<div id="scanView" class="app-view bill-view cat-view" dir="rtl">
+    <div class="bill-top no-print">
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button></div></div>
+    <div class="page-title">🔎 فاحص المادة</div>
+    </div>
+    <div class="bill-scroll">
+        <div class="bill-panel">
+            <button type="button" class="sc-scanbtn" onclick="scScan()"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><path d="M7 12h10"/></svg><span>امسح الباركود</span></button>
+            <input type="search" class="bill-list-search" id="scQ" placeholder="🔍 أو ابحث باسم المادة..." autocomplete="off" oninput="scSearch(this.value)">
+            <div id="scRes" class="sc-reslist"></div>
+            <div id="scCard" class="sc-card"></div>
+        </div>
     </div>
 </div>
 
@@ -640,7 +659,7 @@
     <script src="seed.js"></script>
     <script src="prog.js"></script>
     <script src="data.js"></script>
-<!--A--><script src="invoice.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><!--/A-->
+<!--A--><script src="invoice.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><!--/A-->
     <script>
         if ('serviceWorker' in navigator) {
             const hadCtl = !!navigator.serviceWorker.controller;

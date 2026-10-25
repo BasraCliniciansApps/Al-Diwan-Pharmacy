@@ -192,6 +192,7 @@ function splitProduct(p) {
         else pub[k] = full[k];
     });
     pub.inStock = (parseInt(full.qty) || 0) > 0 || (parseInt(full.loose) || 0) > 0;
+    if (userRole === 'owner' && typeof scLimitFor === 'function') { const v = scLimitFor(full); if (v !== undefined) pub.dlim = v; }   // حد الخصم للبائعين (بدون كشف الكلفة)
     return { pub, stock, cost };
 }
 // هل الصنف متوفر؟ (يعمل في الصفحتين)
@@ -397,6 +398,7 @@ async function initFirebase() {
                 if (data.deptSubs && typeof data.deptSubs === 'object') deptSubs = data.deptSubs;
                 if (data.taxLegacy && Array.isArray(data.taxLegacy.d) && Array.isArray(data.taxLegacy.c)) taxLegacy = data.taxLegacy;
                 if (data.learn && typeof learnImport === 'function') learnImport(data.learn, learnPending());
+                if (data.scan && typeof scImport === 'function') scImport(data.scan);
                 if (data.tabLabels) tabLabels = { ...defaultTabLabels, ...data.tabLabels };
                 if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
                 if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
@@ -2879,6 +2881,7 @@ function buildBackupObject() {
         deptSubs,
         taxLegacy,
         learn: typeof learnExport === 'function' ? learnExport() : {},
+        scan: typeof scExport === 'function' ? scExport() : {},
         tabLabels,
         customTabs,
         lowStockThreshold,
@@ -4070,7 +4073,7 @@ function logAction(action, p, changes) {
     } catch (err) { /* السجل لا يجب أن يكسر العملية الأصلية */ }
 }
 
-const LOG_ACTION_LABEL = { add: '➕ إضافة', edit: '✏️ تعديل', qty: '📦 كمية', delete: '🗑️ حذف', restore: '↩️ استعادة' };
+const LOG_ACTION_LABEL = { add: '➕ إضافة', edit: '✏️ تعديل', qty: '📦 كمية', delete: '🗑️ حذف', restore: '↩️ استعادة', expdel: '🗓️ حذف نفاذ' };
 
 async function openLogModal() {
     let list = lsJson(LS_LOG, []);

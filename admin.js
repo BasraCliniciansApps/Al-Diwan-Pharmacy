@@ -4,7 +4,7 @@
 let currentView = 'splash';
 let splashTimer = null;
 
-const VIEW_PERM = { bill: 'sell', stock: 'stockView', purch: 'purchases', alerts: 'stockView', catalog: 'catalog' };
+const VIEW_PERM = { bill: 'sell', stock: 'stockView', purch: 'purchases', alerts: 'stockView', catalog: 'catalog', scan: 'scan' };
 function showView(v) {
     if (VIEW_PERM[v] && typeof can === 'function' && !can(VIEW_PERM[v])) v = 'home';
     currentView = v;
@@ -16,6 +16,7 @@ function showView(v) {
     else if (v === 'purch') { onShowPurch(); }
     else if (v === 'alerts') { renderAlerts(); }
     else if (v === 'catalog') { renderCatalog(); }
+    else if (v === 'scan') { if (typeof scInit === 'function') scInit(); }
 }
 
 // يُستدعى من data.js عند تغيّر حالة الدخول

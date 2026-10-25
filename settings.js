@@ -7,6 +7,7 @@ const SH_PAGES = [
     { id: 'tabs', ico: '🔔', t: 'التبويبات والتنبيهات', boxes: [3, 4], kw: 'تبويب تبويبات الشريط السفلي تنبيه تنبيهات نقص كمية صلاحية انتهاء أدوات الصيدلي alerts tabs' },
     { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح pricing' },
     { id: 'quick', ico: '🧩', t: 'الإدخال السريع والتعلّم', boxes: [], kw: 'ادخال سريع تعلم قواعدي تلقائي شكل دوائي تصنيف تلقائي quick learn' },
+    { id: 'scanner', ico: '🔎', t: 'فاحص المادة', boxes: [], kw: 'فاحص المادة مسح باركود سعر خصم حد الخصم اكسباير نفاذ هامش ربح scanner discount' },
     { id: 'backup', ico: '💾', t: 'النسخ الاحتياطي', boxes: [6], kw: 'نسخ نسخة احتياطي استرجاع استعادة تصدير backup restore' },
     { id: 'tools', ico: '🛠️', t: 'أدوات سريعة', boxes: [7], kw: 'أدوات جرد طباعة سريعة tools inventory' },
     { id: 'sec', ico: '🔐', t: 'الأمان والسجلات', boxes: [8], kw: 'أمان سجل سجلات بصمة كلمة سر باسورد حماية security log' },
@@ -23,6 +24,7 @@ function shSummary(p) {
         if (p.id === 'tabs') return { s: `حد النقص ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر` };
         if (p.id === 'price') return { s: `سعر الصرف ${fmtNum(pricingCfg.rate)}` };
         if (p.id === 'quick') { const c = qkCfg(), on = ['form', 'dept', 'like'].filter(k => c[k]).length, r = typeof learnRules === 'function' ? learnRules().length : 0; return { s: `الإدخال ${on}/3 · التعلّم ${learnOn() ? 'شغّال' : 'متوقف'}${r ? ' · ' + fmtNum(r) + ' قاعدة' : ''}` }; }
+        if (p.id === 'scanner') { const c = typeof scCfg === 'function' ? scCfg() : null; return { s: c ? (c.on ? 'مشغّل · ' : 'متوقف · ') + (c.mode === 'safe' ? 'خصم محمي' : 'خصم كامل') : '' }; }
         if (p.id === 'backup') return { s: 'نسخ واسترجاع وتصدير' };
         if (p.id === 'tools') return { s: 'جرد وأدوات الصيدلي' };
         if (p.id === 'sec') return { s: 'الدخول والسجلات' };
@@ -84,7 +86,7 @@ function shOpen(id, boxIdx) {
     if (typeof setupSettingsAccordion === 'function') setupSettingsAccordion();
     const all = shBoxes(), q = document.getElementById('shQuick');
     all.forEach(b => { b.classList.remove('sh-show', 'sh-single'); });
-    if (id === 'quick') { q.innerHTML = shQuickHtml(); q.hidden = false; q.classList.add('sh-show'); q.classList.remove('sh-pg'); void q.offsetWidth; q.classList.add('sh-pg'); }
+    if (id === 'quick' || id === 'scanner') { q.innerHTML = id === 'quick' ? shQuickHtml() : shScanHtml(); q.hidden = false; q.classList.add('sh-show'); q.classList.remove('sh-pg'); void q.offsetWidth; q.classList.add('sh-pg'); }
     else {
         q.hidden = true;
         p.boxes.forEach((i, k) => { const b = all[i]; if (!b) return; b.classList.add('sh-show'); if (p.boxes.length === 1) b.classList.add('sh-single'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (p.boxes.length === 1 || (boxIdx != null ? i === boxIdx : k === (id === 'tax' ? 99 : 0))) b.classList.add('open'); });
