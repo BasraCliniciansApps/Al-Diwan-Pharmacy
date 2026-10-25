@@ -979,6 +979,7 @@ const FORMS = [
     mkForm('serum', 'Serum', 'badge-gel', 'Topical', /\bserum\b|سيروم/),
     mkForm('toothpaste', 'Toothpaste', 'badge-oint', 'Oral Care', /tooth\s*paste|toothpaste|dentifrice|معجون اسنان|معجون أسنان/),
     mkForm('toothbrush', 'Toothbrush', 'badge-other', 'Oral Care', /tooth\s*brush|toothbrush|interdental|فرشاة اسنان|فرشاة أسنان|فرشاة/),
+    mkForm('toothpick', 'Toothpick', 'badge-other', 'Oral Care', /tooth\s*picks?|dental\s*picks?|خلة اسنان|خلة أسنان|عيدان اسنان|عيدان أسنان/i),
     mkForm('floss', 'Dental Floss', 'badge-other', 'Oral Care', /floss|خيط اسنان|خيط أسنان/),
     mkForm('gummy', 'Gummies', 'badge-oral', 'Oral Solid', /gumm(y|ies)|pectin|جمي|علك مطاطي/),
     mkForm('lollipop', 'Lollipop', 'badge-oral', 'Oral Solid', /loll[iy]pops?|مصاصة/),
