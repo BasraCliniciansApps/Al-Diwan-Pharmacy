@@ -114,6 +114,7 @@ const TAX_KW = [
     [/adult\s*(diapers?|pads?|pants?|briefs?|underwear|incontinence)|incontinence|under-?\s*pads?|bed\s*pads?|pull-?\s*ups?\s*(for\s*)?adults?|adult[^,]*(pull-?\s*ups?|pants)|(حفاض|حفاظ|كيلوت|فوط|سروال)[^,]*(بالغين|مسنين|كبار|سلس)|(بالغين|مسنين|كبار)[^,]*(حفاض|حفاظ|كيلوت)/i, 'الأجهزة والمستلزمات الطبية', 'حفاضات وفوط البالغين'],
     [/sanitary\s*(pads?|napkins?|towels?)|panty\s*liners?|period\s*pads?|فوط\s*(صحية|نسائية)|فوطة|always\b|kotex|libresse/i, 'العناية الشخصية والتجميل', 'العناية النسائية الحميمة'],
     [/diapers?|pampers|huggies|molfix|sanita|nappy|nappies|حفاض|حفاظ/i, 'الأم والطفل', 'حفاضات'],
+    [/pregabalin|lyrica|pregafix|pregalin|gabapentin|neurontin|gabator|بريجابالين|بريغابالين|جابابنتين|غابابنتين/i, 'الجهاز العصبي والنفسي', 'أدوية الألم العصبي', [['الجهاز العصبي والنفسي', 'أدوية الأعصاب الطرفية'], ['الجهاز العصبي والنفسي', 'مضادات الصرع']]],
     [/(fitting|tighten\w*|tightening)\s*insert\w*|vaginal\s*(tighten\w*|insert\w*)|شد\s*المهبل/i, 'النسائية والتوليد والهرمونات', 'العناية الحميمة وشد المهبل'],
     [/orlistat|onlefit|xenical|alli\b|zeroxen|اورليستات|أورليستات|زينيكال/i, 'السمنة والتنحيف', 'أدوية السمنة', [['السكري والغدد الصماء', 'أدوية السمنة']]],
     [/phentermine|sibutramine|appetite|سيبوترامين|كابح\s*الشهية/i, 'السمنة والتنحيف', 'مثبطات الشهية'],
