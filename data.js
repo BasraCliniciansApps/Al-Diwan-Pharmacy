@@ -4268,11 +4268,11 @@ function openExpiryModal() {
 }
 
 // ---------------- وضع الجرد ----------------
-let invCounts = {}, invLoose = {};
+let invCounts = {}, invLoose = {}, invRt = {}, invRtOpen = {};
 let invQuery = '';
 
 function openInventory() {
-    invCounts = {}; invLoose = {};
+    invCounts = {}; invLoose = {}; invRt = {}; invRtOpen = {};
     invQuery = '';
     const q = document.getElementById('invSearch');
     if (q) q.value = '';
@@ -4292,29 +4292,65 @@ function invVisibleItems() {
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 }
 
+function invEff(p) {   // إعداد التجزئة الفعلي (المعدّل بالجرد أو الحالي)
+    const r = invRt[p.id];
+    if (r) return { on: !!r.on, cnt: parseInt(r.cnt) || 0, type: r.type || subTypeOf(p) };
+    return { on: hasRetail(p), cnt: subCountOf(p), type: subTypeOf(p) };
+}
+function invRtDirty(p) { const r = invRt[p.id]; if (!r) return false; const e = invEff(p); return e.on !== hasRetail(p) || (e.on && (e.cnt !== subCountOf(p) || e.type !== subTypeOf(p))); }
+function invRtOn(p) { const e = invEff(p); return e.on && e.cnt > 1; }
 function invCur(p) { return { q: invCounts[p.id] !== undefined ? invCounts[p.id] : (parseInt(p.qty) || 0), l: invLoose[p.id] !== undefined ? invLoose[p.id] : (parseInt(p.loose) || 0) }; }
-function invIsChanged(p) { const c = invCur(p); return c.q !== (parseInt(p.qty) || 0) || (hasRetail(p) && c.l !== (parseInt(p.loose) || 0)); }
+function invFinal(p) {   // الكمية النهائية بعد تطبيق إعداد التجزئة
+    const c = invCur(p), e = invEff(p);
+    if (!(e.on && e.cnt > 1)) return { q: c.q, l: 0 };
+    const t = c.q * e.cnt + c.l; return { q: Math.floor(t / e.cnt), l: t % e.cnt };
+}
+function invIsChanged(p) { const c = invCur(p); return invRtDirty(p) || c.q !== (parseInt(p.qty) || 0) || (hasRetail(p) && c.l !== (parseInt(p.loose) || 0)); }
 function invChangedCount() {
-    return products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined) && invIsChanged(p)).length;
+    return products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined || invRt[p.id]) && invIsChanged(p)).length;
 }
 
-function renderInventory() {
-    const items = invVisibleItems();
-    const box = document.getElementById('invList');
-    if (!box) return;
-    box.innerHTML = items.length ? items.map(p => {
-        const cur = parseInt(p.qty) || 0, rt = hasRetail(p), c = invCur(p), val = c.q;
-        const changed = invIsChanged(p);
-        return `<div class="inv-row ${changed ? 'changed' : ''}" id="inv_${p.id}">
+function invRowHtml(p) {
+    const c = invCur(p), val = c.q, changed = invIsChanged(p), e = invEff(p), on = invRtOn(p), open = !!invRtOpen[p.id];
+    const types = subTypes.slice(); if (e.type && !types.includes(e.type)) types.push(e.type);
+    const sum = on ? `${e.cnt} ${escapeHtml(e.type)}` : 'غير مفعّلة';
+    return `<div class="inv-row ${changed ? 'changed' : ''}" id="inv_${p.id}">
             <div class="inv-info"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')} • المسجّل: ${escapeHtml(stockLabel(p))}</small></div>
             <div class="inv-step">
                 <button type="button" onclick="invStep(${p.id}, -1)">−</button>
                 <input type="number" inputmode="numeric" min="0" value="${val}" onchange="invSet(${p.id}, this.value)" id="invIn_${p.id}">
                 <button type="button" onclick="invStep(${p.id}, 1)">+</button>
             </div>
-            ${rt ? `<label class="inv-parts" title="${escapeHtml(subTypeOf(p))} مفتوحة"><span>🧩 ${escapeHtml(subTypeOf(p))}</span><input type="number" inputmode="numeric" min="0" value="${c.l}" onchange="invSetLoose(${p.id}, this.value)" id="invLp_${p.id}"></label>` : ''}
+            ${on ? `<label class="inv-parts" title="${escapeHtml(e.type)} مفتوحة"><span>🧩 ${escapeHtml(e.type)} مفتوحة</span><input type="number" inputmode="numeric" min="0" value="${c.l}" onchange="invSetLoose(${p.id}, this.value)" id="invLp_${p.id}"></label>` : ''}
+            <div class="inv-rt ${open ? 'open' : ''}">
+                <div class="inv-rtbar" onclick="invRtToggle(${p.id})"><span class="inv-chev">${open ? '▾' : '▸'}</span><span>🧩 التجزئة</span><small>${sum}</small>
+                    <label class="inv-sw" onclick="event.stopPropagation()"><input type="checkbox" ${on || (e.on && !on) ? 'checked' : ''} onchange="invRtSwitch(${p.id}, this.checked)"><i></i></label></div>
+                <div class="inv-rtbody" style="display:${open ? 'grid' : 'none'}">
+                    <label><span>نوع الجزء</span><select onchange="invRtSet(${p.id}, 'type', this.value)">${types.map(t => `<option value="${escapeHtml(t)}" ${t === e.type ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
+                    <label><span>عدد الأجزاء بالعبوة</span><input type="number" inputmode="numeric" min="0" placeholder="مثال: 10" value="${e.cnt || ''}" onchange="invRtSet(${p.id}, 'cnt', this.value)"></label>
+                </div>
+            </div>
         </div>`;
-    }).join('') : '<div class="empty-state"><div class="empty-ico">🔎</div><div>لا توجد أصناف مطابقة.</div></div>';
+}
+function invRowReplace(p) { const row = document.getElementById('inv_' + p.id); if (!row) return; const t = document.createElement('div'); t.innerHTML = invRowHtml(p); row.replaceWith(t.firstElementChild); refreshInvFooter(); }
+function invRtToggle(id) { const p = products.find(x => x.id === id); if (!p) return; invRtOpen[id] = !invRtOpen[id]; invRowReplace(p); }
+function invRtSwitch(id, v) {
+    const p = products.find(x => x.id === id); if (!p) return;
+    const e = invEff(p); invRt[id] = { on: !!v, cnt: e.cnt || '', type: e.type || subTypes[0] || 'Strip' };
+    if (v) invRtOpen[id] = true;
+    invRowReplace(p);
+}
+function invRtSet(id, f, v) {
+    const p = products.find(x => x.id === id); if (!p) return;
+    const e = invEff(p); invRt[id] = { on: true, cnt: e.cnt || '', type: e.type }; invRt[id][f] = f === 'cnt' ? (parseInt(v) || '') : v;
+    invRowReplace(p);
+}
+
+function renderInventory() {
+    const items = invVisibleItems();
+    const box = document.getElementById('invList');
+    if (!box) return;
+    box.innerHTML = items.length ? items.map(invRowHtml).join('') : '<div class="empty-state"><div class="empty-ico">🔎</div><div>لا توجد أصناف مطابقة.</div></div>';
     refreshInvFooter();
 }
 
@@ -4336,7 +4372,7 @@ function invSetLoose(id, v) {
     const p = products.find(x => x.id === id);
     if (!p) return;
     if (invCounts[id] === undefined) invCounts[id] = parseInt(p.qty) || 0;
-    const n = normCount(p, invCounts[id], v);   // أجزاء تزيد عن العبوة تتحول لعلب تلقائياً
+    const e = invEff(p), n = e.cnt > 1 ? { q: invCounts[id] + Math.floor((parseInt(v) || 0) / e.cnt), l: (parseInt(v) || 0) % e.cnt } : { q: invCounts[id], l: 0 };   // أجزاء تزيد عن العبوة تتحول لعلب تلقائياً
     invCounts[id] = n.q; invLoose[id] = n.l;
     invRefreshRow(p);
 }
@@ -4360,7 +4396,7 @@ function invFilter(v) {
 }
 
 async function saveInventory() {
-    const changed = products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined) && invIsChanged(p)).map(p => { const c = invCur(p); return { p, from: parseInt(p.qty) || 0, fromL: parseInt(p.loose) || 0, to: c.q, toL: hasRetail(p) ? c.l : (parseInt(p.loose) || 0), fromLabel: stockLabel(p) }; });
+    const changed = products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined || invRt[p.id]) && invIsChanged(p)).map(p => { const f = invFinal(p), e = invEff(p); return { p, from: parseInt(p.qty) || 0, fromL: parseInt(p.loose) || 0, to: f.q, toL: f.l, fromLabel: stockLabel(p), rt: invRtDirty(p) ? e : null, oldRt: { subCount: p.subCount, subType: p.subType, subPrice: p.subPrice } }; });
     const same = setupMode ? products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined) && !invIsChanged(p) && p.counted !== true) : [];   // مجرودة بنفس رصيد التطبيق: تُعتمد كمؤسَّسة
     if (!changed.length && !same.length) return;
     const r = await Swal.fire({
@@ -4369,7 +4405,10 @@ async function saveInventory() {
         icon: 'question', showCancelButton: true, confirmButtonText: 'نعم، طبّق', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38'
     });
     if (!r.isConfirmed) return;
-    changed.forEach(c => { c.p.qty = c.to; c.p.loose = c.toL; });
+    changed.forEach(c => {
+        if (c.rt) { if (c.rt.on && c.rt.cnt > 1) { c.p.subCount = c.rt.cnt; c.p.subType = c.rt.type; c.p.subPrice = subPriceCalc(c.p.price, c.rt.cnt); } else { c.p.subCount = ''; c.p.subPrice = ''; } }
+        c.p.qty = c.to; c.p.loose = c.toL;
+    });
     const canMark = can('stockEdit'); if (canMark) { changed.forEach(c => { c.p.counted = true; }); same.forEach(p => { p.counted = true; }); }
     const ok = await saveProductsBatch(changed.map(c => c.p).concat(same));
     if (ok) {
@@ -4378,7 +4417,7 @@ async function saveInventory() {
         renderAll();
         Swal.fire({ icon: 'success', title: `تم تحديث ${changed.length} صنف`, toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     } else {
-        changed.forEach(c => { c.p.qty = c.from; c.p.loose = c.fromL; });   // نُرجع القيم القديمة عند فشل الحفظ
+        changed.forEach(c => { c.p.qty = c.from; c.p.loose = c.fromL; Object.assign(c.p, c.oldRt); });   // نُرجع القيم القديمة عند فشل الحفظ
         saveLocal();
         renderInventory();
     }

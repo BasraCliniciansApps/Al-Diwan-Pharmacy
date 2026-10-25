@@ -2640,3 +2640,32 @@ body.ss-lock { overflow: hidden; }
 .pu-rbody input, .pu-rbody select { width: 100%; box-sizing: border-box; min-height: 42px; padding: 0 10px; border: 1.5px solid #cbd5e1; border-radius: 10px; font-family: inherit; font-size: .95rem; background: #fff; color: #111; }
 [data-theme="dark"] .pu-retail { background: #1e293b; border-color: #334155; } [data-theme="dark"] .pu-rbar { color: #e2e8f0; }
 [data-theme="dark"] .pu-rbody input, [data-theme="dark"] .pu-rbody select { background: #0f172a; color: #e2e8f0; border-color: #475569; }
+
+/* v160: توحيد حقول الإدخال (الجرد والوارد والإعدادات) — ارتفاع 46px، حواف 12px، خط 16px */
+:root { --field-h: 46px; --field-r: 12px; --field-fs: 16px; }
+.inv-search, .sh-search input, .pu-form input, .pu-form select, .pu-grid input, .pu-price input, .pu-price select, .pu-notes textarea:not(.x),
+.pu-mfield input, .pu-mfield select, .pu-rbody input, .pu-rbody select, .inv-rtbody input, .inv-rtbody select,
+#catModal .form-group input, #catModal .form-group select, #catModal .add-inline-row input, #catModal .add-inline-row select {
+    box-sizing: border-box; min-height: var(--field-h); height: var(--field-h); padding: 0 14px; border-radius: var(--field-r); font-size: var(--field-fs); font-family: inherit; line-height: normal;
+}
+.inv-search { -webkit-appearance: none; appearance: none; display: block; width: 100%; margin-bottom: 10px; background: var(--surface-2, #f8fafc); }
+.inv-search::-webkit-search-cancel-button { height: 18px; width: 18px; }
+.inv-step input, .inv-parts input { min-height: var(--field-h); height: var(--field-h); font-size: var(--field-fs); }
+.inv-step button { height: var(--field-h); width: var(--field-h); }
+.inv-parts input { width: 84px; }
+/* شريط التجزئة المطوي في الجرد */
+.inv-rt { flex: 0 0 100%; border: 1px solid #e5eaf2; border-radius: 12px; background: #f6f8fc; overflow: hidden; }
+.inv-rtbar { display: flex; align-items: center; gap: 8px; padding: 9px 12px; cursor: pointer; font-size: .8rem; font-weight: 800; color: #334155; min-height: 42px; }
+.inv-rtbar small { margin-inline-start: auto; font-weight: 700; color: #64748b; font-size: .74rem; }
+.inv-rtbody { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 2px 12px 12px; }
+.inv-rtbody label { display: flex; flex-direction: column; gap: 4px; font-size: .74rem; font-weight: 800; color: #475569; }
+.inv-rtbody input, .inv-rtbody select { width: 100%; border: 1.5px solid #cbd5e1; background: #fff; color: #111; }
+.inv-sw { position: relative; display: inline-block; width: 44px; height: 26px; flex: 0 0 44px; }
+.inv-sw input { opacity: 0; width: 100%; height: 100%; position: absolute; inset: 0; margin: 0; cursor: pointer; z-index: 1; min-height: 0 !important; }
+.inv-sw i { position: absolute; inset: 0; border-radius: 99px; background: #cbd5e1; transition: background .15s; }
+.inv-sw i::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.inv-sw input:checked + i { background: #7e22ce; }
+.inv-sw input:checked + i::after { transform: translateX(-18px); }
+[dir="ltr"] .inv-sw input:checked + i::after { transform: translateX(18px); }
+[data-theme="dark"] .inv-rt { background: #1e293b; border-color: #334155; } [data-theme="dark"] .inv-rtbar { color: #e2e8f0; }
+[data-theme="dark"] .inv-rtbody input, [data-theme="dark"] .inv-rtbody select { background: #0f172a; color: #e2e8f0; border-color: #475569; }
