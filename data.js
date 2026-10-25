@@ -935,6 +935,7 @@ const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye
 const mkForm = (id, txt, cls, g, re) => ({ id, txt, cls, g, re: re || null });
 // الترتيب مهم للاكتشاف التلقائي (الأول المطابق يفوز): الأخص قبل الأعم. وما بلا نمط يُختار يدوياً فقط.
 const FORMS = [
+    mkForm('efferpowder', 'Effervescent Powder', 'badge-syrup', 'Oral Solid', /effervescent[^,]*(powder|granules?|sachets?)|(powder|granules?|sachets?)[^,]*effervescent|fizz\w*\s*(powder|granules?)|فوار[^,]*(بودرة|مسحوق|اكياس|أكياس)/),
     mkForm('capsr', 'Extended-release Capsule', 'badge-oral', 'Oral Solid', /(\bretard\b|\bxr\b|\bsr\b|\bmr\b|\bxl\b|\bcr\b|extended[\s-]?release|prolonged|slow[\s-]?release|بطيئ)[^,]*(capsules?|\bcaps?\b|كبسول)|(capsules?|\bcaps?\b|كبسول)[^,]*(\bretard\b|\bxr\b|\bsr\b|\bmr\b|\bxl\b|extended[\s-]?release|prolonged|slow[\s-]?release|بطيئ)/),
     mkForm('ovule', 'Vaginal Ovule', 'badge-oint', 'Rectal & Vaginal', /\bovules?\b|\bovula\b|بيوض/),
     mkForm('vagsupp', 'Vaginal Suppository (Pessary)', 'badge-oint', 'Rectal & Vaginal', /pessar(y|ies)|vaginal\s*(suppositor\w*|capsules?|inserts?|pessar\w*)|vag\s*supp|تحميلة مهبلية/),
