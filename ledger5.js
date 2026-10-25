@@ -10,13 +10,17 @@ async function lgBreqDel(id) {
     const r = await Swal.fire({ icon: 'warning', title: 'حذف هذا البونص؟', text: e.name, showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
     if (!r.isConfirmed) return; e.del = true; await lgSave(e); lgBreqRefresh();
 }
-async function lgBreqAdd() {
+async function lgBreqAdd(eid) {
+    const ed = eid ? lgAll.find(x => x.id === eid) : null, v = k => escapeHtml(String(ed && ed[k] != null ? ed[k] : '')).replace(/"/g, '&quot;');
     const inp = (id, label, extra) => `<label style="display:block;text-align:right;font-size:.8rem;font-weight:800;margin-top:6px">${label}<input id="${id}" class="swal2-input" style="margin:4px 0 0;width:100%" ${extra || ''}></label>`;
-    const r = await Swal.fire({ title: 'إضافة بونص مستلم (هدية مندوب / عرض)', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
-        html: inp('swQN', 'المادة', 'dir="ltr"') + inp('swQC', 'الشركة', 'dir="ltr"') + inp('swQQ', 'الكمية', 'type="number" inputmode="numeric"') + inp('swQS', 'المذخر', 'list="puSupList"') + inp('swQL', 'رقم القائمة', 'dir="ltr"') + inp('swQD', 'التاريخ', `type="date" value="${todayLocalISO()}"`) + inp('swQR', 'المندوب'),
+    const r = await Swal.fire({ title: ed ? 'تعديل البونص' : 'إضافة بونص مستلم (هدية مندوب / عرض)', showCancelButton: true, showDenyButton: !!ed, denyButtonText: 'حذف', denyButtonColor: '#b91c1c', confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
+        html: inp('swQN', 'المادة', `dir="ltr" value="${v('name')}"`) + inp('swQC', 'الشركة', `dir="ltr" value="${v('company')}"`) + inp('swQQ', 'الكمية', `type="number" inputmode="numeric" value="${v('qty')}"`) + inp('swQS', 'المذخر', `list="puSupList" value="${v('supplier')}"`) + inp('swQL', 'رقم القائمة', `dir="ltr" value="${v('listNo')}"`) + inp('swQD', 'التاريخ', `type="date" value="${ed ? v('date') : todayLocalISO()}"`) + inp('swQR', 'المندوب', `value="${v('rep')}"`),
         preConfirm: () => { const g = id => (document.getElementById(id).value || '').trim(); if (!g('swQN')) { Swal.showValidationMessage('اكتب اسم المادة'); return false; } return { name: g('swQN'), company: g('swQC'), qty: parseInt(g('swQQ')) || 0, supplier: g('swQS'), listNo: g('swQL'), date: g('swQD'), rep: g('swQR'), received: '' }; } });
+    if (r.isDenied && ed) { ed.del = true; await lgSave(ed); lgBreqRefresh(); return; }
     if (!r.isConfirmed || !r.value) return;
-    await lgSave({ id: lgId(), kind: 'breq', ...r.value, createdTs: new Date().toISOString() }); lgBreqRefresh();
+    if (ed) Object.assign(ed, r.value, { received: ed.received || '' }), await lgSave(ed);
+    else await lgSave({ id: lgId(), kind: 'breq', ...r.value, createdTs: new Date().toISOString() });
+    lgBreqRefresh();
 }
 
 // =====================================================================
