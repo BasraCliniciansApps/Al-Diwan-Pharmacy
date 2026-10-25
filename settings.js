@@ -3,6 +3,9 @@
 // ما تغيّر محتوى الإعدادات القديمة، بس ترتّبه (تعرض صناديق كل صفحة وتخفي الباقي).
 // =====================================================================
 const SH_PAGES = [
+    { id: 'users', ico: '👥', t: 'المستخدمون والصلاحيات', boxes: [], act: 'openUsers', kw: 'مستخدم مستخدمين صلاحيات بائع موظف حساب دخول users permissions' },
+    { id: 'log', ico: '📜', t: 'سجل الإجراءات', boxes: [], act: 'openLogModal', kw: 'سجل اجراءات تعديلات من عدل log history' },
+    { id: 'trash', ico: '🗑️', t: 'سلة المحذوفات', boxes: [], act: 'openTrashModal', kw: 'سلة محذوفات استعادة حذف trash restore' },
     { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيفات', boxes: [0, 1, 2], kw: 'قسم اقسام تصنيف تصنيفات فرعية جاهزة مراجعة الأقسام الرئيسية departments categories' },
     { id: 'tabs', ico: '🔔', t: 'التبويبات والتنبيهات', boxes: [3, 4], kw: 'تبويب تبويبات الشريط السفلي تنبيه تنبيهات نقص كمية صلاحية انتهاء أدوات الصيدلي alerts tabs' },
     { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح pricing' },
@@ -21,6 +24,9 @@ function shBuzz() { try { if (navigator.vibrate) navigator.vibrate(8); } catch (
 function shSummary(p) {
     try {
         if (p.id === 'tax') { const n = (typeof taxSeeded === 'function' && taxSeeded()) ? taxMissingSubs().length + taxPendingRenames().length : 0; return { s: `${fmtNum(departments.length)} قسم · ${fmtNum(subCategories.length)} تصنيف`, badge: n ? fmtNum(n) + ' جديد' : '' }; }
+        if (p.id === 'users') return { s: 'الحسابات والصلاحيات' };
+        if (p.id === 'log') return { s: 'من عدّل ماذا ومتى' };
+        if (p.id === 'trash') return { s: 'استعادة المواد المحذوفة' };
         if (p.id === 'tabs') return { s: `حد النقص ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر` };
         if (p.id === 'price') return { s: `سعر الصرف ${fmtNum(pricingCfg.rate)}` };
         if (p.id === 'quick') { const c = qkCfg(), on = ['form', 'dept', 'like'].filter(k => c[k]).length, r = typeof learnRules === 'function' ? learnRules().length : 0; return { s: `الإدخال ${on}/3 · التعلّم ${learnOn() ? 'شغّال' : 'متوقف'}${r ? ' · ' + fmtNum(r) + ' قاعدة' : ''}` }; }
@@ -79,6 +85,7 @@ function shHome(anim) {
 }
 function shOpen(id, boxIdx) {
     const card = shCard(), p = SH_PAGES.find(x => x.id === id); if (!card || !p) return;
+    if (p.act) { if (typeof window[p.act] === 'function') window[p.act](); return; }   // بطاقات تفتح نافذتها مباشرة
     shInit(); shCur = id; card.classList.add('sh-on');
     document.getElementById('shHub').hidden = true;
     const t = document.getElementById('shTitle'); if (t) t.textContent = '';
