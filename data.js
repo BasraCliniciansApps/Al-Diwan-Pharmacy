@@ -931,10 +931,21 @@ function isCustomItem(item) {
 }
 
 // الأشكال الدوائية: id / الاسم المعروض / لون الشارة / كلمات التعرّف التلقائي (بالترتيب: الأدق أولاً)
-const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye / Ear / Nose', 'Inhalation', 'Rectal & Vaginal', 'Oral Care', 'Dressings & Supplies', 'Other'];
+const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye / Ear / Nose', 'Inhalation', 'Rectal & Vaginal', 'Oral Care', 'Dressings & Supplies', 'Antiseptics & Sanitizers', 'Other'];
 const mkForm = (id, txt, cls, g, re) => ({ id, txt, cls, g, re: re || null });
 // الترتيب مهم للاكتشاف التلقائي (الأول المطابق يفوز): الأخص قبل الأعم. وما بلا نمط يُختار يدوياً فقط.
 const FORMS = [
+    mkForm('alcoholswab', 'Alcohol Swabs', 'badge-wash', 'Antiseptics & Sanitizers', /alcohol\s*(swabs?|pads?|prep)|isopropyl[^,]*(swabs?|pads?)|swabs?[^,]*alcohol/),
+    mkForm('antisepticwipes', 'Antiseptic Wipes', 'badge-wash', 'Antiseptics & Sanitizers', /(disinfect|antiseptic|sanit)\w*[^,]*wipes?|wipes?[^,]*(disinfect|antiseptic|alcohol)/),
+    mkForm('handsan', 'Hand Sanitizer', 'badge-wash', 'Antiseptics & Sanitizers', /hand\s*(sanitizer|sanitiser|rub)|sanitizer|sanitiser|معقم (ايدي|أيدي)/),
+    mkForm('disinfspray', 'Disinfectant Spray', 'badge-spray', 'Antiseptics & Sanitizers', /disinfect\w*[^,]*spray|spray[^,]*disinfect|surface\s*spray/),
+    mkForm('surgscrub', 'Surgical Scrub', 'badge-wash', 'Antiseptics & Sanitizers', /surgical\s*scrub|hibiscrub|scrub\s*(brush|solution)\b/),
+    mkForm('povidone', 'Povidone-Iodine', 'badge-wash', 'Antiseptics & Sanitizers', /povidone|betadine|\biodine\b|بيتادين/),
+    mkForm('chlorhex', 'Chlorhexidine', 'badge-wash', 'Antiseptics & Sanitizers', /^(?!.*mouth).*chlorhexidine/),
+    mkForm('peroxide', 'Hydrogen Peroxide', 'badge-wash', 'Antiseptics & Sanitizers', /hydrogen\s*peroxide|h2o2|بيروكسيد/),
+    mkForm('salinewash', 'Saline Wound Wash', 'badge-spray', 'Antiseptics & Sanitizers', /saline[^,]*(wash|spray|irrigat)|wound\s*wash/),
+    mkForm('medalcohol', 'Medical Alcohol', 'badge-wash', 'Antiseptics & Sanitizers', /(medical|ethyl|surgical|rubbing)\s*alcohol|isopropyl|ethanol|كحول طبي|^alcohol\b/),
+    mkForm('antiseptic', 'Antiseptic / Disinfectant', 'badge-wash', 'Antiseptics & Sanitizers', /^(?!.*(cream|ointment|lozenge|mouth|throat|drops|shampoo|soap)).*(antiseptic|disinfectant|dettol|savlon|cetrimide|مطهر)/),
     mkForm('waterproofdress', 'Waterproof Dressing', 'badge-gel', 'Dressings & Supplies', /water-?proof[^,]*(dressing|plaster|bandage|film)|(dressing|plaster|bandage)[^,]*water-?proof|ضماد[^,]*ماء/),
     mkForm('hydrocolloid', 'Hydrocolloid Dressing', 'badge-gel', 'Dressings & Supplies', /hydrocolloid/),
     mkForm('foamdress', 'Foam Dressing', 'badge-gel', 'Dressings & Supplies', /foam\s*dressing|silicone\s*foam|alginate/),
@@ -1041,7 +1052,7 @@ const FORMS = [
     mkForm('implant', 'Implant', 'badge-other', 'Other'),
     mkForm('iud', 'IUD', 'badge-other', 'Other'),
     mkForm('ring', 'Vaginal Ring', 'badge-other', 'Other'),
-    mkForm('lens', 'Contact Lenses / Solution', 'badge-other', 'Other', /contact lens|lens solution|عدسات/),
+    mkForm('lens', 'Contact Lenses / Solution', 'badge-other', 'Other', /contact lens|lens[^,]*(solution|disinfect)|multi-?purpose\s*solution|عدسات/),
         mkForm('diag', 'Diagnostic (Strips / Kits)', 'badge-other', 'Other', /test\s*strips?|glucose|ketone|urine\s*strips?|diagnostic|شرائط (فحص|سكر|اختبار)/),
     mkForm('device', 'Device / Supply', 'badge-other', 'Other'),
     mkForm('other', 'Other', 'badge-other', '')
