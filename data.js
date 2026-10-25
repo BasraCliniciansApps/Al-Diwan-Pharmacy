@@ -977,7 +977,7 @@ const FORMS = [
     mkForm('oralvial', 'Oral Vial / Drinkable Ampoule', 'badge-syrup', 'Oral Liquid', /oral\s*(vial|ampoule|amp)\b|drinkable/),
     mkForm('stickpack', 'Stick Pack', 'badge-syrup', 'Oral Solid', /stick\s*pack/),
     mkForm('softchew', 'Soft Chew', 'badge-oral', 'Oral Solid', /soft\s*chew/),
-    mkForm('jelly', 'Jelly', 'badge-gel', 'Oral Solid', /\bjelly\b|jellies/),
+    mkForm('jelly', 'Jelly', 'badge-gel', 'Topical', /^(?!.*(oral|vitamin|gumm|sachet|stick|drink)).*(\bjelly\b|jellies|petroleum|vaseline|فازلين)/),
     mkForm('lozenge', 'Lozenge / Pastille', 'badge-oral', 'Oral Solid', /lozenge|pastille|لوزنج|اقراص مص|أقراص مص/),
     mkForm('effer', 'Effervescent Tablet', 'badge-oral', 'Oral Solid', /effervescent|fizz|فوار|فوّار/),
     mkForm('chew', 'Chewable Tablet', 'badge-oral', 'Oral Solid', /chewable|chew tab|للمضغ/),
