@@ -2467,3 +2467,24 @@ body.rv-open { overflow: hidden; }
 @media (max-width: 380px) { .sh-grid { grid-template-columns: 1fr; } }
 
 .modal-card.sh { min-height: min(72vh, 620px); }
+
+/* v144: مفضلة + حفظ تلقائي + منطقة الخطر */
+.sh-fav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
+.sh-fav-t { display: inline-flex; align-items: center; gap: 4px; color: var(--gold-dark); font-weight: 800; font-size: .78rem; }
+.sh-chip { display: inline-flex; align-items: center; gap: 6px; font-family: inherit; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2, #f8fafc); color: var(--text-main); border-radius: 999px; padding: 4px 12px 4px 6px; font-weight: 700; font-size: .78rem; transition: transform .12s; }
+.sh-chip:active { transform: scale(.96); }
+.sh-chip .sh-ico { width: 26px; height: 26px; border-radius: 999px; font-size: .8rem; }
+.sh-chip .sh-ico svg { width: 15px; height: 15px; }
+.sh-star { position: absolute; bottom: 7px; left: 8px; color: #94a3b8; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; cursor: pointer; }
+.sh-star.on { color: var(--gold); }
+.sh-star:hover { background: rgba(15,28,56,.06); }
+.sh-bad { border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220,38,38,.12) !important; }
+.sh #lowThresholdInput + button, .sh #alertM3 + button, .sh #puWindowInput + button { display: none; }
+.sh-toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 24px); opacity: 0; pointer-events: none; z-index: 100001; display: flex; align-items: center; gap: 12px; background: #0f1c38; color: #fff; border-radius: 12px; padding: 10px 14px; font-size: .84rem; font-weight: 700; box-shadow: 0 10px 28px rgba(0,0,0,.35); transition: opacity .2s, transform .25s cubic-bezier(.16,1,.3,1); }
+.sh-toast.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.sh-toast button { border: 0; background: rgba(255,255,255,.16); color: #ffd980; font-family: inherit; font-weight: 800; border-radius: 8px; padding: 5px 11px; cursor: pointer; }
+.sh-danger { margin-top: 16px; border: 1px solid #fecaca; background: #fef2f2; border-radius: 12px; padding: 12px; }
+.sh-danger h5 { margin: 0 0 4px; color: #b91c1c; font-size: .86rem; }
+.sh-danger p { margin: 0 0 10px; color: #7f1d1d; font-size: .74rem; line-height: 1.7; }
+.sh-dbtn { width: 100%; font-family: inherit; font-weight: 800; cursor: pointer; border: 1px solid #fca5a5; background: #fff; color: #b91c1c; border-radius: 10px; padding: 10px; }
+[data-theme="dark"] .sh-danger { background: #2a1416; border-color: #5b2226; } [data-theme="dark"] .sh-danger p { color: #fca5a5; } [data-theme="dark"] .sh-dbtn { background: #1a0c0e; border-color: #7f1d1d; }
