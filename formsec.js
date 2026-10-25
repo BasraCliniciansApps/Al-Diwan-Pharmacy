@@ -74,7 +74,7 @@ function fsDupes() {
     (typeof formBarcodes !== 'undefined' ? formBarcodes : []).forEach(b => { const p = findByBarcode(b); if (p && p.id !== id && !out.some(x => x.p.id === p.id)) out.unshift({ p, why: 'نفس الباركود' }); else if (p && p.id !== id) out.find(x => x.p.id === p.id).why = 'نفس الباركود'; });
     return out.slice(0, 3);
 }
-let fsDupKey = '';
+let fsDupKey = '', fsPriceAsked = false;
 function fsRenderDupes() {
     const box = fsEl('fsDup'); if (!box) return; const d = fsDupes(), key = d.map(x => x.p.id + x.why).join(',');
     if (key === fsDupKey) return; fsDupKey = key;
@@ -116,7 +116,7 @@ function fsMark(id, msg) {
     try { e.scrollIntoView({ block: 'center', behavior: 'smooth' }); e.focus({ preventScroll: true }); } catch (x) { /* تجاهل */ }
 }
 (function () {
-    const base = window.fsApply = (function (o) { return function (id) { o(id); fsInsertDup(); fsDraftBanner(!id); fsDupKey = ''; fsRenderDupes(); }; })(fsApply);
+    const base = window.fsApply = (function (o) { return function (id) { o(id); fsPriceAsked = false; fsInsertDup(); fsDraftBanner(!id); fsDupKey = ''; fsRenderDupes(); }; })(fsApply);
     const _r = fsRefresh;
     window.fsRefresh = function () { _r(); try { fsRenderDupes(); fsDraftSave(); } catch (e) { /* تجاهل */ } };
     // ملاحظة: مستمعو input/change المسجّلون يستدعون النسخة القديمة؛ لذلك نضيف مستمعاً للنسخة الجديدة
@@ -124,6 +124,11 @@ function fsMark(id, msg) {
     const sv = window.saveFormProduct;
     if (typeof sv === 'function') window.saveFormProduct = async function () {
         if (!(((fsEl('fName') || {}).value || '').trim())) { fsMark('fName'); }
+        if (((fsEl('fName') || {}).value || '').trim() && !(parseFloat((fsEl('fPrice') || {}).value) > 0) && !fsPriceAsked) {   // السعر فارغ: تنبيه مرة وحدة، والضغطة الثانية تحفظ
+            fsPriceAsked = true; fsMark('fPrice');
+            Swal.fire({ icon: 'warning', title: 'السعر فارغ', text: 'اكتب سعر البيع، أو اضغط حفظ مرة ثانية للحفظ بدون سعر.', toast: true, position: 'top', showConfirmButton: false, timer: 3500 });
+            return;
+        }
         const r = await sv.apply(this, arguments);
         const m = fsEl('formModal'); if (m && (m.style.display === 'none' || !m.style.display)) fsClearDraft();
         return r;
