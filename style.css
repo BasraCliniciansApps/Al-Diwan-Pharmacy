@@ -2602,3 +2602,14 @@ body.ss-lock { overflow: hidden; }
 .ss-grp { overflow: visible; }
 .ss-grp .ss-gh { border-radius: 13px 13px 0 0; }
 .ss-grp > .ss-row:last-child { border-radius: 0 0 13px 13px; }
+
+/* v152: تصغير قوائم الاختيار لتناسب التطبيق */
+.ss-hd b { font-size: .9rem; }
+.ss-hd { padding: 14px 16px 6px; }
+.ss-sr input { min-height: 42px; font-size: .9rem; }
+.ss-row { min-height: 42px; font-size: .84rem; padding: 0 12px; }
+.ss-grp .ss-gh { padding: 7px 12px; font-size: .72rem; }
+.ss-gh { font-size: .7rem; }
+.ss-none { font-size: .82rem; }
+.ss-btn { min-height: 42px; font-size: .84rem; }
+.sw-form .ss-btn { min-height: 40px; font-size: .84rem; margin-top: 4px; }
