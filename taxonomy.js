@@ -102,8 +102,8 @@ let taxFirstIdx = null;
 const TAX_KW = [
     [/orlistat|onlefit|xenical|alli\b|zeroxen|اورليستات|أورليستات|زينيكال/i, 'السمنة والتنحيف', 'أدوية السمنة', [['السكري والغدد الصماء', 'أدوية السمنة']]],
     [/phentermine|sibutramine|appetite|سيبوترامين|كابح\s*الشهية/i, 'السمنة والتنحيف', 'مثبطات الشهية'],
+    [/slim(ming)?\s*tea|detox\s*tea|slimming\s*(tea|herbal)|شاي\s*(التنحيف|الرجيم|السلم)/i, 'السمنة والتنحيف', 'شاي وأعشاب التنحيف'],
     [/fat\s*burn|slimming|garcinia|green\s*coffee|cla\b|حارق|تنحيف|جارسينيا/i, 'السمنة والتنحيف', 'حارقات الدهون ومكملات التنحيف', [['الفيتامينات والمعادن والمكملات', 'الوزن والحرق']]],
-    [/slim(ming)?\s*tea|detox\s*tea|شاي\s*(التنحيف|الرجيم|السلم)/i, 'السمنة والتنحيف', 'شاي وأعشاب التنحيف'],
     [/meal\s*replacement|diet\s*(shake|drink|bar|meal)|بديل\s*الوجبات/i, 'السمنة والتنحيف', 'بدائل الوجبات والمشروبات الدايت'],
     [/fat\s*binder|carb\s*blocker|white\s*kidney|chitosan|كيتوزان/i, 'السمنة والتنحيف', 'ألياف الدايت ومانعات امتصاص الدهون'],
     [/stevia|sweetener|saccharin|sucralose|aspartame|tropicana\s*slim|sugar\s*substitute|ستيفيا|سكرين|محلي|بديل\s*السكر|سكرالوز/i, 'السكري والغدد الصماء', 'بدائل السكر والمحليات', [['السمنة والتنحيف', 'بدائل السكر والمحليات']]],
