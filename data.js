@@ -1018,7 +1018,7 @@ const FORMS = [
     mkForm('powdervial', 'Powder for Injection (Vial)', 'badge-inj', 'Injectables'),
     mkForm('pen', 'Pen / Prefilled Syringe', 'badge-inj', 'Injectables'),
     mkForm('cartridge', 'Cartridge', 'badge-inj', 'Injectables'),
-    mkForm('infusion', 'IV Infusion Solution', 'badge-inj', 'Injectables'),
+    mkForm('infusion', 'IV Infusion Solution', 'badge-inj', 'Injectables', /^(?!.*(nasal|nose|spray|wash|eye|drops|irrigat|ampou?le|\bamp\b|vial|tablet|capsule)).*(sodium\s*chloride|normal\s*saline|saline|dextrose|glucose\s*\d|ringer|lactated|hartmann|plasma-?lyte|mannitol|infusion|iv\s*(fluid|solution)|مغذي|محلول\s*(وريدي|ملحي))/i),
     mkForm('depot', 'Depot Injection', 'badge-inj', 'Injectables'),
     mkForm('enema', 'Enema', 'badge-oint', 'Rectal & Vaginal', /enema|حقنة شرجية/),
     mkForm('supp', 'Suppository', 'badge-oint', 'Rectal & Vaginal', /suppositor|\bsupp\b|pessar|تحميل|تحاميل/),
