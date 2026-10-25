@@ -2590,3 +2590,15 @@ body.ss-lock { overflow: hidden; }
 .ss-none { padding: 26px 12px; text-align: center; color: var(--text-sub, #64748b); font-size: .88rem; }
 @media (min-width: 640px) { .ss-ov { align-items: center; } .ss-sheet { border-radius: 22px; max-height: 80vh; } }
 @media (prefers-reduced-motion: reduce) { .ss-sheet, .ss-bd { transition: none; } }
+
+/* v147: تمييز مجموعات القائمة بألوان */
+.ss-grp { margin: 0 0 10px; border-radius: 14px; overflow: hidden; border: 1px solid var(--gt); background: var(--surface, #fff); }
+.ss-grp .ss-gh { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 8px; padding: 9px 12px; margin: 0; font-size: .78rem; font-weight: 800; letter-spacing: .02em; color: var(--gc); background: linear-gradient(var(--gt), var(--gt)), var(--surface, #fff); border-bottom: 1px solid var(--gt); }
+.ss-dot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--gc); }
+.ss-grp .ss-row { border-radius: 0; border-inline-start: 3px solid transparent; }
+.ss-grp .ss-row + .ss-row { border-top: 1px solid rgba(100,116,139,.12); }
+.ss-grp .ss-row.on { border-inline-start-color: var(--gc); background: var(--gt); color: var(--gc); }
+.ss-list { padding: 0 12px 14px; }
+.ss-grp { overflow: visible; }
+.ss-grp .ss-gh { border-radius: 13px 13px 0 0; }
+.ss-grp > .ss-row:last-child { border-radius: 0 0 13px 13px; }

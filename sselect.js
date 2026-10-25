@@ -32,6 +32,7 @@ function ssItems(sel) {
     return out;
 }
 let ssCur = null;
+const SS_PAL = [['#2563eb', 'rgba(37,99,235,.13)'], ['#0d9488', 'rgba(13,148,136,.13)'], ['#7c3aed', 'rgba(124,58,237,.13)'], ['#ea580c', 'rgba(234,88,12,.13)'], ['#db2777', 'rgba(219,39,119,.13)'], ['#16a34a', 'rgba(22,163,74,.13)'], ['#ca8a04', 'rgba(202,138,4,.15)'], ['#475569', 'rgba(71,85,105,.14)']];
 function ssOpen(sel) {
     if (sel.disabled) return;
     ssClose(); ssCur = sel;
@@ -44,11 +45,17 @@ function ssOpen(sel) {
     const render = () => {
         const toks = ssNorm(q.value).split(' ').filter(Boolean);
         const rows = items.filter(i => { const h = ssNorm(i.t + ' ' + i.g); return toks.every(t => h.includes(t)); });
-        let html = '', last = null;
+        let html = '', last = null, open = false;
+        const gi = {}; items.forEach(i => { if (i.g && !(i.g in gi)) gi[i.g] = Object.keys(gi).length; });
         rows.forEach(i => {
-            if (i.g !== last) { last = i.g; if (i.g) html += `<div class="ss-gh">${ssEsc(i.g)}</div>`; }
+            if (i.g !== last) {
+                if (open) { html += '</div>'; open = false; }
+                last = i.g;
+                if (i.g) { const c = SS_PAL[gi[i.g] % SS_PAL.length]; html += `<div class="ss-grp" style="--gc:${c[0]};--gt:${c[1]}"><div class="ss-gh"><span class="ss-dot"></span>${ssEsc(i.g)}</div>`; open = true; }
+            }
             html += `<button type="button" class="ss-row${i.v === sel.value ? ' on' : ''}" role="option" data-v="${ssEsc(i.v)}"><span>${ssEsc(i.t || '— بدون —')}</span>${i.v === sel.value ? '<i>✓</i>' : ''}</button>`;
         });
+        if (open) html += '</div>';
         list.innerHTML = html || '<div class="ss-none">ما لقيت شي بهذا الاسم</div>';
         cnt.textContent = toks.length ? rows.length + ' نتيجة' : '';
     };
