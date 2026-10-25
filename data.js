@@ -935,6 +935,7 @@ const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye
 const mkForm = (id, txt, cls, g, re) => ({ id, txt, cls, g, re: re || null });
 // الترتيب مهم للاكتشاف التلقائي (الأول المطابق يفوز): الأخص قبل الأعم. وما بلا نمط يُختار يدوياً فقط.
 const FORMS = [
+    mkForm('capsr', 'Extended-release Capsule', 'badge-oral', 'Oral Solid', /(\bretard\b|\bxr\b|\bsr\b|\bmr\b|\bxl\b|\bcr\b|extended[\s-]?release|prolonged|slow[\s-]?release|بطيئ)[^,]*(capsules?|\bcaps?\b|كبسول)|(capsules?|\bcaps?\b|كبسول)[^,]*(\bretard\b|\bxr\b|\bsr\b|\bmr\b|\bxl\b|extended[\s-]?release|prolonged|slow[\s-]?release|بطيئ)/),
     mkForm('ovule', 'Vaginal Ovule', 'badge-oint', 'Rectal & Vaginal', /\bovules?\b|\bovula\b|بيوض/),
     mkForm('vagsupp', 'Vaginal Suppository (Pessary)', 'badge-oint', 'Rectal & Vaginal', /pessar(y|ies)|vaginal\s*(suppositor\w*|capsules?|inserts?|pessar\w*)|vag\s*supp|تحميلة مهبلية/),
     mkForm('vagtab', 'Vaginal Tablet', 'badge-oint', 'Rectal & Vaginal', /vaginal\s*tab(let)?s?|vag\s*tabs?|حبة مهبلية/),
@@ -992,7 +993,6 @@ const FORMS = [
     mkForm('sr', 'Extended-release Tablet (SR/XR/MR)', 'badge-oral', 'Oral Solid', /\b(xr|sr|mr|xl|retard)\b|extended[\s-]?release|prolonged|slow release|بطيئ/),
     mkForm('softgel', 'Softgel Capsule', 'badge-oral', 'Oral Solid', /soft\s*gel|softgel|soft capsule|رخوة/),
     mkForm('capsule', 'Capsule', 'badge-oral', 'Oral Solid', /capsule|\bcaps?\b|كبسول/),
-    mkForm('capsr', 'Extended-release Capsule', 'badge-oral', 'Oral Solid'),
     mkForm('coated', 'Film-coated Tablet', 'badge-oral', 'Oral Solid', /film[\s-]?coated|\bfc\b|مغلف/),
     mkForm('oral', 'Tablet', 'badge-oral', 'Oral Solid', /tablet|capsule|\btab\b|\bcap\b|\bcaps\b|film coated|اقراص|أقراص|كبسول/),
     mkForm('powder', 'Powder', 'badge-syrup', 'Oral Solid'),
