@@ -128,7 +128,7 @@ const TAX_KW = [
     [/whiten\w*[^,]*strips?|strips?[^,]*whiten|teeth\s*strips?|tooth\s*strips?|شرائط تبييض|teeth\s*whiten|تبييض الاسنان|تبييض الأسنان/i, 'الفم والأسنان', 'تبييض الأسنان'],
     [/mouth\s*wash|mouthwash|mouth\s*rinse|غسول فم/i, 'الفم والأسنان', 'غسول الفم'],
     [/breath[^,]*(strips?|film|spray|mints?|freshener|drops)|(strips?|film|spray|mints?)[^,]*breath|oral\s*strips?|mouth\s*strips?|رائحة الفم|معطر فم/i, 'الفم والأسنان', 'معطرات الفم ورائحة الفم'],
-    [/lip\s*(balm|care|stick|gloss|salve|butter)|lipstick|مرطب شفاه|بلسم شفاه/i, 'العناية الشخصية والتجميل', 'العناية بالشفاه']
+    [/lip\s*(balm|care|stick|gloss|salve|butter|therap\w*|moistur\w*|mask|scrub|treatment)|lipstick|مرطب شفاه|بلسم شفاه/i, 'العناية الشخصية والتجميل', 'العناية بالشفاه']
 ];
 function taxKwHit(name) {
     for (const [re, d, s] of TAX_KW) if (re.test(name || '')) { const di = TAX_DEPTS.indexOf(d), si = di < 0 ? -1 : TAX_SEED[d].indexOf(s); if (si >= 0) return { d: di + 1, s: si + 1, guess: false }; }
