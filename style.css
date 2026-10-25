@@ -2764,3 +2764,19 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .bento-card .bento-title { flex: 0 0 auto; margin-bottom: 0; min-height: calc(1.35em * 2); }
 .bento-card .bento-price { margin-top: auto; padding-top: 8px; margin-bottom: 5px !important; }
 .bento-card .bento-sub { margin-top: 0; }
+
+/* v171: نموذج الصنف بأقسام مطوية + شريط حفظ ثابت */
+#fsSections { display: grid; gap: 10px; margin-top: 12px; }
+.fs-sec { border: 1px solid var(--border, #e5eaf2); border-radius: 16px; background: var(--surface-2, #f8fafc); overflow: hidden; }
+.fs-sec.fs-hide { display: none; }
+.fs-bar { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 52px; padding: 8px 14px; border: 0; background: transparent; cursor: pointer; font-family: inherit; color: inherit; text-align: right; }
+.fs-ico { font-size: 1.15rem; } .fs-t { font-weight: 800; font-size: .92rem; color: var(--navy, #0f1c38); white-space: nowrap; }
+.fs-sum { flex: 1; min-width: 0; margin-inline-start: 6px; font-size: .74rem; color: #64748b; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; direction: rtl; }
+.fs-dot { width: 9px; height: 9px; border-radius: 50%; background: #22c55e; flex: 0 0 9px; } .fs-dot.bad { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.2); }
+.fs-chev { color: #94a3b8; transition: transform .15s; } .fs-sec.open .fs-chev { transform: rotate(180deg); }
+.fs-body { display: none; padding: 4px 14px 14px; } .fs-sec.open .fs-body { display: block; }
+.fs-body > .form-group:last-child { margin-bottom: 0; }
+.fs-margin { display: none; margin-top: 8px; padding: 9px 12px; border-radius: 10px; background: #ecfdf5; color: #065f46; font-size: .84rem; font-weight: 700; } .fs-margin.bad { background: #fee2e2; color: #991b1b; }
+.fs-note { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-size: .82rem; line-height: 1.7; }
+#formModal .modal-actions-row { position: sticky; bottom: -22px; z-index: 6; margin: 14px -22px -22px; padding: 12px 22px calc(34px + env(safe-area-inset-bottom, 0px)); background: var(--surface, #fff); border-top: 1px solid var(--border, #e5eaf2); }
+[data-theme="dark"] .fs-sec { background: #1e293b; border-color: #334155; } [data-theme="dark"] .fs-t { color: #e2e8f0; } [data-theme="dark"] #formModal .modal-actions-row { background: #0f172a; }
