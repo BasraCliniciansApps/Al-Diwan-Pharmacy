@@ -2780,3 +2780,12 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .fs-note { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; font-size: .82rem; line-height: 1.7; }
 #formModal .modal-actions-row { position: sticky; bottom: -22px; z-index: 6; margin: 14px -22px -22px; padding: 12px 22px calc(34px + env(safe-area-inset-bottom, 0px)); background: var(--surface, #fff); border-top: 1px solid var(--border, #e5eaf2); }
 [data-theme="dark"] .fs-sec { background: #1e293b; border-color: #334155; } [data-theme="dark"] .fs-t { color: #e2e8f0; } [data-theme="dark"] #formModal .modal-actions-row { background: #0f172a; }
+
+/* v172: كشف التكرار، المسودة، تمييز الحقل الناقص */
+.fs-dup { margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: .82rem; display: grid; gap: 8px; }
+.fs-dup-r { display: flex; align-items: center; gap: 10px; justify-content: space-between; background: #fff; border-radius: 10px; padding: 8px 10px; }
+.fs-dup-r > span { display: grid; gap: 2px; min-width: 0; } .fs-dup-r b { direction: ltr; text-align: right; color: #0f1c38; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .fs-dup-r small { color: #64748b; }
+.fs-dup-r button, .fs-draft-act button { min-height: 38px; padding: 0 16px; border: 0; border-radius: 10px; background: #0f1c38; color: #fff; font: 800 .84rem inherit; cursor: pointer; flex: 0 0 auto; }
+.fs-draft-act { display: flex; gap: 8px; margin-top: 8px; } .fs-draft-act .g { background: #e2e8f0; color: #0f1c38; }
+.fs-err { border-color: #ef4444 !important; box-shadow: 0 0 0 3px rgba(239,68,68,.2) !important; animation: fsShake .3s; }
+@keyframes fsShake { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }

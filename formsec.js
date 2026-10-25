@@ -56,3 +56,77 @@ function fsApply(id) {
     const orig = window.openFormModal; if (typeof orig !== 'function') return;
     window.openFormModal = function (id) { const r = orig.apply(this, arguments); try { fsApply(id); } catch (e) { /* تجاهل */ } return r; };
 })();
+
+// ============================================================================
+// المرحلة 2: كشف التكرار، مسودة تلقائية للمادة الجديدة، تمييز الحقل الناقص قبل الحفظ
+// ============================================================================
+const FS_DRAFT_LS = 'diwanFormDraft';
+const FS_FIELDS = ['fDepartment', 'fCategory', 'fType', 'fForm', 'fFormOther', 'fName', 'fBrand', 'fMeta', 'fActive', 'fDetails', 'fKeywords', 'fImg', 'fPriceMode', 'fMarkup', 'fPrice', 'fCost', 'fQty', 'fMinQty', 'fSubCount', 'fSubType', 'fSubPrice', 'fLoose'];
+const fsNz = s => String(s || '').toLowerCase().replace(/[^a-z0-9؀-ۿ]/g, '');
+function fsLev(a, b) {
+    if (a === b) return 0; if (!a.length) return b.length; if (!b.length) return a.length; let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) { const cur = [i]; for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+    return prev[b.length];
+}
+function fsDupes() {
+    const id = parseInt((fsEl('editId') || {}).value) || 0, name = fsNz((fsEl('fName') || {}).value), out = [];
+    if (name.length >= 4) products.forEach(p => { if (p.id === id) return; const n = fsNz(p.name); if (!n) return; if (n === name || (Math.min(n.length, name.length) >= 6 && (n.includes(name) || name.includes(n))) || (name.length >= 6 && fsLev(n, name) <= 2)) out.push({ p, why: 'اسم مشابه' }); });
+    (typeof formBarcodes !== 'undefined' ? formBarcodes : []).forEach(b => { const p = findByBarcode(b); if (p && p.id !== id && !out.some(x => x.p.id === p.id)) out.unshift({ p, why: 'نفس الباركود' }); else if (p && p.id !== id) out.find(x => x.p.id === p.id).why = 'نفس الباركود'; });
+    return out.slice(0, 3);
+}
+let fsDupKey = '';
+function fsRenderDupes() {
+    const box = fsEl('fsDup'); if (!box) return; const d = fsDupes(), key = d.map(x => x.p.id + x.why).join(',');
+    if (key === fsDupKey) return; fsDupKey = key;
+    box.style.display = d.length ? 'block' : 'none';
+    box.innerHTML = d.length ? '<b>⚠ مادة مشابهة موجودة بالفعل</b>' + d.map(x => `<div class="fs-dup-r"><span><b dir="ltr">${escapeHtml(x.p.name)}</b><small>${x.why} · ${fmtNum(x.p.price || 0)} د.ع · بالمخزن ${escapeHtml(stockLabel(x.p))}</small></span><button type="button" onclick="fsOpenDup(${x.p.id})">افتحها</button></div>`).join('') + '<small>إذا هي نفس المادة افتحها وعدّل عليها بدل إضافة نسخة ثانية.</small>' : '';
+}
+function fsOpenDup(id) { fsClearDraft(); closeFormModal(); openFormModal(id); }
+// ---- مسودة ----
+function fsDraftGet() { try { const d = JSON.parse(localStorage.getItem(FS_DRAFT_LS)); return d && Date.now() - d.t < 864e5 ? d : null; } catch (e) { return null; } }
+function fsClearDraft() { try { localStorage.removeItem(FS_DRAFT_LS); } catch (e) { /* تجاهل */ } const b = fsEl('fsDraft'); if (b) b.style.display = 'none'; }
+function fsDraftSave() {
+    if ((fsEl('editId') || {}).value || fsQuick) return;
+    const d = { t: Date.now(), v: {}, bc: (typeof formBarcodes !== 'undefined' ? formBarcodes : []).slice(), ex: [...document.querySelectorAll('#expiryDatesWrap .expiry-input')].map(i => i.value).filter(Boolean) };
+    FS_FIELDS.forEach(f => { const e = fsEl(f); if (e) d.v[f] = e.value; });
+    if (!(d.v.fName || '').trim() && !d.bc.length) return;
+    try { localStorage.setItem(FS_DRAFT_LS, JSON.stringify(d)); } catch (e) { /* تجاهل */ }
+}
+function fsDraftRestore() {
+    const d = fsDraftGet(); if (!d) return; const set = (f, v) => { const e = fsEl(f); if (e && v !== undefined) { e.value = v; e.dispatchEvent(new Event('change', { bubbles: true })); } };
+    set('fDepartment', d.v.fDepartment); if (typeof onDeptChanged === 'function') onDeptChanged();
+    FS_FIELDS.forEach(f => { if (f !== 'fDepartment') set(f, d.v[f]); });
+    if (typeof onFormChange === 'function') try { onFormChange(); } catch (e) { /* تجاهل */ }
+    if (typeof formBarcodes !== 'undefined') { formBarcodes = (d.bc || []).slice(); if (typeof renderBarcodeChips === 'function') renderBarcodeChips(); }
+    const wrap = fsEl('expiryDatesWrap'); if (wrap) { wrap.innerHTML = ''; (d.ex && d.ex.length ? d.ex : ['']).forEach(x => addExpiryRow(x)); }
+    if (typeof onPriceModeChange === 'function') try { onPriceModeChange(); } catch (e) { /* تجاهل */ }
+    fsClearDraft(); fsRefresh(); fsRenderDupes();
+}
+function fsDraftBanner(isNew) {
+    let b = fsEl('fsDraft'); if (!b) { b = document.createElement('div'); b.id = 'fsDraft'; b.className = 'fs-note fs-draft'; fsEl('fsSections').insertAdjacentElement('beforebegin', b); }
+    const d = isNew && !fsQuick ? fsDraftGet() : null;
+    if (!d) { b.style.display = 'none'; return; }
+    b.style.display = 'block';
+    b.innerHTML = `📝 عندك مسودة غير محفوظة: <b dir="ltr">${escapeHtml(d.v.fName || 'بدون اسم')}</b><div class="fs-draft-act"><button type="button" onclick="fsDraftRestore()">استرجاع</button><button type="button" class="g" onclick="fsClearDraft()">تجاهل</button></div>`;
+}
+// ---- تمييز الحقل الناقص ----
+function fsMark(id, msg) {
+    const e = fsEl(id); if (!e) return; const sec = e.closest('.fs-sec'); if (sec) sec.classList.add('open');
+    e.classList.add('fs-err'); setTimeout(() => e.classList.remove('fs-err'), 2600);
+    try { e.scrollIntoView({ block: 'center', behavior: 'smooth' }); e.focus({ preventScroll: true }); } catch (x) { /* تجاهل */ }
+}
+(function () {
+    const base = window.fsApply = (function (o) { return function (id) { o(id); fsInsertDup(); fsDraftBanner(!id); fsDupKey = ''; fsRenderDupes(); }; })(fsApply);
+    const _r = fsRefresh;
+    window.fsRefresh = function () { _r(); try { fsRenderDupes(); fsDraftSave(); } catch (e) { /* تجاهل */ } };
+    // ملاحظة: مستمعو input/change المسجّلون يستدعون النسخة القديمة؛ لذلك نضيف مستمعاً للنسخة الجديدة
+    const card = document.querySelector('#formModal .modal-card'); if (card) { card.addEventListener('input', () => { try { fsRenderDupes(); clearTimeout(window.__fsDT); window.__fsDT = setTimeout(fsDraftSave, 800); } catch (e) { /* تجاهل */ } }); }
+    const sv = window.saveFormProduct;
+    if (typeof sv === 'function') window.saveFormProduct = async function () {
+        if (!(((fsEl('fName') || {}).value || '').trim())) { fsMark('fName'); }
+        const r = await sv.apply(this, arguments);
+        const m = fsEl('formModal'); if (m && (m.style.display === 'none' || !m.style.display)) fsClearDraft();
+        return r;
+    };
+})();
+function fsInsertDup() { if (fsEl('fsDup')) return; const d = document.createElement('div'); d.id = 'fsDup'; d.className = 'fs-dup'; d.style.display = 'none'; const body = document.querySelector('#fs-basic .fs-body'); if (body) body.insertAdjacentElement('afterbegin', d); }
