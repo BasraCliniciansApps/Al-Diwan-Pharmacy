@@ -931,7 +931,7 @@ function isCustomItem(item) {
 }
 
 // الأشكال الدوائية: id / الاسم المعروض / لون الشارة / كلمات التعرّف التلقائي (بالترتيب: الأدق أولاً)
-const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye / Ear / Nose', 'Inhalation', 'Rectal & Vaginal', 'Oral Care', 'Dressings & Supplies', 'Antiseptics & Sanitizers', 'Other'];
+const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye / Ear / Nose', 'Inhalation', 'Rectal & Vaginal', 'Oral Care', 'Dressings & Supplies', 'Antiseptics & Sanitizers', 'Pads & Diapers', 'Other'];
 const mkForm = (id, txt, cls, g, re) => ({ id, txt, cls, g, re: re || null });
 // الترتيب مهم للاكتشاف التلقائي (الأول المطابق يفوز): الأخص قبل الأعم. وما بلا نمط يُختار يدوياً فقط.
 const FORMS = [
@@ -944,6 +944,13 @@ const FORMS = [
     mkForm('vagcream', 'Vaginal Cream', 'badge-cream', 'Rectal & Vaginal', /vaginal\s*(cream|gel)|كريم مهبلي/),
     mkForm('douche', 'Vaginal Wash', 'badge-wash', 'Rectal & Vaginal', /vaginal\s*(douche|wash)|intimate\s*(wash|cleanser)|غسول مهبلي|douche/),
     mkForm('razor', 'Razor / Shaving', 'badge-other', 'Other', /^(?!.*(surgical|scalpel|cream|foam|gel|lotion|after|مشرط)).*(razors?\b|shavers?\b|gillette|\bblades?\b|shaving|شفرة حلاقة|ماكينة حلاقة|مكينة حلاقة)/),
+    mkForm('maternitypad', 'Maternity Pad', 'badge-other', 'Pads & Diapers', /maternity\s*(pads?|napkins?)|postpartum\s*pads?|فوطة?\s*(نفاس|ولادة)/i),
+    mkForm('breastpad', 'Breast Pad', 'badge-other', 'Pads & Diapers', /breast\s*pads?|nursing\s*pads?|nipple\s*(pads?|covers?)|lactation\s*pads?/i),
+    mkForm('underpad', 'Underpad / Bed Pad', 'badge-other', 'Pads & Diapers', /under-?\s*pads?|bed\s*pads?|bed\s*protector/i),
+    mkForm('adultpants', 'Adult Pull-up Pants', 'badge-other', 'Pads & Diapers', /adult[^,]*(pull-?\s*ups?|pants|underwear|briefs?\s*pants)|pull-?\s*ups?[^,]*adult|كيلوت[^,]*(بالغين|مسنين)/i),
+    mkForm('adultdiaper', 'Adult Diaper / Pad', 'badge-other', 'Pads & Diapers', /adult[^,]*(diapers?|pads?|briefs?)|incontinence|(حفاض|حفاظ)[^,]*(بالغين|مسنين|كبار)/i),
+    mkForm('sanpad', 'Sanitary Pad / Liner', 'badge-other', 'Pads & Diapers', /sanitary\s*(pads?|napkins?|towels?)|panty\s*liners?|period\s*pads?|فوط\s*(صحية|نسائية)/i),
+    mkForm('babydiaper', 'Baby Diaper', 'badge-other', 'Pads & Diapers', /diapers?|pampers|huggies|molfix|nappy|nappies|حفاض|حفاظ/i),
     mkForm('alcoholswab', 'Alcohol Swabs', 'badge-wash', 'Antiseptics & Sanitizers', /alcohol\s*(swabs?|pads?|prep)|isopropyl[^,]*(swabs?|pads?)|swabs?[^,]*alcohol/),
     mkForm('antisepticwipes', 'Antiseptic Wipes', 'badge-wash', 'Antiseptics & Sanitizers', /(disinfect|antiseptic|sanit)\w*[^,]*wipes?|wipes?[^,]*(disinfect|antiseptic|alcohol)/),
     mkForm('handsan', 'Hand Sanitizer', 'badge-wash', 'Antiseptics & Sanitizers', /hand\s*(sanitizer|sanitiser|rub)|sanitizer|sanitiser|معقم (ايدي|أيدي)/),
