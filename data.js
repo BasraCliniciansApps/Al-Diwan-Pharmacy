@@ -978,6 +978,7 @@ const FORMS = [
     mkForm('lipbalm', 'Lip Balm / Stick', 'badge-oint', 'Topical', /lip\s*(balm|care|stick|gloss|salve|butter|therap\w*|moistur\w*|mask|scrub|treatment)|lipstick|lip\s*protector|مرطب شفاه|بلسم شفاه|احمر شفاه|أحمر شفاه/),
     mkForm('serum', 'Serum', 'badge-gel', 'Topical', /\bserum\b|سيروم/),
     mkForm('toothpaste', 'Toothpaste', 'badge-oint', 'Oral Care', /tooth\s*paste|toothpaste|dentifrice|معجون اسنان|معجون أسنان/),
+    mkForm('tonguecl', 'Tongue Scraper / Brush', 'badge-other', 'Oral Care', /tongue\s*(scraper|cleaner|brush)|منظف\s*(ال)?لسان|مكشطة\s*(ال)?لسان/i),
     mkForm('toothbrush', 'Toothbrush', 'badge-other', 'Oral Care', /tooth\s*brush|toothbrush|interdental|فرشاة اسنان|فرشاة أسنان|فرشاة/),
     mkForm('toothpick', 'Toothpick', 'badge-other', 'Oral Care', /tooth\s*picks?|dental\s*picks?|خلة اسنان|خلة أسنان|عيدان اسنان|عيدان أسنان/i),
     mkForm('floss', 'Dental Floss', 'badge-other', 'Oral Care', /floss|خيط اسنان|خيط أسنان/),
