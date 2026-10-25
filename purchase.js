@@ -353,6 +353,7 @@ async function puSave() {
         // السعر والكلفة يُحفظان دائماً (وضع التأسيس يحمي الكمية فقط)
         if (cost > 0) p.costPrice = cost;
         { const pm = puPM(it); if (pm === 'percent') { const mk = puNum(puMk(it)); p.pricing = 'percent'; p.markupPct = mk; if (cost > 0) p.price = markupCalc(cost, mk); } else if (pm === 'syndicate') { p.markupPct = null; p.pricing = 'syndicate'; if (cost > 0) p.price = syndPrice(cost); } else { p.markupPct = null; p.pricing = 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
+        line.salePrice = Number(p.price) || 0;   // سعر البيع وقت الوارد (للرجوع إليه)
         if (!applied) {   // مادة غير مجرودة / «لا تحدّث المخزن»: الكمية ما تتغير لكن قيمة البونص تنحسب
             line.bonusSale = bn * (Number(p.price) || 0);
             lines.push(line); return;
