@@ -21,7 +21,7 @@ const TAX_SEED = {
     'الفيتامينات والمعادن والمكملات': ['فيتامينات متعددة', 'فيتامين د وكالسيوم', 'حديد ومعادن', 'أوميغا 3 وزيوت', 'مكملات رياضية', 'مكملات الشعر والبشرة', 'فيتامين ب والأعصاب', 'فيتامين C والمناعة', 'فيتامين E ومضادات الأكسدة', 'زنك وسيلينيوم ومعادن نادرة', 'مغنيسيوم', 'ميلاتونين والنوم والاسترخاء', 'التوتر والمزاج', 'الذاكرة والتركيز والدماغ', 'خصوبة الرجال', 'خصوبة النساء', 'الحمل والرضاعة', 'صحة الرجل والبروستات', 'صحة المرأة وسن اليأس', 'المفاصل والغضاريف', 'صحة العيون', 'القلب والدورة الدموية', 'السكر والتمثيل الغذائي', 'الوزن والحرق', 'الكبد والتنظيف', 'الهضم والألياف', 'الطاقة ومكافحة التعب', 'المسالك البولية', 'الغدة الدرقية', 'كولاجين وببتيدات', 'أحماض أمينية وكرياتين', 'كبار السن (50+)'],
     'الأم والطفل': ['حليب أطفال', 'حفاضات', 'مكملات الأطفال', 'شرابات الأطفال', 'مستلزمات الرضاعة', 'العناية ببشرة الطفل', 'مراهم الحفاض', 'مستلزمات الاستحمام للأطفال', 'علاج المغص والتسنين', 'قطرات فيتامين للأطفال', 'مستلزمات الحمل', 'مستلزمات النفاس', 'مناديل مبللة', 'حليب أطفال خاص (علاجي)', 'مضخات الحليب', 'ألعاب وسكاكر الأطفال'],
     'الفم والأسنان': ['معاجين وفُرش', 'غسول الفم', 'جل فموي', 'أدوية اللثة والفم', 'خيط أسنان وفرش بين الأسنان', 'تبييض الأسنان', 'مثبتات أطقم الأسنان', 'علاج حساسية الأسنان', 'قطرات ومسكنات الأسنان', 'علاج قروح الفم', 'منتجات تقويم الأسنان', 'معاجين الأطفال', 'معطرات الفم ورائحة الفم'],
-    'العناية الشخصية والتجميل': ['العناية بالبشرة', 'العناية بالشعر', 'العطور ومزيلات العرق', 'العناية بالجسم', 'المكياج', 'العناية بالأظافر', 'صابون ومنظفات', 'الحلاقة والعناية بالرجل', 'العناية النسائية الحميمة', 'العناية بالشفاه', 'العناية بالقدم واليد', 'العناية بالعين والهالات', 'صبغات الشعر', 'أدوات التجميل', 'التسمير والعناية بعد الشمس', 'العناية بالرجال'],
+    'العناية الشخصية والتجميل': ['العناية بالبشرة', 'العناية بالشعر', 'العطور ومزيلات العرق', 'العناية بالجسم', 'المكياج', 'العناية بالأظافر', 'صابون ومنظفات', 'الحلاقة وإزالة الشعر', 'العناية النسائية الحميمة', 'العناية بالشفاه', 'العناية بالقدم واليد', 'العناية بالعين والهالات', 'صبغات الشعر', 'أدوات التجميل', 'التسمير والعناية بعد الشمس', 'العناية بالرجال'],
     'الأعشاب والمنتجات الطبيعية': ['أعشاب وشاي طبي', 'زيوت طبيعية', 'عسل ومنتجات النحل', 'مشروبات وشاي أعشاب', 'مستخلصات نباتية', 'بذور وحبوب طبية', 'علاجات طبيعية للنوم والتوتر', 'مغلي الجهاز الهضمي', 'ماء الورد والزهور', 'صموغ وراتنجات', 'بخور ومعطرات', 'تحلية طبيعية'],
     'الأجهزة والمستلزمات الطبية': ['قياس السكر والضغط', 'موازين الحرارة', 'كمامات وقفازات', 'دعامات وضمادات', 'أجهزة التنفس والبخاخ', 'أجهزة قياس الضغط', 'أجهزة السكر وشرائطها', 'موازين', 'عكازات وكراسي', 'دعامات الظهر والركبة', 'جوارب طبية', 'أجهزة العلاج الطبيعي', 'اختبارات سريعة', 'مستلزمات الإنسولين', 'وسائد وفرش طبية', 'مقاييس وسماعات'],
     'المحاليل والمستهلكات والإسعافات': ['محاليل وريدية', 'محاقن وإبر', 'إسعافات أولية', 'قطن وشاش', 'مطهرات ومعقمات', 'ضمادات وبلاستر', 'خيوط جراحية', 'قساطر وأكياس البول', 'مستلزمات الجراحة', 'أكياس فغر', 'قفازات الفحص', 'كحول وبيتادين'],
@@ -30,20 +30,32 @@ const TAX_SEED = {
 };
 const TAX_BASE = 22;   // الأقسام الجاهزة الأصلية؛ ما بعدها أقسام أُضيفت لاحقاً (تنضاف بزر «إضافة التصنيفات الجديدة»)
 function taxSeeded() { return Object.keys(TAX_SEED).slice(0, TAX_BASE).every(d => departments.includes(d)); }
+const TAX_OLD_NAMES = { 'الحلاقة وإزالة الشعر': 'الحلاقة والعناية بالرجل' };   // الاسم الجديد ← الاسم القديم الذي قد يكون محمّلاً سابقاً
+function taxPendingRenames() { return Object.keys(TAX_OLD_NAMES).filter(n => subCategories.includes(TAX_OLD_NAMES[n]) && !subCategories.includes(n)); }
+function taxApplyRenames() {   // يعيد تسمية تصنيف محمَّل سابقاً (في القوائم والمواد) ويرجع المواد المتأثرة
+    const touched = new Set();
+    taxPendingRenames().forEach(n => {
+        const o = TAX_OLD_NAMES[n], i = subCategories.indexOf(o); subCategories[i] = n;
+        Object.keys(deptSubs).forEach(d => { deptSubs[d] = (deptSubs[d] || []).map(x => x === o ? n : x); });
+        taxLegacy.c = (taxLegacy.c || []).map(x => x === o ? n : x);
+        products.forEach(p => { let hit = false; if (p.category === o) { p.category = n; hit = true; } if (extrasOf(p.extraCategories).includes(o)) { p.extraCategories = p.extraCategories.map(x => x === o ? n : x); hit = true; } if (hit) touched.add(p); });
+    });
+    return [...touched];
+}
 function taxMissingSubs() { const out = []; Object.keys(TAX_SEED).forEach((d, i) => { if (!departments.includes(d) && i < TAX_BASE) return; const have = departments.includes(d) ? (deptSubs[d] || []) : []; TAX_SEED[d].forEach(s => { if (!have.includes(s) && !(taxLegacy.c || []).includes(s)) out.push([d, s]); }); }); return out; }
 async function taxAddNew() {
     if (!writesAllowed()) return;
-    const miss = taxMissingSubs(); if (!miss.length) return;
+    const renamed = taxApplyRenames(), miss = taxMissingSubs(); if (!miss.length && !renamed.length) return;
     const h = Prog.start('إضافة الأقسام والتصنيفات الجديدة', { text: 'حفظ ' + fmtNum(miss.length) + ' تصنيف...' });
     miss.forEach(([d, s]) => { if (!departments.includes(d)) departments.push(d); deptSubs[d] = (deptSubs[d] || []).concat(s); if (!subCategories.includes(s)) subCategories.push(s); });
-    try { await pushToCloud(true); } catch (e) { h.fail('تعذر الحفظ', e && e.message); return; }
+    try { await pushToCloud(true); if (renamed.length) await saveProductsDelta(renamed.map(p => ({ p, dq: 0, dl: 0 }))); } catch (e) { h.fail('تعذر الحفظ', e && e.message); return; }
     renderManagerLists(); try { renderAll(); } catch (e) { /* تجاهل */ }
-    h.ok('أُضيف ' + fmtNum(miss.length) + ' تصنيف جديد');
+    h.ok('أُضيف ' + fmtNum(miss.length) + ' تصنيف جديد' + (renamed.length ? ' وحُدّث اسم تصنيف لـ ' + fmtNum(renamed.length) + ' مادة' : ''));
 }
 function renderTaxSeedBox() {
     const box = document.getElementById('taxSeedBox'); if (!box) return;
     const subs = Object.values(TAX_SEED).reduce((n, a) => n + a.length, 0);
-    const nm = taxSeeded() ? taxMissingSubs().length : 0;
+    const nm = taxSeeded() ? taxMissingSubs().length + taxPendingRenames().length : 0;
     box.innerHTML = taxSeeded()
         ? (nm ? `<h4>🆕 ${fmtNum(nm)} تصنيف جديد متوفر</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تصنيفات إضافية (مثل الخصوبة والميلاتونين والمفاصل...). تنضاف للأقسام بدون ما تلمس موادك أو تعديلاتك.</small><button type="button" class="icon-btn primary-btn" onclick="taxAddNew()">➕ إضافة التصنيفات الجديدة</button><hr style="margin:12px 0;border:none;border-top:1px solid #e2e8f0">` : '') + `<h4>✅ الأقسام الجاهزة محمَّلة</h4><small style="display:block;color:var(--text-sub);line-height:1.8">القديم معلَّم «قديم» ويختفي لوحده لما ما تبقى مادة عليه. تقدر تعدّل أو تضيف أو تحذف أي قسم أو تصنيف. وحذف القديم النهائي يكون من 🗑️ بعد نقل مواده.</small>`
         : `<h4>📥 الأقسام الجاهزة (${Object.keys(TAX_SEED).length} قسم، ${subs} تصنيف)</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تضيف أقسام علاجية جاهزة وتصنيفاتها. <b>لا تغيّر أي مادة</b>، والأقسام القديمة تبقى وتُعلَّم «قديم». تقدر تعدّل الكل بعدها.</small><button type="button" class="icon-btn primary-btn" onclick="taxSeed()">📥 تحميل الأقسام الجاهزة</button>`;
@@ -89,7 +101,7 @@ const TAX_KW = [
     [/gauze|swabs?\b|شاش/i, 'الضمادات والمستلزمات الجراحية', 'شاش معقم'],
     [/elastic\s*bandage|crepe|bandage|ضماد ضاغط|رباط/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات ضاغطة ومرنة'],
     [/scalpel|surgical\s*blade|forceps|surgical\s*scissors|مشرط/i, 'الضمادات والمستلزمات الجراحية', 'أدوات الجراحة والمشارط'],
-    [/^(?!.*(surgical|scalpel|cream|foam|gel|lotion|after|مشرط)).*(razors?\b|shavers?\b|gillette|\bblades?\b|shaving|شفرة حلاقة|ماكينة حلاقة|مكينة حلاقة)/i, 'العناية الشخصية والتجميل', 'الحلاقة والعناية بالرجل'],
+    [/^(?!.*(surgical|scalpel|cream|foam|gel|lotion|after|مشرط)).*(razors?\b|shavers?\b|gillette|\bblades?\b|shaving|شفرة حلاقة|ماكينة حلاقة|مكينة حلاقة)/i, 'العناية الشخصية والتجميل', 'الحلاقة وإزالة الشعر'],
     [/(surgical|sterile|examination)\s*gloves?|قفازات جراحية/i, 'الضمادات والمستلزمات الجراحية', 'قفازات جراحية معقمة'],
     [/surgical\s*(mask|drape|gown|cap)|face\s*mask/i, 'الضمادات والمستلزمات الجراحية', 'كمامات وأغطية جراحية'],
     [/dressing|wound\s*care|ضماد/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات الجروح العامة'],
