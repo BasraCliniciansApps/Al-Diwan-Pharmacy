@@ -2695,3 +2695,7 @@ body.ss-lock { overflow: hidden; }
 .bn-r3 { font-size: .74rem; color: #64748b; }
 .bn-del { padding: 4px 10px; }
 [data-theme="dark"] .bn-card { background: var(--surface, #1e293b); border-color: #334155; } [data-theme="dark"] .bn-n, [data-theme="dark"] .bn-v { color: #e2e8f0; }
+
+/* v164: منع خروج السعر عن البطاقة */
+.bn-card { grid-template-columns: minmax(0, 1fr); }
+.bn-r1 { min-width: 0; }
