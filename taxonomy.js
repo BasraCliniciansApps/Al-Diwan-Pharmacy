@@ -70,10 +70,11 @@ const TAX_LEGACY_HINT = { 'واقيات الشمس': [19, 1], 'العناية ب
 let taxRv = {}, taxRvFilter = 'new', taxRvQ = '', taxRvShown = 60, taxRvFirst = null;
 try { taxRv = JSON.parse(localStorage.getItem('diwanTaxRv')) || {}; } catch (e) { taxRv = {}; }
 function taxRvSave() { try { localStorage.setItem('diwanTaxRv', JSON.stringify(taxRv)); } catch (e) { /* تجاهل */ } }
+function taxKeys(n) { const k = taxKey(n), b = k.replace(/\s+(cream|ointment|tablets?|capsules?|syrup|gel|solution|drops|shampoo|lotion|spray|ampoule|vial|suspension)$/, ''); return b !== k ? [k, b] : [k]; }
 function taxKey(n) { return String(n || '').toLowerCase().split(/\s\d|\s*\(|\s[x×]\s*\d/)[0].trim(); }
 let taxFirstIdx = null;
 function taxSuggest(p) {   // يرجع {d, s, guess} أو null
-    const k = taxKey(p.name), hit = TAX_MAP[k];
+    const k = taxKey(p.name), hit = taxKeys(p.name).map(x => TAX_MAP[x]).find(Boolean);
     if (hit) return { d: hit[0], s: hit[1], guess: false };
     const h = TAX_LEGACY_HINT[p.category]; if (h) return { d: h[0], s: h[1], guess: true };
     if (!taxFirstIdx) { taxFirstIdx = {}; Object.keys(TAX_MAP).forEach(key => { const w = key.split(/[\s-]/)[0]; if (w.length >= 4) (taxFirstIdx[w] = taxFirstIdx[w] || []).push(TAX_MAP[key]); }); }
@@ -87,11 +88,16 @@ function taxFormOf(p) {   // الشكل المقترح: المحدّد يدوي�
     return f ? f.id : '';
 }
 function taxRvList() { return products.filter(p => taxLegacy.d.includes(p.department)); }
+function taxExtraOf(p) {   // تصنيفات إضافية مقترحة للمركّبات: [[القسم، التصنيف], ...]
+    const k = taxKeys(p.name).map(x => TAX_EXTRA[x]).find(Boolean); if (!k) return [];
+    return k.map(c => [TAX_DEPTS[c[0] - 1], (TAX_SEED[TAX_DEPTS[c[0] - 1]] || [])[c[1] - 1]]).filter(c => c[0] && c[1]);
+}
 function taxRvEntry(p) {   // الاقتراح الحالي لمادة (أو ما عدّلته أنت)
-    const r = taxRv[p.id]; if (r && (r.st === 'ok' || r.st === 'edit' || r.st === 'no')) return r;
-    if (r && r.st === 'sug') return { d: r.d, s: r.s, f: r.f, st: '', guess: false, auto: true };   // اقتراح تغيّر تلقائياً بسبب جرعة أخرى
+    const r = taxRv[p.id];
+    if (r && (r.st === 'ok' || r.st === 'edit' || r.st === 'no')) return Object.assign({ x: taxExtraOf(p) }, r);
+    if (r && r.st === 'sug') return { d: r.d, s: r.s, f: r.f, x: r.x || [], st: '', guess: false, auto: true };   // اقتراح تغيّر تلقائياً بسبب جرعة أخرى
     const sg = taxSuggest(p);
-    return { d: sg ? TAX_DEPTS[sg.d - 1] : '', s: sg ? TAX_SEED[TAX_DEPTS[sg.d - 1]][sg.s - 1] : '', f: taxFormOf(p), st: '', guess: !!(sg && sg.guess) };
+    return { d: sg ? TAX_DEPTS[sg.d - 1] : '', s: sg ? TAX_SEED[TAX_DEPTS[sg.d - 1]][sg.s - 1] : '', f: taxFormOf(p), x: taxExtraOf(p), st: '', guess: !!(sg && sg.guess) };
 }
 function taxRvOpen() {
     if (!taxSeeded()) { Swal.fire({ icon: 'info', title: 'حمّل الأقسام الجاهزة أولاً', text: 'من «إدارة الأقسام» اضغط «تحميل الأقسام الجاهزة».', confirmButtonColor: '#0f1c38' }); return; }
@@ -127,7 +133,7 @@ function taxRvRender(keepSearch) {
         const fobj = e.f ? FORMS.find(x => x.id === e.f) : null, st = e.st;
         return `<div class="tr-row ${st === 'ok' || st === 'edit' ? 'ok' : st === 'no' ? 'no' : ''}" id="trr-${p.id}">
             <div class="tr-main"><b dir="ltr">${escapeHtml(p.name)}</b>
-            <div class="tr-sug">${e.d ? `<span class="tr-d">${escapeHtml(e.d)}</span> › <span class="tr-s">${escapeHtml(e.s)}</span>` : '<span class="tr-none">بدون اقتراح — اضغط ✕ وحدّد</span>'}${fobj ? ` · <span class="tr-f">${escapeHtml(fobj.txt)}</span>` : ''}${e.guess && !st ? ' <em class="tg warn">تقدير</em>' : ''}${st === 'edit' ? ' <em class="tg">عدّلته</em>' : ''}${e.auto ? ' <em class="tg">تغيّر تلقائياً</em>' : ''}</div></div>
+            <div class="tr-sug">${e.d ? `<span class="tr-d">${escapeHtml(e.d)}</span> › <span class="tr-s">${escapeHtml(e.s)}</span>` : '<span class="tr-none">بدون اقتراح — اضغط ✕ وحدّد</span>'}${fobj ? ` · <span class="tr-f">${escapeHtml(fobj.txt)}</span>` : ''}${(e.x || []).length ? `<div class="tr-x">＋ إضافي: ${e.x.map(c => escapeHtml(c[1])).join(' · ')}</div>` : ''}${e.guess && !st ? ' <em class="tg warn">تقدير</em>' : ''}${st === 'edit' ? ' <em class="tg">عدّلته</em>' : ''}${e.auto ? ' <em class="tg">تغيّر تلقائياً</em>' : ''}</div></div>
             <div class="tr-btns"><button type="button" class="tr-yes" onclick="taxRvYes(${p.id})" aria-label="صح"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></button><button type="button" class="tr-no" onclick="taxRvNo(${p.id})" aria-label="خطأ"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>`;
     }).join('') || '<div class="bill-none">ما فيه مواد بهذا الفلتر.</div>';
     const head = `<div class="tr-head"><b>🧭 مراجعة التصنيف</b><button type="button" class="tr-x" onclick="taxRvClose()" aria-label="إغلاق">✕</button></div>
@@ -147,34 +153,43 @@ function taxRvRender(keepSearch) {
 function taxRvYes(id) {
     const p = products.find(x => x.id === id); if (!p) return; const e = taxRvEntry(p);
     if (!e.d) { taxRvNo(id); return; }
-    taxRv[id] = { d: e.d, s: e.s, f: e.f, st: e.st === 'edit' ? 'edit' : 'ok' }; taxRvSave(); taxRvRender(true);
+    taxRv[id] = { d: e.d, s: e.s, f: e.f, x: e.x || [], st: e.st === 'edit' ? 'edit' : 'ok' }; taxRvSave(); taxRvRender(true);
 }
 async function taxRvNo(id) {
     const p = products.find(x => x.id === id); if (!p) return; const e = taxRvEntry(p);
     const dOpts = TAX_DEPTS.map(d => `<option value="${escapeHtml(d)}" ${d === e.d ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
     const fOpts = '<option value="">تلقائي</option>' + FORM_GROUPS.map(g => `<optgroup label="${g}">${FORMS.filter(f => f.g === g).map(f => `<option value="${f.id}" ${f.id === e.f ? 'selected' : ''}>${escapeHtml(f.txt)}</option>`).join('')}</optgroup>`).join('') + FORMS.filter(f => !f.g).map(f => `<option value="${f.id}" ${f.id === e.f ? 'selected' : ''}>${escapeHtml(f.txt)}</option>`).join('');
     const fillSubs = () => { const d = document.getElementById('trD').value; document.getElementById('trS').innerHTML = (TAX_SEED[d] || []).map(s => `<option value="${escapeHtml(s)}" ${s === e.s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join(''); };
+    const xsel = (e.x || []).map(c => c.slice());
     const r = await Swal.fire({ title: escapeHtml(p.name), showCancelButton: true, showDenyButton: true, confirmButtonText: 'حفظ التصحيح', denyButtonText: 'تخطّي', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38', width: 'min(94vw, 460px)',
-        html: `<div class="sw-form" style="text-align:right"><label>القسم<select id="trD" onchange="">${dOpts}${e.d ? '' : '<option value="" selected>— اختر —</option>'}</select></label><label>التصنيف<select id="trS"></select></label><label>الشكل الدوائي<select id="trF">${fOpts}</select></label></div>`,
-        didOpen: () => { const d = document.getElementById('trD'); d.addEventListener('change', () => { e.s = ''; fillSubs(); }); fillSubs(); },
-        preConfirm: () => ({ d: document.getElementById('trD').value, s: document.getElementById('trS').value, f: document.getElementById('trF').value }) });
-    if (r.isDenied) { taxRv[id] = { d: e.d, s: e.s, f: e.f, st: 'no' }; taxRvSave(); taxRvRender(true); return; }
+        html: `<div class="sw-form" style="text-align:right"><label>القسم<select id="trD" onchange="">${dOpts}${e.d ? '' : '<option value="" selected>— اختر —</option>'}</select></label><label>التصنيف<select id="trS"></select></label><label>الشكل الدوائي<select id="trF">${fOpts}</select></label>
+            <div class="tr-xbox"><b>تصنيفات إضافية (للمركّبات)</b><div id="trXL"></div><div class="tr-xadd"><select id="trXD">${dOpts.replace(' selected', '')}</select><select id="trXS"></select><button type="button" id="trXB">＋</button></div></div></div>`,
+        didOpen: () => {
+            const d = document.getElementById('trD'); d.addEventListener('change', () => { e.s = ''; fillSubs(); }); fillSubs();
+            const xd = document.getElementById('trXD'), xs = document.getElementById('trXS'), xl = document.getElementById('trXL');
+            const fillX = () => { xs.innerHTML = (TAX_SEED[xd.value] || []).map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join(''); };
+            const showX = () => { xl.innerHTML = xsel.map((c, i) => `<span class="tr-chip">${escapeHtml(c[0])} › ${escapeHtml(c[1])} <button type="button" data-i="${i}" aria-label="حذف">✕</button></span>`).join('') || '<small>لا يوجد</small>'; xl.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { xsel.splice(+b.dataset.i, 1); showX(); })); };
+            xd.addEventListener('change', fillX); fillX(); showX();
+            document.getElementById('trXB').addEventListener('click', () => { const c = [xd.value, xs.value]; if (c[1] && !xsel.some(z => z[0] === c[0] && z[1] === c[1])) { xsel.push(c); showX(); } });
+        },
+        preConfirm: () => ({ d: document.getElementById('trD').value, s: document.getElementById('trS').value, f: document.getElementById('trF').value, x: xsel.slice() }) });
+    if (r.isDenied) { taxRv[id] = { d: e.d, s: e.s, f: e.f, x: e.x || [], st: 'no' }; taxRvSave(); taxRvRender(true); return; }
     if (!r.isConfirmed || !r.value || !r.value.d) return;
-    taxRv[id] = { d: r.value.d, s: r.value.s, f: r.value.f, st: 'edit' };
+    taxRv[id] = { d: r.value.d, s: r.value.s, f: r.value.f, x: r.value.x, st: 'edit' };
     // نفس المادة بجرعات/أحجام أخرى (نفس الاسم قبل الرقم): نغيّر اقتراحها تلقائياً، وإنت بس تضغط ✓
     const key = taxKey(p.name), oldF = e.f; let n = 0;
     if (key.length >= 3) products.forEach(q => {
         if (q.id === id || taxKey(q.name) !== key) return;
         const qe = taxRvEntry(q); if (qe.st) return;   // ما نلمس اللي راجعته
         const nf = (r.value.f !== oldF && qe.f === oldF) ? r.value.f : qe.f;
-        taxRv[q.id] = { d: r.value.d, s: r.value.s, f: nf, st: 'sug' }; n++;
+        taxRv[q.id] = { d: r.value.d, s: r.value.s, f: nf, x: r.value.x, st: 'sug' }; n++;
     });
     taxRvSave(); taxRvRender(true);
     if (n) Swal.fire({ icon: 'success', title: 'غُيّر اقتراح ' + n + ' جرعة/حجم مماثل تلقائياً', text: 'تلقاهم بـ«غير مراجع»، بس اضغط ✓', toast: true, position: 'bottom', showConfirmButton: false, timer: 2600 });
 }
 function taxRvAcceptShown() {
     const rows = taxRvRows().slice(0, taxRvShown); let n = 0;
-    rows.forEach(({ p, e }) => { if (e.d && !e.st) { taxRv[p.id] = { d: e.d, s: e.s, f: e.f, st: 'ok' }; n++; } });
+    rows.forEach(({ p, e }) => { if (e.d && !e.st) { taxRv[p.id] = { d: e.d, s: e.s, f: e.f, x: e.x || [], st: 'ok' }; n++; } });
     taxRvSave(); taxRvRender(true);
     Swal.fire({ icon: 'success', title: 'اعتُمد ' + n + ' مادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 });
 }
@@ -186,10 +201,11 @@ async function taxRvApply() {
         html: '<div style="text-align:right;font-size:.88rem;line-height:1.9">• يتغير <b>القسم والتصنيف والشكل</b> فقط. الأسعار والكميات ما تنلمس.<br>• يفضّل تاخذ نسخة احتياطية قبل.<br>• اللي ما عتمدته يبقى كما هو.</div>' });
     if (!r.isConfirmed) return;
     let addedSub = false;   // التصنيفات المختارة تنضاف لقوائم الأقسام إن لم تكن موجودة
+    list.forEach(p => { const e = taxRv[p.id]; (e.x || []).forEach(c => { if (c[1] && !(deptSubs[c[0]] || []).includes(c[1])) { deptSubs[c[0]] = (deptSubs[c[0]] || []).concat(c[1]); if (!subCategories.includes(c[1])) subCategories.push(c[1]); addedSub = true; } }); });
     list.forEach(p => { const e = taxRv[p.id]; if (e.s && !(deptSubs[e.d] || []).includes(e.s)) { deptSubs[e.d] = (deptSubs[e.d] || []).concat(e.s); if (!subCategories.includes(e.s)) subCategories.push(e.s); addedSub = true; } });
     if (addedSub) { try { await pushToCloud(true); } catch (e) { /* تجاهل */ } }
     const olds = new Map();
-    list.forEach(p => { const e = taxRv[p.id]; olds.set(p.id, { department: p.department, category: p.category, form: p.form, formOther: p.formOther }); p.department = e.d; if (e.s) p.category = e.s; if (e.f) { p.form = e.f; } });
+    list.forEach(p => { const e = taxRv[p.id]; olds.set(p.id, { department: p.department, category: p.category, form: p.form, formOther: p.formOther, extraDepartments: p.extraDepartments, extraCategories: p.extraCategories }); p.department = e.d; if (e.s) p.category = e.s; { const xx = e.x || []; const ds = [...new Set(extrasOf(p.extraDepartments).concat(xx.map(c => c[0])))].filter(d => d !== p.department), cs = [...new Set(extrasOf(p.extraCategories).concat(xx.map(c => c[1])))].filter(c => c !== p.category); p.extraDepartments = ds; p.extraCategories = cs; } if (e.f) { p.form = e.f; } });
     const h = Prog.start('تطبيق التصنيف', { text: 'حفظ ' + fmtNum(list.length) + ' مادة...' });
     const ok = await saveProductsDelta(list.map(p => ({ p, dq: 0, dl: 0 })));
     if (!ok) { list.forEach(p => Object.assign(p, olds.get(p.id))); renderAll(); h.fail('لم يُطبَّق التصنيف', 'رجعت المواد لحالتها السابقة'); return; }
