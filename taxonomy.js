@@ -89,6 +89,7 @@ function taxFormOf(p) {   // الشكل المقترح: المحدّد يدوي�
 function taxRvList() { return products.filter(p => taxLegacy.d.includes(p.department)); }
 function taxRvEntry(p) {   // الاقتراح الحالي لمادة (أو ما عدّلته أنت)
     const r = taxRv[p.id]; if (r && (r.st === 'ok' || r.st === 'edit' || r.st === 'no')) return r;
+    if (r && r.st === 'sug') return { d: r.d, s: r.s, f: r.f, st: '', guess: false, auto: true };   // اقتراح تغيّر تلقائياً بسبب جرعة أخرى
     const sg = taxSuggest(p);
     return { d: sg ? TAX_DEPTS[sg.d - 1] : '', s: sg ? TAX_SEED[TAX_DEPTS[sg.d - 1]][sg.s - 1] : '', f: taxFormOf(p), st: '', guess: !!(sg && sg.guess) };
 }
@@ -126,7 +127,7 @@ function taxRvRender(keepSearch) {
         const fobj = e.f ? FORMS.find(x => x.id === e.f) : null, st = e.st;
         return `<div class="tr-row ${st === 'ok' || st === 'edit' ? 'ok' : st === 'no' ? 'no' : ''}" id="trr-${p.id}">
             <div class="tr-main"><b dir="ltr">${escapeHtml(p.name)}</b>
-            <div class="tr-sug">${e.d ? `<span class="tr-d">${escapeHtml(e.d)}</span> › <span class="tr-s">${escapeHtml(e.s)}</span>` : '<span class="tr-none">بدون اقتراح — اضغط ✕ وحدّد</span>'}${fobj ? ` · <span class="tr-f">${escapeHtml(fobj.txt)}</span>` : ''}${e.guess && !st ? ' <em class="tg warn">تقدير</em>' : ''}${st === 'edit' ? ' <em class="tg">عدّلته</em>' : ''}</div></div>
+            <div class="tr-sug">${e.d ? `<span class="tr-d">${escapeHtml(e.d)}</span> › <span class="tr-s">${escapeHtml(e.s)}</span>` : '<span class="tr-none">بدون اقتراح — اضغط ✕ وحدّد</span>'}${fobj ? ` · <span class="tr-f">${escapeHtml(fobj.txt)}</span>` : ''}${e.guess && !st ? ' <em class="tg warn">تقدير</em>' : ''}${st === 'edit' ? ' <em class="tg">عدّلته</em>' : ''}${e.auto ? ' <em class="tg">تغيّر تلقائياً</em>' : ''}</div></div>
             <div class="tr-btns"><button type="button" class="tr-yes" onclick="taxRvYes(${p.id})" aria-label="صح"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></button><button type="button" class="tr-no" onclick="taxRvNo(${p.id})" aria-label="خطأ"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>`;
     }).join('') || '<div class="bill-none">ما فيه مواد بهذا الفلتر.</div>';
     const head = `<div class="tr-head"><b>🧭 مراجعة التصنيف</b><button type="button" class="tr-x" onclick="taxRvClose()" aria-label="إغلاق">✕</button></div>
@@ -159,7 +160,17 @@ async function taxRvNo(id) {
         preConfirm: () => ({ d: document.getElementById('trD').value, s: document.getElementById('trS').value, f: document.getElementById('trF').value }) });
     if (r.isDenied) { taxRv[id] = { d: e.d, s: e.s, f: e.f, st: 'no' }; taxRvSave(); taxRvRender(true); return; }
     if (!r.isConfirmed || !r.value || !r.value.d) return;
-    taxRv[id] = { d: r.value.d, s: r.value.s, f: r.value.f, st: 'edit' }; taxRvSave(); taxRvRender(true);
+    taxRv[id] = { d: r.value.d, s: r.value.s, f: r.value.f, st: 'edit' };
+    // نفس المادة بجرعات/أحجام أخرى (نفس الاسم قبل الرقم): نغيّر اقتراحها تلقائياً، وإنت بس تضغط ✓
+    const key = taxKey(p.name), oldF = e.f; let n = 0;
+    if (key.length >= 3) products.forEach(q => {
+        if (q.id === id || taxKey(q.name) !== key) return;
+        const qe = taxRvEntry(q); if (qe.st) return;   // ما نلمس اللي راجعته
+        const nf = (r.value.f !== oldF && qe.f === oldF) ? r.value.f : qe.f;
+        taxRv[q.id] = { d: r.value.d, s: r.value.s, f: nf, st: 'sug' }; n++;
+    });
+    taxRvSave(); taxRvRender(true);
+    if (n) Swal.fire({ icon: 'success', title: 'غُيّر اقتراح ' + n + ' جرعة/حجم مماثل تلقائياً', text: 'تلقاهم بـ«غير مراجع»، بس اضغط ✓', toast: true, position: 'bottom', showConfirmButton: false, timer: 2600 });
 }
 function taxRvAcceptShown() {
     const rows = taxRvRows().slice(0, taxRvShown); let n = 0;
