@@ -104,6 +104,7 @@ const TAX_KW = [
     [/postpartum|post-?partum|maternity\s*(belt|girdle|support)|abdomen\s*(belt|band|support)|belly\s*(band|belt)|مشد\s*(النفاس|الولادة|البطن)|نفاس/i, 'الأم والطفل', 'مستلزمات النفاس'],
     [/tongue\s*(scraper|cleaner|brush)|منظف\s*(ال)?لسان|مكشطة\s*(ال)?لسان/i, 'الفم والأسنان', 'منظفات اللسان'],
     [/anti-?\s*d\b|rhophylac|rhogam|rh\s*immune|immun[eo]?\s*globulin|immunoglobulin|\bivig\b|غلوبيولين/i, 'اللقاحات والأمصال', 'غلوبيولينات مناعية (Anti-D / IVIG)', [['النسائية والتوليد والهرمونات', 'أدوية الولادة والرحم']]],
+    [/^(?=.*(patch|plaster|pat\b|لصق|لصقة)).*(pain|joint|muscle|arthritis|ache|hot|heat|warm|cool|salonpas|capsicum|knee|back|neck|shoulder|رقبة|ظهر|مفاصل|الم|ألم|مسكن)/i, 'المسكنات والعظام والعضلات', 'لصقات مسكنة'],
     [/(fitting|tighten\w*|tightening)\s*insert\w*|vaginal\s*(tighten\w*|insert\w*)|شد\s*المهبل/i, 'النسائية والتوليد والهرمونات', 'العناية الحميمة وشد المهبل'],
     [/orlistat|onlefit|xenical|alli\b|zeroxen|اورليستات|أورليستات|زينيكال/i, 'السمنة والتنحيف', 'أدوية السمنة', [['السكري والغدد الصماء', 'أدوية السمنة']]],
     [/phentermine|sibutramine|appetite|سيبوترامين|كابح\s*الشهية/i, 'السمنة والتنحيف', 'مثبطات الشهية'],

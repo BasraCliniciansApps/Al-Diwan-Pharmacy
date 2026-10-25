@@ -1024,7 +1024,7 @@ const FORMS = [
     mkForm('depot', 'Depot Injection', 'badge-inj', 'Injectables'),
     mkForm('enema', 'Enema', 'badge-oint', 'Rectal & Vaginal', /enema|حقنة شرجية/),
     mkForm('supp', 'Suppository', 'badge-oint', 'Rectal & Vaginal', /suppositor|\bsupp\b|pessar|تحميل|تحاميل/),
-    mkForm('patch', 'Patch', 'badge-gel', 'Topical', /\bpatch|plaster|لصق/),
+    mkForm('patch', 'Patch', 'badge-gel', 'Topical', /\bpatch|\bpats?\b|plaster|لصق/),
     mkForm('inhaler', 'Inhaler / Nebulizer', 'badge-spray', 'Inhalation', /inhaler|nebul|respules|استنشاق|نيبول/),
     mkForm('mdi', 'MDI Inhaler', 'badge-spray', 'Inhalation'),
     mkForm('dpi', 'DPI (Powder Inhaler)', 'badge-spray', 'Inhalation'),
