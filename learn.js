@@ -129,9 +129,9 @@ function learnOpen() {
     const ex = Object.keys(learnData.ex).length, rows = learnRules();
     const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
     const html = `<div style="text-align:right;font-size:.86rem;line-height:1.8">
-        <label class="ln-sw"><span><b>التعلّم من اختياراتي</b><small>يتذكّر القسم/التصنيف/الشكل اللي تختاره ويطبّقه على المواد المشابهة</small></span><span class="setup-sw"><input type="checkbox" id="lnOn" ${learnOn() ? 'checked' : ''}><i></i></span></label>
+        <label class="ln-sw"><span><b>التعلّم من اختياراتي</b><small>يتذكّر القسم/التصنيف/الشكل الذي تختاره ويطبّقه على المواد المشابهة</small></span><span class="setup-sw"><input type="checkbox" id="lnOn" ${learnOn() ? 'checked' : ''}><i></i></span></label>
         <div class="ln-stat">مواد محفوظة بالاسم: <b>${ex}</b> · قواعد كلمات مفعّلة: <b>${rows.length}</b></div>
-        <div class="ln-list">${rows.length ? rows.map(r => `<div class="ln-row"><span><b dir="ltr">${esc(r.tok)}</b> ← ${esc(r.ch)}${r.kind === 'f' ? ' <em>(شكل)</em>' : ''}<small>تأكّدت على ${r.n} مواد</small></span><button type="button" onclick="learnDel('${esc(r.tok)}','${r.kind}')" aria-label="حذف">✕</button></div>`).join('') : '<div class="ln-empty">ما فيه قواعد كلمات بعد. تتكوّن لما تختار نفس التصنيف لمادتين تشتركان بكلمة.</div>'}</div>
+        <div class="ln-list">${rows.length ? rows.map(r => `<div class="ln-row"><span><b dir="ltr">${esc(r.tok)}</b> ← ${esc(r.ch)}${r.kind === 'f' ? ' <em>(شكل)</em>' : ''}<small>تأكّدت في ${r.n} مواد</small></span><button type="button" onclick="learnDel('${esc(r.tok)}','${r.kind}')" aria-label="حذف">✕</button></div>`).join('') : '<div class="ln-empty">لا توجد قواعد كلمات بعد. تتكوّن عندما تختار التصنيف نفسه لمادتين تشتركان في كلمة.</div>'}</div>
         <button type="button" class="ln-clear" onclick="learnClear()">مسح كل ما تعلّمه</button></div>`;
     Swal.fire({ title: 'قواعدي', html, width: 'min(94vw, 520px)', confirmButtonColor: '#0f1c38', confirmButtonText: 'تم', didOpen: () => { const c = document.getElementById('lnOn'); if (c) c.addEventListener('change', () => { learnData.off = !c.checked; learnSave(); learnPush(); }); } });
 }
@@ -141,7 +141,7 @@ function learnDel(tok, kind) {
     learnSave(); learnPush(); learnOpen();
 }
 async function learnClear() {
-    const r = await Swal.fire({ icon: 'warning', title: 'مسح كل التعلّم؟', text: 'تنحذف كل القواعد المحفوظة (المواد ما تتأثر).', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'مسح', cancelButtonText: 'رجوع' });
+    const r = await Swal.fire({ icon: 'warning', title: 'مسح كل التعلّم؟', text: 'تُحذف كل القواعد المحفوظة (المواد لا تتأثر).', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'مسح', cancelButtonText: 'رجوع' });
     if (!r.isConfirmed) return;
     learnData.ex = {}; learnData.tk = {}; learnSave();
     try { if (isFirebaseReady && currentUser) await fsSet(db.collection('pharmacy').doc('metadata'), { learn: { ex: {}, tk: {}, off: !!learnData.off } }, { mergeFields: ['learn'] }); } catch (e) { /* تجاهل */ }
@@ -155,7 +155,7 @@ if (typeof qkInit === 'function') {
 function learnToggle(v) { learnData.off = !v; learnSave(); learnPush(); const sw = document.getElementById('lnSw'); if (sw) sw.checked = !!v; }
 if (typeof renderTaxSeedBox === 'function') {
     const _rb = renderTaxSeedBox;
-    renderTaxSeedBox = function () { _rb(); const box = document.getElementById('taxSeedBox'); if (box && !box.querySelector('.ln-btn2')) box.insertAdjacentHTML('beforeend', '<button type="button" class="ln-btn2" onclick="learnOpen()">🧠 قواعدي — اللي تعلّمه التطبيق من اختياراتك</button>'); };
+    renderTaxSeedBox = function () { _rb(); const box = document.getElementById('taxSeedBox'); if (box && !box.querySelector('.ln-btn2')) box.insertAdjacentHTML('beforeend', '<button type="button" class="ln-btn2" onclick="learnOpen()">🧠 قواعدي — ما تعلّمه التطبيق من اختياراتك</button>'); };
 }
 
 // =====================================================================

@@ -3646,7 +3646,7 @@ async function showAiScanResult(res, mode) {
     const html = `
         <div style="text-align:right; font-size:0.9rem;">
             ${conf ? `<div style="display:inline-block; padding:2px 10px; border-radius:8px; background:${conf[2]}; color:${conf[1]}; font-weight:800; font-size:0.78rem;">${byName ? 'ثقة النموذج بالتعرف' : 'دقة القراءة'}: ${conf[0]}</div>` : ''}
-            ${dups.length ? `<div style="margin-top:10px; padding:8px 10px; border-radius:10px; background:#fef3c7; color:#92400e; font-size:0.82rem; line-height:1.7;">⚠️ قد يكون هذا الصنف موجوداً عندك: <b dir="ltr">${dups.slice(0, 3).map(d => escapeHtml(d.name)).join(' ، ')}</b></div>` : ''}
+            ${dups.length ? `<div style="margin-top:10px; padding:8px 10px; border-radius:10px; background:#fef3c7; color:#92400e; font-size:0.82rem; line-height:1.7;">⚠️ قد يكون هذا الصنف موجوداً لديك: <b dir="ltr">${dups.slice(0, 3).map(d => escapeHtml(d.name)).join(' ، ')}</b></div>` : ''}
             ${byName ? '<div style="margin-top:10px; padding:8px 10px; border-radius:10px; background:#fee2e2; color:#991b1b; font-size:0.82rem; line-height:1.7;">⚠️ هذه المعلومات من معرفة النموذج وليست من العبوة. تحقق من الشركة والتركيز والشكل من المنتج نفسه قبل الحفظ.</div>' : ''}
             ${section(byName ? '🏷️ التعرف على الاسم' : '📖 مقروء من العبوة', '#0f1c38', 'printed')}
             ${section('💡 مقترح من الذكاء الصناعي — راجعه جيداً', '#b45309', 'suggested')}

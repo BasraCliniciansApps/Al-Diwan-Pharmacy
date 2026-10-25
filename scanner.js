@@ -46,7 +46,7 @@ function scBuyLines(p) {
 let scCur = null;
 const scE = id => document.getElementById(id);
 function scInit() { scApplyHome(); const q = scE('scQ'); if (q) { q.value = ''; } scList([]); scCur = null; scE('scCard').innerHTML = '<div class="sc-hint">امسح باركود المادة أو ابحث باسمها 👆</div>'; setTimeout(() => { try { q && q.focus(); } catch (e) { /* تجاهل */ } }, 150); }
-function scScan() { openBarcodeScanner(code => { const p = findByBarcode(code); if (p) { scPick(p.id); } else Swal.fire({ icon: 'info', title: 'ما لقيت المادة', text: 'هذا الباركود غير مسجّل بأي مادة.', confirmButtonColor: '#0f1c38' }); }); }
+function scScan() { openBarcodeScanner(code => { const p = findByBarcode(code); if (p) { scPick(p.id); } else Swal.fire({ icon: 'info', title: 'لم يتم العثور على المادة', text: 'هذا الباركود غير مسجّل بأي مادة.', confirmButtonColor: '#0f1c38' }); }); }
 function scSearch(v) {
     const qn = normSearch(v || ''), qt = qn ? qn.split(' ') : [];
     if (!qn) { scList([]); return; }
@@ -131,7 +131,7 @@ async function scDelExp(pid, ym) {
     else { Object.assign(p, snap); scRender(); }
 }
 // ---- صفحة الإعدادات ----
-const SC_SHOW_LABELS = { price: ['سعر البيع', 'يظهر لكل من يملك الأداة'], cost: ['سعر الشراء (أقل/أعلى/آخر سعر)', 'للمالك فقط — لا يصل للبائعين'], margin: ['الربح والهامش', 'للمالك فقط'], expiry: ['تواريخ الانتهاء', 'مع حالة كل تاريخ'], del: ['زر حذف تاريخ الانتهاء', 'للصيدلي، وللمستخدم إذا أعطيته صلاحية حذف'], calc: ['حاسبة الخصم', 'نسبة أو سعر نهائي مع إشارة آمن/خطر'], limit: ['حد الخصم (أعلى خصم)', 'الرقم الأقصى المسموح'] };
+const SC_SHOW_LABELS = { price: ['سعر البيع', 'يظهر لكل من يملك الأداة'], cost: ['سعر الشراء (أقل/أعلى/آخر سعر)', 'للمالك فقط — لا يصل إلى البائعين'], margin: ['الربح والهامش', 'للمالك فقط'], expiry: ['تواريخ الانتهاء', 'مع حالة كل تاريخ'], del: ['زر حذف تاريخ الانتهاء', 'للصيدلي، وللمستخدم إذا مُنح صلاحية الحذف'], calc: ['حاسبة الخصم', 'نسبة أو سعر نهائي مع إشارة آمن/خطر'], limit: ['حد الخصم (أعلى خصم)', 'الرقم الأقصى المسموح'] };
 function shScanHtml() {
     const c = scCfg(), s = c.show;
     const opt = (k, ic, t, d) => `<button type="button" class="sc-opt ${c.mode === k ? 'on' : ''}" onclick="scSetMode('${k}')"><span>${ic}</span><span><b>${t}</b><small>${d}</small></span></button>`;
@@ -139,12 +139,12 @@ function shScanHtml() {
     <div class="qk-row"><div><b>تشغيل فاحص المادة</b><small>إيقافه يخفي الأداة من الرئيسية للجميع</small></div><label class="setup-sw"><input type="checkbox" ${c.on ? 'checked' : ''} onchange="scSetOn(this.checked)"><i></i></label></div>
     <h5 class="sc-h">طريقة حد الخصم للبائعين</h5>
     ${opt('safe', '🔒', 'الخصم المحمي', 'يعرض للبائع حدّاً آمناً أقل من الحد الحقيقي، ولا يكشف سعر الشراء')}
-    ${opt('exact', '📊', 'الخصم الكامل', 'يعرض أعلى خصم بدون خسارة بالضبط (يمكن للبائع يستنتج سعر الشراء منه)')}
+    ${opt('exact', '📊', 'الخصم الكامل', 'يعرض أعلى خصم بدون خسارة بالضبط (يمكن للبائع أن يستنتج سعر الشراء منه)')}
     <div class="sc-set" ${c.mode === 'safe' ? '' : 'style="opacity:.5"'}>
         <label><span>هامش الأمان (٪ ربح)</span><input type="number" min="0" step="any" inputmode="decimal" value="${c.margin}" onchange="scSetNum('margin',this.value)"></label>
         <label><span>التقريب لأقل مضاعف</span><input type="number" min="1" step="1" inputmode="numeric" value="${c.step}" onchange="scSetNum('step',this.value)"></label>
     </div>
-    <div class="qk-row"><div><b>إعادة حساب حد الخصم لكل المواد</b><small>اضغطه بعد تغيير الطريقة أو الهامش. بعدها يتحدث تلقائياً مع كل تعديل سعر أو كلفة</small></div><button type="button" class="ln-btn" onclick="scRecalcAll()">إعادة حساب</button></div>
+    <div class="qk-row"><div><b>إعادة حساب حد الخصم لكل المواد</b><small>اضغط عليه بعد تغيير الطريقة أو الهامش. بعدها يتحدّث تلقائياً مع كل تعديل في السعر أو الكلفة</small></div><button type="button" class="ln-btn" onclick="scRecalcAll()">إعادة حساب</button></div>
     <h5 class="sc-h">الخصائص الظاهرة</h5>
     ${Object.keys(SC_SHOW_LABELS).map(k => `<div class="qk-row"><div><b>${SC_SHOW_LABELS[k][0]}</b><small>${SC_SHOW_LABELS[k][1]}</small></div><label class="setup-sw"><input type="checkbox" ${s[k] ? 'checked' : ''} onchange="scSetShow('${k}',this.checked)"><i></i></label></div>`).join('')}`;
 }

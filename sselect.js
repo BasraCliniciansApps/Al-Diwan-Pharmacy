@@ -65,7 +65,7 @@ function ssOpen(sel) {
             html += `<button type="button" class="ss-row${i.v === sel.value ? ' on' : ''}" role="option" data-v="${ssEsc(i.v)}"><span>${ssEsc(i.t || '— بدون —')}</span>${i.v === sel.value ? '<i>✓</i>' : ''}</button>`;
         });
         if (open) html += '</div>';
-        list.innerHTML = html || '<div class="ss-none">ما لقيت شي بهذا الاسم</div>';
+        list.innerHTML = html || '<div class="ss-none">لا يوجد ما يطابق هذا الاسم</div>';
         cnt.textContent = toks.length ? rows.length + ' نتيجة' : '';
     };
     render();

@@ -29,7 +29,7 @@ function shSummary(p) {
         if (p.id === 'trash') return { s: 'استعادة المواد المحذوفة' };
         if (p.id === 'tabs') return { s: `حد النقص ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر` };
         if (p.id === 'price') return { s: `سعر الصرف ${fmtNum(pricingCfg.rate)}` };
-        if (p.id === 'quick') { const c = qkCfg(), on = ['form', 'dept', 'like'].filter(k => c[k]).length, r = typeof learnRules === 'function' ? learnRules().length : 0; return { s: `الإدخال ${on}/3 · التعلّم ${learnOn() ? 'شغّال' : 'متوقف'}${r ? ' · ' + fmtNum(r) + ' قاعدة' : ''}` }; }
+        if (p.id === 'quick') { const c = qkCfg(), on = ['form', 'dept', 'like'].filter(k => c[k]).length, r = typeof learnRules === 'function' ? learnRules().length : 0; return { s: `الإدخال ${on}/3 · التعلّم ${learnOn() ? 'مفعّل' : 'متوقف'}${r ? ' · ' + fmtNum(r) + ' قاعدة' : ''}` }; }
         if (p.id === 'scanner') { const c = typeof scCfg === 'function' ? scCfg() : null; return { s: c ? (c.on ? 'مشغّل · ' : 'متوقف · ') + (c.mode === 'safe' ? 'خصم محمي' : 'خصم كامل') : '' }; }
         if (p.id === 'backup') return { s: 'نسخ واسترجاع وتصدير' };
         if (p.id === 'tools') return { s: 'جرد وأدوات الصيدلي' };
@@ -60,8 +60,8 @@ function shQuickHtml() {
     const lr = typeof learnRules === 'function' ? learnRules().length : 0;
     return `<small style="display:block;color:var(--text-sub);margin:0 0 6px">إعدادات الإدخال السريع محفوظة على هذا الجهاز</small>${rows}
     <div class="qk-row"><div><b>التعلّم من اختياراتي بصمت</b><small>يتذكّر تصنيفاتك وأشكالك ويطبّقها لاحقاً (يتزامن بين الأجهزة)</small></div><label class="setup-sw"><input type="checkbox" ${learnOn() ? 'checked' : ''} onchange="learnToggle(this.checked)" aria-label="التعلّم"><i></i></label></div>
-    <div class="qk-row"><div><b>قواعدي</b><small>${fmtNum(lr)} قاعدة كلمات · شوفها واحذف اللي ما تريده</small></div><button type="button" class="ln-btn" onclick="learnOpen()">فتح</button></div>
-    <div class="sh-danger"><h5>⚠️ منطقة الخطر</h5><p>يمسح كل ما تعلّمه التطبيق من اختياراتك (المواد ما تتأثر).</p><button type="button" class="sh-dbtn" onclick="learnClear()">🗑️ مسح كل التعلّم</button></div>`;
+    <div class="qk-row"><div><b>قواعدي</b><small>${fmtNum(lr)} قاعدة كلمات · اعرضها واحذف ما لا تريده</small></div><button type="button" class="ln-btn" onclick="learnOpen()">فتح</button></div>
+    <div class="sh-danger"><h5>⚠️ منطقة الخطر</h5><p>يمسح كل ما تعلّمه التطبيق من اختياراتك (المواد لا تتأثر).</p><button type="button" class="sh-dbtn" onclick="learnClear()">🗑️ مسح كل التعلّم</button></div>`;
 }
 function shInit() {
     const card = shCard(); if (!card || card.dataset.sh) return; card.dataset.sh = '1';
@@ -115,7 +115,7 @@ function shSearch(v) {
         });
     });
     grid.hidden = true; res.hidden = false;
-    res.innerHTML = out.length ? out.map(r => `<button type="button" class="sh-r" data-p="${r.p.id}" data-b="${r.b == null ? '' : r.b}"><span class="sh-ico">${r.p.ico}</span><span class="sh-tx"><b>${r.title}</b><small>${r.p.t}</small></span></button>`).join('') : '<div class="ln-empty">ما لقيت شي بهذا الاسم</div>';
+    res.innerHTML = out.length ? out.map(r => `<button type="button" class="sh-r" data-p="${r.p.id}" data-b="${r.b == null ? '' : r.b}"><span class="sh-ico">${r.p.ico}</span><span class="sh-tx"><b>${r.title}</b><small>${r.p.t}</small></span></button>`).join('') : '<div class="ln-empty">لا يوجد ما يطابق هذا الاسم</div>';
 }
 if (typeof openCategoryManager === 'function') {
     const _oc = openCategoryManager;
@@ -162,13 +162,13 @@ if (typeof qkSet === 'function') { const _q = qkSet; qkSet = function (k, v) { _
 if (typeof learnToggle === 'function') { const _l = learnToggle; learnToggle = function (v) { _l(v); shToast('تم الحفظ ✓', () => { _l(!v); if (shCur === 'quick') shOpen('quick'); shToast('تم التراجع'); }); }; }
 // ===== منطقة الخطر =====
 async function shRestore() {
-    const r = await Swal.fire({ icon: 'warning', title: 'استرجاع من نسخة احتياطية', html: '<div style="text-align:right;font-size:.88rem;line-height:1.9">الاسترجاع يدمج النسخة مع بياناتك الحالية ويرفعها للسحابة.<br><b>ننصح تاخذ نسخة كاملة قبله.</b><br>اكتب كلمة <b>استرجاع</b> للمتابعة:</div>', input: 'text', inputPlaceholder: 'استرجاع', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'متابعة', cancelButtonText: 'رجوع', preConfirm: v => (String(v || '').trim() === 'استرجاع') || (Swal.showValidationMessage('اكتب الكلمة بالضبط'), false) });
+    const r = await Swal.fire({ icon: 'warning', title: 'استرجاع من نسخة احتياطية', html: '<div style="text-align:right;font-size:.88rem;line-height:1.9">الاسترجاع يدمج النسخة مع بياناتك الحالية ويرفعها للسحابة.<br><b>يُنصح بأخذ نسخة كاملة قبله.</b><br>اكتب كلمة <b>استرجاع</b> للمتابعة:</div>', input: 'text', inputPlaceholder: 'استرجاع', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'متابعة', cancelButtonText: 'رجوع', preConfirm: v => (String(v || '').trim() === 'استرجاع') || (Swal.showValidationMessage('اكتب الكلمة بالضبط'), false) });
     if (r.isConfirmed) { const f = document.getElementById('restoreInput'); if (f) f.click(); }
 }
 function shDangerInit() {
     const lab = document.querySelector('#catModal label[for="restoreInput"]'); if (!lab || document.getElementById('shDangerBk')) return;
     const box = lab.closest('.cat-manager-box'), host = box && (box.querySelector('.cmb-body') || box);
     lab.remove();
-    host.insertAdjacentHTML('beforeend', '<div class="sh-danger" id="shDangerBk"><h5>⚠️ منطقة الخطر</h5><p>إجراءات تغيّر بياناتك الحالية. تحتاج تأكيد.</p><button type="button" class="sh-dbtn" onclick="shRestore()">♻️ استرجاع من نسخة احتياطية</button></div>');
+    host.insertAdjacentHTML('beforeend', '<div class="sh-danger" id="shDangerBk"><h5>⚠️ منطقة الخطر</h5><p>إجراءات تغيّر بياناتك الحالية وتحتاج إلى تأكيد.</p><button type="button" class="sh-dbtn" onclick="shRestore()">♻️ استرجاع من نسخة احتياطية</button></div>');
 }
 { const _si2 = shInit; shInit = function () { _si2(); shDangerInit(); shBoxes().forEach(b => { const sp = b.querySelector('.cmb-head span'); if (sp) sp.innerHTML = sp.innerHTML.replace(/^\s*\d+\.\s*/, ''); }); }; }

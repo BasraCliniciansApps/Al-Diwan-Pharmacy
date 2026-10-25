@@ -79,7 +79,7 @@ function fsRenderDupes() {
     const box = fsEl('fsDup'); if (!box) return; const d = fsDupes(), key = d.map(x => x.p.id + x.why).join(',');
     if (key === fsDupKey) return; fsDupKey = key;
     box.style.display = d.length ? 'block' : 'none';
-    box.innerHTML = d.length ? '<b>⚠ مادة مشابهة موجودة بالفعل</b>' + d.map(x => `<div class="fs-dup-r"><span><b dir="ltr">${escapeHtml(x.p.name)}</b><small>${x.why} · ${fmtNum(x.p.price || 0)} د.ع · بالمخزن ${escapeHtml(stockLabel(x.p))}</small></span><button type="button" onclick="fsOpenDup(${x.p.id})">افتحها</button></div>`).join('') + '<small>إذا هي نفس المادة افتحها وعدّل عليها بدل إضافة نسخة ثانية.</small>' : '';
+    box.innerHTML = d.length ? '<b>⚠ مادة مشابهة موجودة بالفعل</b>' + d.map(x => `<div class="fs-dup-r"><span><b dir="ltr">${escapeHtml(x.p.name)}</b><small>${x.why} · ${fmtNum(x.p.price || 0)} د.ع · بالمخزن ${escapeHtml(stockLabel(x.p))}</small></span><button type="button" onclick="fsOpenDup(${x.p.id})">افتحها</button></div>`).join('') + '<small>إن كانت المادة نفسها فافتحها وعدّل عليها بدل إضافة نسخة ثانية.</small>' : '';
 }
 function fsOpenDup(id) { fsClearDraft(); closeFormModal(); openFormModal(id); }
 // ---- مسودة ----
@@ -107,7 +107,7 @@ function fsDraftBanner(isNew) {
     const d = isNew && !fsQuick ? fsDraftGet() : null;
     if (!d) { b.style.display = 'none'; return; }
     b.style.display = 'block';
-    b.innerHTML = `📝 عندك مسودة غير محفوظة: <b dir="ltr">${escapeHtml(d.v.fName || 'بدون اسم')}</b><div class="fs-draft-act"><button type="button" onclick="fsDraftRestore()">استرجاع</button><button type="button" class="g" onclick="fsClearDraft()">تجاهل</button></div>`;
+    b.innerHTML = `📝 لديك مسودة غير محفوظة: <b dir="ltr">${escapeHtml(d.v.fName || 'بدون اسم')}</b><div class="fs-draft-act"><button type="button" onclick="fsDraftRestore()">استرجاع</button><button type="button" class="g" onclick="fsClearDraft()">تجاهل</button></div>`;
 }
 // ---- تمييز الحقل الناقص ----
 function fsMark(id, msg) {
@@ -126,7 +126,7 @@ function fsMark(id, msg) {
         if (!(((fsEl('fName') || {}).value || '').trim())) { fsMark('fName'); }
         if (((fsEl('fName') || {}).value || '').trim() && !(parseFloat((fsEl('fPrice') || {}).value) > 0) && !fsPriceAsked) {   // السعر فارغ: تنبيه مرة وحدة، والضغطة الثانية تحفظ
             fsPriceAsked = true; fsMark('fPrice');
-            Swal.fire({ icon: 'warning', title: 'السعر فارغ', text: 'اكتب سعر البيع، أو اضغط حفظ مرة ثانية للحفظ بدون سعر.', toast: true, position: 'top', showConfirmButton: false, timer: 3500 });
+            Swal.fire({ icon: 'warning', title: 'السعر فارغ', text: 'اكتب سعر البيع، أو اضغط حفظ مرة أخرى للحفظ دون سعر.', toast: true, position: 'top', showConfirmButton: false, timer: 3500 });
             return;
         }
         const r = await sv.apply(this, arguments);

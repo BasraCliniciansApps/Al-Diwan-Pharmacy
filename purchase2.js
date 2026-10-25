@@ -50,7 +50,7 @@ function ptNameInput() {
     const toks = qn.split(' ');
     ptFound = products.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]);
     box.innerHTML = ptFound.map(p => productPickHtml(p, 'ptPick', 'بالمخزن ' + stockLabel(p) + (p.costPrice ? ' · آخر شراء ' + fmtNum(p.costPrice) : ''))).join('')
-        + `<button type="button" class="pu-newprod" onclick="ptNew()">➕ مادة جديدة «${ptEsc(q)}»${ptFound.length ? ' (تأكد إنها مو من اللي فوق)' : ''}</button>`;
+        + `<button type="button" class="pu-newprod" onclick="ptNew()">➕ مادة جديدة «${ptEsc(q)}»${ptFound.length ? ' (تأكد أنها ليست من المواد أعلاه)' : ''}</button>`;
     box.style.display = 'block';
 }
 function ptPick(id) {
@@ -72,7 +72,7 @@ async function ptCommit() {
     if (!name) return warn('اكتب اسم المادة');
     const qty = parseInt($b('ptQty').value) || 0; if (qty < 1) { $b('ptQty').focus(); return warn('اكتب العدد'); }
     const bonus = parseInt($b('ptBonus').value) || 0, cost = $b('ptCost').value.trim(), expRaw = $b('ptExp').value.trim(), expiry = ptExpParse(expRaw);
-    if (expRaw && !expiry) { $b('ptExp').focus(); return warn('الانتهاء غلط — اكتبه مثل 0627'); }
+    if (expRaw && !expiry) { $b('ptExp').focus(); return warn('الانتهاء غير صحيح — اكتبه بصيغة 0627'); }
     let p = ptSel;
     if (!p && ptNewMode) {
         if (!writesAllowed()) return;
@@ -108,6 +108,6 @@ function ptOpenReturnFor(rec, retMap) {
         lgOpenReturn({ listId: rec.id });
         (lgr.lines || []).forEach(l => { if (retMap[l.pid]) l.qty = Math.min(retMap[l.pid], l.max); });
         lgrRender(); lgrAutoMode();
-        Swal.fire({ icon: 'info', title: 'راجع المردود واضغط حفظ', text: 'عبّينا لك المواد اللي علّمتها «مردود». تأكد من الأعداد والسعر ثم احفظ.', toast: true, position: 'bottom', showConfirmButton: false, timer: 3500 });
+        Swal.fire({ icon: 'info', title: 'راجع المردود واضغط حفظ', text: 'عبّأنا المواد التي علّمتها «مردود». تأكد من الأعداد والسعر ثم احفظ.', toast: true, position: 'bottom', showConfirmButton: false, timer: 3500 });
     } catch (e) { /* إن لم تتوفر شاشة المردود يبقى الوارد محفوظاً */ }
 }

@@ -4,12 +4,12 @@ function catRankMap() { const m = new Map(); products.slice().sort((a, b) => (Nu
 async function toggleSetupMode(on) {
     if (userRole !== 'owner' || !db || !currentUser) { renderCatalog(); return; }
     const r = await Swal.fire({ icon: 'question', title: on ? 'تشغيل وضع التأسيس؟' : 'إيقاف وضع التأسيس؟', confirmButtonColor: '#0f1c38', showCancelButton: true, confirmButtonText: on ? 'تشغيل' : 'إيقاف', cancelButtonText: 'رجوع', width: 'min(94vw, 460px)',
-        html: on ? '<div style="text-align:right;font-size:.88rem;line-height:1.9">• المواد اللي ما جردتها: الوارد والبيع والمردود <b>ما يغيّرون كميتها</b> (القوائم تنحفظ بالسجل والمستحقات).<br>• المادة تصير «مجرودة» أول ما تضبط عددها (سجل الأدوية، الجرد، تعديل المادة).<br>• خذ نسخة احتياطية قبل ما تبدأ.</div>' : '<div style="text-align:right;font-size:.88rem;line-height:1.9">من الإيقاف: <b>كل المواد</b> (حتى غير المجرودة) ترجع تتأثر بالوارد والبيع كالمعتاد.<br>تأكد انتهى الجرد.</div>' });
+        html: on ? '<div style="text-align:right;font-size:.88rem;line-height:1.9">• المواد التي لم تُجرد بعد: الوارد والبيع والمردود <b>لا تغيّر كميتها</b> (تُحفظ القوائم في السجل والمستحقات).<br>• تصبح المادة «مجرودة» عند ضبط عددها (سجل الأدوية، الجرد، تعديل المادة).<br>• خذ نسخة احتياطية قبل أن تبدأ.</div>' : '<div style="text-align:right;font-size:.88rem;line-height:1.9">عند الإيقاف: <b>كل المواد</b> (حتى غير المجرودة) تتأثر بالوارد والبيع كالمعتاد.<br>تأكد من انتهاء الجرد.</div>' });
     if (!r.isConfirmed) { renderCatalog(); return; }
     try { await db.collection('pharmacy_stock').doc('_setup').set({ on: !!on, at: new Date().toISOString(), by: actorName() }); }
     catch (e) { Swal.fire({ icon: 'error', title: 'تعذّر الحفظ', text: e.message, confirmButtonColor: '#0f1c38' }); renderCatalog(); return; }
     setupMode = !!on; renderAll(); renderCatalog();
-    Swal.fire({ icon: 'success', title: on ? 'وضع التأسيس شغّال' : 'وضع التأسيس متوقف', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
+    Swal.fire({ icon: 'success', title: on ? 'وضع التأسيس مفعّل' : 'وضع التأسيس متوقف', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
 }
 function catToggleUnc() { catUncounted = !catUncounted; renderCatalog(); }
 async function catConfirm(id) {   // اعتماد الرصيد الحالي للمادة كمجرود بدون تغيير العدد
@@ -35,7 +35,7 @@ function renderCatalog() {
     const sb = document.getElementById('catSetup');
     if (sb) {
         const own = userRole === 'owner', sw = `<label class="setup-sw ${own ? '' : 'ro'}" title="${own ? 'تشغيل / إيقاف وضع التأسيس' : 'للمالك فقط'}"><input type="checkbox" ${setupMode ? 'checked' : ''} ${own ? '' : 'disabled'} onchange="toggleSetupMode(this.checked)"><i></i></label>`;
-        sb.innerHTML = `<div class="setup-bar ${setupMode ? 'on' : 'off'}">${sw}<div class="setup-txt"><b>🧮 وضع التأسيس: ${setupMode ? 'مشتغل' : 'مطفأ'}</b><span>${setupMode ? 'الوارد والبيع والمردود <u>لا تغيّر</u> كمية أي مادة «لم تُجرد». المادة تصير مجرودة أول ما تضبط عددها' + (unc ? '.' : ' — كل المواد انجردت 🎉') : 'كل المواد تتأثر بالوارد والبيع بشكل عادي. شغّله أثناء إدخال أرصدة الصيدلية.'}</span></div></div>`;
+        sb.innerHTML = `<div class="setup-bar ${setupMode ? 'on' : 'off'}">${sw}<div class="setup-txt"><b>🧮 وضع التأسيس: ${setupMode ? 'مفعّل' : 'متوقف'}</b><span>${setupMode ? 'الوارد والبيع والمردود <u>لا تغيّر</u> كمية أي مادة «لم تُجرد». المادة تصير مجرودة أول ما تضبط عددها' + (unc ? '.' : ' — كل المواد انجردت 🎉') : 'كل المواد تتأثر بالوارد والبيع بشكل عادي. شغّله أثناء إدخال أرصدة الصيدلية.'}</span></div></div>`;
     }
     const SHOW = 300, part = arr.slice(0, SHOW);
     box.innerHTML = part.map(p => {

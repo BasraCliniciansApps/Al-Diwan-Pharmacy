@@ -39,9 +39,9 @@ const Prog = {
         const pct = det ? Math.round(h.pct) : 0;
         let note = '', cls = h.state;
         if (h.state === 'run') {
-            if (!navigator.onLine) { note = '📴 ما كو إنترنت — العملية تنتظر رجوع الاتصال'; cls = 'warn'; }
-            else if (idle > 40) { note = '⚠️ ما كو تقدّم من ' + Prog.fmtT(idle) + ' — غالباً الإنترنت ضعيف أو العملية عالقة. تقدر تسكّرها وتعيد المحاولة'; cls = 'stuck'; }
-            else if (idle > 12) { note = '⏳ بطيئة شوي (الاتصال ضعيف) — ما زالت شغالة، لا تسكّر التطبيق'; cls = 'warn'; }
+            if (!navigator.onLine) { note = '📴 لا يوجد اتصال بالإنترنت — العملية تنتظر عودة الاتصال'; cls = 'warn'; }
+            else if (idle > 40) { note = '⚠️ لا يوجد تقدّم منذ ' + Prog.fmtT(idle) + ' — غالباً الاتصال ضعيف أو العملية عالقة. يمكنك إغلاقها وإعادة المحاولة'; cls = 'stuck'; }
+            else if (idle > 12) { note = '⏳ بطيئة قليلاً (الاتصال ضعيف) — ما زالت قيد التنفيذ، لا تغلق التطبيق'; cls = 'warn'; }
         }
         let meta = '';
         if (h.state === 'run') {

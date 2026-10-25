@@ -67,13 +67,13 @@ function renderTaxSeedBox() {
     const subs = Object.values(TAX_SEED).reduce((n, a) => n + a.length, 0);
     const nm = taxSeeded() ? taxMissingSubs().length + taxPendingRenames().length : 0;
     box.innerHTML = taxSeeded()
-        ? (nm ? `<h4>🆕 ${fmtNum(nm)} تصنيف جديد متوفر</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تصنيفات إضافية (مثل الخصوبة والميلاتونين والمفاصل...). تنضاف للأقسام بدون ما تلمس موادك أو تعديلاتك.</small><button type="button" class="icon-btn primary-btn" onclick="taxAddNew(this)">➕ إضافة التصنيفات الجديدة</button><hr style="margin:12px 0;border:none;border-top:1px solid #e2e8f0">` : '') + `<h4>✅ الأقسام الجاهزة محمَّلة</h4><small style="display:block;color:var(--text-sub);line-height:1.8">القديم معلَّم «قديم» ويختفي لوحده لما ما تبقى مادة عليه. تقدر تعدّل أو تضيف أو تحذف أي قسم أو تصنيف. وحذف القديم النهائي يكون من 🗑️ بعد نقل مواده.</small>`
-        : `<h4>📥 الأقسام الجاهزة (${Object.keys(TAX_SEED).length} قسم، ${subs} تصنيف)</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تضيف أقسام علاجية جاهزة وتصنيفاتها. <b>لا تغيّر أي مادة</b>، والأقسام القديمة تبقى وتُعلَّم «قديم». تقدر تعدّل الكل بعدها.</small><button type="button" class="icon-btn primary-btn" onclick="taxSeed()">📥 تحميل الأقسام الجاهزة</button>`;
+        ? (nm ? `<h4>🆕 ${fmtNum(nm)} تصنيف جديد متوفر</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تصنيفات إضافية (مثل الخصوبة والميلاتونين والمفاصل...). تُضاف إلى الأقسام دون المساس بموادك أو تعديلاتك.</small><button type="button" class="icon-btn primary-btn" onclick="taxAddNew(this)">➕ إضافة التصنيفات الجديدة</button><hr style="margin:12px 0;border:none;border-top:1px solid #e2e8f0">` : '') + `<h4>✅ الأقسام الجاهزة محمَّلة</h4><small style="display:block;color:var(--text-sub);line-height:1.8">القديم معلَّم «قديم» ويختفي تلقائياً عندما لا تبقى مادة عليه. يمكنك تعديل أي قسم أو تصنيف أو إضافته أو حذفه. وحذف القديم النهائي يكون من 🗑️ بعد نقل مواده.</small>`
+        : `<h4>📥 الأقسام الجاهزة (${Object.keys(TAX_SEED).length} قسم، ${subs} تصنيف)</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تُضيف أقساماً علاجية جاهزة وتصنيفاتها. <b>لا تغيّر أي مادة</b>، والأقسام القديمة تبقى وتُعلَّم «قديم». يمكنك تعديل الكل بعدها.</small><button type="button" class="icon-btn primary-btn" onclick="taxSeed()">📥 تحميل الأقسام الجاهزة</button>`;
 }
 async function taxSeed() {
     if (!writesAllowed()) return;
     const r = await Swal.fire({ icon: 'question', title: 'تحميل الأقسام الجاهزة؟', confirmButtonColor: '#0f1c38', showCancelButton: true, confirmButtonText: 'تحميل', cancelButtonText: 'رجوع', width: 'min(94vw, 460px)',
-        html: '<div style="text-align:right;font-size:.88rem;line-height:1.9">• تنضاف ' + Object.keys(TAX_SEED).length + ' قسم وتصنيفاتها.<br>• <b>مواد ما تنتقل ولا تتغير.</b><br>• القديم يبقى ويُعلَّم «قديم»، ويختفي لما يفضى.<br>• خذ نسخة احتياطية قبل (يفضّل).</div>' });
+        html: '<div style="text-align:right;font-size:.88rem;line-height:1.9">• تُضاف ' + Object.keys(TAX_SEED).length + ' قسم وتصنيفاتها.<br>• <b>المواد لا تنتقل ولا تتغير.</b><br>• القديم يبقى ويُعلَّم «قديم»، ويختفي عندما يفرغ.<br>• يُفضَّل أخذ نسخة احتياطية قبل ذلك.</div>' });
     if (!r.isConfirmed) return;
     const oldD = departments.slice(), oldC = subCategories.slice();
     const newD = Object.keys(TAX_SEED), newC = new Set(Object.values(TAX_SEED).flat());
@@ -226,7 +226,7 @@ function taxRvRender(keepSearch) {
             <div class="tr-main"><b dir="ltr">${escapeHtml(p.name)}</b>
             <div class="tr-sug">${e.d ? `<div class="tr-ln main"><span class="tr-d">${escapeHtml(e.d)}</span>: <span class="tr-s">${escapeHtml(e.s)}</span>${fobj ? ` - <span class="tr-f">${escapeHtml(fobj.txt)}</span>` : ''}</div>` : `<div class="tr-ln"><span class="tr-none">بدون اقتراح — اضغط ✕ وحدّد</span>${fobj ? ` - <span class="tr-f">${escapeHtml(fobj.txt)}</span>` : ''}</div>`}${(e.x || []).map(c => `<div class="tr-ln extra"><span class="tr-d">${escapeHtml(c[0])}</span>: <span class="tr-s">${escapeHtml(c[1])}</span></div>`).join('')}${(e.guess && !st) || st === 'edit' || e.auto ? `<div class="tr-tags">${e.guess && !st ? '<em class="tg warn">تقدير</em>' : ''}${st === 'edit' ? '<em class="tg">عدّلته</em>' : ''}${e.auto ? '<em class="tg">تغيّر تلقائياً</em>' : ''}</div>` : ''}</div></div>
             <div class="tr-btns"><button type="button" class="tr-yes" onclick="taxRvYes(${p.id})" aria-label="صح"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg></button><button type="button" class="tr-no" onclick="taxRvNo(${p.id})" aria-label="خطأ"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div></div>`;
-    }).join('') || '<div class="bill-none">ما فيه مواد بهذا الفلتر.</div>';
+    }).join('') || '<div class="bill-none">لا توجد مواد بهذا الفلتر.</div>';
     const head = `<div class="tr-head"><b>🧭 مراجعة التصنيف</b><button type="button" class="tr-x" onclick="taxRvClose()" aria-label="إغلاق">✕</button></div>
         <div class="tr-prog">راجعت <b>${fmtNum(cnt.ok + cnt.no)}</b> من ${fmtNum(all.length)} — معتمد ${fmtNum(cnt.ok)}</div>
         <div class="tr-chips">${chip('new', 'غير مراجع', cnt.nw)}${chip('ok', '✓ صح', cnt.ok)}${chip('no', '✕ خطأ', cnt.no)}${chip('none', 'بلا اقتراح', cnt.none)}${chip('all', 'الكل', all.length)}</div>
@@ -276,7 +276,7 @@ async function taxRvNo(id) {
         taxRv[q.id] = { d: r.value.d, s: r.value.s, f: nf, x: r.value.x, st: 'sug' }; n++;
     });
     taxRvSave(); taxRvRender(true);
-    if (n) Swal.fire({ icon: 'success', title: 'غُيّر اقتراح ' + n + ' جرعة/حجم مماثل تلقائياً', text: 'تلقاهم بـ«غير مراجع»، بس اضغط ✓', toast: true, position: 'bottom', showConfirmButton: false, timer: 2600 });
+    if (n) Swal.fire({ icon: 'success', title: 'غُيّر اقتراح ' + n + ' جرعة/حجم مماثل تلقائياً', text: 'ستجدها «غير مراجعة»، فقط اضغط ✓', toast: true, position: 'bottom', showConfirmButton: false, timer: 2600 });
 }
 function taxRvAcceptShown() {
     const rows = taxRvRows().slice(0, taxRvShown); let n = 0;
@@ -286,10 +286,10 @@ function taxRvAcceptShown() {
 }
 async function taxRvApply() {
     const list = taxRvList().filter(p => { const e = taxRv[p.id]; return e && (e.st === 'ok' || e.st === 'edit') && e.d; });
-    if (!list.length) { Swal.fire({ icon: 'info', title: 'ما فيه مواد معتمدة للتطبيق', confirmButtonColor: '#0f1c38' }); return; }
+    if (!list.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد معتمدة للتطبيق', confirmButtonColor: '#0f1c38' }); return; }
     if (!writesAllowed()) return;
     const r = await Swal.fire({ icon: 'question', title: 'تطبيق التصنيف على ' + list.length + ' مادة؟', confirmButtonColor: '#0f1c38', showCancelButton: true, confirmButtonText: 'تطبيق', cancelButtonText: 'رجوع', width: 'min(94vw, 460px)',
-        html: '<div style="text-align:right;font-size:.88rem;line-height:1.9">• يتغير <b>القسم والتصنيف والشكل</b> فقط. الأسعار والكميات ما تنلمس.<br>• يفضّل تاخذ نسخة احتياطية قبل.<br>• اللي ما عتمدته يبقى كما هو.</div>' });
+        html: '<div style="text-align:right;font-size:.88rem;line-height:1.9">• يتغير <b>القسم والتصنيف والشكل</b> فقط. الأسعار والكميات لا تتأثر.<br>• يُفضَّل أخذ نسخة احتياطية قبل ذلك.<br>• ما لم تعتمده يبقى كما هو.</div>' });
     if (!r.isConfirmed) return;
     let addedSub = false;   // التصنيفات المختارة تنضاف لقوائم الأقسام إن لم تكن موجودة
     list.forEach(p => { const e = taxRv[p.id]; (e.x || []).forEach(c => { if (c[1] && !(deptSubs[c[0]] || []).includes(c[1])) { deptSubs[c[0]] = (deptSubs[c[0]] || []).concat(c[1]); if (!subCategories.includes(c[1])) subCategories.push(c[1]); addedSub = true; } }); });
@@ -299,7 +299,7 @@ async function taxRvApply() {
     list.forEach(p => { const e = taxRv[p.id]; olds.set(p.id, { department: p.department, category: p.category, form: p.form, formOther: p.formOther, extraDepartments: p.extraDepartments, extraCategories: p.extraCategories }); p.department = e.d; if (e.s) p.category = e.s; { const xx = e.x || []; const ds = [...new Set(extrasOf(p.extraDepartments).concat(xx.map(c => c[0])))].filter(d => d !== p.department), cs = [...new Set(extrasOf(p.extraCategories).concat(xx.map(c => c[1])))].filter(c => c !== p.category); p.extraDepartments = ds; p.extraCategories = cs; } if (e.f) { p.form = e.f; } });
     const h = Prog.start('تطبيق التصنيف', { text: 'حفظ ' + fmtNum(list.length) + ' مادة...' });
     const ok = await saveProductsDelta(list.map(p => ({ p, dq: 0, dl: 0 })));
-    if (!ok) { list.forEach(p => Object.assign(p, olds.get(p.id))); renderAll(); h.fail('لم يُطبَّق التصنيف', 'رجعت المواد لحالتها السابقة'); return; }
+    if (!ok) { list.forEach(p => Object.assign(p, olds.get(p.id))); renderAll(); h.fail('لم يُطبَّق التصنيف', 'أُعيدت المواد إلى حالتها السابقة'); return; }
     h.ok('طُبّق التصنيف على ' + fmtNum(list.length) + ' مادة');
     list.forEach(p => { logAction('edit', p, [{ f: 'القسم/التصنيف (مراجعة التصنيف)', from: String(olds.get(p.id).department) + ' › ' + String(olds.get(p.id).category), to: p.department + ' › ' + p.category }]); delete taxRv[p.id]; });
     taxRvSave(); renderAll(); taxRvRender();

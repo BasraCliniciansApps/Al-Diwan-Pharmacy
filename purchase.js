@@ -222,7 +222,7 @@ function puRetailHtml(it, i) {
             <label><span>عدد الأجزاء في العبوة</span><input type="number" min="0" inputmode="numeric" placeholder="مثال: 10" value="${escapeHtml(String(puRC(it)))}" oninput="puRetailEdit(${i},'rsc',this.value)"></label>
             <label><span>نوع الجزء</span><select onchange="puRetailEdit(${i},'rst',this.value)">${types.map(t => `<option value="${escapeHtml(t)}" ${t === puRT(it) ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
             <label><span>سعر الجزء (فارغ = يُحسب تلقائياً)</span><input type="number" min="0" inputmode="decimal" placeholder="تلقائي" value="${escapeHtml(String(puRP(it)))}" oninput="puRetailEdit(${i},'rsp',this.value)"></label>
-            <div class="pu-syn" id="puRh-${i}">${on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' : 'اتركه فارغاً إذا المادة ما تُباع بالتجزئة.'}</div>
+            <div class="pu-syn" id="puRh-${i}">${on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' : 'اتركه فارغاً إذا كانت المادة لا تُباع بالتجزئة.'}</div>
         </div></div>`;
 }
 function puRToggle(i) { const it = pu.items[i]; if (!it) return; it.ropen = !it.ropen; const el = $b('puR-' + i); if (!el) return; el.classList.toggle('open', it.ropen); el.querySelector('.pu-rbody').style.display = it.ropen ? 'grid' : 'none'; el.querySelector('.pu-chev').textContent = it.ropen ? '▾' : '▸'; puChanged(); }
@@ -231,7 +231,7 @@ function puRetailRefresh(i) {
     const it = pu.items[i]; if (!it) return; const c = puNum(puRC(it)), on = c > 1;
     const s = $b('puRs-' + i), h = $b('puRh-' + i);
     if (s) s.textContent = on ? c + ' ' + puRT(it) + ' • ' + fmtNum(puRetailPrice(it)) + ' د.ع' : 'غير مفعّلة';
-    if (h) h.innerHTML = on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' : 'اتركه فارغاً إذا المادة ما تُباع بالتجزئة.';
+    if (h) h.innerHTML = on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' : 'اتركه فارغاً إذا كانت المادة لا تُباع بالتجزئة.';
 }
 function puToggle(i) { if (!pu.items[i]) return; pu.items[i].open = !pu.items[i].open; puRenderItems(); if (pu.items[i].open) { const el = $b('puItem-' + i); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }
 function puItemEdit(i, f, v) { if (!pu.items[i]) return; pu.items[i][f] = v; puChanged(); }
@@ -774,7 +774,7 @@ async function puApplyDialog(id) {
         return `<label class="pu-chk pa-row"><input type="checkbox" class="paCk" data-i="${i}" ${un && p && !l.setupSkip ? 'checked' : ''} ${p ? '' : 'disabled'}><span dir="ltr"><b>${escapeHtml(l.name)}</b> — ${fmtNum(puNum(l.qty))}${l.bonus ? ' + ' + fmtNum(puNum(l.bonus)) + ' بونص' : ''}</span>${p ? (un ? '<em class="tg warn">' + (l.setupSkip ? 'مؤجَّل — التأسيس' : 'لم يُحدَّث') + '</em>' : '<em class="tg">محدَّث</em>') : '<em class="tg bad">المادة محذوفة</em>'}</label>`;
     }).join('');
     const res = await Swal.fire({ title: 'تحديث المخزن من هذه القائمة', showCancelButton: true, confirmButtonText: '📦 حدّث المخزن', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 520px)', customClass: { popup: 'dw-pop' },
-        html: `<div class="sw-form"><div class="sw-info">${escapeHtml(r.supplier)} — <span dir="ltr">${escapeHtml(r.no)}</span><br><small>اختر المواد اللي تريد إضافة كمياتها للمخزن. اللي عليها «محدَّث» لا تحدّثها مرة ثانية حتى لا تتكرر الكمية.</small></div><div class="pa-list">${rows}</div></div>`,
+        html: `<div class="sw-form"><div class="sw-info">${escapeHtml(r.supplier)} — <span dir="ltr">${escapeHtml(r.no)}</span><br><small>اختر المواد التي تريد إضافة كمياتها إلى المخزن. أما المعلَّمة «محدَّث» فلا تحدّثها مرة أخرى حتى لا تتكرر الكمية.</small></div><div class="pa-list">${rows}</div></div>`,
         preConfirm: () => { const sel = [...document.querySelectorAll('.paCk:checked')].map(c => parseInt(c.dataset.i)); if (!sel.length) { Swal.showValidationMessage('اختر مادة واحدة على الأقل'); return false; } return sel; } });
     if (!res.isConfirmed || !res.value) return;
     await puApplyLines(r, res.value);
