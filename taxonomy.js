@@ -115,18 +115,18 @@ function taxRvRender(keepSearch) {
         const fobj = e.f ? FORMS.find(x => x.id === e.f) : null, st = e.st;
         return `<div class="tr-row ${st === 'ok' || st === 'edit' ? 'ok' : st === 'no' ? 'no' : ''}" id="trr-${p.id}">
             <div class="tr-main"><b dir="ltr">${escapeHtml(p.name)}</b>
-            <div class="tr-sug">${e.d ? `<span class="tr-d">${escapeHtml(e.d)}</span> › <span class="tr-s">${escapeHtml(e.s)}</span>` : '<span class="tr-none">بدون اقتراح — اضغط ✗ وحدّد</span>'}${fobj ? ` · <span class="tr-f">${escapeHtml(fobj.txt)}</span>` : ''}${e.guess && !st ? ' <em class="tg warn">تقدير</em>' : ''}${st === 'edit' ? ' <em class="tg">عدّلته</em>' : ''}</div></div>
-            <div class="tr-btns"><button type="button" class="tr-yes" onclick="taxRvYes(${p.id})" aria-label="صح">✓</button><button type="button" class="tr-no" onclick="taxRvNo(${p.id})" aria-label="خطأ">✗</button></div></div>`;
+            <div class="tr-sug">${e.d ? `<span class="tr-d">${escapeHtml(e.d)}</span> › <span class="tr-s">${escapeHtml(e.s)}</span>` : '<span class="tr-none">بدون اقتراح — اضغط ✕ وحدّد</span>'}${fobj ? ` · <span class="tr-f">${escapeHtml(fobj.txt)}</span>` : ''}${e.guess && !st ? ' <em class="tg warn">تقدير</em>' : ''}${st === 'edit' ? ' <em class="tg">عدّلته</em>' : ''}</div></div>
+            <div class="tr-btns"><button type="button" class="tr-yes" onclick="taxRvYes(${p.id})" aria-label="صح">✓</button><button type="button" class="tr-no" onclick="taxRvNo(${p.id})" aria-label="خطأ">✕</button></div></div>`;
     }).join('') || '<div class="bill-none">ما فيه مواد بهذا الفلتر.</div>';
     const head = `<div class="tr-head"><b>🧭 مراجعة التصنيف</b><button type="button" class="tr-x" onclick="taxRvClose()" aria-label="إغلاق">✕</button></div>
         <div class="tr-prog">راجعت <b>${fmtNum(cnt.ok + cnt.no)}</b> من ${fmtNum(all.length)} — معتمد ${fmtNum(cnt.ok)}</div>
-        <div class="tr-chips">${chip('new', 'غير مراجع', cnt.nw)}${chip('ok', '✓ صح', cnt.ok)}${chip('no', '✗ خطأ', cnt.no)}${chip('none', 'بلا اقتراح', cnt.none)}${chip('all', 'الكل', all.length)}</div>
+        <div class="tr-chips">${chip('new', 'غير مراجع', cnt.nw)}${chip('ok', '✓ صح', cnt.ok)}${chip('no', '✕ خطأ', cnt.no)}${chip('none', 'بلا اقتراح', cnt.none)}${chip('all', 'الكل', all.length)}</div>
         <input type="search" id="trSearch" class="tr-search" placeholder="🔍 ابحث باسم المادة..." value="${escapeHtml(taxRvQ)}" oninput="taxRvSearch(this.value)">`;
     const foot = `<div class="tr-foot"><button type="button" onclick="taxRvAcceptShown()">✓ اعتمد المعروض (${fmtNum(Math.min(rows.length, taxRvShown))})</button><button type="button" class="tr-apply" onclick="taxRvApply()">📥 تطبيق المعتمد (${fmtNum(cnt.ok)})</button></div>`;
     if (keepSearch && document.getElementById('trList')) {
         document.getElementById('trList').innerHTML = body + (rows.length > shown.length ? `<button type="button" class="pu-newprod" onclick="taxRvMore()">عرض المزيد (${fmtNum(rows.length - shown.length)})</button>` : '');
         el.querySelector('.tr-prog').innerHTML = `راجعت <b>${fmtNum(cnt.ok + cnt.no)}</b> من ${fmtNum(all.length)} — معتمد ${fmtNum(cnt.ok)}`;
-        el.querySelector('.tr-chips').innerHTML = chip('new', 'غير مراجع', cnt.nw) + chip('ok', '✓ صح', cnt.ok) + chip('no', '✗ خطأ', cnt.no) + chip('none', 'بلا اقتراح', cnt.none) + chip('all', 'الكل', all.length);
+        el.querySelector('.tr-chips').innerHTML = chip('new', 'غير مراجع', cnt.nw) + chip('ok', '✓ صح', cnt.ok) + chip('no', '✕ خطأ', cnt.no) + chip('none', 'بلا اقتراح', cnt.none) + chip('all', 'الكل', all.length);
         el.querySelector('.tr-foot').innerHTML = foot.replace(/^<div class="tr-foot">|<\/div>$/g, '');
         return;
     }

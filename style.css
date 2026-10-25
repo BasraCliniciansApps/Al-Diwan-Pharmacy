@@ -2383,3 +2383,8 @@ body.rv-open { overflow: hidden; }
 .pg-note { margin-top: 6px; font-size: .76rem; font-weight: 700; color: #b45309; line-height: 1.7; }
 .pg-stuck .pg-note { color: #b91c1c; }
 .pg-why { margin-top: 6px; font-size: .74rem; color: #7f1d1d; background: #fee2e2; border-radius: 8px; padding: 6px 8px; line-height: 1.7; overflow-wrap: anywhere; }
+
+/* v92: نوافذ Swal فوق شاشة مراجعة التصنيف وشريط التقدم تحتها */
+.swal2-container { z-index: 99990 !important; }
+.tr-btns button { font-family: Arial, sans-serif; }
+.tr-no { font-size: 1.05rem; }
