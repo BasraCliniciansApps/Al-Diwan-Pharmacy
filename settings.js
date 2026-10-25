@@ -83,11 +83,11 @@ function shOpen(id, boxIdx) {
     document.getElementById('shBar').hidden = false; document.getElementById('shPT').textContent = p.ico + ' ' + p.t;
     if (typeof setupSettingsAccordion === 'function') setupSettingsAccordion();
     const all = shBoxes(), q = document.getElementById('shQuick');
-    all.forEach(b => b.classList.remove('sh-show'));
+    all.forEach(b => { b.classList.remove('sh-show', 'sh-single'); });
     if (id === 'quick') { q.innerHTML = shQuickHtml(); q.hidden = false; q.classList.add('sh-show'); q.classList.remove('sh-pg'); void q.offsetWidth; q.classList.add('sh-pg'); }
     else {
         q.hidden = true;
-        p.boxes.forEach((i, k) => { const b = all[i]; if (!b) return; b.classList.add('sh-show'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (p.boxes.length === 1 || (boxIdx != null ? i === boxIdx : k === (id === 'tax' ? 99 : 0))) b.classList.add('open'); });
+        p.boxes.forEach((i, k) => { const b = all[i]; if (!b) return; b.classList.add('sh-show'); if (p.boxes.length === 1) b.classList.add('sh-single'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (p.boxes.length === 1 || (boxIdx != null ? i === boxIdx : k === (id === 'tax' ? 99 : 0))) b.classList.add('open'); });
         if (boxIdx != null && all[boxIdx]) { const b = all[boxIdx]; b.classList.add('open'); setTimeout(() => { b.scrollIntoView({ behavior: 'smooth', block: 'start' }); b.classList.add('sh-flash'); setTimeout(() => b.classList.remove('sh-flash'), 1600); }, 120); }
         else card.scrollTop = 0;
     }

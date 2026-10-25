@@ -2466,7 +2466,6 @@ body.rv-open { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) { .sh-pg, #shHub.sh-in-back, .sh-flash { animation: none; } }
 @media (max-width: 380px) { .sh-grid { grid-template-columns: 1fr; } }
 
-.modal-card.sh { min-height: min(72vh, 620px); }
 
 /* v144: مفضلة + حفظ تلقائي + منطقة الخطر */
 .sh-fav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; }
@@ -2488,3 +2487,75 @@ body.rv-open { overflow: hidden; }
 .sh-danger p { margin: 0 0 10px; color: #7f1d1d; font-size: .74rem; line-height: 1.7; }
 .sh-dbtn { width: 100%; font-family: inherit; font-weight: 800; cursor: pointer; border: 1px solid #fca5a5; background: #fff; color: #b91c1c; border-radius: 10px; padding: 10px; }
 [data-theme="dark"] .sh-danger { background: #2a1416; border-color: #5b2226; } [data-theme="dark"] .sh-danger p { color: #fca5a5; } [data-theme="dark"] .sh-dbtn { background: #1a0c0e; border-color: #7f1d1d; }
+
+/* ===== v145: نظام تنسيق موحّد للإعدادات (مسافات 8/12/16، أزرار وحقول 44px، محاذاة ثابتة) ===== */
+#catModal .modal-card { padding: 18px 16px 16px; }
+#catModal .cat-manager-box { margin: 0 0 12px !important; padding: 14px; border-radius: 16px; background: var(--surface-2, #f5f7fb); border: 1px solid var(--border); box-sizing: border-box; }
+#catModal .cat-manager-box:last-of-type { margin-bottom: 0 !important; }
+#catModal .cat-manager-box h4 { margin: 0 0 12px; font-size: .92rem; font-weight: 800; line-height: 1.5; }
+#catModal .cmb-head { min-height: 32px; margin: 0 !important; padding: 0 !important; gap: 12px; }
+#catModal .cmb-head span { flex: 1; min-width: 0; text-align: right; font-size: .92rem; font-weight: 800; line-height: 1.5; }
+#catModal .cmb-chev { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; background: rgba(15,28,56,.06); font-size: .8rem !important; }
+#catModal .cat-manager-box.open > .cmb-head { margin-bottom: 12px !important; }
+#catModal .cmb-body { margin-top: 0 !important; }
+.sh-single > .cmb-head { display: none !important; }
+.sh-single > .cmb-body { display: block !important; margin: 0 !important; animation: none; }
+#catModal .icon-btn { min-height: 44px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 14px; border-radius: 12px; font-size: .86rem; font-weight: 700; line-height: 1.3; text-align: center; }
+#catModal .icon-btn svg { flex: none; }
+#catModal #taxSeedBox button, #catModal .cmb-body > .primary-btn, #catModal #pricingBox .primary-btn { display: flex; width: 100%; margin: 8px 0 0 !important; }
+#catModal #taxSeedBox button:first-of-type { margin-top: 0 !important; }
+#catModal #taxSeedBox small { display: block; margin: 0 0 12px !important; line-height: 1.9; }
+#catModal #taxSeedBox h4 { display: flex; align-items: center; gap: 8px; }
+#catModal .form-group { margin: 0 0 14px; }
+#catModal .form-group:last-child { margin-bottom: 0; }
+#catModal .form-group label { display: block; margin: 0 0 6px; font-size: .8rem; font-weight: 700; line-height: 1.6; color: var(--navy); text-align: right; }
+[data-theme="dark"] #catModal .form-group label { color: var(--text-main); }
+#catModal input:not([type=checkbox]):not([type=radio]):not([type=file]), #catModal select { width: 100%; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; font-size: .9rem; font-family: inherit; }
+#catModal input[type=date] { text-align: right; }
+#catModal .add-inline-row { display: flex; gap: 8px; align-items: stretch; }
+#catModal .add-inline-row > * { min-width: 0; }
+#catModal .add-inline-row input { flex: 1 1 0; width: auto; }
+#catModal .add-inline-row .icon-btn { flex: none; padding: 0 16px; }
+#catModal .add-inline-row input[id^="alertM"] { flex: 1 1 0; width: auto; text-align: center; }
+#catModal #newTabIcon { flex: none !important; width: 52px !important; padding: 0 !important; text-align: center; }
+#catModal .manager-list { max-height: 260px; gap: 8px; margin-bottom: 12px; padding: 0; }
+#catModal .manager-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; min-height: 52px; border-radius: 12px; }
+#catModal .manager-item > span { flex: 1; min-width: 0; text-align: right; font-size: .86rem; line-height: 1.6; word-break: break-word; }
+#catModal .manager-item > div { flex: none; display: flex; gap: 6px; }
+#catModal .manager-item .icon-btn { min-height: 38px; min-width: 38px; padding: 0 10px; font-size: .78rem; }
+#catModal .manager-item .mi-del { padding: 0; width: 38px; }
+#catModal .manager-item .mi-edit { padding: 0; width: 38px; }
+#catModal .manager-item .mi-t { display: none; }
+@media (min-width: 460px) { #catModal .manager-item .mi-edit { width: auto; padding: 0 12px; } #catModal .manager-item .mi-t { display: inline; } }
+#catModal .tools-grid { gap: 8px; }
+#catModal .tools-grid .icon-btn { min-height: 48px; width: 100%; }
+#catModal .tools-grid > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+#catModal .cat-manager-box p, #catModal .cat-manager-box > .cmb-body > small, #catModal .ai-note { margin: 12px 0 0; font-size: .76rem; line-height: 1.9; color: var(--text-sub); text-align: right; }
+#catModal .pc-row { display: flex; align-items: center; gap: 6px; margin: 0 0 8px; font-size: .8rem; }
+#catModal .pc-row .pc-l { flex: 1; min-width: 0; font-size: .8rem; }
+#catModal .pc-row input { flex: none; width: 66px !important; min-height: 40px; padding: 0 6px !important; text-align: center; }
+#catModal .pc-row .pc-fix { flex: none; width: 14px; text-align: center; }
+#catModal .modal-actions-row { margin-top: 14px; }
+#catModal .modal-actions-row .icon-btn { width: 100%; min-height: 48px; }
+.qk-row, .sh-quick .qk-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--border); }
+.sh-quick .qk-row:last-of-type { border-bottom: 0; }
+.qk-row > div { flex: 1; min-width: 0; text-align: right; }
+.qk-row b { display: block; font-size: .88rem; line-height: 1.5; }
+.qk-row small { display: block; margin-top: 2px; font-size: .74rem; line-height: 1.7; color: var(--text-sub); }
+.sh-grid { grid-auto-rows: 1fr; }
+.sh-card { padding: 12px 12px 12px 34px; min-height: 92px; align-items: center; }
+.sh-tx { flex: 1; text-align: right; }
+.sh-star { top: 6px; bottom: auto; left: 6px; }
+.sh-badge { top: auto; bottom: 8px; left: 8px; }
+.sh-bar { margin: -18px -16px 14px; padding: 12px 16px; top: -18px; }
+.sh-search input { min-height: 44px; }
+
+/* v145b */
+.sh-card { padding: 12px 12px 12px 22px; }
+.sh-star { top: 4px; left: 4px; width: 24px; height: 24px; }
+#catModal .pc-row .pc-l { flex: 1 0 auto; white-space: nowrap; font-size: .78rem; }
+#catModal .pc-row input { width: 62px !important; }
+#catModal .tools-grid > :nth-child(odd):nth-last-child(2):has(+ [style*="grid-column"]) { grid-column: 1 / -1; }
+.sh-danger p { margin: 0 0 12px !important; }
+.sh-danger { margin-top: 12px; }
+#catModal .ai-test-result:empty, #catModal p:empty { display: none; }

@@ -642,8 +642,8 @@ function renderManagerLists() {
         <div class="manager-item">
             <span>${escapeHtml(d)}${taxLegacy.d.includes(d) ? ` <em class="tg warn">قديم${dUsed.has(d) ? ' — ' + cnt('department', 'extraDepartments', d) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
             <div style="display:flex; gap:6px;">
-                <button class="icon-btn" onclick="renameDepartment(${i})">✏️ تعديل الاسم</button>
-                <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteManagerItem('dept', ${i})">🗑️</button>
+                <button class="icon-btn mi-edit" aria-label="تعديل الاسم" onclick="renameDepartment(${i})">✏️<span class="mi-t"> تعديل الاسم</span></button>
+                <button class="icon-btn mi-del" aria-label="حذف" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteManagerItem('dept', ${i})">🗑️</button>
             </div>
         </div>
     `).join('');
@@ -654,8 +654,8 @@ function renderManagerLists() {
         <div class="manager-item">
             <span>${escapeHtml(c)}${ownerOf(c) ? ` <small style="color:var(--text-sub)">· ${escapeHtml(ownerOf(c))}</small>` : ''}${taxLegacy.c.includes(c) ? ` <em class="tg warn">قديم${cUsed.has(c) ? ' — ' + cnt('category', 'extraCategories', c) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
             <div style="display:flex; gap:6px;">
-                <button class="icon-btn" onclick="renameSubCategory(${i})">✏️ تعديل الاسم</button>
-                <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteManagerItem('cat', ${i})">🗑️</button>
+                <button class="icon-btn mi-edit" aria-label="تعديل الاسم" onclick="renameSubCategory(${i})">✏️<span class="mi-t"> تعديل الاسم</span></button>
+                <button class="icon-btn mi-del" aria-label="حذف" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteManagerItem('cat', ${i})">🗑️</button>
             </div>
         </div>
     `).join('');
@@ -666,7 +666,7 @@ function renderManagerLists() {
             <div class="manager-item">
                 <span>${escTab(tabLabels[key])}<small style="color:var(--text-sub); font-weight:500;">${note}</small></span>
                 <div style="display:flex; gap:6px;">
-                    <button class="icon-btn" onclick="renameTab('${key}')">✏️ تعديل الاسم</button>
+                    <button class="icon-btn mi-edit" aria-label="تعديل الاسم" onclick="renameTab('${key}')">✏️<span class="mi-t"> تعديل الاسم</span></button>
                 </div>
             </div>`;
         const custom = customTabs.map(t => `
