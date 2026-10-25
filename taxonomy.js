@@ -73,7 +73,19 @@ function taxRvSave() { try { localStorage.setItem('diwanTaxRv', JSON.stringify(t
 function taxKeys(n) { const k = taxKey(n), b = k.replace(/\s+(cream|ointment|tablets?|capsules?|syrup|gel|solution|drops|shampoo|lotion|spray|ampoule|vial|suspension)$/, ''); return b !== k ? [k, b] : [k]; }
 function taxKey(n) { return String(n || '').toLowerCase().split(/\s\d|\s*\(|\s[x×]\s*\d/)[0].trim(); }
 let taxFirstIdx = null;
+// قواعد بالكلمات (أولوية على الجدول) للمنتجات الواضحة: [regex، القسم، التصنيف]
+const TAX_KW = [
+    [/floss|interdental|inter-dental|خيط اسنان|خيط أسنان|بين الاسنان|بين الأسنان/i, 'الفم والأسنان', 'خيط أسنان وفرش بين الأسنان'],
+    [/tooth\s*paste|toothpaste|dentifrice|tooth\s*brush|toothbrush|معجون اسنان|معجون أسنان|فرشاة/i, 'الفم والأسنان', 'معاجين وفُرش'],
+    [/mouth\s*wash|mouthwash|mouth\s*rinse|غسول فم/i, 'الفم والأسنان', 'غسول الفم'],
+    [/lip\s*(balm|care|stick|gloss|salve|butter)|lipstick|مرطب شفاه|بلسم شفاه/i, 'العناية الشخصية والتجميل', 'العناية بالشفاه']
+];
+function taxKwHit(name) {
+    for (const [re, d, s] of TAX_KW) if (re.test(name || '')) { const di = TAX_DEPTS.indexOf(d), si = di < 0 ? -1 : TAX_SEED[d].indexOf(s); if (si >= 0) return { d: di + 1, s: si + 1, guess: false }; }
+    return null;
+}
 function taxSuggest(p) {   // يرجع {d, s, guess} أو null
+    const kw = taxKwHit(p.name); if (kw) return kw;
     const k = taxKey(p.name), hit = taxKeys(p.name).map(x => TAX_MAP[x]).find(Boolean);
     if (hit) return { d: hit[0], s: hit[1], guess: false };
     const h = TAX_LEGACY_HINT[p.category]; if (h) return { d: h[0], s: h[1], guess: true };
