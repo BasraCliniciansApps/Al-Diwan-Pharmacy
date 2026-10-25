@@ -569,6 +569,7 @@ const PU_PANE_TITLES = { month: 'تقرير الوارد الشهري', ret: 'س
 function puPrint(paneId) {   // معاينة داخل التطبيق لمحتوى التبويب (بدون عناصر التحكم) مع زر الطباعة
     const pane = document.getElementById(paneId); if (!pane) return;
     const c = pane.cloneNode(true);
+    c.querySelectorAll('.print-only').forEach(e => { e.classList.remove('print-only'); e.style.display = 'block'; });   // ورقة الطباعة تظهر بالمعاينة
     c.querySelectorAll('.no-print, button, input, select, textarea, script, label.pu-chk').forEach(e => e.remove());
     c.querySelectorAll('[onclick]').forEach(e => e.removeAttribute('onclick'));
     c.removeAttribute('id'); c.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));

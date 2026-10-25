@@ -2681,3 +2681,17 @@ body.ss-lock { overflow: hidden; }
 .form-group input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):not([type=color]), .form-group select,
 .swal2-input, .swal2-select, .xc-search, .tr-search, .fs-search, .alerts-search, .bill-list-search { height: var(--field-h); }
 .swal2-input, .swal2-select { margin: 8px 0; }
+
+/* v162: سجل البونص — بطاقات موحّدة مع عناوين الأيام */
+.bn-day { margin: 14px 4px 6px; font-size: .78rem; font-weight: 800; color: #64748b; display: flex; align-items: center; gap: 8px; }
+.bn-day::after { content: ''; flex: 1; height: 1px; background: #e2e8f0; }
+.bn-card { background: #fff; border: 1px solid #e5eaf2; border-radius: 14px; padding: 10px 14px; margin-bottom: 8px; display: grid; gap: 5px; }
+.bn-r1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.bn-n { flex: 1; min-width: 0; direction: ltr; text-align: right; font-size: .92rem; color: #0f1c38; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bn-v { flex: 0 0 auto; min-width: 64px; text-align: left; font-weight: 800; font-size: .95rem; color: #0f1c38; }
+.bn-v.none { color: #94a3b8; font-weight: 700; }
+.bn-r2 { display: flex; gap: 6px; align-items: center; }
+.bn-tag { font-style: normal; font-size: .68rem; font-weight: 800; padding: 2px 8px; border-radius: 99px; background: #fef3c7; color: #92400e; }
+.bn-r3 { font-size: .74rem; color: #64748b; }
+.bn-del { padding: 4px 10px; }
+[data-theme="dark"] .bn-card { background: var(--surface, #1e293b); border-color: #334155; } [data-theme="dark"] .bn-n, [data-theme="dark"] .bn-v { color: #e2e8f0; }
