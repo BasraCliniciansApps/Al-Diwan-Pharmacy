@@ -2699,3 +2699,13 @@ body.ss-lock { overflow: hidden; }
 /* v164: منع خروج السعر عن البطاقة */
 .bn-card { grid-template-columns: minmax(0, 1fr); }
 .bn-r1 { min-width: 0; }
+
+/* v166: أداة المواد بدون سعر */
+.pz-pop { max-width: 96vw; }
+.pz-hint { font-size: .85rem; color: #64748b; margin-bottom: 10px; text-align: right; }
+.pz-list { max-height: 52vh; overflow-y: auto; border: 1px solid #e5eaf2; border-radius: 12px; text-align: right; }
+.pz-row { display: grid; grid-template-columns: 1fr 120px; gap: 4px 10px; padding: 10px 12px; border-bottom: 1px solid #eef1f6; align-items: center; }
+.pz-n { grid-column: 1 / -1; font-weight: 800; font-size: .88rem; text-align: left; color: #0f1c38; }
+.pz-c { font-size: .76rem; color: #64748b; }
+.pz-row input { height: var(--field-h); box-sizing: border-box; border: 1.5px solid #cbd5e1; border-radius: 12px; padding: 0 10px; font-size: 16px; width: 100%; text-align: center; }
+.pz-fill { margin-top: 12px; min-height: 44px; width: 100%; border: 0; border-radius: 12px; background: #eef2f7; color: #0f1c38; font-weight: 800; font-family: inherit; }

@@ -219,6 +219,7 @@
                 <div class="form-group"><label>تاريخ الكتاب:</label><input type="date" id="pcBookDate"></div>
                 <div class="form-group"><label>تقريب السعر لأقرب (دينار، 0 = بدون تقريب):</label><input type="number" id="pcRound" min="0" inputmode="numeric"></div>
                 <div class="form-group"><label>الشرائح (سعر المذخر بالدولار ← نسبة الإضافة):</label><div id="pcRows"></div></div>
+                <button type="button" class="icon-btn" onclick="pzOpen()" style="margin-bottom:8px;width:100%">🏷️ مواد بدون سعر بيع (مع سعر شرائها)</button>
                 <button type="button" class="icon-btn primary-btn" onclick="savePricingSettings()">💾 حفظ وإعادة تسعير المواد</button>
                 <small style="display:block;margin-top:8px;color:#64748b;line-height:1.7;">تغيير سعر الصرف أو النسب يعيد حساب أسعار كل المواد المسعّرة «حسب كتاب النقابة» دفعة واحدة، بعد تأكيدك. المواد اليدوية لا تتأثر.</small>
             </div>
@@ -639,7 +640,7 @@
     <script src="seed.js"></script>
     <script src="prog.js"></script>
     <script src="data.js"></script>
-<!--A--><script src="invoice.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><!--/A-->
+<!--A--><script src="invoice.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><!--/A-->
     <script>
         if ('serviceWorker' in navigator) {
             const hadCtl = !!navigator.serviceWorker.controller;
