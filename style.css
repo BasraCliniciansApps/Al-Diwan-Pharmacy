@@ -2559,3 +2559,34 @@ body.rv-open { overflow: hidden; }
 .sh-danger p { margin: 0 0 12px !important; }
 .sh-danger { margin-top: 12px; }
 #catModal .ai-test-result:empty, #catModal p:empty { display: none; }
+
+/* v146: قوائم قابلة للبحث */
+.ss-native { position: absolute !important; opacity: 0 !important; pointer-events: none !important; width: 1px !important; height: 1px !important; min-height: 0 !important; padding: 0 !important; border: 0 !important; overflow: hidden; }
+.ss-btn { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 44px; box-sizing: border-box; padding: 0 12px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--surface, #fff); color: var(--text-main, #0f1c38); font-family: inherit; font-size: .9rem; font-weight: 600; text-align: right; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ss-btn .ss-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ss-btn.ss-empty .ss-t { color: var(--text-sub, #64748b); font-weight: 500; }
+.ss-btn i { font-style: normal; color: #94a3b8; font-size: .8rem; }
+.ss-btn:focus-visible, .ss-btn:active { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(249,168,37,.22); }
+.ss-btn:disabled { opacity: .55; }
+body.ss-lock { overflow: hidden; }
+.ss-ov { position: fixed; inset: 0; z-index: 100003; display: flex; align-items: flex-end; justify-content: center; }
+.ss-bd { position: absolute; inset: 0; background: rgba(5,10,22,.55); opacity: 0; transition: opacity .2s; }
+.ss-ov.on .ss-bd { opacity: 1; }
+.ss-sheet { position: relative; width: 100%; max-width: 560px; max-height: 86vh; display: flex; flex-direction: column; background: var(--surface, #fff); color: var(--text-main, #0f1c38); border-radius: 22px 22px 0 0; box-shadow: 0 -10px 40px rgba(0,0,0,.3); transform: translateY(40px); opacity: 0; transition: transform .26s cubic-bezier(.16,1,.3,1), opacity .2s; padding-bottom: env(safe-area-inset-bottom); }
+.ss-ov.on .ss-sheet { transform: none; opacity: 1; }
+.ss-hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 16px 8px; }
+.ss-hd b { font-size: .98rem; font-weight: 800; }
+.ss-x { flex: none; width: 34px; height: 34px; border: 0; border-radius: 50%; background: rgba(15,28,56,.07); color: inherit; font-size: .9rem; cursor: pointer; }
+.ss-sr { position: relative; padding: 4px 16px 10px; }
+.ss-sr input { width: 100%; box-sizing: border-box; min-height: 46px; padding: 0 14px; border-radius: 14px; border: 1.5px solid var(--border); background: var(--surface-2, #f8fafc); color: inherit; font-family: inherit; font-size: 1rem; }
+.ss-sr input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px rgba(249,168,37,.22); }
+.ss-sr span { position: absolute; left: 30px; top: 16px; font-size: .72rem; color: var(--text-sub, #64748b); pointer-events: none; }
+.ss-list { overflow-y: auto; padding: 0 8px 12px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.ss-gh { position: sticky; top: 0; z-index: 1; padding: 8px 12px 6px; font-size: .72rem; font-weight: 800; color: var(--gold-dark, #a85d08); background: var(--surface, #fff); letter-spacing: .02em; }
+.ss-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; min-height: 48px; padding: 0 12px; border: 0; border-radius: 12px; background: transparent; color: inherit; font-family: inherit; font-size: .95rem; font-weight: 600; text-align: right; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.ss-row:active { background: rgba(15,28,56,.07); }
+.ss-row.on { background: var(--gold-soft, #fff3d6); color: var(--gold-dark, #a85d08); font-weight: 800; }
+.ss-row i { font-style: normal; font-weight: 800; }
+.ss-none { padding: 26px 12px; text-align: center; color: var(--text-sub, #64748b); font-size: .88rem; }
+@media (min-width: 640px) { .ss-ov { align-items: center; } .ss-sheet { border-radius: 22px; max-height: 80vh; } }
+@media (prefers-reduced-motion: reduce) { .ss-sheet, .ss-bd { transition: none; } }
