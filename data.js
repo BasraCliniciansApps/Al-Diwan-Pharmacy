@@ -395,6 +395,7 @@ async function initFirebase() {
                 if (data.subCategories) subCategories = data.subCategories;
                 if (data.deptSubs && typeof data.deptSubs === 'object') deptSubs = data.deptSubs;
                 if (data.taxLegacy && Array.isArray(data.taxLegacy.d) && Array.isArray(data.taxLegacy.c)) taxLegacy = data.taxLegacy;
+                if (data.learn && typeof learnImport === 'function') learnImport(data.learn, learnPending());
                 if (data.tabLabels) tabLabels = { ...defaultTabLabels, ...data.tabLabels };
                 if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
                 if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
@@ -492,6 +493,7 @@ async function pushToCloud(onlyMetadata = false) {
                 subCategories,
                 deptSubs,
                 taxLegacy,
+                learn: typeof learnExport === 'function' ? learnExport() : {},
                 tabLabels,
                 customTabs,
                 lowStockThreshold,
@@ -2875,6 +2877,7 @@ function buildBackupObject() {
         subCategories,
         deptSubs,
         taxLegacy,
+        learn: typeof learnExport === 'function' ? learnExport() : {},
         tabLabels,
         customTabs,
         lowStockThreshold,
@@ -3038,6 +3041,7 @@ async function applyBackupData(data) {
         if (Array.isArray(data.subCategories)) subCategories = [...new Set([...subCategories, ...data.subCategories])];
         if (data.deptSubs && typeof data.deptSubs === 'object') deptSubs = { ...deptSubs, ...data.deptSubs };
         if (data.taxLegacy && Array.isArray(data.taxLegacy.d)) taxLegacy = { d: [...new Set([...taxLegacy.d, ...data.taxLegacy.d])], c: [...new Set([...taxLegacy.c, ...(data.taxLegacy.c || [])])] };
+        if (data.learn && typeof learnImport === 'function') learnImport(data.learn, true);
         if (data.tabLabels && typeof data.tabLabels === 'object') tabLabels = { ...defaultTabLabels, ...data.tabLabels };
         if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
         if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;

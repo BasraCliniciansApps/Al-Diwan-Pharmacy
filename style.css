@@ -2418,3 +2418,17 @@ body.rv-open { overflow: hidden; }
 .tr-ln.extra::before { content: '＋ '; font-weight: 800; }
 .tr-tags { margin-top: 3px; display: flex; gap: 6px; flex-wrap: wrap; }
 .tr-f { white-space: nowrap; }
+
+/* v141: التعلم من الاختيارات */
+.ln-btn, .ln-btn2 { font-family: inherit; cursor: pointer; border: 1px solid #cbd5e1; background: #fff; color: #0f1c38; border-radius: 10px; padding: 7px 14px; font-weight: 700; font-size: .8rem; }
+.ln-btn2 { display: block; width: 100%; margin-top: 10px; padding: 10px; }
+.ln-sw { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid #e5e7eb; }
+.ln-sw small { display: block; color: #64748b; font-size: .74rem; font-weight: 500; }
+.ln-stat { margin: 10px 0; color: #475569; font-size: .8rem; }
+.ln-list { max-height: 42vh; overflow: auto; border: 1px solid #e5e7eb; border-radius: 10px; }
+.ln-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border-bottom: 1px solid #f1f5f9; }
+.ln-row small { display: block; color: #64748b; font-size: .72rem; }
+.ln-row em { font-style: normal; color: #0369a1; font-size: .72rem; }
+.ln-row button { border: 0; background: #fee2e2; color: #b91c1c; width: 28px; height: 28px; border-radius: 8px; cursor: pointer; font-weight: 800; }
+.ln-empty { padding: 14px; color: #64748b; text-align: center; font-size: .8rem; }
+.ln-clear { margin-top: 10px; width: 100%; border: 1px solid #fecaca; background: #fff; color: #b91c1c; border-radius: 10px; padding: 9px; font-family: inherit; font-weight: 700; cursor: pointer; }
