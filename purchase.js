@@ -176,7 +176,7 @@ function puRenderItems() {
                 <span class="pu-chev">${it.open ? '▾' : '▸'}</span>
                 <span class="pu-bar-name" dir="ltr">${escapeHtml(it.name)}</span>
                 <span class="pu-bar-sum"><span id="puBq-${i}"></span> × <span id="puBc-${i}"></span> = <b id="puBs-${i}"></b></span>
-                <button type="button" class="pu-x" onclick="event.stopPropagation();puRemoveItem(${i})" aria-label="حذف">✕</button>
+                <button type="button" class="pt-ret ${puNum(it.ret) > 0 ? 'on' : ''}" onclick="event.stopPropagation();ptRet(${i})" title="مردود لهذه المادة">↩️${puNum(it.ret) > 0 ? ' ' + puNum(it.ret) : ''}</button><button type="button" class="pu-x" onclick="event.stopPropagation();puRemoveItem(${i})" aria-label="حذف">✕</button>
             </div>
             <div class="pu-body" style="display:${it.open ? 'block' : 'none'}">
                 <div class="pu-item-h">${puThumb(it.pid)}<span class="pu-item-t"><b dir="ltr">${escapeHtml(it.name)}</b><span>${escapeHtml(puSub(it.pid))}</span></span></div>
@@ -454,7 +454,7 @@ async function puSave() {
     pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew();
     Swal.fire({ icon: 'success', title: editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ الوارد وأُضيفت الكميات للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
     if (editing) puTab('log');
-    else if (Object.keys(retMap).length && typeof ptOpenReturnFor === 'function') ptOpenReturnFor(rec, retMap);
+    if (Object.keys(retMap).length && typeof ptOpenReturnFor === 'function') ptOpenReturnFor(rec, retMap);
 }
 function puCancelEdit() { pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew(); }
 function puEdit(id) {
