@@ -36,7 +36,7 @@ function lgBonusRows() {
         rows.push({ date: r.date, sup: r.supplier, no: r.no, name: l.name, qty: q, cost, vCost: q * cost, rid: r.id, li, bo: puIsBonusOnly(r), vSale: puNum(l.bonusSale) || (q * (Number((products.find(x => x.id === l.pid) || products.find(x => puKey(x.name) === puKey(l.name)) || {}).price) || 0)), createdTs: r.createdTs });
     }));
     lgAll.filter(e => e.kind === 'breq' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.supplier || (e.rep ? 'مندوب ' + e.rep : 'بدون مذخر'), no: e.listNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: 0, createdTs: e.createdTs, xid: e.id, rep: e.rep }));
-    lgAll.filter(e => e.kind === 'bimp' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.supplier || 'بدون مذخر', no: e.linkNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: puNum(e.sale), createdTs: e.createdTs, xid: e.id, bi: true }));
+    lgAll.filter(e => e.kind === 'bimp' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.rep ? 'مندوب ' + e.rep : (e.supplier || 'بدون مذخر'), no: e.linkNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: puNum(e.sale), createdTs: e.createdTs, xid: e.id, bi: true }));
     return { rg, rows: rows.sort(lgSortD) };
 }
 function lgRenderBonus() {
