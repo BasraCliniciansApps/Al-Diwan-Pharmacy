@@ -90,7 +90,7 @@ function syndCalc(cost) {   // سعر البيع = سعر المذخر + نسب�
     const br = pricingCfg.brackets.find(b => b.max === null || (pricingCfg.boundary === 'lower' ? u2 <= b.max : u2 < b.max)) || pricingCfg.brackets[pricingCfg.brackets.length - 1];
     let price = cost * (1 + br.pct / 100);
     const step = pricingCfg.round || 0;
-    if (step > 0) price = Math.round(price / step) * step;
+    if (step > 0) { price = Math.round(price / step) * step; if (price <= cost) price = (Math.floor(cost / step) + 1) * step; }   // لا يُباع بأقل من الكلفة أبداً بسبب التقريب
     return { usd, pct: br.pct, price };
 }
 function markupCalc(cost, pct) {   // سعر البيع = سعر الشراء + نسبة مئوية يدخلها الصيدلي
@@ -98,7 +98,7 @@ function markupCalc(cost, pct) {   // سعر البيع = سعر الشراء + 
     if (!(cost > 0) || !(pct >= 0)) return 0;
     let price = cost * (1 + pct / 100);
     const step = pricingCfg.round || 0;
-    if (step > 0) price = Math.round(price / step) * step;
+    if (step > 0) { price = Math.round(price / step) * step; if (price <= cost) price = (Math.floor(cost / step) + 1) * step; }   // لا يُباع بأقل من الكلفة أبداً بسبب التقريب
     return price;
 }
 function markupHintHtml(cost, pct) {
