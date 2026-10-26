@@ -565,7 +565,7 @@ function billCardHtml(b, extra) {
 }
 function renderIssuedList() {
     const q = ($b('billListSearch').value || '').trim().toLowerCase();
-    const arr = billAll.filter(b => !q || [b.no, b.to, b.customer, b.doctor].some(x => String(x || '').toLowerCase().includes(q)));
+    const arr = billAll.filter(b => !q || [b.no, b.to, b.customer, b.doctor].some(x => String(x || '').toLowerCase().includes(q)) || (b.items || []).some(l => String(l.name || '').toLowerCase().includes(q)));
     $b('billList').innerHTML = arr.map(b => billCardHtml(b)).join('') || '<div class="bill-none">لا توجد فواتير صادرة بعد.</div>';
 }
 function billOpenSaved(id) {

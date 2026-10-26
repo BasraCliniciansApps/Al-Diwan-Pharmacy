@@ -67,7 +67,7 @@
         <section class="pu-pane" id="puPane-log">
             <div class="bill-panel">
                 <div class="pu-logbar"><select id="puLogMonth" onchange="renderPuLog()" aria-label="الشهر"></select>
-                <input type="search" class="bill-list-search" id="puLogSearch" placeholder="🔍 ابحث باسم المذخر أو رقم الفاتورة..." oninput="renderPuLog()"></div>
+                <input type="search" class="bill-list-search" id="puLogSearch" placeholder="🔍 ابحث باسم المذخر أو رقم الفاتورة أو اسم المادة..." oninput="renderPuLog()"></div>
                 <div class="pu-selbar no-print" id="puSelBar"></div>
                 <div class="bill-list" id="puLogList"></div>
             </div>
@@ -104,6 +104,7 @@
         <section class="pu-pane" id="puPane-ret">
             <div class="lg-filters no-print">
                 <label class="pu-mfield"><span>المذخر</span><select id="lgret-sup" onchange="lgRenderRet('ret')"></select></label>
+                <label class="pu-mfield"><span>بحث باسم المادة</span><input type="search" id="lgret-q" autocomplete="off" placeholder="🔍 اسم المادة أو رقم القائمة..." oninput="lgRenderRet('ret')"></label>
                 <label class="pu-mfield"><span>الحالة</span><select id="lgret-st" onchange="lgRenderRet('ret')"><option value="">الكل</option><option value="pending">بانتظار فاتورة المردود</option><option value="done">صدرت فاتورة المردود</option><option value="nostmt">بدون كشف</option></select></label>
                 <label class="pu-mfield"><span>الشهر (اختياري)</span><input type="month" id="lgret-m" oninput="lgRenderRet('ret')"></label>
                 <label class="pu-mfield"><span>تنبيه بعد (يوم)</span><input type="number" id="lgret-days" min="1" oninput="lgSaveDays(this.value)"></label>
@@ -122,6 +123,7 @@
         <section class="pu-pane" id="puPane-unrec">
             <div class="lg-filters no-print">
                 <label class="pu-mfield"><span>المذخر</span><select id="lgunrec-sup" onchange="lgRenderRet('unrec')"></select></label>
+                <label class="pu-mfield"><span>بحث باسم المادة</span><input type="search" id="lgunrec-q" autocomplete="off" placeholder="🔍 اسم المادة أو رقم القائمة..." oninput="lgRenderRet('unrec')"></label>
                 <label class="pu-mfield"><span>السنة (اختياري)</span><input type="number" id="lgunrec-y" min="2000" max="2100" oninput="lgRenderRet('unrec')"></label>
             </div>
             <div class="bill-actions no-print">

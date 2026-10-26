@@ -240,6 +240,8 @@ function lgInitRet(kind) {
 function lgRetFiltered(kind) {
     const sup = $b('lg' + kind + '-sup').value;
     let arr = lgRets().filter(e => (kind === 'unrec' ? e.mode === 'unrec' : true) && (!sup || puKey(e.supplier) === puKey(sup)));
+    const q = $b('lg' + kind + '-q') ? puKey($b('lg' + kind + '-q').value) : '';
+    if (q) arr = arr.filter(e => [e.listNo, e.reason, e.supplier].some(x => puKey(x).includes(q)) || (e.items || []).some(l => puKey(l.name).includes(q)));
     if (kind === 'ret') {
         const st = $b('lgret-st').value, m = $b('lgret-m').value;
         if (st === 'pending') arr = arr.filter(e => lgStatus(e) === 'pending'); else if (st === 'done') arr = arr.filter(e => lgStatus(e) === 'done'); else if (st === 'nostmt') arr = arr.filter(e => !e.stmt);

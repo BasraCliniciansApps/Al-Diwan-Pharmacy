@@ -98,7 +98,7 @@
         <!-- ===== الفواتير الصادرة ===== -->
         <section class="bill-pane" id="billPane-issued">
             <div class="bill-panel no-print">
-                <input type="search" class="bill-list-search" id="billListSearch" placeholder="🔍 ابحث برقم الفاتورة أو الاسم..." oninput="renderIssuedList()">
+                <input type="search" class="bill-list-search" id="billListSearch" placeholder="🔍 ابحث برقم الفاتورة أو الاسم أو اسم المادة..." oninput="renderIssuedList()">
                 <div class="bill-list" id="billList"></div>
             </div>
         </section>

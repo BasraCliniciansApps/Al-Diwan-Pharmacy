@@ -509,7 +509,7 @@ function puLogFillMonths() {
 function renderPuLog() {
     puLogFillMonths();
     const q = puKey($b('puLogSearch').value), m = $b('puLogMonth') ? $b('puLogMonth').value : '';
-    let arr = puAll.filter(r => !puIsBonusOnly(r)).filter(r => !m || puMonthOf(r) === m).filter(r => !q || [r.supplier, r.no].some(x => puKey(x).includes(q)));
+    let arr = puAll.filter(r => !puIsBonusOnly(r)).filter(r => !m || puMonthOf(r) === m).filter(r => !q || [r.supplier, r.no].some(x => puKey(x).includes(q)) || (r.items || []).some(l => puKey(l.name).includes(q)));
     arr = m ? arr.slice().sort(puSeqCmp) : arr.slice().sort((a, b) => puMonthOf(b).localeCompare(puMonthOf(a)) || puSeqCmp(a, b));
     puLogShown = arr.map(r => r.id);
     $b('puLogList').innerHTML = arr.map(r => puCardHtml(r, undefined, true)).join('') || '<div class="bill-none">لا توجد واردات مسجّلة بعد.</div>';
