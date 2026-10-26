@@ -1714,6 +1714,7 @@ function openFormModal(id = null) {
         document.getElementById('fQty').value = 5;
         document.getElementById('fImg').value = '';
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = 0;
+        if (document.getElementById('fCost')) document.getElementById('fCost').value = '';   // لا يبقى سعر شراء المادة السابقة
         fillRetailForm(null);
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = '';
         if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = '';
