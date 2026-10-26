@@ -5001,7 +5001,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         try { history.pushState({ g: 1 }, ''); } catch (e) { /* تجاهل */ }
         if (closeTopLayer()) return;
         if (IS_ADMIN_PAGE && typeof currentView !== 'undefined' && !['home', 'login', 'splash'].includes(currentView)) {
-            if (currentView === 'bill' && typeof bill !== 'undefined' && bill && bill.editing) { try { cancelInvoiceEdit(); } catch (e) { /* تجاهل */ } }
+            if (currentView === 'bill' && typeof bill !== 'undefined' && bill && bill.editing) { try { cancelInvoiceEditNow(); } catch (e) { /* تجاهل */ } }
             showView('home'); return;
         }
         if (asking) return; asking = true;

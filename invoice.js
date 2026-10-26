@@ -392,6 +392,9 @@ function editIssuedInvoice() {
 }
 async function cancelInvoiceEdit() {
     if (!(await askSure('إلغاء التعديل؟', 'ستضيع كل التغييرات غير المحفوظة على هذه الفاتورة.', 'إلغاء التعديل'))) return;
+    cancelInvoiceEditNow();
+}
+function cancelInvoiceEditNow() {
     if (!billEditBase) { if (bill) bill.editing = false; updateIssuedUI(); return; }
     bill = billEditBase; billEditBase = null; bill.editing = false;
     lsSet(BILL_LS.draft, JSON.stringify(bill)); writeInvoiceFields(); renderInvoiceRows(); recalcInvoice();
