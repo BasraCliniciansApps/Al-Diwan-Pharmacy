@@ -156,6 +156,47 @@ async function applyHistoryImport(data) {
     } catch (e) { h.fail('تعذر الاستيراد', e.message || String(e)); Swal.fire({ icon: 'error', title: 'تعذر الاستيراد', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
 }
 
+// ---------- استبدال الوارد والمردود والبونص المستورد من الإكسل: لا يمس ما أدخلته بالتطبيق ولا المخزن ----------
+const bkIsImpPu = r => !!r && (r.imp === true || /^pimp-/.test(String(r.id)));
+const bkIsImpRet = e => !!e && e.kind === 'ret' && (e.imp === true || /^limp-/.test(String(e.id))) && e.mode !== 'unrec';
+const bkIsImpBonus = e => !!e && e.kind === 'bimp' && e.imp === true && !e.linkRid;
+async function applyHistoryReplace(data) {
+    const keyOf = r => puKey(r.supplier) + '|' + String(r.no).trim();
+    const lkOf = e => { const p = String(e.listKey || '').split('|'); return p.length > 1 ? puKey(p[0]) + '|' + p.slice(1).join('|').trim() : ''; };
+    const delPu = puAll.filter(bkIsImpPu), keepPu = puAll.filter(r => !bkIsImpPu(r));
+    const delLg = lgAll.filter(e => bkIsImpRet(e) || bkIsImpBonus(e));
+    const keepKeys = new Set(keepPu.map(keyOf));
+    const incomingPu = (data.purchases || []).filter(r => r && r.id);
+    const newPu = incomingPu.filter(r => !keepKeys.has(keyOf(r)));
+    const skipKeys = new Set(incomingPu.filter(r => keepKeys.has(keyOf(r))).map(keyOf));
+    const newLg = (data.ledger || []).filter(e => e && e.id && !(lkOf(e) && skipKeys.has(lkOf(e))));
+    const nRet = newLg.filter(e => e.kind === 'ret').length, nBon = newLg.filter(e => e.kind === 'bimp').length;
+    const ok = await Swal.fire({ title: 'استبدال الوارد المستورد؟', icon: 'warning', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، استبدل', cancelButtonText: 'إلغاء',
+        html: `<div style="text-align:right;line-height:1.9;font-size:.92rem"><b>يُحذف (المستورد سابقاً من الإكسل فقط):</b><br>• ${fmtNum(delPu.length)} قائمة وارد بموادها<br>• ${fmtNum(delLg.filter(bkIsImpRet).length)} مردود<br>• ${fmtNum(delLg.filter(bkIsImpBonus).length)} سطر بونص غير مربوط<br><b>يُضاف:</b><br>• ${fmtNum(newPu.length)} قائمة وارد<br>• ${fmtNum(nRet)} مردود<br>• ${fmtNum(nBon)} سطر بونص<br><span style="color:#166534">محمي ولا يُمس: ${fmtNum(keepPu.length)} قائمة أدخلتها بالتطبيق${skipKeys.size ? ' (' + fmtNum(skipKeys.size) + ' منها موجودة أيضاً بالملف فتُتخطى)' : ''}، مع مردوداتها وبونصها.</span><br><span style="color:#64748b">لا يتغير المخزن ولا الباركود. تُنزَّل نسخة احتياطية كاملة قبل التنفيذ.</span></div>` });
+    if (!ok.isConfirmed) return;
+    const h = Prog.start('استبدال الوارد المستورد', { text: 'نسخة احتياطية قبل التنفيذ...' });
+    try {
+        h.span(0, 10); await downloadFile(`diwan-before-replace-${todayStamp()}.json`, JSON.stringify(buildFullBackup()), 'application/json');
+        h.set(10, 'حذف القديم...'); h.span(10, 45);
+        if (cloudReady()) {
+            const all = delPu.map(x => ['pharmacy_purchases', x.id]).concat(delLg.map(x => ['pharmacy_ledger', x.id])); let d = 0;
+            for (let i = 0; i < all.length; i += 20) {
+                await Promise.all(all.slice(i, i + 20).map(([c, id]) => fsWrite(db.collection(c).doc(String(id)).delete())));
+                d += Math.min(20, all.length - i); progTick(d, all.length, 'حذف القديم: ' + fmtNum(d) + ' من ' + fmtNum(all.length));
+            }
+        }
+        const dl = new Set(delLg.map(x => x.id));
+        puAll = keepPu; lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500)));
+        lgAll = lgAll.filter(e => !dl.has(e.id)); lsSet(LG_LS.list, JSON.stringify(lgAll));
+        h.set(45, 'رفع الجديد...'); h.span(45, 96);
+        await bkApplyPlan(bkPlan({ purchases: newPu, suppliers: data.suppliers || [], ledger: newLg }).filter(p => p.total));
+        h.set(97, 'تحديث السجل...');
+        if (typeof lgLoad === 'function') { try { await lgLoad(); } catch (e) { /* تجاهل */ } }
+        renderAll(); h.ok('تم الاستبدال');
+        Swal.fire({ icon: 'success', title: 'تم الاستبدال', text: `${fmtNum(newPu.length)} قائمة، ${fmtNum(nRet)} مردود، ${fmtNum(nBon)} بونص`, confirmButtonColor: '#0f1c38' });
+    } catch (e) { h.fail('تعذر الاستبدال', e.message || String(e)); Swal.fire({ icon: 'error', title: 'تعذر الاستبدال', text: (e.message || String(e)) + ' — يمكنك إعادة المحاولة بأمان.', confirmButtonColor: '#0f1c38' }); }
+}
+
 // ---------- تصحيح: أسعار بيع البونص المستوردة من الإكسل (يملأ bonusSale الناقص فقط، لا يمس المخزن) ----------
 async function applyBonusPatch(data) {
     const nz = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, '');

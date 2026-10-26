@@ -61,7 +61,7 @@ function lgSumData(year) {
             unrec: lgRets().filter(e => e.mode === 'unrec' && inM(e)).reduce((s, e) => s + puNum(e.amount), 0),
             xfer: lgXfers().filter(inM).reduce((s, e) => s + (e.dir === 'out' ? 1 : -1) * puNum(e.amount), 0),
             exp: lgExps().filter(inM).reduce((s, e) => s + puNum(e.amount), 0),
-            bonus: puAll.filter(r => !r.cancelled && puMonthOf(r) === m).reduce((s, r) => s + (r.items || []).reduce((a, l) => a + puNum(l.bonusSale), 0), 0),
+            bonus: puAll.filter(r => !r.cancelled && puMonthOf(r) === m).reduce((s, r) => s + (r.items || []).reduce((a, l) => a + puNum(l.bonusSale), 0), 0) + lgAll.filter(e => e.kind === 'bimp' && !e.del && String(e.date || '').slice(0, 7) === m).reduce((s, e) => s + puNum(e.sale), 0),
             disc: lgPays().filter(inM).reduce((s, e) => s + puNum(e.disc), 0), paid: lgPays().filter(inM).reduce((s, e) => s + puNum(e.gross), 0),
             profitB: sm ? sm.costRev - sm.cost : 0
         });

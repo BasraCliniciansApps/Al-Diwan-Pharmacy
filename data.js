@@ -2959,7 +2959,7 @@ function exportCsv() {
 
 function validateBackup(data) {
     if (!data || typeof data !== 'object' || !Array.isArray(data.products)) return 'الملف ليس نسخة احتياطية لهذا التطبيق.';
-    if (data.importMeta && (data.importMeta.kind === 'history-import' || data.importMeta.kind === 'bonus-sale-patch')) return null;   // استيراد سجلات بلا أصناف
+    if (data.importMeta && (data.importMeta.kind === 'history-import' || data.importMeta.kind === 'history-replace' || data.importMeta.kind === 'bonus-sale-patch')) return null;   // استيراد سجلات بلا أصناف
     if (data.products.length === 0) return 'النسخة الاحتياطية لا تحتوي أي أصناف.';
     const bad = data.products.find(p => !p || typeof p !== 'object' || p.id === undefined || p.id === null || !p.name);
     if (bad) return 'بعض الأصناف في الملف ناقصة (بدون رقم أو اسم).';
@@ -3004,6 +3004,7 @@ async function applyBackupData(data) {
         if (!requireOnline()) return;
         if (typeof bkRefresh === 'function' && data.version >= 2) await bkRefresh();
         if (data.importMeta && data.importMeta.kind === 'history-import') { await applyHistoryImport(data); return; }
+        if (data.importMeta && data.importMeta.kind === 'history-replace') { await applyHistoryReplace(data); return; }
         if (data.importMeta && data.importMeta.kind === 'bonus-sale-patch') { await applyBonusPatch(data); return; }
         const existingIds = new Set(products.map(p => p.id));
         const replaced = data.products.filter(p => existingIds.has(p.id)).length;
