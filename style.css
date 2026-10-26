@@ -2798,3 +2798,7 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .un-p { display: grid; gap: 2px; text-align: left; min-width: 64px; } .un-p b { font-size: .88rem; } .un-p small { color: #64748b; font-size: .72rem; }
 .un-bar { position: sticky; bottom: 0; z-index: 5; display: flex; gap: 8px; align-items: center; background: #0f1c38; color: #fff; padding: 10px 14px; border-radius: 14px; margin-top: 8px; }
 .un-bar b { flex: 1; } [data-theme="dark"] .un-row { background: var(--surface, #1e293b); border-color: #334155; } [data-theme="dark"] .un-row.on { background: #1e3a5f; }
+
+.pu-xb{display:grid;grid-template-columns:auto 1fr 1.3fr 1.3fr auto;gap:6px;align-items:end;margin:8px 0;padding:8px;border:1px dashed var(--border,#cbd5e1);border-radius:10px}
+.pu-xb>b{font-size:.78rem;padding-bottom:10px}
+.pu-xb-add{width:100%;margin:6px 0;padding:8px;border:1px dashed #0f1c38;border-radius:10px;background:transparent;font-weight:700;color:#0f1c38;cursor:pointer}
