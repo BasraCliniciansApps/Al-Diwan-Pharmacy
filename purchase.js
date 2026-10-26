@@ -213,11 +213,13 @@ function puRetailPrice(it) {   // سعر الجزء المتوقع: اليدوي
     if (pm === 'percent' && cost > 0) price = markupCalc(cost, puNum(puMk(it))); else if (pm === 'syndicate' && cost > 0) price = syndPrice(cost); else if (puNum(it.pprice) > 0) price = puNum(it.pprice);
     return subPriceCalc(price, puNum(puRC(it)));
 }
+// ملخص التجزئة: كل جزء معزول اتجاهياً حتى لا تختلط الأرقام والكلمات الإنكليزية والعربية
+const puRetailSumHtml = (c, ty, price) => `<bdi>${escapeHtml(String(c))} ${escapeHtml(String(ty))}</bdi> • <bdi>${fmtNum(price)} د.ع</bdi>`;
 function puRetailHtml(it, i) {
     const c = puNum(puRC(it)), on = c > 1;
     const types = subTypes.slice(); if (!types.includes(puRT(it))) types.push(puRT(it));
     return `<div class="pu-retail ${it.ropen ? 'open' : ''}" id="puR-${i}">
-        <div class="pu-rbar" onclick="puRToggle(${i})"><span class="pu-chev">${it.ropen ? '▾' : '▸'}</span><span>🧩 التجزئة وتسعيرها</span><small id="puRs-${i}">${on ? c + ' ' + escapeHtml(puRT(it)) + ' • ' + fmtNum(puRetailPrice(it)) + ' د.ع' : 'غير مفعّلة'}</small></div>
+        <div class="pu-rbar" onclick="puRToggle(${i})"><span class="pu-chev">${it.ropen ? '▾' : '▸'}</span><span>🧩 التجزئة وتسعيرها</span><small id="puRs-${i}" dir="rtl">${on ? puRetailSumHtml(c, puRT(it), puRetailPrice(it)) : 'غير مفعّلة'}</small></div>
         <div class="pu-rbody" style="display:${it.ropen ? 'grid' : 'none'}">
             <label><span>عدد الأجزاء في العبوة</span><input type="number" min="0" inputmode="numeric" placeholder="مثال: 10" value="${escapeHtml(String(puRC(it)))}" oninput="puRetailEdit(${i},'rsc',this.value)"></label>
             <label><span>نوع الجزء</span><select onchange="puRetailEdit(${i},'rst',this.value)">${types.map(t => `<option value="${escapeHtml(t)}" ${t === puRT(it) ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
@@ -230,7 +232,7 @@ function puRetailEdit(i, f, v) { const it = pu.items[i]; if (!it) return; it[f] 
 function puRetailRefresh(i) {
     const it = pu.items[i]; if (!it) return; const c = puNum(puRC(it)), on = c > 1;
     const s = $b('puRs-' + i), h = $b('puRh-' + i);
-    if (s) s.textContent = on ? c + ' ' + puRT(it) + ' • ' + fmtNum(puRetailPrice(it)) + ' د.ع' : 'غير مفعّلة';
+    if (s) s.innerHTML = on ? puRetailSumHtml(c, puRT(it), puRetailPrice(it)) : 'غير مفعّلة';
     if (h) h.innerHTML = on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' : 'اتركه فارغاً إذا كانت المادة لا تُباع بالتجزئة.';
 }
 function puToggle(i) { if (!pu.items[i]) return; pu.items[i].open = !pu.items[i].open; puRenderItems(); if (pu.items[i].open) { const el = $b('puItem-' + i); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }

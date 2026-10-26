@@ -61,7 +61,7 @@ function scRender() {
     const box = scE('scCard'), p = products.find(x => x.id === scCur); if (!box || !p) return;
     const cfg = scCfg(), sh = cfg.show, own = userRole === 'owner', price = Number(p.price) || 0;
     let h = `<div class="sc-head">${p.img ? `<img src="${escapeHtml(p.img)}" alt="" onerror="this.style.display='none'">` : '<span class="sc-noimg">💊</span>'}<div><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml([p.brand, fixMetaOrder(p.meta || '')].filter(Boolean).join(' · '))}</small><small>بالمخزن: ${escapeHtml(stockLabel(p))}</small></div></div>`;
-    if (sh.price) h += `<div class="sc-sec sc-price"><span>سعر البيع</span><b>${price > 0 ? fmtNum(price) + ' د.ع' : '— غير مسعّرة'}</b>${hasRetail(p) ? `<small>سعر ${escapeHtml(subTypeOf(p))}: ${fmtNum(subPriceOf(p))} د.ع</small>` : ''}</div>`;
+    if (sh.price) h += `<div class="sc-sec sc-price"><span>سعر البيع</span><b>${price > 0 ? fmtNum(price) + ' د.ع' : '— غير مسعّرة'}</b>${hasRetail(p) ? `<small>سعر <bdi>${escapeHtml(subTypeOf(p))}</bdi>: <bdi>${fmtNum(subPriceOf(p))} د.ع</bdi></small>` : ''}</div>`;
     let refCost = Number(p.costPrice) || 0;
     if (own && sh.cost) {
         const L = scBuyLines(p);

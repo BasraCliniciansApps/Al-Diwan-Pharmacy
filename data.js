@@ -1326,7 +1326,7 @@ function openSheet(id) {
         ? `<div style="font-size:0.78rem; font-weight:800; color:#c2410c; margin-bottom:6px;">⚠️ كمية قليلة (حد التنبيه: ${getMinQty(p)})</div>`
         : '';
     const retailInfo = hasRetail(p)
-        ? `<div class="sheet-section" style="font-size:0.84rem; font-weight:700;">🧩 تُباع بالتجزئة: <b>${escapeHtml(subTypeOf(p))}</b> بسعر <b>${fmtMoney(subPriceOf(p))} د.ع</b> <span style="color:var(--text-sub); font-weight:600;">(العبوة = ${subCountOf(p)} ${escapeHtml(subTypeOf(p))})</span></div>` : '';
+        ? `<div class="sheet-section" style="font-size:0.84rem; font-weight:700;">🧩 تُباع بالتجزئة: <b><bdi>${escapeHtml(subTypeOf(p))}</bdi></b> بسعر <b><bdi>${fmtMoney(subPriceOf(p))} د.ع</bdi></b> <span style="color:var(--text-sub); font-weight:600;">(العبوة = ${subCountOf(p)} ${escapeHtml(subTypeOf(p))})</span></div>` : '';
     const altHtml = buildAlternativesHtml(p);
     const activeLine = p.activeIngredient
         ? `<p dir="ltr" style="font-size:0.82rem; font-weight:800; color:var(--primary-dark); text-align:left; margin-bottom:6px;">${escapeHtml(p.activeIngredient)}</p>`

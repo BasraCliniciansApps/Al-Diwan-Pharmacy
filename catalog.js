@@ -320,7 +320,7 @@ async function openCountDialog(id) {
         html: `<div class="qp"><div class="sw-info" dir="ltr"><b>${escapeHtml(p.name)}</b></div>
             <div class="${sc ? 'qg2' : ''} qrow"><div class="qf"><span>علب كاملة</span><input id="ctBox" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${q0}" onfocus="this.select()"></div>
             ${sc ? `<div class="qf"><span>${escapeHtml(ty)} مفتوحة</span><input id="ctPart" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${l0}" onfocus="this.select()"></div>` : ''}</div>
-            ${sc ? `<div class="qf qrow"><span>المجموع بالأجزاء (العبوة = ${sc} ${escapeHtml(ty)}) — عدّله فتتحول العلب والأجزاء تلقائياً</span><input id="ctTot" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${q0 * sc + l0}" onfocus="this.select()"></div><div class="qnote" id="ctNote" style="color:#475569"></div>` : ''}</div>`,
+            ${sc ? `<div class="qf qrow"><span>المجموع بالأجزاء (العبوة = <bdi>${sc} ${escapeHtml(ty)}</bdi>) — عدّله فتتحول العلب والأجزاء تلقائياً</span><input id="ctTot" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${q0 * sc + l0}" onfocus="this.select()"></div><div class="qnote" id="ctNote" style="color:#475569"></div>` : ''}</div>`,
         didOpen: () => {
             if (!sc) return;
             const $ = i => document.getElementById(i), note = () => { const b = parseInt($('ctBox').value) || 0, pr = parseInt($('ctPart').value) || 0; $('ctNote').textContent = `= ${b} عبوة + ${pr} ${ty}`; };
