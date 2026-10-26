@@ -135,8 +135,9 @@ function learnOpen() {
         <button type="button" class="ln-clear" onclick="learnClear()">مسح كل ما تعلّمه</button></div>`;
     Swal.fire({ title: 'قواعدي', html, width: 'min(94vw, 520px)', confirmButtonColor: '#0f1c38', confirmButtonText: 'تم', didOpen: () => { const c = document.getElementById('lnOn'); if (c) c.addEventListener('change', () => { learnData.off = !c.checked; learnSave(); learnPush(); }); } });
 }
-function learnDel(tok, kind) {
+async function learnDel(tok, kind) {
     const a = learnData.tk[tok]; if (!a) return;
+    if (!(await askSure('حذف هذا التعلّم؟', tok, 'حذف'))) return;
     a[kind === 'c' ? 'c' : 'f'] = {}; if (!Object.keys(a.c).length && !Object.keys(a.f).length) delete learnData.tk[tok];
     learnSave(); learnPush(); learnOpen();
 }

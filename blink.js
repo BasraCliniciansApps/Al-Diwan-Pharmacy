@@ -40,7 +40,7 @@ async function blLink(id) {
     const rec = puAll.find(x => x.id === r.value.rid); if (!rec) return;
     e.rep = ''; e.linkRid = rec.id; e.linkNo = rec.no; e.linkSup = rec.supplier; e.upd = new Date().toISOString(); await lgSave(e); lgRenderBlink();
 }
-async function blUnlink(id) { const e = lgAll.find(x => x.id === id); if (!e) return; e.rep = ''; e.linkRid = ''; e.linkNo = ''; e.linkSup = ''; e.upd = new Date().toISOString(); await lgSave(e); lgRenderBlink(); }
+async function blUnlink(id) { const e = lgAll.find(x => x.id === id); if (!e) return; if (!(await askSure('إلغاء ربط هذا البونص؟', e.name || '', 'إلغاء الربط'))) return; e.rep = ''; e.linkRid = ''; e.linkNo = ''; e.linkSup = ''; e.upd = new Date().toISOString(); await lgSave(e); lgRenderBlink(); }
 async function blDel(id) {
     const e = lgAll.find(x => x.id === id); if (!e) return;
     const r = await Swal.fire({ icon: 'warning', title: 'حذف هذا البونص؟', text: e.name, showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });

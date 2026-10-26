@@ -171,7 +171,7 @@ function billSetUnit(i, unit) {
     it.price = unit === 'part' ? subPriceOf(p) : (p.price || '');
     renderInvoiceRows(); billChanged();
 }
-function billRemoveRow(i) { bill.items.splice(i, 1); renderInvoiceRows(); billChanged(); }
+async function billRemoveRow(i) { const it = bill.items[i]; if (!it) return; if (!(await askSure('حذف هذا السطر من الفاتورة؟', it.name || '', 'حذف'))) return; bill.items.splice(i, 1); renderInvoiceRows(); billChanged(); }
 function billAddBlank() { bill.items.push({ name: '', qty: 1, price: '', unit: 'pack' }); renderInvoiceRows(); billChanged(); const t = document.querySelectorAll('#billRows textarea'); if (t.length) t[t.length - 1].focus(); }
 function billAddProduct(id) {
     const p = products.find(x => x.id === id);
@@ -258,7 +258,7 @@ function billPickImage(key, input) {
     img.onerror = () => URL.revokeObjectURL(url);
     img.src = url;
 }
-function billClearImages() { lsDel(BILL_LS.sig); lsDel(BILL_LS.stamp); renderInvImages(); }
+async function billClearImages() { if (!(await askSure('إزالة الصورتين؟', 'سيُحذف التوقيع والختم المحفوظان.', 'إزالة'))) return; lsDel(BILL_LS.sig); lsDel(BILL_LS.stamp); renderInvImages(); }
 
 
 // ---------- فتح الصفحات ----------
@@ -390,7 +390,8 @@ function editIssuedInvoice() {
     bill.editing = true; $b('billDeduct').checked = bill.deducted !== false;
     updateIssuedUI(); renderInvoiceRows(); recalcInvoice();
 }
-function cancelInvoiceEdit() {
+async function cancelInvoiceEdit() {
+    if (!(await askSure('إلغاء التعديل؟', 'ستضيع كل التغييرات غير المحفوظة على هذه الفاتورة.', 'إلغاء التعديل'))) return;
     if (!billEditBase) { if (bill) bill.editing = false; updateIssuedUI(); return; }
     bill = billEditBase; billEditBase = null; bill.editing = false;
     lsSet(BILL_LS.draft, JSON.stringify(bill)); writeInvoiceFields(); renderInvoiceRows(); recalcInvoice();

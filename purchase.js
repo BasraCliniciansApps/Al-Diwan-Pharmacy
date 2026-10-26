@@ -269,10 +269,10 @@ function puItemEdit(i, f, v) {
 }
 function puXbAdd(i) { const it = pu.items[i]; if (!it) return; if (!puHasX(it)) { it.q0 = it.qty; it.xb = []; } it.xb.push({ q: '', expiry: '', batch: '' }); puSyncQty(it); it.open = true; puRenderItems(); puChanged(); }
 function puXbEdit(i, j, f, v) { const it = pu.items[i]; if (!it || !it.xb || !it.xb[j]) return; it.xb[j][f] = v; puSyncQty(it); puRecalc(); puChanged(); }
-function puXbDel(i, j) { const it = pu.items[i]; if (!it || !it.xb) return; it.xb.splice(j, 1); puSyncQty(it); puRenderItems(); puChanged(); }
+async function puXbDel(i, j) { const it = pu.items[i]; if (!it || !it.xb) return; const b = it.xb[j]; if (b && (parseInt(b.q) > 0 || b.expiry || b.batch) && !(await askSure('حذف هذه الدفعة؟', 'دفعة ' + (j + 2), 'حذف'))) return; it.xb.splice(j, 1); puSyncQty(it); puRenderItems(); puChanged(); }
 const puXbHtml = (it, i) => (it.xb || []).map((b, j) => `<div class="pu-xb"><div class="pu-xb-h"><b>دفعة ${j + 2}</b><button type="button" class="pu-x" onclick="puXbDel(${i},${j})" aria-label="حذف الدفعة">✕</button></div><div class="pu-grid"><label><span>العدد (عبوة)</span><input type="number" min="0" inputmode="numeric" value="${escapeHtml(String(b.q))}" oninput="puXbEdit(${i},${j},'q',this.value)"></label><label><span>تاريخ الانتهاء</span><input type="month" dir="ltr" value="${escapeHtml(b.expiry || '')}" oninput="puXbEdit(${i},${j},'expiry',this.value)"></label><label class="pu-xb-b"><span>رقم الدفعة (اختياري)</span><input dir="ltr" value="${escapeHtml(b.batch || '')}" oninput="puXbEdit(${i},${j},'batch',this.value)"></label></div></div>`).join('');
 
-function puRemoveItem(i) { pu.items.splice(i, 1); puRenderItems(); puChanged(); }
+async function puRemoveItem(i) { const it = pu.items[i]; if (!it) return; if (!(await askSure('حذف هذه المادة من الفاتورة؟', it.name, 'حذف'))) return; pu.items.splice(i, 1); puRenderItems(); puChanged(); }
 function puAddProduct(id) {
     const p = products.find(x => x.id === id); if (!p) return;
     if (puPendingBc) { puAttachBarcode(p, puPendingBc); puPendingBc = ''; puShowPending(); }
@@ -456,7 +456,7 @@ async function puSave() {
     if (editing) puTab('log');
     if (Object.keys(retMap).length && typeof ptOpenReturnFor === 'function') ptOpenReturnFor(rec, retMap);
 }
-function puCancelEdit() { pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew(); }
+async function puCancelEdit() { if (!(await askSure('إلغاء التعديل؟', 'ستضيع كل التغييرات غير المحفوظة على هذه الفاتورة.', 'إلغاء التعديل'))) return; pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew(); }
 function puEdit(id) {
     const r = puAll.find(x => x.id === id); if (!r || r.cancelled) return;
     if (pu && pu.items.length && !pu.editId) { /* المسودة الحالية ستُستبدل */ }

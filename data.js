@@ -1728,6 +1728,11 @@ function openFormModal(id = null) {
     modal.style.display = 'flex';
     formSnapshot = formSerialize();
 }
+// نافذة تأكيد موحّدة للإلغاء والحذف: تُرجع true عند التأكيد
+async function askSure(title, text, btn) {
+    const r = await Swal.fire({ icon: 'warning', title, text: text || '', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: btn || 'نعم', cancelButtonText: 'رجوع', reverseButtons: true });
+    return !!r.isConfirmed;
+}
 function onPriceModeChange(initial) {
     const pm = document.getElementById('fPriceMode'), pr = document.getElementById('fPrice'), hint = document.getElementById('fPriceHint'), cost = document.getElementById('fCost');
     if (!pm || !pr) return;
