@@ -985,7 +985,7 @@
                 <label class="pu-mfield" id="lgbYW" style="display:none"><span>السنة</span><input type="number" id="lgbYear" min="2000" max="2100" oninput="lgRenderBonus()"></label>
                 <label class="pu-mfield"><span>المذخر</span><select id="lgbSup" onchange="lgRenderBonus()"></select></label>
             </div>
-            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="lgBreqAdd()">＋ بونص من مندوب / عرض</button><button type="button" class="bill-tb-btn" onclick="lgBonusCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-bonus')">🖨️ طباعة</button></div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="lgBreqAdd()">＋ بونص من مندوب / عرض</button><button type="button" class="bill-tb-btn" onclick="lgBreqDelImported()">🗑 حذف الطلبات المستوردة</button><button type="button" class="bill-tb-btn" onclick="lgBonusCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-bonus')">🖨️ طباعة</button></div>
             <div id="lgb-sum" class="bill-sum-card no-print"></div>
             <div id="lgb-list" class="no-print"></div>
             <div class="bill-sheet print-only" id="lgb-sheet"></div>

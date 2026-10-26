@@ -10,6 +10,17 @@ async function lgBreqDel(id) {
     const r = await Swal.fire({ icon: 'warning', title: 'حذف هذا البونص؟', text: e.name, showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
     if (!r.isConfirmed) return; e.del = true; await lgSave(e); lgBreqRefresh();
 }
+async function lgBreqDelImported() {   // حذف طلبات البونص القديمة المستوردة من الإكسل (لا يمسّ ما أُدخل يدوياً)
+    const L = lgAll.filter(e => e.kind === 'breq' && e.imp);
+    if (!L.length) { Swal.fire({ icon: 'info', title: 'لا توجد طلبات مستوردة', timer: 1800, showConfirmButton: false }); return; }
+    const r = await Swal.fire({ icon: 'warning', title: `حذف ${L.length} طلب بونص مستورد؟`, text: 'هذه طلبات قديمة من الإكسل ولم يثبت استلامها. لن يُحذف أي بونص أُدخل يدوياً أو من الفواتير.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
+    if (!r.isConfirmed) return;
+    try {
+        if (cloudReady()) for (let i = 0; i < L.length; i += 20) await Promise.all(L.slice(i, i + 20).map(e => fsWrite(db.collection('pharmacy_ledger').doc(String(e.id)).delete())));
+        const ids = new Set(L.map(e => e.id)); lgAll = lgAll.filter(e => !ids.has(e.id)); lsSet(LG_LS.list, JSON.stringify(lgAll));
+        lgBreqRefresh(); Swal.fire({ icon: 'success', title: `تم حذف ${L.length} طلب`, timer: 1800, showConfirmButton: false });
+    } catch (err) { Swal.fire({ icon: 'error', title: 'تعذّر الحذف', text: String(err && err.message || err) }); }
+}
 async function lgBreqAdd(eid) {
     const ed = eid ? lgAll.find(x => x.id === eid) : null, v = k => escapeHtml(String(ed && ed[k] != null ? ed[k] : '')).replace(/"/g, '&quot;');
     const inp = (id, label, extra) => `<label style="display:block;text-align:right;font-size:.8rem;font-weight:800;margin-top:6px">${label}<input id="${id}" class="swal2-input" style="margin:4px 0 0;width:100%" ${extra || ''}></label>`;
