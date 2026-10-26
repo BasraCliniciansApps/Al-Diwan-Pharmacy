@@ -203,9 +203,26 @@ function puRenderItems() {
     puRecalc();
 }
 // ---- التجزئة داخل بطاقة الوارد (قابلة للطي) ----
+function puSubManual(p) {   // سعر الجزء المحفوظ يدوي؟ (العلامة إن وُجدت، وإلا مقارنة بالمحسوب من سعر البيع المخزون)
+    if (!p || !hasRetail(p) || !(parseFloat(p.subPrice) > 0)) return false;
+    if (p.subManual !== undefined) return !!p.subManual;
+    const sp = parseFloat(p.subPrice) || 0, c = subCountOf(p);
+    return !(Math.round((parseFloat(p.price) || 0) / c) === sp || subPriceCalc(p.price, c) === sp);
+}
 function puRC(it) { const p = products.find(x => x.id === it.pid); return it.rsc != null ? it.rsc : (p && subCountOf(p) ? subCountOf(p) : ''); }
 function puRT(it) { const p = products.find(x => x.id === it.pid); return it.rst || (p ? subTypeOf(p) : (subTypes[0] || 'جزء')); }
-function puRP(it) { const p = products.find(x => x.id === it.pid); return it.rsp != null ? it.rsp : (p && p.subPrice && hasRetail(p) ? p.subPrice : ''); }
+function puRP(it) { const p = products.find(x => x.id === it.pid); return it.rsp != null ? it.rsp : (puSubManual(p) ? p.subPrice : ''); }
+function puRetailWarn(it) {   // تنبيه: سعر جزء يدوي محفوظ يختلف عن المحسوب من السعر الجديد
+    if (it.rsp != null) return '';
+    const p = products.find(x => x.id === it.pid); if (!puSubManual(p)) return '';
+    const auto = puRetailPriceAuto(it); return auto > 0 && Math.round(auto) !== Math.round(puNum(p.subPrice)) ? `<br><span style="color:#c0392b">⚠ سعر الجزء اليدوي المحفوظ (<bdi>${fmtNum(p.subPrice)}</bdi> د.ع) يختلف عن المحسوب من السعر الجديد (<bdi>${fmtNum(auto)}</bdi> د.ع). امسح الخانة ليُحسب تلقائياً.</span>` : '';
+}
+function puRetailPriceAuto(it) {
+    const p = products.find(x => x.id === it.pid); const pm = puPM(it), cost = puNum(it.cost);
+    let price = p ? Number(p.price) || 0 : 0;
+    if (pm === 'percent' && cost > 0) price = markupCalc(cost, puNum(puMk(it))); else if (pm === 'syndicate' && cost > 0) price = syndPrice(cost); else if (puNum(it.pprice) > 0) price = puNum(it.pprice);
+    return subPriceCalc(price, puNum(puRC(it)));
+}
 function puRetailPrice(it) {   // سعر الجزء المتوقع: اليدوي أو من سعر البيع الجديد
     if (puNum(puRP(it)) > 0) return puNum(puRP(it));
     const p = products.find(x => x.id === it.pid); const pm = puPM(it), cost = puNum(it.cost);
@@ -224,7 +241,7 @@ function puRetailHtml(it, i) {
             <label><span>عدد الأجزاء في العبوة</span><input type="number" min="0" inputmode="numeric" placeholder="مثال: 10" value="${escapeHtml(String(puRC(it)))}" oninput="puRetailEdit(${i},'rsc',this.value)"></label>
             <label><span>نوع الجزء</span><select onchange="puRetailEdit(${i},'rst',this.value)">${types.map(t => `<option value="${escapeHtml(t)}" ${t === puRT(it) ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
             <label><span>سعر الجزء (فارغ = يُحسب تلقائياً)</span><input type="number" min="0" inputmode="decimal" placeholder="تلقائي" value="${escapeHtml(String(puRP(it)))}" oninput="puRetailEdit(${i},'rsp',this.value)"></label>
-            <div class="pu-syn" id="puRh-${i}">${on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' : 'اتركه فارغاً إذا كانت المادة لا تُباع بالتجزئة.'}</div>
+            <div class="pu-syn" id="puRh-${i}">${on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' + puRetailWarn(it) : 'اتركه فارغاً إذا كانت المادة لا تُباع بالتجزئة.'}</div>
         </div></div>`;
 }
 function puRToggle(i) { const it = pu.items[i]; if (!it) return; it.ropen = !it.ropen; const el = $b('puR-' + i); if (!el) return; el.classList.toggle('open', it.ropen); el.querySelector('.pu-rbody').style.display = it.ropen ? 'grid' : 'none'; el.querySelector('.pu-chev').textContent = it.ropen ? '▾' : '▸'; puChanged(); }
@@ -233,7 +250,7 @@ function puRetailRefresh(i) {
     const it = pu.items[i]; if (!it) return; const c = puNum(puRC(it)), on = c > 1;
     const s = $b('puRs-' + i), h = $b('puRh-' + i);
     if (s) s.innerHTML = on ? puRetailSumHtml(c, puRT(it), puRetailPrice(it)) : 'غير مفعّلة';
-    if (h) h.innerHTML = on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' : 'اتركه فارغاً إذا كانت المادة لا تُباع بالتجزئة.';
+    if (h) h.innerHTML = on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' + puRetailWarn(it) : 'اتركه فارغاً إذا كانت المادة لا تُباع بالتجزئة.';
 }
 function puToggle(i) { if (!pu.items[i]) return; pu.items[i].open = !pu.items[i].open; puRenderItems(); if (pu.items[i].open) { const el = $b('puItem-' + i); if (el) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } }
 function puItemEdit(i, f, v) { if (!pu.items[i]) return; pu.items[i][f] = v; puChanged(); }
@@ -244,7 +261,7 @@ function puAddProduct(id) {
     const ex = pu.items.find(it => it.pid === id);
     pu.items.forEach(it => { it.open = false; });   // القديمة تنطوي والجديدة تُفتح
     if (ex) { ex.qty = (parseInt(ex.qty) || 0) + 1; ex.open = true; }
-    else pu.items.push({ pid: id, name: p.name, qty: 1, bonus: '', cost: p.costPrice || '', expiry: '', batch: '', open: true });
+    else pu.items.push({ pid: id, name: p.name, qty: 1, bonus: '', cost: p.costPrice || '', expiry: '', batch: '', open: true, ropen: hasRetail(p) });
     $b('puSearch').value = ''; $b('puResults').style.display = 'none';
     puRenderItems(); puChanged();
     const cards = document.querySelectorAll('#puItems .pu-item');   //    // التمرير للصنف المضاف وتمييزه
@@ -348,6 +365,7 @@ async function puSave() {
     items.forEach(it => {
         const p = products.find(x => x.id === it.pid); if (!p) return; snap(p);
         const n = parseInt(it.qty) || 0, bn = parseInt(it.bonus) || 0, cost = puNum(it.cost), old = oldBy.get(it.pid);
+        const wasMan = puSubManual(p);
         const line = { pid: p.id, name: p.name, qty: n, bonus: bn, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: (old && old.applied !== false) ? old.prevQty : (parseInt(p.qty) || 0), prevCost: (old && old.applied !== false) ? old.prevCost : (p.costPrice || 0), expAdded: (old && old.applied !== false) ? !!old.expAdded : false };
         const applied = old ? old.applied !== false : (upd && !setupSkip(p));   // السطر القديم يبقى على حاله؛ الجديد لا يحدّث مادة غير مجرودة (وضع التأسيس)
         if (!applied && !old) line.setupSkip = !!(upd && setupSkip(p));
@@ -365,9 +383,9 @@ async function puSave() {
         if (cost > 0) p.costPrice = cost;
         if (it.rsc != null || it.rst != null || it.rsp != null) {   // تعديل التجزئة من بطاقة الوارد
             const rc = Math.round(puNum(puRC(it)));
-            if (rc > 1) { p.subCount = rc; p.subType = puRT(it); p.subPrice = puNum(puRP(it)) > 0 ? puNum(puRP(it)) : subPriceCalc(p.price, rc); }
-            else { p.subCount = ''; p.subPrice = ''; p.loose = 0; }
-        }
+            if (rc > 1) { p.subCount = rc; p.subType = puRT(it); const man = puNum(puRP(it)); p.subManual = man > 0; p.subPrice = man > 0 ? man : subPriceCalc(p.price, rc); }
+            else { p.subCount = ''; p.subPrice = ''; p.subManual = false; p.loose = 0; }
+        } else if (hasRetail(p) && !wasMan && subCountOf(p) > 1) p.subPrice = subPriceCalc(p.price, subCountOf(p));   // التجزئة تتبع سعر البيع الجديد
         line.bonusSale = bn * (Number(p.price) || 0);
         if (line.expiry && puExpiryPush(p, line.expiry)) line.expAdded = true;
         const lp = p.lastPurchase;
