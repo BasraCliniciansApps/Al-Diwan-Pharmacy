@@ -1001,6 +1001,17 @@
             <div id="bl-list" class="no-print"></div>
         </section>
 
+        <section class="pu-pane" id="puPane-unify">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الحالة</span><select id="unSt" onchange="unLimit=200;lgRenderUnify()"><option value="todo">بحاجة لربط أو توحيد</option><option value="done">مربوطة</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield"><span>بحث</span><input id="unQ" type="search" placeholder="اسم المادة أو الشركة" oninput="unLimit=200;lgRenderUnify()"></label>
+            </div>
+            <div id="un-sum" class="bill-sum-card no-print"></div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="unSelAll()">تحديد كل المعروض</button></div>
+            <div id="un-list" class="no-print"></div>
+            <div id="un-bar" class="no-print un-bar" style="display:none"></div>
+        </section>
+
         <section class="pu-pane" id="puPane-xfer">
             <div class="lg-filters no-print">
                 <label class="pu-mfield"><span>الفترة</span><select id="lgfType" onchange="lgRenderXfer()"><option value="month">شهر</option><option value="year">سنة</option><option value="all">الكل</option></select></label>
@@ -1060,7 +1071,7 @@
     <script src="seed.js"></script>
     <script src="prog.js"></script>
     <script src="data.js"></script>
-<script src="invoice.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script>
+<script src="invoice.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             const hadCtl = !!navigator.serviceWorker.controller;
