@@ -2667,6 +2667,7 @@ async function saveProductsDelta(entries) {
         syncStockLocal(entries.map(e => e.p));
         setSyncText('☁️ تم الحفظ');
         Prog.end(PO, 'ok', 'تم حفظ ' + fmtNum(entries.length) + ' مادة');
+        if (typeof puCoverLines === 'function' && can('stockEdit')) puCoverLines(entries.filter(e => e.mark).map(e => e.p.id));
         return true;
     } catch (err) {
         Prog.end(PO, 'quiet');
@@ -4423,6 +4424,7 @@ async function saveInventory() {
     const canMark = can('stockEdit'); if (canMark) { changed.forEach(c => { c.p.counted = true; }); same.forEach(p => { p.counted = true; }); }
     const ok = await saveProductsBatch(changed.map(c => c.p).concat(same));
     if (ok) {
+        if (canMark && typeof puCoverLines === 'function') puCoverLines(changed.map(c => c.p.id).concat(same.map(p => p.id)));
         changed.forEach(c => logAction('qty', c.p, [{ f: 'الكمية (جرد)', from: c.fromLabel, to: stockLabel(c.p) }]));
         closeInventory();
         renderAll();
