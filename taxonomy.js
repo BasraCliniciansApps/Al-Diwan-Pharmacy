@@ -159,7 +159,7 @@ const TAX_KW = [
     [/lip\s*(balm|care|stick|gloss|salve|butter|therap\w*|moistur\w*|mask|scrub|treatment|defen[cs]e|protect\w*|repair|shield|spf|sun\w*|conditioner|plump\w*)|lipstick|مرطب شفاه|بلسم شفاه/i, 'العناية الشخصية والتجميل', 'العناية بالشفاه']
     // أي مادة اسمها فيها «Vitamin / فيتامين»: تُقترح ضمن المكملات (قاعدة احتياطية في آخر القائمة فتتقدم عليها القواعد الأخصّ). فيتامين K له تصنيفه بالدم فيُستثنى
     [/vitamin\s*-?\s*d\b|vitamin\s*-?\s*d[2-4]\b|فيتامين\s*د\b/i, 'الفيتامينات والمعادن والمكملات', 'فيتامين د وكالسيوم'],
-    [/^(?!.*(vitamin\s*-?\s*k\b|فيتامين\s*ك\b)).*(vitamin|vitamins|فيتامين)/i, 'الفيتامينات والمعادن والمكملات', 'فيتامينات متعددة'],
+    [/^(?!.*(vitamin\s*-?\s*k\d*\b|فيتامين\s*ك\b)).*(vitamin|vitamins|فيتامين)/i, 'الفيتامينات والمعادن والمكملات', 'فيتامينات متعددة'],
 ];
 function taxKwHit(name) {
     for (const [re, d, s] of TAX_KW) if (re.test(name || '')) { const di = TAX_DEPTS.indexOf(d), si = di < 0 ? -1 : TAX_SEED[d].indexOf(s); if (si >= 0) return { d: di + 1, s: si + 1, guess: false }; }
