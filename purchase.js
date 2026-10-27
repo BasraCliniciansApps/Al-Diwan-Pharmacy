@@ -399,6 +399,7 @@ async function puSave() {
         if (!applied && !old) line.setupSkip = !!(upd && setupSkip(p));
         line.applied = applied;
         if (old && old.covered && !applied) line.covered = true;
+        if (old && old.setupSkip && !applied) line.setupSkip = true;   // لا تضيع علامة «مؤجَّل» عند تعديل الفاتورة
         if (xb.length) line.xb = xb;
         // السعر والكلفة يُحفظان دائماً (وضع التأسيس يحمي الكمية فقط)
         if (cost > 0) p.costPrice = cost;
@@ -528,7 +529,7 @@ async function puSeqEdit(id, ev) {
 }
 function puOpen(id) {
     const r = puAll.find(x => x.id === id); if (!r) return;
-    const rows = (r.items || []).map(it => `<tr><td dir="ltr">${escapeHtml(it.name)}${it.applied === false ? ' <em class="tg warn">' + (it.covered ? 'مشمول بالجرد' : it.setupSkip ? 'مؤجَّل — التأسيس' : 'لم يُحدَّث') + '</em>' : ''}</td><td>${fmtNum(it.qty)}${it.bonus ? ' <small>+' + fmtNum(it.bonus) + ' بونص</small>' : ''}</td><td>${fmtNum(it.cost)}</td><td dir="ltr">${escapeHtml(it.expiry || '—')}${(it.xb || []).map(b => '<br><small><bdi>' + fmtNum(b.q) + ' × ' + escapeHtml(b.expiry || '—') + '</bdi></small>').join('')}</td><td dir="ltr">${escapeHtml(it.batch || '—')}</td><td>${fmtNum(it.qty * it.cost)}</td></tr>`).join('');
+    const rows = (r.items || []).map(it => `<tr><td dir="ltr">${escapeHtml(it.name)}${it.applied === false ? ' <em class="tg warn">' + puLineTag(it) + '</em>' : ''}</td><td>${fmtNum(it.qty)}${it.bonus ? ' <small>+' + fmtNum(it.bonus) + ' بونص</small>' : ''}</td><td>${fmtNum(it.cost)}</td><td dir="ltr">${escapeHtml(it.expiry || '—')}${(it.xb || []).map(b => '<br><small><bdi>' + fmtNum(b.q) + ' × ' + escapeHtml(b.expiry || '—') + '</bdi></small>').join('')}</td><td dir="ltr">${escapeHtml(it.batch || '—')}</td><td>${fmtNum(it.qty * it.cost)}</td></tr>`).join('');
     const pays = (r.payments || []).map(p => `<div>${escapeHtml(fmtDateDMY(p.at))} — ${fmtNum(p.amount)} د.ع</div>`).join('') || '<div>لا دفعات</div>';
     const btn = (label, fn, cls) => `<button type="button" class="bill-tb-btn ${cls || ''}" onclick="Swal.close();${fn}">${label}</button>`;
     Swal.fire({
@@ -822,6 +823,12 @@ function puSelTable(recs, mode) {
 
 
 // ---------- تحديث المخزن من قائمة وارد موجودة (اختيار المواد) ----------
+// وسم السطر غير المحدَّث: مشمول بالجرد / مؤجَّل (التأسيس) / لم يُحدَّث (يُستنتج للأسطر القديمة من حالة المادة)
+function puLineTag(l) {
+    if (l.covered) return 'مشمول بالجرد';
+    const p = products.find(x => x.id === l.pid);
+    return l.setupSkip || (p && setupSkip(p)) ? 'مؤجَّل — التأسيس' : 'لم يُحدَّث';
+}
 // بعد جرد مادة: أسطر الوارد غير المحدَّثة لها تُعلَّم «مشمولة بالجرد» (كميتها داخل رقم الجرد) فلا تُضاف مرة ثانية
 async function puCoverLines(pids) {
     try {
@@ -839,7 +846,7 @@ async function puApplyDialog(id) {
     const items = r.items || [];
     const rows = items.map((l, i) => {
         const p = products.find(x => x.id === l.pid), un = l.applied === false;
-        return `<label class="pu-chk pa-row"><input type="checkbox" class="paCk" data-i="${i}" ${un && p && !l.setupSkip && !l.covered ? 'checked' : ''} ${p && !l.covered ? '' : 'disabled'}><span dir="ltr"><b>${escapeHtml(l.name)}</b> — ${fmtNum(puNum(l.qty))}${l.bonus ? ' + ' + fmtNum(puNum(l.bonus)) + ' بونص' : ''}</span>${p ? (un ? '<em class="tg warn">' + (l.covered ? 'مشمول بالجرد' : l.setupSkip ? 'مؤجَّل — التأسيس' : 'لم يُحدَّث') + '</em>' : '<em class="tg">محدَّث</em>') : '<em class="tg bad">المادة محذوفة</em>'}</label>`;
+        return `<label class="pu-chk pa-row"><input type="checkbox" class="paCk" data-i="${i}" ${un && p && !l.setupSkip && !l.covered ? 'checked' : ''} ${p && !l.covered ? '' : 'disabled'}><span dir="ltr"><b>${escapeHtml(l.name)}</b> — ${fmtNum(puNum(l.qty))}${l.bonus ? ' + ' + fmtNum(puNum(l.bonus)) + ' بونص' : ''}</span>${p ? (un ? '<em class="tg warn">' + puLineTag(l) + '</em>' : '<em class="tg">محدَّث</em>') : '<em class="tg bad">المادة محذوفة</em>'}</label>`;
     }).join('');
     const res = await Swal.fire({ title: 'تحديث المخزن من هذه القائمة', showCancelButton: true, confirmButtonText: '📦 حدّث المخزن', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 520px)', customClass: { popup: 'dw-pop' },
         html: `<div class="sw-form"><div class="sw-info">${escapeHtml(r.supplier)} — <span dir="ltr">${escapeHtml(r.no)}</span><br><small>اختر المواد التي تريد إضافة كمياتها إلى المخزن. أما المعلَّمة «محدَّث» فلا تحدّثها مرة أخرى حتى لا تتكرر الكمية.</small></div><div class="pa-list">${rows}</div></div>`,
