@@ -115,7 +115,7 @@ const TAX_KW = [
     [/sanitary\s*(pads?|napkins?|towels?)|panty\s*liners?|period\s*pads?|فوط\s*(صحية|نسائية)|فوطة|always\b|kotex|libresse/i, 'العناية الشخصية والتجميل', 'العناية النسائية الحميمة'],
     [/diapers?|pampers|huggies|molfix|sanita|nappy|nappies|حفاض|حفاظ/i, 'الأم والطفل', 'حفاضات'],
     [/pregabalin|lyrica|pregafix|pregalin|gabapentin|neurontin|gabator|بريجابالين|بريغابالين|جابابنتين|غابابنتين/i, 'الجهاز العصبي والنفسي', 'أدوية الألم العصبي', [['الجهاز العصبي والنفسي', 'أدوية الأعصاب الطرفية'], ['الجهاز العصبي والنفسي', 'مضادات الصرع']]],
-    [/condoms?|durex|trojan|playboy|manforce|lubricant|lube\b|واقي\s*ذكري|واقيات\s*ذكرية|عازل\s*ذكري|مزلق/i, 'النسائية والتوليد والهرمونات', 'الواقيات الذكرية والمزلقات', [['النسائية والتوليد والهرمونات', 'وسائل منع الحمل الأخرى']]],
+    [/^(?!.*(eye|ophthalm|ocular|\btears?\b|drops?|\bgel\s*drops|عين|قطر)).*(condoms?|durex|trojan|playboy|manforce|lubricant|lube\b|واقي\s*ذكري|واقيات\s*ذكرية|عازل\s*ذكري|مزلق)/i, 'النسائية والتوليد والهرمونات', 'الواقيات الذكرية والمزلقات', [['النسائية والتوليد والهرمونات', 'وسائل منع الحمل الأخرى']]],
     [/^(?=.*(lidocaine|lignocaine|ليدوكائين|ليدوكين))(?=.*(\biv\b|vial|ampou?le|inject|amp\b|فيال|امبول|أمبول)).*/i, 'المسكنات والعظام والعضلات', 'مخدرات موضعية وحقن التخدير', [['القلب والضغط والدهون', 'مضادات اضطراب النظم']]],
     [/lidocaine|lignocaine|xylocaine|bupivacaine|marcaine|articaine|septanest|ubistesin|procaine|mepivacaine|scandonest|prilocaine|emla|levobupivacaine|ropivacaine|ليدوكائين|ليدوكين|زايلوكائين/i, 'المسكنات والعظام والعضلات', 'مخدرات موضعية وحقن التخدير'],
     [/(fitting|tighten\w*|tightening)\s*insert\w*|vaginal\s*(tighten\w*|insert\w*)|شد\s*المهبل/i, 'النسائية والتوليد والهرمونات', 'العناية الحميمة وشد المهبل'],
@@ -141,7 +141,7 @@ const TAX_KW = [
     [/scalpel|surgical\s*blade|forceps|surgical\s*scissors|مشرط/i, 'الضمادات والمستلزمات الجراحية', 'أدوات الجراحة والمشارط'],
     [/^(?!.*(surgical|scalpel|cream|foam|gel|lotion|after|مشرط)).*(razors?\b|shavers?\b|gillette|\bblades?\b|shaving|شفرة حلاقة|ماكينة حلاقة|مكينة حلاقة)/i, 'العناية الشخصية والتجميل', 'الحلاقة وإزالة الشعر'],
     [/(surgical|sterile|examination)\s*gloves?|قفازات جراحية/i, 'الضمادات والمستلزمات الجراحية', 'قفازات جراحية معقمة'],
-    [/surgical\s*(mask|drape|gown|cap)|face\s*mask/i, 'الضمادات والمستلزمات الجراحية', 'كمامات وأغطية جراحية'],
+    [/surgical\s*(mask|drape|gown|cap)|^(?!.*(sheet|clay|peel|beauty|facial|hydrat|collagen|mud|cream|gel|moistur|whiten|serum|mask\s*for|charcoal|عناية|ماسك)).*face\s*mask/i, 'الضمادات والمستلزمات الجراحية', 'كمامات وأغطية جراحية'],
     [/dressing|wound\s*care|ضماد/i, 'الضمادات والمستلزمات الجراحية', 'ضمادات الجروح العامة'],
     [/hand\s*(sanitizer|sanitiser|rub)|sanitizer|sanitiser|معقم (ايدي|أيدي)/i, 'المعقمات والمطهرات', 'معقمات اليدين'],
     [/surgical\s*scrub|hibiscrub|scrub\s*(brush|solution)\b/i, 'المعقمات والمطهرات', 'مطهرات جراحية (Scrub)'],
@@ -157,21 +157,49 @@ const TAX_KW = [
     [/mouth\s*wash|mouthwash|mouth\s*rinse|غسول فم/i, 'الفم والأسنان', 'غسول الفم'],
     [/breath[^,]*(strips?|film|spray|mints?|freshener|drops)|(strips?|film|spray|mints?)[^,]*breath|oral\s*strips?|mouth\s*strips?|رائحة الفم|معطر فم/i, 'الفم والأسنان', 'معطرات الفم ورائحة الفم'],
     [/lip\s*(balm|care|stick|gloss|salve|butter|therap\w*|moistur\w*|mask|scrub|treatment|defen[cs]e|protect\w*|repair|shield|spf|sun\w*|conditioner|plump\w*)|lipstick|مرطب شفاه|بلسم شفاه/i, 'العناية الشخصية والتجميل', 'العناية بالشفاه'],
+    // أدوية الأورام والمناعة
+    [/tamoxifen|nolvadex|anastrozole|arimidex|exemestane|aromasin|bicalutamide|casodex|flutamide|megestrol|fulvestrant|faslodex|goserelin|zoladex|leuprolide|leuprorelin|تاموكسيفين|اناستروزول|أناستروزول|بيكالوتاميد/i, 'الأورام والمناعة', 'العلاج الهرموني للأورام'],
+    [/capecitabine|xeloda|imatinib|glivec|temozolomide|hydroxyurea|hydroxycarbamide|mercaptopurine|erlotinib|gefitinib|sorafenib|sunitinib|lenalidomide|abiraterone|olaparib/i, 'الأورام والمناعة', 'أدوية السرطان الفموية'],
+    [/paclitaxel|docetaxel|cisplatin|carboplatin|oxaliplatin|doxorubicin|epirubicin|gemcitabine|fluorouracil|5-?\s*fu\b|cyclophosphamide|vincristine|vinorelbine|etoposide|irinotecan|bleomycin|cytarabine|methotrexate\s*(vial|inj|amp)/i, 'الأورام والمناعة', 'أدوية الأورام'],
+    [/ondansetron|zofran|granisetron|palonosetron|aprepitant/i, 'الأورام والمناعة', 'أدوية الغثيان الكيماوي'],
+    [/tacrolimus|prograf|mycophenol|cellcept|cyclosporin|sandimmun|azathioprine|imuran|sirolimus|everolimus/i, 'الأورام والمناعة', 'أدوية زرع الأعضاء'],
+    // تحفيز التبويض والخصوبة
+    [/letrozole|femara|clomiphene|clomid|clomifen|pregnyl|ovitrelle|choriomon|\bhcg\b|menopur|gonal-?\s*f|puregon|follitropin|ovidrel/i, 'النسائية والتوليد والهرمونات', 'محفزات التبويض'],
+    // حمض الترانيكساميك: موضعي ← تصبغات، فموي/حقن ← مرقئات
+    [/^(?=.*(tranexamic|tranacix|transamin|cyklokapron|ترانيكساميك|ترانكسا)).*(cream|gel|serum|lotion|topical|كريم|جل|سيروم|tranacix)/i, 'الجلدية', 'علاج التصبغات والكلف'],
+    [/tranexamic|transamin|cyklokapron|ترانيكساميك/i, 'الدم والتخثر', 'مرقئات'],
     // أي مادة اسمها فيها «Vitamin / فيتامين»: تُقترح ضمن المكملات (قاعدة احتياطية في آخر القائمة فتتقدم عليها القواعد الأخصّ). فيتامين K له تصنيفه بالدم فيُستثنى
     [/vitamin\s*-?\s*d\b|vitamin\s*-?\s*d[2-4]\b|فيتامين\s*د\b/i, 'الفيتامينات والمعادن والمكملات', 'فيتامين د وكالسيوم'],
-    [/^(?!.*(vitamin\s*-?\s*k\d*\b|فيتامين\s*ك\b)).*(vitamin|vitamins|فيتامين)/i, 'الفيتامينات والمعادن والمكملات', 'فيتامينات متعددة'],
+    [/^(?!.*(vitamin\s*-?\s*k\d*\b|فيتامين\s*ك\b|cream|ointment|lotion|serum|shampoo|soap|\bgel\b|spray|barrier|face|skin|hair|lip|eye|drops?\s*for\s*eye|كريم|مرهم|شامبو|صابون)).*(vitamin|vitamins|فيتامين)/i, 'الفيتامينات والمعادن والمكملات', 'فيتامينات متعددة'],
 ];
 function taxKwHit(name) {
     for (const [re, d, s] of TAX_KW) if (re.test(name || '')) { const di = TAX_DEPTS.indexOf(d), si = di < 0 ? -1 : TAX_SEED[d].indexOf(s); if (si >= 0) return { d: di + 1, s: si + 1, guess: false }; }
     return null;
 }
+// دليل الشكل الدوائي من الاسم: يأتي بعد الجدول الدقيق وقبل التخمينات (القسم القديم / أول كلمة)، فاسم مثل «... Eye Drops» لا يذهب للعناية الشخصية
+const TAX_FORM_HINTS = [
+    [/eye\s*(oint\w*)|ophthalmic\s*(oint\w*)|مرهم\s*عين/i, 'العيون', 'مراهم العين'],
+    [/artificial\s*tears?|lubricant\s*eye|dry\s*eyes?|\btears\b|دموع\s*صناعية/i, 'العيون', 'دموع صناعية'],
+    [/eye\s*-?\s*drops?|eyedrops?|ophthalmic|eye\s*(gel|wash|spray)|ocular|قطرة\s*عين|قطرات\s*عين/i, 'العيون', 'قطرات عين مركّبة'],
+    [/ear\s*-?\s*drops?|otic|قطرة\s*أذن|قطرات\s*أذن|قطرة\s*اذن/i, 'الأذن والأنف والحنجرة', 'قطرات الأذن'],
+    [/nasal\s*(spray|drops?)|nose\s*(spray|drops?)|nasal|بخاخ\s*أنف|قطرة\s*أنف|قطرات\s*أنف/i, 'الأذن والأنف والحنجرة', 'قطرات وبخاخات الأنف'],
+    [/throat\s*spray|gargle|بخاخ\s*حلق|غرغرة/i, 'الأذن والأنف والحنجرة', 'بخاخات الحلق'],
+    [/vaginal|pessar(y|ies)|ovules?|مهبل|تحاميل\s*مهبلية/i, 'النسائية والتوليد والهرمونات', 'تحاميل ومراهم مهبلية'],
+    [/sunscreen|sunblock|sun\s*(cream|block|protect\w*)|spf\s*\d+|واقي\s*شمس/i, 'الجلدية', 'واقيات الشمس']
+];
+function taxFormHit(name) {
+    for (const [re, d, s] of TAX_FORM_HINTS) if (re.test(name || '')) { const di = TAX_DEPTS.indexOf(d), si = di < 0 ? -1 : TAX_SEED[d].indexOf(s); if (si >= 0) return { d: di + 1, s: si + 1, guess: true }; }
+    return null;
+}
+const TAX_GENERIC_FIRST = new Set(['natural', 'nature', 'baby', 'babies', 'kids', 'kid', 'junior', 'children', 'hair', 'skin', 'body', 'face', 'pure', 'organic', 'herbal', 'super', 'extra', 'plus', 'active', 'forte', 'ultra', 'multi', 'vitamin', 'vitamins', 'complete', 'advanced', 'intense', 'intensive', 'fresh', 'daily', 'original', 'classic', 'white', 'black', 'cream', 'drops', 'tablet', 'syrup', 'sugar', 'medical', 'dental', 'oral']);
 function taxSuggest(p) {   // يرجع {d, s, guess} أو null
     const kw = taxKwHit(p.name); if (kw) return kw;
     const k = taxKey(p.name), hit = taxKeys(p.name).map(x => TAX_MAP[x]).find(Boolean);
     if (hit) return { d: hit[0], s: hit[1], guess: false };
+    const fh = taxFormHit(p.name); if (fh) return fh;
     const h = TAX_LEGACY_HINT[p.category]; if (h) return { d: h[0], s: h[1], guess: true };
     if (!taxFirstIdx) { taxFirstIdx = {}; Object.keys(TAX_MAP).forEach(key => { const w = key.split(/[\s-]/)[0]; if (w.length >= 4) (taxFirstIdx[w] = taxFirstIdx[w] || []).push(TAX_MAP[key]); }); }
-    const w = k.split(/[\s-]/)[0], arr = w.length >= 4 ? taxFirstIdx[w] : null;
+    const w = k.split(/[\s-]/)[0], arr = w.length >= 4 && !TAX_GENERIC_FIRST.has(w) ? taxFirstIdx[w] : null;
     if (arr && arr.length && arr.every(x => x[0] === arr[0][0] && x[1] === arr[0][1])) return { d: arr[0][0], s: arr[0][1], guess: true };   // نفس الشركة/الاسم بتركيز آخر
     return null;
 }
