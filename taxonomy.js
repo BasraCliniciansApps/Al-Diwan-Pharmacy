@@ -156,7 +156,7 @@ const TAX_KW = [
     [/whiten\w*[^,]*strips?|strips?[^,]*whiten|teeth\s*strips?|tooth\s*strips?|شرائط تبييض|teeth\s*whiten|تبييض الاسنان|تبييض الأسنان/i, 'الفم والأسنان', 'تبييض الأسنان'],
     [/mouth\s*wash|mouthwash|mouth\s*rinse|غسول فم/i, 'الفم والأسنان', 'غسول الفم'],
     [/breath[^,]*(strips?|film|spray|mints?|freshener|drops)|(strips?|film|spray|mints?)[^,]*breath|oral\s*strips?|mouth\s*strips?|رائحة الفم|معطر فم/i, 'الفم والأسنان', 'معطرات الفم ورائحة الفم'],
-    [/lip\s*(balm|care|stick|gloss|salve|butter|therap\w*|moistur\w*|mask|scrub|treatment|defen[cs]e|protect\w*|repair|shield|spf|sun\w*|conditioner|plump\w*)|lipstick|مرطب شفاه|بلسم شفاه/i, 'العناية الشخصية والتجميل', 'العناية بالشفاه']
+    [/lip\s*(balm|care|stick|gloss|salve|butter|therap\w*|moistur\w*|mask|scrub|treatment|defen[cs]e|protect\w*|repair|shield|spf|sun\w*|conditioner|plump\w*)|lipstick|مرطب شفاه|بلسم شفاه/i, 'العناية الشخصية والتجميل', 'العناية بالشفاه'],
     // أي مادة اسمها فيها «Vitamin / فيتامين»: تُقترح ضمن المكملات (قاعدة احتياطية في آخر القائمة فتتقدم عليها القواعد الأخصّ). فيتامين K له تصنيفه بالدم فيُستثنى
     [/vitamin\s*-?\s*d\b|vitamin\s*-?\s*d[2-4]\b|فيتامين\s*د\b/i, 'الفيتامينات والمعادن والمكملات', 'فيتامين د وكالسيوم'],
     [/^(?!.*(vitamin\s*-?\s*k\d*\b|فيتامين\s*ك\b)).*(vitamin|vitamins|فيتامين)/i, 'الفيتامينات والمعادن والمكملات', 'فيتامينات متعددة'],
