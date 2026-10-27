@@ -15,7 +15,14 @@ const LG_HUB = [
     ['sum', '📊', 'الملخص المالي', 'الربح والنمو والحساب الختامي']
 ];
 function lgHubInit() {   // شريط رجوع داخل كل سجل
-    LG_REGS.forEach(id => { const p = $b('puPane-' + id); if (p && !p.querySelector('.lg-back')) { const b = document.createElement('button'); b.type = 'button'; b.className = 'lg-back no-print'; b.textContent = '‹ كل السجلات'; b.onclick = () => puTab('hub'); p.insertBefore(b, p.firstChild); } });
+    LG_REGS.forEach(id => {
+        const p = $b('puPane-' + id), h = LG_HUB.find(x => x[0] === id);
+        if (p && h && !p.querySelector('.lg-head')) {
+            const d = document.createElement('div'); d.className = 'lg-head no-print';
+            d.innerHTML = '<button type="button" class="lg-back" onclick="puTab(\'hub\')">‹ كل السجلات</button><div class="lg-title"><span class="lg-title-ic">' + h[1] + '</span><div><b>' + h[2] + '</b><small>' + h[3] + '</small></div></div>';
+            p.insertBefore(d, p.firstChild);
+        }
+    });
 }
 function lgRenderHub() {
     const pend = lgRets().filter(e => lgStatus(e) === 'pending').length, late = lgRets().filter(e => lgStatus(e) === 'pending' && lgDaysSince(e.date) > lgDays()).length;

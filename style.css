@@ -2858,20 +2858,28 @@ body.pu-gift .pu-nogift, body.pu-gift #puFast { display: none !important; }
 .pu-giftbar button.danger { background: #b91c1c; color: #fff; }
 
 /* ===== مفاتيح تبديل (toggle) بدل مربعات الصح في كل التطبيق ===== */
-input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input) {
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input) {
     -webkit-appearance: none; appearance: none; position: relative; flex: 0 0 44px;
     width: 44px !important; height: 26px !important; min-height: 0 !important; margin: 0; padding: 0; border: 0 !important;
     border-radius: 99px; background: #cbd5e1; cursor: pointer; transition: background .18s; vertical-align: middle; box-sizing: border-box;
 }
-input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input)::after {
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input)::after {
     content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%;
     background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: inset-inline-start .18s;
 }
-input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):checked { background: #16a34a; }
-input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):checked::after { inset-inline-start: 21px; }
-input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):disabled { opacity: .45; cursor: not-allowed; }
-input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):focus-visible { outline: 2px solid var(--gold, #f4b73f); outline-offset: 2px; }
-:root[data-theme="dark"] input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input) { background: #475569; }
-:root[data-theme="dark"] input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):checked { background: #16a34a; }
-.swal2-checkbox { display: flex !important; flex-direction: row !important; align-items: center; justify-content: flex-start; gap: 10px; }
-.swal2-checkbox input { margin: 0 !important; }
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input):checked { background: #16a34a; }
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input):checked::after { inset-inline-start: 21px; }
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input):disabled { opacity: .45; cursor: not-allowed; }
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input):focus-visible { outline: 2px solid var(--gold, #f4b73f); outline-offset: 2px; }
+:root[data-theme="dark"] input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input) { background: #475569; }
+:root[data-theme="dark"] input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input):checked { background: #16a34a; }
+
+/* عنوان كل سجل + تباعد */
+.lg-head { display: flex; flex-direction: column; gap: 10px; margin: 6px 0 12px; }
+.lg-head .lg-back { margin: 0; align-self: flex-start; }
+.lg-title { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: #0f1c38; color: #fff; border-radius: 16px; }
+.lg-title-ic { font-size: 1.6rem; line-height: 1; }
+.lg-title b { display: block; font-size: 1.05rem; font-weight: 900; }
+.lg-title small { display: block; margin-top: 2px; font-size: .74rem; font-weight: 600; color: #cbd5e1; }
+.lg-filters { margin-bottom: 12px; padding-top: 0 !important; }
+.pu-pane .bill-actions { margin-top: 2px; }
