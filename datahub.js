@@ -100,12 +100,13 @@ function dhImgHtml(p) { return p.img && String(p.img).trim() ? `<img src="${dhEs
 // بعد إضافة/حذف صورة من هذه الشاشة: حدّث المصغّرة فقط (بدون فقدان تعديلات الأسماء غير المحفوظة)
 function dhImgDone(id) { const el = document.getElementById('dhi-' + id), p = products.find(x => x.id === id); if (!el || !p) return false; el.innerHTML = dhImgHtml(p); return true; }
 function dhIngRow(p) {
-    const e = dhEdits.get(p.id) || {}, name = e.name != null ? e.name : p.name, ai = e.ai != null ? e.ai : (p.activeIngredient || '');
+    const e = dhEdits.get(p.id) || {}, name = e.name != null ? e.name : p.name, ai = e.ai != null ? e.ai : (p.activeIngredient || ''), br = e.br != null ? e.br : (p.brand || '');
     return `<div class="dh-row ${e.aiGen ? 'sug' : ''}" id="dhr-${p.id}">
         <div class="dh-img" id="dhi-${p.id}" onclick="sheetImgTap(${p.id})" role="button" aria-label="صورة المادة">${dhImgHtml(p)}</div>
         <div class="dh-sub" dir="ltr">${dhEsc(p.brand || '')}${p.brand && p.meta ? ' | ' : ''}${dhEsc(fixMetaOrder(p.meta || ''))}</div>
         <label><span>الاسم التجاري</span><input type="text" dir="ltr" value="${dhEsc(name)}" oninput="dhEdit(${p.id},'name',this.value)"></label>
         <label><span>الاسم العلمي (المادة الفعالة)</span><input type="text" dir="ltr" list="activeList" value="${dhEsc(ai)}" placeholder="مثال: Ciprofloxacin — للمركّب افصل بـ +" oninput="dhEdit(${p.id},'ai',this.value)"></label>
+        <label><span>الشركة</span><input type="text" dir="ltr" list="dhBrandList" value="${dhEsc(br)}" placeholder="اسم الشركة المصنّعة" oninput="dhEdit(${p.id},'br',this.value)"></label>
     </div>`;
 }
 function dhEdit(id, f, v) {
@@ -118,8 +119,8 @@ function dhChanged() {
     const out = [];
     dhEdits.forEach((e, id) => {
         const p = products.find(x => x.id === id); if (!p) return;
-        const name = e.name != null ? String(e.name).trim() : p.name, ai = e.ai != null ? String(e.ai).trim() : String(p.activeIngredient || '').trim();
-        if ((name && name !== p.name) || ai !== String(p.activeIngredient || '').trim()) out.push({ p, name: name || p.name, ai, aiGen: !!e.aiGen });
+        const name = e.name != null ? String(e.name).trim() : p.name, ai = e.ai != null ? String(e.ai).trim() : String(p.activeIngredient || '').trim(), br = e.br != null ? String(e.br).trim() : String(p.brand || '').trim();
+        if ((name && name !== p.name) || ai !== String(p.activeIngredient || '').trim() || br !== String(p.brand || '').trim()) out.push({ p, name: name || p.name, ai, br, aiGen: !!e.aiGen });
     });
     return out;
 }
@@ -131,7 +132,8 @@ function dhRenderIng(el, keep) {
     const chip = (k, t, n) => `<button type="button" class="${dhFilter === k ? 'on' : ''}" onclick="dhSetF('${k}')">${t} <b>${fmtNum(n)}</b></button>`;
     const listHtml = shown.map(dhIngRow).join('') + (all.length > shown.length ? `<button type="button" class="pu-newprod" onclick="dhMore()">عرض المزيد (${fmtNum(all.length - shown.length)})</button>` : '') || '<div class="bill-none">لا توجد مواد بهذا الفلتر.</div>';
     if (keep && document.getElementById('dhList')) { document.getElementById('dhList').innerHTML = listHtml; return; }
-    el.innerHTML = `${dhHead('🧪 سجل المادة الفعالة', true)}
+    const brands = [...new Set(products.map(p => String(p.brand || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b));
+    el.innerHTML = `<datalist id="dhBrandList">${brands.map(b => `<option value="${dhEsc(b)}">`).join('')}</datalist>${dhHead('🧪 سجل المادة الفعالة', true)}
     <div class="tr-prog">اكتمل <b>${fmtNum(has)}</b> من ${fmtNum(products.length)} مادة. الاسم التجاري قابل للتعديل، وتحته تكتب الاسم العلمي.</div>
     <div class="tr-chips">${chip('miss', 'ناقصة', products.length - has)}${chip('done', 'مكتملة', has)}${chip('all', 'الكل', products.length)}</div>
     <input type="search" class="tr-search" placeholder="🔍 ابحث باسم المادة..." value="${dhEsc(dhQ)}" oninput="dhSearch(this.value)">
@@ -172,6 +174,7 @@ async function dhSaveIng() {
         const p = c.p, oldN = p.name, oldA = p.activeIngredient || '', f = [];
         if (c.name !== oldN) { p.name = c.name; f.push({ f: 'الاسم (مركز البيانات)', from: oldN, to: c.name }); }
         if (c.ai !== String(oldA).trim()) { p.activeIngredient = c.ai; f.push({ f: 'المادة الفعالة (مركز البيانات)', from: oldA, to: c.ai }); }
+        if (c.br !== String(p.brand || '').trim()) { const oldB = p.brand || ''; p.brand = c.br; f.push({ f: 'الشركة (مركز البيانات)', from: oldB, to: c.br }); }
         upd.push({ p, f });
     });
     const ok = await saveProductsBatch(upd.map(u => u.p));
