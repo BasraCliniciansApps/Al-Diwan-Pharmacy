@@ -4995,6 +4995,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     const vis = id => { const e = document.getElementById(id); return !!e && e.style.display && e.style.display !== 'none'; };
     function closeTopLayer() {
         if (window.Swal && Swal.isVisible && Swal.isVisible()) { Swal.close(); return true; }
+        if (document.getElementById('ssOv') && typeof ssClose === 'function') { ssClose(); return true; }
         if (vis('barcodeModal')) { closeBarcodeScanner(); return true; }
         if (document.getElementById('reportViewer')) { closeReport(); return true; }
         if (vis('zoomModal')) { document.getElementById('zoomModal').style.display = 'none'; return true; }
@@ -5011,6 +5012,8 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         if (sb && sb.classList.contains('open')) { closeSheet(); return true; }
         const fs = document.getElementById('filterSheet');
         if (fs && fs.classList.contains('open')) { closeFilterSheet(); return true; }
+        const lg = [...document.querySelectorAll('.lg-ov')].find(e => e.style.display && e.style.display !== 'none');
+        if (lg) { if (lg.id === 'lgRet' && typeof lgrClose === 'function') lgrClose(); else if (lg.id === 'lgX' && typeof lgxClose === 'function') lgxClose(); else lg.style.display = 'none'; return true; }
         const any = [...document.querySelectorAll('.modal-overlay')].find(e => getComputedStyle(e).display !== 'none');
         if (any) { any.style.display = 'none'; return true; }
         return false;
