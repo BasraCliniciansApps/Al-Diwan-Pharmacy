@@ -275,6 +275,20 @@ function lgRenderRet(kind) {
     lgTabBadge();
 }
 function lgRetCsv(kind) {
+    if (kind === 'ret') {   // تنظيم التصدير: كل مادة بسطر مستقل بالترتيب المطلوب
+        const arr = lgRetFiltered(kind), L = [['المادة', 'العدد المسترجع', 'المبلغ الكلي لمجموع القطع المردودة', 'حالة استلام الكشف', 'فاتورة المذخر', 'رقم الفاتورة', 'تاريخ الفاتورة', 'رقم فاتورة المردود', 'تاريخ فاتورة المردود']];
+        let tq = 0, ta = 0;
+        arr.forEach(e => {
+            const inv = e.listId ? puAll.find(x => x.id === e.listId) : null, stmt = e.stmt ? 'مستلم' : 'غير مستلم';
+            const tail = [stmt, e.supplier || '', e.listNo || (inv && inv.no) || 'عام', (inv && inv.date) || '', e.cnNo || '', e.cnDate || ''];
+            const its = (e.items || []);
+            if (!its.length) { L.push(['(مردود عام)', '', puNum(e.amount), ...tail]); ta += puNum(e.amount); return; }
+            its.forEach(l => { const q = parseInt(l.qty) || 0, amt = q * puNum(l.cost); tq += q; ta += amt; L.push([l.name, q, amt, ...tail]); });
+        });
+        L.push(['المجموع', tq, ta, '', '', '', '', '', '']);
+        lgCsvDownload('returns-' + todayLocalISO() + '.csv', L);
+        return;
+    }
     const arr = lgRetFiltered(kind), L = [['الكشف', 'التاريخ', 'المذخر', 'قائمة الشراء', 'السبب', 'المواد', 'رقم فاتورة المردود', 'تاريخ فاتورة المردود', 'نوع الاحتساب', 'شهر الاقتطاع', 'المبلغ']];
     arr.forEach(e => L.push([e.stmt ? '✓' : '', e.date, e.supplier, e.listNo || 'عام', e.reason || '', (e.items || []).map(l => l.name + ' ×' + l.qty).join(' | '), e.cnNo || '', e.cnDate || '', e.mode === 'unrec' ? 'غير مقطوع' : 'يخصم من الكشف', e.deductMonth || '', e.amount]));
     L.push(['المجموع', '', '', '', '', '', '', '', '', '', arr.reduce((s, e) => s + puNum(e.amount), 0)]);
