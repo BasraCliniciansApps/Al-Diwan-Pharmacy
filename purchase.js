@@ -417,8 +417,8 @@ async function puSave() {
         const p = products.find(x => x.id === l.pid); if (!p) return; snap(p);
         p.qty = Math.max((parseInt(p.qty) || 0) - puLQ(l), 0);
         if (l.applied !== false && l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
-        if (l.applied !== false && l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
-        if (l.applied !== false && l.expAddedX && l.expAddedX.length) { p.expiryDates = getProductExpiryDates(p).filter(e => !l.expAddedX.includes(e)); p.expiryDate = p.expiryDates[0] || ''; }
+        if ((l.applied !== false || l.expOnly) && l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
+        if ((l.applied !== false || l.expOnly) && l.expAddedX && l.expAddedX.length) { p.expiryDates = getProductExpiryDates(p).filter(e => !l.expAddedX.includes(e)); p.expiryDate = p.expiryDates[0] || ''; }
     });
     // 2) الأصناف الحالية: الفرق بين الكمية الجديدة والقديمة
     items.forEach(it => {
@@ -440,6 +440,14 @@ async function puSave() {
         line.salePrice = Number(p.price) || 0;   // سعر البيع وقت الوارد (للرجوع إليه)
         if (!applied) {   // مادة غير مجرودة / «لا تحدّث المخزن»: الكمية ما تتغير لكن قيمة البونص تنحسب
             line.bonusSale = bn * (Number(p.price) || 0);
+            if (line.setupSkip) {   // التأسيس يؤجّل الكمية فقط؛ تاريخ الانتهاء حقيقي فيُضاف للمادة دائماً (ويُتتبَّع ليُزال عند التعديل أو الإلغاء)
+                if (old && old.expOnly && old.expAdded && old.expiry && old.expiry !== line.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; }
+                if (line.expiry) { if (puExpiryPush(p, line.expiry) || (old && old.expOnly && old.expAdded && old.expiry === line.expiry)) line.expAdded = true; }
+                const oldX = (old && old.expOnly && old.expAddedX) || [], want = [...new Set(xb.map(b => b.expiry).filter(Boolean))];
+                const gone = oldX.filter(e => !want.includes(e)); if (gone.length) { p.expiryDates = getProductExpiryDates(p).filter(e => !gone.includes(e)); p.expiryDate = p.expiryDates[0] || ''; }
+                const addedX = want.filter(e => puExpiryPush(p, e) || oldX.includes(e)); if (addedX.length) line.expAddedX = addedX;
+                if (line.expAdded || addedX.length) line.expOnly = true;
+            }
             lines.push(line); return;
         }
         p.qty = Math.max((parseInt(p.qty) || 0) + n + bn - (old ? puLQ(old) : 0), 0);
@@ -597,8 +605,8 @@ async function puCancel(id) {
         if (!csnaps.has(p.id)) csnaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase });
         p.qty = Math.max((parseInt(p.qty) || 0) - puLQ(l), 0);
         if (l.applied !== false && l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
-        if (l.applied !== false && l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
-        if (l.applied !== false && l.expAddedX && l.expAddedX.length) { p.expiryDates = getProductExpiryDates(p).filter(e => !l.expAddedX.includes(e)); p.expiryDate = p.expiryDates[0] || ''; }
+        if ((l.applied !== false || l.expOnly) && l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
+        if ((l.applied !== false || l.expOnly) && l.expAddedX && l.expAddedX.length) { p.expiryDates = getProductExpiryDates(p).filter(e => !l.expAddedX.includes(e)); p.expiryDate = p.expiryDates[0] || ''; }
         touched.push(p);
     });
     r.cancelled = true;   // مؤقتاً لإعادة حساب «آخر وارد» دون هذه الفاتورة
@@ -862,6 +870,7 @@ function puSelTable(recs, mode) {
 function puLineTag(l) {
     if (l.covered) return 'مشمول بالجرد';
     const p = products.find(x => x.id === l.pid);
+    if (l.expOnly) return 'الكمية مؤجَّلة — الانتهاء مضاف';
     return l.setupSkip || (p && setupSkip(p)) ? 'مؤجَّل — التأسيس' : 'لم يُحدَّث';
 }
 // بعد جرد مادة: أسطر الوارد غير المحدَّثة لها تُعلَّم «مشمولة بالجرد» (كميتها داخل رقم الجرد) فلا تُضاف مرة ثانية
@@ -900,8 +909,8 @@ async function puApplyLines(r, idxs) {
         l.prevQty = before; l.prevCost = p.costPrice || 0;
         p.qty = before + n;
         if (cost > 0) p.costPrice = cost;
-        if (l.expiry && puExpiryPush(p, l.expiry)) l.expAdded = true;
-        if (l.xb && l.xb.length) { const w = [...new Set(l.xb.map(b => b.expiry).filter(Boolean))]; l.expAddedX = w.filter(e => puExpiryPush(p, e)); }
+        if (l.expiry && (puExpiryPush(p, l.expiry) || (l.expOnly && l.expAdded))) l.expAdded = true;
+        if (l.xb && l.xb.length) { const w = [...new Set(l.xb.map(b => b.expiry).filter(Boolean))], ox = (l.expOnly && l.expAddedX) || []; l.expAddedX = w.filter(e => puExpiryPush(p, e) || ox.includes(e)); }
         const lp = p.lastPurchase;
         if (!lp || String(r.date) >= String(lp.date || '')) p.lastPurchase = { supplier: r.supplier, no: r.no, date: r.date, qty: parseInt(l.qty) || 0, cost, batch: l.batch || '', expiry: l.expiry || '' };
         done.push({ p, l, before, n });
@@ -909,7 +918,7 @@ async function puApplyLines(r, idxs) {
     if (!done.length) return;
     const ok = await saveProductsDelta([...snaps.values()].map(s => deltaFromSnap(s.p, s)));
     if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; s.p.lastPurchase = s.lastPurchase; }); return; }
-    done.forEach(d => { d.l.applied = true; logAction('qty', d.p, [{ f: 'الكمية (تحديث المخزن من وارد ' + r.no + ' - ' + r.supplier + ')', from: String(d.before), to: String(d.before + d.n) }]); });
+    done.forEach(d => { d.l.applied = true; delete d.l.expOnly; logAction('qty', d.p, [{ f: 'الكمية (تحديث المخزن من وارد ' + r.no + ' - ' + r.supplier + ')', from: String(d.before), to: String(d.before + d.n) }]); });
     await puSaveRecord(r);
     try { renderAll(); } catch (e) { /* تجاهل */ }
     if ($b('puLogList')) renderPuLog();
@@ -938,4 +947,32 @@ function puCostHint(id) {
     if (x) d.innerHTML = `<span>📥 آخر سعر شراء بالوارد: <b>${fmtNum(x.l.cost)}</b> (${escapeHtml(x.r.supplier)} — ${escapeHtml(fmtDateDMY(x.r.date))})</span>` + (puNum(inp.value) === puNum(x.l.cost) ? '' : `<button type="button" class="bill-tb-btn" onclick="document.getElementById('fCost').value='${x.l.cost}';document.getElementById('fCost').dispatchEvent(new Event('input'));this.parentNode.remove()">استخدمه</button>`);
     else d.innerHTML = '<span style="color:#64748b">لا يوجد سعر شراء مسجّل لهذه المادة بالوارد.</span>';
     inp.insertAdjacentElement('afterend', d);
+}
+
+// ---- إضافة تواريخ الانتهاء من أسطر الوارد المؤجَّلة (التأسيس) لمرة واحدة، بعد مراجعتك ----
+async function puExpBackfill() {
+    const cur = todayLocalISO().slice(0, 7), plan = [];
+    puAll.filter(r => r && !r.cancelled).forEach(r => (r.items || []).forEach(l => {
+        if (l.applied !== false || l.expOnly) return;
+        const p = products.find(x => x.id === l.pid); if (!p) return;
+        const dates = [...new Set([l.expiry, ...((l.xb || []).map(b => b.expiry))].filter(e => e && e >= cur))].filter(e => !getProductExpiryDates(p).includes(e));
+        if (dates.length) plan.push({ r, l, p, dates });
+    }));
+    if (!plan.length) { Swal.fire({ icon: 'info', title: 'لا توجد تواريخ انتهاء مؤجَّلة', text: 'كل تواريخ الفواتير المؤجَّلة (غير المنتهية) مضافة للمواد.', confirmButtonColor: '#0f1c38' }); return; }
+    const list = plan.slice(0, 60).map(x => `<div style="text-align:right;font-size:.82rem;padding:4px 0;border-bottom:1px solid #eee"><b dir="ltr">${escapeHtml(x.p.name)}</b> — <span dir="ltr">${x.dates.map(escapeHtml).join(' ، ')}</span></div>`).join('') + (plan.length > 60 ? `<small>… و${fmtNum(plan.length - 60)} أخرى</small>` : '');
+    const ok = (await Swal.fire({ icon: 'question', title: 'إضافة ' + fmtNum(plan.length) + ' تاريخ انتهاء؟', html: `<div style="max-height:260px;overflow:auto">${list}</div><small style="display:block;margin-top:8px">لا تتغير أي كمية. تُتجاهل التواريخ المنتهية.</small>`, showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء' })).isConfirmed;
+    if (!ok || !writesAllowed()) return;
+    const snaps = new Map(), recs = new Set();
+    plan.forEach(x => {
+        const p = x.p; if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: getProductExpiryDates(p).slice(), expiryDate: p.expiryDate, lastPurchase: p.lastPurchase });
+        const added = x.dates.filter(e => puExpiryPush(p, e));
+        if (x.l.expiry && added.includes(x.l.expiry)) x.l.expAdded = true;
+        const ax = added.filter(e => e !== x.l.expiry); if (ax.length) x.l.expAddedX = ax;
+        if (added.length) { x.l.expOnly = true; recs.add(x.r); }
+    });
+    if (!(await saveProductsDelta([...snaps.values()].map(s => deltaFromSnap(s.p, s))))) { snaps.forEach(s => { s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; }); return; }
+    for (const r of recs) await puSaveRecord(r);
+    plan.forEach(x => { try { logAction('edit', x.p, [{ f: 'تاريخ النفاذ (من وارد مؤجَّل)', from: '', to: x.dates.join(' ، ') }]); } catch (e) { /* تجاهل */ } });
+    try { renderAll(); } catch (e) { /* تجاهل */ }
+    Swal.fire({ icon: 'success', title: 'أُضيفت تواريخ الانتهاء', toast: true, position: 'bottom', showConfirmButton: false, timer: 2400 });
 }
