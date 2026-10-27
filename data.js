@@ -5028,7 +5028,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     const guard = () => { try { if (gcur() < 1) history.pushState({ g: 1 }, ''); } catch (e) { /* تجاهل */ } };
     window.addEventListener('popstate', async () => {
         if (exiting || !armed) return;
-        if (closeTopLayer() || backView()) { guard(); return; }
+        if (closeTopLayer() || (window.__tabBack && window.__tabBack()) || backView()) { guard(); return; }
         if (asking) { return; }
         // الرئيسية: لا نعيد الحارس أثناء السؤال، فإذا ضغط رجوع ثانية يخرج مباشرة
         asking = true;
