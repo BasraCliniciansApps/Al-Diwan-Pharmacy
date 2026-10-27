@@ -2856,3 +2856,22 @@ body.pu-gift .pu-nogift, body.pu-gift #puFast { display: none !important; }
 .pu-giftbar span { flex: 1; min-width: 180px; }
 .pu-giftbar button { border: 0; border-radius: 8px; padding: 6px 12px; font-family: inherit; font-weight: 800; background: #fff; color: #92400e; cursor: pointer; }
 .pu-giftbar button.danger { background: #b91c1c; color: #fff; }
+
+/* ===== مفاتيح تبديل (toggle) بدل مربعات الصح في كل التطبيق ===== */
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input) {
+    -webkit-appearance: none; appearance: none; position: relative; flex: 0 0 44px;
+    width: 44px !important; height: 26px !important; min-height: 0 !important; margin: 0; padding: 0; border: 0 !important;
+    border-radius: 99px; background: #cbd5e1; cursor: pointer; transition: background .18s; vertical-align: middle; box-sizing: border-box;
+}
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input)::after {
+    content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: inset-inline-start .18s;
+}
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):checked { background: #16a34a; }
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):checked::after { inset-inline-start: 21px; }
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):disabled { opacity: .45; cursor: not-allowed; }
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):focus-visible { outline: 2px solid var(--gold, #f4b73f); outline-offset: 2px; }
+:root[data-theme="dark"] input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input) { background: #475569; }
+:root[data-theme="dark"] input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):checked { background: #16a34a; }
+.swal2-checkbox { display: flex !important; flex-direction: row !important; align-items: center; justify-content: flex-start; gap: 10px; }
+.swal2-checkbox input { margin: 0 !important; }
