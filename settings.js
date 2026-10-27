@@ -73,6 +73,7 @@ function shQuickHtml() {
 }
 function shInit() {
     const card = shCard(); if (!card || card.dataset.sh) return; card.dataset.sh = '1';
+    card.insertAdjacentHTML('afterbegin', '<div class="sh-grab" aria-hidden="true"></div>');
     const h3 = card.querySelector('h3'); if (h3) { h3.id = 'shTitle'; }
     h3.insertAdjacentHTML('afterend', '<div id="shBar" class="sh-bar" hidden><button type="button" class="sh-back" id="shBack"><i>›</i> الإعدادات</button><b id="shPT"></b></div><div id="shHub"></div><div id="shQuick" class="cat-manager-box sh-quick" hidden></div>');
     document.getElementById('shBack').addEventListener('click', () => { shBuzz(); shHome(true); });

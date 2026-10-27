@@ -4954,12 +4954,12 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
 // ============================================================================
 (function setupMobileNav() {
     // 1) سحب النوافذ السفلية للأسفل
-    function swipeClose(sheetId, closeFn) {
+    function swipeClose(sheetId, closeFn, zone) {
         const sh = document.getElementById(sheetId); if (!sh || !sh.addEventListener) return;
         let y0 = 0, dy = 0, track = false;
         sh.addEventListener('touchstart', e => {
             if (e.touches.length !== 1) { track = false; return; }
-            track = sh.scrollTop <= 0; y0 = e.touches[0].clientY; dy = 0;
+            track = sh.scrollTop <= 0 && (!zone || e.touches[0].clientY - sh.getBoundingClientRect().top <= zone); y0 = e.touches[0].clientY; dy = 0;
         }, { passive: true });
         sh.addEventListener('touchmove', e => {
             if (!track) return;
@@ -4979,38 +4979,61 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         sh.addEventListener('touchend', end, { passive: true });
         sh.addEventListener('touchcancel', end, { passive: true });
     }
+    const cc = document.querySelector && document.querySelector('#catModal .modal-card'); if (cc && cc.addEventListener) { cc.id = cc.id || 'catCard'; swipeClose(cc.id, () => closeCategoryManager(), 90); }
     swipeClose('bottomSheet', () => closeSheet());
     swipeClose('filterSheet', () => closeFilterSheet());
     const fc = document.querySelector && document.querySelector('#formModal .modal-card'); if (fc && fc.addEventListener) { fc.id = fc.id || 'formCard'; swipeClose(fc.id, () => requestCloseForm()); }
 
-    // 2) زر الرجوع
-    let exiting = false, asking = false;
-    try { history.replaceState({ g: 0 }, ''); history.pushState({ g: 1 }, ''); } catch (e) { return; }
+    // 2) زر الرجوع: يرجع خطوة (نافذة ← شاشة ← الرئيسية) ثم يسأل قبل الخروج
+    // سجل المتصفح يتجاهل أي إدخال يُضاف قبل أول لمسة من المستخدم، فنضيف حارس الرجوع عند أول لمسة.
+    let exiting = false, asking = false, armed = false;
+    try { history.replaceState({ g: 0 }, ''); } catch (e) { return; }
+    const arm = () => { if (armed) return; armed = true; try { history.pushState({ g: 1 }, ''); } catch (e) { armed = false; } };
+    ['touchstart', 'pointerdown', 'mousedown', 'keydown'].forEach(t => window.addEventListener(t, arm, { passive: true, capture: true }));
+    const vis = id => { const e = document.getElementById(id); return !!e && e.style.display && e.style.display !== 'none'; };
     function closeTopLayer() {
-        if (document.getElementById('reportViewer')) { closeReport(); return true; }
         if (window.Swal && Swal.isVisible && Swal.isVisible()) { Swal.close(); return true; }
-        const z = document.getElementById('zoomModal');
-        if (z && z.style.display && z.style.display !== 'none') { z.style.display = 'none'; return true; }
-        const fm = document.getElementById('formModal');
-        if (fm && fm.style.display === 'flex') { requestCloseForm(); return true; }
+        if (vis('barcodeModal')) { closeBarcodeScanner(); return true; }
+        if (document.getElementById('reportViewer')) { closeReport(); return true; }
+        if (vis('zoomModal')) { document.getElementById('zoomModal').style.display = 'none'; return true; }
+        if (vis('dataHub')) { if (typeof dhScreen !== 'undefined' && dhScreen !== 'home') dhGo('home'); else dhClose(); return true; }
+        if (vis('taxRv')) { taxRvClose(); return true; }
+        if (vis('inventoryModal')) { closeInventory(); return true; }
+        if (vis('ingModal')) { closeIngredientModal(); return true; }
+        if (vis('missModal')) { closeMissModal(); return true; }
+        if (vis('expiryModal')) { closeExpiryModal(); return true; }
+        if (vis('formModal')) { requestCloseForm(); return true; }
+        if (vis('catModal')) { if (typeof shCur !== 'undefined' && shCur) shHome(true); else closeCategoryManager(); return true; }
+        if (vis('loginModal')) { closeLoginModal(); return true; }
         const sb = document.getElementById('sheetBackdrop');
         if (sb && sb.classList.contains('open')) { closeSheet(); return true; }
         const fs = document.getElementById('filterSheet');
         if (fs && fs.classList.contains('open')) { closeFilterSheet(); return true; }
+        const any = [...document.querySelectorAll('.modal-overlay')].find(e => getComputedStyle(e).display !== 'none');
+        if (any) { any.style.display = 'none'; return true; }
         return false;
     }
+    function backView() {
+        if (!(IS_ADMIN_PAGE && typeof currentView !== 'undefined' && !['home', 'login', 'splash'].includes(currentView))) return false;
+        if (currentView === 'bill' && typeof bill !== 'undefined' && bill && bill.editing) { try { cancelInvoiceEditNow(); } catch (e) { /* تجاهل */ } }
+        const prev = (window.__viewStack || []).pop();
+        window.__navBack = true; try { showView(prev && prev !== currentView ? prev : 'home'); } finally { window.__navBack = false; }
+        return true;
+    }
+    const guard = () => { try { history.pushState({ g: 1 }, ''); } catch (e) { /* تجاهل */ } };
     window.addEventListener('popstate', async () => {
-        if (exiting) return;
-        try { history.pushState({ g: 1 }, ''); } catch (e) { /* تجاهل */ }
-        if (closeTopLayer()) return;
-        if (IS_ADMIN_PAGE && typeof currentView !== 'undefined' && !['home', 'login', 'splash'].includes(currentView)) {
-            if (currentView === 'bill' && typeof bill !== 'undefined' && bill && bill.editing) { try { cancelInvoiceEditNow(); } catch (e) { /* تجاهل */ } }
-            showView('home'); return;
-        }
-        if (asking) return; asking = true;
+        if (exiting || !armed) return;
+        if (closeTopLayer() || backView()) { guard(); return; }
+        if (asking) { guard(); return; }
+        // الرئيسية: لا نعيد الحارس أثناء السؤال، فإذا ضغط رجوع ثانية يخرج مباشرة
+        asking = true;
         let ok = false;
-        try { ok = (await Swal.fire({ icon: 'question', title: 'الخروج من التطبيق؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'خروج', cancelButtonText: 'البقاء' })).isConfirmed; } catch (e) { /* تجاهل */ }
+        try { ok = (await Swal.fire({ icon: 'question', title: 'الخروج من التطبيق؟', text: 'يمكنك أيضاً الضغط على رجوع مرة ثانية للخروج.', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'خروج', cancelButtonText: 'البقاء' })).isConfirmed; } catch (e) { /* تجاهل */ }
         asking = false;
-        if (ok) { exiting = true; history.go(-2); }
+        if (!ok) { guard(); return; }
+        exiting = true;
+        try { window.close(); } catch (e) { /* تجاهل */ }
+        setTimeout(() => { try { history.back(); } catch (e) { /* تجاهل */ } }, 250);
+        setTimeout(() => { if (!document.hidden) Swal.fire({ icon: 'info', title: 'اضغط رجوع مرة أخرى', text: 'للخروج النهائي من التطبيق.', timer: 2600, showConfirmButton: false }); }, 900);
     });
 })();

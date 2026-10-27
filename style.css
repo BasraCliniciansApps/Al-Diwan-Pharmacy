@@ -2848,3 +2848,5 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .zoom-btn.danger { background: #b91c1c; color: #fff; border-color: #b91c1c; }
 .dh-chk { flex-direction: row !important; align-items: center; gap: 10px !important; }
 .dh-chk input { width: 22px; height: 22px; min-height: 0 !important; }
+/* مقبض سحب الإعدادات للأسفل */
+.sh-grab { width: 46px; height: 5px; border-radius: 3px; background: #cbd5e1; margin: -8px auto 12px; }
