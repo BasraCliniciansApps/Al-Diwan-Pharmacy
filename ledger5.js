@@ -42,13 +42,23 @@ async function lgBreqDelImported() {   // حذف طلبات البونص الق�
         lgBreqRefresh(); Swal.fire({ icon: 'success', title: `تم حذف ${L.length} طلب`, timer: 1800, showConfirmButton: false });
     } catch (err) { Swal.fire({ icon: 'error', title: 'تعذّر الحذف', text: String(err && err.message || err) }); }
 }
+function lgbScan() {   // مسح باركود المادة داخل نموذج البونص (نفس طريقة الوارد)
+    openBarcodeScanner((code, gs1) => {
+        gs1 = gs1 || parseGS1(code); code = gs1 ? gs1.gtin : cleanBarcode(code);
+        const p = findByBarcode(code), n = document.getElementById('swQKn'), N = document.getElementById('swQN'); if (!N) return;
+        if (!p) { if (n) n.textContent = 'باركود غير مسجّل بالمخزن (' + code + ') — أضف المادة للمخزن أولاً أو اكتب اسمها.'; return; }
+        N.value = p.name;
+        const X = document.getElementById('swQX'); if (X && gs1 && gs1.exp && !X.value) X.value = gs1.exp;
+        if (typeof window.lgbPick === 'function') window.lgbPick();
+    });
+}
 async function lgBreqAdd(eid) {
     const ed = eid ? lgAll.find(x => x.id === eid) : null, v = k => escapeHtml(String(ed && ed[k] != null ? ed[k] : '')).replace(/"/g, '&quot;');
     const inp = (id, label, extra) => `<label style="display:block;text-align:right;font-size:.8rem;font-weight:800;margin-top:6px">${label}<input id="${id}" class="swal2-input" style="margin:4px 0 0;width:100%" ${extra || ''}></label>`;
     const names = [...new Set(products.map(p => p.name))].sort((a, b) => String(a).localeCompare(String(b)));
     const wasApplied = !!(ed && ed.applied);
     const r = await Swal.fire({ title: ed ? 'تعديل البونص' : 'إضافة بونص مستلم (هدية مندوب / عرض)', showCancelButton: true, showDenyButton: !!ed, denyButtonText: 'حذف', denyButtonColor: '#b91c1c', confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
-        html: `<datalist id="lgbNames">${names.map(n => `<option value="${escapeHtml(n).replace(/"/g, '&quot;')}">`).join('')}</datalist>` + inp('swQN', 'المادة', `dir="ltr" list="lgbNames" autocomplete="off" value="${v('name')}" oninput="lgbPick()"`) + inp('swQC', 'الشركة', `dir="ltr" value="${v('company')}"`) + inp('swQQ', 'الكمية', `type="number" inputmode="numeric" value="${v('qty')}"`) + inp('swQX', 'تاريخ الانتهاء (اختياري)', `type="month" value="${ed && ed.expiry ? v('expiry') : ''}"`)
+        html: `<datalist id="lgbNames">${names.map(n => `<option value="${escapeHtml(n).replace(/"/g, '&quot;')}">`).join('')}</datalist>` + `<div style="display:flex;gap:8px;align-items:flex-end">` + `<div style="flex:1;min-width:0">${inp('swQN', 'المادة', `dir="ltr" list="lgbNames" autocomplete="off" value="${v('name')}" oninput="lgbPick()"`)}</div><button type="button" class="bill-tb-btn bill-scan" onclick="lgbScan()" aria-label="مسح باركود" style="margin-bottom:2px">▦ باركود</button></div>` + inp('swQC', 'الشركة', `dir="ltr" value="${v('company')}"`) + inp('swQQ', 'الكمية', `type="number" inputmode="numeric" value="${v('qty')}"`) + inp('swQX', 'تاريخ الانتهاء (اختياري)', `type="month" value="${ed && ed.expiry ? v('expiry') : ''}"`)
             + `<label id="swQKw" style="display:flex;gap:8px;align-items:center;text-align:right;font-size:.82rem;font-weight:800;margin-top:10px"><input id="swQK" type="checkbox" ${(!ed || ed.stockAdd === true) ? 'checked' : ''} style="width:20px;height:20px"><span>إضافة الكمية إلى المخزن</span></label><small id="swQKn" style="display:block;text-align:right;color:#64748b;margin-top:4px;line-height:1.6"></small>`
             + inp('swQS', 'المذخر', `list="puSupList" value="${v('supplier')}"`) + inp('swQL', 'رقم القائمة', `dir="ltr" value="${v('listNo')}"`) + inp('swQD', 'التاريخ', `type="date" value="${ed ? v('date') : todayLocalISO()}"`) + inp('swQR', 'المندوب', `value="${v('rep')}"`),
         didOpen: () => { window.__lgbHad = false; window.lgbPick = () => { const p = lgbProd(document.getElementById('swQN').value), c = document.getElementById('swQC'), n = document.getElementById('swQKn'), k = document.getElementById('swQK');

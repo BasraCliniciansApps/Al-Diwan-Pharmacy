@@ -2170,7 +2170,7 @@ body.role-staff .kpi.k-sales { display: none !important; }
 .qp .qp-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .qp .qp-bc { display: flex; gap: 6px; } .qp .qp-bc input { flex: 1; min-width: 0; } .qp .qp-bc button { width: 44px; border: 2px solid #cbd5e1; border-radius: 10px; background: #fff; font-size: 1.2rem; }
 .qp .qp-ret { border: 1px dashed #cbd5e1; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
-#barcodeModal { z-index: 20000 !important; }
+#barcodeModal { z-index: 100010 !important; }
 :root[data-theme="dark"] .cat-qty button, :root[data-theme="dark"] .cat-qty input { background: var(--surface); color: var(--text-main); }
 
 .cat-add.big { margin-top: 10px; min-height: 54px; font-size: 1rem; }
