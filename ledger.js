@@ -169,12 +169,12 @@ function lgCsvSave(name, lines) {
 }
 // كل تصدير Excel/طباعة يمرّ الآن بنافذة معاينة داخل التطبيق (فيها زرا Excel وطباعة) بدل العمل بالخلفية
 const RV_TITLES = { 'orders': 'قوائم الوارد', 'returns': 'سجل المردود', 'unrecovered-returns': 'المردود غير المقطوع', 'supplier-payments': 'مدفوعات المذاخر', 'bonus': 'البونص', 'transfers': 'التبادل بين الصيدليات', 'expired': 'المنتهي والتالف', 'financial-summary': 'الملخص المالي' };
-function lgCsvDownload(name, lines, title) {
+function lgCsvDownload(name, lines, title, excelLines) {
     let L = lines.map(r => r.slice()), t = title || '';
     while (L.length && L[0].every(c => c === '' || c == null)) L.shift();
     if (L.length > 2 && L[0].length === 1) { t = t || L[0][0]; L.shift(); while (L.length && L[0].every(c => c === '' || c == null)) L.shift(); }
     if (!t) { const k = Object.keys(RV_TITLES).sort((a, b) => b.length - a.length).find(x => String(name).startsWith(x)); t = k ? RV_TITLES[k] : 'تقرير'; }
-    openReport({ title: t, lines: L, csvLines: lines, csvName: name });
+    openReport({ title: t, lines: L, csvLines: excelLines || lines, csvName: name });   // excelLines: تنسيق مختلف للتصدير فقط، والمعاينة/الطباعة تبقى من lines
 }
 function rvTableFromLines(lines) {
     const esc = escapeHtml, isNum = v => /\d/.test(String(v)) && /^[\d,.\-+%$ ✓]+$/.test(String(v).trim());
@@ -275,24 +275,23 @@ function lgRenderRet(kind) {
     lgTabBadge();
 }
 function lgRetCsv(kind) {
-    if (kind === 'ret') {   // تنظيم التصدير: كل مادة بسطر مستقل بالترتيب المطلوب
-        const arr = lgRetFiltered(kind), L = [['المادة', 'العدد المسترجع', 'المبلغ الكلي لمجموع القطع المردودة', 'حالة استلام الكشف', 'فاتورة المذخر', 'رقم الفاتورة', 'تاريخ الفاتورة', 'رقم فاتورة المردود', 'تاريخ فاتورة المردود']];
-        let tq = 0, ta = 0;
-        arr.forEach(e => {
-            const inv = e.listId ? puAll.find(x => x.id === e.listId) : null, stmt = e.stmt ? 'مستلم' : 'غير مستلم';
-            const tail = [stmt, e.supplier || '', e.listNo || (inv && inv.no) || 'عام', (inv && inv.date) || '', e.cnNo || '', e.cnDate || ''];
-            const its = (e.items || []);
-            if (!its.length) { L.push(['(مردود عام)', '', puNum(e.amount), ...tail]); ta += puNum(e.amount); return; }
-            its.forEach(l => { const q = parseInt(l.qty) || 0, amt = q * puNum(l.cost); tq += q; ta += amt; L.push([l.name, q, amt, ...tail]); });
-        });
-        L.push(['المجموع', tq, ta, '', '', '', '', '', '']);
-        lgCsvDownload('returns-' + todayLocalISO() + '.csv', L);
-        return;
-    }
-    const arr = lgRetFiltered(kind), L = [['الكشف', 'التاريخ', 'المذخر', 'قائمة الشراء', 'السبب', 'المواد', 'رقم فاتورة المردود', 'تاريخ فاتورة المردود', 'نوع الاحتساب', 'شهر الاقتطاع', 'المبلغ']];
+    const arr = lgRetFiltered(kind);
+    // الطباعة/المعاينة: التنسيق السابق كما هو
+    const L = [['الكشف', 'التاريخ', 'المذخر', 'قائمة الشراء', 'السبب', 'المواد', 'رقم فاتورة المردود', 'تاريخ فاتورة المردود', 'نوع الاحتساب', 'شهر الاقتطاع', 'المبلغ']];
     arr.forEach(e => L.push([e.stmt ? '✓' : '', e.date, e.supplier, e.listNo || 'عام', e.reason || '', (e.items || []).map(l => l.name + ' ×' + l.qty).join(' | '), e.cnNo || '', e.cnDate || '', e.mode === 'unrec' ? 'غير مقطوع' : 'يخصم من الكشف', e.deductMonth || '', e.amount]));
     L.push(['المجموع', '', '', '', '', '', '', '', '', '', arr.reduce((s, e) => s + puNum(e.amount), 0)]);
-    lgCsvDownload((kind === 'unrec' ? 'unrecovered-returns-' : 'returns-') + todayLocalISO() + '.csv', L);
+    // ملف Excel: كل مادة بسطر مستقل بالترتيب المطلوب
+    const X = [['المادة', 'العدد المسترجع', 'المبلغ الكلي لمجموع القطع المردودة', 'حالة استلام الكشف', 'فاتورة المذخر', 'رقم الفاتورة', 'تاريخ الفاتورة', 'رقم فاتورة المردود', 'تاريخ فاتورة المردود']];
+    let tq = 0, ta = 0;
+    arr.forEach(e => {
+        const inv = e.listId ? puAll.find(x => x.id === e.listId) : null;
+        const tail = [e.stmt ? 'مستلم' : 'غير مستلم', e.supplier || '', e.listNo || (inv && inv.no) || 'عام', (inv && inv.date) || '', e.cnNo || '', e.cnDate || ''];
+        const its = e.items || [];
+        if (!its.length) { X.push(['(مردود عام)', '', puNum(e.amount), ...tail]); ta += puNum(e.amount); return; }
+        its.forEach(l => { const q = parseInt(l.qty) || 0, amt = q * puNum(l.cost); tq += q; ta += amt; X.push([l.name, q, amt, ...tail]); });
+    });
+    X.push(['المجموع', tq, ta, '', '', '', '', '', '']);
+    lgCsvDownload((kind === 'unrec' ? 'unrecovered-returns-' : 'returns-') + todayLocalISO() + '.csv', L, '', X);
 }
 function lgLinkedHtml(pid) {
     const arr = lgRets().filter(e => e.listId === pid);
