@@ -2834,3 +2834,8 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .dh-add { background: #0f1c38; color: #fff; }
 .dh-miss { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; } .dh-miss span { display: flex; flex-direction: column; gap: 2px; min-width: 0; } .dh-miss small { color: #64748b; font-size: .76rem; }
 [data-theme="dark"] .dh-meter, [data-theme="dark"] .dh-card, [data-theme="dark"] .dh-row, [data-theme="dark"] .dh-miss { background: #0f172a; border-color: #334155; } [data-theme="dark"] .dh-meter b, [data-theme="dark"] .dh-tx b { color: #f1f5f9; }
+/* نجمة المفضلة على الأدوات */
+.tools-grid > .icon-btn { position: relative; }
+.sh-tstar { top: 3px !important; bottom: auto !important; left: 3px !important; width: 24px; height: 24px; }
+.sh-tstar svg { width: 14px; height: 14px; }
+.tools-grid > .icon-btn { padding-inline-start: 26px; }

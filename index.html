@@ -175,7 +175,7 @@
             </div>
 
             <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>4. التنبيهات وأدوات الصيدلي</h4>
+                <h4>4. التنبيهات والمدد</h4>
                 <div class="form-group" style="margin-bottom:10px;">
                     <label>تنبيه الكمية القليلة: عندما تصل كمية الصنف إلى (أو أقل من):</label>
                     <div class="add-inline-row">
@@ -197,15 +197,6 @@
                         <button class="icon-btn primary-btn" onclick="savePuWindow()">حفظ</button>
                     </div>
                 </div>
-                <div class="tools-grid">
-                    <button class="icon-btn" onclick="openCatalog()">📋 سجل الأدوية</button>
-                    <button class="icon-btn" onclick="dhOpen()">🧰 مركز تجهيز البيانات</button>
-                    <button class="icon-btn" onclick="openCostSplit()">🔒 فصل سعر الشراء</button>
-                    <button class="icon-btn" onclick="openUsers()">👥 المستخدمون والصلاحيات</button>
-                    <button class="icon-btn" onclick="openIngredientModal()">🧪 إكمال المواد الفعالة</button>
-                    <button class="icon-btn" onclick="openMissModal()">🔍 سجل البحث الفاشل</button>
-                    <button class="icon-btn" onclick="puBackfill()">🔄 تحديث المواد من سجل الوارد</button>
-                </div>
             </div>
 
             <div class="cat-manager-box" id="pricingBox" style="margin-top:16px;">
@@ -218,6 +209,7 @@
                 <div class="form-group"><label>الشرائح (سعر المذخر بالدولار ← نسبة الإضافة):</label><div id="pcRows"></div></div>
                 <button type="button" class="icon-btn" onclick="pzOpen()" style="margin-bottom:8px;width:100%">🏷️ مواد بدون سعر بيع (مع سعر شرائها)</button>
                 <button type="button" class="icon-btn" onclick="pzOpen(true)" style="margin-bottom:8px;width:100%">⚠️ مواد تُباع بخسارة (سعر البيع ≤ الكلفة)</button>
+                <button type="button" class="icon-btn" onclick="openCostSplit()" style="margin-bottom:8px;width:100%">🔒 فصل سعر الشراء</button>
                 <button type="button" class="icon-btn primary-btn" onclick="savePricingSettings()">💾 حفظ وإعادة تسعير المواد</button>
                 <small style="display:block;margin-top:8px;color:#64748b;line-height:1.7;">تغيير سعر الصرف أو النسب يعيد حساب أسعار كل المواد المسعّرة «حسب كتاب النقابة» دفعة واحدة، بعد تأكيدك. المواد اليدوية لا تتأثر.</small>
             </div>
@@ -239,14 +231,18 @@
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="closeCategoryManager(); openInventory()">📋 وضع الجرد</button>
                     <button class="icon-btn" onclick="installApp()">📲 تثبيت التطبيق</button>
+                    <button class="icon-btn" onclick="puBackfill()">🔄 تحديث المواد من سجل الوارد</button>
+                    <button class="icon-btn" onclick="openIngredientModal()">🧪 إكمال المواد الفعالة</button>
+                    <button class="icon-btn" onclick="openMissModal()">🔍 سجل البحث الفاشل</button>
                 </div>
             </div>
 
             <div class="cat-manager-box" id="securityBox" style="margin-top:16px;">
-                <h4>8. الأمان والسجلات</h4>
+                <h4>8. الحسابات والأمان</h4>
                 <div class="tools-grid">
+                    <button class="icon-btn" onclick="openUsers()">👥 المستخدمون والصلاحيات</button>
+                    <button class="icon-btn" onclick="openLogModal()">📜 سجل الإجراءات</button>
                     <button class="icon-btn" onclick="openTrashModal()">🗑️ سلة المحذوفات</button>
-                    <button class="icon-btn" onclick="openLogModal()">📜 سجل التعديلات</button>
                     <button class="icon-btn" onclick="openCloudBackupsModal()">☁️ النسخ السحابية</button>
                     <button class="icon-btn" onclick="migrateStockPrivate()" style="grid-column:1/-1;">🔒 حماية بيانات المخزون (إخفاء الكميات عن الزبائن)</button>
                 </div>

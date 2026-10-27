@@ -3,19 +3,15 @@
 // ما تغيّر محتوى الإعدادات القديمة، بس ترتّبه (تعرض صناديق كل صفحة وتخفي الباقي).
 // =====================================================================
 const SH_PAGES = [
-    { id: 'users', ico: '👥', t: 'المستخدمون والصلاحيات', boxes: [], act: 'openUsers', kw: 'مستخدم مستخدمين صلاحيات بائع موظف حساب دخول users permissions' },
     { id: 'hub', ico: '🧰', t: 'مركز تجهيز البيانات', boxes: [], act: 'dhOpen', kw: 'تجهيز بيانات مادة فعالة تصنيف مكرر نواقص قواعد اكتمال data hub ingredient' },
-    { id: 'log', ico: '📜', t: 'سجل الإجراءات', boxes: [], act: 'openLogModal', kw: 'سجل اجراءات تعديلات من عدل log history' },
-    { id: 'trash', ico: '🗑️', t: 'سلة المحذوفات', boxes: [], act: 'openTrashModal', kw: 'سلة محذوفات استعادة حذف trash restore' },
+    { id: 'catalog', ico: '📋', t: 'سجل الأدوية', boxes: [], act: 'openCatalog', kw: 'سجل ادوية كتالوج دليل مواد catalog' },
     { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيفات', boxes: [0, 1, 2], kw: 'قسم اقسام تصنيف تصنيفات فرعية جاهزة مراجعة الأقسام الرئيسية departments categories' },
-    { id: 'tabs', ico: '🔔', t: 'التبويبات والتنبيهات', boxes: [3, 4], kw: 'تبويب تبويبات الشريط السفلي تنبيه تنبيهات نقص كمية صلاحية انتهاء أدوات الصيدلي alerts tabs' },
-    { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح pricing' },
+    { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح فصل سعر الشراء كلفة pricing' },
+    { id: 'tabs', ico: '🔔', t: 'التبويبات والتنبيهات', boxes: [3, 4], kw: 'تبويب تبويبات الشريط السفلي تنبيه تنبيهات نقص كمية صلاحية انتهاء مدة نفاذ alerts tabs' },
     { id: 'quick', ico: '🧩', t: 'الإدخال السريع والتعلّم', boxes: [], kw: 'ادخال سريع تعلم قواعدي تلقائي شكل دوائي تصنيف تلقائي quick learn' },
     { id: 'scanner', ico: '🔎', t: 'فاحص المادة', boxes: [], kw: 'فاحص المادة مسح باركود سعر خصم حد الخصم اكسباير نفاذ هامش ربح scanner discount' },
-    { id: 'backup', ico: '💾', t: 'النسخ الاحتياطي', boxes: [6], kw: 'نسخ نسخة احتياطي استرجاع استعادة تصدير backup restore' },
-    { id: 'tools', ico: '🛠️', t: 'أدوات سريعة', boxes: [7], kw: 'أدوات جرد طباعة سريعة tools inventory' },
-    { id: 'sec', ico: '🔐', t: 'الأمان والسجلات', boxes: [8], kw: 'أمان سجل سجلات بصمة كلمة سر باسورد حماية security log' },
-    { id: 'ai', ico: '🤖', t: 'الذكاء الصناعي', boxes: [9], kw: 'ذكاء صناعي مسح عبوة gemini ocr مفتاح ai' }
+    { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة نسخ سحابية users permissions security log trash' },
+    { id: 'sys', ico: '⚙️', t: 'النظام والأدوات', boxes: [6, 7, 9], kw: 'نسخ احتياطي استرجاع تصدير جرد تثبيت التطبيق تحديث المواد من الوارد إكمال مواد فعالة بحث فاشل ذكاء صناعي مسح عبوة gemini ocr backup restore tools ai' }
 ];
 let shCur = null;
 const shNorm = s => String(s || '').toLowerCase().replace(/[ً-ٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
@@ -25,34 +21,44 @@ function shBuzz() { try { if (navigator.vibrate) navigator.vibrate(8); } catch (
 function shSummary(p) {
     try {
         if (p.id === 'tax') { const n = (typeof taxSeeded === 'function' && taxSeeded()) ? taxMissingSubs().length + taxPendingRenames().length : 0; return { s: `${fmtNum(departments.length)} قسم · ${fmtNum(subCategories.length)} تصنيف`, badge: n ? fmtNum(n) + ' جديد' : '' }; }
-        if (p.id === 'users') return { s: 'الحسابات والصلاحيات' };
         if (p.id === 'hub') return { s: 'المواد الفعالة والتصنيف والنواقص' };
-        if (p.id === 'log') return { s: 'من عدّل ماذا ومتى' };
-        if (p.id === 'trash') return { s: 'استعادة المواد المحذوفة' };
+        if (p.id === 'catalog') return { s: 'دليل المواد الدوائية' };
+        if (p.id === 'hub') return { s: 'المواد الفعالة والتصنيف والنواقص' };
         if (p.id === 'tabs') return { s: `حد النقص ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر` };
         if (p.id === 'price') return { s: `سعر الصرف ${fmtNum(pricingCfg.rate)}` };
         if (p.id === 'quick') { const c = qkCfg(), on = ['form', 'dept', 'like'].filter(k => c[k]).length, r = typeof learnRules === 'function' ? learnRules().length : 0; return { s: `الإدخال ${on}/3 · التعلّم ${learnOn() ? 'مفعّل' : 'متوقف'}${r ? ' · ' + fmtNum(r) + ' قاعدة' : ''}` }; }
         if (p.id === 'scanner') { const c = typeof scCfg === 'function' ? scCfg() : null; return { s: c ? (c.on ? 'مشغّل · ' : 'متوقف · ') + (c.mode === 'safe' ? 'خصم محمي' : 'خصم كامل') : '' }; }
-        if (p.id === 'backup') return { s: 'نسخ واسترجاع وتصدير' };
-        if (p.id === 'tools') return { s: 'جرد وأدوات الصيدلي' };
-        if (p.id === 'sec') return { s: 'الدخول والسجلات' };
-        if (p.id === 'ai') return { s: 'مسح العبوة بالذكاء' };
+        if (p.id === 'sec') return { s: 'المستخدمون · السجل · السلة' };
+        if (p.id === 'sys') return { s: 'النسخ الاحتياطي · الجرد · الذكاء' };
     } catch (e) { /* تجاهل */ }
     return { s: '' };
 }
-const SH_FAV_LS = 'diwanShFav';
-function shFav() { try { const a = JSON.parse(localStorage.getItem(SH_FAV_LS)); return Array.isArray(a) ? a.filter(id => SH_PAGES.some(p => p.id === id)).slice(0, 3) : []; } catch (e) { return []; } }
+const SH_FAV_LS = 'diwanShFav', SH_FAV_MAX = 8;
+// مفتاح الأداة = نص onclick للزر (ثابت). المفضلة تقبل بطاقات (معرّف الصفحة) وأدوات (t:المفتاح)
+function shToolKey(b) { return 't:' + (b.getAttribute('onclick') || '').replace(/\s+/g, ' ').trim(); }
+function shToolBtns() { return [...document.querySelectorAll('#catModal .tools-grid > button.icon-btn')]; }
+function shToolByKey(k) { return shToolBtns().find(b => shToolKey(b) === k); }
+function shToolLabel(b) { const c = b.cloneNode(true); c.querySelectorAll('.sh-star').forEach(x => x.remove()); return c.textContent.trim(); }
+function shFav() { try { const a = JSON.parse(localStorage.getItem(SH_FAV_LS)); return Array.isArray(a) ? a.filter(id => id.startsWith('t:') ? !!shToolByKey(id) : SH_PAGES.some(p => p.id === id)).slice(0, SH_FAV_MAX) : []; } catch (e) { return []; } }
 function shFavToggle(id) {
     let a = shFav();
     if (a.includes(id)) a = a.filter(x => x !== id);
-    else { if (a.length >= 3) { shToast('أقصى حد 3 مفضّلات'); return; } a.push(id); }
+    else { if (a.length >= SH_FAV_MAX) { shToast('أقصى حد ' + SH_FAV_MAX + ' مفضّلات'); return; } a.push(id); }
     try { localStorage.setItem(SH_FAV_LS, JSON.stringify(a)); } catch (e) { /* تجاهل */ }
+    if (shCur) { shStarSync(); return; }
     const sc = shCard() ? shCard().scrollTop : 0; shHome(false); if (shCard()) shCard().scrollTop = sc;
+}
+// نجمة على كل أداة داخل الصفحات (تُلتقط بمرحلة capture حتى لا ينفّذ الزر أمرَه)
+function shStarSync() { const f = shFav(); shToolBtns().forEach(b => { const st = b.querySelector('.sh-star'); if (!st) return; const on = f.includes(shToolKey(b)); st.classList.toggle('on', on); st.innerHTML = SH_STAR(on); }); }
+function shDecorate() {
+    shToolBtns().forEach(b => { if (b.querySelector('.sh-star')) return; const st = document.createElement('i'); st.className = 'sh-star sh-tstar'; st.dataset.star = shToolKey(b); st.setAttribute('role', 'button'); st.setAttribute('aria-label', 'تثبيت في المفضلة'); b.appendChild(st); });
+    shStarSync();
 }
 const SH_STAR = on => `<svg viewBox="0 0 24 24" width="16" height="16" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>`;
 function shHubHtml() {
     const fav = shFav();
-    const favRow = fav.length ? `<div class="sh-fav"><span class="sh-fav-t">${SH_STAR(true)} المفضلة</span>${fav.map(id => { const p = SH_PAGES.find(x => x.id === id); return `<button type="button" class="sh-chip" data-p="${p.id}"><span class="sh-ico">${p.ico}</span>${p.t}</button>`; }).join('')}</div>` : '';
+    const chip = id => { if (id.startsWith('t:')) { const b = shToolByKey(id), lab = shToolLabel(b), m = lab.match(/^(\S+)\s+(.*)$/); return `<button type="button" class="sh-chip" data-t="${id.replace(/"/g, '&quot;')}"><span class="sh-ico">${m ? m[1] : '⭐'}</span>${m ? m[2] : lab}</button>`; } const p = SH_PAGES.find(x => x.id === id); return `<button type="button" class="sh-chip" data-p="${p.id}"><span class="sh-ico">${p.ico}</span>${p.t}</button>`; };
+    const favRow = fav.length ? `<div class="sh-fav"><span class="sh-fav-t">${SH_STAR(true)} المفضلة</span>${fav.map(chip).join('')}</div>` : '';
     return favRow + `<div class="sh-search"><input type="search" id="shQ" placeholder="ابحث في الإعدادات…" autocomplete="off" aria-label="بحث في الإعدادات"></div>
     <div class="sh-grid" id="shGrid">${SH_PAGES.map(p => { const m = shSummary(p); return `<button type="button" class="sh-card" data-p="${p.id}"><span class="sh-ico">${p.ico}</span><span class="sh-tx"><b>${p.t}</b><small>${m.s}</small></span>${m.badge ? `<em class="sh-badge">${m.badge}</em>` : ''}<i class="sh-star ${shFav().includes(p.id) ? 'on' : ''}" data-star="${p.id}" role="button" aria-label="تثبيت في المفضلة">${SH_STAR(shFav().includes(p.id))}</i></button>`; }).join('')}</div>
     <div class="sh-res" id="shRes" hidden></div>`;
@@ -70,8 +76,10 @@ function shInit() {
     const h3 = card.querySelector('h3'); if (h3) { h3.id = 'shTitle'; }
     h3.insertAdjacentHTML('afterend', '<div id="shBar" class="sh-bar" hidden><button type="button" class="sh-back" id="shBack"><i>›</i> الإعدادات</button><b id="shPT"></b></div><div id="shHub"></div><div id="shQuick" class="cat-manager-box sh-quick" hidden></div>');
     document.getElementById('shBack').addEventListener('click', () => { shBuzz(); shHome(true); });
-    card.addEventListener('click', e => { const st = e.target.closest('.sh-star'); if (st) { e.stopPropagation(); shBuzz(); shFavToggle(st.dataset.star); return; } const ch = e.target.closest('.sh-chip'); if (ch) { shBuzz(); shOpen(ch.dataset.p); return; } const b = e.target.closest('.sh-card'); if (b) { shBuzz(); shOpen(b.dataset.p); } const r = e.target.closest('.sh-r'); if (r) { shBuzz(); shOpen(r.dataset.p, r.dataset.b === '' ? null : +r.dataset.b); } });
+    card.addEventListener('click', e => { const tc = e.target.closest('.sh-chip[data-t]'); if (tc) { shBuzz(); const b = shToolByKey(tc.dataset.t); if (b) b.click(); return; } const st = e.target.closest('.sh-star'); if (st) { e.stopPropagation(); shBuzz(); shFavToggle(st.dataset.star); return; } const ch = e.target.closest('.sh-chip'); if (ch) { shBuzz(); shOpen(ch.dataset.p); return; } const b = e.target.closest('.sh-card'); if (b) { shBuzz(); shOpen(b.dataset.p); } const r = e.target.closest('.sh-r'); if (r) { shBuzz(); shOpen(r.dataset.p, r.dataset.b === '' ? null : +r.dataset.b); } });
     card.addEventListener('input', e => { if (e.target.id === 'shQ') shSearch(e.target.value); });
+    card.addEventListener('click', e => { const st = e.target.closest('.sh-tstar'); if (st) { e.stopPropagation(); e.preventDefault(); shBuzz(); shFavToggle(st.dataset.star); } }, true);
+    shDecorate();
     card.classList.add('sh');
 }
 function shHome(anim) {
