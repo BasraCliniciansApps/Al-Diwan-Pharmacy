@@ -26,7 +26,7 @@ function dhCustomHit(p) {
 // ---------- إحصاءات الاكتمال ----------
 function dhNormKey(n) {
     return String(n || '').toLowerCase().replace(/\d+(\.\d+)?\s*(mg|mcg|g|ml|iu|%|gm|l)\b/g, ' ').replace(/\bx\s*\d+\b/g, ' ')
-        .replace(/\b(tablets?|capsules?|caps|syrup|cream|ointment|gel|drops?|eye|ear|nasal|spray|lotion|shampoo|solution|suspension|ampoules?|vials?|vial|inj\w*|sachets?|soap|forte|plus|film|coated|effervescent|oral|strip|strips|pcs|count)\b/g, ' ')
+        .replace(/\b(tablets?|tabs?|capsules?|caps|cap|syp|susp|amp|supp\w*|syrup|cream|ointment|gel|drops?|eye|ear|nasal|spray|lotion|shampoo|solution|suspension|ampoules?|vials?|vial|inj\w*|sachets?|soap|forte|plus|film|coated|effervescent|oral|strip|strips|pcs|count)\b/g, ' ')
         .replace(/[^a-z؀-ۿ]+/g, '');
 }
 function dhDupGroups() {
@@ -245,9 +245,10 @@ async function dhRuleDel(i) {
 
 // ---------- تعبئة الشركة تلقائياً من نفس الاسم التجاري ----------
 let dhBrandSel = new Map();   // id → الشركة المختارة (null = تجاهل)
+const DH_BRANDS_IN_ING = new Set(['augmentin', 'panadol', 'plavix', 'ventolin', 'singulair', 'glucophage', 'januvia', 'galvus', 'jardiance', 'forxiga', 'ozempic', 'victoza', 'lantus', 'novorapid', 'mixtard', 'amaryl', 'diamicron', 'flagyl', 'septrin', 'bactrim', 'tamiflu', 'viagra', 'cialis', 'priligy', 'zofran', 'lanoxin', 'euthyrox', 'eltroxin', 'duphaston', 'utrogestan', 'aldactone', 'emend', 'plavix']);
 function dhBrandGeneric(p, key) {
     // أسماء المواد الفعالة والكلمات العامة لا تدل على شركة
-    if (typeof taxIngHit === 'function' && taxIngHit(p.name)) return true;
+    if (typeof TAX_ING !== 'undefined') for (const e of TAX_ING) { const m = e[0].exec(String(p.name || '')); if (m) { if (!DH_BRANDS_IN_ING.has(m[0].toLowerCase().trim())) return true; break; } }
     const w = String(p.name || '').toLowerCase().split(/[^a-z]+/).filter(Boolean)[0] || '';
     if (typeof TAX_GENERIC_FIRST !== 'undefined' && TAX_GENERIC_FIRST.has(w)) return true;
     return dhIngKeys().has(key);
