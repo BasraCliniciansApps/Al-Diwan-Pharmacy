@@ -435,7 +435,7 @@
     <!-- تكبير الصورة -->
     <div class="img-zoom-modal" id="zoomModal" onclick="this.style.display='none'">
         <img id="zoomImg" src="" alt="">
-        <div class="zoom-bar" id="zoomBar" style="display:none" onclick="event.stopPropagation()"><button type="button" class="zoom-btn" onclick="sheetImgPick(window.__zoomPid)">🔄 تبديل الصورة</button><button type="button" class="zoom-btn ghost" onclick="document.getElementById('zoomModal').style.display='none'">إغلاق</button></div>
+        <div class="zoom-bar" id="zoomBar" style="display:none" onclick="event.stopPropagation()"><button type="button" class="zoom-btn" onclick="sheetImgPick(window.__zoomPid)">🔄 تبديل الصورة</button><button type="button" class="zoom-btn danger" onclick="sheetImgDelete(window.__zoomPid)">🗑️ حذف الصورة</button><button type="button" class="zoom-btn ghost" onclick="document.getElementById('zoomModal').style.display='none'">إغلاق</button></div>
         <input type="file" id="quickImgInput" accept="image/*" hidden>
     </div>
 

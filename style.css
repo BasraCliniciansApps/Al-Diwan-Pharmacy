@@ -2839,3 +2839,10 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .sh-tstar { top: 3px !important; bottom: auto !important; left: 3px !important; width: 24px; height: 24px; }
 .sh-tstar svg { width: 14px; height: 14px; }
 .tools-grid > .icon-btn { padding-inline-start: 26px; }
+/* صورة المادة داخل سجل المادة الفعالة */
+.dh-row { position: relative; }
+.dh-img { position: absolute; top: 10px; inset-inline-end: 10px; width: 52px; height: 52px; border-radius: 12px; border: 1.5px dashed #cbd5e1; background: #f8fafc; display: grid; place-items: center; overflow: hidden; cursor: pointer; font-size: 1.3rem; z-index: 1; }
+.dh-img img { width: 100%; height: 100%; object-fit: cover; }
+.dh-row .dh-sub { padding-inline-end: 62px; min-height: 40px; }
+.img-zoom-modal { z-index: 9500 !important; }
+.zoom-btn.danger { background: #b91c1c; color: #fff; border-color: #b91c1c; }

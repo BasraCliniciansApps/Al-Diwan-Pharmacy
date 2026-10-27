@@ -96,9 +96,13 @@ function dhIngList() {
         && (!q || `${p.name} ${p.brand || ''} ${p.activeIngredient || ''}`.toLowerCase().includes(q)))
         .sort((a, b) => String(a.name).localeCompare(String(b.name)));
 }
+function dhImgHtml(p) { return p.img && String(p.img).trim() ? `<img src="${dhEsc(p.img)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'📷'}))">` : '<span>📷</span>'; }
+// بعد إضافة/حذف صورة من هذه الشاشة: حدّث المصغّرة فقط (بدون فقدان تعديلات الأسماء غير المحفوظة)
+function dhImgDone(id) { const el = document.getElementById('dhi-' + id), p = products.find(x => x.id === id); if (!el || !p) return false; el.innerHTML = dhImgHtml(p); return true; }
 function dhIngRow(p) {
     const e = dhEdits.get(p.id) || {}, name = e.name != null ? e.name : p.name, ai = e.ai != null ? e.ai : (p.activeIngredient || '');
     return `<div class="dh-row ${e.aiGen ? 'sug' : ''}" id="dhr-${p.id}">
+        <div class="dh-img" id="dhi-${p.id}" onclick="sheetImgTap(${p.id})" role="button" aria-label="صورة المادة">${dhImgHtml(p)}</div>
         <div class="dh-sub" dir="ltr">${dhEsc(p.brand || '')}${p.brand && p.meta ? ' | ' : ''}${dhEsc(fixMetaOrder(p.meta || ''))}</div>
         <label><span>الاسم التجاري</span><input type="text" dir="ltr" value="${dhEsc(name)}" oninput="dhEdit(${p.id},'name',this.value)"></label>
         <label><span>الاسم العلمي (المادة الفعالة)</span><input type="text" dir="ltr" list="activeList" value="${dhEsc(ai)}" placeholder="مثال: Ciprofloxacin — للمركّب افصل بـ +" oninput="dhEdit(${p.id},'ai',this.value)"></label>

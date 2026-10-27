@@ -156,6 +156,16 @@ function sheetImgPick(id) {
     inp.value = ''; inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) quickImgUpload(id, f); };
     inp.click();
 }
+async function sheetImgDelete(id) {
+    const p = products.find(x => x.id === id); if (!p || !p.img) return;
+    if (!writesAllowed()) return;
+    if (!(await askSure('حذف صورة المادة؟', 'ستُزال الصورة من «' + p.name + '» ويمكنك إضافة غيرها لاحقاً.', 'نعم، احذف'))) return;
+    document.getElementById('zoomModal').style.display = 'none';
+    const old = p.img; p.img = '';
+    if (!(await saveProductsDelta([{ p, dq: 0, dl: 0 }]))) { p.img = old; Swal.fire({ icon: 'error', title: 'تعذر حذف الصورة', confirmButtonColor: '#0f1c38' }); return; }
+    logAction('edit', p, [{ f: 'الصورة', from: old, to: '' }]);
+    renderAll(); if (typeof dhImgDone === 'function') dhImgDone(p.id);
+}
 async function quickImgUpload(id, file) {
     const p = products.find(x => x.id === id); if (!p) return;
     if (!file.type.startsWith('image/')) { Swal.fire({ icon: 'warning', title: 'صيغة غير مدعومة', text: 'اختر صورة صحيحة.', confirmButtonColor: '#0f1c38' }); return; }
@@ -191,7 +201,7 @@ async function quickImgUpload(id, file) {
         const old = p.img; p.img = 'https://raw.githubusercontent.com/BasraCliniciansApps/Al-Diwan-Pharmacy/main/' + path;
         if (!(await saveProductsDelta([{ p, dq: 0, dl: 0 }]))) { p.img = old; h.fail('رُفعت الصورة لكن لم يُحفظ رابطها', 'جرّب مرة ثانية'); return; }
         logAction('edit', p, [{ f: 'الصورة', from: old || '', to: p.img }]);
-        renderAll(); try { openSheet(p.id); } catch (e) { /* تجاهل */ }
+        renderAll(); if (typeof dhImgDone === 'function' && dhImgDone(p.id)) { /* من مركز التجهيز */ } else { try { openSheet(p.id); } catch (e) { /* تجاهل */ } }
         h.ok(old ? 'تم تبديل الصورة' : 'تمت إضافة الصورة');
     } catch (e) { h.fail('تعذر رفع الصورة', (e && e.message) || String(e)); }
 }
