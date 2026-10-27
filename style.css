@@ -2810,3 +2810,7 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .pu-d-scroll .bill-table th, .pu-d-scroll .bill-table td:not(:first-child) { white-space: nowrap; word-break: keep-all; overflow-wrap: normal; }
 .pu-d-scroll .bill-table td:first-child { min-width: 96px; white-space: normal; word-break: normal; overflow-wrap: break-word; text-align: right; }
 @media (max-width: 480px) { .pu-d-scroll .bill-table th { font-size: .66rem; padding: 5px 2px; } .pu-d-scroll .bill-table td { font-size: .7rem; padding: 4px 3px; } }
+/* SweetAlert يفرض word-break: break-word على كل محتوى النوافذ فتتقطّع الأرقام بالجداول: نلغيه ونُبقي الأعمدة غير الأولى بسطر واحد */
+.swal2-html-container table th, .swal2-html-container table td { word-break: normal; overflow-wrap: normal; }
+.swal2-html-container table th, .swal2-html-container table td + td { white-space: nowrap; }
+.swal2-html-container table td:first-child { white-space: normal; overflow-wrap: break-word; }
