@@ -193,6 +193,7 @@ function taxFormHit(name) {
 }
 const TAX_GENERIC_FIRST = new Set(['natural', 'nature', 'baby', 'babies', 'kids', 'kid', 'junior', 'children', 'hair', 'skin', 'body', 'face', 'pure', 'organic', 'herbal', 'super', 'extra', 'plus', 'active', 'forte', 'ultra', 'multi', 'vitamin', 'vitamins', 'complete', 'advanced', 'intense', 'intensive', 'fresh', 'daily', 'original', 'classic', 'white', 'black', 'cream', 'drops', 'tablet', 'syrup', 'sugar', 'medical', 'dental', 'oral']);
 function taxSuggest(p) {   // يرجع {d, s, guess} أو null
+    const cu = typeof dhCustomHit === 'function' ? dhCustomHit(p) : null; if (cu) return cu;   // قواعدك الخاصة أولاً
     const kw = taxKwHit(p.name); if (kw) return kw;
     const k = taxKey(p.name), hit = taxKeys(p.name).map(x => TAX_MAP[x]).find(Boolean);
     if (hit) return { d: hit[0], s: hit[1], guess: false };
