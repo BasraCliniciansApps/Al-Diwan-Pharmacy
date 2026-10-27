@@ -5,10 +5,31 @@
 // بونص مستلم خارج فواتير الوارد (هدايا المندوبين والعروض): يُعرض داخل «سجل البونص»، ولا يحتاج تأكيد استلام
 const lgBreqs = () => lgAll.filter(e => e.kind === 'breq' && !e.del);
 function lgBreqRefresh() { if (typeof lgRenderBonus === 'function' && $b('lgb-list')) lgRenderBonus(); }
+// ---- ربط البونص بالمخزن: الكمية تدخل المخزن (كلفة صفر) ما لم تكن المادة غير مجرودة (وضع التأسيس) أو اختير «سجل فقط» ----
+const lgbProd = name => { const k = puKey(name || ''); return k ? products.find(x => puKey(x.name) === k) : null; };
+function lgbStockDelta(p, dq, exp, addExp) {   // يطبّق التغيير على المخزن ويحفظه؛ يرجع true عند النجاح
+    const s = { p, qty: p.qty, loose: p.loose, expiryDates: getProductExpiryDates(p).slice(), expiryDate: p.expiryDate, costPrice: p.costPrice, lastPurchase: p.lastPurchase };
+    p.qty = Math.max((parseInt(p.qty) || 0) + dq, 0);
+    let added = false;
+    if (addExp && exp) added = puExpiryPush(p, exp);
+    else if (!addExp && exp) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== exp); p.expiryDate = p.expiryDates[0] || ''; }
+    return { s, added, undo: () => { p.qty = s.qty; p.expiryDates = s.expiryDates; p.expiryDate = s.expiryDate; } };
+}
+async function lgBreqStockRevert(e) {   // يعكس أثر بونص سابق على المخزن (عند الحذف أو التعديل)
+    if (!e || !e.applied || !e.pid) return true;
+    const p = products.find(x => x.id === e.pid); if (!p) return true;
+    const r = lgbStockDelta(p, -(parseInt(e.qty) || 0), e.expAdded ? e.expiry : '', false);
+    if (!(await saveProductsDelta([deltaFromSnap(p, r.s)]))) { r.undo(); return false; }
+    try { logAction('qty', p, [{ f: 'الكمية (عكس بونص ' + (e.supplier || e.rep || '') + ')', from: String(r.s.qty), to: String(p.qty) }]); } catch (x) { /* تجاهل */ }
+    renderAll(); return true;
+}
 async function lgBreqDel(id) {
     const e = lgAll.find(x => x.id === id); if (!e) return;
-    const r = await Swal.fire({ icon: 'warning', title: 'حذف هذا البونص؟', text: e.name, showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
-    if (!r.isConfirmed) return; e.del = true; await lgSave(e); lgBreqRefresh();
+    const rev = e.applied && e.pid;
+    const r = await Swal.fire({ icon: 'warning', title: 'حذف هذا البونص؟', text: e.name + (rev ? ' — ستُنقص كميته (' + fmtNum(e.qty) + ') من المخزن.' : ''), showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
+    if (!r.isConfirmed) return;
+    if (rev && !(await lgBreqStockRevert(e))) return;
+    e.del = true; await lgSave(e); lgBreqRefresh();
 }
 async function lgBreqDelImported() {   // حذف طلبات البونص القديمة المستوردة من الإكسل (لا يمسّ ما أُدخل يدوياً)
     const L = lgAll.filter(e => e.kind === 'breq' && e.imp);
@@ -24,13 +45,39 @@ async function lgBreqDelImported() {   // حذف طلبات البونص الق�
 async function lgBreqAdd(eid) {
     const ed = eid ? lgAll.find(x => x.id === eid) : null, v = k => escapeHtml(String(ed && ed[k] != null ? ed[k] : '')).replace(/"/g, '&quot;');
     const inp = (id, label, extra) => `<label style="display:block;text-align:right;font-size:.8rem;font-weight:800;margin-top:6px">${label}<input id="${id}" class="swal2-input" style="margin:4px 0 0;width:100%" ${extra || ''}></label>`;
+    const names = [...new Set(products.map(p => p.name))].sort((a, b) => String(a).localeCompare(String(b)));
+    const wasApplied = !!(ed && ed.applied);
     const r = await Swal.fire({ title: ed ? 'تعديل البونص' : 'إضافة بونص مستلم (هدية مندوب / عرض)', showCancelButton: true, showDenyButton: !!ed, denyButtonText: 'حذف', denyButtonColor: '#b91c1c', confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
-        html: inp('swQN', 'المادة', `dir="ltr" value="${v('name')}"`) + inp('swQC', 'الشركة', `dir="ltr" value="${v('company')}"`) + inp('swQQ', 'الكمية', `type="number" inputmode="numeric" value="${v('qty')}"`) + inp('swQS', 'المذخر', `list="puSupList" value="${v('supplier')}"`) + inp('swQL', 'رقم القائمة', `dir="ltr" value="${v('listNo')}"`) + inp('swQD', 'التاريخ', `type="date" value="${ed ? v('date') : todayLocalISO()}"`) + inp('swQR', 'المندوب', `value="${v('rep')}"`),
-        preConfirm: () => { const g = id => (document.getElementById(id).value || '').trim(); if (!g('swQN')) { Swal.showValidationMessage('اكتب اسم المادة'); return false; } return { name: g('swQN'), company: g('swQC'), qty: parseInt(g('swQQ')) || 0, supplier: g('swQS'), listNo: g('swQL'), date: g('swQD'), rep: g('swQR'), received: '' }; } });
-    if (r.isDenied && ed) { ed.del = true; await lgSave(ed); lgBreqRefresh(); return; }
+        html: `<datalist id="lgbNames">${names.map(n => `<option value="${escapeHtml(n).replace(/"/g, '&quot;')}">`).join('')}</datalist>` + inp('swQN', 'المادة', `dir="ltr" list="lgbNames" autocomplete="off" value="${v('name')}" oninput="lgbPick()"`) + inp('swQC', 'الشركة', `dir="ltr" value="${v('company')}"`) + inp('swQQ', 'الكمية', `type="number" inputmode="numeric" value="${v('qty')}"`) + inp('swQX', 'تاريخ الانتهاء (اختياري)', `type="month" value="${ed && ed.expiry ? v('expiry') : ''}"`)
+            + `<label id="swQKw" style="display:flex;gap:8px;align-items:center;text-align:right;font-size:.82rem;font-weight:800;margin-top:10px"><input id="swQK" type="checkbox" ${(!ed || ed.stockAdd === true) ? 'checked' : ''} style="width:20px;height:20px"><span>إضافة الكمية إلى المخزن</span></label><small id="swQKn" style="display:block;text-align:right;color:#64748b;margin-top:4px;line-height:1.6"></small>`
+            + inp('swQS', 'المذخر', `list="puSupList" value="${v('supplier')}"`) + inp('swQL', 'رقم القائمة', `dir="ltr" value="${v('listNo')}"`) + inp('swQD', 'التاريخ', `type="date" value="${ed ? v('date') : todayLocalISO()}"`) + inp('swQR', 'المندوب', `value="${v('rep')}"`),
+        didOpen: () => { window.__lgbHad = false; window.lgbPick = () => { const p = lgbProd(document.getElementById('swQN').value), c = document.getElementById('swQC'), n = document.getElementById('swQKn'), k = document.getElementById('swQK');
+            if (p && !c.value.trim() && p.brand) c.value = p.brand;
+            k.disabled = !p; if (!p) k.checked = false; else if (!window.__lgbHad && (!ed || ed.stockAdd === true)) k.checked = true;
+            window.__lgbHad = !!p;
+            n.textContent = !p ? 'المادة غير موجودة بالمخزن — ستُسجَّل في السجل فقط. أضفها للمخزن أولاً إن أردت إدخال كميتها.' : (setupSkip(p) ? 'هذه المادة لم تُجرد بعد (وضع التأسيس): تُسجَّل مؤجَّلة ولا تتغير كميتها الآن.' : 'الكمية الحالية: ' + fmtNum(parseInt(p.qty) || 0)); };
+            if (!ed || !ed.pid) lgbPick(); else { const k = document.getElementById('swQK'); document.getElementById('swQKn').textContent = ed.applied ? 'الكمية مضافة للمخزن. التعديل سيعدّلها بالمقابل.' : (ed.setupSkip ? 'مؤجَّل (وضع التأسيس).' : ''); if (!lgbProd(ed.name)) { k.disabled = true; } } },
+        preConfirm: () => { const g = id => (document.getElementById(id).value || '').trim(); if (!g('swQN')) { Swal.showValidationMessage('اكتب اسم المادة'); return false; } return { name: g('swQN'), company: g('swQC'), qty: parseInt(g('swQQ')) || 0, expiry: g('swQX'), supplier: g('swQS'), listNo: g('swQL'), date: g('swQD'), rep: g('swQR'), received: '', stockAdd: document.getElementById('swQK').checked }; } });
+    if (r.isDenied && ed) { await lgBreqDel(ed.id); return; }
     if (!r.isConfirmed || !r.value) return;
-    if (ed) Object.assign(ed, r.value, { received: ed.received || '' }), await lgSave(ed);
-    else await lgSave({ id: lgId(), kind: 'breq', ...r.value, createdTs: new Date().toISOString() });
+    const val = r.value, p = lgbProd(val.name);
+    const want = !!(val.stockAdd && p && val.qty > 0);
+    if (ed && wasApplied && !(await lgBreqStockRevert(ed))) return;   // نعكس القديم ثم نطبّق الجديد
+    const rec = ed || { id: lgId(), kind: 'breq', createdTs: new Date().toISOString() };
+    Object.assign(rec, val, { received: ed ? (ed.received || '') : '' });
+    delete rec.applied; delete rec.setupSkip; delete rec.pid; delete rec.expAdded;
+    if (p) rec.pid = p.id;
+    if (want) {
+        if (setupSkip(p)) { rec.applied = false; rec.setupSkip = true; }
+        else {
+            const x = lgbStockDelta(p, val.qty, val.expiry, true);
+            if (!(await saveProductsDelta([deltaFromSnap(p, x.s)]))) { x.undo(); return; }
+            rec.applied = true; rec.expAdded = !!x.added;
+            try { logAction('qty', p, [{ f: 'الكمية (بونص ' + (val.supplier || (val.rep ? 'مندوب ' + val.rep : '')) + ')', from: String(x.s.qty), to: String(p.qty) }]); } catch (e) { /* تجاهل */ }
+            renderAll();
+        }
+    }
+    await lgSave(rec);
     lgBreqRefresh();
 }
 
