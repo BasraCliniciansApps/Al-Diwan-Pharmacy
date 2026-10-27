@@ -4988,10 +4988,11 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     // سجل المتصفح يتجاهل أي إدخال يُضاف قبل أول لمسة من المستخدم، فنضيف حارس الرجوع عند أول لمسة.
     let exiting = false, asking = false, armed = false;
     try { history.replaceState({ g: 0 }, ''); } catch (e) { return; }
+    // مهم: المتصفح لا يعدّ touchstart/pointerdown تفاعلاً حقيقياً (user activation)، والإدخال المضاف بدونه يُتجاهل عند الرجوع؛ لذلك نستمع لرفع الإصبع فقط.
     // نضيف عدة حرّاس دفعة واحدة داخل نفس اللمسة (الإدخال المضاف داخل popstate قد يتجاهله المتصفح)، ونعيد التعبئة عند كل لمسة
     const GUARDS = 8, gcur = () => (history.state && history.state.g) || 0;
     const arm = () => { try { let g = gcur(); if (g >= GUARDS) { armed = true; return; } for (g++; g <= GUARDS; g++) history.pushState({ g }, ''); armed = true; } catch (e) { /* تجاهل */ } };
-    ['touchstart', 'pointerdown', 'mousedown', 'keydown'].forEach(t => window.addEventListener(t, arm, { passive: true, capture: true }));
+    ['touchend', 'pointerup', 'click', 'mousedown', 'keydown'].forEach(t => window.addEventListener(t, arm, { passive: true, capture: true }));
     const vis = id => { const e = document.getElementById(id); return !!e && e.style.display && e.style.display !== 'none'; };
     function closeTopLayer() {
         if (window.Swal && Swal.isVisible && Swal.isVisible()) { Swal.close(); return true; }
