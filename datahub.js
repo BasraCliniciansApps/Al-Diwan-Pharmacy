@@ -66,6 +66,7 @@ function dhRender(keep) {
     if (dhScreen === 'dup') return dhRenderDup(el);
     if (dhScreen === 'miss') return dhRenderMiss(el);
     if (dhScreen === 'rules') return dhRenderRules(el);
+    if (dhScreen === 'brand') return dhRenderBrand(el);
     dhRenderHome(el);
 }
 
@@ -84,6 +85,7 @@ function dhRenderHome(el) {
         ${dhCard('🧭', 'مراجعة التصنيف', seeded ? `${fmtNum(tax)} مادة بالأقسام القديمة بانتظار المراجعة (تستفيد من الاسم العلمي)` : 'حمّل الأقسام الجاهزة أولاً من إدارة الأقسام', seeded ? pct(st.cls, st.n) : null, "dhClose();taxRvOpen()")}
         ${dhCard('🔁', 'المواد المكررة', dups ? `${fmtNum(dups)} مجموعة أسماء متشابهة يمكن ضمها` : 'لا توجد مواد مكررة ظاهرة', null, "dhGo('dup')")}
         ${dhCard('📋', 'بيانات ناقصة', `بلا باركود ${fmtNum(st.n - st.bc)} • بلا سعر ${fmtNum(st.n - st.price)} • بلا شكل دوائي ${fmtNum(st.n - st.form)}`, null, "dhGo('miss')")}
+        ${dhCard('🏭', 'تعبئة الشركات تلقائياً', (n => n ? `${fmtNum(n)} مادة بلا شركة يمكن تعبئتها من مواد بنفس الاسم التجاري` : 'لا يوجد ما يمكن تعبئته الآن')(dhBrandPlan().fill.length + dhBrandPlan().ask.length), null, "dhGo('brand')")}
         ${dhCard('⚙️', 'قواعد تصنيفي الخاصة', dhRules.length ? `${fmtNum(dhRules.length)} قاعدة مضافة` : 'أضف قاعدة بنفسك: كلمة بالاسم ← تصنيف', null, "dhGo('rules')")}
         <div class="dh-note">«سجل الأدوية» يبقى بمكانه بالإعدادات كما هو.</div>
     </div>`;
@@ -239,4 +241,64 @@ function dhRuleAdd() {
 async function dhRuleDel(i) {
     if (!(await askSure('حذف هذه القاعدة؟', (dhRules[i].words || []).join(' ، '), 'حذف'))) return;
     dhRules.splice(i, 1); dhRulesSave(); dhRender();
+}
+
+// ---------- تعبئة الشركة تلقائياً من نفس الاسم التجاري ----------
+let dhBrandSel = new Map();   // id → الشركة المختارة (null = تجاهل)
+function dhBrandGeneric(p, key) {
+    // أسماء المواد الفعالة والكلمات العامة لا تدل على شركة
+    if (typeof taxIngHit === 'function' && taxIngHit(p.name)) return true;
+    const w = String(p.name || '').toLowerCase().split(/[^a-z]+/).filter(Boolean)[0] || '';
+    if (typeof TAX_GENERIC_FIRST !== 'undefined' && TAX_GENERIC_FIRST.has(w)) return true;
+    return dhIngKeys().has(key);
+}
+let dhIngKeyCache = null;
+function dhIngKeys() {
+    if (dhIngKeyCache && dhIngKeyCache.n === products.length) return dhIngKeyCache.s;
+    const s = new Set();
+    products.forEach(p => String(p.activeIngredient || '').split(/[+,/]/).forEach(t => { const k = dhNormKey(t); if (k.length >= 4) s.add(k); }));
+    dhIngKeyCache = { n: products.length, s }; return s;
+}
+function dhBrandPlan() {
+    const map = new Map();
+    products.forEach(p => {
+        const b = String(p.brand || '').trim(); if (!b) return;
+        const k = dhNormKey(p.name); if (k.length < 4 || dhBrandGeneric(p, k)) return;
+        const m = map.get(k) || map.set(k, new Map()).get(k); m.set(b, (m.get(b) || 0) + 1);
+    });
+    const fill = [], ask = [];
+    products.forEach(p => {
+        if (String(p.brand || '').trim()) return;
+        const k = dhNormKey(p.name); if (k.length < 4) return;
+        const m = map.get(k); if (!m || dhBrandGeneric(p, k)) return;
+        const opts = [...m.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]);
+        (opts.length === 1 ? fill : ask).push({ p, opts });
+    });
+    return { fill, ask };
+}
+function dhRenderBrand(el) {
+    const { fill, ask } = dhBrandPlan();
+    fill.forEach(r => { if (!dhBrandSel.has(r.p.id)) dhBrandSel.set(r.p.id, r.opts[0]); });
+    const row = (r, isAsk) => `<div class="dh-row"><div class="dh-sub" dir="ltr"><b>${dhEsc(r.p.name)}</b></div>
+        ${isAsk ? `<label><span>اختر الشركة (يوجد أكثر من شركة بنفس الاسم)</span><select onchange="dhBrandPick(${r.p.id},this.value)"><option value="">— تجاهل —</option>${r.opts.map(o => `<option value="${dhEsc(o)}" ${dhBrandSel.get(r.p.id) === o ? 'selected' : ''}>${dhEsc(o)}</option>`).join('')}</select></label>`
+            : `<label class="dh-chk"><input type="checkbox" ${dhBrandSel.get(r.p.id) ? 'checked' : ''} onchange="dhBrandPick(${r.p.id},this.checked?'${dhEsc(r.opts[0]).replace(/'/g, "\\'")}':'')"><span dir="ltr">${dhEsc(r.opts[0])}</span></label>`}</div>`;
+    el.innerHTML = `${dhHead('🏭 تعبئة الشركات تلقائياً', true)}
+    <div class="tr-prog">المواد التي بلا شركة وعندها نفس الاسم التجاري لمادة أخرى لها شركة. لا تُعدَّل أي مادة عندها شركة، ولا تُحفظ التعبئة إلا بعد موافقتك. المواد التي اسمها مادة فعالة مستثناة.</div>
+    <div class="tr-list">${fill.length || ask.length ? fill.slice(0, 200).map(r => row(r, false)).join('') + (ask.length ? `<div class="dh-sub" style="padding:8px 4px"><b>تحتاج قرارك (${fmtNum(ask.length)})</b></div>` + ask.slice(0, 100).map(r => row(r, true)).join('') : '') : '<div class="ln-empty">لا توجد مواد يمكن تعبئتها الآن</div>'}</div>
+    <div class="tr-foot"><button type="button" class="tr-apply" id="dhBrandBtn" onclick="dhBrandApply()">💾 تعبئة (${fmtNum(dhBrandCount())})</button></div>`;
+}
+function dhBrandCount() { let n = 0; dhBrandSel.forEach(v => { if (v) n++; }); return n; }
+function dhBrandPick(id, v) { dhBrandSel.set(id, v || null); const b = document.getElementById('dhBrandBtn'); if (b) b.textContent = `💾 تعبئة (${fmtNum(dhBrandCount())})`; }
+async function dhBrandApply() {
+    if (!writesAllowed()) return;
+    const upd = []; dhBrandSel.forEach((b, id) => { const p = products.find(x => x.id === id); if (p && b && !String(p.brand || '').trim()) upd.push({ p, b }); });
+    if (!upd.length) { Swal.fire({ icon: 'info', title: 'لا توجد تعديلات للحفظ', timer: 1600, showConfirmButton: false }); return; }
+    if (!(await askSure('تعبئة ' + fmtNum(upd.length) + ' شركة؟', 'ستُكتب الشركة في المواد المحددة فقط، ولا تتأثر المواد التي عندها شركة.', 'نعم، عبّئ'))) return;
+    upd.forEach(u => { u.p.brand = u.b; });
+    const ok = await saveProductsBatch(upd.map(u => u.p));
+    if (!ok) { upd.forEach(u => { u.p.brand = ''; }); return; }
+    upd.forEach(u => { try { logAction('edit', u.p, [{ f: 'الشركة (تعبئة تلقائية)', from: '', to: u.b }]); } catch (e) { /* تجاهل */ } });
+    dhBrandSel.clear(); try { renderAll(); } catch (e) { /* تجاهل */ }
+    Swal.fire({ icon: 'success', title: 'تمت تعبئة ' + fmtNum(upd.length) + ' شركة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    dhRender();
 }

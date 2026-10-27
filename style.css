@@ -2846,3 +2846,5 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .dh-row .dh-sub { padding-inline-end: 62px; min-height: 40px; }
 .img-zoom-modal { z-index: 9500 !important; }
 .zoom-btn.danger { background: #b91c1c; color: #fff; border-color: #b91c1c; }
+.dh-chk { flex-direction: row !important; align-items: center; gap: 10px !important; }
+.dh-chk input { width: 22px; height: 22px; min-height: 0 !important; }
