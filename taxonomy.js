@@ -161,7 +161,7 @@ const TAX_KW = [
     [/tamoxifen|nolvadex|anastrozole|arimidex|exemestane|aromasin|bicalutamide|casodex|flutamide|megestrol|fulvestrant|faslodex|goserelin|zoladex|leuprolide|leuprorelin|تاموكسيفين|اناستروزول|أناستروزول|بيكالوتاميد/i, 'الأورام والمناعة', 'العلاج الهرموني للأورام'],
     [/capecitabine|xeloda|imatinib|glivec|temozolomide|hydroxyurea|hydroxycarbamide|mercaptopurine|erlotinib|gefitinib|sorafenib|sunitinib|lenalidomide|abiraterone|olaparib/i, 'الأورام والمناعة', 'أدوية السرطان الفموية'],
     [/paclitaxel|docetaxel|cisplatin|carboplatin|oxaliplatin|doxorubicin|epirubicin|gemcitabine|fluorouracil|5-?\s*fu\b|cyclophosphamide|vincristine|vinorelbine|etoposide|irinotecan|bleomycin|cytarabine|methotrexate\s*(vial|inj|amp)/i, 'الأورام والمناعة', 'أدوية الأورام'],
-    [/ondansetron|zofran|granisetron|palonosetron|aprepitant/i, 'الأورام والمناعة', 'أدوية الغثيان الكيماوي'],
+    [/granisetron|palonosetron|aprepitant|emend\b/i, 'الأورام والمناعة', 'أدوية الغثيان الكيماوي'],
     [/tacrolimus|prograf|mycophenol|cellcept|cyclosporin|sandimmun|azathioprine|imuran|sirolimus|everolimus/i, 'الأورام والمناعة', 'أدوية زرع الأعضاء'],
     // تحفيز التبويض والخصوبة
     [/letrozole|femara|clomiphene|clomid|clomifen|pregnyl|ovitrelle|choriomon|\bhcg\b|menopur|gonal-?\s*f|puregon|follitropin|ovidrel/i, 'النسائية والتوليد والهرمونات', 'محفزات التبويض'],
@@ -191,13 +191,124 @@ function taxFormHit(name) {
     for (const [re, d, s] of TAX_FORM_HINTS) if (re.test(name || '')) { const di = TAX_DEPTS.indexOf(d), si = di < 0 ? -1 : TAX_SEED[d].indexOf(s); if (si >= 0) return { d: di + 1, s: si + 1, guess: true }; }
     return null;
 }
+// قاموس المواد الفعالة: يُفحص على (الاسم + المادة الفعالة) بعد الجدول الدقيق وقاعدة الشكل، وقبل التخمينات. الأخصّ أولاً
+const TAX_ING = [
+    [/(betamethasone|hydrocortisone|clobetasol|mometasone|fluocinolone|triamcinolone|desonide|fluocinonide)[^,]*(cream|ointment|lotion|oint\b|gel)|(cream|ointment|lotion|oint\b)[^,]*(betamethasone|hydrocortisone|clobetasol|mometasone|fluocinolone|triamcinolone)/i, 'الجلدية', 'كورتيزون موضعي'],
+    [/(diclofenac|ketoprofen|piroxicam|ibuprofen|nimesulide|etofenamate)[^,]*\bgel\b|\bgel\b[^,]*(diclofenac|ketoprofen|piroxicam|ibuprofen)/i, 'المسكنات والعظام والعضلات', 'جل NSAID موضعي'],
+    [/(fusidic|mupirocin|neomycin|bacitracin|silver\s*sulfadiazine)[^,]*(cream|ointment)|(clindamycin|erythromycin)[^,]*(gel|lotion|topical)/i, 'الجلدية', 'مضادات حيوية موضعية'],
+    [/(clotrimazole|miconazole|ketoconazole|terbinafine|econazole|bifonazole|nystatin)[^,]*(cream|ointment|lotion|spray)|(cream|ointment)[^,]*(clotrimazole|miconazole|terbinafine)/i, 'الجلدية', 'مضادات فطريات موضعية'],
+    [/isotretinoin|adapalene|tretinoin|benzoyl\s*peroxide|azelaic|tazarotene/i, 'الجلدية', 'علاج حب الشباب'],
+    [/minoxidil/i, 'الجلدية', 'علاج تساقط الشعر'],
+    [/calcipotriol|calcipotriene|anthralin|dithranol/i, 'الجلدية', 'أدوية الصدفية'],
+    [/permethrin|benzyl\s*benzoate|lindane/i, 'الجلدية', 'القمل والجرب'],
+    [/hydroquinone|kojic|arbutin|tranexamic/i, 'الجلدية', 'علاج التصبغات والكلف'],
+    [/(enalapril|lisinopril|ramipril|captopril|perindopril|quinapril|benazepril|fosinopril|losartan|valsartan|irbesartan|candesartan|telmisartan|olmesartan|azilsartan)[^,]*(hydrochlorothiazide|hctz|amlodipine|indapamide)|(hydrochlorothiazide|hctz|amlodipine)[^,]*(enalapril|lisinopril|ramipril|perindopril|losartan|valsartan|irbesartan|candesartan|telmisartan|olmesartan)/i, 'القلب والضغط والدهون', 'أدوية الضغط المركّبة'],
+    [/enalapril|lisinopril|ramipril|captopril|perindopril|quinapril|benazepril|fosinopril/i, 'القلب والضغط والدهون', 'خافضات الضغط (ACEI)'],
+    [/losartan|valsartan|irbesartan|candesartan|telmisartan|olmesartan|azilsartan/i, 'القلب والضغط والدهون', 'خافضات الضغط (ARB)'],
+    [/atenolol|bisoprolol|metoprolol|propranolol|carvedilol|nebivolol|labetalol|sotalol/i, 'القلب والضغط والدهون', 'حاصرات بيتا'],
+    [/amlodipine|nifedipine|felodipine|diltiazem|verapamil|lercanidipine|nicardipine|nimodipine/i, 'القلب والضغط والدهون', 'حاصرات الكالسيوم'],
+    [/furosemide|frusemide|torsemide|torasemide|bumetanide/i, 'القلب والضغط والدهون', 'مدرات الحلقة'],
+    [/hydrochlorothiazide|indapamide|chlorthalidone|chlorothiazide/i, 'القلب والضغط والدهون', 'مدرات الثيازيد'],
+    [/spironolactone|eplerenone|aldactone/i, 'القلب والضغط والدهون', 'مضادات الألدوستيرون'],
+    [/atorvastatin|rosuvastatin|simvastatin|pravastatin|lovastatin|pitavastatin|fenofibrate|gemfibrozil|ezetimibe|bezafibrate/i, 'القلب والضغط والدهون', 'خافضات الدهون'],
+    [/isosorbide|nitroglycerin|glyceryl\s*trinitrate|\bgtn\b|nicorandil/i, 'القلب والضغط والدهون', 'نيترات'],
+    [/digoxin|lanoxin/i, 'القلب والضغط والدهون', 'ديجوكسين'],
+    [/amiodarone|flecainide|propafenone|dronedarone/i, 'القلب والضغط والدهون', 'مضادات اضطراب النظم'],
+    [/trimetazidine|ranolazine/i, 'القلب والضغط والدهون', 'أدوية الذبحة'],
+    [/ivabradine|sacubitril/i, 'القلب والضغط والدهون', 'أدوية قصور القلب'],
+    [/diosmin|hesperidin|troxerutin|calcium\s*dobesilate|rutoside/i, 'القلب والضغط والدهون', 'أدوية الدوالي والأوردة'],
+    [/clopidogrel|ticagrelor|prasugrel|dipyridamole|cilostazol|aspirin\s*(75|81|100)|plavix/i, 'الدم والتخثر', 'مضادات الصفيحات'],
+    [/warfarin|rivaroxaban|apixaban|dabigatran|edoxaban|enoxaparin|heparin|fondaparinux|acenocoumarol/i, 'الدم والتخثر', 'مضادات التخثر'],
+    [/omeprazole|esomeprazole|pantoprazole|lansoprazole|rabeprazole|dexlansoprazole/i, 'الجهاز الهضمي والكبد', 'مثبطات مضخة البروتون (PPI)'],
+    [/famotidine|ranitidine|cimetidine|nizatidine/i, 'الجهاز الهضمي والكبد', 'مضادات H2'],
+    [/magnesium\s*hydroxide|aluminium\s*hydroxide|aluminum\s*hydroxide|sodium\s*alginate|magaldrate|sucralfate/i, 'الجهاز الهضمي والكبد', 'مضادات الحموضة'],
+    [/simethicone|dimethicone|activated\s*charcoal/i, 'الجهاز الهضمي والكبد', 'مضادات الانتفاخ والغازات'],
+    [/lactulose|bisacodyl|senna|sennosides|macrogol|polyethylene\s*glycol|picosulfate|glycerin\s*suppos/i, 'الجهاز الهضمي والكبد', 'مسهلات'],
+    [/loperamide|diphenoxylate|racecadotril|nifuroxazide/i, 'الجهاز الهضمي والكبد', 'مضادات الإسهال'],
+    [/hyoscine|scopolamine|drotaverine|mebeverine|trimebutine|otilonium|pinaverium|alverine|papaverine/i, 'الجهاز الهضمي والكبد', 'مضادات التقلص الهضمي'],
+    [/domperidone|metoclopramide|ondansetron|zofran|itopride|prochlorperazine|meclizine/i, 'الجهاز الهضمي والكبد', 'مضادات القيء'],
+    [/ursodeoxycholic|ursodiol|silymarin|silybin|ademetionine|l-?ornithine/i, 'الجهاز الهضمي والكبد', 'أدوية الكبد والصفراء'],
+    [/pancreatin|pancrelipase|bromelain|lipase/i, 'الجهاز الهضمي والكبد', 'أنزيمات هضمية'],
+    [/mesalazine|mesalamine|sulfasalazine|balsalazide/i, 'الجهاز الهضمي والكبد', 'أدوية التهاب الأمعاء'],
+    [/psyllium|ispaghula|methylcellulose|plantago/i, 'الجهاز الهضمي والكبد', 'ألياف وملينات الحجم'],
+    [/oral\s*rehydration|\bors\b|rehydration\s*salts?/i, 'الجهاز الهضمي والكبد', 'أملاح الإماهة الفموية'],
+    [/salbutamol|albuterol|terbutaline|formoterol|salmeterol|ipratropium|tiotropium|theophylline|aminophylline|ventolin/i, 'الجهاز التنفسي والحساسية', 'موسعات القصبات'],
+    [/montelukast|zafirlukast|singulair/i, 'الجهاز التنفسي والحساسية', 'مضادات اللوكوترين'],
+    [/cetirizine|loratadine|desloratadine|fexofenadine|levocetirizine|chlorpheniramine|chlorphenamine|diphenhydramine|ebastine|rupatadine|bilastine|hydroxyzine|cyproheptadine|promethazine/i, 'الجهاز التنفسي والحساسية', 'مضادات الهيستامين'],
+    [/ambroxol|bromhexine|guaifenesin|guaiphenesin|acetylcysteine|carbocisteine|carbocysteine|erdosteine|mucolytic|ivy\s*leaf|hedera/i, 'الجهاز التنفسي والحساسية', 'مقشعات'],
+    [/dextromethorphan|butamirate|levodropropizine|codeine\s*(linctus|syrup)|pholcodine/i, 'الجهاز التنفسي والحساسية', 'مضادات السعال'],
+    [/pseudoephedrine|phenylephrine|oxymetazoline|xylometazoline/i, 'الجهاز التنفسي والحساسية', 'مزيلات الاحتقان'],
+    [/insulin|glargine|aspart|lispro|detemir|degludec|glulisine|lantus|novorapid|mixtard/i, 'السكري والغدد الصماء', 'إنسولين'],
+    [/metformin|glucophage/i, 'السكري والغدد الصماء', 'ميتفورمين'],
+    [/gliclazide|glimepiride|glibenclamide|glyburide|glipizide|diamicron|amaryl/i, 'السكري والغدد الصماء', 'سلفونيل يوريا'],
+    [/sitagliptin|vildagliptin|linagliptin|saxagliptin|alogliptin|januvia|galvus/i, 'السكري والغدد الصماء', 'مثبطات DPP-4'],
+    [/empagliflozin|dapagliflozin|canagliflozin|ertugliflozin|jardiance|forxiga/i, 'السكري والغدد الصماء', 'مثبطات SGLT2'],
+    [/liraglutide|semaglutide|dulaglutide|exenatide|tirzepatide|ozempic|victoza/i, 'السكري والغدد الصماء', 'حقن GLP-1'],
+    [/pioglitazone|repaglinide|nateglinide|acarbose/i, 'السكري والغدد الصماء', 'أقراص السكري'],
+    [/levothyroxine|thyroxine|liothyronine|carbimazole|methimazole|propylthiouracil|euthyrox|eltroxin/i, 'السكري والغدد الصماء', 'أدوية الغدة الدرقية'],
+    [/prednisolone|prednisone|dexamethasone|methylprednisolone|hydrocortisone|triamcinolone|deflazacort|betamethasone/i, 'السكري والغدد الصماء', 'كورتيزونات فموية وحقن'],
+    [/alendronate|risedronate|ibandronate|zoledronic|raloxifene|denosumab/i, 'المسكنات والعظام والعضلات', 'أدوية هشاشة العظام'],
+    [/carbamazepine|valpro|levetiracetam|lamotrigine|phenytoin|topiramate|oxcarbazepine|phenobarbital|lacosamide|zonisamide|primidone/i, 'الجهاز العصبي والنفسي', 'مضادات الصرع'],
+    [/sertraline|fluoxetine|escitalopram|citalopram|paroxetine|venlafaxine|duloxetine|amitriptyline|nortriptyline|mirtazapine|bupropion|trazodone|fluvoxamine|vortioxetine|agomelatine/i, 'الجهاز العصبي والنفسي', 'مضادات الاكتئاب'],
+    [/diazepam|lorazepam|alprazolam|clonazepam|bromazepam|buspirone|midazolam|oxazepam/i, 'الجهاز العصبي والنفسي', 'مضادات القلق'],
+    [/zolpidem|zopiclone|eszopiclone|zaleplon/i, 'الجهاز العصبي والنفسي', 'منومات (Z-drugs)'],
+    [/risperidone|olanzapine|quetiapine|aripiprazole|haloperidol|clozapine|amisulpride|paliperidone|ziprasidone|sulpiride/i, 'الجهاز العصبي والنفسي', 'مضادات الذهان'],
+    [/levodopa|carbidopa|pramipexole|ropinirole|rasagiline|benserazide|selegiline|trihexyphenidyl|amantadine/i, 'الجهاز العصبي والنفسي', 'أدوية باركنسون'],
+    [/sumatriptan|rizatriptan|zolmitriptan|eletriptan|naratriptan|flunarizine/i, 'الجهاز العصبي والنفسي', 'أدوية الصداع والشقيقة'],
+    [/donepezil|memantine|rivastigmine|galantamine/i, 'الجهاز العصبي والنفسي', 'أدوية الخرف'],
+    [/methylphenidate|atomoxetine|lisdexamfetamine/i, 'الجهاز العصبي والنفسي', 'أدوية ADHD'],
+    [/lithium/i, 'الجهاز العصبي والنفسي', 'مثبتات المزاج'],
+    [/betahistine|cinnarizine|dimenhydrinate|meclozine/i, 'الجهاز العصبي والنفسي', 'أدوية الدوار'],
+    [/mecobalamin|methylcobalamin|benfotiamine|alpha\s*lipoic|thioctic|citicoline|piracetam/i, 'الجهاز العصبي والنفسي', 'أدوية الأعصاب الطرفية'],
+    [/paracetamol|acetaminophen|panadol|\bapap\b/i, 'المسكنات والعظام والعضلات', 'باراسيتامول وخافضات الحرارة'],
+    [/ibuprofen|diclofenac|naproxen|ketoprofen|meloxicam|celecoxib|etoricoxib|piroxicam|indomethacin|indometacin|ketorolac|nimesulide|aceclofenac|mefenamic|lornoxicam|dexketoprofen|flurbiprofen/i, 'المسكنات والعظام والعضلات', 'مضادات الالتهاب (NSAIDs)'],
+    [/tramadol|codeine|morphine|tapentadol|fentanyl|oxycodone|buprenorphine|pethidine|meperidine/i, 'المسكنات والعظام والعضلات', 'مسكنات أفيونية'],
+    [/cyclobenzaprine|tizanidine|baclofen|methocarbamol|orphenadrine|thiocolchicoside|eperisone|chlorzoxazone|tolperisone/i, 'المسكنات والعظام والعضلات', 'مرخيات العضلات'],
+    [/allopurinol|febuxostat|colchicine|probenecid/i, 'المسكنات والعظام والعضلات', 'أدوية النقرس'],
+    [/hydroxychloroquine|leflunomide|methotrexate|sulfasalazine\s*en|tofacitinib|baricitinib/i, 'المسكنات والعظام والعضلات', 'أدوية الروماتيزم'],
+    [/amoxicillin|amoxycillin|ampicillin|penicillin|flucloxacillin|cloxacillin|piperacillin|augmentin|co-?amoxiclav|clavulan|oxacillin/i, 'المضادات الحيوية ومضادات العدوى', 'بنسلينات'],
+    [/cefixime|cefuroxime|ceftriaxone|cefotaxime|cefalexin|cephalexin|cefadroxil|cefdinir|cefpodoxime|ceftazidime|cefepime|cefaclor|cefprozil|ceftibuten|cefazolin|cefoperazone/i, 'المضادات الحيوية ومضادات العدوى', 'سيفالوسبورينات'],
+    [/azithromycin|clarithromycin|erythromycin|roxithromycin|josamycin|spiramycin/i, 'المضادات الحيوية ومضادات العدوى', 'ماكروليدات'],
+    [/ciprofloxacin|levofloxacin|ofloxacin|moxifloxacin|norfloxacin|gatifloxacin|pefloxacin/i, 'المضادات الحيوية ومضادات العدوى', 'كينولونات'],
+    [/gentamicin|gentamycin|amikacin|tobramycin|streptomycin|kanamycin|neomycin/i, 'المضادات الحيوية ومضادات العدوى', 'أمينوغليكوزيدات'],
+    [/doxycycline|tetracycline|minocycline|oxytetracycline|tigecycline/i, 'المضادات الحيوية ومضادات العدوى', 'تتراسيكلينات'],
+    [/fluconazole|itraconazole|terbinafine|ketoconazole|voriconazole|griseofulvin|posaconazole|nystatin/i, 'المضادات الحيوية ومضادات العدوى', 'مضادات الفطريات الفموية'],
+    [/aciclovir|acyclovir|valaciclovir|valacyclovir|famciclovir/i, 'المضادات الحيوية ومضادات العدوى', 'أدوية الهربس'],
+    [/oseltamivir|tamiflu|baloxavir|zanamivir/i, 'المضادات الحيوية ومضادات العدوى', 'أدوية الإنفلونزا'],
+    [/sofosbuvir|ledipasvir|daclatasvir|ribavirin|entecavir|tenofovir|lamivudine|adefovir/i, 'المضادات الحيوية ومضادات العدوى', 'أدوية التهاب الكبد'],
+    [/albendazole|mebendazole|ivermectin|praziquantel|pyrantel|nitazoxanide|levamisole|niclosamide/i, 'المضادات الحيوية ومضادات العدوى', 'مضادات الطفيليات والديدان'],
+    [/metronidazole|tinidazole|ornidazole|secnidazole|flagyl/i, 'المضادات الحيوية ومضادات العدوى', 'ميترونيدازول ومضادات اللاهوائيات'],
+    [/sulfamethoxazole|trimethoprim|co-?trimoxazole|septrin|bactrim/i, 'المضادات الحيوية ومضادات العدوى', 'سلفوناميدات وتريميثوبريم'],
+    [/chloroquine|artemether|artesunate|lumefantrine|primaquine|quinine|isoniazid|rifampicin|rifampin|ethambutol|pyrazinamide/i, 'المضادات الحيوية ومضادات العدوى', 'أدوية السل والملاريا'],
+    [/nitrofurantoin|fosfomycin|vancomycin|linezolid|clindamycin|colistin|meropenem|imipenem|ertapenem|teicoplanin|fusidic|rifaximin/i, 'المضادات الحيوية ومضادات العدوى', 'مضادات حيوية أخرى'],
+    [/ethinyl\s*estradiol|ethinylestradiol|levonorgestrel|drospirenone|desogestrel|gestodene|cyproterone|norgestimate/i, 'النسائية والتوليد والهرمونات', 'حبوب منع الحمل'],
+    [/estradiol|oestradiol|progesterone|dydrogesterone|norethisterone|medroxyprogesterone|duphaston|utrogestan/i, 'النسائية والتوليد والهرمونات', 'أدوية الدورة'],
+    [/oxytocin|misoprostol|carbetocin|methylergometrine|ergometrine|dinoprostone/i, 'النسائية والتوليد والهرمونات', 'أدوية الولادة والرحم'],
+    [/cabergoline|bromocriptine/i, 'النسائية والتوليد والهرمونات', 'أدوية إيقاف الحليب'],
+    [/tamsulosin|finasteride|dutasteride|alfuzosin|silodosin|doxazosin/i, 'المسالك البولية والكلى', 'أدوية البروستات'],
+    [/solifenacin|oxybutynin|tolterodine|mirabegron|trospium|darifenacin|fesoterodine/i, 'المسالك البولية والكلى', 'مضادات تقلص المثانة'],
+    [/sildenafil|tadalafil|vardenafil|avanafil|viagra|cialis/i, 'المسالك البولية والكلى', 'أدوية ضعف الانتصاب'],
+    [/dapoxetine|priligy/i, 'المسالك البولية والكلى', 'أدوية سرعة القذف'],
+    [/potassium\s*citrate|citrate\s*mixture|sodium\s*bicarbonate\s*tab/i, 'المسالك البولية والكلى', 'أدوية الحصى'],
+    [/cholecalciferol|ergocalciferol|calcitriol|alfacalcidol/i, 'الفيتامينات والمعادن والمكملات', 'فيتامين د وكالسيوم'],
+    [/omega-?\s*3|fish\s*oil|epa\b|dha\b|krill/i, 'الفيتامينات والمعادن والمكملات', 'أوميغا 3 وزيوت'],
+    [/ferrous|ferric|iron\s*(sulfate|bisglycinate|polymaltose)|ferrous\s*fumarate/i, 'الفيتامينات والمعادن والمكملات', 'حديد ومعادن'],
+    [/ascorbic\s*acid|folic\s*acid|cyanocobalamin|thiamine|pyridoxine|riboflavin|niacin|biotin|tocopherol|multivit/i, 'الفيتامينات والمعادن والمكملات', 'فيتامينات متعددة']
+];
+function taxIngHit(text) {
+    const t = String(text || ''); if (!t.trim()) return null;
+    for (const [re, d, s] of TAX_ING) if (re.test(t)) { const di = TAX_DEPTS.indexOf(d), si = di < 0 ? -1 : TAX_SEED[d].indexOf(s); if (si >= 0) return { d: di + 1, s: si + 1, guess: false }; }
+    return null;
+}
 const TAX_GENERIC_FIRST = new Set(['natural', 'nature', 'baby', 'babies', 'kids', 'kid', 'junior', 'children', 'hair', 'skin', 'body', 'face', 'pure', 'organic', 'herbal', 'super', 'extra', 'plus', 'active', 'forte', 'ultra', 'multi', 'vitamin', 'vitamins', 'complete', 'advanced', 'intense', 'intensive', 'fresh', 'daily', 'original', 'classic', 'white', 'black', 'cream', 'drops', 'tablet', 'syrup', 'sugar', 'medical', 'dental', 'oral']);
 function taxSuggest(p) {   // يرجع {d, s, guess} أو null
     const cu = typeof dhCustomHit === 'function' ? dhCustomHit(p) : null; if (cu) return cu;   // قواعدك الخاصة أولاً
-    const kw = taxKwHit(p.name); if (kw) return kw;
+    const ai = String(p.activeIngredient || '').trim(), txt = ai ? p.name + ' ' + ai : p.name;   // الاسم العلمي يدخل بكل القواعد لزيادة الدقة
+    const kw = taxKwHit(txt); if (kw) return kw;
     const k = taxKey(p.name), hit = taxKeys(p.name).map(x => TAX_MAP[x]).find(Boolean);
     if (hit) return { d: hit[0], s: hit[1], guess: false };
-    const fh = taxFormHit(p.name); if (fh) return fh;
+    const fh = taxFormHit(txt); if (fh) return fh;
+    const ih = taxIngHit(txt); if (ih) return ih;
     const h = TAX_LEGACY_HINT[p.category]; if (h) return { d: h[0], s: h[1], guess: true };
     if (!taxFirstIdx) { taxFirstIdx = {}; Object.keys(TAX_MAP).forEach(key => { const w = key.split(/[\s-]/)[0]; if (w.length >= 4) (taxFirstIdx[w] = taxFirstIdx[w] || []).push(TAX_MAP[key]); }); }
     const w = k.split(/[\s-]/)[0], arr = w.length >= 4 && !TAX_GENERIC_FIRST.has(w) ? taxFirstIdx[w] : null;
