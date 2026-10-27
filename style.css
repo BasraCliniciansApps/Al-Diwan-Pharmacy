@@ -2850,3 +2850,9 @@ body.role-staff:not(.can-scan) .tile-scan, body.sc-off .tile-scan { display: non
 .dh-chk input { width: 22px; height: 22px; min-height: 0 !important; }
 /* مقبض سحب الإعدادات للأسفل */
 .sh-grab { width: 46px; height: 5px; border-radius: 3px; background: #cbd5e1; margin: -8px auto 12px; }
+/* وضع قائمة البونص المجاني */
+body.pu-gift .pu-nogift, body.pu-gift #puFast { display: none !important; }
+.pu-giftbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0; padding: 10px 12px; border-radius: 12px; background: #fef3c7; color: #92400e; font-weight: 800; font-size: .82rem; }
+.pu-giftbar span { flex: 1; min-width: 180px; }
+.pu-giftbar button { border: 0; border-radius: 8px; padding: 6px 12px; font-family: inherit; font-weight: 800; background: #fff; color: #92400e; cursor: pointer; }
+.pu-giftbar button.danger { background: #b91c1c; color: #fff; }

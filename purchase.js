@@ -138,7 +138,34 @@ function puInitNew() {
     if (!pu) { try { pu = JSON.parse(lsGet(PU_LS.draft)); } catch (e) { pu = null; } if (!pu || !Array.isArray(pu.items)) pu = emptyPurchase(); }
     puWriteFields(); puRenderItems(); puRecalc(); puFillSupplierList();
     const eb = $b('puEditBar'); if (eb) { eb.style.display = pu.editId ? 'flex' : 'none'; }
-    $b('puSaveBtn').innerText = pu.editId ? '💾 حفظ التعديلات' : '✅ حفظ الوارد وإضافته للمخزن';
+    $b('puSaveBtn').innerText = pu.editId ? '💾 حفظ التعديلات' : (pu.gift ? '🎁 حفظ البونص وإضافته للمخزن' : '✅ حفظ الوارد وإضافته للمخزن');
+    puGiftUi();
+}
+// ---- قائمة بونص مجاني من مذخر: تُدخل مثل الوارد (بحث/باركود/مادة جديدة/سعر/انتهاء) وتُضاف للمخزن، لكنها لا تدخل سجل الوارد ولا حساباته وتبقى بسجل البونص ----
+function puGiftUi() {
+    const g = !!(pu && pu.gift);
+    document.body.classList.toggle('pu-gift', g);
+    const bar = $b('puGiftBar'); if (bar) bar.style.display = g ? 'flex' : 'none';
+    const gd = $b('puGiftDel'); if (gd) gd.style.display = (g && pu.editId) ? '' : 'none';
+    const lb = document.querySelector('#puPane-new .pu-form label:first-child > span'); if (lb) lb.textContent = g ? 'المذخر / المندوب' : 'المذخر المجهز';
+    const nb = $b('puNo'); if (nb && nb.parentElement) nb.parentElement.querySelector('span').textContent = g ? 'رقم القائمة (اختياري)' : 'رقم فاتورة المذخر';
+    if (typeof ptApplyView === 'function') ptApplyView();
+}
+function puGiftNew() {
+    const go = () => { pu = emptyPurchase(); pu.gift = true; lsSet(PU_LS.draft, JSON.stringify(pu)); showView('purch'); puTab('new'); puInitNew(); window.scrollTo(0, 0); };
+    if (pu && pu.items && pu.items.length && !pu.editId && !pu.gift) { askSure('بدء قائمة بونص جديدة؟', 'المسودة الحالية للوارد ستُمسح.', 'نعم').then(ok => { if (ok) go(); }); return; }
+    if (pu && pu.gift && pu.items && pu.items.length && !pu.editId) { showView('purch'); puTab('new'); puInitNew(); return; }   // مسودة بونص قائمة: نكمل عليها
+    go();
+}
+async function puGiftToNormal() {
+    if (pu.items && pu.items.length && !(await askSure('الرجوع للوارد العادي؟', 'ستُمسح قائمة البونص الحالية غير المحفوظة.', 'نعم'))) return;
+    pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew();
+}
+async function puGiftCancel() {
+    const id = pu && pu.editId; if (!id) return;
+    await puCancel(id);
+    const r = puAll.find(x => x.id === id);
+    if (r && r.cancelled) { pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew(); puTab('bonus'); }
 }
 function puWriteFields() {
     $b('puSupplier').value = pu.supplier || ''; $b('puNo').value = pu.no || ''; $b('puDate').value = pu.date || todayLocalISO();
@@ -175,31 +202,30 @@ function puRenderItems() {
             <div class="pu-bar" onclick="puToggle(${i})">
                 <span class="pu-chev">${it.open ? '▾' : '▸'}</span>
                 <span class="pu-bar-name" dir="ltr">${escapeHtml(it.name)}</span>
-                <span class="pu-bar-sum"><span id="puBq-${i}"></span> × <span id="puBc-${i}"></span> = <b id="puBs-${i}"></b></span>
+                ${pu.gift ? `<span class="pu-bar-sum">🎁 <b>${fmtNum(puNum(it.bonus))}</b> مجاناً</span>` : `<span class="pu-bar-sum"><span id="puBq-${i}"></span> × <span id="puBc-${i}"></span> = <b id="puBs-${i}"></b></span>`}
                 <button type="button" class="pt-ret ${puNum(it.ret) > 0 ? 'on' : ''}" onclick="event.stopPropagation();ptRet(${i})" title="مردود لهذه المادة">↩️${puNum(it.ret) > 0 ? ' ' + puNum(it.ret) : ''}</button><button type="button" class="pu-x" onclick="event.stopPropagation();puRemoveItem(${i})" aria-label="حذف">✕</button>
             </div>
             <div class="pu-body" style="display:${it.open ? 'block' : 'none'}">
                 <div class="pu-item-h">${puThumb(it.pid)}<span class="pu-item-t"><b dir="ltr">${escapeHtml(it.name)}</b><span>${escapeHtml(puSub(it.pid))}</span></span></div>
                 <div class="pu-grid">
-                    <label><span>العدد (عبوة)</span><input type="number" min="1" inputmode="numeric" value="${escapeHtml(String(puMainQty(it)))}" oninput="puItemEdit(${i},'qty',this.value)"></label>
-                    <label><span>بونص (مجاني)</span><input type="number" min="0" inputmode="numeric" placeholder="0" value="${escapeHtml(it.bonus || '')}" oninput="puItemEdit(${i},'bonus',this.value)"></label>
-                    <label><span>سعر الشراء</span><input type="number" min="0" inputmode="decimal" value="${escapeHtml(it.cost)}" oninput="puItemEdit(${i},'cost',this.value)"></label>
+                    ${pu.gift ? '' : `<label><span>العدد (عبوة)</span><input type="number" min="1" inputmode="numeric" value="${escapeHtml(String(puMainQty(it)))}" oninput="puItemEdit(${i},'qty',this.value)"></label>`}
+                    <label><span>${pu.gift ? 'عدد البونص (مجاني)' : 'بونص (مجاني)'}</span><input type="number" min="0" inputmode="numeric" placeholder="0" value="${escapeHtml(it.bonus || '')}" oninput="puItemEdit(${i},'bonus',this.value)"></label>
+                    ${pu.gift ? '' : `<label><span>سعر الشراء</span><input type="number" min="0" inputmode="decimal" value="${escapeHtml(it.cost)}" oninput="puItemEdit(${i},'cost',this.value)"></label>`}
                     <label><span>تاريخ الانتهاء</span><input type="month" dir="ltr" value="${escapeHtml(it.expiry || '')}" oninput="puItemEdit(${i},'expiry',this.value)"></label>
                     <label><span>رقم الدفعة (اختياري)</span><input dir="ltr" value="${escapeHtml(it.batch || '')}" oninput="puItemEdit(${i},'batch',this.value)"></label>
                 </div>
-                ${puXbHtml(it, i)}
-                <button type="button" class="pu-xb-add" onclick="puXbAdd(${i})">＋ دفعة بانتهاء آخر لنفس المادة</button>
+                ${pu.gift ? '' : puXbHtml(it, i) + `<button type="button" class="pu-xb-add" onclick="puXbAdd(${i})">＋ دفعة بانتهاء آخر لنفس المادة</button>`}
                 <div class="pu-price">
-                    <label><span>طريقة تسعير البيع</span><select onchange="puPriceMode(${i},this.value)">
+                    <label class="pu-nogift"><span>طريقة تسعير البيع</span><select onchange="puPriceMode(${i},this.value)">
                         <option value="manual" ${puPM(it) === 'manual' ? 'selected' : ''}>يدوي — مسعّر من الوزارة (ملصق)</option>
                         <option value="syndicate" ${puPM(it) === 'syndicate' ? 'selected' : ''}>حسب كتاب نقابة الصيادلة</option>
                         <option value="percent" ${puPM(it) === 'percent' ? 'selected' : ''}>بنسبة مئوية أدخلها (سعر الشراء + %)</option></select></label>
                     <label id="puPk-${i}" style="display:${puPM(it) === 'percent' ? 'block' : 'none'}"><span>نسبة الإضافة على سعر الشراء (%)</span><input type="number" min="0" step="any" inputmode="decimal" placeholder="مثال: 25" value="${escapeHtml(String(puMk(it)))}" oninput="puItemEdit(${i},'pmarkup',this.value)"></label>
-                    <label id="puPm-${i}" style="display:${puPM(it) === 'manual' ? 'block' : 'none'}"><span>سعر البيع المطبوع على الملصق ${puCurPrice(it.pid)}</span><input type="number" min="0" inputmode="decimal" placeholder="اتركه فارغاً للإبقاء على السعر الحالي" value="${escapeHtml(it.pprice || '')}" oninput="puItemEdit(${i},'pprice',this.value)"></label>
+                    <label id="puPm-${i}" style="display:${(pu.gift || puPM(it) === 'manual') ? 'block' : 'none'}"><span>سعر البيع المطبوع على الملصق ${puCurPrice(it.pid)}</span><input type="number" min="0" inputmode="decimal" placeholder="اتركه فارغاً للإبقاء على السعر الحالي" value="${escapeHtml(it.pprice || '')}" oninput="puItemEdit(${i},'pprice',this.value)"></label>
                     <div id="puPs-${i}" class="pu-syn" style="display:${puPM(it) === 'syndicate' || puPM(it) === 'percent' ? 'block' : 'none'}"></div>
                 </div>
                 ${puRetailHtml(it, i)}
-                <div class="pu-line">المجموع: <b id="puLine-${i}">0</b> د.ع</div>
+                ${pu.gift ? '' : `<div class="pu-line">المجموع: <b id="puLine-${i}">0</b> د.ع</div>`}
             </div>
         </div>`).join('') || '<div class="bill-none">ابحث عن دواء أو امسح باركوده لإضافته إلى الفاتورة الواردة.</div>';
     puRecalc();
@@ -278,7 +304,10 @@ function puAddProduct(id) {
     if (puPendingBc) { puAttachBarcode(p, puPendingBc); puPendingBc = ''; puShowPending(); }
     const ex = pu.items.find(it => it.pid === id);
     pu.items.forEach(it => { it.open = false; });   // القديمة تنطوي والجديدة تُفتح
-    if (ex) { if (puHasX(ex)) { ex.q0 = (parseInt(ex.q0) || 0) + 1; puSyncQty(ex); } else ex.qty = (parseInt(ex.qty) || 0) + 1; ex.open = true; }
+    if (pu.gift) {
+        if (ex) ex.bonus = (parseInt(ex.bonus) || 0) + 1; else pu.items.push({ pid: id, name: p.name, qty: 0, bonus: 1, cost: '', expiry: '', batch: '', open: true, ropen: hasRetail(p) });
+        if (ex) ex.open = true;
+    } else if (ex) { if (puHasX(ex)) { ex.q0 = (parseInt(ex.q0) || 0) + 1; puSyncQty(ex); } else ex.qty = (parseInt(ex.qty) || 0) + 1; ex.open = true; }
     else pu.items.push({ pid: id, name: p.name, qty: 1, bonus: '', cost: p.costPrice || '', expiry: '', batch: '', open: true, ropen: hasRetail(p) });
     $b('puSearch').value = ''; $b('puResults').style.display = 'none';
     puRenderItems(); puChanged();
@@ -344,7 +373,8 @@ function puAddByBarcode(code, gs1) {
 }
 function puNew() {
     const has = pu && (pu.items.length || pu.supplier || pu.no) && !pu.editId;
-    const go = () => { pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puPendingBc = ''; puShowPending(); puInitNew(); };
+    const g0 = !!(pu && pu.gift && !pu.editId);
+    const go = () => { pu = emptyPurchase(); if (g0) pu.gift = true; lsSet(PU_LS.draft, JSON.stringify(pu)); puPendingBc = ''; puShowPending(); puInitNew(); };
     if (!has) return go();
     Swal.fire({ icon: 'question', title: 'وارد جديد؟', text: 'سيتم مسح البيانات الحالية.', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم', cancelButtonText: 'إلغاء' }).then(r => { if (r.isConfirmed) go(); });
 }
@@ -356,18 +386,20 @@ function puExpiryPush(p, e) {   // يُرجع true إذا أُضيف تاريخ 
 async function puSave() {
     puReadFields();
     const editing = pu.editId ? puAll.find(x => x.id === pu.editId) : null;
-    const supplier = pu.supplier.trim(), no = pu.no.trim();
-    const items = pu.items.filter(it => parseInt(it.qty) > 0 || parseInt(it.bonus) > 0);
+    const supplier = pu.supplier.trim();
+    let no = pu.no.trim(); if (pu.gift && !no) no = 'BONUS-' + String(pu.date || todayLocalISO()) + '-' + String(Date.now()).slice(-4);
+    const gift = !!pu.gift;
+    const items = pu.items.filter(it => gift ? parseInt(it.bonus) > 0 : (parseInt(it.qty) > 0 || parseInt(it.bonus) > 0));
     const warn = t => Swal.fire({ icon: 'warning', title: t, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
-    if (!supplier) return warn('اكتب اسم المذخر');
+    if (!supplier) return warn(gift ? 'اكتب اسم المذخر أو المندوب' : 'اكتب اسم المذخر');
     if (!no) return warn('اكتب رقم فاتورة المذخر');
-    if (!items.length) return warn('أضف مادة واحدة على الأقل بعدد صحيح');
+    if (!items.length) return warn(gift ? 'أضف مادة واحدة على الأقل مع عدد البونص' : 'أضف مادة واحدة على الأقل بعدد صحيح');
     if (items.some(it => parseInt(it.qty) > 0 && !(puNum(it.cost) > 0))) {
         const r = await Swal.fire({ icon: 'question', title: 'بعض المواد بلا سعر شراء', text: 'لن يُحسب لها ربح ولن يتغير سعر شرائها. متابعة؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'متابعة', cancelButtonText: 'رجوع' });
         if (!r.isConfirmed) return;
     }
     await puLoad();
-    if (puAll.some(x => x.id !== pu.editId && !x.cancelled && puKey(x.supplier) === puKey(supplier) && puKey(x.no) === puKey(no))) {
+    if (!gift && puAll.some(x => x.id !== pu.editId && !x.cancelled && !puIsBonusOnly(x) && puKey(x.supplier) === puKey(supplier) && puKey(x.no) === puKey(no))) {
         const r = await Swal.fire({ icon: 'warning', title: 'رقم الفاتورة مسجّل سابقاً لهذا المذخر', text: 'هل تريد تسجيلها مرة أخرى؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'تسجيل', cancelButtonText: 'رجوع' });
         if (!r.isConfirmed) return;
     }
@@ -403,7 +435,8 @@ async function puSave() {
         if (xb.length) line.xb = xb;
         // السعر والكلفة يُحفظان دائماً (وضع التأسيس يحمي الكمية فقط)
         if (cost > 0) p.costPrice = cost;
-        { const pm = puPM(it); if (pm === 'percent') { const mk = puNum(puMk(it)); p.pricing = 'percent'; p.markupPct = mk; if (cost > 0) p.price = markupCalc(cost, mk); } else if (pm === 'syndicate') { p.markupPct = null; p.pricing = 'syndicate'; if (cost > 0) p.price = syndPrice(cost); } else { p.markupPct = null; p.pricing = 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
+        if (gift) { if (puNum(it.pprice) > 0) { p.markupPct = null; p.pricing = 'manual'; p.price = puNum(it.pprice); } }   // البونص بلا كلفة: السعر الجديد فقط إن كتبته، وإلا يبقى سعر المادة الحالي
+        else { const pm = puPM(it); if (pm === 'percent') { const mk = puNum(puMk(it)); p.pricing = 'percent'; p.markupPct = mk; if (cost > 0) p.price = markupCalc(cost, mk); } else if (pm === 'syndicate') { p.markupPct = null; p.pricing = 'syndicate'; if (cost > 0) p.price = syndPrice(cost); } else { p.markupPct = null; p.pricing = 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
         line.salePrice = Number(p.price) || 0;   // سعر البيع وقت الوارد (للرجوع إليه)
         if (!applied) {   // مادة غير مجرودة / «لا تحدّث المخزن»: الكمية ما تتغير لكن قيمة البونص تنحسب
             line.bonusSale = bn * (Number(p.price) || 0);
@@ -425,7 +458,7 @@ async function puSave() {
             line.expAddedX = want.filter(e => puExpiryPush(p, e) || oldX.includes(e));
         } else if (old && old.expAddedX && old.expAddedX.length) { p.expiryDates = getProductExpiryDates(p).filter(e => !old.expAddedX.includes(e)); p.expiryDate = p.expiryDates[0] || ''; }
         const lp = p.lastPurchase;
-        if (!lp || String(pu.date) >= String(lp.date || '')) p.lastPurchase = { supplier, no, date: pu.date, qty: n, cost, batch: line.batch, expiry: line.expiry };
+        if (!gift && (!lp || String(pu.date) >= String(lp.date || ''))) p.lastPurchase = { supplier, no, date: pu.date, qty: n, cost, batch: line.batch, expiry: line.expiry };
         lines.push(line);
     });
     const touched = [...snaps.values()].map(s => s.p);
@@ -449,20 +482,22 @@ async function puSave() {
     } else {
         rec = { id: 'pu' + Date.now(), seq: puNextSeq((pu.useEntry ? todayLocalISO() : String(pu.date)).slice(0, 7)), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
     }
+    if (gift) { rec.gift = true; rec.bonusOnly = true; delete rec.seq; }
     await puSaveRecord(rec);
     await puUpsertSupplier(supplier);
     renderAll();
     const retMap = {}; (pu.items || []).forEach(it => { if (puNum(it.ret) > 0) retMap[it.pid] = puNum(it.ret); });   // مواد علّمتها «مردود» أثناء الإدخال
     pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew();
+    if (gift) { Swal.fire({ icon: 'success', title: editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ البونص وأُضيف للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 }); puTab('bonus'); return; }
     Swal.fire({ icon: 'success', title: editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ الوارد وأُضيفت الكميات للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
     if (editing) puTab('log');
     if (Object.keys(retMap).length && typeof ptOpenReturnFor === 'function') ptOpenReturnFor(rec, retMap);
 }
-async function puCancelEdit() { if (!(await askSure('إلغاء التعديل؟', 'ستضيع كل التغييرات غير المحفوظة على هذه الفاتورة.', 'إلغاء التعديل'))) return; pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew(); }
+async function puCancelEdit() { if (!(await askSure('إلغاء التعديل؟', 'ستضيع كل التغييرات غير المحفوظة على هذه الفاتورة.', 'إلغاء التعديل'))) return; const wasGift = !!(pu && pu.gift); pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew(); if (wasGift) puTab('bonus'); }
 function puEdit(id) {
     const r = puAll.find(x => x.id === id); if (!r || r.cancelled) return;
     if (pu && pu.items.length && !pu.editId) { /* المسودة الحالية ستُستبدل */ }
-    pu = { editId: r.id, stmt: !!r.stmt, useEntry: !!r.useEntry, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, bonus: l.bonus || '', cost: l.cost, expiry: l.expiry || '', batch: l.batch || '', xb: l.xb && l.xb.length ? l.xb.map(b => ({ ...b })) : undefined, q0: l.xb && l.xb.length ? (parseInt(l.qty) || 0) - l.xb.reduce((t, b) => t + (parseInt(b.q) || 0), 0) : undefined })) };
+    pu = { editId: r.id, gift: !!r.gift, stmt: !!r.stmt, useEntry: !!r.useEntry, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, bonus: l.bonus || '', cost: l.cost, expiry: l.expiry || '', batch: l.batch || '', xb: l.xb && l.xb.length ? l.xb.map(b => ({ ...b })) : undefined, q0: l.xb && l.xb.length ? (parseInt(l.qty) || 0) - l.xb.reduce((t, b) => t + (parseInt(b.q) || 0), 0) : undefined })) };
     puTab('new'); window.scrollTo(0, 0);
 }
 

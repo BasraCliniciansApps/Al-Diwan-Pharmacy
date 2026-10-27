@@ -838,8 +838,8 @@
                     <label><span>المذخر المجهز</span><input id="puSupplier" list="puSupList" autocomplete="off" placeholder="اسم المذخر" oninput="puChanged()"><datalist id="puSupList"></datalist></label>
                     <label><span>رقم فاتورة المذخر</span><input id="puNo" dir="ltr" autocomplete="off" oninput="puChanged()"></label>
                     <label><span>تاريخ فاتورة المذخر</span><input type="date" id="puDate" oninput="puChanged()"></label>
-                    <label class="pu-chk"><input type="checkbox" id="puStmt" onchange="puChanged()"><span>✓ استلمتُ كشف المذخر لهذه القائمة</span></label>
-                    <label class="pu-chk"><input type="checkbox" id="puUseEntry" onchange="puChanged()"><span>اعتماد تاريخ الإدخال (اليوم) لتحديد شهرها بدل تاريخ القائمة</span></label>
+                    <label class="pu-chk pu-nogift"><input type="checkbox" id="puStmt" onchange="puChanged()"><span>✓ استلمتُ كشف المذخر لهذه القائمة</span></label>
+                    <label class="pu-chk pu-nogift"><input type="checkbox" id="puUseEntry" onchange="puChanged()"><span>اعتماد تاريخ الإدخال (اليوم) لتحديد شهرها بدل تاريخ القائمة</span></label>
                 </div>
             </div>
             <div class="bill-add">
@@ -851,8 +851,9 @@
             </div>
             <div class="pu-hint" id="puPendingHint" style="display:none;"></div>
             <div class="pu-count" id="puCount"></div>
+            <div class="pu-giftbar" id="puGiftBar" style="display:none;"><span>🎁 قائمة بونص مجاني من مذخر — تُضاف للمخزن ولا تدخل سجل الوارد ولا حساباته.</span><button type="button" onclick="puGiftToNormal()">وارد عادي</button><button type="button" id="puGiftDel" class="danger" style="display:none" onclick="puGiftCancel()">🗑 حذف القائمة</button></div>
             <div class="pu-editbar" id="puEditBar" style="display:none;"><span>✏️ أنت تعدّل فاتورة مسجّلة — سيُصحَّح المخزن تلقائياً بالفرق.</span><button type="button" onclick="puCancelEdit()">إلغاء التعديل</button></div>
-            <div class="pu-viewbar no-print" id="puViewBar"><button type="button" data-v="table" onclick="puSetView('table')">⚡ جدول سريع</button><button type="button" data-v="cards" onclick="puSetView('cards')">🗂️ بطاقات</button></div>
+            <div class="pu-viewbar no-print pu-nogift" id="puViewBar"><button type="button" data-v="table" onclick="puSetView('table')">⚡ جدول سريع</button><button type="button" data-v="cards" onclick="puSetView('cards')">🗂️ بطاقات</button></div>
             <div id="puFast" class="pt-wrap">
                 <div class="pt-add">
                     <div class="pt-namewrap"><input id="ptName" placeholder="اسم المادة..." autocomplete="off" oninput="ptNameInput()" onkeydown="ptKey(event,'name')"><div id="ptRes" class="bill-results" style="display:none;"></div></div>
@@ -868,7 +869,7 @@
                 <div id="puTable"></div>
             </div>
             <div id="puItems"></div>
-            <div class="pu-card pu-totals">
+            <div class="pu-card pu-totals pu-nogift">
                 <div class="pu-trow"><span>مجموع الفاتورة</span><b id="puTotal">0</b></div>
                 <label class="pu-trow"><span>مبلغ الاسترجاع</span><input type="number" min="0" inputmode="decimal" id="puReturn" placeholder="0" oninput="puChanged()"></label>
                 <div class="pu-trow pu-net"><span>الصافي بعد الاسترجاع</span><b id="puNet">0</b></div>
@@ -985,7 +986,7 @@
                 <label class="pu-mfield" id="lgbYW" style="display:none"><span>السنة</span><input type="number" id="lgbYear" min="2000" max="2100" oninput="lgRenderBonus()"></label>
                 <label class="pu-mfield"><span>المذخر</span><select id="lgbSup" onchange="lgRenderBonus()"></select></label>
             </div>
-            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="lgBreqAdd()">＋ بونص من مندوب / عرض</button><button type="button" class="bill-tb-btn" onclick="lgBreqDelImported()">🗑 حذف الطلبات المستوردة</button><button type="button" class="bill-tb-btn" onclick="lgBonusCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-bonus')">🖨️ طباعة</button></div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="puGiftNew()">🎁 قائمة بونص (إدخال كامل)</button><button type="button" class="bill-tb-btn" onclick="lgBreqAdd()">＋ بونص من مندوب / عرض</button><button type="button" class="bill-tb-btn" onclick="lgBreqDelImported()">🗑 حذف الطلبات المستوردة</button><button type="button" class="bill-tb-btn" onclick="lgBonusCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-bonus')">🖨️ طباعة</button></div>
             <div id="lgb-sum" class="bill-sum-card no-print"></div>
             <div id="lgb-list" class="no-print"></div>
             <div class="bill-sheet print-only" id="lgb-sheet"></div>
