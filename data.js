@@ -4988,7 +4988,9 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     // سجل المتصفح يتجاهل أي إدخال يُضاف قبل أول لمسة من المستخدم، فنضيف حارس الرجوع عند أول لمسة.
     let exiting = false, asking = false, armed = false;
     try { history.replaceState({ g: 0 }, ''); } catch (e) { return; }
-    const arm = () => { if (armed) return; armed = true; try { history.pushState({ g: 1 }, ''); } catch (e) { armed = false; } };
+    // نضيف عدة حرّاس دفعة واحدة داخل نفس اللمسة (الإدخال المضاف داخل popstate قد يتجاهله المتصفح)، ونعيد التعبئة عند كل لمسة
+    const GUARDS = 8, gcur = () => (history.state && history.state.g) || 0;
+    const arm = () => { try { let g = gcur(); if (g >= GUARDS) { armed = true; return; } for (g++; g <= GUARDS; g++) history.pushState({ g }, ''); armed = true; } catch (e) { /* تجاهل */ } };
     ['touchstart', 'pointerdown', 'mousedown', 'keydown'].forEach(t => window.addEventListener(t, arm, { passive: true, capture: true }));
     const vis = id => { const e = document.getElementById(id); return !!e && e.style.display && e.style.display !== 'none'; };
     function closeTopLayer() {
@@ -5020,11 +5022,11 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         window.__navBack = true; try { showView(prev && prev !== currentView ? prev : 'home'); } finally { window.__navBack = false; }
         return true;
     }
-    const guard = () => { try { history.pushState({ g: 1 }, ''); } catch (e) { /* تجاهل */ } };
+    const guard = () => { try { if (gcur() < 1) history.pushState({ g: 1 }, ''); } catch (e) { /* تجاهل */ } };
     window.addEventListener('popstate', async () => {
         if (exiting || !armed) return;
         if (closeTopLayer() || backView()) { guard(); return; }
-        if (asking) { guard(); return; }
+        if (asking) { return; }
         // الرئيسية: لا نعيد الحارس أثناء السؤال، فإذا ضغط رجوع ثانية يخرج مباشرة
         asking = true;
         let ok = false;
@@ -5033,7 +5035,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         if (!ok) { guard(); return; }
         exiting = true;
         try { window.close(); } catch (e) { /* تجاهل */ }
-        setTimeout(() => { try { history.back(); } catch (e) { /* تجاهل */ } }, 250);
+        setTimeout(() => { try { const g = gcur(); if (g > 0) history.go(-g); } catch (e) { /* تجاهل */ } }, 250);
         setTimeout(() => { if (!document.hidden) Swal.fire({ icon: 'info', title: 'اضغط رجوع مرة أخرى', text: 'للخروج النهائي من التطبيق.', timer: 2600, showConfirmButton: false }); }, 900);
     });
 })();
