@@ -1820,7 +1820,8 @@ async function uploadImgBase64(event) {
             if (w > h && w > max) { h *= max / w; w = max; }
             else if (h > max) { w *= max / h; h = max; }
             canvas.width = w; canvas.height = h;
-            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            const cx = canvas.getContext('2d'); cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, w, h);   // الشفافية تصير بيضاء بدل السوداء
+            cx.drawImage(img, 0, 0, w, h);
 
             const base64Content = canvas.toDataURL('image/jpeg', 0.82).split(',')[1];
             const fileName = `med_${Date.now()}.jpg`;

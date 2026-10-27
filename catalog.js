@@ -183,7 +183,7 @@ async function quickImgUpload(id, file) {
         h.set(10, 'تصغير الصورة...');
         const b64 = await new Promise((res, rej) => {
             const im = new Image(); im.onerror = () => rej(new Error('الصورة غير صالحة'));
-            im.onload = () => { const cv = document.createElement('canvas'), max = 600; let w = im.width, h = im.height; if (w > h && w > max) { h *= max / w; w = max; } else if (h > max) { w *= max / h; h = max; } cv.width = w; cv.height = h; cv.getContext('2d').drawImage(im, 0, 0, w, h); res(cv.toDataURL('image/jpeg', 0.82).split(',')[1]); };
+            im.onload = () => { const cv = document.createElement('canvas'), max = 600; let w = im.width, h = im.height; if (w > h && w > max) { h *= max / w; w = max; } else if (h > max) { w *= max / h; h = max; } cv.width = w; cv.height = h; const cx = cv.getContext('2d'); cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, w, h); cx.drawImage(im, 0, 0, w, h); res(cv.toDataURL('image/jpeg', 0.82).split(',')[1]); };
             im.src = dataUrl;
         });
         const fileName = 'med_' + Date.now() + '.jpg', path = 'images/' + fileName;
