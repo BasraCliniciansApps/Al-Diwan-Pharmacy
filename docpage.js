@@ -5,7 +5,7 @@
 // =====================================================================
 const DOC_ST = { ok: 'متوفر', noph: 'غير متوفر بالصيدلية', nosup: 'غير متوفر بالمذخر', back: 'عاد بعد انقطاع' };
 const DOC_LS = 'diwanDocData';
-let docData = null, docLoadP = null, docPubT = null, docWatchT = null, docQ = '', docFil = 'all', docShown = 60, docMenu = false;
+let docReqList = [], docReqUnsub = null, docData = null, docLoadP = null, docPubT = null, docWatchT = null, docQ = '', docFil = 'all', docShown = 60, docMenu = false;
 const docEsc = s => escapeHtml(String(s == null ? '' : s));
 const docDefault = () => ({ cfg: { auto: false, prices: true, detect: true, days: 7 }, items: {}, upd: 0, sig: '' });
 function docNorm(d) { const b = docDefault(); d = d || {}; return { cfg: { ...b.cfg, ...(d.cfg || {}) }, items: d.items || {}, upd: d.upd || 0, sig: d.sig || '' }; }
@@ -53,6 +53,7 @@ function docSaveSoon() { clearTimeout(docPubT); docPubT = setTimeout(docPublish,
 // مراقبة تغيّر الأسعار والتوفر وتحديث صفحة الطبيب تلقائياً
 function docOnProducts() {
     if (typeof IS_ADMIN_PAGE === 'undefined' || !IS_ADMIN_PAGE || userRole !== 'owner') return;
+    docStartWatch();
     clearTimeout(docWatchT);
     docWatchT = setTimeout(async () => {
         try { const d = await docLoad(); if (!Object.keys(d.items).length) return; if (docSigOf(d) !== d.sig) docPublish(); } catch (e) { /* تجاهل */ }
@@ -185,14 +186,12 @@ function docBulkSet(v) {
 function docSetStQuiet(id, v) { const it = docData.items[id]; it.s = v; if (v === 'back') { it.t = Date.now(); } else delete it.t; delete it.src; delete it.pv; }
 
 // ---------- طلبات الأطباء (من «أحتاج هذه المادة» و«اطلب هذه المادة») ----------
-let docReqList = [];
 async function docLoadReq() {
     const box = document.getElementById('docReq'); if (!box) return;
     try {
         if (!(typeof cloudReady === 'function' && cloudReady())) { box.innerHTML = '<div class="dh-note">طلبات الأطباء تحتاج اتصالاً بالسحابة.</div>'; return; }
         const snap = await db.collection('pharmacy_search_misses').where('dr', '==', 1).get();
-        docReqList = []; snap.forEach(d => { const x = d.data(); docReqList.push({ id: d.id, name: x.name || '', kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
-        docReqList.sort((a, b) => b.count - a.count || String(b.at).localeCompare(String(a.at)));
+        docReqList = docMapReq(snap); docReqList.sort((a, b) => b.count - a.count || String(b.at).localeCompare(String(a.at)));
         docRenderReq();
     } catch (e) { box.innerHTML = '<div class="dh-note">تعذر تحميل طلبات الأطباء.</div>'; }
 }
@@ -200,13 +199,50 @@ function docRenderReq() {
     const box = document.getElementById('docReq'); if (!box) return;
     if (!docReqList.length) { box.innerHTML = '<div class="qk-row"><div><b>طلبات الأطباء</b><small>لا توجد طلبات بعد. تظهر هنا المواد التي يحتاجها الأطباء، مرتبة بالأكثر طلباً.</small></div></div>'; return; }
     box.innerHTML = `<div class="qk-row"><div><b>طلبات الأطباء (${fmtNum(docReqList.length)})</b><small>مرتبة بالأكثر طلباً؛ استفد منها في قرارات الشراء.</small></div><button type="button" class="dc-mini" onclick="docReqClear()">مسح الكل</button></div>`
-        + docReqList.slice(0, 40).map(r => `<div class="qk-row"><div><b dir="auto">${docEsc(r.name)}</b><small>${r.kind === 'n' ? 'طلب توفر لمادة معروضة' : 'مادة غير موجودة في القائمة'}${r.at ? ' · ' + docEsc(String(r.at).slice(0, 10)) : ''}</small></div><span class="dc-cnt">${fmtNum(r.count)}</span><button type="button" class="dc-mini" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('');
+        + docReqList.slice(0, 40).map(r => `<div class="qk-row"><div><b dir="auto">${docEsc(r.name)}</b><small>${DOC_KIND[r.kind] || 'طلب'}${r.at ? ' · <bdi>' + docEsc(String(r.at).slice(0, 10)) + '</bdi>' : ''}</small></div><span class="dc-cnt">${fmtNum(r.count)}</span><button type="button" class="dc-mini" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('');
 }
 async function docReqDel(id) {
     if (!(await askSure('حذف هذا الطلب؟', 'سيُحذف الطلب من القائمة.', 'حذف'))) return;
-    try { await db.collection('pharmacy_search_misses').doc(id).delete(); docReqList = docReqList.filter(r => r.id !== id); docRenderReq(); } catch (e) { /* تجاهل */ }
+    try { await db.collection('pharmacy_search_misses').doc(id).delete(); docReqList = docReqList.filter(r => r.id !== id); docRenderReq(); docRenderAlertBox(false); docBadges(); } catch (e) { /* تجاهل */ }
 }
 async function docReqClear() {
     if (!(await askSure('مسح كل طلبات الأطباء؟', 'ستُحذف ' + fmtNum(docReqList.length) + ' طلباً نهائياً.', 'مسح الكل'))) return;
     try { for (let i = 0; i < docReqList.length; i += 400) { const b = db.batch(); docReqList.slice(i, i + 400).forEach(r => b.delete(db.collection('pharmacy_search_misses').doc(r.id))); await b.commit(); } docReqList = []; docRenderReq(); } catch (e) { /* تجاهل */ }
+}
+
+// ---------- مراقبة طلبات الأطباء لحظياً وإظهارها كتنبيه ----------
+const DOC_SEEN = 'diwanDocSeen';
+const DOC_KIND = { n: 'طلب توفر لمادة معروضة', q: 'طلب مادة غير موجودة في القائمة', s: 'بحث دون نتيجة' };
+function docMapReq(snap) {
+    const a = []; snap.forEach(d => { const x = d.data(); a.push({ id: d.id, name: x.name || '', kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
+    return a.sort((p, q) => String(q.at).localeCompare(String(p.at)));
+}
+function docSeen() { try { return localStorage.getItem(DOC_SEEN) || ''; } catch (e) { return ''; } }
+function docBadges() {
+    const s = docSeen(), n = docReqList.filter(r => String(r.at) > s).length;
+    document.querySelectorAll('.doc-badge').forEach(e => { e.textContent = n; e.style.display = n ? 'flex' : 'none'; });
+}
+function docMarkSeen() {
+    const m = docReqList.reduce((a, r) => String(r.at) > a ? String(r.at) : a, '');
+    if (m) { try { localStorage.setItem(DOC_SEEN, m); } catch (e) { /* تجاهل */ } }
+    docBadges();
+}
+function docStartWatch() {
+    if (docReqUnsub || typeof IS_ADMIN_PAGE === 'undefined' || !IS_ADMIN_PAGE || userRole !== 'owner' || !(typeof cloudReady === 'function' && cloudReady())) return;
+    try {
+        docReqUnsub = db.collection('pharmacy_search_misses').where('dr', '==', 1).onSnapshot(snap => {
+            docReqList = docMapReq(snap); docBadges();
+            const v = document.getElementById('alertsView'); if (v && v.classList.contains('active')) docRenderAlertBox(false);
+            if (document.getElementById('docReq')) docRenderReq();
+        }, () => { docReqUnsub = null; });
+    } catch (e) { docReqUnsub = null; }
+}
+function docRenderAlertBox(markSeen) {
+    const box = document.getElementById('docAlertBox'); if (!box) return;
+    if (!docReqList.length) { box.innerHTML = ''; return; }
+    const s = docSeen(), nNew = docReqList.filter(r => String(r.at) > s).length;
+    box.innerHTML = `<div class="da-card"><div class="da-head">🩺 تنبيهات الأطباء${nNew ? ` <em>${fmtNum(nNew)} جديد</em>` : ''}</div>`
+        + docReqList.slice(0, 15).map(r => `<div class="da-row ${String(r.at) > s ? 'new' : ''}"><div><b dir="auto">${docEsc(r.name)}</b><small>${DOC_KIND[r.kind] || 'طلب'}${r.at ? ' · <bdi>' + docEsc(String(r.at).slice(0, 10)) + '</bdi>' : ''}</small></div>${r.count > 1 ? `<span class="da-cnt">${fmtNum(r.count)}×</span>` : ''}<button type="button" class="da-x" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('')
+        + (docReqList.length > 15 ? `<div class="da-more">و ${fmtNum(docReqList.length - 15)} طلباً آخر في إعدادات صفحة الطبيب</div>` : '') + '</div>';
+    if (markSeen) docMarkSeen();
 }

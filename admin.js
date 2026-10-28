@@ -143,6 +143,7 @@ function renderAlerts() {
     };
     document.getElementById('alertsContainer').innerHTML = list.map(x => productCardHtml(x.p, tag(x))).join('') ||
         `<div class="empty-state empty-wide"><div class="empty-ico">✅</div><div>لا توجد أصناف ضمن هذا التنبيه</div></div>`;
+    try { if (typeof docRenderAlertBox === 'function') docRenderAlertBox(true); } catch (e) { /* تجاهل */ }
 }
 
 // الشاشة الأولى: انتظر حالة الدخول، وإلا اذهب لشاشة الدخول

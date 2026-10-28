@@ -36,7 +36,7 @@
         <div class="top-bar-inner">
             
             
-            <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية">🏠</button><button class="small-icon-btn bell-btn" onclick="goAlerts('all')" title="التنبيهات" aria-label="التنبيهات">🔔<i id="stockAlertCount" class="bell-badge"></i></button><button class="small-icon-btn" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button><button class="small-icon-btn" id="themeBtn" onclick="toggleTheme()" title="الوضع الداكن" aria-label="الوضع الداكن">🌓</button></div></div>
+            <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية">🏠</button><button class="small-icon-btn bell-btn" onclick="goAlerts('all')" title="التنبيهات" aria-label="التنبيهات">🔔<i id="stockAlertCount" class="bell-badge"></i><i class="bell-badge doc-badge" title="طلبات الأطباء"></i></button><button class="small-icon-btn" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button><button class="small-icon-btn" id="themeBtn" onclick="toggleTheme()" title="الوضع الداكن" aria-label="الوضع الداكن">🌓</button></div></div>
 <div class="page-title">📦 المخزن</div>
             <button type="button" id="authBtn" hidden></button>
             
@@ -585,6 +585,7 @@
         </button>
         <button type="button" class="home-tile tile-sm tile-alert" onclick="goAlerts('all')">
             <span class="tile-badge" id="homeAlertCount" style="display:none;">0</span>
+            <span class="tile-badge doc-badge" style="display:none;">0</span>
             <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
             <b>التنبيهات</b>
         </button>
@@ -636,6 +637,7 @@
 <div id="alertsView" class="app-view alerts-view">
     <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button></div></div>
 <div class="page-title">🔔 التنبيهات</div>
+    <div id="docAlertBox"></div>
     <div class="alerts-controls">
         <label class="alerts-select"><span>تصفية التنبيهات</span>
             <select id="alertFilter" onchange="setAlertFilter(this.value)"></select>

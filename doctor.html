@@ -235,6 +235,7 @@ function render(anim) {
     renderRail(all);
     const nq = norm(q.trim());
     let rows = all.filter(m => (!tab || m.st === tab) && (!favOnly || FAV.has(m.id)) && (!nq || m.hay.includes(nq)));
+    lastRows = rows.length;
     $('hl').firstChild.nodeValue = (favOnly ? 'المفضلة · ' : '') + (tab ? ST[tab].t : 'كل المواد') + ' ';
     $('hc').textContent = '· ' + num(rows.length);
     $('clr').classList.toggle('show', !!tab);
@@ -254,15 +255,15 @@ function render(anim) {
     const mb = $('more'); if (mb) mb.onclick = () => { shown += 80; render(false); };
 }
 // ---------- طلبات الأطباء (تصل إلى الصيدلي) ----------
-async function sendReq(kind, id, name, btn) {
-    const key = kind === 'n' ? 'dn_' + id : 'dq_' + encodeURIComponent(norm(name)).slice(0, 150);
-    if (SENT[key] && Date.now() - SENT[key] < WEEK) { toast('سُجِّل طلبك مسبقاً'); return; }
+async function sendReq(kind, id, name, btn, quiet) {
+    const key = (kind === 'n' ? 'dn_' + id : (kind === 's' ? 'ds_' : 'dq_') + encodeURIComponent(norm(name)).slice(0, 150));
+    if (SENT[key] && Date.now() - SENT[key] < WEEK) { if (!quiet) toast('سُجِّل طلبك مسبقاً'); return; }
     try {
         await firebase.firestore().collection('pharmacy_search_misses').doc(key).set({ dr: 1, kind, pid: id || null, name, count: firebase.firestore.FieldValue.increment(1), lastAt: new Date().toISOString() }, { merge: true });
         SENT[key] = Date.now(); lsSet('diwanDocSent', SENT);
-        toast('سُجِّل طلبك وسيصل إلى الصيدلية');
+        if (!quiet) toast('سُجِّل طلبك وسيصل إلى الصيدلية');
         if (btn) { btn.classList.add('done'); btn.lastChild.nodeValue = kind === 'n' ? 'سُجِّل طلبك' : 'أُرسل الطلب'; }
-    } catch (e) { toast('تعذر إرسال الطلب، حاول لاحقاً'); }
+    } catch (e) { if (!quiet) toast('تعذر إرسال الطلب، حاول لاحقاً'); }
 }
 async function shareItem(m) {
     const t = m.n + '\nالحالة: ' + ST[m.st].t + (doc.cfg.prices !== false && m.p ? '\nالسعر: ' + num(m.p) + ' د.ع' : '') + '\nصيدلية الديوان';
@@ -304,7 +305,8 @@ function setDoc(d) { doc = d || { cfg: {}, items: {} }; stamp(); render(false); 
 
 $('rail').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; const k = b.dataset.k; tab = tab === k ? '' : k; shown = 60; render(true); if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) { /* تجاهل */ } });
 $('clr').onclick = () => { tab = ''; shown = 60; render(true); };
-$('q').addEventListener('input', e => { q = e.target.value; $('sbox').classList.toggle('has', !!q); shown = 60; render(false); });
+let srT = null, lastRows = 1;
+$('q').addEventListener('input', e => { q = e.target.value; clearTimeout(srT); srT = setTimeout(() => { const t = q.trim(); if (norm(t).length >= 3 && lastRows === 0) sendReq('s', '', t, null, true); }, 1800); $('sbox').classList.toggle('has', !!q); shown = 60; render(false); });
 $('qx').onclick = () => { $('q').value = ''; q = ''; $('sbox').classList.remove('has'); render(false); $('q').focus(); };
 $('list').addEventListener('click', e => {
     const f = e.target.closest('[data-fav]'), sh = e.target.closest('[data-share]'), nd = e.target.closest('[data-need]');
