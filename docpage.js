@@ -66,8 +66,9 @@ async function docPublish() {
     return false;
 }
 async function docPublishNow() {
+    const h = Prog.start('نشر صفحة الطبيب', { text: 'تجهيز المواد والصور...' });
     const ok = await docPublish();
-    Swal.fire(ok ? { icon: 'success', title: 'تم نشر التحديث للأطباء', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 } : { icon: 'error', title: 'تعذر النشر', text: 'تحقق من الاتصال بالسحابة وأنك مسجل كمالك.', confirmButtonColor: '#0f1c38' });
+    if (ok) h.ok('تم نشر التحديث للأطباء'); else h.fail('تعذر النشر', 'تحقق من الاتصال بالسحابة وأنك مسجل كمالك.');
 }
 function docSaveSoon() { clearTimeout(docPubT); docPubT = setTimeout(docPublish, 700); }
 // مراقبة تغيّر الأسعار والتوفر وتحديث صفحة الطبيب تلقائياً
@@ -248,11 +249,13 @@ function docRenderReq() {
 }
 async function docReqDel(id) {
     if (!(await askSure('حذف هذا الطلب؟', 'سيُحذف الطلب من القائمة.', 'حذف'))) return;
-    try { await db.collection('pharmacy_search_misses').doc(id).delete(); docReqList = docReqList.filter(r => r.id !== id); docRenderReq(); docRenderAlertBox(false); docBadges(); } catch (e) { /* تجاهل */ }
+    const h = Prog.start('حذف الطلب', { text: 'حذف من السحابة...' });
+    try { await db.collection('pharmacy_search_misses').doc(id).delete(); docReqList = docReqList.filter(r => r.id !== id); docRenderReq(); docRenderAlertBox(false); docBadges(); h.ok('تم حذف الطلب'); } catch (e) { h.fail('تعذر الحذف', 'تحقق من الاتصال وحاول مرة أخرى.'); }
 }
 async function docReqClear() {
     if (!(await askSure('مسح كل طلبات الأطباء؟', 'ستُحذف ' + fmtNum(docReqList.length) + ' طلباً نهائياً.', 'مسح الكل'))) return;
-    try { for (let i = 0; i < docReqList.length; i += 400) { const b = db.batch(); docReqList.slice(i, i + 400).forEach(r => b.delete(db.collection('pharmacy_search_misses').doc(r.id))); await b.commit(); } docReqList = []; docRenderReq(); } catch (e) { /* تجاهل */ }
+    const h = Prog.start('مسح طلبات الأطباء', { indeterminate: false, text: 'حذف الطلبات...' });
+    try { const n = docReqList.length; for (let i = 0; i < n; i += 400) { const b = db.batch(); docReqList.slice(i, i + 400).forEach(r => b.delete(db.collection('pharmacy_search_misses').doc(r.id))); await b.commit(); h.tick(Math.min(i + 400, n), n); } docReqList = []; docRenderReq(); h.ok('تم مسح الطلبات'); } catch (e) { h.fail('تعذر المسح', 'تحقق من الاتصال وحاول مرة أخرى.'); }
 }
 
 // ---------- مراقبة طلبات الأطباء لحظياً وإظهارها كتنبيه ----------

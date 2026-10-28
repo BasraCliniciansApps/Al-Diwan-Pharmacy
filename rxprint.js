@@ -123,8 +123,9 @@ async function rxPdfBlob(rx) {
 async function rxShareWa(rx, say) {
     say = say || (window.toast ? window.toast : () => { });
     const num = rxWaNum(rx.phone); if (!num) { say('لا يوجد رقم هاتف للمريض'); return; }
-    say('جاري تجهيز ملف PDF...');
-    let blob; try { blob = await rxPdfBlob(rx); } catch (e) { say('تعذر تجهيز الملف'); return; }
+    const h = typeof Prog !== 'undefined' ? Prog.start('تجهيز الوصفة PDF', { text: 'إنشاء الملف...' }) : null;
+    let blob; try { blob = await rxPdfBlob(rx); } catch (e) { if (h) h.fail('تعذر تجهيز الملف', 'حاول مرة أخرى.'); else say('تعذر تجهيز الملف'); return; }
+    if (h) h.ok('الملف جاهز'); else say('جاري تجهيز ملف PDF...');
     const name = (rx.num || 'rx') + '.pdf', file = new File([blob], name, { type: 'application/pdf' });
     const txt = 'وصفتك الطبية' + (rx.patient ? ' (' + rx.patient + ')' : '');
     try { if (navigator.canShare && navigator.canShare({ files: [file] })) { say('اختر واتساب ثم المريض (' + rx.phone + ')'); await navigator.share({ files: [file], title: 'وصفة طبية', text: txt }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }

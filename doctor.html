@@ -13,6 +13,33 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
+#progBox { position: fixed; top: calc(10px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(94vw, 520px); z-index: 100000; direction: rtl; background: #fff; border: 1px solid #e2e8f0; border-right: 5px solid #0f1c38; border-radius: 14px; padding: 11px 13px 10px; box-shadow: 0 10px 30px rgba(15, 28, 56, .22); font-family: inherit; animation: pgIn .22s ease-out; }
+#progBox[hidden] { display: none; }
+@keyframes pgIn { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+#progBox.pg-ok { border-right-color: #16a34a; background: #f0fdf4; }
+#progBox.pg-err { border-right-color: #dc2626; background: #fef2f2; }
+#progBox.pg-warn { border-right-color: #d97706; }
+#progBox.pg-stuck { border-right-color: #dc2626; }
+.pg-top { display: flex; align-items: center; gap: 10px; }
+.pg-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pg-t b { font-size: .92rem; color: #0f1c38; }
+.pg-t span { font-size: .78rem; color: #475569; line-height: 1.6; overflow-wrap: anywhere; }
+.pg-spin { flex: 0 0 22px; width: 22px; height: 22px; border-radius: 50%; border: 3px solid #cbd5e1; border-top-color: #0f1c38; animation: pgSpin .8s linear infinite; }
+@keyframes pgSpin { to { transform: rotate(360deg); } }
+.pg-i { flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-style: normal; font-weight: 800; font-size: .85rem; color: #fff; }
+.pg-i.ok { background: #16a34a; } .pg-i.err { background: #dc2626; }
+.pg-x { flex: 0 0 auto; width: 30px; height: 30px; border: 0; border-radius: 9px; background: rgba(15, 28, 56, .08); color: #0f1c38; cursor: pointer; font-size: .85rem; }
+.pg-bar { height: 8px; border-radius: 99px; background: #e2e8f0; overflow: hidden; margin-top: 9px; }
+.pg-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #0f1c38, #2563eb); transition: width .35s ease; }
+.pg-ok .pg-fill { background: #16a34a; } .pg-err .pg-fill { background: #dc2626; } .pg-warn .pg-fill { background: #d97706; }
+.pg-bar.ind .pg-fill { width: 40% !important; animation: pgInd 1.2s ease-in-out infinite; }
+@keyframes pgInd { 0% { margin-right: 0; } 50% { margin-right: 60%; } 100% { margin-right: 0; } }
+.pg-meta { display: flex; gap: 12px; margin-top: 6px; font-size: .74rem; color: #64748b; }
+.pg-meta b { color: #0f1c38; }
+.pg-note { margin-top: 6px; font-size: .76rem; font-weight: 700; color: #b45309; line-height: 1.7; }
+.pg-stuck .pg-note { color: #b91c1c; }
+.pg-why { margin-top: 6px; font-size: .74rem; color: #7f1d1d; background: #fee2e2; border-radius: 8px; padding: 6px 8px; line-height: 1.7; overflow-wrap: anywhere; }
+
 :root {
     --navy: #0f1c38; --navy-soft: #1b2c52; --gold: #f9a825; --gold-dark: #a85d08;
     --bg: #f1f4f9; --surface: #ffffff; --surface-2: #f6f8fc; --text: #0f1c38; --sub: #64748b; --line: #e2e8f0;
@@ -262,6 +289,8 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
 <button type="button" class="fab" id="rxBtn" aria-label="وصفة إلكترونية" title="وصفة إلكترونية"><span class="rxm">R<sub>x</sub></span></button>
 <div class="bg" id="bg"><div class="sheet" id="sheet"></div></div>
 
+<script>if (typeof escapeHtml === 'undefined') { var escapeHtml = function (x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }; }</script>
+<script src="prog.js"></script>
 <script src="rxprint.js"></script>
 <script src="taxfilter.js"></script>
 <script>
@@ -444,12 +473,13 @@ function reqOpen(pre) {
 async function sendReq(kind, id, name, btn, quiet, note, qty) {
     const key = (kind === 'n' ? 'dn_' + id : (kind === 's' ? 'ds_' : 'dq_') + encodeURIComponent(norm(name)).slice(0, 150));
     if (SENT[key] && Date.now() - SENT[key] < WEEK) { if (!quiet) toast('سُجِّل طلبك مسبقاً'); return; }
+    const pg = quiet ? null : Prog.start('إرسال الطلب إلى الصيدلية', { text: 'الإرسال...' });
     try {
         await firebase.firestore().collection('pharmacy_search_misses').doc(key).set({ dr: 1, kind, pid: id || null, name, note: note || '', qty: qty || null, count: firebase.firestore.FieldValue.increment(1), lastAt: new Date().toISOString() }, { merge: true });
         SENT[key] = Date.now(); lsSet('diwanDocSent', SENT);
-        if (!quiet) toast('سُجِّل طلبك وسيصل إلى الصيدلية');
+        if (pg) pg.ok('سُجِّل طلبك وسيصل إلى الصيدلية');
         if (btn) { btn.classList.add('done'); btn.lastChild.nodeValue = kind === 'n' ? 'سُجِّل طلبك' : 'أُرسل الطلب'; }
-    } catch (e) { if (!quiet) toast('تعذر إرسال الطلب، حاول لاحقاً'); }
+    } catch (e) { if (pg) pg.fail('تعذر إرسال الطلب', 'تحقق من الاتصال وحاول لاحقاً.'); }
 }
 function wrapTxt(c, t, w) { const out = []; let ln = ''; String(t).split(/\s+/).forEach(wd => { const x = ln ? ln + ' ' + wd : wd; if (c.measureText(x).width > w && ln) { out.push(ln); ln = wd; } else ln = x; }); if (ln) out.push(ln); return out; }
 function loadImg(u) { return new Promise(r => { if (!u) return r(null); const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => r(i); i.onerror = () => r(null); i.src = u; }); }
@@ -592,26 +622,26 @@ function rsRender() {
 }
 async function rsSend() {
     const nm = $('rsName').value.trim(); if (nm.replace(/^د\.?\s*/, '').length < 2) { toast('اكتب اسم الطبيب'); return; }
-    const id = Array.from(crypto.getRandomValues(new Uint8Array(10))).map(b => b.toString(36).padStart(2, '0')).join('');
-    try { await firebase.firestore().collection('pharmacy_search_misses').doc('rs_' + id).set({ dr: 1, kind: 'rs', rid: id, doctor: nm, name: nm, count: 1, lastAt: new Date().toISOString() }); } catch (e) { toast('تعذر الإرسال، تحقق من الاتصال'); return; }
-    lsSet('diwanRs', { id, name: nm }); rsRender(); toast('أُرسل الطلب إلى الصيدلية');
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(10))).map(b => b.toString(36).padStart(2, '0')).join(''), ph = Prog.start('إرسال طلب الاسترجاع', { text: 'الإرسال إلى الصيدلية...' });
+    try { await firebase.firestore().collection('pharmacy_search_misses').doc('rs_' + id).set({ dr: 1, kind: 'rs', rid: id, doctor: nm, name: nm, count: 1, lastAt: new Date().toISOString() }); } catch (e) { ph.fail('تعذر الإرسال', 'تحقق من الاتصال وحاول مرة أخرى.'); return; }
+    lsSet('diwanRs', { id, name: nm }); rsRender(); ph.ok('أُرسل الطلب إلى الصيدلية');
 }
 async function rsGet(btn) {
     const p = lsGet('diwanRs', null), code = ($('rsCode').value || '').trim(); if (!p || code.length !== 6) { toast('أدخل الرمز المكوّن من 6 أرقام'); return; }
-    btn.disabled = true;
+    btn.disabled = true; const ph = Prog.start('استرجاع السجل', { text: 'جلب النسخة من الصيدلية...' });
     try {
         const s = await firebase.firestore().collection('pharmacy').doc('rxh_' + p.id).get();
-        if (!s.exists) { toast('لم يجهّز الصيدلي سجلك بعد'); btn.disabled = false; return; }
-        const d = s.data(); let obj;
-        try { obj = await rxDecrypt(code, p.id, d.iv, d.data); } catch (e) { toast('الرمز غير صحيح'); btn.disabled = false; return; }
+        if (!s.exists) { ph.fail('لم يجهّز الصيدلي سجلك بعد', 'اطلب من الصيدلي إرجاع السجل ثم أعد المحاولة.'); btn.disabled = false; return; }
+        ph.set(40, 'فك التشفير...'); const d = s.data(); let obj;
+        try { obj = await rxDecrypt(code, p.id, d.iv, d.data); } catch (e) { ph.fail('الرمز غير صحيح', 'تأكد من الرمز المكوّن من 6 أرقام.'); btn.disabled = false; return; }
         const have = new Set(MY.map(r => r.rid)); (obj.recs || []).forEach(r => { if (!have.has(r.rid)) MY.push(r); });
         MY.sort((a, b) => b.at - a.at); MY = MY.slice(0, 500); lsSet('diwanRx', MY);
         if (obj.did) lsSet('diwanDid', obj.did); if (obj.name) { dnAdd(obj.name); RX.doctor = obj.name; lsSet('diwanDocName', obj.name); saveDraft(); }
         MY.forEach(r => { SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, Date.now()); }); lsSet('diwanRxSeen', SEEN);
         try { await firebase.firestore().collection('pharmacy_search_misses').doc('rs_' + p.id).set({ claimed: true }, { merge: true }); } catch (e) { /* تجاهل */ }
         try { localStorage.removeItem('diwanRs'); } catch (e) { /* تجاهل */ }
-        ntWatch(); ntBadge(); toast('تم استرجاع ' + num((obj.recs || []).length) + ' وصفة'); HQ = ''; histRender();
-    } catch (e) { toast('تعذر الاسترجاع، حاول لاحقاً'); btn.disabled = false; }
+        ntWatch(); ntBadge(); ph.ok('تم استرجاع ' + num((obj.recs || []).length) + ' وصفة'); HQ = ''; histRender();
+    } catch (e) { ph.fail('تعذر الاسترجاع', 'حاول لاحقاً.'); btn.disabled = false; }
 }
 function rxPickOpen() {
     rxMode = 'pick'; const sh = $('sheet');
@@ -646,29 +676,31 @@ function rxRetry() {
 async function rxSend(btn) {
     if (!rxValid()) return;
     const rec = rxRec(), rid = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(36).padStart(2, '0')).join('') + Date.now().toString(36);
-    btn.disabled = true; dnAdd(rec.doctor);
+    btn.disabled = true; dnAdd(rec.doctor); const ph = Prog.start('حفظ وإرسال الوصفة', { text: 'الحفظ على جهازك...' });
     let r; const ei = RX.editRid ? MY.findIndex(x => x.rid === RX.editRid) : -1;
     if (ei >= 0) { r = Object.assign(MY[ei], rec, { rid: MY[ei].rid, at: MY[ei].at, pend: true }); } else { r = { rid, ...rec, pend: true }; MY.unshift(r); }
     MY = MY.slice(0, 500); lsSet('diwanRx', MY); SEEN[rid] = Date.now(); lsSet('diwanRxSeen', SEEN);   // تُحفظ عند الطبيب أولاً مهما كان الاتصال
     RX = { num: mkNum(), doctor: rec.doctor, patient: '', phone: '', dx: '', items: [], note: '' }; RXO = new Set(); saveDraft();
-    closeSheet();
+    closeSheet(); ph.set(35, 'الإرسال إلى الصيدلية...');
     try {
-        await rxPush(r); delete r.pend; lsSet('diwanRx', MY); ntWatch(); ntBadge(); toast('أُرسلت الوصفة وحُفظت');
+        await rxPush(r); delete r.pend; lsSet('diwanRx', MY); ntWatch(); ntBadge(); ph.ok('أُرسلت الوصفة وحُفظت');
         rec.items.filter(i => i.ext && i.n).forEach(i => { try { firebase.firestore().collection('pharmacy_search_misses').doc('dx_' + encodeURIComponent(norm(i.n)).slice(0, 150)).set({ dr: 1, kind: 'x', name: i.n, count: firebase.firestore.FieldValue.increment(1), lastAt: new Date().toISOString() }, { merge: true }).catch(() => { }); } catch (e) { /* تجاهل */ } });
-    } catch (e) { toast('حُفظت على جهازك وستُرسل عند توفر الاتصال'); }
+    } catch (e) { ph.ok('حُفظت على جهازك وستُرسل عند توفر الاتصال'); }
 }
 // ---------- نسخة احتياطية: تصدير واستيراد ----------
 function rxExport() {
     if (!MY.length) { toast('لا توجد وصفات لتصديرها'); return; }
+    const ph = Prog.start('تصدير نسخة احتياطية', { text: 'تجهيز الملف...' });
     const d = new Date(), f = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
     const blob = new Blob([JSON.stringify({ app: 'diwan-rx', v: 1, did: getDid(), name: RX.doctor || '', recs: MY })], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diwan-rx-backup-' + f + '.json'; document.body.appendChild(a); a.click();
-    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); toast('تم تصدير ' + num(MY.length) + ' وصفة');
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); ph.ok('تم تصدير ' + num(MY.length) + ' وصفة');
 }
 async function rxImport(file) {
+    const ph = Prog.start('استيراد نسخة احتياطية', { text: 'قراءة الملف...' });
     try {
         const o = JSON.parse(await file.text());
-        if (!o || o.app !== 'diwan-rx' || !Array.isArray(o.recs)) { toast('الملف ليس نسخة احتياطية صالحة'); return; }
+        if (!o || o.app !== 'diwan-rx' || !Array.isArray(o.recs)) { ph.fail('الملف ليس نسخة احتياطية صالحة'); return; }
         const have = new Set(MY.map(r => r.rid)); let n = 0;
         o.recs.forEach(r => { if (r && r.rid && r.patient && Array.isArray(r.items) && !have.has(r.rid)) { MY.push(r); have.add(r.rid); n++; } });
         MY.sort((a, b) => b.at - a.at); MY = MY.slice(0, 500); lsSet('diwanRx', MY);
@@ -676,8 +708,8 @@ async function rxImport(file) {
         if (o.name) dnAdd(o.name);
         MY.forEach(r => { SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, Date.now()); }); lsSet('diwanRxSeen', SEEN);
         try { ntWatch(); ntBadge(); } catch (e) { /* تجاهل */ }
-        toast(n ? 'تم استيراد ' + num(n) + ' وصفة' : 'لا توجد وصفات جديدة'); histList();
-    } catch (e) { toast('تعذر قراءة الملف'); }
+        ph.ok(n ? 'تم استيراد ' + num(n) + ' وصفة' : 'لا توجد وصفات جديدة'); histList();
+    } catch (e) { ph.fail('تعذر قراءة الملف'); }
 }
 $('sheet').addEventListener('change', e => { if (e.target.id === 'impF' && e.target.files[0]) rxImport(e.target.files[0]); });
 $('sheet').addEventListener('pointerdown', e => { const s = e.target.closest('[data-dn]'); if (!s) return; e.preventDefault(); const v = s.dataset.dn, inp = $('sheet').querySelector('[data-k="doctor"]'); if (inp) inp.value = v; RX.doctor = v; saveDraft(); dnShow(''); });

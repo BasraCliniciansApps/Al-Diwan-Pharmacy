@@ -60,11 +60,12 @@ function rxDetail(el, r) {
 async function rxApply(id, fn) {
     const r = rxRaw.find(x => x.id === id); if (!r) return false;
     const ps = { st: rxSt(r), is: { ...(r.is || {}) }, msgs: [...(r.msgs || [])] }; fn(ps, r); ps.msgs = ps.msgs.slice(-40);
+    const h = Prog.start('تحديث الوصفة ' + (r.num || ''), { text: 'حفظ في السحابة...' });
     try {
-        await fsSet(db.collection('pharmacy_search_misses').doc(id), { st: ps.st, is: ps.is, msgs: ps.msgs }, { merge: true });
+        await fsSet(db.collection('pharmacy_search_misses').doc(id), { st: ps.st, is: ps.is, msgs: ps.msgs }, { merge: true }); h.set(55, 'إشعار الطبيب...');
         await fsSet(db.collection('pharmacy').doc('rx_' + r.rid), { num: r.num, st: ps.st, is: ps.is, msgs: ps.msgs, upd: Date.now() });
-        Object.assign(r, ps); rxBadges(); rxRender(); return true;
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر حفظ الإجراء', text: 'تحقق من الاتصال وحاول مرة أخرى.', confirmButtonColor: '#0f1c38' }); return false; }
+        Object.assign(r, ps); rxBadges(); rxRender(); h.ok('تم حفظ الإجراء'); return true;
+    } catch (e) { h.fail('تعذر حفظ الإجراء', 'تحقق من الاتصال وحاول مرة أخرى.'); return false; }
 }
 const rxMsg = (ps, k, t) => ps.msgs.push({ at: Date.now(), k, t });
 function rxSetSt(id, st) {
@@ -90,12 +91,14 @@ function rxPrint(id) { const r = rxRaw.find(x => x.id === id); if (r) rxPrintNow
 async function rxDel(id) {
     const x = rxRaw.find(q => q.id === id); if (!x) return;
     if (!(await askSure('حذف الوصفة ' + x.num + ' نهائياً؟', 'ستُحذف من سجل الطبيب عندك نهائياً ولا يمكن استرجاعها. الأفضل الأرشفة.', 'حذف نهائي'))) return;
-    try { await db.collection('pharmacy_search_misses').doc(id).delete(); try { await db.collection('pharmacy').doc('rx_' + x.rid).delete(); } catch (e) { /* تجاهل */ } rxRaw = rxRaw.filter(q => q.id !== id); rxCurId = null; rxBadges(); rxRender(); } catch (e) { /* تجاهل */ }
+    const h = Prog.start('حذف الوصفة ' + (x.num || ''), { text: 'حذف من السحابة...' });
+    try { await db.collection('pharmacy_search_misses').doc(id).delete(); try { await db.collection('pharmacy').doc('rx_' + x.rid).delete(); } catch (e) { /* تجاهل */ } rxRaw = rxRaw.filter(q => q.id !== id); rxCurId = null; rxBadges(); rxRender(); h.ok('تم حذف الوصفة'); } catch (e) { h.fail('تعذر الحذف', 'تحقق من الاتصال وحاول مرة أخرى.'); }
 }
 async function rxArchive(id, on) {
     const x = rxRaw.find(q => q.id === id); if (!x) return;
     if (on && !(await askSure('أرشفة الوصفة ' + x.num + '؟', 'تختفي من القائمة وتبقى محفوظة في سجل الطبيب وتُرجَع له عند الاسترجاع.', 'أرشفة'))) return;
-    try { await fsSet(db.collection('pharmacy_search_misses').doc(id), { arch: !!on }, { merge: true }); x.arch = !!on; rxCurId = null; rxBadges(); rxRender(); } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحفظ', confirmButtonColor: '#0f1c38' }); }
+    const h = Prog.start(on ? 'أرشفة الوصفة ' + (x.num || '') : 'إرجاع الوصفة من الأرشيف', { text: 'حفظ في السحابة...' });
+    try { await fsSet(db.collection('pharmacy_search_misses').doc(id), { arch: !!on }, { merge: true }); x.arch = !!on; rxCurId = null; rxBadges(); rxRender(); h.ok(on ? 'تمت الأرشفة' : 'تم الإرجاع من الأرشيف'); } catch (e) { h.fail('تعذر الحفظ', 'تحقق من الاتصال وحاول مرة أخرى.'); }
 }
 
 // ---------- الأطباء وسجلاتهم + استرجاع السجل ----------
@@ -108,19 +111,21 @@ function rxDoctors() {
 const RX_IC_EXP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>', RX_IC_IMP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 21h14"/></svg>';
 function rxExport() {
     if (!rxRaw.length) { Swal.fire({ icon: 'info', title: 'لا توجد وصفات لتصديرها', confirmButtonColor: '#0f1c38' }); return; }
+    const h = Prog.start('تصدير نسخة الوصفات', { text: 'تجهيز الملف...' });
     const d = new Date(), f = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
     const blob = new Blob([JSON.stringify({ app: 'diwan-rx-admin', v: 1, recs: rxRaw })], { type: 'application/json' });
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diwan-rx-pharmacy-backup-' + f + '.json'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diwan-rx-pharmacy-backup-' + f + '.json'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); h.ok('تم تصدير ' + fmtNum(rxRaw.length) + ' وصفة');
 }
 async function rxImportFile(file) {
+    const h = Prog.start('استيراد الوصفات', { indeterminate: false, text: 'قراءة الملف...' });
     try {
         const o = JSON.parse(await file.text());
-        if (!o || o.app !== 'diwan-rx-admin' || !Array.isArray(o.recs)) { Swal.fire({ icon: 'error', title: 'الملف ليس نسخة احتياطية صالحة', confirmButtonColor: '#0f1c38' }); return; }
+        if (!o || o.app !== 'diwan-rx-admin' || !Array.isArray(o.recs)) { h.fail('الملف ليس نسخة احتياطية صالحة'); return; }
         const have = new Set(rxRaw.map(x => x.rid)), add = o.recs.filter(x => x && x.rid && x.patient && !have.has(x.rid));
-        if (!add.length) { Swal.fire({ icon: 'info', title: 'لا توجد وصفات جديدة في الملف', confirmButtonColor: '#0f1c38' }); return; }
-        for (let i = 0; i < add.length; i += 400) { const b = db.batch(); add.slice(i, i + 400).forEach(x => b.set(db.collection('pharmacy_search_misses').doc('rx_' + x.rid), { dr: 1, kind: 'r', rid: x.rid, did: x.did || '', num: x.num || '', doctor: x.doctor || '', patient: x.patient, dx: x.dx || '', note: x.note || '', items: x.items || [], st: x.st || 'new', is: x.is || {}, msgs: x.msgs || [], arch: !!x.arch, count: 1, name: x.patient, lastAt: new Date(x.ts || Date.now()).toISOString() })); await b.commit(); }
-        Swal.fire({ icon: 'success', title: 'تم استيراد ' + fmtNum(add.length) + ' وصفة', confirmButtonColor: '#0f1c38' });
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الاستيراد', text: 'تحقق من الملف والاتصال.', confirmButtonColor: '#0f1c38' }); }
+        if (!add.length) { h.ok('لا توجد وصفات جديدة في الملف'); return; }
+        for (let i = 0; i < add.length; i += 400) { const b = db.batch(); add.slice(i, i + 400).forEach(x => b.set(db.collection('pharmacy_search_misses').doc('rx_' + x.rid), { dr: 1, kind: 'r', rid: x.rid, did: x.did || '', num: x.num || '', doctor: x.doctor || '', patient: x.patient, dx: x.dx || '', note: x.note || '', items: x.items || [], st: x.st || 'new', is: x.is || {}, msgs: x.msgs || [], arch: !!x.arch, count: 1, name: x.patient, lastAt: new Date(x.ts || Date.now()).toISOString() })); await b.commit(); h.tick(Math.min(i + 400, add.length), add.length, 'رفع الوصفات...'); }
+        h.ok('تم استيراد ' + fmtNum(add.length) + ' وصفة');
+    } catch (e) { h.fail('تعذر الاستيراد', 'تحقق من الملف والاتصال.'); }
 }
 function rxBackupBtns() {
     return `<div class="rx-bk"><button type="button" onclick="rxExport()" aria-label="نسخ احتياطي (تصدير)" title="نسخ احتياطي (تصدير)">${RX_IC_EXP}</button><button type="button" onclick="document.getElementById('rxImpF').value='';document.getElementById('rxImpF').click()" aria-label="استرجاع (استيراد)" title="استرجاع (استيراد)">${RX_IC_IMP}</button><input type="file" id="rxImpF" accept=".json,application/json" hidden onchange="if(this.files[0])rxImportFile(this.files[0])"></div>`;
@@ -158,22 +163,26 @@ async function rxSetDid(list, did) {
 }
 async function rxIssue(rid) {
     const sel = document.getElementById('rsSel_' + rid), g = sel && rxDoctors().find(d => d.key === sel.value), q = rxRs.find(x => x.rid === rid); if (!g || !q) return;
+    const h = Prog.start('تجهيز سجل الطبيب ' + g.name, { text: 'تجهيز الوصفات...' });
     try {
         let did = g.did; if (!did) { did = rxNewDid(); await rxSetDid(g.list, did); }
+        h.set(25, 'تشفير السجل...');
         let recs = g.list.map(x => ({ rid: x.rid, num: x.num, doctor: x.doctor, patient: x.patient, dx: x.dx, note: x.note, items: x.items || [], at: x.ts }));
         const code = String(100000 + Math.floor(Math.random() * 900000));
         let enc = await rxEncrypt(code, rid, { did, name: g.name, recs });
         while (enc.data.length > 900000 && recs.length > 10) { recs = recs.slice(0, Math.floor(recs.length * 0.8)); enc = await rxEncrypt(code, rid, { did, name: g.name, recs }); }
+        h.set(60, 'رفع النسخة المشفّرة...');
         await fsSet(db.collection('pharmacy').doc('rxh_' + rid), { iv: enc.iv, data: enc.data, name: g.name, upd: Date.now() });
         await fsSet(db.collection('pharmacy_search_misses').doc(q.id), { issued: true }, { merge: true }); q.issued = true;
-        rxBadges(); rxRender();
+        rxBadges(); rxRender(); h.ok('تم تجهيز السجل');
         Swal.fire({ icon: 'success', title: 'رمز الاسترجاع', html: `<div style="font-size:2.4rem;font-weight:900;letter-spacing:8px;direction:ltr;margin:6px 0">${code}</div><div style="font-size:.85rem;color:#475569;line-height:1.7">أعطِ هذا الرمز للطبيب (<b>${rxE(g.name)}</b>) ليدخله بجهازه الجديد.<br>يحتوي ${fmtNum(recs.length)} وصفة.</div>`, confirmButtonColor: '#0f1c38', confirmButtonText: 'تم' });
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر إرجاع السجل', text: 'تحقق من الاتصال وحاول مرة أخرى.', confirmButtonColor: '#0f1c38' }); }
+    } catch (e) { h.fail('تعذر إرجاع السجل', 'تحقق من الاتصال وحاول مرة أخرى.'); }
 }
 async function rxRsDel(rid) {
     const q = rxRs.find(x => x.rid === rid); if (!q) return;
     if (!(await askSure('حذف طلب الاسترجاع؟', 'سيُحذف الطلب وأي رمز صادر له.', 'حذف'))) return;
-    try { await db.collection('pharmacy_search_misses').doc(q.id).delete(); try { await db.collection('pharmacy').doc('rxh_' + rid).delete(); } catch (e) { /* تجاهل */ } rxRs = rxRs.filter(x => x.rid !== rid); rxBadges(); rxRender(); } catch (e) { /* تجاهل */ }
+    const h = Prog.start('حذف طلب الاسترجاع', { text: 'حذف من السحابة...' });
+    try { await db.collection('pharmacy_search_misses').doc(q.id).delete(); try { await db.collection('pharmacy').doc('rxh_' + rid).delete(); } catch (e) { /* تجاهل */ } rxRs = rxRs.filter(x => x.rid !== rid); rxBadges(); rxRender(); h.ok('تم حذف الطلب'); } catch (e) { h.fail('تعذر الحذف', 'تحقق من الاتصال وحاول مرة أخرى.'); }
 }
 async function rxMerge(key) {
     const docs = rxDoctors(), g = docs.find(d => d.key === key), others = docs.filter(d => d.key !== key); if (!g) return;
@@ -182,7 +191,8 @@ async function rxMerge(key) {
     if (!a.isConfirmed) return;
     if (!(await askSure('تأكيد الدمج؟', 'لا يمكن فصل السجلين بعد الدمج.', 'دمج'))) return;
     const t = others.find(d => d.key === a.value); if (!t) return;
-    try { let did = t.did; if (!did) { did = rxNewDid(); await rxSetDid(t.list, did); } await rxSetDid(g.list, did); rxDrKey = null; rxRender(); } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الدمج', confirmButtonColor: '#0f1c38' }); }
+    const h = Prog.start('دمج سجلات الأطباء', { text: 'تحديث الوصفات...' });
+    try { let did = t.did; if (!did) { did = rxNewDid(); await rxSetDid(t.list, did); } await rxSetDid(g.list, did); rxDrKey = null; rxRender(); h.ok('تم دمج السجلين'); } catch (e) { h.fail('تعذر الدمج', 'تحقق من الاتصال وحاول مرة أخرى.'); }
 }
 // تنظيف طلبات الاسترجاع بعد استلام الطبيب لسجله
 async function rxClean() {
@@ -194,4 +204,4 @@ async function rxClean() {
 }
 let x0 = '';
 
-function rxWa(id) { const r = rxRaw.find(q => q.id === id); if (r) rxShareWa({ num: r.num, doctor: r.doctor, patient: r.patient, phone: r.phone, dx: r.dx, items: r.items || [], note: r.note, at: r.ts }, m => Swal.fire({ toast: true, position: 'top', showConfirmButton: false, timer: 2200, title: m })); }
+function rxWa(id) { const r = rxRaw.find(q => q.id === id); if (r) rxShareWa({ num: r.num, doctor: r.doctor, patient: r.patient, phone: r.phone, dx: r.dx, items: r.items || [], note: r.note, at: r.ts }, () => { }); }
