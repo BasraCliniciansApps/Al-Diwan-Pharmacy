@@ -55,11 +55,11 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .search.has button { display: grid; }
 
 /* ---------- التخطيط ---------- */
-.layout { max-width: 760px; margin: 14px auto 0; padding: 0 14px 0 0; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; align-items: start; }
-.rail { position: sticky; top: 78px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
-.tab { position: relative; width: 36px; min-height: 96px; border: 0; background: var(--surface); color: var(--text); border-radius: 14px 0 0 14px; padding: 9px 0 10px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; box-shadow: var(--shadow), inset 3px 0 0 var(--c); transition: transform .26s cubic-bezier(.2,.9,.25,1.2), background .2s, color .2s, box-shadow .2s; }
+.layout { max-width: 760px; margin: 14px auto 0; padding: 0 0 0 14px; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; align-items: start; }
+.rail { position: sticky; top: 78px; display: flex; flex-direction: column; gap: clamp(5px, 1vh, 8px); align-items: flex-end; max-height: calc(100vh - 92px); }
+.tab { position: relative; width: 36px; min-height: clamp(84px, 14vh, 150px); border: 0; background: var(--surface); color: var(--text); border-radius: 14px 0 0 14px; padding: 9px 0 10px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; box-shadow: var(--shadow), inset 3px 0 0 var(--c); transition: transform .26s cubic-bezier(.2,.9,.25,1.2), background .2s, color .2s, box-shadow .2s; }
 .tab .ic { display: none; }
-.tab .lb { writing-mode: vertical-rl; font-size: .72rem; font-weight: 800; line-height: 1; letter-spacing: 0; color: var(--text); white-space: nowrap; }
+.tab .lb { writing-mode: vertical-rl; transform: rotate(180deg); font-size: clamp(.62rem, 1.85vh, .72rem); font-weight: 800; line-height: 1; letter-spacing: 0; color: var(--text); white-space: nowrap; }
 .tab .ct { order: -1; font-size: .7rem; font-weight: 800; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); border-radius: 999px; padding: 2px 0; width: 24px; text-align: center; }
 .tab.on { transform: translateX(-8px); background: var(--c); box-shadow: 0 8px 20px color-mix(in srgb, var(--c) 45%, transparent); }
 .tab.on::after { content: ''; position: absolute; top: 0; bottom: 0; right: -8px; width: 8px; background: var(--c); }
@@ -98,6 +98,9 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 :root[data-theme="dark"] .pill.on { background: var(--gold); color: #0f1c38; border-color: var(--gold); }
 .acts { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .acts .chip { margin-inline-end: auto; }
+.acts.u { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 6px; }
+.acts.u .chip { grid-column: 1 / -1; justify-self: start; margin: 0; }
+.acts.u .need { justify-content: center; }
 .ib { width: 34px; height: 34px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); color: var(--sub); display: grid; place-items: center; cursor: pointer; font-size: 1.05rem; }
 .ib.on { color: var(--gold-dark); background: color-mix(in srgb, var(--gold) 20%, transparent); border-color: var(--gold); }
 .ib.on svg { fill: var(--gold); }
@@ -120,6 +123,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .sheet textarea { width: 100%; min-height: 120px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); padding: 12px 14px; font: 500 .95rem 'Tajawal', sans-serif; resize: vertical; direction: ltr; text-align: left; }
 .go { width: 100%; margin-top: 10px; height: 50px; border: 0; border-radius: 16px; background: var(--navy); color: #fff; font: 800 .95rem 'Tajawal', sans-serif; cursor: pointer; }
 :root[data-theme="dark"] .go { background: var(--gold); color: #0f1c38; }
+.fld { width: 100%; height: 50px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); padding: 0 14px; font: 500 .95rem 'Tajawal', sans-serif; text-align: start; }
 .toast { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 11px 18px; border-radius: 999px; font-size: .84rem; font-weight: 800; z-index: 90; box-shadow: 0 10px 28px rgba(0,0,0,.35); animation: rise .25s ease; }
 @media (max-width: 380px) { .card { grid-template-columns: minmax(0, 1fr) 84px; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
@@ -145,11 +149,12 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 <main class="layout">
     <nav class="rail" id="rail" aria-label="حالة التوفر"></nav>
     <section>
-        <div class="tools"><button type="button" class="pill" id="favBtn"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg> المفضلة <span id="favN"></span></button></div>
+        <div class="tools"><button type="button" class="pill" id="reqBtn"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg> طلب مادة</button><button type="button" class="pill" id="favBtn"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg> المفضلة <span id="favN"></span></button></div>
         <div class="head-line"><b id="hl">كل المواد <small id="hc"></small></b><button type="button" class="clear" id="clr">عرض الكل</button></div>
         <div class="list" id="list"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
     </section>
 </main>
+<div class="bg" id="bg"><div class="sheet" id="sheet"></div></div>
 
 <script>
 const firebaseConfig = {
@@ -206,7 +211,7 @@ function altsOf(m) {
 }
 function ago(t) { const d = Math.floor((Date.now() - t) / 864e5); return d <= 0 ? 'عاد اليوم' : d === 1 ? 'عاد أمس' : 'عاد قبل ' + d + ' أيام'; }
 function renderRail(all) {
-    const c = {}; ORDER.forEach(k => c[k] = 0); all.forEach(m => c[m.st]++);
+    const c = {}; ORDER.forEach(k => c[k] = 0); all.forEach(m => { c[m.st]++; if (m.st === 'nosup') c.noph++; });   // غير متوفر بالمذخر يعني غير متوفر بالصيدلية أيضاً
     $('rail').innerHTML = ORDER.map(k => `<button type="button" class="tab t-${k} ${tab === k ? 'on' : ''}" data-k="${k}" aria-pressed="${tab === k}"><span class="ic">${svg(ST[k].ic)}</span><span class="lb">${ST[k].lb}</span><span class="ct">${num(c[k])}</span></button>`).join('');
 }
 function toast(t) { const e = document.createElement('div'); e.className = 'toast'; e.textContent = t; document.body.appendChild(e); setTimeout(() => e.remove(), 2200); }
@@ -219,7 +224,7 @@ function cardHtml(m, cfg) {
     return `<article class="card s-${m.st}">
         <div class="nm"><b dir="rtl"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</b>${m.a ? `<small dir="rtl"><bdi>${esc(m.a)}</bdi></small>` : ''}</div>
         <div class="pr">${cfg.prices !== false && m.p ? `${num(m.p)}<small>د.ع</small>` : ''}</div>
-        <div class="acts"><span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span>
+        <div class="acts ${unav ? 'u' : ''}"><span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span>
             ${unav ? reqBtn(m) : ''}
             <button type="button" class="ib ${FAV.has(m.id) ? 'on' : ''}" data-fav="${m.id}" aria-label="المفضلة">${svg(IC.star)}</button>
             <button type="button" class="ib" data-share="${m.id}" aria-label="مشاركة">${svg(IC.share)}</button></div>
@@ -231,7 +236,7 @@ function render(anim) {
     ALL = all;
     renderRail(all);
     const nq = norm(q.trim());
-    let rows = all.filter(m => (!tab || m.st === tab) && (!favOnly || FAV.has(m.id)) && (!nq || m.hay.includes(nq)));
+    let rows = all.filter(m => (!tab || m.st === tab || (tab === 'noph' && m.st === 'nosup')) && (!favOnly || FAV.has(m.id)) && (!nq || m.hay.includes(nq)));
     lastRows = rows.length;
     $('hl').firstChild.nodeValue = (favOnly ? 'المفضلة · ' : '') + (tab ? ST[tab].t : 'كل المواد') + ' ';
     $('hc').textContent = '· ' + num(rows.length);
@@ -251,12 +256,23 @@ function render(anim) {
     box.innerHTML = part.map(m => cardHtml(m, cfg)).join('') + (rows.length > part.length ? `<button type="button" class="more" id="more">عرض المزيد (${num(rows.length - part.length)})</button>` : '');
     const mb = $('more'); if (mb) mb.onclick = () => { shown += 80; render(false); };
 }
+// ---------- طلب مادة (يصل إلى الصيدلي كتنبيه) ----------
+function openSheet(html) { $('sheet').innerHTML = '<div class="grab"></div>' + html; $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
+function closeSheet() { $('bg').classList.remove('show'); document.body.style.overflow = ''; }
+function reqOpen(pre) {
+    openSheet(`<h3>طلب مادة من الصيدلية</h3><p>اكتب اسم الدواء الذي تحتاجه، وستصل رسالتك إلى الصيدلي مباشرة.</p>
+    <input id="rqN" class="fld" type="text" dir="ltr" placeholder="اسم الدواء" value="${esc(pre || '')}" autocomplete="off">
+    <input id="rqT" class="fld" type="text" placeholder="ملاحظة (اختياري)" autocomplete="off" style="margin-top:8px">
+    <button type="button" class="go" id="rqGo">إرسال الطلب</button>`);
+    $('rqGo').onclick = async () => { const n = $('rqN').value.trim(); if (n.length < 2) { toast('اكتب اسم الدواء'); return; } const t = $('rqT').value.trim(); await sendReq('q', '', n, null, false, t); closeSheet(); };
+    setTimeout(() => { try { $('rqN').focus(); } catch (e) { /* تجاهل */ } }, 250);
+}
 // ---------- طلبات الأطباء (تصل إلى الصيدلي) ----------
-async function sendReq(kind, id, name, btn, quiet) {
+async function sendReq(kind, id, name, btn, quiet, note) {
     const key = (kind === 'n' ? 'dn_' + id : (kind === 's' ? 'ds_' : 'dq_') + encodeURIComponent(norm(name)).slice(0, 150));
     if (SENT[key] && Date.now() - SENT[key] < WEEK) { if (!quiet) toast('سُجِّل طلبك مسبقاً'); return; }
     try {
-        await firebase.firestore().collection('pharmacy_search_misses').doc(key).set({ dr: 1, kind, pid: id || null, name, count: firebase.firestore.FieldValue.increment(1), lastAt: new Date().toISOString() }, { merge: true });
+        await firebase.firestore().collection('pharmacy_search_misses').doc(key).set({ dr: 1, kind, pid: id || null, name, note: note || '', count: firebase.firestore.FieldValue.increment(1), lastAt: new Date().toISOString() }, { merge: true });
         SENT[key] = Date.now(); lsSet('diwanDocSent', SENT);
         if (!quiet) toast('سُجِّل طلبك وسيصل إلى الصيدلية');
         if (btn) { btn.classList.add('done'); btn.lastChild.nodeValue = kind === 'n' ? 'سُجِّل طلبك' : 'أُرسل الطلب'; }
@@ -286,6 +302,8 @@ $('list').addEventListener('click', e => {
     else if (sh) { const m = ALL.find(x => x.id === sh.dataset.share); if (m) shareItem(m); }
     else if (nd) { const m = ALL.find(x => x.id === nd.dataset.need); if (m) sendReq('n', m.id, m.n, nd); }
 });
+$('reqBtn').onclick = () => reqOpen(q.trim());
+$('bg').addEventListener('click', e => { if (e.target === $('bg')) closeSheet(); });
 $('favBtn').onclick = () => { favOnly = !favOnly; shown = 60; render(true); };
 $('theme').onclick = () => { const r = document.documentElement, n = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; r.setAttribute('data-theme', n); try { localStorage.setItem('diwanTheme', n); } catch (e) { /* تجاهل */ } };
 

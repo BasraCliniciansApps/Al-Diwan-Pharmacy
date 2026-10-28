@@ -134,7 +134,7 @@ function docFiltered() {
         if (docFil === 'sel') return !!it;
         if (docFil === 'unsel') return !it;
         if (docFil === 'all') return true;
-        return !!it && docEff({ ...it, ...docSnap(p) }, docData.cfg) === docFil;
+        { const e = docEff({ ...it, ...docSnap(p) }, docData.cfg); return !!it && (e === docFil || (docFil === 'noph' && e === 'nosup')); }
     });
 }
 function docRenderList() {
@@ -199,7 +199,7 @@ function docRenderReq() {
     const box = document.getElementById('docReq'); if (!box) return;
     if (!docReqList.length) { box.innerHTML = '<div class="qk-row"><div><b>طلبات الأطباء</b><small>لا توجد طلبات بعد. تظهر هنا المواد التي يحتاجها الأطباء، مرتبة بالأكثر طلباً.</small></div></div>'; return; }
     box.innerHTML = `<div class="qk-row"><div><b>طلبات الأطباء (${fmtNum(docReqList.length)})</b><small>مرتبة بالأكثر طلباً؛ استفد منها في قرارات الشراء.</small></div><button type="button" class="dc-mini" onclick="docReqClear()">مسح الكل</button></div>`
-        + docReqList.slice(0, 40).map(r => `<div class="qk-row"><div><b dir="auto">${docEsc(r.name)}</b><small>${DOC_KIND[r.kind] || 'طلب'}${r.at ? ' · <bdi>' + docEsc(String(r.at).slice(0, 10)) + '</bdi>' : ''}</small></div><span class="dc-cnt">${fmtNum(r.count)}</span><button type="button" class="dc-mini" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('');
+        + docReqList.slice(0, 40).map(r => `<div class="qk-row"><div><b dir="auto">${docEsc(r.name)}</b><small>${DOC_KIND[r.kind] || 'طلب'}${r.note ? ' — ' + docEsc(r.note) : ''}${r.at ? ' · <bdi>' + docEsc(String(r.at).slice(0, 10)) + '</bdi>' : ''}</small></div><span class="dc-cnt">${fmtNum(r.count)}</span><button type="button" class="dc-mini" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('');
 }
 async function docReqDel(id) {
     if (!(await askSure('حذف هذا الطلب؟', 'سيُحذف الطلب من القائمة.', 'حذف'))) return;
@@ -214,7 +214,7 @@ async function docReqClear() {
 const DOC_SEEN = 'diwanDocSeen';
 const DOC_KIND = { n: 'طلب توفر لمادة معروضة', q: 'طلب مادة غير موجودة في القائمة', s: 'بحث دون نتيجة' };
 function docMapReq(snap) {
-    const a = []; snap.forEach(d => { const x = d.data(); a.push({ id: d.id, name: x.name || '', kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
+    const a = []; snap.forEach(d => { const x = d.data(); a.push({ id: d.id, name: x.name || '', note: x.note || '', kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
     return a.sort((p, q) => String(q.at).localeCompare(String(p.at)));
 }
 function docSeen() { try { return localStorage.getItem(DOC_SEEN) || ''; } catch (e) { return ''; } }
@@ -242,7 +242,7 @@ function docRenderAlertBox(markSeen) {
     if (!docReqList.length) { box.innerHTML = ''; return; }
     const s = docSeen(), nNew = docReqList.filter(r => String(r.at) > s).length;
     box.innerHTML = `<div class="da-card"><div class="da-head">🩺 تنبيهات الأطباء${nNew ? ` <em>${fmtNum(nNew)} جديد</em>` : ''}</div>`
-        + docReqList.slice(0, 15).map(r => `<div class="da-row ${String(r.at) > s ? 'new' : ''}"><div><b dir="auto">${docEsc(r.name)}</b><small>${DOC_KIND[r.kind] || 'طلب'}${r.at ? ' · <bdi>' + docEsc(String(r.at).slice(0, 10)) + '</bdi>' : ''}</small></div>${r.count > 1 ? `<span class="da-cnt">${fmtNum(r.count)}×</span>` : ''}<button type="button" class="da-x" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('')
+        + docReqList.slice(0, 15).map(r => `<div class="da-row ${String(r.at) > s ? 'new' : ''}"><div><b dir="auto">${docEsc(r.name)}</b><small>${DOC_KIND[r.kind] || 'طلب'}${r.note ? ' — ' + docEsc(r.note) : ''}${r.at ? ' · <bdi>' + docEsc(String(r.at).slice(0, 10)) + '</bdi>' : ''}</small></div>${r.count > 1 ? `<span class="da-cnt">${fmtNum(r.count)}×</span>` : ''}<button type="button" class="da-x" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('')
         + (docReqList.length > 15 ? `<div class="da-more">و ${fmtNum(docReqList.length - 15)} طلباً آخر في إعدادات صفحة الطبيب</div>` : '') + '</div>';
     if (markSeen) docMarkSeen();
 }
