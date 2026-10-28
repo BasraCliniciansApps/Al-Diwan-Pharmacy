@@ -48,6 +48,7 @@ const RX_IC = {
     arch: '<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
     back: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
     trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+    move: '<path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/>',
     chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
 };
 const rxSvg = p => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
@@ -94,7 +95,7 @@ function rxDetail(el, r) {
         <div class="rx-rp"><input type="text" id="rxMsg" placeholder="أو اكتب رداً…" maxlength="160"><button type="button" onclick="rxReply('${rid}')">إرسال</button></div>
         ${(r.msgs || []).length ? `<div class="rx-ms">${(r.msgs || []).slice().reverse().slice(0, 12).map(m => `<div><span>${rxE(m.t)}</span><small>${rxTime(m.at)}</small></div>`).join('')}</div>` : ''}</details>
     <div class="rx-mainw">${main}</div>
-    <div class="rx-ibs">${ic(`rxPrint('${rid}')`, RX_IC.print, 'طباعة')}${r.phone ? `<button type="button" class="rx-ib wa" onclick="rxWa('${rid}')" aria-label="إرسال واتساب" title="إرسال PDF عبر واتساب">${RX_WA_ICON.replace('<svg ', '<svg width="20" height="20" ')}</button>` : ''}${r.arch ? ic(`rxArchive('${rid}',false)`, RX_IC.back, 'إرجاع من الأرشيف') + ic(`rxDel('${rid}')`, RX_IC.trash, 'حذف نهائي', 'd') : ic(`rxArchive('${rid}',true)`, RX_IC.arch, 'أرشفة الوصفة')}</div></div>`;
+    <div class="rx-ibs">${ic(`rxPrint('${rid}')`, RX_IC.print, 'طباعة')}${r.phone ? `<button type="button" class="rx-ib wa" onclick="rxWa('${rid}')" aria-label="إرسال واتساب" title="إرسال PDF عبر واتساب">${RX_WA_ICON.replace('<svg ', '<svg width="20" height="20" ')}</button>` : ''}${ic(`rxMove('${rid}')`, RX_IC.move, 'نقل إلى طبيب آخر')}${r.arch ? ic(`rxArchive('${rid}',false)`, RX_IC.back, 'إرجاع من الأرشيف') + ic(`rxDel('${rid}')`, RX_IC.trash, 'حذف نهائي', 'd') : ic(`rxArchive('${rid}',true)`, RX_IC.arch, 'أرشفة الوصفة')}</div></div>`;
 }
 async function rxApply(id, fn) {
     const r = rxRaw.find(x => x.id === id); if (!r) return false;
@@ -172,9 +173,10 @@ async function rxArchive(id, on) {
 
 // ---------- الأطباء وسجلاتهم + استرجاع السجل ----------
 const rxNormN = s => String(s || '').replace(/^\s*د\.?\s*/, '').trim().toLowerCase();
-const rxKeyOf = r => r.did || 'n:' + rxNormN(r.doctor);
+// الطبيب = رقم الجهاز + الاسم (أو مجموعة مثبّتة يدوياً dg عند الدمج أو النقل)
+const rxKeyOf = r => r.dg || (r.did ? r.did + '|' + rxNormN(r.doctor) : 'n:' + rxNormN(r.doctor));
 function rxDoctors() {
-    const m = new Map(); rxRaw.forEach(r => { const k = rxKeyOf(r); if (!m.has(k)) m.set(k, { key: k, did: r.did || '', list: [] }); m.get(k).list.push(r); });
+    const m = new Map(); rxRaw.forEach(r => { const k = rxKeyOf(r); if (!m.has(k)) m.set(k, { key: k, did: '', list: [] }); const g = m.get(k); if (!g.did && r.did) g.did = r.did; g.list.push(r); });
     return [...m.values()].map(g => { g.list.sort((a, b) => b.ts - a.ts); g.name = g.list[0].doctor; g.last = g.list[0].ts; return g; }).sort((a, b) => b.last - a.last);
 }
 const RX_IC_EXP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>', RX_IC_IMP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 21h14"/></svg>';
@@ -230,6 +232,20 @@ async function rxSetDid(list, did) {
     for (let i = 0; i < list.length; i += 400) { const b = db.batch(); list.slice(i, i + 400).forEach(x => b.set(db.collection('pharmacy_search_misses').doc(x.id), { did }, { merge: true })); await b.commit(); }
     list.forEach(x => { x.did = did; });
 }
+async function rxSetDg(list, dg) {
+    for (let i = 0; i < list.length; i += 400) { const b = db.batch(); list.slice(i, i + 400).forEach(x => b.set(db.collection('pharmacy_search_misses').doc(x.id), { dg }, { merge: true })); await b.commit(); }
+    list.forEach(x => { x.dg = dg; });
+}
+// نقل وصفة واحدة إلى طبيب آخر أو إلى طبيب جديد
+async function rxMove(id) {
+    const r = rxRaw.find(x => x.id === id); if (!r) return; const docs = rxDoctors(), cur = rxKeyOf(r), others = docs.filter(d => d.key !== cur);
+    const opts = { '__new': 'طبيب جديد (سجل مستقل)' }; others.forEach(d => { opts[d.key] = d.name + ' (' + fmtNum(d.list.length) + ')'; });
+    const a = await Swal.fire({ title: 'نقل الوصفة ' + (r.num || ''), text: 'اختر السجل الذي ستنتقل إليه هذه الوصفة فقط.', input: 'select', inputOptions: opts, inputPlaceholder: 'اختر…', showCancelButton: true, confirmButtonText: 'نقل', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38', inputValidator: v => v ? null : 'اختر سجلاً' });
+    if (!a.isConfirmed) return;
+    if (!(await askSure('نقل الوصفة ' + r.num + '؟', 'ستنتقل هذه الوصفة وحدها إلى السجل المختار.', 'نقل'))) return;
+    const h = Prog.start('نقل الوصفة ' + (r.num || ''), { text: 'تحديث السجل...' });
+    try { await rxSetDg([r], a.value === '__new' ? 'g:' + rxNewDid() : a.value); rxCurId = null; rxRender(); h.ok('تم نقل الوصفة'); } catch (e) { h.fail('تعذر النقل', 'تحقق من الاتصال وحاول مرة أخرى.'); }
+}
 async function rxIssue(rid) {
     const sel = document.getElementById('rsSel_' + rid), g = sel && rxDoctors().find(d => d.key === sel.value), q = rxRs.find(x => x.rid === rid); if (!g || !q) return;
     const h = Prog.start('تجهيز سجل الطبيب ' + g.name, { text: 'تجهيز الوصفات...' });
@@ -261,7 +277,7 @@ async function rxMerge(key) {
     if (!(await askSure('تأكيد الدمج؟', 'لا يمكن فصل السجلين بعد الدمج.', 'دمج'))) return;
     const t = others.find(d => d.key === a.value); if (!t) return;
     const h = Prog.start('دمج سجلات الأطباء', { text: 'تحديث الوصفات...' });
-    try { let did = t.did; if (!did) { did = rxNewDid(); await rxSetDid(t.list, did); } await rxSetDid(g.list, did); rxDrKey = null; rxRender(); h.ok('تم دمج السجلين'); } catch (e) { h.fail('تعذر الدمج', 'تحقق من الاتصال وحاول مرة أخرى.'); }
+    try { await rxSetDg(g.list, t.key); rxDrKey = null; rxRender(); h.ok('تم دمج السجلين'); } catch (e) { h.fail('تعذر الدمج', 'تحقق من الاتصال وحاول مرة أخرى.'); }
 }
 // تنظيف طلبات الاسترجاع بعد استلام الطبيب لسجله
 async function rxClean() {
