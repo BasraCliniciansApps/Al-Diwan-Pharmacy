@@ -12,9 +12,11 @@ function rxPrintDoc(rx) {
         <td class="c">${i + 1}</td>
         <td class="n" dir="auto"><b>${rxEsc(it.n)}</b>${it.ext ? '<small>خارج الصيدلية</small>' : ''}</td>
         <td>${rxEsc(it.dose)}</td><td>${rxEsc(it.freq)}</td><td>${rxEsc(it.dur)}</td><td>${rxEsc(it.ins)}</td></tr>`).join('');
+    const font = (() => { try { return new URL('fonts/ArefRuqaa-Bold.ttf', location.href).href; } catch (e) { return 'fonts/ArefRuqaa-Bold.ttf'; } })();
     const logo = (() => { try { return new URL('icon.jpg', location.href).href; } catch (e) { return 'icon.jpg'; } })();
-    return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>وصفة ${rxEsc(rx.num)}</title><link href="https://fonts.googleapis.com/css2?family=Aref+Ruqaa:wght@700&display=swap" rel="stylesheet">
+    return `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>وصفة ${rxEsc(rx.num)}</title>
 <style>
+@font-face { font-family: 'Aref Ruqaa'; font-weight: 700; src: url('${rxEsc(font)}') format('truetype'); }
 @page { size: A5 portrait; margin: 0; }
 * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 html, body { margin: 0; background: #fff; }
