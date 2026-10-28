@@ -112,6 +112,20 @@ function alertKinds(p) {
     k.any = k.m6 || k.low;
     return k;
 }
+let alTab = 'ph';
+function alUpdateTabs() {
+    const ph = document.getElementById('alNPh'), dr = document.getElementById('alNDr'); if (!ph || !dr) return;
+    ph.textContent = typeof alPhN === 'number' ? alPhN : 0;
+    dr.textContent = (typeof docReqList !== 'undefined' ? docReqList.length : 0) + (typeof rxNewN === 'function' ? rxNewN() : 0);
+}
+let alPhN = 0;
+function alSetTab(t) {
+    alTab = t === 'dr' ? 'dr' : 'ph';
+    document.getElementById('alTabPh').classList.toggle('on', alTab === 'ph'); document.getElementById('alTabDr').classList.toggle('on', alTab === 'dr');
+    document.getElementById('alPanePh').style.display = alTab === 'ph' ? '' : 'none'; document.getElementById('alPaneDr').style.display = alTab === 'dr' ? '' : 'none';
+    if (alTab === 'dr') { try { docRenderAlertBox(true); } catch (e) { /* تجاهل */ } }
+    alUpdateTabs();
+}
 function goAlerts(f) { alertFilterV = f || 'all'; showView('alerts'); }
 function setAlertFilter(v) { alertFilterV = v; renderAlerts(); }
 let alertListIds = [];
@@ -143,7 +157,9 @@ function renderAlerts() {
     };
     document.getElementById('alertsContainer').innerHTML = list.map(x => productCardHtml(x.p, tag(x))).join('') ||
         `<div class="empty-state empty-wide"><div class="empty-ico">✅</div><div>لا توجد أصناف ضمن هذا التنبيه</div></div>`;
-    try { if (typeof docRenderAlertBox === 'function') docRenderAlertBox(true); } catch (e) { /* تجاهل */ }
+    alPhN = all.filter(x => x.k.any).length;
+    try { if (typeof docRenderAlertBox === 'function') docRenderAlertBox(alTab === 'dr'); } catch (e) { /* تجاهل */ }
+    alUpdateTabs();
 }
 
 // الشاشة الأولى: انتظر حالة الدخول، وإلا اذهب لشاشة الدخول

@@ -3019,3 +3019,11 @@ body.doc-open #formModal { z-index: 9200; } body.doc-open .swal2-container { z-i
 .swal2-popup:has(.tr-xbox) .tr-xbox { width: 100%; max-width: 100%; box-sizing: border-box; margin-top: 4px; }
 .swal2-popup:has(.tr-xbox) .tr-xadd { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; min-width: 0; }
 .swal2-popup:has(.tr-xbox) .tr-xadd > * { min-width: 0; width: 100%; box-sizing: border-box; }
+
+.al-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 4px 0 12px; }
+.al-tabs button { min-height: 50px; border-radius: 14px; border: 1.5px solid #cbd5e1; background: #fff; color: #0f1c38; font: 800 .86rem inherit; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; padding: 0 8px; }
+.al-tabs button i { font-style: normal; min-width: 26px; height: 24px; padding: 0 7px; border-radius: 999px; display: inline-grid; place-items: center; font-size: .78rem; font-weight: 900; color: #fff; }
+.al-tabs .ph i { background: #d97706; } .al-tabs .dr i { background: #0d9488; }
+.al-tabs .ph.on { background: #fff7ed; border-color: #d97706; color: #9a3412; box-shadow: 0 0 0 3px rgba(217, 119, 6, .15); }
+.al-tabs .dr.on { background: #f0fdfa; border-color: #0d9488; color: #0f766e; box-shadow: 0 0 0 3px rgba(13, 148, 136, .15); }
+[data-theme="dark"] .al-tabs button { background: #1e293b; color: #e2e8f0; border-color: #334155; } [data-theme="dark"] .al-tabs .ph.on { background: #3a2410; color: #fdba74; } [data-theme="dark"] .al-tabs .dr.on { background: #0b2e2a; color: #5eead4; }

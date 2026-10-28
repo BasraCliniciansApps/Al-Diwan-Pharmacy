@@ -638,7 +638,9 @@
 <div id="alertsView" class="app-view alerts-view">
     <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button></div></div>
 <div class="page-title">🔔 التنبيهات</div>
-    <div id="docAlertBox"></div>
+    <div class="al-tabs"><button type="button" id="alTabPh" class="ph on" onclick="alSetTab('ph')"><span>💊 تنبيهات الصيدلية</span><i id="alNPh">0</i></button><button type="button" id="alTabDr" class="dr" onclick="alSetTab('dr')"><span>🩺 تنبيهات الأطباء</span><i id="alNDr">0</i></button></div>
+    <div id="alPaneDr" style="display:none"><div id="docAlertBox"></div></div>
+    <div id="alPanePh">
     <div class="alerts-controls">
         <label class="alerts-select"><span>تصفية التنبيهات</span>
             <select id="alertFilter" onchange="setAlertFilter(this.value)"></select>
@@ -648,6 +650,7 @@
     <div class="info-strip alerts-info"><span id="alertTitle">كل التنبيهات</span><span id="alertCount">0 صنف</span></div>
     <button type="button" class="alerts-po-btn" id="alertPoBtn" onclick="alertsToPO()">🛒 أضف أصناف هذه القائمة إلى طلب الشراء</button>
     <div class="grid-layout alerts-grid" id="alertsContainer"></div>
+    </div>
 </div>
 
 <div id="billView" class="app-view bill-view" dir="rtl">

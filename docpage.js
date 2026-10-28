@@ -293,7 +293,8 @@ function docStartWatch() {
         }, () => { docReqUnsub = null; });
     } catch (e) { docReqUnsub = null; }
 }
-function docRenderAlertBox(markSeen) {
+function docRenderAlertBox(markSeen) { docRenderAlertBox0(markSeen); try { alUpdateTabs(); } catch (e) { /* تجاهل */ } }
+function docRenderAlertBox0(markSeen) {
     const box = document.getElementById('docAlertBox'); if (!box) return;
     if (!docReqList.length) { box.innerHTML = typeof rxAlertRow === 'function' ? rxAlertRow() : ''; return; }
     const s = docSeen(), nNew = docReqList.filter(r => String(r.at) > s).length;
