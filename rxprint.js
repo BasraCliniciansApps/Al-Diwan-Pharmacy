@@ -47,7 +47,7 @@ td.c { text-align: center; color: #64748b; width: 18px; } td.n b { font-size: 10
 </style></head><body><div class="pg">
 <div class="hd"><div class="m"><div><b>No.</b> ${rxEsc(rx.num)}</div><div>${rxDateTxt(rx.at)}</div></div><div class="dr"><div class="t1">الدكتور</div><div class="t2" dir="auto">${rxEsc(String(rx.doctor || '').replace(/^\s*د\.?\s*/, ''))}</div></div></div><div class="ln"></div>
 <div class="pt"><div class="w"><small>المريض</small><b dir="auto">${rxEsc(rx.patient)}</b>${rx.phone ? `<small style="margin-top:2px;direction:ltr">${rxEsc(rx.phone)}</small>` : ''}</div>${rx.dx ? `<div class="w"><small>التشخيص</small><b dir="auto">${rxEsc(rx.dx)}</b></div>` : ''}</div>
-<div class="rx">℞<small>الأدوية الموصوفة</small></div>
+<div class="rx">℞</div>
 <table><thead><tr><th></th><th>الدواء</th><th>الجرعة</th><th>التكرار</th><th>المدة</th><th>التعليمات</th></tr></thead><tbody>${rows}</tbody></table>
 ${rx.note ? `<div class="nt"><b>ملاحظات: </b>${rxEsc(rx.note)}</div>` : ''}
 </div></body></html>`;
