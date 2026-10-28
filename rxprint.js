@@ -32,7 +32,7 @@ body { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; color: #0f
 .pt { margin: 7px 0 2px; }
 .rw { display: flex; align-items: baseline; gap: 6px; padding: 3px 2px 2px; border-bottom: 1px dotted #94a3b8; min-height: 18px; }
 .rw span { font-size: 10px; font-weight: 800; color: #64748b; white-space: nowrap; } .rw b { font-size: 12px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
-.rw.ph { width: 62%; margin-right: auto; } .rw.ph b { direction: ltr; text-align: left; unicode-bidi: plaintext; }
+.rw.ph { width: fit-content; margin-right: auto; } .rw.ph b { flex: none; width: 14ch; direction: ltr; text-align: left; unicode-bidi: plaintext; }
 .rx { font: 700 32px/1 'Times New Roman', Georgia, serif; color: #0f1c38; margin: 6px 2px 0; direction: ltr; padding-bottom: 3px; border-bottom: 1.5px solid #0f1c38; }
 table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-top: 5px; }
 th { background: #0f1c38; color: #fff; font-weight: 700; padding: 4px 3px; font-size: 8.5px; text-align: right; }

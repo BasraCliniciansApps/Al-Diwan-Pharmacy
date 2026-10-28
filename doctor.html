@@ -314,7 +314,7 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
 .rp-row { display: flex; align-items: center; gap: 8px; border-bottom: 1.5px dotted var(--line); padding: 5px 2px 3px; min-width: 0; }
 .rp-row span { font-size: .72rem; font-weight: 800; color: var(--sub); white-space: nowrap; } .rp-row span b { color: var(--nosup); }
 .rp-row input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: 700 .92rem 'Tajawal', sans-serif; height: 28px; outline: none; padding: 0; }
-.rp-row.ph { width: 64%; margin-right: auto; } .rp-row.ph input { text-align: left; }
+.rp-row.ph { width: fit-content; margin-right: auto; } .rp-row.ph input { text-align: left; flex: none; width: 14ch; }
 .rp-row:focus-within { border-bottom-color: #f9a825; border-bottom-style: solid; }
 .rp-row:has(.bad) { border-bottom-color: var(--nosup); }
 .rp-rx { display: flex; align-items: center; gap: 10px; direction: ltr; margin: 12px 0 6px; padding-bottom: 6px; border-bottom: 1.5px solid var(--text); }
