@@ -140,7 +140,7 @@ function docRenderMenu() {
     const m = document.getElementById('docMenu'); if (!m) return;
     docFbtn();
     if (!docMenu) { m.innerHTML = ''; return; }
-    m.innerHTML = `<div class="dc-drop"><div class="dc-menu">${DOC_FILTERS.map(([k, t]) => `<button type="button" class="${docFil === k ? 'on' : ''}" onclick="docSetFil('${k}')">${t}</button>`).join('')}</div><div id="docTree"></div></div>`;
+    m.innerHTML = `<div class="dc-drop"><div id="docTree"></div></div>`;
     docTreeCfg = docTreeCfg || { open: new Set(), q: '' };
     Object.assign(docTreeCfg, { tree: tfAdminTree(), sel: docSel, count: tfAdminCounter(products), onChange() { docShown = 60; docRenderList(); docFbtn(); }, onDone() { docMenu = false; docRenderMenu(); } });
     tfMount(document.getElementById('docTree'), docTreeCfg);
