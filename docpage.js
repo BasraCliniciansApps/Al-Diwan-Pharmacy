@@ -220,7 +220,8 @@ async function docReqClear() {
 const DOC_SEEN = 'diwanDocSeen';
 const DOC_KIND = { n: 'طلب توفر لمادة معروضة', q: 'طلب مادة غير موجودة في القائمة', s: 'بحث دون نتيجة' };
 function docMapReq(snap) {
-    const a = []; snap.forEach(d => { const x = d.data(); a.push({ id: d.id, name: x.name || '', note: x.note || '', kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
+    const a = []; rxRaw = [];
+    snap.forEach(d => { const x = d.data(); if (x.kind === 'r') { rxRaw.push({ id: d.id, rid: x.rid || d.id.replace(/^rx_/, ''), num: x.num || '', doctor: x.doctor || '', patient: x.patient || '', note: x.note || '', items: x.items || [], st: x.st || 'new', is: x.is || {}, msgs: x.msgs || [], ts: Date.parse(x.lastAt) || 0 }); return; } a.push({ id: d.id, name: x.name || '', note: x.note || '', kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
     return a.sort((p, q) => String(q.at).localeCompare(String(p.at)));
 }
 function docSeen() { try { return localStorage.getItem(DOC_SEEN) || ''; } catch (e) { return ''; } }
@@ -237,7 +238,7 @@ function docStartWatch() {
     if (docReqUnsub || typeof IS_ADMIN_PAGE === 'undefined' || !IS_ADMIN_PAGE || userRole !== 'owner' || !(typeof cloudReady === 'function' && cloudReady())) return;
     try {
         docReqUnsub = db.collection('pharmacy_search_misses').where('dr', '==', 1).onSnapshot(snap => {
-            docReqList = docMapReq(snap); docBadges();
+            docReqList = docMapReq(snap); docBadges(); if (typeof rxChanged === 'function') rxChanged();
             const v = document.getElementById('alertsView'); if (v && v.classList.contains('active')) docRenderAlertBox(false);
             if (document.getElementById('docReq')) docRenderReq();
         }, () => { docReqUnsub = null; });
@@ -245,9 +246,9 @@ function docStartWatch() {
 }
 function docRenderAlertBox(markSeen) {
     const box = document.getElementById('docAlertBox'); if (!box) return;
-    if (!docReqList.length) { box.innerHTML = ''; return; }
+    if (!docReqList.length) { box.innerHTML = typeof rxAlertRow === 'function' ? rxAlertRow() : ''; return; }
     const s = docSeen(), nNew = docReqList.filter(r => String(r.at) > s).length;
-    box.innerHTML = `<div class="da-card"><div class="da-head">🩺 تنبيهات الأطباء${nNew ? ` <em>${fmtNum(nNew)} جديد</em>` : ''}</div>`
+    box.innerHTML = (typeof rxAlertRow === 'function' ? rxAlertRow() : '') + `<div class="da-card"><div class="da-head">🩺 تنبيهات الأطباء${nNew ? ` <em>${fmtNum(nNew)} جديد</em>` : ''}</div>`
         + docReqList.slice(0, 15).map(r => `<div class="da-row ${String(r.at) > s ? 'new' : ''}"><div><b dir="auto">${docEsc(r.name)}</b><small>${DOC_KIND[r.kind] || 'طلب'}${r.note ? ' — ' + docEsc(r.note) : ''}${r.at ? ' · <bdi>' + docEsc(String(r.at).slice(0, 10)) + '</bdi>' : ''}</small></div>${r.count > 1 ? `<span class="da-cnt">${fmtNum(r.count)}×</span>` : ''}<button type="button" class="da-x" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('')
         + (docReqList.length > 15 ? `<div class="da-more">و ${fmtNum(docReqList.length - 15)} طلباً آخر في إعدادات صفحة الطبيب</div>` : '') + '</div>';
     if (markSeen) docMarkSeen();

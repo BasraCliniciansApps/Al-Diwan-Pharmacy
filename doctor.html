@@ -161,6 +161,41 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .alt .dt { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: 0 0 auto; }
 .zoom { position: fixed; inset: 0; z-index: 80; background: rgba(8,14,30,.92); display: grid; place-items: center; padding: 16px; cursor: zoom-out; }
 .zoom img { max-width: 100%; max-height: 100%; object-fit: contain; background: #fff; border-radius: 12px; }
+
+.fab { position: fixed; left: 16px; bottom: calc(var(--fh) + 14px); z-index: 25; width: 60px; height: 60px; border-radius: 50%; border: 0; background: linear-gradient(145deg, #fbbf24, var(--gold)); color: #0f1c38; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer; box-shadow: 0 10px 26px rgba(249,168,37,.5), 0 2px 6px rgba(0,0,0,.25); font: 800 .6rem 'Tajawal', sans-serif; }
+.fab svg { font-size: 1.45rem; } .fab:active { transform: scale(.94); }
+.fab.sm { width: 44px; height: 44px; left: 24px; bottom: calc(var(--fh) + 84px); background: var(--surface); color: var(--text); border: 1px solid var(--line); box-shadow: var(--shadow); } .fab.sm svg { font-size: 1.15rem; }
+.main { padding-bottom: calc(var(--fh) + 96px); }
+.sheet.big { height: 94vh; max-height: 94vh; }
+.rxt { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .rxt h3 { margin: 0; }
+.rxt .lk { border: 0; background: transparent; color: var(--nosup); font: 800 .76rem 'Tajawal', sans-serif; cursor: pointer; padding: 6px; }
+.rxl { display: block; font-size: .74rem; font-weight: 800; color: var(--sub); margin: 10px 2px 4px; } .rxl b { color: var(--nosup); }
+.rxs .fld.bad, .rxi .bad { border-color: var(--nosup); background: color-mix(in srgb, var(--nosup) 8%, var(--surface)); }
+.rxi { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 12px; margin-top: 10px; box-shadow: var(--shadow); }
+.rxh { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; } .rxh b { flex: 1; min-width: 0; font-size: .92rem; overflow-wrap: anywhere; }
+.rxh .tag { margin: 0; } .rxh .x { width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--nosup); cursor: pointer; display: grid; place-items: center; }
+.rxg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; } .rxg .full { grid-column: 1 / -1; }
+.rxi .fld { height: 44px; font-size: .86rem; border-radius: 12px; }
+.qc { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; } .qc button { border: 1px solid var(--line); background: var(--surface-2); color: var(--text); border-radius: 999px; padding: 5px 11px; font: 700 .72rem 'Tajawal', sans-serif; cursor: pointer; }
+.addrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.addb { height: 48px; border-radius: 14px; border: 1.5px dashed var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); color: var(--ok); font: 800 .8rem 'Tajawal', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.addb.ex { border-color: var(--noph); color: var(--noph); background: color-mix(in srgb, var(--noph) 8%, transparent); }
+.rxa { display: grid; grid-template-columns: 1fr 1.6fr; gap: 8px; margin-top: 14px; position: sticky; bottom: -1px; padding: 8px 0 2px; background: var(--bg); }
+.rxa .go { margin: 0; } .rxa .go.alt { background: var(--surface); color: var(--text); border: 1.5px solid var(--line); }
+.pk { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.pk .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; cursor: pointer; font-size: .86rem; font-weight: 700; }
+.pk .row span { min-width: 0; overflow-wrap: anywhere; } .pk .row i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); flex: 0 0 auto; }
+.nrx { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 12px 14px; margin-top: 10px; box-shadow: var(--shadow); }
+.nrx .hd2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .nrx .hd2 b { font-size: .9rem; } .nrx small { color: var(--sub); font-size: .72rem; display: block; margin-top: 1px; }
+.nrx .it { display: flex; justify-content: space-between; gap: 8px; font-size: .8rem; padding: 6px 0; border-bottom: 1px dashed var(--line); } .nrx .it:last-of-type { border-bottom: 0; }
+.nrx .st { font-size: .7rem; font-weight: 800; border-radius: 999px; padding: 2px 9px; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); white-space: nowrap; }
+.ms { margin-top: 8px; display: flex; flex-direction: column; gap: 6px; }
+.ms div { font-size: .8rem; font-weight: 700; line-height: 1.6; border-radius: 12px; padding: 8px 11px; background: var(--surface-2); } .ms div small { display: block; margin: 0; }
+.ms div.nw { background: color-mix(in srgb, var(--back) 13%, transparent); border: 1px solid color-mix(in srgb, var(--back) 40%, transparent); }
+.ms .no { border-inline-start: 3px solid var(--nosup); } .ms .sub { border-inline-start: 3px solid var(--noph); } .ms .ok, .ms .ready, .ms .done { border-inline-start: 3px solid var(--ok); } .ms .prep { border-inline-start: 3px solid var(--back); }
+.qm { position: fixed; inset: 0; z-index: 95; background: rgba(8,14,30,.6); display: grid; place-items: center; padding: 20px; }
+.qm div { background: var(--surface); border-radius: 22px; padding: 20px; width: 100%; max-width: 340px; text-align: center; } .qm b { display: block; font-size: 1rem; margin-bottom: 14px; line-height: 1.6; }
+.qm .r { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .qm button { height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: 800 .85rem 'Tajawal', sans-serif; cursor: pointer; } .qm button.d { background: var(--nosup); border-color: var(--nosup); color: #fff; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -169,7 +204,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
     <div class="top-row">
         <img src="icon.jpg" alt="">
         <div class="brand"><b>صيدلية الديوان</b><small><svg viewBox="0 0 24 24"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg>دليل توفر الأدوية للأطباء</small></div>
-        <button type="button" class="hbtn" id="reqBtn" aria-label="طلب مادة" title="طلب مادة"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+        <button type="button" class="hbtn" id="ntBtn" aria-label="إشعارات الوصفات" title="إشعارات الوصفات"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><i id="ntN"></i></button>
         <button type="button" class="hbtn" id="favBtn" aria-label="المفضلة" title="المفضلة"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><i id="favN"></i></button>
         <button type="button" class="hbtn" id="theme" aria-label="تبديل الوضع" title="الوضع الليلي/النهاري"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></button>
     </div>
@@ -187,8 +222,11 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
     <div class="foot-l"><button type="button" class="clr" id="clr" aria-label="عرض الكل">✕</button><b id="hl">كل المواد</b><em id="hc"></em></div>
     <div class="foot-r"><i></i><span id="updT">جارٍ التحديث…</span></div>
 </div></footer>
+<button type="button" class="fab sm" id="reqBtn" aria-label="طلب مادة" title="طلب مادة"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+<button type="button" class="fab" id="rxBtn" aria-label="وصفة إلكترونية" title="وصفة إلكترونية"><svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9 15h6"/></svg><b>وصفة</b></button>
 <div class="bg" id="bg"><div class="sheet" id="sheet"></div></div>
 
+<script src="rxprint.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyDimxdd2vaKdOFw-IDYfWaivslosGMFVh4", authDomain: "al-d1-pharmacy.firebaseapp.com", projectId: "al-d1-pharmacy",
@@ -288,7 +326,7 @@ function openDetail(id, keepScroll) {
     const m = ALL.find(x => x.id === id); if (!m) return;
     curId = id; const sh = $('sheet'), top = sh.scrollTop;
     sh.innerHTML = '<div class="grab"></div>' + detailHtml(m);
-    $('bg').classList.add('show'); document.body.style.overflow = 'hidden';
+    rxMode = ''; sh.classList.remove('big'); $('bg').classList.add('show'); document.body.style.overflow = 'hidden';
     sh.scrollTop = keepScroll ? top : 0;
 }
 function render(anim) {
@@ -317,8 +355,8 @@ function render(anim) {
     const mb = $('more'); if (mb) mb.onclick = () => { shown += 80; render(false); };
 }
 // ---------- طلب مادة (يصل إلى الصيدلي كتنبيه) ----------
-function openSheet(html) { $('sheet').innerHTML = '<div class="grab"></div>' + html; $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
-function closeSheet() { curId = null; $('bg').classList.remove('show'); document.body.style.overflow = ''; }
+function openSheet(html) { rxMode = ''; $('sheet').classList.remove('big'); $('sheet').innerHTML = '<div class="grab"></div>' + html; $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
+function closeSheet() { curId = null; rxMode = ''; $('sheet').classList.remove('big'); $('bg').classList.remove('show'); document.body.style.overflow = ''; }
 function reqOpen(pre) {
     openSheet(`<h3>طلب مادة من الصيدلية</h3><p>اكتب اسم الدواء الذي تحتاجه، وستصل رسالتك إلى الصيدلي مباشرة.</p>
     <input id="rqN" class="fld" type="text" dir="ltr" placeholder="اسم الدواء" value="${esc(pre || '')}" autocomplete="off">
@@ -395,6 +433,120 @@ $('sheet').addEventListener('click', e => {
 let tx = null;
 $('sheet').addEventListener('touchstart', e => { tx = e.touches.length === 1 ? [e.touches[0].clientX, e.touches[0].clientY] : null; }, { passive: true });
 $('sheet').addEventListener('touchend', e => { if (!tx || !curId) return; const t = e.changedTouches[0], dx = t.clientX - tx[0], dy = t.clientY - tx[1]; tx = null; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) { const i = VIEW.findIndex(x => x.id === curId) + (dx < 0 ? 1 : -1); if (VIEW[i]) openDetail(VIEW[i].id); } }, { passive: true });
+
+// ---------- الوصفة الإلكترونية ----------
+const FREQ = ['مرة يومياً', 'مرتين يومياً', '3 مرات يومياً', '4 مرات يومياً', 'كل 8 ساعات', 'كل 12 ساعة', 'عند الحاجة'];
+const DUR = ['3 أيام', '5 أيام', '7 أيام', '10 أيام', '14 يوماً', 'شهر', 'مستمر'];
+const INS = ['قبل الأكل', 'بعد الأكل', 'مع الأكل', 'على معدة فارغة', 'قبل النوم', 'موضعي'];
+const NSTAT = { new: ['أُرسلت · بانتظار الصيدلية', 'noph'], prep: ['قيد التجهيز', 'back'], ready: ['جاهزة للاستلام', 'ok'], done: ['سُلِّمت للمريض', 'ok'] };
+const mkNum = () => 'RX-' + Math.random().toString(36).slice(2, 8).toUpperCase();
+let RX = lsGet('diwanRxDraft', null) || { num: mkNum(), doctor: '', patient: '', items: [], note: '' };
+if (!RX.doctor) RX.doctor = lsGet('diwanDocName', '');
+let rxMode = '', MY = lsGet('diwanRx', []), SEEN = lsGet('diwanRxSeen', {}), NT = {}, NTU = {};
+const saveDraft = () => { lsSet('diwanRxDraft', RX); if (RX.doctor) lsSet('diwanDocName', RX.doctor); };
+function ask(title, ok) { return new Promise(r => { const d = document.createElement('div'); d.className = 'qm'; d.innerHTML = `<div><b>${esc(title)}</b><div class="r"><button type="button" data-a="0">رجوع</button><button type="button" class="d" data-a="1">${esc(ok)}</button></div></div>`; d.onclick = e => { const b = e.target.closest('[data-a]'); if (b || e.target === d) { d.remove(); r(!!b && b.dataset.a === '1'); } }; document.body.appendChild(d); }); }
+const opts = (arr, v, ph) => `<option value="">${ph}</option>` + arr.map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('');
+function rxOpen() {
+    rxMode = 'form'; $('sheet').classList.add('big'); rxForm();
+    $('bg').classList.add('show'); document.body.style.overflow = 'hidden';
+}
+function rxForm(keep) {
+    const sh = $('sheet'), top = sh.scrollTop;
+    sh.innerHTML = `<div class="grab"></div><div class="rxs"><div class="rxt"><h3>وصفة إلكترونية</h3><button type="button" class="lk" data-rx="clear">مسح الوصفة</button></div>
+    <label class="rxl">اسم الطبيب <b>*</b></label><input class="fld" data-k="doctor" type="text" autocomplete="off" placeholder="د. ..." value="${esc(RX.doctor)}">
+    <label class="rxl">اسم المريض <b>*</b></label><input class="fld" data-k="patient" type="text" autocomplete="off" placeholder="الاسم الثلاثي" value="${esc(RX.patient)}">
+    <label class="rxl">الأدوية <b>*</b></label>
+    ${RX.items.map((it, i) => `<div class="rxi" data-i="${i}"><div class="rxh">${it.ext ? `<input class="fld" style="flex:1" data-f="n" type="text" dir="auto" placeholder="اسم الدواء (من خارج الصيدلية)" value="${esc(it.n)}">` : `<b dir="auto"><bdi>${esc(it.n)}</bdi></b>`}${it.ext ? '<span class="tag">خارجي</span>' : ''}<button type="button" class="x" data-rx="del" data-i="${i}" aria-label="حذف">${svg('<path d="M18 6 6 18M6 6l12 12"/>')}</button></div>
+        <div class="rxg"><input class="fld full" data-f="dose" type="text" placeholder="الجرعة (مثل: قرص واحد، 5 مل، قطرتان)" value="${esc(it.dose)}">
+        <select class="fld" data-f="freq">${opts(FREQ, it.freq, 'التكرار')}</select><select class="fld" data-f="dur">${opts(DUR, it.dur, 'المدة')}</select></div>
+        <input class="fld" data-f="ins" type="text" placeholder="تعليمات (اختياري)" value="${esc(it.ins)}">
+        <div class="qc">${INS.map(t => `<button type="button" data-rx="ins" data-i="${i}" data-t="${t}">${t}</button>`).join('')}</div></div>`).join('')}
+    <div class="addrow"><button type="button" class="addb" data-rx="pick">${svg(IC.plus)}من الصيدلية</button><button type="button" class="addb ex" data-rx="ext">${svg(IC.plus)}من خارج الصيدلية</button></div>
+    <label class="rxl">ملاحظات عامة (اختياري)</label><textarea data-k="note" placeholder="تشخيص أو ملاحظة للصيدلي" style="min-height:76px;direction:rtl;text-align:right">${esc(RX.note)}</textarea>
+    <div class="rxa"><button type="button" class="go alt" data-rx="print">طباعة</button><button type="button" class="go" data-rx="send">إرسال للصيدلية</button></div></div>`;
+    sh.scrollTop = keep ? top : 0;
+}
+function rxPickOpen() {
+    rxMode = 'pick'; const sh = $('sheet');
+    sh.innerHTML = `<div class="grab"></div><div class="rxt"><h3>اختر الدواء من الصيدلية</h3><button type="button" class="lk" style="color:var(--text)" data-rx="back">رجوع</button></div><input class="fld" id="pkQ" type="search" autocomplete="off" placeholder="ابحث باسم الدواء أو المادة الفعالة" style="margin-top:10px"><div class="pk" id="pkL"></div>`;
+    sh.scrollTop = 0; rxPickList(''); setTimeout(() => { try { $('pkQ').focus(); } catch (e) { /* تجاهل */ } }, 200);
+}
+function rxPickList(t) {
+    const n = norm(t.trim()), rows = ALL.filter(m => !n || m.hay.includes(n)).slice(0, 40);
+    $('pkL').innerHTML = rows.map(m => `<div class="row s-${m.st}" data-add="${m.id}"><span dir="rtl"><bdi>${esc(m.n)}</bdi>${m.a ? `<small style="display:block;color:var(--sub);font-weight:500">${esc(m.a)}</small>` : ''}</span><i title="${ST[m.st].t}"></i></div>`).join('') || '<div class="noalt">لا توجد نتائج. يمكنك إضافته «من خارج الصيدلية».</div>';
+}
+function rxValid() {
+    let ok = true; const sh = $('sheet');
+    const mark = (el, bad) => { if (el) el.classList.toggle('bad', bad); if (bad) ok = false; };
+    mark(sh.querySelector('[data-k="doctor"]'), !RX.doctor.trim()); mark(sh.querySelector('[data-k="patient"]'), !RX.patient.trim());
+    sh.querySelectorAll('.rxi').forEach(c => { const it = RX.items[+c.dataset.i], nm = c.querySelector('[data-f="n"]'); if (nm) mark(nm, !it.n.trim()); });
+    if (!RX.items.length) { ok = false; toast('أضف دواءً واحداً على الأقل'); }
+    else if (!ok) toast('أكمل الحقول المطلوبة');
+    return ok;
+}
+const rxRec = () => ({ num: RX.num, doctor: RX.doctor.trim(), patient: RX.patient.trim(), note: RX.note.trim(), at: Date.now(), items: RX.items.map(i => ({ p: i.p || '', n: i.n.trim(), ext: !!i.ext, dose: (i.dose || '').trim(), freq: i.freq || '', dur: i.dur || '', ins: (i.ins || '').trim() })) });
+async function rxSend(btn) {
+    if (!rxValid()) return;
+    const rec = rxRec(), rid = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(36).padStart(2, '0')).join('') + Date.now().toString(36);
+    btn.disabled = true;
+    try {
+        await firebase.firestore().collection('pharmacy_search_misses').doc('rx_' + rid).set({ dr: 1, kind: 'r', rid, num: rec.num, doctor: rec.doctor, patient: rec.patient, note: rec.note, items: rec.items, st: 'new', ps: { msgs: [] }, count: 1, name: rec.patient, lastAt: new Date(rec.at).toISOString() });
+    } catch (e) { btn.disabled = false; toast('تعذر الإرسال، تحقق من الاتصال'); return; }
+    MY.unshift({ rid, ...rec }); MY = MY.slice(0, 15); lsSet('diwanRx', MY); SEEN[rid] = Date.now(); lsSet('diwanRxSeen', SEEN);
+    RX = { num: mkNum(), doctor: rec.doctor, patient: '', items: [], note: '' }; saveDraft(); ntWatch();
+    closeSheet(); toast('أُرسلت الوصفة إلى الصيدلية'); ntBadge();
+}
+// ---------- إشعارات الطبيب ----------
+function ntUnread() { let n = 0; Object.keys(NT).forEach(rid => { const d = NT[rid]; if (d && d.msgs) n += d.msgs.filter(m => m.at > (SEEN[rid] || 0)).length; }); return n; }
+function ntBadge() { const n = ntUnread(); $('ntN').textContent = n ? num(n) : ''; }
+function ntWatch() {
+    MY.slice(0, 15).forEach(r => {
+        if (NTU[r.rid]) return;
+        try { NTU[r.rid] = firebase.firestore().collection('pharmacy').doc('rx_' + r.rid).onSnapshot(s => { NT[r.rid] = s.exists ? s.data() : null; ntBadge(); if (rxMode === 'nt') ntRender(); }, () => { }); } catch (e) { /* تجاهل */ }
+    });
+}
+const hm = t => { const d = new Date(t), h = d.getHours(); return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + ((h % 12) || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + (h < 12 ? ' ص' : ' م'); };
+function ntRender() {
+    const sh = $('sheet'), top = sh.scrollTop;
+    const html = MY.map(r => {
+        const d = NT[r.rid], st = (d && d.st) || 'new', S = NSTAT[st] || NSTAT.new, ms = ((d && d.msgs) || []).slice().sort((a, b) => b.at - a.at), seen = ntSeenView[r.rid] != null ? ntSeenView[r.rid] : (SEEN[r.rid] || 0);
+        return `<div class="nrx"><div class="hd2"><div><b>${esc(r.num)} · <bdi>${esc(r.patient)}</bdi></b><small>${hm(r.at)} · ${num(r.items.length)} ${r.items.length > 2 && r.items.length < 11 ? 'أدوية' : 'دواء'}</small></div><span class="st" style="--c:var(--${S[1]})">${S[0]}</span></div>
+        <div style="margin-top:6px">${r.items.map((it, i) => { const x = d && d.is && d.is[i]; const t = x ? (x.s === 'no' ? '<span class="st" style="--c:var(--nosup)">غير متوفر</span>' : x.s === 'sub' ? `<span class="st" style="--c:var(--noph)">بديل: ${esc(x.sub || '')}</span>` : '<span class="st" style="--c:var(--ok)">مُجهَّز</span>') : ''; return `<div class="it"><span dir="auto"><bdi>${esc(it.n)}</bdi></span>${t}</div>`; }).join('')}</div>
+        ${ms.length ? `<div class="ms">${ms.map(m => `<div class="${m.k || ''} ${m.at > seen ? 'nw' : ''}">${esc(m.t)}<small>${hm(m.at)}</small></div>`).join('')}</div>` : ''}
+        <div class="addrow"><button type="button" class="addb" style="border-style:solid" data-rx="reprint" data-rid="${r.rid}">طباعة نسخة</button><button type="button" class="addb ex" style="border-style:solid" data-rx="forget" data-rid="${r.rid}">إزالة من القائمة</button></div></div>`;
+    }).join('');
+    sh.innerHTML = `<div class="grab"></div><div class="rxt"><h3>إشعارات الوصفات</h3></div><p>تصلك هنا ردود الصيدلية على وصفاتك المرسلة.</p>${html || '<div class="empty"><b>لا توجد وصفات مرسلة</b>اضغط زر «وصفة» لإنشاء وصفة جديدة.</div>'}`;
+    sh.scrollTop = top;
+    MY.forEach(r => { const d = NT[r.rid]; if (d && d.msgs && d.msgs.length) SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, ...d.msgs.map(m => m.at)); }); lsSet('diwanRxSeen', SEEN); ntBadge();
+}
+let ntSeenView = {};
+function ntOpen() { ntSeenView = {}; MY.forEach(r => ntSeenView[r.rid] = SEEN[r.rid] || 0); rxMode = 'nt'; $('sheet').classList.add('big'); ntRender(); $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
+$('rxBtn').onclick = rxOpen; $('ntBtn').onclick = ntOpen;
+$('sheet').addEventListener('input', e => {
+    const t = e.target;
+    if (rxMode === 'pick' && t.id === 'pkQ') { rxPickList(t.value); return; }
+    if (rxMode !== 'form') return;
+    if (t.dataset.k) { RX[t.dataset.k] = t.value; t.classList.remove('bad'); saveDraft(); }
+    else if (t.dataset.f) { const c = t.closest('.rxi'); RX.items[+c.dataset.i][t.dataset.f] = t.value; t.classList.remove('bad'); saveDraft(); }
+});
+$('sheet').addEventListener('focusin', e => { if (rxMode === 'form' && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) setTimeout(() => { try { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) { /* تجاهل */ } }, 320); });
+$('sheet').addEventListener('click', async e => {
+    const b = e.target.closest('[data-rx]'), a = e.target.closest('[data-add]');
+    if (a && rxMode === 'pick') { const m = ALL.find(x => x.id === a.dataset.add); if (m) { RX.items.push({ p: m.id, n: m.n, ext: false, dose: '', freq: '', dur: '', ins: '' }); saveDraft(); rxMode = 'form'; rxForm(); $('sheet').scrollTop = $('sheet').scrollHeight; } return; }
+    if (!b || (rxMode !== 'form' && rxMode !== 'nt')) return;
+    const k = b.dataset.rx;
+    if (k === 'pick') { rxPickOpen(); }
+    else if (k === 'back') { rxMode = 'form'; rxForm(); }
+    else if (k === 'ext') { RX.items.push({ p: '', n: '', ext: true, dose: '', freq: '', dur: '', ins: '' }); saveDraft(); rxForm(); $('sheet').scrollTop = $('sheet').scrollHeight; }
+    else if (k === 'del') { if (await ask('حذف هذا الدواء من الوصفة؟', 'حذف')) { RX.items.splice(+b.dataset.i, 1); saveDraft(); rxForm(true); } }
+    else if (k === 'ins') { const it = RX.items[+b.dataset.i], t = b.dataset.t; it.ins = it.ins ? (it.ins.includes(t) ? it.ins : it.ins + '، ' + t) : t; saveDraft(); const c = b.closest('.rxi').querySelector('[data-f="ins"]'); c.value = it.ins; }
+    else if (k === 'clear') { if (await ask('مسح الوصفة كاملة؟', 'مسح')) { RX = { num: mkNum(), doctor: RX.doctor, patient: '', items: [], note: '' }; saveDraft(); rxForm(); } }
+    else if (k === 'print') { if (rxValid()) rxPrintNow(rxRec()); }
+    else if (k === 'send') { rxSend(b); }
+    else if (k === 'reprint') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) rxPrintNow(r); }
+    else if (k === 'forget') { if (await ask('إزالة هذه الوصفة من القائمة؟', 'إزالة')) { const id = b.dataset.rid; MY = MY.filter(x => x.rid !== id); lsSet('diwanRx', MY); if (NTU[id]) { try { NTU[id](); } catch (x) { /* تجاهل */ } delete NTU[id]; } delete NT[id]; ntRender(); } }
+});
+
 $('reqBtn').onclick = () => reqOpen(q.trim());
 $('bg').addEventListener('click', e => { if (e.target === $('bg')) closeSheet(); });
 $('favBtn').onclick = () => { favOnly = !favOnly; shown = 60; render(true); };
@@ -405,6 +557,7 @@ try {
     firebase.initializeApp(firebaseConfig);
     firebase.firestore().collection('pharmacy').doc('doctor').onSnapshot(s => { if (s.exists) setDoc(s.data()); else if (!doc) setDoc(null); }, () => { if (!doc) setDoc(null); });
 } catch (e) { if (!doc) setDoc(null); }
+try { ntWatch(); ntBadge(); } catch (e) { /* تجاهل */ }
 function fit() { const r = document.documentElement.style; r.setProperty('--hh', $('top').offsetHeight + 'px'); r.setProperty('--fh', $('foot').offsetHeight + 'px'); }
 fit(); addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 200));
 try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit); if (window.ResizeObserver) { const ro = new ResizeObserver(fit); ro.observe($('top')); ro.observe($('foot')); } } catch (e) { /* تجاهل */ }
