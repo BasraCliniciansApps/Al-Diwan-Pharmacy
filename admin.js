@@ -106,9 +106,11 @@ function expiryDaysOf(dateStr) {   // نفس حساب التطبيق: اعتبا
 }
 // يحدد حالات التنبيه للصنف حسب أقرب تاريخ نفاذ (التصنيف تراكمي: خلال شهر ⊂ خلال 3 أشهر ⊂ خلال 6 أشهر)
 function alertKinds(p) {
-    let days = null, date = '';
-    (hasUnits(p) ? getProductExpiryDates(p) : []).forEach(d => { const n = expiryDaysOf(d); if (n !== null && (days === null || n < days)) { days = n; date = d; } });
-    const k = { days, date, expired: days !== null && days <= 0, m1: days !== null && days <= alertMonths[0] * 30, m3: days !== null && days <= alertMonths[1] * 30, m6: days !== null && days <= alertMonths[2] * 30, low: isLowStock(p) };
+    let days = null, date = '', bq = null;
+    const bts = p.bt ? getBatches(p).filter(b => b.e) : null;
+    (bts ? bts.map(b => b.e) : (hasUnits(p) ? getProductExpiryDates(p) : [])).forEach(d => { const n = expiryDaysOf(d); if (n !== null && (days === null || n < days)) { days = n; date = d; } });
+    if (bts && date) bq = bts.find(b => b.e === date);
+    const k = { days, date, bq, expired: days !== null && days <= 0, m1: days !== null && days <= alertMonths[0] * 30, m3: days !== null && days <= alertMonths[1] * 30, m6: days !== null && days <= alertMonths[2] * 30, low: isLowStock(p) };
     k.any = k.m6 || k.low;
     return k;
 }
@@ -153,9 +155,9 @@ function renderAlerts() {
     document.getElementById('alertCount').innerText = list.length + ' صنف';
     const tag = ({ p, k }) => {
         if (alertFilterV === 'low' || (k.days === null || !k.m6)) return `<span class="exp-tag t-low">📉 كمية قليلة: ${escapeHtml(stockLabel(p))}</span>`;
-        if (k.expired) return `<span class="exp-tag t-exp">⛔ منتهية · ${k.date}</span>`;
+        if (k.expired) return `<span class="exp-tag t-exp">⛔ منتهية · ${k.date}${k.bq ? ' · ' + btFmt(k.bq, p) : ''}</span>`;
         const cls = k.m1 ? 't-m1' : k.m3 ? 't-m3' : 't-m6';
-        return `<span class="exp-tag ${cls}">⏳ ${k.date} · ${k.days} يوم</span>`;
+        return `<span class="exp-tag ${cls}">⏳ ${k.date} · ${k.days} يوم${k.bq ? ' · ' + btFmt(k.bq, p) : ''}</span>`;
     };
     document.getElementById('alertsContainer').innerHTML = list.map(x => productCardHtml(x.p, tag(x))).join('') ||
         `<div class="empty-state empty-wide"><div class="empty-ico">✅</div><div>لا توجد أصناف ضمن هذا التنبيه</div></div>`;

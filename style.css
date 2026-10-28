@@ -3030,3 +3030,19 @@ body.doc-open #formModal { z-index: 9200; } body.doc-open .swal2-container { z-i
 
 .cat-doneT { background: #dcfce7; color: #15803d; }
 [data-theme="dark"] .cat-doneT { background: #14352a; color: #86efac; }
+
+/* الدفعات في الجرد */
+.inv-bt { flex: 0 0 100%; border: 1px solid #e5eaf2; border-radius: 12px; background: #fffaf0; overflow: hidden; }
+.inv-btbar { display: flex; align-items: center; gap: 8px; padding: 9px 12px; cursor: pointer; font-size: .8rem; font-weight: 800; color: #334155; min-height: 42px; }
+.inv-btbar small { margin-inline-start: auto; font-weight: 700; color: #92400e; font-size: .72rem; max-width: 55%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv-btbody { padding: 2px 12px 12px; display: grid; gap: 8px; }
+.inv-btrow { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 6px; align-items: end; }
+.inv-btrow > input { min-width: 0; }
+.inv-btrow label { display: flex; flex-direction: column; gap: 3px; font-size: .72rem; font-weight: 800; color: #475569; min-width: 0; }
+.inv-btrow input { width: 100%; border: 1.5px solid #cbd5e1; background: #fff; color: #111; border-radius: 10px; text-align: center; min-height: var(--field-h); height: var(--field-h); font-size: var(--field-fs); }
+.inv-btdel { height: var(--field-h); min-width: 40px; }
+.inv-btadd { min-height: 42px; border: 1.5px dashed #d97706; background: #fff; color: #b45309; border-radius: 10px; font: 800 .82rem inherit; font-family: inherit; cursor: pointer; }
+.inv-bttot { font-size: .8rem; font-weight: 800; color: #0f1c38; text-align: center; }
+.inv-btnote { font-size: .76rem; font-weight: 700; color: #b45309; background: #fef3c7; border-radius: 8px; padding: 6px 10px; }
+[data-theme="dark"] .inv-bt { background: #2a2214; border-color: #4a3b1c; } [data-theme="dark"] .inv-btbar { color: #e2e8f0; } [data-theme="dark"] .inv-btbar small { color: #fcd34d; } [data-theme="dark"] .inv-btadd { background: #1e293b; color: #fcd34d; } [data-theme="dark"] .inv-bttot { color: #e2e8f0; }
+.inv-step button:disabled { opacity: .4; }

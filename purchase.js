@@ -12,6 +12,18 @@ let puDraftTimer = null;
 
 function emptyPurchase() { return { supplier: '', no: '', date: todayLocalISO(), items: [], returnAmt: '', paid: '', notes: '', stmt: false, useEntry: false, updStock: true }; }
 const puNum = v => parseFloat(v) || 0;
+function puBatchMap(l) {   // توزيع كمية السطر على تواريخ نفاذها: الدفعة الرئيسية (+البونص) والدفعات الإضافية
+    const m = {}; if (!l || l.applied === false) return m;
+    const xb = (l.xb || []).filter(b => parseInt(b.q) > 0), tot = (parseInt(l.qty) || 0) + (parseInt(l.bonus) || 0), xs = xb.reduce((s, b) => s + (parseInt(b.q) || 0), 0);
+    m[l.expiry || ''] = (m[l.expiry || ''] || 0) + Math.max(tot - xs, 0);
+    xb.forEach(b => { m[b.expiry || ''] = (m[b.expiry || ''] || 0) + (parseInt(b.q) || 0); });
+    return m;
+}
+function puBatchHint(p, newL, oldL) {   // الفرق بين السطر الجديد والقديم يُرسل كتلميح لدفعات المادة
+    const a = puBatchMap(newL), b = puBatchMap(oldL), out = [];
+    new Set([...Object.keys(a), ...Object.keys(b)]).forEach(e => { const d = (a[e] || 0) - (b[e] || 0); if (d) out.push({ e, q: d }); });
+    if (out.length) p._badd = (p._badd || []).concat(out);
+}
 const puLQ = l => l.applied === false ? 0 : (parseInt(l.qty) || 0) + (parseInt(l.bonus) || 0);   // الكمية الداخلة للمخزن = المشتراة + البونص
 function puTotalOf(r) { return (r.items || []).reduce((s, it) => s + puNum(it.qty) * puNum(it.cost), 0); }
 function puNetOf(r) { return Math.max(puTotalOf(r) - puNum(r.returnAmt) - (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0), 0); }
@@ -424,6 +436,7 @@ async function puSave() {
     oldLines.filter(l => !newIds.has(l.pid)).forEach(l => {
         const p = products.find(x => x.id === l.pid); if (!p) return; snap(p);
         p.qty = Math.max((parseInt(p.qty) || 0) - puLQ(l), 0);
+        puBatchHint(p, null, l);
         if (l.applied !== false && l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
         if ((l.applied !== false || l.expOnly) && l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
         if ((l.applied !== false || l.expOnly) && l.expAddedX && l.expAddedX.length) { p.expiryDates = getProductExpiryDates(p).filter(e => !l.expAddedX.includes(e)); p.expiryDate = p.expiryDates[0] || ''; }
@@ -459,6 +472,7 @@ async function puSave() {
             lines.push(line); return;
         }
         p.qty = Math.max((parseInt(p.qty) || 0) + n + bn - (old ? puLQ(old) : 0), 0);
+        puBatchHint(p, line, old);
         if (old && old.expiry !== line.expiry && old.expAdded && old.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; line.expAdded = false; }
         if (cost > 0) p.costPrice = cost;
         if (it.rsc != null || it.rst != null || it.rsp != null) {   // تعديل التجزئة من بطاقة الوارد
@@ -613,6 +627,7 @@ async function puCancel(id) {
         const p = products.find(x => x.id === l.pid); if (!p) return;
         if (!csnaps.has(p.id)) csnaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase });
         p.qty = Math.max((parseInt(p.qty) || 0) - puLQ(l), 0);
+        puBatchHint(p, null, l);
         if (l.applied !== false && l.cost > 0 && puNum(p.costPrice) === l.cost) p.costPrice = l.prevCost || 0;
         if ((l.applied !== false || l.expOnly) && l.expAdded && l.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== l.expiry); p.expiryDate = p.expiryDates[0] || ''; }
         if ((l.applied !== false || l.expOnly) && l.expAddedX && l.expAddedX.length) { p.expiryDates = getProductExpiryDates(p).filter(e => !l.expAddedX.includes(e)); p.expiryDate = p.expiryDates[0] || ''; }
@@ -919,6 +934,7 @@ async function puApplyLines(r, idxs) {
         const before = parseInt(p.qty) || 0, n = (parseInt(l.qty) || 0) + (parseInt(l.bonus) || 0), cost = puNum(l.cost);
         l.prevQty = before; l.prevCost = p.costPrice || 0;
         p.qty = before + n;
+        puBatchHint(p, { ...l, applied: true }, null);
         if (cost > 0) p.costPrice = cost;
         if (l.expiry && (puExpiryPush(p, l.expiry) || (l.expOnly && l.expAdded))) l.expAdded = true;
         if (l.xb && l.xb.length) { const w = [...new Set(l.xb.map(b => b.expiry).filter(Boolean))], ox = (l.expOnly && l.expAddedX) || []; l.expAddedX = w.filter(e => puExpiryPush(p, e) || ox.includes(e)); }

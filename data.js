@@ -168,7 +168,7 @@ products = products.map(p => ({
 // بيانات المخزون الحساسة (الكمية، الحد الأدنى، الصلاحية) تُحفظ في مجموعة خاصة بالصيدلي
 // ============================================================================
 const IS_ADMIN_PAGE = window.APP_MODE === 'admin';
-const STOCK_FIELDS = ['qty', 'loose', 'counted', 'minQty', 'expiryDate', 'expiryDates', 'costPrice', 'lastPurchase', 'markupPct'];
+const STOCK_FIELDS = ['qty', 'loose', 'counted', 'bt', 'minQty', 'expiryDate', 'expiryDates', 'costPrice', 'lastPurchase', 'markupPct'];
 let cloudPub = [];          // الأصناف العامة كما تصل من السحابة
 let setupMode = false;       // وضع التأسيس: المواد غير المجرودة لا تتأثر بالوارد والبيع والمردود (علامة في pharmacy_stock/_setup)
 function setupSkip(p) { return setupMode && !!p && p.counted !== true; }   // true = لا تغيّر كمية هذه المادة تلقائياً
@@ -1340,11 +1340,13 @@ function openSheet(id) {
         : `<span class="form-badge" style="background:#fee2e2; color:#b91c1c;">${IS_ADMIN_PAGE ? 'نافذ (0)' : 'غير متوفر'}${priceTxt}</span>`;
 
     // سطر تاريخ النفاذ داخل لوحة الصيدلي فقط
-    const expDates = getProductExpiryDates(p);
+    const btList = p.bt ? getBatches(p).filter(b => b.e) : null;
+    const expDates = btList ? btList.map(b => b.e) : getProductExpiryDates(p);
+    const btCnt = {}; (btList || []).forEach(b => { btCnt[b.e] = btFmt(b, p); });
     const expiryInfo = expDates.length
         ? `<div style="font-size:0.78rem; font-weight:700; color:#475569; margin-bottom:8px;">📅 ${expDates.length > 1 ? 'تواريخ النفاذ' : 'تاريخ النفاذ'}: ${expDates.map(dt => {
             const st = getExpiryStatus(dt);
-            return `<span dir="ltr" style="display:inline-block; margin:0 0 3px 4px; padding:1px 8px; border-radius:6px; background:${st ? st.bg : '#f1f5f9'}; color:${st ? st.color : '#334155'};">${dt}</span>`;
+            return `<span dir="ltr" style="display:inline-block; margin:0 0 3px 4px; padding:1px 8px; border-radius:6px; background:${st ? st.bg : '#f1f5f9'}; color:${st ? st.color : '#334155'};">${dt}${btCnt[dt] ? ' × ' + btCnt[dt] : ''}</span>`;
         }).join('')}</div>`
         : `<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📅 تاريخ النفاذ: غير محدد</div>`;
 
@@ -2043,6 +2045,51 @@ function getProductExpiryDates(p) {
     return [...new Set(arr.filter(Boolean))].sort();   // الأقرب أولاً (YYYY-MM)
 }
 
+// ============================================================================
+// الدفعات (Batches): لكل مادة قائمة {تاريخ النفاذ: {q: علب، l: أجزاء}} تُخزَّن في p.bt بمفتاح YYYY_MM (و none = بدون تاريخ)
+// الكمية الكلية p.qty / p.loose هي المرجع دائماً؛ getBatches تُطابق الدفعات معها (النقص من الأقرب نفاذاً، والزيادة لدفعة «بدون تاريخ»)
+// مواد بلا p.bt (القديمة) تبقى كما هي حتى تُجرد بالدفعات أو يدخل لها وارد
+// ============================================================================
+function btKey(e) { return e ? String(e).replace(/-/g, '_') : 'none'; }
+function btDate(k) { return k === 'none' ? '' : String(k).replace(/_/g, '-'); }
+function btSc(p) { const s = parseInt(p.subCount) || 0; return s >= 2 ? s : 1; }
+function getBatches(p, o) {
+    o = o || {};
+    const sc = btSc(p), unitsOf = (q, l) => (parseInt(q) || 0) * sc + (sc > 1 ? (parseInt(l) || 0) : 0);
+    const target = unitsOf(p.qty, p.loose);
+    let list = [];
+    if (p.bt && typeof p.bt === 'object') {
+        Object.keys(p.bt).forEach(k => { const b = p.bt[k] || {}, u = unitsOf(b.q, b.l); if (u > 0) list.push({ e: btDate(k), u }); });
+    } else {
+        const ds = getProductExpiryDates(p);
+        return target > 0 ? [{ e: ds.length === 1 ? ds[0] : '', q: parseInt(p.qty) || 0, l: sc > 1 ? (parseInt(p.loose) || 0) : 0, legacy: ds.length > 1 ? ds : null }] : [];
+    }
+    list.sort((a, b) => (a.e ? 0 : 1) - (b.e ? 0 : 1) || String(a.e).localeCompare(String(b.e)));
+    let tot = list.reduce((s, b) => s + b.u, 0);
+    if (tot > target) { let ex = tot - target; for (const b of list) { const t = Math.min(b.u, ex); b.u -= t; ex -= t; if (!ex) break; } }
+    else if (tot < target) { const sur = target - tot; let b = o.surplusTo ? list.find(x => x.e === o.surplusTo) : null; if (!b) b = list.find(x => !x.e); if (!b) { b = { e: o.surplusTo || '', u: 0 }; list.push(b); list.sort((a, c) => (a.e ? 0 : 1) - (c.e ? 0 : 1) || String(a.e).localeCompare(String(c.e))); } b.u += sur; }
+    return list.filter(b => b.u > 0).map(b => ({ e: b.e, q: Math.floor(b.u / sc), l: b.u % sc }));
+}
+function btFromArr(arr) { const m = {}; (arr || []).forEach(b => { const q = parseInt(b.q) || 0, l = parseInt(b.l) || 0; if (q <= 0 && l <= 0) return; const k = btKey(b.e); if (m[k]) { m[k].q += q; m[k].l += l; } else m[k] = { q, l }; }); return m; }
+function btApply(p, arr) {   // يضبط p.bt ويشتق منه تواريخ النفاذ (ليبقى باقي النظام متوافقاً)
+    p.bt = btFromArr(arr);
+    const ds = Object.keys(p.bt).map(btDate).filter(Boolean).sort();
+    p.expiryDates = ds; p.expiryDate = ds[0] || '';
+}
+function btFmt(b, p) { const sc = btSc(p); return (b.q ? b.q + ' علبة' : '') + (b.q && b.l ? ' + ' : '') + (b.l ? b.l + ' ' + (p.subType || 'جزء') : '') || '0'; }
+// تجهيز إدخال الحفظ: يحدّث دفعات المادة حسب تغيّر الكمية، ويحمل تلميحات الوارد p._badd = [{e, q, l}] (قد تكون سالبة)
+function btPrepare(e) {
+    const p = e.p, cur = stockMap[String(p.id)] || {};
+    const hint = Array.isArray(p._badd) && p._badd.length ? p._badd : null;
+    delete p._badd;
+    if (!p.bt && !hint && !e.btSet) return;
+    if (!p.bt) p.bt = btFromArr(getBatches({ qty: cur.qty, loose: cur.loose, subCount: p.subCount, expiryDates: cur.expiryDates, expiryDate: cur.expiryDate }));
+    if (hint) hint.forEach(h => { const k = btKey(h.e), b = p.bt[k] || (p.bt[k] = { q: 0, l: 0 }); b.q = Math.max(0, (parseInt(b.q) || 0) + (parseInt(h.q) || 0)); b.l = Math.max(0, (parseInt(b.l) || 0) + (parseInt(h.l) || 0)); });
+    (e.expRemove || []).forEach(d => { delete p.bt[btKey(d)]; });
+    const arr = getBatches(p, { surplusTo: (e.expAdd || [])[0] });
+    btApply(p, arr);
+    e.btOut = true;
+}
 function addExpiryRow(value = '') {
     const wrap = document.getElementById('expiryDatesWrap');
     if (!wrap) return;
@@ -2100,7 +2147,7 @@ function getExpiringProducts() {
     const list = [];
     products.forEach(p => {
         if (!hasUnits(p)) return;
-        getProductExpiryDates(p).forEach(date => {
+        (p.bt ? getBatches(p).map(b => b.e).filter(Boolean) : getProductExpiryDates(p)).forEach(date => {
             const status = getExpiryStatus(date);
             if (status) list.push({ product: p, status, date });
         });
@@ -2657,6 +2704,7 @@ function deltaFromSnap(p, s) {
 }
 async function saveProductsDelta(entries) {
     entries = (entries || []).filter(Boolean);
+    entries.forEach(btPrepare);
     saveLocal();
     if (!isFirebaseReady || !currentUser) {
         await Swal.fire({ icon: 'error', title: 'أنت غير مسجل الدخول!', text: 'سجّل دخول الصيدلي أولاً ليتم الحفظ في الإنترنت.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
@@ -2685,7 +2733,11 @@ async function saveProductsDelta(entries) {
                 if (e.mark && can('stockEdit')) u.counted = true;
                 if (e.unmark && can('stockEdit')) u.counted = false;
                 if (!costSplitOn) { if (e.cost !== undefined) u.costPrice = e.cost; if (e.lastSet) u.lastPurchase = e.last; }
-                if (e.expChanged) {
+                if (e.btOut) {
+                    const dts = getProductExpiryDates(e.p); u.expiryDates = dts; u.expiryDate = dts[0] || '';
+                    const bm = {}; Object.keys(e.p.bt || {}).forEach(k => { bm[k] = { q: e.p.bt[k].q, l: e.p.bt[k].l }; }); Object.keys(cur.bt || {}).forEach(k => { if (!bm[k]) bm[k] = F.delete(); });
+                    u.bt = bm;
+                } else if (e.expChanged) {
                     if (e.expAdd.length && !e.expRemove.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayUnion(...e.expAdd);
                     else if (e.expRemove.length && !e.expAdd.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayRemove(...e.expRemove);
                     else u.expiryDates = getProductExpiryDates(e.p);
@@ -4312,11 +4364,11 @@ function openExpiryModal() {
 }
 
 // ---------------- وضع الجرد ----------------
-let invCounts = {}, invLoose = {}, invRt = {}, invRtOpen = {};
+let invCounts = {}, invLoose = {}, invRt = {}, invRtOpen = {}, invBt = {}, invBtOpen = {};
 let invQuery = '';
 
 function openInventory() {
-    invCounts = {}; invLoose = {}; invRt = {}; invRtOpen = {};
+    invCounts = {}; invLoose = {}; invRt = {}; invRtOpen = {}; invBt = {}; invBtOpen = {};
     invQuery = '';
     const q = document.getElementById('invSearch');
     if (q) q.value = '';
@@ -4349,9 +4401,44 @@ function invFinal(p) {   // الكمية النهائية بعد تطبيق إع
     if (!(e.on && e.cnt > 1)) return { q: c.q, l: 0 };
     const t = c.q * e.cnt + c.l; return { q: Math.floor(t / e.cnt), l: t % e.cnt };
 }
-function invIsChanged(p) { const c = invCur(p); return invRtDirty(p) || c.q !== (parseInt(p.qty) || 0) || (hasRetail(p) && c.l !== (parseInt(p.loose) || 0)); }
+function btSig(arr) { return (arr || []).filter(b => (parseInt(b.q) || 0) > 0 || (parseInt(b.l) || 0) > 0).map(b => (b.e || '') + '|' + (parseInt(b.q) || 0) + '|' + (parseInt(b.l) || 0)).sort().join(';'); }
+function mergeRows(rows) { const m = btFromArr(rows); return Object.keys(m).map(k => ({ e: btDate(k), q: m[k].q, l: m[k].l })); }
+function invBtDirty(p) { return !!invBt[p.id] && btSig(mergeRows(invBt[p.id])) !== btSig(getBatches(p)); }
+function invBtTotals(p) {   // مجموع الدفعات بالعلب والأجزاء حسب إعداد التجزئة الفعلي
+    const e = invEff(p), sc = e.on && e.cnt > 1 ? e.cnt : 1;
+    const u = (invBt[p.id] || []).reduce((s, b) => s + (parseInt(b.q) || 0) * sc + (sc > 1 ? (parseInt(b.l) || 0) : 0), 0);
+    return { q: Math.floor(u / sc), l: sc > 1 ? u % sc : 0 };
+}
+function invBtSync(p) { const t = invBtTotals(p); invCounts[p.id] = t.q; invLoose[p.id] = t.l; }
+function invBtInit(p) { if (!invBt[p.id]) invBt[p.id] = getBatches(p).map(b => ({ e: b.e, q: b.q, l: b.l, legacy: b.legacy || null })); return invBt[p.id]; }
+function invBtToggle(id) { const p = products.find(x => x.id === id); if (!p) return; invBtOpen[id] = !invBtOpen[id]; if (invBtOpen[id]) invBtInit(p); invRowReplace(p); }
+function invBtAdd(id) { const p = products.find(x => x.id === id); if (!p) return; invBtInit(p).push({ e: '', q: 0, l: 0 }); invBtOpen[id] = true; invRowReplace(p); }
+function invBtDel(id, i) { const p = products.find(x => x.id === id); if (!p || !invBt[id]) return; invBt[id].splice(i, 1); invBtSync(p); invRowReplace(p); }
+function invBtSet(id, i, f, v) {
+    const p = products.find(x => x.id === id); if (!p || !invBt[id] || !invBt[id][i]) return;
+    invBt[id][i][f] = f === 'e' ? v : Math.max(0, parseInt(v) || 0);
+    invBtSync(p); invRowReplace(p);
+}
+function invBtHtml(p) {
+    const open = !!invBtOpen[p.id], rows = invBt[p.id], e = invEff(p), on = e.on && e.cnt > 1;
+    const cur = rows ? mergeRows(rows).filter(b => b.q || b.l) : getBatches(p);
+    const summ = cur.length ? cur.map(b => (b.e || 'بدون تاريخ') + ' × ' + (b.q || 0) + (on && b.l ? '+' + b.l : '')).join(' ، ') : 'لا دفعات';
+    const leg = (rows || getBatches(p)).find(b => b.legacy);
+    const body = !open ? '' : `<div class="inv-btbody">
+        ${leg ? `<div class="inv-btnote">كان للمادة عدة تواريخ (${escapeHtml(leg.legacy.join('، '))}) بلا توزيع. وزّع الكمية عليها بالأسفل.</div>` : ''}
+        ${(rows || []).map((b, i) => `<div class="inv-btrow">
+            <input type="month" dir="ltr" value="${escapeHtml(b.e || '')}" onchange="invBtSet(${p.id}, ${i}, 'e', this.value)" aria-label="تاريخ النفاذ">
+            <label><span>علب</span><input type="number" inputmode="numeric" min="0" value="${b.q || 0}" onchange="invBtSet(${p.id}, ${i}, 'q', this.value)"></label>
+            ${on ? `<label><span>${escapeHtml(e.type || 'أجزاء')}</span><input type="number" inputmode="numeric" min="0" value="${b.l || 0}" onchange="invBtSet(${p.id}, ${i}, 'l', this.value)"></label>` : ''}
+            <button type="button" class="icon-btn inv-btdel" onclick="invBtDel(${p.id}, ${i})" aria-label="حذف الدفعة">✕</button></div>`).join('')}
+        <button type="button" class="inv-btadd" onclick="invBtAdd(${p.id})">＋ إضافة دفعة</button>
+        <div class="inv-bttot">المجموع: <b>${invBtTotals(p).q}</b> علبة${on ? ` + <b>${invBtTotals(p).l}</b> ${escapeHtml(e.type || 'جزء')}` : ''}</div>
+    </div>`;
+    return `<div class="inv-bt ${open ? 'open' : ''}"><div class="inv-btbar" onclick="invBtToggle(${p.id})"><span class="inv-chev">${open ? '▾' : '▸'}</span><span>📅 الدفعات والصلاحية</span><small dir="auto">${escapeHtml(summ)}</small></div>${body}</div>`;
+}
+function invIsChanged(p) { const c = invCur(p); return invRtDirty(p) || invBtDirty(p) || c.q !== (parseInt(p.qty) || 0) || (hasRetail(p) && c.l !== (parseInt(p.loose) || 0)); }
 function invChangedCount() {
-    return products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined || invRt[p.id]) && invIsChanged(p)).length;
+    return products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined || invRt[p.id] || invBt[p.id]) && invIsChanged(p)).length;
 }
 
 function invRowHtml(p) {
@@ -4361,10 +4448,11 @@ function invRowHtml(p) {
     return `<div class="inv-row ${changed ? 'changed' : ''}" id="inv_${p.id}">
             <div class="inv-info"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')} • المسجّل: ${escapeHtml(stockLabel(p))}</small></div>
             <div class="inv-step">
-                <button type="button" onclick="invStep(${p.id}, -1)">−</button>
-                <input type="number" inputmode="numeric" min="0" value="${val}" onchange="invSet(${p.id}, this.value)" id="invIn_${p.id}">
-                <button type="button" onclick="invStep(${p.id}, 1)">+</button>
+                <button type="button" onclick="invStep(${p.id}, -1)" ${invBt[p.id] ? 'disabled' : ''}>−</button>
+                <input type="number" inputmode="numeric" min="0" value="${val}" onchange="invSet(${p.id}, this.value)" id="invIn_${p.id}" ${invBt[p.id] ? 'readonly' : ''}>
+                <button type="button" onclick="invStep(${p.id}, 1)" ${invBt[p.id] ? 'disabled' : ''}>+</button>
             </div>
+            ${invBtHtml(p)}
             ${on ? `<label class="inv-parts" title="${escapeHtml(e.type)} مفتوحة"><span>🧩 ${escapeHtml(e.type)} مفتوحة</span><input type="number" inputmode="numeric" min="0" value="${c.l}" onchange="invSetLoose(${p.id}, this.value)" id="invLp_${p.id}"></label>` : ''}
             <div class="inv-rt ${open ? 'open' : ''}">
                 <div class="inv-rtbar" onclick="invRtToggle(${p.id})"><span class="inv-chev">${open ? '▾' : '▸'}</span><span>🧩 التجزئة</span><small>${sum}</small>
@@ -4408,7 +4496,7 @@ function refreshInvFooter() {
 
 function invSet(id, v) {
     const p = products.find(x => x.id === id);
-    if (!p) return;
+    if (!p || invBt[id]) return;   // مع الدفعات يُحسب المجموع منها
     invCounts[id] = Math.max(0, parseInt(v) || 0);
     invRefreshRow(p);
 }
@@ -4430,7 +4518,7 @@ function invRefreshRow(p) {
 
 function invStep(id, d) {
     const p = products.find(x => x.id === id);
-    if (!p) return;
+    if (!p || invBt[id]) return;
     invSet(id, invCur(p).q + d);
 }
 
@@ -4440,7 +4528,7 @@ function invFilter(v) {
 }
 
 async function saveInventory() {
-    const changed = products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined || invRt[p.id]) && invIsChanged(p)).map(p => { const f = invFinal(p), e = invEff(p); return { p, from: parseInt(p.qty) || 0, fromL: parseInt(p.loose) || 0, to: f.q, toL: f.l, fromLabel: stockLabel(p), rt: invRtDirty(p) ? e : null, oldRt: { subCount: p.subCount, subType: p.subType, subPrice: p.subPrice } }; });
+    const changed = products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined || invRt[p.id] || invBt[p.id]) && invIsChanged(p)).map(p => { const f = invFinal(p), e = invEff(p); return { p, from: parseInt(p.qty) || 0, fromL: parseInt(p.loose) || 0, to: f.q, toL: f.l, fromLabel: stockLabel(p), rt: invRtDirty(p) ? e : null, oldRt: { subCount: p.subCount, subType: p.subType, subPrice: p.subPrice } }; });
     const same = setupMode ? products.filter(p => (invCounts[p.id] !== undefined || invLoose[p.id] !== undefined) && !invIsChanged(p) && p.counted !== true) : [];   // مجرودة بنفس رصيد التطبيق: تُعتمد كمؤسَّسة
     if (!changed.length && !same.length) return;
     const r = await Swal.fire({
@@ -4451,7 +4539,9 @@ async function saveInventory() {
     if (!r.isConfirmed) return;
     changed.forEach(c => {
         if (c.rt) { if (c.rt.on && c.rt.cnt > 1) { c.p.subCount = c.rt.cnt; c.p.subType = c.rt.type; c.p.subPrice = subPriceCalc(c.p.price, c.rt.cnt); } else { c.p.subCount = ''; c.p.subPrice = ''; } }
+        c.oldBt = c.p.bt; c.oldDates = [c.p.expiryDates, c.p.expiryDate];
         c.p.qty = c.to; c.p.loose = c.toL;
+        if (invBt[c.p.id]) { c.p.bt = btFromArr(invBt[c.p.id]); btApply(c.p, getBatches(c.p)); }
     });
     const canMark = can('stockEdit'); if (canMark) { changed.forEach(c => { c.p.counted = true; }); same.forEach(p => { p.counted = true; }); }
     const ok = await saveProductsBatch(changed.map(c => c.p).concat(same));
@@ -4462,7 +4552,7 @@ async function saveInventory() {
         renderAll();
         Swal.fire({ icon: 'success', title: `تم تحديث ${changed.length} صنف`, toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     } else {
-        changed.forEach(c => { c.p.qty = c.from; c.p.loose = c.fromL; Object.assign(c.p, c.oldRt); });   // نُرجع القيم القديمة عند فشل الحفظ
+        changed.forEach(c => { c.p.qty = c.from; c.p.loose = c.fromL; Object.assign(c.p, c.oldRt); if (invBt[c.p.id]) { c.p.bt = c.oldBt; c.p.expiryDates = c.oldDates[0]; c.p.expiryDate = c.oldDates[1]; } });   // نُرجع القيم القديمة عند فشل الحفظ
         saveLocal();
         renderInventory();
     }
