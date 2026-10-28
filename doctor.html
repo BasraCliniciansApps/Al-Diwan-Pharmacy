@@ -183,6 +183,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .vh { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; } .vh > div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; min-width: 0; } .vh .w { grid-column: 1 / -1; } .vh small, .vt small { display: block; color: var(--sub); font-size: .68rem; font-weight: 700; } .vh b { font-size: .9rem; overflow-wrap: anywhere; }
 .vi { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-top: 8px; box-shadow: var(--shadow); } .vi summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 12px; } .vi summary::-webkit-details-marker { display: none; } .vi summary > span { flex: 1; min-width: 0; } .vi summary b { font-size: .9rem; overflow-wrap: anywhere; } .vi summary small { display: block; color: var(--sub); font-size: .74rem; margin-top: 2px; } .vi summary svg { width: 16px; height: 16px; flex: 0 0 auto; transform: rotate(90deg); transition: transform .2s; } .vi[open] summary svg { transform: rotate(-90deg); }
 .vt { padding: 4px 12px 12px; } .vt b { font-size: .86rem; } .vt.vn { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.go.wa, .hb .wa { color: #128c4a; } .rxa .go.wa { background: color-mix(in srgb, #25d366 14%, var(--surface)); border: 1.5px solid #25d366; display: grid; place-items: center; padding: 0; } .rxa .go.wa svg { width: 24px; height: 24px; } .hb .wa { display: grid; place-items: center; } .hb .wa svg { width: 18px; height: 18px; }
 .pr2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .pr2 > div { min-width: 0; } .pr2 > div:first-child { order: 2; }
 .bg.mid { align-items: center; } .bg.mid .sheet { width: calc(100% - 28px); border-radius: 26px; max-height: 86vh; padding-bottom: 20px; }
 .sheet { overscroll-behavior: contain; touch-action: pan-y; } .bg { overscroll-behavior: contain; }
@@ -207,7 +208,7 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
 .addrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
 .addb { height: 48px; border-radius: 14px; border: 1.5px dashed var(--ok); background: color-mix(in srgb, var(--ok) 8%, transparent); color: var(--ok); font: 800 .8rem 'Tajawal', sans-serif; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
 .addb.ex { border-color: var(--noph); color: var(--noph); background: color-mix(in srgb, var(--noph) 8%, transparent); }
-.rxa { display: grid; grid-template-columns: 1fr 1.6fr; gap: 8px; margin-top: 14px; position: sticky; bottom: -1px; padding: 8px 0 2px; background: var(--bg); }
+.rxa { display: grid; grid-template-columns: 1fr 52px 1.6fr; gap: 8px; margin-top: 14px; position: sticky; bottom: -1px; padding: 8px 0 2px; background: var(--bg); }
 .rxa .go { margin: 0; } .rxa .go.alt { background: var(--surface); color: var(--text); border: 1.5px solid var(--line); }
 .pk { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
 .pk .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 10px 12px; cursor: pointer; font-size: .86rem; font-weight: 700; }
@@ -547,7 +548,7 @@ function rxForm(keep) {
         <div class="qc">${INS.map(t => `<button type="button" data-rx="ins" data-i="${i}" data-t="${t}">${t}</button>`).join('')}</div></div>`
         : `<div class="rxi cl" data-i="${i}"><button type="button" class="tg ${it.n.trim() ? '' : 'bad'}" data-rx="tog" data-i="${i}"><span><b dir="auto"><bdi>${esc(it.n.trim() || 'دواء بلا اسم')}</bdi></b>${it.ext ? ' <span class="tag">خارجي</span>' : ''}<small>${esc([it.dose, it.freq, it.dur].filter(Boolean).join(' · ') || 'لم تُحدد الجرعة والتكرار والمدة')}</small></span>${svg('<path d="m9 18 6-6-6-6"/>')}</button><button type="button" class="x" data-rx="del" data-i="${i}" aria-label="حذف">${svg('<path d="M18 6 6 18M6 6l12 12"/>')}</button></div>`).join('')}
     <label class="rxl">ملاحظات عامة</label><textarea data-k="note" placeholder="ملاحظة للصيدلي" style="min-height:76px;direction:rtl;text-align:right">${esc(RX.note)}</textarea>
-    <div class="rxa"><button type="button" class="go alt" data-rx="print">طباعة</button><button type="button" class="go" data-rx="send">إرسال وحفظ</button></div></div>`;
+    <div class="rxa"><button type="button" class="go alt" data-rx="print">طباعة</button><button type="button" class="go wa" data-rx="waf" aria-label="إرسال واتساب" title="إرسال PDF عبر واتساب">${RX_WA_ICON}</button><button type="button" class="go" data-rx="send">إرسال وحفظ</button></div></div>`;
     sh.scrollTop = keep ? top : 0;
 }
 
@@ -564,7 +565,7 @@ function histList() {
     const card = r => { const d = NT[r.rid], S = NSTAT[(d && d.st) || 'new'] || NSTAT.new, nm = (r.items || []).map(i => i.n);
         const chip = r.pend ? '<span class="st" style="--c:var(--noph)">لم تُرسل بعد</span>' : (d && d.st && d.st !== 'new' ? `<span class="st" style="--c:var(--${S[1]})">${S[0]}</span>` : '');
         return `<div class="hc"><div class="hh"><b dir="auto"><bdi>${esc(r.patient)}</bdi></b><small>${esc(r.num)} · ${hm(r.at)}${r.phone ? ' · <bdi dir="ltr">' + esc(r.phone) + '</bdi>' : ''}</small>${chip}</div><div class="hm" dir="auto">${esc(nm.slice(0, 4).join('، '))}${nm.length > 4 ? ' … +' + num(nm.length - 4) : ''}</div>
-        <div class="hb"><button type="button" data-rx="view" data-rid="${r.rid}">عرض</button><button type="button" data-rx="edit" data-rid="${r.rid}">تعديل</button><button type="button" data-rx="reprint" data-rid="${r.rid}">طباعة</button><button type="button" data-rx="reuse" data-rid="${r.rid}">نسخ</button><button type="button" class="d" data-rx="forget" data-rid="${r.rid}" aria-label="حذف">${svg('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div></div>`; };
+        <div class="hb"><button type="button" data-rx="view" data-rid="${r.rid}">عرض</button><button type="button" data-rx="edit" data-rid="${r.rid}">تعديل</button><button type="button" data-rx="reprint" data-rid="${r.rid}">طباعة</button>${r.phone ? `<button type="button" class="wa" data-rx="wa" data-rid="${r.rid}" aria-label="إرسال واتساب" title="إرسال PDF عبر واتساب">${RX_WA_ICON}</button>` : ''}<button type="button" data-rx="reuse" data-rid="${r.rid}">نسخ</button><button type="button" class="d" data-rx="forget" data-rid="${r.rid}" aria-label="حذف">${svg('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div></div>`; };
     $('hlist').innerHTML = recs.map(card).join('') || (n ? '<div class="empty"><b>لا توجد نتائج</b></div>' : '');
 }
 // ---------- عرض وصفة محفوظة ----------
@@ -575,7 +576,7 @@ function viewRender(rid) {
     sh.innerHTML = `<div class="grab"></div><div class="pgh"><button type="button" data-rx="tab" data-t="hist" aria-label="رجوع">${svg('<path d="m9 18 6-6-6-6"/>')}</button><b>عرض الوصفة</b></div>
     <div class="vh"><div><small>المريض</small><b dir="auto"><bdi>${esc(r.patient)}</bdi></b></div>${r.phone ? `<div><small>الهاتف</small><b dir="ltr">${esc(r.phone)}</b></div>` : ''}<div><small>الطبيب</small><b dir="auto"><bdi>${esc(r.doctor)}</bdi></b></div><div><small>التاريخ</small><b>${hm(r.at)}</b></div>${r.dx ? `<div class="w"><small>التشخيص</small><b dir="auto">${esc(r.dx)}</b></div>` : ''}</div>
     <label class="rxl">الأدوية</label>${it}${r.note ? `<label class="rxl">ملاحظات عامة</label><div class="vt vn"><b dir="auto">${esc(r.note)}</b></div>` : ''}
-    <div class="rxa"><button type="button" class="go alt" data-rx="reprint" data-rid="${rid}">طباعة</button><button type="button" class="go" data-rx="edit" data-rid="${rid}">تعديل</button></div>`;
+    <div class="rxa"><button type="button" class="go alt" data-rx="reprint" data-rid="${rid}">طباعة</button>${r.phone ? `<button type="button" class="go wa" data-rx="wa" data-rid="${rid}" aria-label="إرسال واتساب">${RX_WA_ICON}</button>` : ''}<button type="button" class="go" data-rx="edit" data-rid="${rid}">تعديل</button></div>`;
     sh.scrollTop = 0;
 }
 // ---------- استرجاع السجل على جهاز جديد ----------
@@ -747,6 +748,7 @@ $('sheet').addEventListener('click', async e => {
     else if (k === 'rssend') { rsSend(); }
     else if (k === 'rsget') { rsGet(b); }
     else if (k === 'rscancel') { if (await ask('إلغاء طلب الاسترجاع الحالي؟', 'إلغاء الطلب')) { try { localStorage.removeItem('diwanRs'); } catch (x) { /* تجاهل */ } rsRender(); } }
+    else if (k === 'wa') { const w = MY.find(x => x.rid === b.dataset.rid); if (w) rxShareWa(w); }
     else if (k === 'view') { viewRender(b.dataset.rid); }
     else if (k === 'edit') { const e0 = MY.find(x => x.rid === b.dataset.rid); if (e0) { RX = { num: e0.num, doctor: e0.doctor, patient: e0.patient, phone: e0.phone || '', dx: e0.dx || '', items: (e0.items || []).map(i => ({ ...i })), note: e0.note || '', editRid: e0.rid }; RXO = new Set(); saveDraft(); rxMode = 'form'; rxForm(); toast('تعديل الوصفة، اضغط إرسال وحفظ لتحديثها'); } }
     else if (k === 'reuse') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) { RX = { num: mkNum(), doctor: r.doctor, patient: r.patient, phone: r.phone || '', phone: r.phone || '', dx: r.dx || '', items: (r.items || []).map(i => ({ ...i })), note: r.note || '' }; RXO = new Set(); saveDraft(); rxMode = 'form'; rxForm(); toast('نُسخت الوصفة، عدّل ما تريد ثم أرسلها'); } }
@@ -759,6 +761,7 @@ $('sheet').addEventListener('click', async e => {
     else if (k === 'imp') { $('impF').value = ''; $('impF').click(); }
     else if (k === 'ins') { const it = RX.items[+b.dataset.i], t = b.dataset.t; it.ins = it.ins ? (it.ins.includes(t) ? it.ins : it.ins + '، ' + t) : t; saveDraft(); const c = b.closest('.rxi').querySelector('[data-f="ins"]'); c.value = it.ins; }
     else if (k === 'clear') { if (await ask('مسح الوصفة كاملة؟', 'مسح')) { RX = { num: mkNum(), doctor: RX.doctor, patient: '', phone: '', dx: '', items: [], note: '' }; RXO = new Set(); saveDraft(); rxForm(); } }
+    else if (k === 'waf') { if (!(RX.phone || '').trim()) { toast('أدخل رقم هاتف المريض أولاً'); return; } if (rxValid()) rxShareWa(rxRec()); }
     else if (k === 'print') { if (rxValid()) rxPrintNow(rxRec()); }
     else if (k === 'send') { rxSend(b); }
     else if (k === 'reprint') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) rxPrintNow(r); }

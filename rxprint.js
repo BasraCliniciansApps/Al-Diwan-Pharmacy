@@ -64,7 +64,7 @@ function rxPrintNow(rx) {
 }
 
 // ---------- تشفير سجل الطبيب للاسترجاع (AES-GCM بمفتاح مشتق من رمز من 6 أرقام) ----------
-const rxB64 = u8 => btoa(String.fromCharCode.apply(null, Array.from(u8)));
+const rxB64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, Array.from(u8.subarray(i, i + 8192))); return btoa(s); };
 const rxUnB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
 async function rxKey(code, salt) {
     const enc = new TextEncoder(), base = await crypto.subtle.importKey('raw', enc.encode(String(code)), 'PBKDF2', false, ['deriveKey']);
@@ -78,4 +78,56 @@ async function rxEncrypt(code, salt, obj) {
 async function rxDecrypt(code, salt, iv, data) {
     const key = await rxKey(code, salt), pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: rxUnB64(iv) }, key, rxUnB64(data));
     return JSON.parse(new TextDecoder().decode(pt));
+}
+
+// ---------- إرسال الوصفة كملف PDF عبر واتساب ----------
+const RX_WA_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>';
+function rxWaNum(p) {
+    let d = String(p || '').replace(/[^\d+]/g, '').replace(/^\+/, ''); d = d.replace(/[٠-٩]/g, c => c.charCodeAt(0) - 1632);
+    if (d.startsWith('00')) d = d.slice(2); else if (d.startsWith('0')) d = '964' + d.slice(1);
+    return d.replace(/\D/g, '');
+}
+async function rxPdfBlob(rx) {
+    const W = 397;
+    let html = rxPrintDoc(rx);
+    try {
+        const buf = await (await fetch('fonts/ArefRuqaa-Bold.ttf')).arrayBuffer();
+        html = html.replace(/url\('[^']*ArefRuqaa-Bold\.ttf'\)/, "url('data:font/ttf;base64," + rxB64(new Uint8Array(buf)) + "')");
+    } catch (e) { /* تجاهل */ }
+    const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;left:-9999px;top:0;width:' + W + 'px;height:600px;border:0;visibility:hidden';
+    document.body.appendChild(f);
+    const d = f.contentWindow.document; d.open(); d.write(html); d.close();
+    try { await Promise.race([d.fonts.load('700 30px "Aref Ruqaa"', 'الدكتور'), new Promise(r => setTimeout(r, 2500))]); } catch (e) { /* تجاهل */ }
+    await new Promise(r => setTimeout(r, 150));
+    const pg = d.querySelector('.pg'), H = Math.max(559, Math.ceil(pg.getBoundingClientRect().height));
+    const css = d.querySelector('style').textContent.replace(/@page[^}]*}/, '') + ' .pg { margin: 0 !important; box-shadow: none !important; } .wrap { background: #fff; font-family: Tajawal, "Segoe UI", Tahoma, Arial, sans-serif; color: #0f1c38; direction: rtl; }';
+    const inner = new XMLSerializer().serializeToString(pg);
+    f.remove();
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '"><foreignObject width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml" class="wrap" dir="rtl"><style>' + css.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</style>' + inner + '</div></foreignObject></svg>';
+    const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('img')); i.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg); });
+    const S = 3, cv = document.createElement('canvas'); cv.width = W * S; cv.height = H * S;
+    const cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(img, 0, 0, cv.width, cv.height);
+    const jpg = new Uint8Array(await (await new Promise(r => cv.toBlob(r, 'image/jpeg', 0.92))).arrayBuffer());
+    const pw = (W * 0.75).toFixed(2), ph = (H * 0.75).toFixed(2), enc = new TextEncoder(), parts = [], offs = []; let len = 0;
+    const put = x => { const u = typeof x === 'string' ? enc.encode(x) : x; parts.push(u); len += u.length; };
+    const obj = (n, body, stream) => { offs[n] = len; put(n + ' 0 obj\n' + body); if (stream) { put('\nstream\n'); put(stream); put('\nendstream'); } put('\nendobj\n'); };
+    put('%PDF-1.4\n');
+    obj(1, '<< /Type /Catalog /Pages 2 0 R >>'); obj(2, '<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
+    obj(3, '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + pw + ' ' + ph + '] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>');
+    obj(4, '<< /Type /XObject /Subtype /Image /Width ' + cv.width + ' /Height ' + cv.height + ' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ' + jpg.length + ' >>', jpg);
+    const cs = 'q ' + pw + ' 0 0 ' + ph + ' 0 0 cm /Im0 Do Q'; obj(5, '<< /Length ' + cs.length + ' >>', cs);
+    const xr = len; put('xref\n0 6\n0000000000 65535 f \n'); for (let i = 1; i <= 5; i++) put(String(offs[i]).padStart(10, '0') + ' 00000 n \n');
+    put('trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n' + xr + '\n%%EOF');
+    return new Blob(parts, { type: 'application/pdf' });
+}
+async function rxShareWa(rx, say) {
+    say = say || (window.toast ? window.toast : () => { });
+    const num = rxWaNum(rx.phone); if (!num) { say('لا يوجد رقم هاتف للمريض'); return; }
+    say('جاري تجهيز ملف PDF...');
+    let blob; try { blob = await rxPdfBlob(rx); } catch (e) { say('تعذر تجهيز الملف'); return; }
+    const name = (rx.num || 'rx') + '.pdf', file = new File([blob], name, { type: 'application/pdf' });
+    const txt = 'وصفتك الطبية' + (rx.patient ? ' (' + rx.patient + ')' : '');
+    try { if (navigator.canShare && navigator.canShare({ files: [file] })) { say('اختر واتساب ثم المريض (' + rx.phone + ')'); await navigator.share({ files: [file], title: 'وصفة طبية', text: txt }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    say('نُزِّل الملف، أرفقه في محادثة المريض'); setTimeout(() => { try { window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(txt), '_blank'); } catch (e) { /* تجاهل */ } }, 600);
 }

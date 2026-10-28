@@ -55,7 +55,7 @@ function rxDetail(el, r) {
     }).join('')}
     <div class="dc-card"><div class="qk-row"><div><b>رد للطبيب</b><small>رسالة حرة تصله كإشعار.</small></div></div><div class="rx-rp"><input type="text" id="rxMsg" placeholder="اكتب الرد…" maxlength="160"><button type="button" onclick="rxReply('${rxE(r.id)}')">إرسال</button></div>
         ${(r.msgs || []).length ? `<div class="rx-ms">${(r.msgs || []).slice().reverse().slice(0, 12).map(m => `<div><span>${rxE(m.t)}</span><small>${rxTime(m.at)}</small></div>`).join('')}</div>` : ''}</div>
-    <div class="dc-actions"><button type="button" onclick="rxPrint('${rxE(r.id)}')">🖨 طباعة</button>${r.arch ? `<button type="button" onclick="rxArchive('${rxE(r.id)}',false)">↩ إرجاع من الأرشيف</button><button type="button" onclick="rxDel('${rxE(r.id)}')">🗑 حذف نهائي</button>` : `<button type="button" onclick="rxArchive('${rxE(r.id)}',true)">🗄 أرشفة الوصفة</button>`}</div></div>`;
+    <div class="dc-actions"><button type="button" onclick="rxPrint('${rxE(r.id)}')">🖨 طباعة</button>${r.phone ? `<button type="button" onclick="rxWa('${rxE(r.id)}')" aria-label="إرسال واتساب" title="إرسال PDF عبر واتساب" style="display:inline-grid;place-items:center;color:#128c4a">${RX_WA_ICON.replace('<svg ','<svg width="20" height="20" ')}</button>` : ''}${r.arch ? `<button type="button" onclick="rxArchive('${rxE(r.id)}',false)">↩ إرجاع من الأرشيف</button><button type="button" onclick="rxDel('${rxE(r.id)}')">🗑 حذف نهائي</button>` : `<button type="button" onclick="rxArchive('${rxE(r.id)}',true)">🗄 أرشفة الوصفة</button>`}</div></div>`;
 }
 async function rxApply(id, fn) {
     const r = rxRaw.find(x => x.id === id); if (!r) return false;
@@ -193,3 +193,5 @@ async function rxClean() {
     }
 }
 let x0 = '';
+
+function rxWa(id) { const r = rxRaw.find(q => q.id === id); if (r) rxShareWa({ num: r.num, doctor: r.doctor, patient: r.patient, phone: r.phone, dx: r.dx, items: r.items || [], note: r.note, at: r.ts }, m => Swal.fire({ toast: true, position: 'top', showConfirmButton: false, timer: 2200, title: m })); }
