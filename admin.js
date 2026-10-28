@@ -62,7 +62,7 @@ async function gateLogout() {
     showView('login');
 }
 
-function goStock(tab) { showView('stock'); if (tab) setMainTab(tab); }
+function goStock(tab) { showView('stock'); setMainTab(tab || 'all'); }
 function goAddProduct() { showView('stock'); openFormModal(); }
 
 async function refreshHome() {

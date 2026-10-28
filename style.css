@@ -2883,3 +2883,5 @@ input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input
 .lg-title small { display: block; margin-top: 2px; font-size: .74rem; font-weight: 600; color: #cbd5e1; }
 .lg-filters { margin-bottom: 12px; padding-top: 0 !important; }
 .pu-pane .bill-actions { margin-top: 2px; }
+
+body.no-bnav { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
