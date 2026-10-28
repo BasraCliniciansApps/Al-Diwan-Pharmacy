@@ -207,6 +207,13 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .qm { position: fixed; inset: 0; z-index: 95; background: rgba(8,14,30,.6); display: grid; place-items: center; padding: 20px; }
 .qm div { background: var(--surface); border-radius: 22px; padding: 20px; width: 100%; max-width: 340px; text-align: center; } .qm b { display: block; font-size: 1rem; margin-bottom: 14px; line-height: 1.6; }
 .qm .r { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .qm button { height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: 800 .85rem 'Tajawal', sans-serif; cursor: pointer; } .qm button.d { background: var(--nosup); border-color: var(--nosup); color: #fff; }
+
+.rxtabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: var(--surface-2); border: 1px solid var(--line); padding: 4px; border-radius: 16px; margin: 2px 0 12px; } .rxtabs button { height: 40px; border: 0; border-radius: 12px; background: transparent; color: var(--sub); font: 800 .84rem 'Tajawal', sans-serif; cursor: pointer; } .rxtabs button.on { background: var(--navy); color: #fff; box-shadow: var(--shadow); } :root[data-theme="dark"] .rxtabs button.on { background: var(--gold); color: #0f1c38; }
+.hg { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; margin-top: 10px; overflow: hidden; } .hg summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 12px 14px; font-weight: 800; font-size: .9rem; } .hg summary::-webkit-details-marker { display: none; } .hg summary b { flex: 1; min-width: 0; overflow-wrap: anywhere; } .hg summary em { font-style: normal; font-size: .72rem; background: var(--surface-2); border-radius: 999px; padding: 2px 10px; color: var(--sub); } .hg summary::after { content: '‹'; transition: transform .2s; } .hg[open] summary::after { transform: rotate(-90deg); }
+.hc { border-top: 1px dashed var(--line); padding: 10px 14px; } .hh { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; } .hh b { font-size: .84rem; } .hh small { color: var(--sub); font-size: .7rem; flex: 1; } .hm { font-size: .78rem; line-height: 1.7; margin: 6px 0; color: var(--text); overflow-wrap: anywhere; }
+.hb { display: grid; grid-template-columns: 1fr 1.3fr auto; gap: 6px; } .hb button { height: 38px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font: 800 .74rem 'Tajawal', sans-serif; cursor: pointer; padding: 0 10px; } .hb button.d { color: var(--nosup); }
+.rsl { display: block; width: 100%; margin-top: 14px; border: 1.5px dashed var(--line); background: transparent; color: var(--sub); border-radius: 14px; height: 44px; font: 800 .8rem 'Tajawal', sans-serif; cursor: pointer; }
+.hh .st { font-size: .7rem; font-weight: 800; border-radius: 999px; padding: 2px 9px; background: color-mix(in srgb, var(--c) 14%, transparent); color: var(--c); white-space: nowrap; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -503,7 +510,7 @@ function rxOpen() {
 }
 function rxForm(keep) {
     const sh = $('sheet'), top = sh.scrollTop;
-    sh.innerHTML = `<div class="grab"></div><div class="rxs"><div class="rxt"><h3>وصفة إلكترونية</h3><button type="button" class="lk" data-rx="clear">مسح الوصفة</button></div>
+    sh.innerHTML = `<div class="grab"></div>${rxTabs('new')}<div class="rxs"><div class="rxt"><h3>وصفة إلكترونية</h3><button type="button" class="lk" data-rx="clear">مسح الوصفة</button></div>
     <label class="rxl">اسم الطبيب <b>*</b></label><input class="fld" data-k="doctor" type="text" autocomplete="off" placeholder="د. ..." value="${esc(RX.doctor)}">
     <label class="rxl">اسم المريض <b>*</b></label><input class="fld" data-k="patient" type="text" autocomplete="off" placeholder="الاسم الثلاثي" value="${esc(RX.patient)}">
     <label class="rxl">التشخيص (اختياري)</label><input class="fld" data-k="dx" type="text" autocomplete="off" placeholder="التشخيص" value="${esc(RX.dx || '')}">
@@ -517,6 +524,58 @@ function rxForm(keep) {
     <label class="rxl">ملاحظات عامة (اختياري)</label><textarea data-k="note" placeholder="ملاحظة للصيدلي" style="min-height:76px;direction:rtl;text-align:right">${esc(RX.note)}</textarea>
     <div class="rxa"><button type="button" class="go alt" data-rx="print">طباعة</button><button type="button" class="go" data-rx="send">إرسال للصيدلية</button></div></div>`;
     sh.scrollTop = keep ? top : 0;
+}
+
+const rxTabs = t => `<div class="rxtabs"><button type="button" class="${t === 'new' ? 'on' : ''}" data-rx="tab" data-t="new">وصفة جديدة</button><button type="button" class="${t === 'hist' ? 'on' : ''}" data-rx="tab" data-t="hist">سجل الوصفات</button></div>`;
+const getDid = () => { let d = lsGet('diwanDid', ''); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(36).padStart(2, '0')).join('') + Date.now().toString(36); lsSet('diwanDid', d); } return d; };
+let HQ = '';
+function histRender() {
+    rxMode = 'hist'; const sh = $('sheet');
+    sh.innerHTML = `<div class="grab"></div>${rxTabs('hist')}<input class="fld" id="hq" type="search" autocomplete="off" placeholder="ابحث باسم المريض أو الدواء" value="${esc(HQ)}"><div id="hl"></div><button type="button" class="rsl" data-rx="rs">استرجاع سجلي من الصيدلية (جهاز جديد)</button>`;
+    histList(); sh.scrollTop = 0;
+}
+function histList() {
+    const n = norm(HQ.trim()), recs = MY.filter(r => !n || norm(r.patient + ' ' + r.num + ' ' + (r.items || []).map(i => i.n).join(' ')).includes(n)), g = new Map();
+    recs.forEach(r => { const k = norm(r.patient); if (!g.has(k)) g.set(k, { n: r.patient, l: [] }); g.get(k).l.push(r); });
+    const groups = [...g.values()].sort((a, b) => b.l[0].at - a.l[0].at);
+    const card = r => { const d = NT[r.rid], S = NSTAT[(d && d.st) || 'new'] || NSTAT.new, nm = (r.items || []).map(i => i.n + (i.dose ? ' (' + i.dose + ')' : ''));
+        return `<div class="hc"><div class="hh"><b>${esc(r.num)}</b><small>${hm(r.at)}${r.dx ? ' · ' + esc(r.dx) : ''}</small><span class="st" style="--c:var(--${S[1]})">${S[0]}</span></div><div class="hm" dir="auto">${esc(nm.slice(0, 4).join('، '))}${nm.length > 4 ? ' … +' + num(nm.length - 4) : ''}</div>
+        <div class="hb"><button type="button" data-rx="reprint" data-rid="${r.rid}">طباعة</button><button type="button" data-rx="reuse" data-rid="${r.rid}">نسخ كوصفة جديدة</button><button type="button" class="d" data-rx="forget" data-rid="${r.rid}" aria-label="حذف">${svg('<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>')}</button></div></div>`; };
+    $('hl').innerHTML = groups.map(x => `<details class="hg" ${n || groups.length === 1 ? 'open' : ''}><summary><b dir="auto"><bdi>${esc(x.n)}</bdi></b><em>${num(x.l.length)}</em></summary>${x.l.map(card).join('')}</details>`).join('') || `<div class="empty"><b>${n ? 'لا توجد نتائج' : 'لا توجد وصفات محفوظة'}</b>${n ? '' : 'وصفاتك المرسلة تُحفظ هنا على هذا الجهاز.'}</div>`;
+}
+// ---------- استرجاع السجل على جهاز جديد ----------
+function rsRender() {
+    rxMode = 'rs'; const sh = $('sheet'), p = lsGet('diwanRs', null);
+    sh.innerHTML = `<div class="grab"></div><div class="rxt"><h3>استرجاع السجل</h3><button type="button" class="lk" style="color:var(--text)" data-rx="tab" data-t="hist">رجوع</button></div>
+    ${p ? `<p>أُرسل طلبك باسم <b dir="auto"><bdi>${esc(p.name)}</bdi></b>. اطلب من الصيدلي رمز الاسترجاع (6 أرقام) ثم أدخله هنا.</p>
+        <input class="fld" id="rsCode" type="text" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="الرمز" style="text-align:center;letter-spacing:6px;font-size:1.2rem">
+        <button type="button" class="go" data-rx="rsget">استلام السجل</button><button type="button" class="rsl" data-rx="rscancel">إلغاء الطلب وكتابة اسم آخر</button>`
+    : `<p>إذا غيّرت جهازك أو ضاع سجلك، أرسل طلباً إلى الصيدلية وسيعيد لك وصفاتك المحفوظة عندهم.</p>
+        <label class="rxl">اسم الطبيب كما سجّلته سابقاً</label><input class="fld" id="rsName" type="text" autocomplete="off" placeholder="د. ..." value="${esc(RX.doctor)}">
+        <button type="button" class="go" data-rx="rssend">إرسال طلب الاسترجاع</button>`}`;
+}
+async function rsSend() {
+    const nm = $('rsName').value.trim(); if (nm.replace(/^د\.?\s*/, '').length < 2) { toast('اكتب اسم الطبيب'); return; }
+    const id = Array.from(crypto.getRandomValues(new Uint8Array(10))).map(b => b.toString(36).padStart(2, '0')).join('');
+    try { await firebase.firestore().collection('pharmacy_search_misses').doc('rs_' + id).set({ dr: 1, kind: 'rs', rid: id, doctor: nm, name: nm, count: 1, lastAt: new Date().toISOString() }); } catch (e) { toast('تعذر الإرسال، تحقق من الاتصال'); return; }
+    lsSet('diwanRs', { id, name: nm }); rsRender(); toast('أُرسل الطلب إلى الصيدلية');
+}
+async function rsGet(btn) {
+    const p = lsGet('diwanRs', null), code = ($('rsCode').value || '').trim(); if (!p || code.length !== 6) { toast('أدخل الرمز المكوّن من 6 أرقام'); return; }
+    btn.disabled = true;
+    try {
+        const s = await firebase.firestore().collection('pharmacy').doc('rxh_' + p.id).get();
+        if (!s.exists) { toast('لم يجهّز الصيدلي سجلك بعد'); btn.disabled = false; return; }
+        const d = s.data(); let obj;
+        try { obj = await rxDecrypt(code, p.id, d.iv, d.data); } catch (e) { toast('الرمز غير صحيح'); btn.disabled = false; return; }
+        const have = new Set(MY.map(r => r.rid)); (obj.recs || []).forEach(r => { if (!have.has(r.rid)) MY.push(r); });
+        MY.sort((a, b) => b.at - a.at); MY = MY.slice(0, 500); lsSet('diwanRx', MY);
+        if (obj.did) lsSet('diwanDid', obj.did); if (obj.name) { RX.doctor = obj.name; lsSet('diwanDocName', obj.name); saveDraft(); }
+        MY.forEach(r => { SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, Date.now()); }); lsSet('diwanRxSeen', SEEN);
+        try { await firebase.firestore().collection('pharmacy_search_misses').doc('rs_' + p.id).set({ claimed: true }, { merge: true }); } catch (e) { /* تجاهل */ }
+        try { localStorage.removeItem('diwanRs'); } catch (e) { /* تجاهل */ }
+        ntWatch(); ntBadge(); toast('تم استرجاع ' + num((obj.recs || []).length) + ' وصفة'); HQ = ''; histRender();
+    } catch (e) { toast('تعذر الاسترجاع، حاول لاحقاً'); btn.disabled = false; }
 }
 function rxPickOpen() {
     rxMode = 'pick'; const sh = $('sheet');
@@ -543,9 +602,9 @@ async function rxSend(btn) {
     const rec = rxRec(), rid = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(36).padStart(2, '0')).join('') + Date.now().toString(36);
     btn.disabled = true;
     try {
-        await firebase.firestore().collection('pharmacy_search_misses').doc('rx_' + rid).set({ dr: 1, kind: 'r', rid, num: rec.num, doctor: rec.doctor, patient: rec.patient, dx: rec.dx, note: rec.note, items: rec.items, st: 'new', ps: { msgs: [] }, count: 1, name: rec.patient, lastAt: new Date(rec.at).toISOString() });
+        await firebase.firestore().collection('pharmacy_search_misses').doc('rx_' + rid).set({ dr: 1, kind: 'r', rid, did: getDid(), num: rec.num, doctor: rec.doctor, patient: rec.patient, dx: rec.dx, note: rec.note, items: rec.items, st: 'new', ps: { msgs: [] }, count: 1, name: rec.patient, lastAt: new Date(rec.at).toISOString() });
     } catch (e) { btn.disabled = false; toast('تعذر الإرسال، تحقق من الاتصال'); return; }
-    MY.unshift({ rid, ...rec }); MY = MY.slice(0, 15); lsSet('diwanRx', MY); SEEN[rid] = Date.now(); lsSet('diwanRxSeen', SEEN);
+    MY.unshift({ rid, ...rec }); MY = MY.slice(0, 500); lsSet('diwanRx', MY); SEEN[rid] = Date.now(); lsSet('diwanRxSeen', SEEN);
     RX = { num: mkNum(), doctor: rec.doctor, patient: '', dx: '', items: [], note: '' }; saveDraft(); ntWatch();
     closeSheet(); toast('أُرسلت الوصفة إلى الصيدلية'); ntBadge();
 }
@@ -578,6 +637,7 @@ $('rxBtn').onclick = rxOpen; $('ntBtn').onclick = ntOpen;
 $('sheet').addEventListener('input', e => {
     const t = e.target;
     if (rxMode === 'pick' && t.id === 'pkQ') { rxPickList(t.value); return; }
+    if (rxMode === 'hist' && t.id === 'hq') { HQ = t.value; histList(); return; }
     if (rxMode !== 'form') return;
     if (t.dataset.k) { RX[t.dataset.k] = t.value; t.classList.remove('bad'); saveDraft(); }
     else if (t.dataset.f) { const c = t.closest('.rxi'); RX.items[+c.dataset.i][t.dataset.f] = t.value; t.classList.remove('bad'); saveDraft(); }
@@ -588,9 +648,15 @@ $('sheet').addEventListener('focusin', e => { if (rxMode === 'form' && /INPUT|TE
 $('sheet').addEventListener('click', async e => {
     const b = e.target.closest('[data-rx]'), a = e.target.closest('[data-add]');
     if (a && rxMode === 'pick') { const m = ALL.find(x => x.id === a.dataset.add); if (m) { RX.items.push({ p: m.id, n: m.n, ext: false, dose: '', freq: '', dur: '', ins: '' }); saveDraft(); rxMode = 'form'; rxForm(); $('sheet').scrollTop = $('sheet').scrollHeight; } return; }
-    if (!b || (rxMode !== 'form' && rxMode !== 'nt')) return;
+    if (!b || !['form', 'nt', 'hist', 'rs'].includes(rxMode)) return;
     const k = b.dataset.rx;
-    if (k === 'pick') { rxPickOpen(); }
+    if (k === 'tab') { if (b.dataset.t === 'hist') { histRender(); } else { rxMode = 'form'; rxForm(); } }
+    else if (k === 'rs') { rsRender(); }
+    else if (k === 'rssend') { rsSend(); }
+    else if (k === 'rsget') { rsGet(b); }
+    else if (k === 'rscancel') { if (await ask('إلغاء طلب الاسترجاع الحالي؟', 'إلغاء الطلب')) { try { localStorage.removeItem('diwanRs'); } catch (x) { /* تجاهل */ } rsRender(); } }
+    else if (k === 'reuse') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) { RX = { num: mkNum(), doctor: r.doctor, patient: r.patient, dx: r.dx || '', items: (r.items || []).map(i => ({ ...i })), note: r.note || '' }; saveDraft(); rxMode = 'form'; rxForm(); toast('نُسخت الوصفة، عدّل ما تريد ثم أرسلها'); } }
+    else if (k === 'pick') { rxPickOpen(); }
     else if (k === 'back') { rxMode = 'form'; rxForm(); }
     else if (k === 'ext') { RX.items.push({ p: '', n: '', ext: true, dose: '', freq: '', dur: '', ins: '' }); saveDraft(); rxForm(); $('sheet').scrollTop = $('sheet').scrollHeight; }
     else if (k === 'del') { if (await ask('حذف هذا الدواء من الوصفة؟', 'حذف')) { RX.items.splice(+b.dataset.i, 1); saveDraft(); rxForm(true); } }
@@ -599,7 +665,7 @@ $('sheet').addEventListener('click', async e => {
     else if (k === 'print') { if (rxValid()) rxPrintNow(rxRec()); }
     else if (k === 'send') { rxSend(b); }
     else if (k === 'reprint') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) rxPrintNow(r); }
-    else if (k === 'forget') { if (await ask('إزالة هذه الوصفة من القائمة؟', 'إزالة')) { const id = b.dataset.rid; MY = MY.filter(x => x.rid !== id); lsSet('diwanRx', MY); if (NTU[id]) { try { NTU[id](); } catch (x) { /* تجاهل */ } delete NTU[id]; } delete NT[id]; ntRender(); } }
+    else if (k === 'forget') { if (await ask('حذف هذه الوصفة من جهازك؟ تبقى نسخة محفوظة عند الصيدلية.', 'حذف')) { const id = b.dataset.rid; MY = MY.filter(x => x.rid !== id); lsSet('diwanRx', MY); if (NTU[id]) { try { NTU[id](); } catch (x) { /* تجاهل */ } delete NTU[id]; } delete NT[id]; if (rxMode === 'hist') histList(); else ntRender(); } }
 });
 
 

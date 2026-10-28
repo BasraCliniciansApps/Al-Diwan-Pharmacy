@@ -64,3 +64,20 @@ function rxPrintNow(rx) {
     const im = d.querySelector('img');
     if (im && !im.complete) { im.onload = im.onerror = () => setTimeout(go, 100); setTimeout(go, 1500); } else setTimeout(go, 150);
 }
+
+// ---------- تشفير سجل الطبيب للاسترجاع (AES-GCM بمفتاح مشتق من رمز من 6 أرقام) ----------
+const rxB64 = u8 => btoa(String.fromCharCode.apply(null, Array.from(u8)));
+const rxUnB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function rxKey(code, salt) {
+    const enc = new TextEncoder(), base = await crypto.subtle.importKey('raw', enc.encode(String(code)), 'PBKDF2', false, ['deriveKey']);
+    return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: enc.encode('diwan-rx:' + salt), iterations: 120000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+}
+async function rxEncrypt(code, salt, obj) {
+    const iv = crypto.getRandomValues(new Uint8Array(12)), key = await rxKey(code, salt);
+    const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify(obj)));
+    return { iv: rxB64(iv), data: rxB64(new Uint8Array(ct)) };
+}
+async function rxDecrypt(code, salt, iv, data) {
+    const key = await rxKey(code, salt), pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: rxUnB64(iv) }, key, rxUnB64(data));
+    return JSON.parse(new TextDecoder().decode(pt));
+}

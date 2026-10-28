@@ -2987,3 +2987,7 @@ body.doc-open #formModal { z-index: 9200; } body.doc-open .swal2-container { z-i
 .dc-nm .dc-ai { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
 .dc-nm .dc-pr { color: #a85d08 !important; font-weight: 800; font-size: .8rem !important; }
 [data-theme="dark"] .dc-nm .dc-pr { color: #f9a825 !important; }
+
+.rx-top { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; background: #e2e8f0; padding: 4px; border-radius: 14px; } .rx-top button { height: 40px; border: 0; border-radius: 11px; background: transparent; color: #475569; font: 800 .85rem inherit; cursor: pointer; } .rx-top button.on { background: #0f1c38; color: #fff; } .rx-top i { font-style: normal; background: #7c3aed; color: #fff; border-radius: 999px; padding: 0 7px; font-size: .72rem; margin-inline-start: 4px; }
+.rx-rs { border-top: 1px dashed #cbd5e1; padding: 10px 0; display: grid; gap: 8px; } .rx-rs b { display: block; } .rx-rs small { color: #64748b; font-size: .74rem; } .rx-rs select { min-height: 42px; border: 1.5px solid #cbd5e1; border-radius: 10px; padding: 0 8px; font-family: inherit; background: #fff; color: #0f1c38; }
+[data-theme="dark"] .rx-top { background: #1e293b; } [data-theme="dark"] .rx-top button { color: #94a3b8; } [data-theme="dark"] .rx-top button.on { background: #f9a825; color: #0f1c38; } [data-theme="dark"] .rx-rs select { background: #1e293b; color: #e2e8f0; border-color: #334155; }

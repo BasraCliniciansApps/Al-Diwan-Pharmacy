@@ -2,17 +2,19 @@
 // الوصفات الإلكترونية (جهة الصيدلية): تصل من صفحة الطبيب إلى pharmacy_search_misses (kind:'r').
 // كل إجراء هنا يُحدّث الوثيقة الخاصة ووثيقة عامة pharmacy/rx_<id> يتابعها جهاز الطبيب (بدون اسم المريض).
 // =====================================================================
-let rxRaw = [], rxFil = 'act', rxCurId = null;
+let rxRaw = [], rxRs = [], rxFil = 'act', rxCurId = null, rxTop = 'rx', rxDrKey = null;
+const rxCleaned = new Set();
 const RX_ST = { new: 'جديدة', prep: 'قيد التجهيز', ready: 'جاهزة', done: 'مُسلَّمة' };
-const RX_FIL = [['act', 'النشطة'], ['new', 'جديدة'], ['prep', 'قيد التجهيز'], ['ready', 'جاهزة'], ['done', 'مُسلَّمة']];
+const RX_FIL = [['act', 'النشطة'], ['new', 'جديدة'], ['prep', 'قيد التجهيز'], ['ready', 'جاهزة'], ['done', 'مُسلَّمة'], ['arch', 'المؤرشفة']];
 const rxE = s => escapeHtml(String(s == null ? '' : s));
 const rxEl = () => document.getElementById('rxHub');
 const rxSt = r => r.st || 'new';
-function rxNewN() { return rxRaw.filter(r => rxSt(r) === 'new').length; }
+function rxPendRs() { return rxRs.filter(x => !x.issued && !x.claimed).length; }
+function rxNewN() { return rxRaw.filter(r => !r.arch && rxSt(r) === 'new').length + rxPendRs(); }
 function rxBadges() { const n = rxNewN(); document.querySelectorAll('.rx-badge').forEach(e => { e.textContent = n; e.style.display = n ? 'flex' : 'none'; }); }
-function rxChanged() { rxBadges(); if (rxEl() && rxEl().style.display === 'flex') rxRender(); if (typeof docRenderAlertBox === 'function') { const v = document.getElementById('alertsView'); if (v && v.classList.contains('active')) docRenderAlertBox(false); } }
+function rxChanged() { rxClean(); rxBadges(); if (rxEl() && rxEl().style.display === 'flex') rxRender(); if (typeof docRenderAlertBox === 'function') { const v = document.getElementById('alertsView'); if (v && v.classList.contains('active')) docRenderAlertBox(false); } }
 function rxAlertRow() {
-    const n = rxNewN(), act = rxRaw.filter(r => rxSt(r) !== 'done').length; if (!act) return '';
+    const n = rxNewN(), act = rxRaw.filter(r => !r.arch && rxSt(r) !== 'done').length; if (!act && !n) return '';
     return `<button type="button" class="da-rx" onclick="rxOpen()"><span>📝 ${n ? 'لديك <b>' + fmtNum(n) + '</b> وصفة جديدة' : fmtNum(act) + ' وصفة قيد المتابعة'}</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>`;
 }
 function rxOpen() {
@@ -29,10 +31,11 @@ function rxRender() {
     const r = rxCurId && rxRaw.find(x => x.id === rxCurId);
     if (r) { rxDetail(el, r); return; }
     rxCurId = null;
-    const cnt = k => k === 'act' ? rxRaw.filter(x => rxSt(x) !== 'done').length : rxRaw.filter(x => rxSt(x) === k).length;
-    const rows = rxRaw.filter(x => rxFil === 'act' ? rxSt(x) !== 'done' : rxSt(x) === rxFil).sort((a, b) => b.ts - a.ts);
+    if (rxTop === 'dr') { rxDrRender(el); return; }
+    const cnt = k => k === 'arch' ? rxRaw.filter(x => x.arch).length : k === 'act' ? rxRaw.filter(x => !x.arch && rxSt(x) !== 'done').length : rxRaw.filter(x => !x.arch && rxSt(x) === k).length;
+    const rows = rxRaw.filter(x => rxFil === 'arch' ? x.arch : (!x.arch && (rxFil === 'act' ? rxSt(x) !== 'done' : rxSt(x) === rxFil))).sort((a, b) => b.ts - a.ts);
     el.innerHTML = `<div class="tr-head"><b>📝 الوصفات الإلكترونية</b><button type="button" class="tr-x" onclick="rxClose()" aria-label="إغلاق">✕</button></div>
-    <div class="dh-body"><div class="rx-fs">${RX_FIL.map(f => `<button type="button" class="${rxFil === f[0] ? 'on' : ''}" onclick="rxSetFil('${f[0]}')">${f[1]} <em>${fmtNum(cnt(f[0]))}</em></button>`).join('')}</div>
+    <div class="dh-body">${rxTopBar()}<div class="rx-fs">${RX_FIL.map(f => `<button type="button" class="${rxFil === f[0] ? 'on' : ''}" onclick="rxSetFil('${f[0]}')">${f[1]} <em>${fmtNum(cnt(f[0]))}</em></button>`).join('')}</div>
     ${rows.map(x => `<button type="button" class="rx-c st-${rxSt(x)}" onclick="rxShow('${rxE(x.id)}')"><div><b dir="auto">${rxE(x.doctor)}</b><small>المريض: <bdi>${rxE(x.patient)}</bdi> · ${fmtNum((x.items || []).length)} ${(x.items || []).length > 2 && (x.items || []).length < 11 ? 'أدوية' : 'دواء'} · ${rxTime(x.ts)}</small></div><span class="rx-p">${RX_ST[rxSt(x)]}</span></button>`).join('') || '<div class="dh-note">لا توجد وصفات في هذا القسم.</div>'}</div>`;
 }
 function rxSetFil(k) { rxFil = k; rxRender(); }
@@ -52,7 +55,7 @@ function rxDetail(el, r) {
     }).join('')}
     <div class="dc-card"><div class="qk-row"><div><b>رد للطبيب</b><small>رسالة حرة تصله كإشعار.</small></div></div><div class="rx-rp"><input type="text" id="rxMsg" placeholder="اكتب الرد…" maxlength="160"><button type="button" onclick="rxReply('${rxE(r.id)}')">إرسال</button></div>
         ${(r.msgs || []).length ? `<div class="rx-ms">${(r.msgs || []).slice().reverse().slice(0, 12).map(m => `<div><span>${rxE(m.t)}</span><small>${rxTime(m.at)}</small></div>`).join('')}</div>` : ''}</div>
-    <div class="dc-actions"><button type="button" onclick="rxPrint('${rxE(r.id)}')">🖨 طباعة</button><button type="button" onclick="rxDel('${rxE(r.id)}')">🗑 حذف الوصفة</button></div></div>`;
+    <div class="dc-actions"><button type="button" onclick="rxPrint('${rxE(r.id)}')">🖨 طباعة</button>${r.arch ? `<button type="button" onclick="rxArchive('${rxE(r.id)}',false)">↩ إرجاع من الأرشيف</button><button type="button" onclick="rxDel('${rxE(r.id)}')">🗑 حذف نهائي</button>` : `<button type="button" onclick="rxArchive('${rxE(r.id)}',true)">🗄 أرشفة الوصفة</button>`}</div></div>`;
 }
 async function rxApply(id, fn) {
     const r = rxRaw.find(x => x.id === id); if (!r) return false;
@@ -85,7 +88,88 @@ async function rxReply(id) {
 }
 function rxPrint(id) { const r = rxRaw.find(x => x.id === id); if (r) rxPrintNow({ num: r.num, doctor: r.doctor, patient: r.patient, dx: r.dx, items: r.items || [], note: r.note, at: r.ts }); }
 async function rxDel(id) {
-    const r = rxRaw.find(x => x.id === id); if (!r) return;
-    if (!(await askSure('حذف الوصفة ' + r.num + '؟', 'ستُحذف الوصفة نهائياً ولن يصل الطبيب أي تحديث عنها.', 'حذف'))) return;
-    try { await db.collection('pharmacy_search_misses').doc(id).delete(); try { await db.collection('pharmacy').doc('rx_' + r.rid).delete(); } catch (e) { /* تجاهل */ } rxRaw = rxRaw.filter(x => x.id !== id); rxCurId = null; rxBadges(); rxRender(); } catch (e) { /* تجاهل */ }
+    const x = rxRaw.find(q => q.id === id); if (!x) return;
+    if (!(await askSure('حذف الوصفة ' + x.num + ' نهائياً؟', 'ستُحذف من سجل الطبيب عندك نهائياً ولا يمكن استرجاعها. الأفضل الأرشفة.', 'حذف نهائي'))) return;
+    try { await db.collection('pharmacy_search_misses').doc(id).delete(); try { await db.collection('pharmacy').doc('rx_' + x.rid).delete(); } catch (e) { /* تجاهل */ } rxRaw = rxRaw.filter(q => q.id !== id); rxCurId = null; rxBadges(); rxRender(); } catch (e) { /* تجاهل */ }
 }
+async function rxArchive(id, on) {
+    const x = rxRaw.find(q => q.id === id); if (!x) return;
+    if (on && !(await askSure('أرشفة الوصفة ' + x.num + '؟', 'تختفي من القائمة وتبقى محفوظة في سجل الطبيب وتُرجَع له عند الاسترجاع.', 'أرشفة'))) return;
+    try { await fsSet(db.collection('pharmacy_search_misses').doc(id), { arch: !!on }, { merge: true }); x.arch = !!on; rxCurId = null; rxBadges(); rxRender(); } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحفظ', confirmButtonColor: '#0f1c38' }); }
+}
+
+// ---------- الأطباء وسجلاتهم + استرجاع السجل ----------
+const rxNormN = s => String(s || '').replace(/^\s*د\.?\s*/, '').trim().toLowerCase();
+const rxKeyOf = r => r.did || 'n:' + rxNormN(r.doctor);
+function rxDoctors() {
+    const m = new Map(); rxRaw.forEach(r => { const k = rxKeyOf(r); if (!m.has(k)) m.set(k, { key: k, did: r.did || '', list: [] }); m.get(k).list.push(r); });
+    return [...m.values()].map(g => { g.list.sort((a, b) => b.ts - a.ts); g.name = g.list[0].doctor; g.last = g.list[0].ts; return g; }).sort((a, b) => b.last - a.last);
+}
+function rxTopBar() {
+    const pn = rxPendRs();
+    return `<div class="rx-top"><button type="button" class="${rxTop === 'rx' ? 'on' : ''}" onclick="rxSetTop('rx')">الوصفات</button><button type="button" class="${rxTop === 'dr' ? 'on' : ''}" onclick="rxSetTop('dr')">الأطباء${pn ? ` <i>${fmtNum(pn)}</i>` : ''}</button></div>`;
+}
+function rxSetTop(t) { rxTop = t; rxDrKey = null; rxCurId = null; rxRender(); }
+function rxCard(x) { return `<button type="button" class="rx-c st-${rxSt(x)}" onclick="rxShow('${rxE(x.id)}')"><div><b dir="auto">${rxE(x.patient)}</b><small>${fmtNum((x.items || []).length)} ${(x.items || []).length > 2 && (x.items || []).length < 11 ? 'أدوية' : 'دواء'} · ${rxTime(x.ts)}${x.arch ? ' · مؤرشفة' : ''}</small></div><span class="rx-p">${RX_ST[rxSt(x)]}</span></button>`; }
+function rxDrRender(el) {
+    const docs = rxDoctors(), g = rxDrKey && docs.find(d => d.key === rxDrKey);
+    if (g) {
+        el.innerHTML = `<div class="tr-head"><b>🩺 ${rxE(g.name)}</b><button type="button" class="tr-x" onclick="rxDrBack()" aria-label="رجوع"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button></div>
+        <div class="dh-body"><div class="dc-card"><div class="qk-row"><div><b>سجل الطبيب</b><small>${fmtNum(g.list.length)} وصفة · آخر وصفة ${rxTime(g.last)}${g.did ? '' : ' · بلا رقم سجل (وصفات قديمة)'}</small></div></div>
+        <div class="dc-actions"><button type="button" onclick="rxMerge('${rxE(g.key)}')">🔗 دمج مع طبيب آخر</button></div></div>${g.list.map(rxCard).join('')}</div>`;
+        return;
+    }
+    const pend = rxRs.filter(x => !x.claimed).sort((a, b) => b.ts - a.ts);
+    el.innerHTML = `<div class="tr-head"><b>📝 الوصفات الإلكترونية</b><button type="button" class="tr-x" onclick="rxClose()" aria-label="إغلاق">✕</button></div>
+    <div class="dh-body">${rxTopBar()}
+    ${pend.length ? `<div class="dc-card"><div class="qk-row"><div><b>طلبات استرجاع السجل (${fmtNum(pend.length)})</b><small>اختر سجل الطبيب ثم «إرجاع السجل» ليظهر لك رمز تعطيه له.</small></div></div>${pend.map(q => {
+        const nn = rxNormN(q.name), best = (docs.find(d => rxNormN(d.name) === nn) || docs.find(d => rxNormN(d.name).includes(nn) || nn.includes(rxNormN(d.name))) || {}).key;
+        return `<div class="rx-rs"><div><b dir="auto">${rxE(q.name)}</b><small>${rxTime(q.ts)} · ${q.issued ? 'صدر الرمز، بانتظار الاستلام' : 'بانتظار الإرجاع'}</small></div>
+        <select id="rsSel_${rxE(q.rid)}">${docs.map(d => `<option value="${rxE(d.key)}" ${d.key === best ? 'selected' : ''}>${rxE(d.name)} (${fmtNum(d.list.length)})</option>`).join('')}</select>
+        <div class="rx-bt s" style="grid-template-columns:2fr 1fr"><button type="button" class="on" onclick="rxIssue('${rxE(q.rid)}')">${q.issued ? 'رمز جديد' : 'إرجاع السجل'}</button><button type="button" onclick="rxRsDel('${rxE(q.rid)}')">حذف</button></div></div>`; }).join('')}</div>` : ''}
+    ${docs.map(d => `<button type="button" class="rx-c" onclick="rxDrOpen('${rxE(d.key)}')"><div><b dir="auto">${rxE(d.name)}</b><small>${fmtNum(d.list.length)} وصفة · آخر وصفة ${rxTime(d.last)}</small></div><span class="rx-p">سجل</span></button>`).join('') || '<div class="dh-note">لا توجد سجلات أطباء بعد. تظهر هنا بعد أول وصفة.</div>'}</div>`;
+}
+function rxDrOpen(k) { rxDrKey = k; rxRender(); const b = document.querySelector('#rxHub .dh-body'); if (b) b.scrollTop = 0; }
+function rxDrBack() { rxDrKey = null; rxRender(); }
+const rxNewDid = () => Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(36).padStart(2, '0')).join('') + Date.now().toString(36);
+async function rxSetDid(list, did) {
+    for (let i = 0; i < list.length; i += 400) { const b = db.batch(); list.slice(i, i + 400).forEach(x => b.set(db.collection('pharmacy_search_misses').doc(x.id), { did }, { merge: true })); await b.commit(); }
+    list.forEach(x => { x.did = did; });
+}
+async function rxIssue(rid) {
+    const sel = document.getElementById('rsSel_' + rid), g = sel && rxDoctors().find(d => d.key === sel.value), q = rxRs.find(x => x.rid === rid); if (!g || !q) return;
+    try {
+        let did = g.did; if (!did) { did = rxNewDid(); await rxSetDid(g.list, did); }
+        let recs = g.list.map(x => ({ rid: x.rid, num: x.num, doctor: x.doctor, patient: x.patient, dx: x.dx, note: x.note, items: x.items || [], at: x.ts }));
+        const code = String(100000 + Math.floor(Math.random() * 900000));
+        let enc = await rxEncrypt(code, rid, { did, name: g.name, recs });
+        while (enc.data.length > 900000 && recs.length > 10) { recs = recs.slice(0, Math.floor(recs.length * 0.8)); enc = await rxEncrypt(code, rid, { did, name: g.name, recs }); }
+        await fsSet(db.collection('pharmacy').doc('rxh_' + rid), { iv: enc.iv, data: enc.data, name: g.name, upd: Date.now() });
+        await fsSet(db.collection('pharmacy_search_misses').doc(q.id), { issued: true }, { merge: true }); q.issued = true;
+        rxBadges(); rxRender();
+        Swal.fire({ icon: 'success', title: 'رمز الاسترجاع', html: `<div style="font-size:2.4rem;font-weight:900;letter-spacing:8px;direction:ltr;margin:6px 0">${code}</div><div style="font-size:.85rem;color:#475569;line-height:1.7">أعطِ هذا الرمز للطبيب (<b>${rxE(g.name)}</b>) ليدخله بجهازه الجديد.<br>يحتوي ${fmtNum(recs.length)} وصفة.</div>`, confirmButtonColor: '#0f1c38', confirmButtonText: 'تم' });
+    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر إرجاع السجل', text: 'تحقق من الاتصال وحاول مرة أخرى.', confirmButtonColor: '#0f1c38' }); }
+}
+async function rxRsDel(rid) {
+    const q = rxRs.find(x => x.rid === rid); if (!q) return;
+    if (!(await askSure('حذف طلب الاسترجاع؟', 'سيُحذف الطلب وأي رمز صادر له.', 'حذف'))) return;
+    try { await db.collection('pharmacy_search_misses').doc(q.id).delete(); try { await db.collection('pharmacy').doc('rxh_' + rid).delete(); } catch (e) { /* تجاهل */ } rxRs = rxRs.filter(x => x.rid !== rid); rxBadges(); rxRender(); } catch (e) { /* تجاهل */ }
+}
+async function rxMerge(key) {
+    const docs = rxDoctors(), g = docs.find(d => d.key === key), others = docs.filter(d => d.key !== key); if (!g) return;
+    if (!others.length) { Swal.fire({ icon: 'info', title: 'لا يوجد طبيب آخر للدمج', confirmButtonColor: '#0f1c38' }); return; }
+    const a = await Swal.fire({ title: 'دمج مع طبيب آخر', text: 'ستنتقل وصفات «' + g.name + '» إلى السجل المختار.', input: 'select', inputOptions: Object.fromEntries(others.map(d => [d.key, d.name + ' (' + fmtNum(d.list.length) + ')'])), inputPlaceholder: 'اختر السجل', showCancelButton: true, confirmButtonText: 'دمج', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38', inputValidator: v => v ? null : 'اختر السجل' });
+    if (!a.isConfirmed) return;
+    if (!(await askSure('تأكيد الدمج؟', 'لا يمكن فصل السجلين بعد الدمج.', 'دمج'))) return;
+    const t = others.find(d => d.key === a.value); if (!t) return;
+    try { let did = t.did; if (!did) { did = rxNewDid(); await rxSetDid(t.list, did); } await rxSetDid(g.list, did); rxDrKey = null; rxRender(); } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الدمج', confirmButtonColor: '#0f1c38' }); }
+}
+// تنظيف طلبات الاسترجاع بعد استلام الطبيب لسجله
+async function rxClean() {
+    for (const q of rxRs.filter(x => x.claimed && !rxCleaned.has(x.id))) {
+        rxCleaned.add(x0 = q.id);
+        try { await db.collection('pharmacy').doc('rxh_' + q.rid).delete(); } catch (e) { /* تجاهل */ }
+        try { await db.collection('pharmacy_search_misses').doc(q.id).delete(); } catch (e) { /* تجاهل */ }
+    }
+}
+let x0 = '';
