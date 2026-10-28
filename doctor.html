@@ -142,6 +142,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .th { width: 54px; height: 54px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; color: var(--sub); font-size: 1.5rem; }
 .th img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
 @media (max-width: 380px) { .th { width: 48px; height: 48px; } }
+.dact .ib.rq { color: var(--c); border-color: color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 10%, transparent); } .dact .ib.rq.off { opacity: .38; cursor: not-allowed; color: var(--sub); border-color: var(--line); background: var(--surface-2); } .dact .ib.rq.sent { opacity: .6; }
 .acts .ib.rq { margin-inline-start: auto; width: 36px; height: 36px; color: var(--c); border-color: color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 10%, transparent); } .acts .ib.rq.off { opacity: .38; cursor: not-allowed; color: var(--sub); border-color: var(--line); background: var(--surface-2); } .acts .ib.rq.sent { opacity: .6; }
 .need:disabled { opacity: .4; cursor: not-allowed; border-color: var(--line); color: var(--sub); }
 .qty { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0 8px; } .qty button { width: 52px; height: 52px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); font-size: 1.6rem; font-weight: 800; cursor: pointer; } .qty input { width: 96px; height: 56px; text-align: center; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); font: 800 1.5rem 'Tajawal', sans-serif; }
@@ -264,7 +265,7 @@ const IC = {
     hand: '<path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>',
     swap: '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
     plus: '<path d="M12 5v14M5 12h14"/>',
-    cart: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/><path d="M12 9v5M9.5 11.5h5"/>',
+    cart: '<path d="M16 16h6"/><path d="M19 13v6"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/>',
     check: '<path d="M20 6 9 17l-5-5"/>'
 };
 const lsGet = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
@@ -364,7 +365,7 @@ function detailHtml(m) {
     <div class="dpr s-${m.st}">${cfg.prices !== false && m.p ? `<span class="pv">${num(m.p)}<small>د.ع</small></span>` : '<span></span>'}<span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span></div>
     ${m.nt ? `<div class="nt">${svg('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>')}<span>${esc(m.nt)}</span></div>` : ''}
     ${kv.length ? `<div class="kv">${kv.map((k, j) => `<div class="${kv.length % 2 && j === kv.length - 1 ? 'w' : ''}"><small>${k[0]}</small><b dir="auto">${esc(k[1])}</b></div>`).join('')}</div>` : ''}
-    <div class="dact s-${m.st}"><button type="button" class="ib ${FAV.has(m.id) ? 'on' : ''}" data-fav="${m.id}" aria-label="المفضلة">${svg(IC.star)}</button><button type="button" class="ib" data-share="${m.id}" aria-label="مشاركة">${svg(IC.share)}</button>${unav ? reqBtn(m) : ''}</div>
+    <div class="dact s-${m.st}"><button type="button" class="ib ${FAV.has(m.id) ? 'on' : ''}" data-fav="${m.id}" aria-label="المفضلة">${svg(IC.star)}</button><button type="button" class="ib" data-share="${m.id}" aria-label="مشاركة">${svg(IC.share)}</button>${unav ? qtyBtn(m) : ''}</div>
     ${unav ? (alts.length ? `<div class="sec">${svg(IC.swap)} بدائل متوفرة بنفس المادة الفعالة (${num(alts.length)})</div>${alts.map(a => row(a, false)).join('')}` : `<div class="noalt">لا توجد بدائل متوفرة بنفس المادة الفعالة حالياً.</div>`) : ''}
     ${same.length ? `<div class="sec">${svg(IC.plus)} مواد أخرى من ${esc(m.br)}</div>${same.map(a => row(a, true)).join('')}` : ''}`;
 }
