@@ -378,6 +378,7 @@ function openDetail(id, keepScroll) {
 function render(anim) {
     const all = model(), cfg = (doc && doc.cfg) || {};
     ALL = all;
+    { let ch = false; all.forEach(m => { const k = 'dn_' + m.id; if ((m.st === 'ok' || m.st === 'back') && SENT[k]) { delete SENT[k]; ch = true; } }); if (ch) lsSet('diwanDocSent', SENT); }   // توفرت المادة: يُفتح الطلب من جديد إن نفدت لاحقاً
     renderRail(all);
     const nq = norm(q.trim());
     let rows = all.filter(m => (!tab || m.st === tab || (tab === 'noph' && m.st === 'nosup')) && (!favOnly || FAV.has(m.id)) && tfMatch(SEL, m.dk, m.ck) && (!nq || m.hay.includes(nq)));
