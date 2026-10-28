@@ -192,7 +192,7 @@ function docRenderList() {
     const sc = box.scrollTop;
     box.innerHTML = `<div class="dc-stick"><div class="dc-count">معروض للطبيب <b>${fmtNum(selN)}</b> من ${fmtNum(products.length)} مادة${all.length !== products.length ? ' · نتائج الفلتر ' + fmtNum(all.length) : ''}</div>
     <div class="dc-actions">
-        <select id="docBulk" onchange="docBulkSet(this.value)"><option value="">تغيير حالة المحدد…</option><option value="@unsel">${docFil === 'unsel' ? '✓ ' : ''}غير المعروضة فقط</option><option value="@sel">${docFil === 'sel' ? '✓ ' : ''}المعروضة فقط</option><option value="@all">${docFil === 'all' ? '✓ ' : ''}كل المواد</option>${Object.keys(DOC_ST).map(k => `<option value="@${k}">${docFil === k ? '✓ ' : ''}${DOC_ST[k]} (عرض فقط)</option>`).join('')}${Object.keys(DOC_ST).map(k => `<option value="${k}" ${selShown ? '' : 'disabled'}>تغيير الحالة إلى: ${DOC_ST[k]}</option>`).join('')}</select>
+        <select id="docBulk" onchange="docBulkSet(this.value)">${[['all', 'كل المواد'], ['unsel', 'غير المعروضة فقط'], ['sel', 'المعروضة فقط']].map(([k, t]) => `<option value="@${k}" ${docFil === k ? 'selected' : ''}>${t}</option>`).join('')}<option disabled>──────────</option>${Object.keys(DOC_ST).map(k => `<option value="@${k}" ${docFil === k ? 'selected' : ''}>${DOC_ST[k]}</option>`).join('')}</select>
     </div></div>
     ${rows || '<div class="dh-note">لا توجد مواد مطابقة.</div>'}
     ${all.length > shown.length ? `<button type="button" class="dc-more" onclick="docMore()">عرض المزيد (${fmtNum(all.length - shown.length)})</button>` : ''}`;
@@ -228,12 +228,7 @@ async function docClearAll() {
     if (!(await askSure('إلغاء تحديد ' + fmtNum(ids.length) + ' مادة؟', 'ستختفي هذه المواد من صفحة الطبيب.', 'إلغاء التحديد'))) return;
     ids.forEach(id => delete docData.items[id]); docSaveSoon(); docRenderList();
 }
-function docBulkSet(v) {
-    if (!v) return;
-    if (v[0] === '@') { docSetFil(v.slice(1)); return; }
-    docFiltered().forEach(p => { const id = String(p.id); if (docData.items[id]) docSetStQuiet(id, v); });
-    docSaveSoon(); docRenderList();
-}
+function docBulkSet(v) { if (v && v[0] === '@') docSetFil(v.slice(1)); }
 function docSetStQuiet(id, v) { const it = docData.items[id]; it.s = v; if (v === 'back') { it.t = Date.now(); } else delete it.t; delete it.src; delete it.pv; }
 
 // ---------- طلبات الأطباء (من «أحتاج هذه المادة» و«اطلب هذه المادة») ----------
