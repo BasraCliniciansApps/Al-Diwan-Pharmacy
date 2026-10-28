@@ -3008,3 +3008,14 @@ body.doc-open #formModal { z-index: 9200; } body.doc-open .swal2-container { z-i
 #docHub .dh-body.dc-fx.sopen { overflow-y: auto; }
 .sopen .dc-setpanel { max-height: none; overflow: visible; }
 .sopen .dc-scroll { flex: none; overflow: visible; min-height: 0; }
+
+/* نافذة تصحيح التصنيف: تثبيت العرض داخل النافذة (RTL كامل، بلا خروج أفقي) */
+.swal2-popup:has(.tr-xbox) { box-sizing: border-box; overflow-x: hidden; }
+.swal2-popup:has(.tr-xbox) .swal2-html-container { direction: rtl; margin: 10px 0 0; padding: 0; width: 100%; max-width: 100%; overflow-x: hidden; overflow-y: auto; box-sizing: border-box; display: block; }
+.swal2-popup:has(.tr-xbox) .sw-form { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; direction: rtl; text-align: right; }
+.swal2-popup:has(.tr-xbox) .sw-form > label { display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 100%; min-width: 0; margin: 0; }
+.swal2-popup:has(.tr-xbox) .sw-form select:not([hidden]):not(.ss-hid) { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+.swal2-popup:has(.tr-xbox) .ss-btn { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+.swal2-popup:has(.tr-xbox) .tr-xbox { width: 100%; max-width: 100%; box-sizing: border-box; margin-top: 4px; }
+.swal2-popup:has(.tr-xbox) .tr-xadd { display: grid; grid-template-columns: 1fr; gap: 8px; width: 100%; min-width: 0; }
+.swal2-popup:has(.tr-xbox) .tr-xadd > * { min-width: 0; width: 100%; box-sizing: border-box; }
