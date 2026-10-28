@@ -105,9 +105,29 @@ function rxDoctors() {
     const m = new Map(); rxRaw.forEach(r => { const k = rxKeyOf(r); if (!m.has(k)) m.set(k, { key: k, did: r.did || '', list: [] }); m.get(k).list.push(r); });
     return [...m.values()].map(g => { g.list.sort((a, b) => b.ts - a.ts); g.name = g.list[0].doctor; g.last = g.list[0].ts; return g; }).sort((a, b) => b.last - a.last);
 }
+const RX_IC_EXP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>', RX_IC_IMP = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5M5 21h14"/></svg>';
+function rxExport() {
+    if (!rxRaw.length) { Swal.fire({ icon: 'info', title: 'لا توجد وصفات لتصديرها', confirmButtonColor: '#0f1c38' }); return; }
+    const d = new Date(), f = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    const blob = new Blob([JSON.stringify({ app: 'diwan-rx-admin', v: 1, recs: rxRaw })], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diwan-rx-pharmacy-backup-' + f + '.json'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+async function rxImportFile(file) {
+    try {
+        const o = JSON.parse(await file.text());
+        if (!o || o.app !== 'diwan-rx-admin' || !Array.isArray(o.recs)) { Swal.fire({ icon: 'error', title: 'الملف ليس نسخة احتياطية صالحة', confirmButtonColor: '#0f1c38' }); return; }
+        const have = new Set(rxRaw.map(x => x.rid)), add = o.recs.filter(x => x && x.rid && x.patient && !have.has(x.rid));
+        if (!add.length) { Swal.fire({ icon: 'info', title: 'لا توجد وصفات جديدة في الملف', confirmButtonColor: '#0f1c38' }); return; }
+        for (let i = 0; i < add.length; i += 400) { const b = db.batch(); add.slice(i, i + 400).forEach(x => b.set(db.collection('pharmacy_search_misses').doc('rx_' + x.rid), { dr: 1, kind: 'r', rid: x.rid, did: x.did || '', num: x.num || '', doctor: x.doctor || '', patient: x.patient, dx: x.dx || '', note: x.note || '', items: x.items || [], st: x.st || 'new', is: x.is || {}, msgs: x.msgs || [], arch: !!x.arch, count: 1, name: x.patient, lastAt: new Date(x.ts || Date.now()).toISOString() })); await b.commit(); }
+        Swal.fire({ icon: 'success', title: 'تم استيراد ' + fmtNum(add.length) + ' وصفة', confirmButtonColor: '#0f1c38' });
+    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الاستيراد', text: 'تحقق من الملف والاتصال.', confirmButtonColor: '#0f1c38' }); }
+}
+function rxBackupBtns() {
+    return `<div class="rx-bk"><button type="button" onclick="rxExport()" aria-label="نسخ احتياطي (تصدير)" title="نسخ احتياطي (تصدير)">${RX_IC_EXP}</button><button type="button" onclick="document.getElementById('rxImpF').value='';document.getElementById('rxImpF').click()" aria-label="استرجاع (استيراد)" title="استرجاع (استيراد)">${RX_IC_IMP}</button><input type="file" id="rxImpF" accept=".json,application/json" hidden onchange="if(this.files[0])rxImportFile(this.files[0])"></div>`;
+}
 function rxTopBar() {
     const pn = rxPendRs();
-    return `<div class="rx-top"><button type="button" class="${rxTop === 'rx' ? 'on' : ''}" onclick="rxSetTop('rx')">الوصفات</button><button type="button" class="${rxTop === 'dr' ? 'on' : ''}" onclick="rxSetTop('dr')">الأطباء${pn ? ` <i>${fmtNum(pn)}</i>` : ''}</button></div>`;
+    return `<div class="rx-tr">${rxBackupBtns()}<div class="rx-top"><button type="button" class="${rxTop === 'rx' ? 'on' : ''}" onclick="rxSetTop('rx')">الوصفات</button><button type="button" class="${rxTop === 'dr' ? 'on' : ''}" onclick="rxSetTop('dr')">الأطباء${pn ? ` <i>${fmtNum(pn)}</i>` : ''}</button></div></div>`;
 }
 function rxSetTop(t) { rxTop = t; rxDrKey = null; rxCurId = null; rxRender(); }
 function rxCard(x) { return `<button type="button" class="rx-c st-${rxSt(x)}" onclick="rxShow('${rxE(x.id)}')"><div><b dir="auto">${rxE(x.patient)}</b><small>${fmtNum((x.items || []).length)} ${(x.items || []).length > 2 && (x.items || []).length < 11 ? 'أدوية' : 'دواء'} · ${rxTime(x.ts)}${x.arch ? ' · مؤرشفة' : ''}</small></div><span class="rx-p">${RX_ST[rxSt(x)]}</span></button>`; }

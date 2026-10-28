@@ -150,8 +150,8 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .dh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .dh .nv { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); display: grid; place-items: center; font-size: 1.1rem; cursor: pointer; }
 .dh .nv:disabled { opacity: .35; } .dh span { font-size: .76rem; color: var(--sub); font-weight: 700; }
-.dimg { width: 100%; height: 210px; border-radius: 20px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; cursor: zoom-in; color: var(--sub); font-size: 3rem; }
-.dimg img { width: 100%; height: 100%; object-fit: contain; }
+.dimg { width: 100%; min-height: 150px; border-radius: 20px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; cursor: zoom-in; color: var(--sub); font-size: 3rem; }
+.dimg img { width: 100%; height: auto; max-height: 46vh; object-fit: contain; display: block; }
 .dimg.no { cursor: default; background: var(--surface-2); }
 .sheet h3.dn { margin: 14px 0 2px; font-size: 1.08rem; line-height: 1.5; overflow-wrap: anywhere; }
 .kv { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin: 10px 0; }
@@ -178,6 +178,16 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .fab.sm { width: 44px; height: 44px; left: 24px; bottom: calc(var(--fh) + 84px); background: var(--surface); color: var(--text); border: 1px solid var(--line); box-shadow: var(--shadow); } .fab.sm svg { font-size: 1.15rem; }
 .main { padding-bottom: calc(var(--fh) + 96px); }
 .sheet.big { height: 94vh; max-height: 94vh; }
+.bg.mid { align-items: center; } .bg.mid .sheet { width: calc(100% - 28px); border-radius: 26px; max-height: 86vh; padding-bottom: 20px; }
+.sheet { overscroll-behavior: contain; touch-action: pan-y; } .bg { overscroll-behavior: contain; }
+html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
+.dsg { display: none; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-top: 4px; overflow: hidden; box-shadow: var(--shadow); } .dsg.show { display: block; }
+.dsg button { display: block; width: 100%; text-align: start; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); padding: 11px 14px; font: 700 .88rem 'Tajawal', sans-serif; cursor: pointer; } .dsg button:last-child { border-bottom: 0; }
+.rxi.cl { padding: 0; display: flex; align-items: center; gap: 6px; } .rxi.cl .tg { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; color: var(--text); padding: 12px; text-align: start; font-family: 'Tajawal', sans-serif; cursor: pointer; }
+.rxi.cl .tg b { font-size: .88rem; overflow-wrap: anywhere; } .rxi.cl .tg small { color: var(--sub); font-size: .72rem; display: block; margin-top: 2px; } .rxi.cl .tg > span { flex: 1; min-width: 0; } .rxi.cl .tg svg { width: 16px; height: 16px; flex: 0 0 auto; transform: rotate(90deg); } .rxi.cl .x { margin-inline-end: 10px; width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--nosup); cursor: pointer; display: grid; place-items: center; flex: 0 0 auto; } .rxi.cl .tg.bad b { color: var(--nosup); }
+.rxh .tgl { width: 32px; height: 32px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); cursor: pointer; display: grid; place-items: center; flex: 0 0 auto; } .rxh .tgl svg { width: 16px; height: 16px; transform: rotate(-90deg); }
+.hqr { display: flex; gap: 6px; align-items: center; } .hqr .fld { flex: 1; min-width: 0; } .hqr .ib2 { flex: 0 0 auto; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); display: grid; place-items: center; cursor: pointer; } .hqr .ib2 svg { width: 20px; height: 20px; }
+.pk .row.ax { border-style: dashed; border-color: var(--noph); color: var(--noph); }
 .rxt { display: flex; align-items: center; justify-content: space-between; gap: 8px; } .rxt h3 { margin: 0; }
 .rxt .lk { border: 0; background: transparent; color: var(--nosup); font: 800 .76rem 'Tajawal', sans-serif; cursor: pointer; padding: 6px; }
 .rxl { display: block; font-size: .74rem; font-weight: 800; color: var(--sub); margin: 10px 2px 4px; } .rxl b { color: var(--nosup); }
@@ -380,7 +390,7 @@ function openDetail(id, keepScroll) {
     const m = ALL.find(x => x.id === id); if (!m) return;
     curId = id; const sh = $('sheet'), top = sh.scrollTop;
     sh.innerHTML = '<div class="grab"></div>' + detailHtml(m);
-    rxMode = ''; sh.classList.remove('big'); $('bg').classList.add('show'); document.body.style.overflow = 'hidden';
+    rxMode = ''; sh.classList.remove('big'); $('bg').classList.add('mid'); $('bg').classList.add('show'); document.body.style.overflow = 'hidden';
     sh.scrollTop = keepScroll ? top : 0;
 }
 function render(anim) {
@@ -413,8 +423,8 @@ function render(anim) {
     const mb = $('more'); if (mb) mb.onclick = () => { shown += 80; render(false); };
 }
 // ---------- طلب مادة (يصل إلى الصيدلي كتنبيه) ----------
-function openSheet(html) { rxMode = ''; $('sheet').classList.remove('big'); $('sheet').innerHTML = '<div class="grab"></div>' + html; $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
-function closeSheet() { curId = null; rxMode = ''; $('sheet').classList.remove('big'); $('bg').classList.remove('show'); document.body.style.overflow = ''; }
+function openSheet(html) { rxMode = ''; $('sheet').classList.remove('big'); $('bg').classList.remove('mid'); $('sheet').innerHTML = '<div class="grab"></div>' + html; $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
+function closeSheet() { curId = null; rxMode = ''; $('sheet').classList.remove('big'); $('bg').classList.remove('mid'); $('bg').classList.remove('show'); document.body.style.overflow = ''; }
 function reqOpen(pre) {
     openSheet(`<h3>طلب مادة من الصيدلية</h3><p>اكتب اسم الدواء الذي تحتاجه، وستصل رسالتك إلى الصيدلي مباشرة.</p>
     <input id="rqN" class="fld" type="text" dir="ltr" placeholder="اسم الدواء" value="${esc(pre || '')}" autocomplete="off">
@@ -500,26 +510,35 @@ const NSTAT = { new: ['أُرسلت · بانتظار الصيدلية', 'noph']
 const mkNum = () => 'RX-' + Math.random().toString(36).slice(2, 8).toUpperCase();
 let RX = lsGet('diwanRxDraft', null) || { num: mkNum(), doctor: '', patient: '', items: [], note: '' };
 if (!RX.doctor) RX.doctor = lsGet('diwanDocName', '');
-let rxMode = '', MY = lsGet('diwanRx', []), SEEN = lsGet('diwanRxSeen', {}), NT = {}, NTU = {};
+let RXO = new Set(); let rxMode = '', MY = lsGet('diwanRx', []), SEEN = lsGet('diwanRxSeen', {}), NT = {}, NTU = {};
+const DN = () => lsGet('diwanDocNames', []);
+const dnNorm = s => norm(String(s || '').replace(/^\s*د\.?\s*/, '')).trim();
+function dnAdd(n) { n = String(n || '').trim(); if (dnNorm(n).length < 2) return; const l = DN().filter(x => dnNorm(x) !== dnNorm(n)); l.unshift(n); lsSet('diwanDocNames', l.slice(0, 30)); }
+function dnShow(v) {
+    const b = $('dnSug'); if (!b) return; const q = dnNorm(v);
+    const l = q ? DN().filter(x => dnNorm(x).startsWith(q) && dnNorm(x) !== q).slice(0, 5) : [];
+    b.innerHTML = l.map(x => `<button type="button" data-dn="${esc(x)}">${esc(x)}</button>`).join(''); b.classList.toggle('show', l.length > 0);
+}
 const saveDraft = () => { lsSet('diwanRxDraft', RX); if (RX.doctor) lsSet('diwanDocName', RX.doctor); };
 function ask(title, ok) { return new Promise(r => { const d = document.createElement('div'); d.className = 'qm'; d.innerHTML = `<div><b>${esc(title)}</b><div class="r"><button type="button" data-a="0">رجوع</button><button type="button" class="d" data-a="1">${esc(ok)}</button></div></div>`; d.onclick = e => { const b = e.target.closest('[data-a]'); if (b || e.target === d) { d.remove(); r(!!b && b.dataset.a === '1'); } }; document.body.appendChild(d); }); }
 const opts = (arr, v, ph) => `<option value="">${ph}</option>` + arr.map(x => `<option ${x === v ? 'selected' : ''}>${x}</option>`).join('');
 function rxOpen() {
-    rxMode = 'form'; $('sheet').classList.add('big'); rxForm();
+    rxMode = 'form'; $('sheet').classList.add('big'); $('bg').classList.remove('mid'); rxForm();
     $('bg').classList.add('show'); document.body.style.overflow = 'hidden';
 }
 function rxForm(keep) {
     const sh = $('sheet'), top = sh.scrollTop;
     sh.innerHTML = `<div class="grab"></div>${rxTabs('new')}<div class="rxs"><div class="rxt"><h3>وصفة إلكترونية</h3><button type="button" class="lk" data-rx="clear">مسح الوصفة</button></div>
-    <label class="rxl">اسم الطبيب <b>*</b></label><input class="fld" data-k="doctor" type="text" autocomplete="off" placeholder="د. ..." value="${esc(RX.doctor)}">
+    <label class="rxl">اسم الطبيب <b>*</b></label><input class="fld" data-k="doctor" type="text" autocomplete="off" placeholder="د. ..." value="${esc(RX.doctor)}"><div class="dsg" id="dnSug"></div>
     <label class="rxl">اسم المريض <b>*</b></label><input class="fld" data-k="patient" type="text" autocomplete="off" placeholder="الاسم الثلاثي" value="${esc(RX.patient)}">
     <label class="rxl">التشخيص (اختياري)</label><input class="fld" data-k="dx" type="text" autocomplete="off" placeholder="التشخيص" value="${esc(RX.dx || '')}">
     <label class="rxl">الأدوية <b>*</b></label>
-    ${RX.items.map((it, i) => `<div class="rxi" data-i="${i}"><div class="rxh">${it.ext ? `<input class="fld" style="flex:1" data-f="n" type="text" dir="auto" placeholder="اسم الدواء (من خارج الصيدلية)" value="${esc(it.n)}">` : `<b dir="auto"><bdi>${esc(it.n)}</bdi></b>`}${it.ext ? '<span class="tag">خارجي</span>' : ''}<button type="button" class="x" data-rx="del" data-i="${i}" aria-label="حذف">${svg('<path d="M18 6 6 18M6 6l12 12"/>')}</button></div>
+    ${RX.items.map((it, i) => RXO.has(i) ? `<div class="rxi" data-i="${i}"><div class="rxh">${it.ext ? `<input class="fld" style="flex:1" data-f="n" type="text" dir="auto" placeholder="اسم الدواء (من خارج الصيدلية)" value="${esc(it.n)}">` : `<b dir="auto"><bdi>${esc(it.n)}</bdi></b>`}${it.ext ? '<span class="tag">خارجي</span>' : ''}<button type="button" class="tgl" data-rx="tog" data-i="${i}" aria-label="طي">${svg('<path d="m9 18 6-6-6-6"/>')}</button><button type="button" class="x" data-rx="del" data-i="${i}" aria-label="حذف">${svg('<path d="M18 6 6 18M6 6l12 12"/>')}</button></div>
         <div class="rxg"><input class="fld full" data-f="dose" type="text" placeholder="الجرعة (مثل: قرص واحد، 5 مل، قطرتان)" value="${esc(it.dose)}">
         <select class="fld" data-f="freq">${opts(FREQ, it.freq, 'التكرار')}</select><select class="fld" data-f="dur">${opts(DUR, it.dur, 'المدة')}</select></div>
         <input class="fld" data-f="ins" type="text" placeholder="تعليمات (اختياري)" value="${esc(it.ins)}">
-        <div class="qc">${INS.map(t => `<button type="button" data-rx="ins" data-i="${i}" data-t="${t}">${t}</button>`).join('')}</div></div>`).join('')}
+        <div class="qc">${INS.map(t => `<button type="button" data-rx="ins" data-i="${i}" data-t="${t}">${t}</button>`).join('')}</div></div>`
+        : `<div class="rxi cl" data-i="${i}"><button type="button" class="tg ${it.n.trim() ? '' : 'bad'}" data-rx="tog" data-i="${i}"><span><b dir="auto"><bdi>${esc(it.n.trim() || 'دواء بلا اسم')}</bdi></b>${it.ext ? ' <span class="tag">خارجي</span>' : ''}<small>${esc([it.dose, it.freq].filter(Boolean).join(' · ') || 'لم تُحدد الجرعة والتكرار')}</small></span>${svg('<path d="m9 18 6-6-6-6"/>')}</button><button type="button" class="x" data-rx="del" data-i="${i}" aria-label="حذف">${svg('<path d="M18 6 6 18M6 6l12 12"/>')}</button></div>`).join('')}
     <div class="addrow"><button type="button" class="addb" data-rx="pick">${svg(IC.plus)}من الصيدلية</button><button type="button" class="addb ex" data-rx="ext">${svg(IC.plus)}من خارج الصيدلية</button></div>
     <label class="rxl">ملاحظات عامة (اختياري)</label><textarea data-k="note" placeholder="ملاحظة للصيدلي" style="min-height:76px;direction:rtl;text-align:right">${esc(RX.note)}</textarea>
     <div class="rxa"><button type="button" class="go alt" data-rx="print">طباعة</button><button type="button" class="go" data-rx="send">إرسال للصيدلية</button></div></div>`;
@@ -531,7 +550,7 @@ const getDid = () => { let d = lsGet('diwanDid', ''); if (!d) { d = Array.from(c
 let HQ = '';
 function histRender() {
     rxMode = 'hist'; const sh = $('sheet');
-    sh.innerHTML = `<div class="grab"></div>${rxTabs('hist')}<input class="fld" id="hq" type="search" autocomplete="off" placeholder="ابحث باسم المريض أو الدواء" value="${esc(HQ)}"><div id="hl"></div><button type="button" class="rsl" data-rx="rs">استرجاع سجلي من الصيدلية (جهاز جديد)</button>`;
+    sh.innerHTML = `<div class="grab"></div>${rxTabs('hist')}<div class="hqr"><input class="fld" id="hq" type="search" autocomplete="off" placeholder="ابحث باسم المريض أو الدواء" value="${esc(HQ)}"><button type="button" class="ib2" data-rx="exp" aria-label="تصدير نسخة احتياطية" title="تصدير نسخة احتياطية">${svg('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>')}</button><button type="button" class="ib2" data-rx="imp" aria-label="استيراد نسخة احتياطية" title="استيراد نسخة احتياطية">${svg('<path d="M12 15V3M7 8l5-5 5 5M5 21h14"/>')}</button><input type="file" id="impF" accept=".json,application/json" hidden></div><div id="hl"></div><button type="button" class="rsl" data-rx="rs">استرجاع سجلي من الصيدلية (جهاز جديد)</button>`;
     histList(); sh.scrollTop = 0;
 }
 function histList() {
@@ -570,7 +589,7 @@ async function rsGet(btn) {
         try { obj = await rxDecrypt(code, p.id, d.iv, d.data); } catch (e) { toast('الرمز غير صحيح'); btn.disabled = false; return; }
         const have = new Set(MY.map(r => r.rid)); (obj.recs || []).forEach(r => { if (!have.has(r.rid)) MY.push(r); });
         MY.sort((a, b) => b.at - a.at); MY = MY.slice(0, 500); lsSet('diwanRx', MY);
-        if (obj.did) lsSet('diwanDid', obj.did); if (obj.name) { RX.doctor = obj.name; lsSet('diwanDocName', obj.name); saveDraft(); }
+        if (obj.did) lsSet('diwanDid', obj.did); if (obj.name) { dnAdd(obj.name); RX.doctor = obj.name; lsSet('diwanDocName', obj.name); saveDraft(); }
         MY.forEach(r => { SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, Date.now()); }); lsSet('diwanRxSeen', SEEN);
         try { await firebase.firestore().collection('pharmacy_search_misses').doc('rs_' + p.id).set({ claimed: true }, { merge: true }); } catch (e) { /* تجاهل */ }
         try { localStorage.removeItem('diwanRs'); } catch (e) { /* تجاهل */ }
@@ -585,10 +604,12 @@ function rxPickOpen() {
 function rxPickList(t) {
     const n = norm(t.trim()); let rows = ALL.filter(m => !n || m.hay.includes(n)), g = false;
     if (n && !rows.length) { rows = fuzzyRows(ALL, t.trim()); g = rows.length > 0; } rows = rows.slice(0, 40);
-    $('pkL').innerHTML = (g ? '<div class="guess">هل تقصد:</div>' : '') + rows.map(m => `<div class="row s-${m.st}" data-add="${m.id}"><span dir="rtl"><bdi>${esc(m.n)}</bdi>${m.a ? `<small style="display:block;color:var(--sub);font-weight:500">${esc(m.a)}</small>` : ''}</span><i title="${ST[m.st].t}"></i></div>`).join('') || '<div class="noalt">لا توجد نتائج. يمكنك إضافته «من خارج الصيدلية».</div>';
+    const tt = t.trim(), addx = tt.length > 1 ? `<div class="row ax" data-addx="1"><span dir="auto">إضافة «<bdi>${esc(tt)}</bdi>» كدواء غير موجود في الصيدلية</span>${svg(IC.plus)}</div>` : '';
+    $('pkL').innerHTML = addx + (g ? '<div class="guess">هل تقصد:</div>' : '') + rows.map(m => `<div class="row s-${m.st}" data-add="${m.id}"><span dir="rtl"><bdi>${esc(m.n)}</bdi>${m.a ? `<small style="display:block;color:var(--sub);font-weight:500">${esc(m.a)}</small>` : ''}</span><i title="${ST[m.st].t}"></i></div>`).join('') || (addx ? '' : '<div class="noalt">اكتب اسم الدواء للبحث.</div>');
 }
 function rxValid() {
     let ok = true; const sh = $('sheet');
+    const bad0 = RX.items.map((it, i) => it.n.trim() ? -1 : i).filter(i => i >= 0 && !RXO.has(i)); if (bad0.length) { bad0.forEach(i => RXO.add(i)); rxForm(true); }
     const mark = (el, bad) => { if (el) el.classList.toggle('bad', bad); if (bad) ok = false; };
     mark(sh.querySelector('[data-k="doctor"]'), !RX.doctor.replace(/^\s*د\.?\s*/, '').trim()); mark(sh.querySelector('[data-k="patient"]'), !RX.patient.trim());
     sh.querySelectorAll('.rxi').forEach(c => { const it = RX.items[+c.dataset.i], nm = c.querySelector('[data-f="n"]'); if (nm) mark(nm, !it.n.trim()); });
@@ -604,10 +625,52 @@ async function rxSend(btn) {
     try {
         await firebase.firestore().collection('pharmacy_search_misses').doc('rx_' + rid).set({ dr: 1, kind: 'r', rid, did: getDid(), num: rec.num, doctor: rec.doctor, patient: rec.patient, dx: rec.dx, note: rec.note, items: rec.items, st: 'new', ps: { msgs: [] }, count: 1, name: rec.patient, lastAt: new Date(rec.at).toISOString() });
     } catch (e) { btn.disabled = false; toast('تعذر الإرسال، تحقق من الاتصال'); return; }
+    dnAdd(rec.doctor);
+    rec.items.filter(i => i.ext && i.n).forEach(i => { try { firebase.firestore().collection('pharmacy_search_misses').doc('dx_' + encodeURIComponent(norm(i.n)).slice(0, 150)).set({ dr: 1, kind: 'x', name: i.n, count: firebase.firestore.FieldValue.increment(1), lastAt: new Date().toISOString() }, { merge: true }).catch(() => { }); } catch (e) { /* تجاهل */ } });
     MY.unshift({ rid, ...rec }); MY = MY.slice(0, 500); lsSet('diwanRx', MY); SEEN[rid] = Date.now(); lsSet('diwanRxSeen', SEEN);
     RX = { num: mkNum(), doctor: rec.doctor, patient: '', dx: '', items: [], note: '' }; saveDraft(); ntWatch();
     closeSheet(); toast('أُرسلت الوصفة إلى الصيدلية'); ntBadge();
 }
+// ---------- نسخة احتياطية: تصدير واستيراد ----------
+function rxExport() {
+    if (!MY.length) { toast('لا توجد وصفات لتصديرها'); return; }
+    const d = new Date(), f = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    const blob = new Blob([JSON.stringify({ app: 'diwan-rx', v: 1, did: getDid(), name: RX.doctor || '', recs: MY })], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'diwan-rx-backup-' + f + '.json'; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500); toast('تم تصدير ' + num(MY.length) + ' وصفة');
+}
+async function rxImport(file) {
+    try {
+        const o = JSON.parse(await file.text());
+        if (!o || o.app !== 'diwan-rx' || !Array.isArray(o.recs)) { toast('الملف ليس نسخة احتياطية صالحة'); return; }
+        const have = new Set(MY.map(r => r.rid)); let n = 0;
+        o.recs.forEach(r => { if (r && r.rid && r.patient && Array.isArray(r.items) && !have.has(r.rid)) { MY.push(r); have.add(r.rid); n++; } });
+        MY.sort((a, b) => b.at - a.at); MY = MY.slice(0, 500); lsSet('diwanRx', MY);
+        if (o.did && !lsGet('diwanDid', '')) lsSet('diwanDid', o.did);
+        if (o.name) dnAdd(o.name);
+        MY.forEach(r => { SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, Date.now()); }); lsSet('diwanRxSeen', SEEN);
+        try { ntWatch(); ntBadge(); } catch (e) { /* تجاهل */ }
+        toast(n ? 'تم استيراد ' + num(n) + ' وصفة' : 'لا توجد وصفات جديدة'); histList();
+    } catch (e) { toast('تعذر قراءة الملف'); }
+}
+$('sheet').addEventListener('change', e => { if (e.target.id === 'impF' && e.target.files[0]) rxImport(e.target.files[0]); });
+$('sheet').addEventListener('pointerdown', e => { const s = e.target.closest('[data-dn]'); if (!s) return; e.preventDefault(); const v = s.dataset.dn, inp = $('sheet').querySelector('[data-k="doctor"]'); if (inp) inp.value = v; RX.doctor = v; saveDraft(); dnShow(''); });
+// ---------- سحب البطاقة للأسفل للإغلاق + منع تحرك الخلفية ----------
+let dg = null;
+$('sheet').addEventListener('touchstart', e => { const sh = $('sheet'); dg = e.touches.length === 1 && sh.scrollTop <= 0 && (curId || rxMode === 'pick' || e.target.closest('.grab,.rxtabs,.rxt')) ? { x: e.touches[0].clientX, y: e.touches[0].clientY, d: 0, on: false } : null; }, { passive: true });
+$('sheet').addEventListener('touchmove', e => {
+    if (!dg) return; const sh = $('sheet'), t = e.touches[0], dy = t.clientY - dg.y, dx = t.clientX - dg.x;
+    if (!dg.on) { if (dy > 12 && dy > Math.abs(dx) * 1.5 && sh.scrollTop <= 0) dg.on = true; else return; }
+    dg.d = Math.max(0, dy); sh.style.transition = 'none'; sh.style.transform = 'translateY(' + dg.d + 'px)';
+}, { passive: true });
+$('sheet').addEventListener('touchend', () => {
+    if (!dg) return; const sh = $('sheet'), d = dg.d, on = dg.on; dg = null; if (!on) return;
+    sh.style.transition = 'transform .2s'; sh.style.transform = '';
+    setTimeout(() => { sh.style.transition = ''; }, 230);
+    if (d > 110) { if (rxMode === 'pick') { rxMode = 'form'; rxForm(); } else closeSheet(); }
+});
+$('bg').addEventListener('touchmove', e => { const s = e.target.closest('.sheet'); if (!s || s.scrollHeight <= s.clientHeight + 1) e.preventDefault(); }, { passive: false });
+try { new MutationObserver(() => { document.documentElement.classList.toggle('lk', $('bg').classList.contains('show')); }).observe($('bg'), { attributes: true, attributeFilter: ['class'] }); } catch (e) { /* تجاهل */ }
 // ---------- إشعارات الطبيب ----------
 function ntUnread() { let n = 0; Object.keys(NT).forEach(rid => { const d = NT[rid]; if (d && d.msgs) n += d.msgs.filter(m => m.at > (SEEN[rid] || 0)).length; }); return n; }
 function ntBadge() { const n = ntUnread(); $('ntN').textContent = n ? num(n) : ''; }
@@ -632,22 +695,24 @@ function ntRender() {
     MY.forEach(r => { const d = NT[r.rid]; if (d && d.msgs && d.msgs.length) SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, ...d.msgs.map(m => m.at)); }); lsSet('diwanRxSeen', SEEN); ntBadge();
 }
 let ntSeenView = {};
-function ntOpen() { ntSeenView = {}; MY.forEach(r => ntSeenView[r.rid] = SEEN[r.rid] || 0); rxMode = 'nt'; $('sheet').classList.add('big'); ntRender(); $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
+function ntOpen() { ntSeenView = {}; MY.forEach(r => ntSeenView[r.rid] = SEEN[r.rid] || 0); rxMode = 'nt'; $('sheet').classList.add('big'); $('bg').classList.remove('mid'); ntRender(); $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
 $('rxBtn').onclick = rxOpen; $('ntBtn').onclick = ntOpen;
 $('sheet').addEventListener('input', e => {
     const t = e.target;
     if (rxMode === 'pick' && t.id === 'pkQ') { rxPickList(t.value); return; }
     if (rxMode === 'hist' && t.id === 'hq') { HQ = t.value; histList(); return; }
     if (rxMode !== 'form') return;
+    if (t.dataset.k === 'doctor') dnShow(t.value);
     if (t.dataset.k) { RX[t.dataset.k] = t.value; t.classList.remove('bad'); saveDraft(); }
     else if (t.dataset.f) { const c = t.closest('.rxi'); RX.items[+c.dataset.i][t.dataset.f] = t.value; t.classList.remove('bad'); saveDraft(); }
 });
 $('sheet').addEventListener('focusin', e => { const t = e.target; if (rxMode === 'form' && t.dataset && t.dataset.k === 'doctor' && !t.value.trim()) { t.value = 'د. '; RX.doctor = t.value; saveDraft(); setTimeout(() => { try { t.setSelectionRange(t.value.length, t.value.length); } catch (x) { /* تجاهل */ } }, 0); } });
-$('sheet').addEventListener('focusout', e => { const t = e.target; if (rxMode === 'form' && t.dataset && t.dataset.k === 'doctor') { let v = t.value.trim(); if (v && !/^د\./.test(v)) v = 'د. ' + v.replace(/^د\s+/, ''); if (/^د\.?$/.test(v)) v = ''; t.value = v; RX.doctor = v; saveDraft(); } });
+$('sheet').addEventListener('focusout', e => { const t = e.target; if (rxMode === 'form' && t.dataset && t.dataset.k === 'doctor') { setTimeout(() => dnShow(''), 0); let v = t.value.trim(); if (v && !/^د\./.test(v)) v = 'د. ' + v.replace(/^د\s+/, ''); if (/^د\.?$/.test(v)) v = ''; t.value = v; RX.doctor = v; saveDraft(); dnAdd(v); } });
 $('sheet').addEventListener('focusin', e => { if (rxMode === 'form' && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) setTimeout(() => { try { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) { /* تجاهل */ } }, 320); });
 $('sheet').addEventListener('click', async e => {
-    const b = e.target.closest('[data-rx]'), a = e.target.closest('[data-add]');
-    if (a && rxMode === 'pick') { const m = ALL.find(x => x.id === a.dataset.add); if (m) { RX.items.push({ p: m.id, n: m.n, ext: false, dose: '', freq: '', dur: '', ins: '' }); saveDraft(); rxMode = 'form'; rxForm(); $('sheet').scrollTop = $('sheet').scrollHeight; } return; }
+    const b = e.target.closest('[data-rx]'), a = e.target.closest('[data-add]'), ax = e.target.closest('[data-addx]');
+    if (ax && rxMode === 'pick') { const v = ($('pkQ').value || '').trim(); if (v) { RX.items.push({ p: '', n: v, ext: true, dose: '', freq: '', dur: '', ins: '' }); RXO = new Set([RX.items.length - 1]); saveDraft(); rxMode = 'form'; rxForm(); $('sheet').scrollTop = $('sheet').scrollHeight; } return; }
+    if (a && rxMode === 'pick') { const m = ALL.find(x => x.id === a.dataset.add); if (m) { RX.items.push({ p: m.id, n: m.n, ext: false, dose: '', freq: '', dur: '', ins: '' }); RXO = new Set([RX.items.length - 1]); saveDraft(); rxMode = 'form'; rxForm(); $('sheet').scrollTop = $('sheet').scrollHeight; } return; }
     if (!b || !['form', 'nt', 'hist', 'rs'].includes(rxMode)) return;
     const k = b.dataset.rx;
     if (k === 'tab') { if (b.dataset.t === 'hist') { histRender(); } else { rxMode = 'form'; rxForm(); } }
@@ -655,13 +720,16 @@ $('sheet').addEventListener('click', async e => {
     else if (k === 'rssend') { rsSend(); }
     else if (k === 'rsget') { rsGet(b); }
     else if (k === 'rscancel') { if (await ask('إلغاء طلب الاسترجاع الحالي؟', 'إلغاء الطلب')) { try { localStorage.removeItem('diwanRs'); } catch (x) { /* تجاهل */ } rsRender(); } }
-    else if (k === 'reuse') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) { RX = { num: mkNum(), doctor: r.doctor, patient: r.patient, dx: r.dx || '', items: (r.items || []).map(i => ({ ...i })), note: r.note || '' }; saveDraft(); rxMode = 'form'; rxForm(); toast('نُسخت الوصفة، عدّل ما تريد ثم أرسلها'); } }
+    else if (k === 'reuse') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) { RX = { num: mkNum(), doctor: r.doctor, patient: r.patient, dx: r.dx || '', items: (r.items || []).map(i => ({ ...i })), note: r.note || '' }; RXO = new Set(); saveDraft(); rxMode = 'form'; rxForm(); toast('نُسخت الوصفة، عدّل ما تريد ثم أرسلها'); } }
     else if (k === 'pick') { rxPickOpen(); }
     else if (k === 'back') { rxMode = 'form'; rxForm(); }
-    else if (k === 'ext') { RX.items.push({ p: '', n: '', ext: true, dose: '', freq: '', dur: '', ins: '' }); saveDraft(); rxForm(); $('sheet').scrollTop = $('sheet').scrollHeight; }
-    else if (k === 'del') { if (await ask('حذف هذا الدواء من الوصفة؟', 'حذف')) { RX.items.splice(+b.dataset.i, 1); saveDraft(); rxForm(true); } }
+    else if (k === 'ext') { RX.items.push({ p: '', n: '', ext: true, dose: '', freq: '', dur: '', ins: '' }); RXO = new Set([RX.items.length - 1]); saveDraft(); rxForm(); $('sheet').scrollTop = $('sheet').scrollHeight; }
+    else if (k === 'del') { if (await ask('حذف هذا الدواء من الوصفة؟', 'حذف')) { const di = +b.dataset.i; RX.items.splice(di, 1); RXO = new Set([...RXO].filter(x => x !== di).map(x => x > di ? x - 1 : x)); saveDraft(); rxForm(true); } }
+    else if (k === 'tog') { const ti = +b.dataset.i; RXO.has(ti) ? RXO.delete(ti) : RXO.add(ti); rxForm(true); }
+    else if (k === 'exp') { rxExport(); }
+    else if (k === 'imp') { $('impF').value = ''; $('impF').click(); }
     else if (k === 'ins') { const it = RX.items[+b.dataset.i], t = b.dataset.t; it.ins = it.ins ? (it.ins.includes(t) ? it.ins : it.ins + '، ' + t) : t; saveDraft(); const c = b.closest('.rxi').querySelector('[data-f="ins"]'); c.value = it.ins; }
-    else if (k === 'clear') { if (await ask('مسح الوصفة كاملة؟', 'مسح')) { RX = { num: mkNum(), doctor: RX.doctor, patient: '', dx: '', items: [], note: '' }; saveDraft(); rxForm(); } }
+    else if (k === 'clear') { if (await ask('مسح الوصفة كاملة؟', 'مسح')) { RX = { num: mkNum(), doctor: RX.doctor, patient: '', dx: '', items: [], note: '' }; RXO = new Set(); saveDraft(); rxForm(); } }
     else if (k === 'print') { if (rxValid()) rxPrintNow(rxRec()); }
     else if (k === 'send') { rxSend(b); }
     else if (k === 'reprint') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) rxPrintNow(r); }
