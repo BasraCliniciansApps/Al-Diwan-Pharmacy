@@ -28,38 +28,48 @@
 html, body { margin: 0; overflow-x: hidden; max-width: 100%; touch-action: pan-y; overscroll-behavior-x: none; }
 body { position: relative; }
 textarea, input { touch-action: manipulation; }
-body { font-family: 'Tajawal', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+body { font-family: 'Tajawal', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
 button { font-family: inherit; }
 svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
 
-/* ---------- الترويسة ---------- */
-.hero { background: linear-gradient(160deg, var(--navy) 0%, var(--navy-soft) 100%); color: #fff; padding: calc(16px + env(safe-area-inset-top)) 16px 64px; border-radius: 0 0 30px 30px; position: relative; overflow: hidden; }
-.hero::before { content: ''; position: absolute; inset: 0; opacity: .07; background-image: radial-gradient(circle at 1px 1px, #fff 1px, transparent 0); background-size: 18px 18px; }
-.hero-in { position: relative; max-width: 760px; margin: 0 auto; display: flex; align-items: center; gap: 12px; }
-.hero img { width: 46px; height: 46px; border-radius: 14px; object-fit: cover; box-shadow: 0 4px 14px rgba(0,0,0,.35); }
+/* ---------- الترويسة الثابتة ---------- */
+:root { --hh: 150px; --fh: 50px; }
+.top { position: fixed; top: 0; left: 0; right: 0; z-index: 30; background: linear-gradient(160deg, var(--navy) 0%, var(--navy-soft) 100%); color: #fff; padding: calc(10px + env(safe-area-inset-top)) 14px 14px; border-radius: 0 0 26px 26px; box-shadow: 0 8px 26px rgba(8,14,30,.32); overflow: hidden; }
+.top::before { content: ''; position: absolute; inset: 0; opacity: .07; background-image: radial-gradient(circle at 1px 1px, #fff 1px, transparent 0); background-size: 18px 18px; pointer-events: none; }
+.top-in { position: relative; max-width: 732px; margin: 0 auto; }
+.top-row { display: flex; align-items: center; gap: 10px; }
+.top img { width: 42px; height: 42px; border-radius: 13px; object-fit: cover; box-shadow: 0 4px 14px rgba(0,0,0,.35); flex: 0 0 auto; }
 .brand { flex: 1; min-width: 0; }
-.brand b { display: block; font-family: 'Aref Ruqaa', serif; font-size: 1.45rem; color: var(--gold); line-height: 1.2; }
-.brand small { display: flex; align-items: center; gap: 6px; font-size: .78rem; color: #cbd5e1; font-weight: 500; margin-top: 2px; }
-.theme { width: 42px; height: 42px; border-radius: 13px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.1); color: #fff; font-size: 1.1rem; display: grid; place-items: center; cursor: pointer; }
-.upd { position: relative; max-width: 760px; margin: 14px auto 0; display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.16); border-radius: 999px; padding: 6px 12px; font-size: .74rem; color: #e2e8f0; }
-.upd i { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.25); }
-.hero-wrap { max-width: 760px; margin: 0 auto; position: relative; }
-
-/* ---------- البحث ---------- */
-.search-wrap { position: sticky; top: 0; z-index: 20; margin-top: -34px; padding: 0 14px; }
-.search { max-width: 732px; margin: 0 auto; display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 18px; padding: 0 16px; height: 54px; box-shadow: 0 10px 28px rgba(15,28,56,.22); border: 1px solid var(--line); }
-.search svg { font-size: 1.25rem; color: var(--sub); }
+.brand b { display: block; font-family: 'Aref Ruqaa', serif; font-size: 1.3rem; color: var(--gold); line-height: 1.2; white-space: nowrap; }
+.brand small { display: flex; align-items: center; gap: 5px; font-size: .68rem; color: #cbd5e1; font-weight: 500; margin-top: 1px; white-space: nowrap; }
+.hbtn { position: relative; flex: 0 0 auto; width: 38px; height: 38px; border-radius: 12px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.1); color: #fff; font-size: 1.1rem; display: grid; place-items: center; cursor: pointer; }
+.hbtn.on { background: var(--gold); border-color: var(--gold); color: #0f1c38; } .hbtn.on svg { fill: currentColor; }
+.hbtn i { position: absolute; top: -5px; inset-inline-start: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--gold); color: #0f1c38; font: 800 .62rem/17px 'Tajawal', sans-serif; font-style: normal; text-align: center; }
+.hbtn i:empty { display: none; }
+.search { margin-top: 12px; display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 16px; padding: 0 14px; height: 48px; border: 1px solid var(--line); }
+.search svg { font-size: 1.2rem; color: var(--sub); }
 .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 500 1rem 'Tajawal', sans-serif; color: var(--text); height: 100%; }
 .search input::placeholder { color: var(--sub); }
 .search button { border: 0; background: var(--surface-2); color: var(--sub); width: 28px; height: 28px; border-radius: 50%; display: none; place-items: center; cursor: pointer; }
 .search.has button { display: grid; }
 
-/* ---------- التخطيط ---------- */
-.layout { max-width: 760px; margin: 14px auto 0; padding: 0 0 0 14px; display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 14px; align-items: start; }
-.rail { position: sticky; top: 78px; display: flex; flex-direction: column; gap: clamp(5px, 1vh, 8px); align-items: flex-end; max-height: calc(100vh - 92px); }
-.tab { position: relative; width: 36px; min-height: clamp(84px, 14vh, 150px); border: 0; background: var(--surface); color: var(--text); border-radius: 14px 0 0 14px; padding: 9px 0 10px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; box-shadow: var(--shadow), inset 3px 0 0 var(--c); transition: transform .26s cubic-bezier(.2,.9,.25,1.2), background .2s, color .2s, box-shadow .2s; }
+/* ---------- التذييل الثابت ---------- */
+.foot { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; background: linear-gradient(160deg, var(--navy) 0%, var(--navy-soft) 100%); color: #fff; border-radius: 22px 22px 0 0; padding: 11px 18px calc(11px + env(safe-area-inset-bottom)); box-shadow: 0 -8px 26px rgba(8,14,30,.3); }
+.foot-in { max-width: 732px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: .78rem; }
+.foot-l { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.foot-l b { font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.foot-l em { font-style: normal; background: rgba(255,255,255,.14); border-radius: 999px; padding: 1px 10px; font-weight: 800; color: var(--gold); }
+.clr { flex: 0 0 auto; border: 0; background: rgba(255,255,255,.18); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: none; place-items: center; cursor: pointer; font-size: .74rem; }
+.clr.show { display: grid; }
+.foot-r { display: flex; align-items: center; gap: 7px; color: #cbd5e1; font-weight: 500; white-space: nowrap; }
+.foot-r i { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.25); }
+
+/* ---------- التابات الجانبية الثابتة (بين الترويسة والتذييل) ---------- */
+.main { max-width: 760px; margin: 0 auto; padding: calc(var(--hh) + 14px) 14px calc(var(--fh) + 22px) 14px; padding-inline-start: 50px; }
+.rail { position: fixed; z-index: 20; top: var(--hh); bottom: var(--fh); right: max(0px, calc((100vw - 760px) / 2)); display: flex; flex-direction: column; justify-content: center; align-items: flex-end; gap: clamp(5px, 1vh, 8px); padding: 8px 0; pointer-events: none; }
+.tab { pointer-events: auto; position: relative; flex: 0 1 auto; width: 36px; min-height: 0; border: 0; background: var(--surface); color: var(--text); border-radius: 14px 0 0 14px; padding: 9px 0 10px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; box-shadow: var(--shadow), inset 3px 0 0 var(--c); transition: transform .26s cubic-bezier(.2,.9,.25,1.2), background .2s, color .2s, box-shadow .2s; }
 .tab .ic { display: none; }
-.tab .lb { writing-mode: vertical-rl; transform: rotate(180deg); font-size: clamp(.62rem, 1.85vh, .72rem); font-weight: 800; line-height: 1; letter-spacing: 0; color: var(--text); white-space: nowrap; }
+.tab .lb { writing-mode: vertical-rl; font-size: clamp(.58rem, 1.75vh, .72rem); font-weight: 800; line-height: 1; letter-spacing: 0; color: var(--text); white-space: nowrap; }
 .tab .ct { order: -1; font-size: .7rem; font-weight: 800; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); border-radius: 999px; padding: 2px 0; width: 24px; text-align: center; }
 .tab.on { transform: translateX(-8px); background: var(--c); box-shadow: 0 8px 20px color-mix(in srgb, var(--c) 45%, transparent); }
 .tab.on::after { content: ''; position: absolute; top: 0; bottom: 0; right: -8px; width: 8px; background: var(--c); }
@@ -68,10 +78,6 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .t-ok { --c: var(--ok); } .t-noph { --c: var(--noph); } .t-nosup { --c: var(--nosup); } .t-back { --c: var(--back); }
 
 /* ---------- القائمة ---------- */
-.head-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 34px; margin-bottom: 8px; }
-.head-line b { font-size: .95rem; } .head-line small { color: var(--sub); font-weight: 500; }
-.clear { border: 0; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; font: 800 .74rem 'Tajawal', sans-serif; cursor: pointer; display: none; }
-.clear.show { display: inline-flex; }
 .list { display: flex; flex-direction: column; gap: 10px; }
 .list.anim .card { animation: rise .35s ease both; }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -124,36 +130,34 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .go { width: 100%; margin-top: 10px; height: 50px; border: 0; border-radius: 16px; background: var(--navy); color: #fff; font: 800 .95rem 'Tajawal', sans-serif; cursor: pointer; }
 :root[data-theme="dark"] .go { background: var(--gold); color: #0f1c38; }
 .fld { width: 100%; height: 50px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); padding: 0 14px; font: 500 .95rem 'Tajawal', sans-serif; text-align: start; }
-.toast { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 11px 18px; border-radius: 999px; font-size: .84rem; font-weight: 800; z-index: 90; box-shadow: 0 10px 28px rgba(0,0,0,.35); animation: rise .25s ease; }
+.toast { position: fixed; bottom: calc(var(--fh) + 16px); left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 11px 18px; border-radius: 999px; font-size: .84rem; font-weight: 800; z-index: 90; box-shadow: 0 10px 28px rgba(0,0,0,.35); animation: rise .25s ease; }
 @media (max-width: 380px) { .card { grid-template-columns: minmax(0, 1fr) 84px; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
 <body>
-<header class="hero">
-    <div class="hero-in">
+<header class="top" id="top"><div class="top-in">
+    <div class="top-row">
         <img src="icon.jpg" alt="">
         <div class="brand"><b>صيدلية الديوان</b><small><svg viewBox="0 0 24 24"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg>دليل توفر الأدوية للأطباء</small></div>
-        <button class="theme" id="theme" aria-label="تبديل الوضع"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></button>
+        <button type="button" class="hbtn" id="reqBtn" aria-label="طلب مادة" title="طلب مادة"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+        <button type="button" class="hbtn" id="favBtn" aria-label="المفضلة" title="المفضلة"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><i id="favN"></i></button>
+        <button type="button" class="hbtn" id="theme" aria-label="تبديل الوضع" title="الوضع الليلي/النهاري"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></button>
     </div>
-    <div class="hero-wrap"><div class="upd" id="upd"><i></i><span id="updT">جارٍ التحديث…</span></div></div>
-</header>
-
-<div class="search-wrap">
     <label class="search" id="sbox"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         <input id="q" type="search" inputmode="search" autocomplete="off" placeholder="ابحث باسم الدواء أو المادة الفعالة">
         <button type="button" id="qx" aria-label="مسح"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
     </label>
-</div>
+</div></header>
 
-<main class="layout">
-    <nav class="rail" id="rail" aria-label="حالة التوفر"></nav>
-    <section>
-        <div class="tools"><button type="button" class="pill" id="reqBtn"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg> طلب مادة</button><button type="button" class="pill" id="favBtn"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg> المفضلة <span id="favN"></span></button></div>
-        <div class="head-line"><b id="hl">كل المواد <small id="hc"></small></b><button type="button" class="clear" id="clr">عرض الكل</button></div>
-        <div class="list" id="list"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
-    </section>
-</main>
+<nav class="rail" id="rail" aria-label="حالة التوفر"></nav>
+
+<main class="main"><div class="list" id="list"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div></main>
+
+<footer class="foot" id="foot"><div class="foot-in">
+    <div class="foot-l"><button type="button" class="clr" id="clr" aria-label="عرض الكل">✕</button><b id="hl">كل المواد</b><em id="hc"></em></div>
+    <div class="foot-r"><i></i><span id="updT">جارٍ التحديث…</span></div>
+</div></footer>
 <div class="bg" id="bg"><div class="sheet" id="sheet"></div></div>
 
 <script>
@@ -238,11 +242,11 @@ function render(anim) {
     const nq = norm(q.trim());
     let rows = all.filter(m => (!tab || m.st === tab || (tab === 'noph' && m.st === 'nosup')) && (!favOnly || FAV.has(m.id)) && (!nq || m.hay.includes(nq)));
     lastRows = rows.length;
-    $('hl').firstChild.nodeValue = (favOnly ? 'المفضلة · ' : '') + (tab ? ST[tab].t : 'كل المواد') + ' ';
-    $('hc').textContent = '· ' + num(rows.length);
-    $('clr').classList.toggle('show', !!tab);
+    $('hl').textContent = (favOnly ? 'المفضلة · ' : '') + (tab ? ST[tab].t : 'كل المواد');
+    $('hc').textContent = num(rows.length);
+    $('clr').classList.toggle('show', !!tab || favOnly);
     $('favBtn').classList.toggle('on', favOnly);
-    $('favN').textContent = FAV.size ? '(' + num(FAV.size) + ')' : '';
+    $('favN').textContent = FAV.size ? num(FAV.size) : '';
     const box = $('list');
     if (!doc) return;
     if (!all.length) { box.innerHTML = `<div class="empty">${svg('<circle cx="12" cy="12" r="10"/><path d="M8 15h8M9 9h.01M15 9h.01"/>')}<b>لا توجد مواد معروضة حالياً</b></div>`; return; }
@@ -284,15 +288,15 @@ async function shareItem(m) {
     try { await navigator.clipboard.writeText(t + '\n' + location.href); toast('تم نسخ المعلومات'); } catch (e) { toast('تعذرت المشاركة'); }
 }
 function stamp() {
-    if (!doc || !doc.upd) { $('updT').textContent = 'الحالة حسب آخر تحديث'; return; }
+    if (!doc || !doc.upd) { $('updT').textContent = 'حسب آخر تحديث'; return; }
     const d = new Date(doc.upd), now = new Date(), same = d.toDateString() === now.toDateString();
     const h = d.getHours(), tm = ((h % 12) || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + (h < 12 ? ' ص' : ' م');
-    $('updT').textContent = 'آخر تحديث ' + (same ? 'اليوم ' : d.getDate() + '/' + (d.getMonth() + 1) + ' ') + tm;
+    $('updT').textContent = 'تحديث ' + (same ? 'اليوم ' : d.getDate() + '/' + (d.getMonth() + 1) + ' ') + tm;
 }
 function setDoc(d) { doc = d || { cfg: {}, items: {} }; stamp(); render(false); try { localStorage.setItem(LS, JSON.stringify(doc)); } catch (e) { /* تجاهل */ } }
 
 $('rail').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; const k = b.dataset.k; tab = tab === k ? '' : k; shown = 60; render(true); if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) { /* تجاهل */ } });
-$('clr').onclick = () => { tab = ''; shown = 60; render(true); };
+$('clr').onclick = () => { tab = ''; favOnly = false; shown = 60; render(true); };
 let srT = null, lastRows = 1;
 $('q').addEventListener('input', e => { q = e.target.value; clearTimeout(srT); srT = setTimeout(() => { const t = q.trim(); if (norm(t).length >= 3 && lastRows === 0) sendReq('s', '', t, null, true); }, 1800); $('sbox').classList.toggle('has', !!q); shown = 60; render(false); });
 $('qx').onclick = () => { $('q').value = ''; q = ''; $('sbox').classList.remove('has'); render(false); $('q').focus(); };
@@ -312,6 +316,9 @@ try {
     firebase.initializeApp(firebaseConfig);
     firebase.firestore().collection('pharmacy').doc('doctor').onSnapshot(s => { if (s.exists) setDoc(s.data()); else if (!doc) setDoc(null); }, () => { if (!doc) setDoc(null); });
 } catch (e) { if (!doc) setDoc(null); }
+function fit() { const r = document.documentElement.style; r.setProperty('--hh', $('top').offsetHeight + 'px'); r.setProperty('--fh', $('foot').offsetHeight + 'px'); }
+fit(); addEventListener('resize', fit); addEventListener('orientationchange', () => setTimeout(fit, 200));
+try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit); if (window.ResizeObserver) { const ro = new ResizeObserver(fit); ro.observe($('top')); ro.observe($('foot')); } } catch (e) { /* تجاهل */ }
 setInterval(render, 600000);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
 </script>
