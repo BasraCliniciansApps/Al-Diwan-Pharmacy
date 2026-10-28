@@ -3,7 +3,7 @@
 // تُحفظ في وثيقة pharmacy/doctor (قراءة عامة، كتابة للمالك فقط) وتقرأها الصفحة العامة doctor.html بقراءة واحدة.
 // لا تلمس المخزن ولا الجرد ولا وضع التأسيس.
 // =====================================================================
-const DOC_ST = { ok: 'متوفر', noph: 'غير متوفر بالصيدلية', nosup: 'غير متوفر بالمذخر', back: 'عاد بعد انقطاع' };
+const DOC_ST = { ok: 'متوفر', noph: 'غير متوفر في الصيدلية', nosup: 'غير متوفر في المذخر', back: 'عاد بعد انقطاع' };
 const DOC_LS = 'diwanDocData';
 let docReqList = [], docReqUnsub = null, docData = null, docLoadP = null, docPubT = null, docWatchT = null, docQ = '', docFil = 'all', docShown = 60, docMenu = false, docSel = { d: new Set(), c: new Set() }, docTreeCfg = null;
 const docEsc = s => escapeHtml(String(s == null ? '' : s));
@@ -139,7 +139,7 @@ function docRender() {
     </div>`;
     docRenderMenu(); docRenderList(); docLoadReq();
 }
-const DOC_FILTERS = [['all', 'كل المواد'], ['sel', 'المعروضة للطبيب'], ['unsel', 'غير المعروضة'], ['ok', 'متوفر'], ['noph', 'غير متوفر بالصيدلية'], ['nosup', 'غير متوفر بالمذخر'], ['back', 'عاد بعد انقطاع']];
+const DOC_FILTERS = [['all', 'كل المواد'], ['sel', 'المعروضة للطبيب'], ['unsel', 'غير المعروضة'], ['ok', 'متوفر'], ['noph', 'غير متوفر في الصيدلية'], ['nosup', 'غير متوفر في المذخر'], ['back', 'عاد بعد انقطاع']];
 function docFbtn() {
     const b = document.querySelector('.dc-fbtn'); if (!b) return; const n = tfCount(docSel) + (docFil !== 'all' ? 1 : 0);
     b.classList.toggle('on', n > 0); let i = b.querySelector('.fb-n'); if (!i) { i = document.createElement('i'); i.className = 'fb-n'; b.appendChild(i); } i.textContent = n; i.style.display = n ? '' : 'none';
