@@ -67,11 +67,6 @@ async function docPublish() {
     try { if (typeof cloudReady === 'function' && cloudReady() && userRole === 'owner') { await fsSet(db.collection('pharmacy').doc('doctor'), JSON.parse(JSON.stringify(d))); return true; } } catch (e) { console.warn('docPublish', e); }
     return false;
 }
-async function docPublishNow() {
-    const h = Prog.start('نشر صفحة الطبيب', { text: 'تجهيز المواد والصور...' });
-    const ok = await docPublish();
-    if (ok) h.ok('تم نشر التحديث للأطباء'); else h.fail('تعذر النشر', 'تحقق من الاتصال بالسحابة وأنك مسجل كمالك.');
-}
 function docSaveSoon() { clearTimeout(docPubT); docPubT = setTimeout(docPublish, 700); }
 // مراقبة تغيّر الأسعار والتوفر وتحديث صفحة الطبيب تلقائياً
 function docOnProducts() {
@@ -128,7 +123,7 @@ function docRender() {
       <div class="dc-fixed">
         ${docMode === 'set' ? `<div class="dc-setpanel" id="docSet">
         <div class="dc-card">
-            <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button><button type="button" class="home-quick-link" onclick="docPublishNow()">🔄 نشر التحديث الآن</button></div>
+            <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button></div>
             <div class="qk-row"><div><b>أسماء الأطباء المحفوظة على هذا الجهاز</b><small>قائمة الإكمال التلقائي لاسم الطبيب في الوصفة. محفوظة على كل جهاز لوحده ولا تُرفع للسحابة.</small></div><button type="button" class="dc-mini" onclick="docClearNames()">مسح</button></div>
             ${docSw('تحديث تلقائي من المخزن', 'تُحسب الحالة من كمية المخزن (المواد غير المجرودة تبقى يدوية). إذا كان مطفياً تتحكم بالحالة يدوياً.', 'auto')}
             ${docSw('إظهار العدد للطبيب', 'يعرض عدد العلب المتوفرة بدل عبارة «متوفر» في صفحة الطبيب، ويتحدث تلقائياً مع المخزن.', 'qty')}
@@ -148,7 +143,6 @@ function docRender() {
     </div>`;
     docRenderMenu(); docRenderList(); docLoadReq();
 }
-const DOC_FILTERS = [['all', 'كل المواد'], ['unsel', 'غير المعروضة فقط (إخفاء المعروضة)'], ['sel', 'المعروضة فقط (إخفاء غير المعروضة)'], ['ok', 'متوفر'], ['noph', 'غير متوفر في الصيدلية'], ['nosup', 'غير متوفر في المذخر'], ['back', 'عاد بعد انقطاع']];
 function docFbtn() {
     const b = document.querySelector('.dc-fbtn'); if (!b) return; const n = tfCount(docSel) + (docFil !== 'all' ? 1 : 0);
     b.classList.toggle('on', n > 0); let i = b.querySelector('.fb-n'); if (!i) { i = document.createElement('i'); i.className = 'fb-n'; b.appendChild(i); } i.textContent = n; i.style.display = n ? '' : 'none';
@@ -157,7 +151,7 @@ function docRenderMenu() {
     const m = document.getElementById('docMenu'); if (!m) return;
     docFbtn();
     if (!docMenu) { m.innerHTML = ''; return; }
-    m.innerHTML = `<div class="dc-drop"><div class="dc-fch">${DOC_FILTERS.map(([k, t]) => `<button type="button" class="${docFil === k ? 'on' : ''}" onclick="docSetFil('${k}')">${t}</button>`).join('')}</div><div id="docTree"></div></div>`;
+    m.innerHTML = `<div class="dc-drop"><div id="docTree"></div></div>`;
     docTreeCfg = docTreeCfg || { open: new Set(), q: '' };
     Object.assign(docTreeCfg, { tree: tfAdminTree(), sel: docSel, count: tfAdminCounter(products), onChange() { docShown = 60; docRenderList(); docFbtn(); }, onDone() { docMenu = false; docRenderMenu(); } });
     tfMount(document.getElementById('docTree'), docTreeCfg);
@@ -198,7 +192,7 @@ function docRenderList() {
     const sc = box.scrollTop;
     box.innerHTML = `<div class="dc-stick"><div class="dc-count">معروض للطبيب <b>${fmtNum(selN)}</b> من ${fmtNum(products.length)} مادة${all.length !== products.length ? ' · نتائج الفلتر ' + fmtNum(all.length) : ''}</div>
     <div class="dc-actions">
-        <select id="docBulk" onchange="docBulkSet(this.value)" ${selShown ? '' : 'disabled'}><option value="">تغيير حالة المحدد…</option>${Object.keys(DOC_ST).map(k => `<option value="${k}">${DOC_ST[k]}</option>`).join('')}</select>
+        <select id="docBulk" onchange="docBulkSet(this.value)"><option value="">تغيير حالة المحدد…</option><optgroup label="عرض المواد"><option value="@unsel">${docFil === 'unsel' ? '✓ ' : ''}غير المعروضة فقط</option><option value="@sel">${docFil === 'sel' ? '✓ ' : ''}المعروضة فقط</option><option value="@all">${docFil === 'all' ? '✓ ' : ''}كل المواد</option></optgroup><optgroup label="تغيير الحالة">${Object.keys(DOC_ST).map(k => `<option value="${k}" ${selShown ? '' : 'disabled'}>${DOC_ST[k]}</option>`).join('')}</optgroup></select>
     </div></div>
     ${rows || '<div class="dh-note">لا توجد مواد مطابقة.</div>'}
     ${all.length > shown.length ? `<button type="button" class="dc-more" onclick="docMore()">عرض المزيد (${fmtNum(all.length - shown.length)})</button>` : ''}`;
@@ -236,6 +230,7 @@ async function docClearAll() {
 }
 function docBulkSet(v) {
     if (!v) return;
+    if (v[0] === '@') { docSetFil(v.slice(1)); return; }
     docFiltered().forEach(p => { const id = String(p.id); if (docData.items[id]) docSetStQuiet(id, v); });
     docSaveSoon(); docRenderList();
 }
