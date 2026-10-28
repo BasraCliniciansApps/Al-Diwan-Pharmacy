@@ -62,7 +62,12 @@ async function docPublish() {
     d.tx = tx;
     d.upd = Date.now(); d.sig = docSigOf(d);
     try { localStorage.setItem(DOC_LS, JSON.stringify(d)); } catch (e) { /* تجاهل */ }
-    try { if (typeof cloudReady === 'function' && cloudReady() && userRole === 'owner') await fsSet(db.collection('pharmacy').doc('doctor'), JSON.parse(JSON.stringify(d))); } catch (e) { console.warn('docPublish', e); }
+    try { if (typeof cloudReady === 'function' && cloudReady() && userRole === 'owner') { await fsSet(db.collection('pharmacy').doc('doctor'), JSON.parse(JSON.stringify(d))); return true; } } catch (e) { console.warn('docPublish', e); }
+    return false;
+}
+async function docPublishNow() {
+    const ok = await docPublish();
+    Swal.fire(ok ? { icon: 'success', title: 'تم نشر التحديث للأطباء', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 } : { icon: 'error', title: 'تعذر النشر', text: 'تحقق من الاتصال بالسحابة وأنك مسجل كمالك.', confirmButtonColor: '#0f1c38' });
 }
 function docSaveSoon() { clearTimeout(docPubT); docPubT = setTimeout(docPublish, 700); }
 // مراقبة تغيّر الأسعار والتوفر وتحديث صفحة الطبيب تلقائياً
@@ -71,7 +76,7 @@ function docOnProducts() {
     docStartWatch();
     clearTimeout(docWatchT);
     docWatchT = setTimeout(async () => {
-        try { const d = await docLoad(); if (!Object.keys(d.items).length) return; if (docSigOf(d) !== d.sig) docPublish(); } catch (e) { /* تجاهل */ }
+        try { const d = await docLoad(); if (!Object.keys(d.items).length) return; if (docSigOf(d) !== d.sig || !d.tx) docPublish(); } catch (e) { /* تجاهل */ }
     }, 6000);
 }
 // اكتشاف العودة بعد الانقطاع من قوائم الوارد/البونص
@@ -114,7 +119,7 @@ function docRender() {
     el.innerHTML = `<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()" aria-label="إغلاق">✕</button></div>
     <div class="dh-body">
         <div class="dc-card">
-            <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button><a href="doctor.html" class="home-quick-link">👁 معاينة صفحة الطبيب</a></div>
+            <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button><a href="doctor.html" class="home-quick-link">👁 معاينة صفحة الطبيب</a><button type="button" class="home-quick-link" onclick="docPublishNow()">🔄 نشر التحديث الآن</button></div>
             ${docSw('تحديث تلقائي من المخزن', 'تُحسب الحالة من كمية المخزن (المواد غير المجرودة تبقى يدوية). إذا كان مطفياً تتحكم بالحالة يدوياً.', 'auto')}
             ${docSw('إظهار الأسعار للطبيب', 'إطفاؤه يخفي أسعار كل المواد في صفحة الطبيب.', 'prices')}
             ${docSw('اكتشاف العودة من الوارد تلقائياً', 'المادة غير المتوفرة التي تدخل في قائمة وارد أو بونص تصير «عاد بعد انقطاع».', 'detect')}
@@ -185,7 +190,12 @@ function docRenderList() {
     ${rows || '<div class="dh-note">لا توجد مواد مطابقة.</div>'}
     ${all.length > shown.length ? `<button type="button" class="dc-more" onclick="docMore()">عرض المزيد (${fmtNum(all.length - shown.length)})</button>` : ''}`;
 }
-function docDetail(id) { const p = docProd(id); if (p && typeof openSheet === 'function') openSheet(p.id); }
+function docDetail(id) {
+    const p = docProd(id); if (!p || typeof openSheet !== 'function') return;
+    // نافذة التفاصيل داخل عرض المخزن المخفي؛ ننقلها إلى جذر الصفحة لتظهر فوق الإعدادات
+    ['sheetBackdrop', 'bottomSheet'].forEach(i => { const e = document.getElementById(i); if (e && e.parentNode !== document.body) document.body.appendChild(e); });
+    openSheet(p.id);
+}
 function docMore() { docShown += 80; docRenderList(); }
 function docCopy() { try { navigator.clipboard.writeText(docLink()); Swal.fire({ icon: 'success', title: 'تم نسخ الرابط', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 }); } catch (e) { /* تجاهل */ } }
 function docCfg(k, v) { docData.cfg[k] = v; docSaveSoon(); docRenderList(); }
