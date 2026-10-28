@@ -195,7 +195,6 @@ function docRenderList() {
     const sc = box.scrollTop;
     box.innerHTML = `<div class="dc-stick"><div class="dc-count">معروض للطبيب <b>${fmtNum(selN)}</b> من ${fmtNum(products.length)} مادة${all.length !== products.length ? ' · نتائج الفلتر ' + fmtNum(all.length) : ''}</div>
     <div class="dc-actions">
-        <button type="button" onclick="docClearAll()">✕ إلغاء تحديد النتائج</button>
         <select id="docBulk" onchange="docBulkSet(this.value)" ${selShown ? '' : 'disabled'}><option value="">تغيير حالة المحدد…</option>${Object.keys(DOC_ST).map(k => `<option value="${k}">${DOC_ST[k]}</option>`).join('')}</select>
     </div></div>
     ${rows || '<div class="dh-note">لا توجد مواد مطابقة.</div>'}
