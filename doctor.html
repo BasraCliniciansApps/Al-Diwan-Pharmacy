@@ -906,8 +906,9 @@ async function rxSubmit(mode) {
     let r; const ei = RX.editRid ? MY.findIndex(x => x.rid === RX.editRid) : -1;
     if (ei >= 0) { r = Object.assign(MY[ei], rec, { rid: MY[ei].rid, at: MY[ei].at, pend: true, pm: mode }); } else { r = { rid, ...rec, pend: true, pm: mode }; MY.unshift(r); }
     MY = MY.slice(0, 500); lsSet('diwanRx', MY); SEEN[r.rid] = Date.now(); lsSet('diwanRxSeen', SEEN);   // تُحفظ عند الطبيب أولاً مهما كان الاتصال
-    RX = { num: mkNum(), doctor: rec.doctor, patient: '', phone: '', dx: '', items: [], note: '' }; RXO = new Set(); saveDraft();
-    closeSheet(); ph.set(35, sending ? 'الإرسال إلى الصيدلية...' : 'الحفظ في سجلك...');
+    if (sending) { RX = { num: mkNum(), doctor: rec.doctor, patient: '', phone: '', dx: '', items: [], note: '' }; RXO = new Set(); saveDraft(); closeSheet(); }
+    else { RX.editRid = r.rid; saveDraft(); }   // الحفظ يبقيك في مكانك، وأي حفظ لاحق يحدّث نفس الوصفة
+    ph.set(35, sending ? 'الإرسال إلى الصيدلية...' : 'الحفظ في سجلك...');
     try {
         await rxPush(r, mode); delete r.pend; delete r.pm; if (sending) r.sent = true; lsSet('diwanRx', MY); ntWatch(); ntBadge(); ph.ok(sending ? 'أُرسلت الوصفة إلى الصيدلية' : 'حُفظت الوصفة في سجلك');
         if (sending) rec.items.filter(i => i.ext && i.n).forEach(i => { try { firebase.firestore().collection('pharmacy_search_misses').doc('dx_' + encodeURIComponent(norm(i.n)).slice(0, 150)).set({ dr: 1, kind: 'x', name: i.n, count: firebase.firestore.FieldValue.increment(1), lastAt: new Date().toISOString() }, { merge: true }).catch(() => { }); } catch (e) { /* تجاهل */ } });
