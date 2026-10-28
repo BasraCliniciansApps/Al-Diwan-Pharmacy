@@ -89,10 +89,10 @@ function docEl() { return document.getElementById('docHub'); }
 async function docOpen() {
     let el = docEl();
     if (!el) { el = document.createElement('div'); el.id = 'docHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
-    el.style.display = 'flex'; el.innerHTML = '<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()">✕</button></div><div class="dh-body"><div class="dh-note">جارٍ التحميل…</div></div>';
+    document.body.classList.add('doc-open'); el.style.display = 'flex'; el.innerHTML = '<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()">✕</button></div><div class="dh-body"><div class="dh-note">جارٍ التحميل…</div></div>';
     await docLoad(); docQ = ''; docFil = 'all'; docShown = 60; docMenu = false; docRender();
 }
-function docClose() { const el = docEl(); if (el) el.style.display = 'none'; }
+function docClose() { document.body.classList.remove('doc-open'); const el = docEl(); if (el) el.style.display = 'none'; }
 function docLink() { try { return new URL('doctor.html', location.href).href; } catch (e) { return 'doctor.html'; } }
 function docSw(label, sub, key) {
     return `<div class="qk-row"><div><b>${label}</b><small>${sub}</small></div><label class="setup-sw"><input type="checkbox" ${docData.cfg[key] ? 'checked' : ''} onchange="docCfg('${key}',this.checked)"><i></i></label></div>`;
@@ -149,7 +149,7 @@ function docRenderList() {
         const id = String(p.id), it = docData.items[id], sel = !!it, st = it ? docEff({ ...it, ...docSnap(p) }, docData.cfg) : '';
         return `<div class="dc-row ${sel ? 'on' : ''}">
             <button type="button" class="sel-ck ${sel ? 'on' : ''}" onclick="docToggle('${id}')" aria-label="تحديد">${sel ? '✓' : ''}</button>
-            <div class="dc-nm"><b dir="auto">${docEsc(p.name)}</b><small>${p.price ? fmtNum(p.price) + ' د.ع' : 'بلا سعر'}${p.activeIngredient ? ' · ' + docEsc(p.activeIngredient) : ''}</small>${p.brand && String(p.brand).trim().toUpperCase() !== 'GENERIC' ? `<small class="dc-co">${docEsc(String(p.brand).trim())}</small>` : ''}</div>
+            <div class="dc-nm" onclick="docDetail('${id}')" role="button"><b dir="auto">${docEsc(p.name)}</b><small>${p.price ? fmtNum(p.price) + ' د.ع' : 'بلا سعر'}${p.activeIngredient ? ' · ' + docEsc(p.activeIngredient) : ''}</small>${p.brand && String(p.brand).trim().toUpperCase() !== 'GENERIC' ? `<small class="dc-co">${docEsc(String(p.brand).trim())}</small>` : ''}</div>
             ${sel ? `<span class="dc-dot ${st}" title="${DOC_ST[st]}"></span>` : ''}
             <select class="dc-st" ${sel ? '' : 'disabled'} onchange="docSetSt('${id}',this.value)">${Object.keys(DOC_ST).map(k => `<option value="${k}" ${it && it.s === k ? 'selected' : ''}>${DOC_ST[k]}</option>`).join('')}</select>
             ${sel ? `<input type="text" class="dc-note" maxlength="80" placeholder="ملاحظة للطبيب (اختياري): مثل يُحفظ في الثلاجة" value="${docEsc(it.nt || '')}" onchange="docSetNote('${id}',this.value)">` : ''}
@@ -164,6 +164,7 @@ function docRenderList() {
     ${rows || '<div class="dh-note">لا توجد مواد مطابقة.</div>'}
     ${all.length > shown.length ? `<button type="button" class="dc-more" onclick="docMore()">عرض المزيد (${fmtNum(all.length - shown.length)})</button>` : ''}`;
 }
+function docDetail(id) { const p = docProd(id); if (p && typeof openSheet === 'function') openSheet(p.id); }
 function docMore() { docShown += 80; docRenderList(); }
 function docCopy() { try { navigator.clipboard.writeText(docLink()); Swal.fire({ icon: 'success', title: 'تم نسخ الرابط', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 }); } catch (e) { /* تجاهل */ } }
 function docCfg(k, v) { docData.cfg[k] = v; docSaveSoon(); docRenderList(); }

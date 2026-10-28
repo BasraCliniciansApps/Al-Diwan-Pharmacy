@@ -17,11 +17,11 @@ function rxAlertRow() {
 }
 function rxOpen() {
     let el = rxEl(); if (!el) { el = document.createElement('div'); el.id = 'rxHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
-    el.style.display = 'flex'; rxCurId = null; rxFil = rxNewN() ? 'new' : 'act';
+    document.body.classList.add('doc-open'); el.style.display = 'flex'; rxCurId = null; rxFil = rxNewN() ? 'new' : 'act';
     if (typeof docStartWatch === 'function') docStartWatch();
     rxRender();
 }
-function rxClose() { const el = rxEl(); if (el) el.style.display = 'none'; rxCurId = null; }
+function rxClose() { document.body.classList.remove('doc-open'); const el = rxEl(); if (el) el.style.display = 'none'; rxCurId = null; }
 const rxTime = t => { const d = new Date(t), h = d.getHours(); return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + ((h % 12) || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + (h < 12 ? ' ص' : ' م'); };
 const rxLine = i => [i.dose, i.freq, i.dur, i.ins].filter(Boolean).join(' · ');
 function rxRender() {

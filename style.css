@@ -2966,3 +2966,6 @@ body.no-bnav { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 [data-theme="dark"] .rx-c, [data-theme="dark"] .rx-fs button, [data-theme="dark"] .rx-bt button, [data-theme="dark"] .rx-rp input { background: #1e293b; color: #e2e8f0; border-color: #334155; } [data-theme="dark"] .rx-c b { color: #e2e8f0; } [data-theme="dark"] .rx-ms div { background: #0f172a; } [data-theme="dark"] .da-rx { background: #2e1f5e; color: #ddd6fe; border-color: #6d28d9; }
 
 .dc-co { color: #0d9488 !important; font-weight: 800; }
+
+body.doc-open .sheet-backdrop { z-index: 9100; backdrop-filter: blur(8px); background: rgba(10,20,40,.5); } body.doc-open .bottom-sheet { z-index: 9101; }
+.dc-nm[role=button] { cursor: pointer; }
