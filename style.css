@@ -3144,3 +3144,5 @@ body.role-staff:not(.can-scan) .home-sq, body.sc-off .home-sq { grid-template-co
 #scanView.sc-ov { position: fixed; inset: 0; z-index: 8800; background: var(--bg, #f1f5f9); display: none; flex-direction: column; direction: rtl; }
 .sc-ovb { flex: 1; overflow-y: auto; padding: 14px 10px calc(30px + env(safe-area-inset-bottom)); overscroll-behavior: contain; }
 body.sc-open .modal-overlay#barcodeModal { z-index: 9300; }
+
+#bcSearchBox { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; } #bcSearchBox .bill-list-search { width: 100%; box-sizing: border-box; margin: 0; }

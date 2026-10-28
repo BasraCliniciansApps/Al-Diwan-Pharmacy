@@ -179,7 +179,7 @@ function scScanTimed() {
         Swal.fire({ icon: 'info', title: 'لم يُقرأ باركود — ابحث بالاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     }, SC_SCAN_WAIT_MS);
     openBarcodeScanner(cb);
-    { const b = scE('bcSearchBox'), mr = scE('bcManualRow'), q = scE('bcName'), r = scE('bcRes'); if (b) b.style.display = ''; if (mr) mr.style.display = 'none'; if (q) q.value = ''; if (r) r.innerHTML = ''; }
+    { const b = scE('bcSearchBox'), mr = scE('bcManualRow'), q = scE('bcName'), r = scE('bcRes'); if (b) b.style.display = ''; if (q) q.value = ''; if (r) r.innerHTML = ''; }
 }
 // عند الرجوع من البطاقة: ارجع للكاميرا ثم أغلق
 function scBack() { if (scCur) { scInit(); scScanTimed(); } else scClose(); }
