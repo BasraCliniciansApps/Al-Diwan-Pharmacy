@@ -500,6 +500,7 @@ async function puSave() {
     }
     if (gift) { rec.gift = true; rec.bonusOnly = true; delete rec.seq; }
     await puSaveRecord(rec);
+    try { if (typeof docOnArrive === 'function') docOnArrive((rec.items || []).map(l => l.pid), rec.id); } catch (e) { /* تجاهل */ }
     await puUpsertSupplier(supplier);
     renderAll();
     const retMap = {}; (pu.items || []).forEach(it => { if (puNum(it.ret) > 0) retMap[it.pid] = puNum(it.ret); });   // مواد علّمتها «مردود» أثناء الإدخال
@@ -623,6 +624,7 @@ async function puCancel(id) {
     if (touched.length && !(await saveProductsDelta([...new Set(touched)].map(p => deltaFromSnap(p, csnaps.get(p.id)))))) return;
     r.cancelled = true; r.cancelledAt = todayLocalISO();
     await puSaveRecord(r); renderAll(); puRefreshCurrent();
+    try { if (typeof docOnRevert === 'function') docOnRevert(r.id); } catch (e) { /* تجاهل */ }
 }
 function puRefreshCurrent() { if (puTabName === 'log') renderPuLog(); else if (puTabName === 'debt') renderPuDebt(); else if (puTabName === 'month') renderPuMonth(); else if (puTabName === 'ret') lgRenderRet('ret'); else if (puTabName === 'unrec') lgRenderRet('unrec'); else if (puTabName === 'pay') lgPayRender(); else if (puTabName === 'bonus') lgRenderBonus(); else if (puTabName === 'blink') lgRenderBlink(); else if (puTabName === 'unify') lgRenderUnify(); else if (puTabName === 'xfer') lgRenderXfer(); else if (puTabName === 'exp') lgRenderExp(); else if (puTabName === 'sum') lgRenderSum(true); else if (puTabName === 'hub') lgRenderHub(); else if (puTabName === 'sup') renderPuSuppliers(); }
 

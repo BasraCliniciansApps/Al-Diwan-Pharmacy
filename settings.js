@@ -4,6 +4,7 @@
 // =====================================================================
 const SH_PAGES = [
     { id: 'hub', ico: '🧰', t: 'مركز تجهيز البيانات', boxes: [], act: 'dhOpen', kw: 'تجهيز بيانات مادة فعالة تصنيف مكرر نواقص قواعد اكتمال data hub ingredient' },
+    { id: 'doctor', ico: '🩺', t: 'صفحة الطبيب', boxes: [], act: 'docOpen', kw: 'طبيب اطباء صفحة الطبيب توفر متوفر غير متوفر مذخر عاد بعد انقطاع doctor availability' },
     { id: 'catalog', ico: '📋', t: 'سجل الأدوية', boxes: [], act: 'openCatalog', kw: 'سجل ادوية كتالوج دليل مواد catalog' },
     { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيفات', boxes: [0, 1, 2], kw: 'قسم اقسام تصنيف تصنيفات فرعية جاهزة مراجعة الأقسام الرئيسية departments categories' },
     { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح فصل سعر الشراء كلفة pricing' },
@@ -22,6 +23,7 @@ function shSummary(p) {
     try {
         if (p.id === 'tax') { const n = (typeof taxSeeded === 'function' && taxSeeded()) ? taxMissingSubs().length + taxPendingRenames().length : 0; return { s: `${fmtNum(departments.length)} قسم · ${fmtNum(subCategories.length)} تصنيف`, badge: n ? fmtNum(n) + ' جديد' : '' }; }
         if (p.id === 'hub') return { s: 'المواد الفعالة والتصنيف والنواقص' };
+        if (p.id === 'doctor') { const n = (typeof docData !== 'undefined' && docData) ? Object.keys(docData.items).length : 0; return { s: n ? fmtNum(n) + ' مادة معروضة للأطباء' : 'اختر المواد وحالاتها للأطباء' }; }
         if (p.id === 'catalog') return { s: 'دليل المواد الدوائية' };
         if (p.id === 'hub') return { s: 'المواد الفعالة والتصنيف والنواقص' };
         if (p.id === 'tabs') return { s: `حد النقص ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر` };

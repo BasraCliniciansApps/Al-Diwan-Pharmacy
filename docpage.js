@@ -1,0 +1,179 @@
+// =====================================================================
+// صفحة الطبيب (الإعدادات): تختار المواد التي تظهر للأطباء وحالة كل مادة.
+// تُحفظ في وثيقة pharmacy/doctor (قراءة عامة، كتابة للمالك فقط) وتقرأها الصفحة العامة doctor.html بقراءة واحدة.
+// لا تلمس المخزن ولا الجرد ولا وضع التأسيس.
+// =====================================================================
+const DOC_ST = { ok: 'متوفر', noph: 'غير متوفر بالصيدلية', nosup: 'غير متوفر بالمذخر', back: 'عاد بعد انقطاع' };
+const DOC_LS = 'diwanDocData';
+let docData = null, docLoadP = null, docPubT = null, docWatchT = null, docQ = '', docFil = 'all', docShown = 60, docMenu = false;
+const docEsc = s => escapeHtml(String(s == null ? '' : s));
+const docDefault = () => ({ cfg: { auto: false, prices: true, detect: true, days: 7 }, items: {}, upd: 0, sig: '' });
+function docNorm(d) { const b = docDefault(); d = d || {}; return { cfg: { ...b.cfg, ...(d.cfg || {}) }, items: d.items || {}, upd: d.upd || 0, sig: d.sig || '' }; }
+// الحالة الفعلية (نفس المنطق في doctor.html)
+function docEff(it, cfg, now) {
+    now = now || Date.now();
+    if (it.s === 'back' && now - (it.t || 0) <= (cfg.days || 7) * 864e5) return 'back';
+    if (it.s === 'nosup') return 'nosup';
+    if (cfg.auto && it.k != null) return it.k ? 'ok' : 'noph';
+    return it.s === 'noph' ? 'noph' : 'ok';
+}
+async function docLoad() {
+    if (docData) return docData;
+    if (docLoadP) return docLoadP;
+    docLoadP = (async () => {
+        let loaded = false;
+        try { if (typeof cloudReady === 'function' && cloudReady()) { const d = await db.collection('pharmacy').doc('doctor').get(); if (d.exists) { docData = docNorm(d.data()); loaded = true; } } } catch (e) { /* تجاهل */ }
+        if (!loaded) { try { const c = JSON.parse(localStorage.getItem(DOC_LS)); if (c) docData = docNorm(c); } catch (e) { /* تجاهل */ } }
+        if (!docData) docData = docDefault();
+        docLoadP = null; return docData;
+    })();
+    return docLoadP;
+}
+const docProd = id => products.find(p => String(p.id) === String(id));
+// لقطة المادة التي تقرؤها الصفحة العامة (بدون أي كمية)
+function docSnap(p) {
+    const o = { n: p.name || '', a: p.activeIngredient || '', p: Number(p.price) || 0 };
+    o.k = (typeof setupSkip === 'function' && setupSkip(p)) ? null : (isInStock(p) ? 1 : 0);
+    return o;
+}
+function docSigOf(d) { return Object.keys(d.items).sort().map(id => { const p = docProd(id), x = p ? docSnap(p) : {}; return id + '|' + (x.n || '') + '|' + (x.p || 0) + '|' + x.k + '|' + d.items[id].s + '|' + d.items[id].t; }).join('~') + '|' + JSON.stringify(d.cfg); }
+async function docPublish() {
+    const d = await docLoad();
+    Object.keys(d.items).forEach(id => { const p = docProd(id); if (p) Object.assign(d.items[id], docSnap(p)); });
+    d.upd = Date.now(); d.sig = docSigOf(d);
+    try { localStorage.setItem(DOC_LS, JSON.stringify(d)); } catch (e) { /* تجاهل */ }
+    try { if (typeof cloudReady === 'function' && cloudReady() && userRole === 'owner') await fsSet(db.collection('pharmacy').doc('doctor'), JSON.parse(JSON.stringify(d))); } catch (e) { console.warn('docPublish', e); }
+}
+function docSaveSoon() { clearTimeout(docPubT); docPubT = setTimeout(docPublish, 700); }
+// مراقبة تغيّر الأسعار والتوفر وتحديث صفحة الطبيب تلقائياً
+function docOnProducts() {
+    if (typeof IS_ADMIN_PAGE === 'undefined' || !IS_ADMIN_PAGE || userRole !== 'owner') return;
+    clearTimeout(docWatchT);
+    docWatchT = setTimeout(async () => {
+        try { const d = await docLoad(); if (!Object.keys(d.items).length) return; if (docSigOf(d) !== d.sig) docPublish(); } catch (e) { /* تجاهل */ }
+    }, 6000);
+}
+// اكتشاف العودة بعد الانقطاع من قوائم الوارد/البونص
+async function docOnArrive(pids, src) {
+    try {
+        const d = await docLoad(); if (!d.cfg.detect) return;
+        let ch = false;
+        (pids || []).forEach(pid => {
+            const it = d.items[String(pid)]; if (!it) return;
+            const was = it.s === 'noph' || it.s === 'nosup' || (d.cfg.auto && it.k === 0 && it.s !== 'back');
+            if (was) { it.pv = it.s === 'back' ? 'ok' : it.s; it.s = 'back'; it.t = Date.now(); it.src = src || ''; ch = true; }
+        });
+        if (ch) { await docPublish(); if (document.getElementById('docHub') && document.getElementById('docHub').style.display === 'flex') docRenderList(); }
+    } catch (e) { /* تجاهل */ }
+}
+async function docOnRevert(src) {
+    try {
+        const d = await docLoad(); let ch = false;
+        Object.values(d.items).forEach(it => { if (it.src && it.src === src && it.s === 'back') { it.s = it.pv || 'ok'; delete it.pv; delete it.src; delete it.t; ch = true; } });
+        if (ch) await docPublish();
+    } catch (e) { /* تجاهل */ }
+}
+
+// ---------- الواجهة ----------
+function docEl() { return document.getElementById('docHub'); }
+async function docOpen() {
+    let el = docEl();
+    if (!el) { el = document.createElement('div'); el.id = 'docHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
+    el.style.display = 'flex'; el.innerHTML = '<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()">✕</button></div><div class="dh-body"><div class="dh-note">جارٍ التحميل…</div></div>';
+    await docLoad(); docQ = ''; docFil = 'all'; docShown = 60; docMenu = false; docRender();
+}
+function docClose() { const el = docEl(); if (el) el.style.display = 'none'; }
+function docLink() { try { return new URL('doctor.html', location.href).href; } catch (e) { return 'doctor.html'; } }
+function docSw(label, sub, key) {
+    return `<div class="qk-row"><div><b>${label}</b><small>${sub}</small></div><label class="setup-sw"><input type="checkbox" ${docData.cfg[key] ? 'checked' : ''} onchange="docCfg('${key}',this.checked)"><i></i></label></div>`;
+}
+function docRender() {
+    const el = docEl(); if (!el) return;
+    const c = docData.cfg;
+    el.innerHTML = `<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()" aria-label="إغلاق">✕</button></div>
+    <div class="dh-body">
+        <div class="dc-card">
+            <div class="dc-link"><span dir="ltr">${docEsc(docLink())}</span><button type="button" onclick="docCopy()">نسخ</button><button type="button" onclick="window.open(docLink(),'_blank')">فتح</button></div>
+            ${docSw('تحديث تلقائي من المخزن', 'تُحسب الحالة من كمية المخزن (المواد غير المجرودة تبقى يدوية). إذا كان مطفياً تتحكم بالحالة يدوياً.', 'auto')}
+            ${docSw('إظهار الأسعار للطبيب', 'إطفاؤه يخفي أسعار كل المواد في صفحة الطبيب.', 'prices')}
+            ${docSw('اكتشاف العودة من الوارد تلقائياً', 'المادة غير المتوفرة التي تدخل في قائمة وارد أو بونص تصير «عاد بعد انقطاع».', 'detect')}
+            <div class="qk-row"><div><b>مدة بقاء «عاد بعد انقطاع»</b><small>بعدها تعود المادة إلى «متوفر».</small></div>
+                <select class="dc-days" onchange="docCfg('days',+this.value)">${[3, 7, 14, 30].map(n => `<option value="${n}" ${c.days === n ? 'selected' : ''}>${n} أيام</option>`).join('')}</select></div>
+        </div>
+        <div class="dc-bar">
+            <input id="docQ" type="search" placeholder="ابحث باسم المادة أو المادة الفعالة" value="${docEsc(docQ)}" oninput="docSearch(this.value)">
+            <button type="button" class="dc-fbtn ${docFil !== 'all' ? 'on' : ''}" onclick="docToggleMenu()" aria-label="فلتر"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg></button>
+        </div>
+        <div id="docMenu"></div>
+        <div id="docList"></div>
+    </div>`;
+    docRenderMenu(); docRenderList();
+}
+const DOC_FILTERS = [['all', 'كل المواد'], ['sel', 'المعروضة للطبيب'], ['unsel', 'غير المعروضة'], ['ok', 'متوفر'], ['noph', 'غير متوفر بالصيدلية'], ['nosup', 'غير متوفر بالمذخر'], ['back', 'عاد بعد انقطاع']];
+function docRenderMenu() {
+    const m = document.getElementById('docMenu'); if (!m) return;
+    m.innerHTML = docMenu ? `<div class="dc-menu">${DOC_FILTERS.map(([k, t]) => `<button type="button" class="${docFil === k ? 'on' : ''}" onclick="docSetFil('${k}')">${t}</button>`).join('')}</div>` : '';
+}
+function docToggleMenu() { docMenu = !docMenu; docRenderMenu(); }
+function docSetFil(k) { docFil = k; docMenu = false; docShown = 60; docRenderMenu(); const b = document.querySelector('.dc-fbtn'); if (b) b.classList.toggle('on', k !== 'all'); docRenderList(); }
+let docSearchT = null;
+function docSearch(v) { docQ = v; clearTimeout(docSearchT); docSearchT = setTimeout(() => { docShown = 60; docRenderList(); }, 180); }
+const docNormS = s => String(s || '').toLowerCase();
+function docFiltered() {
+    const q = docNormS(docQ.trim());
+    return products.filter(p => {
+        const it = docData.items[String(p.id)];
+        if (q && !(docNormS(p.name).includes(q) || docNormS(p.activeIngredient).includes(q))) return false;
+        if (docFil === 'sel') return !!it;
+        if (docFil === 'unsel') return !it;
+        if (docFil === 'all') return true;
+        return !!it && docEff({ ...it, ...docSnap(p) }, docData.cfg) === docFil;
+    });
+}
+function docRenderList() {
+    const box = document.getElementById('docList'); if (!box) return;
+    const all = docFiltered(), shown = all.slice(0, docShown), selN = Object.keys(docData.items).length;
+    const selShown = all.filter(p => docData.items[String(p.id)]).length;
+    const rows = shown.map(p => {
+        const id = String(p.id), it = docData.items[id], sel = !!it, st = it ? docEff({ ...it, ...docSnap(p) }, docData.cfg) : '';
+        return `<div class="dc-row ${sel ? 'on' : ''}">
+            <button type="button" class="sel-ck ${sel ? 'on' : ''}" onclick="docToggle('${id}')" aria-label="تحديد">${sel ? '✓' : ''}</button>
+            <div class="dc-nm"><b dir="auto">${docEsc(p.name)}</b><small>${p.price ? fmtNum(p.price) + ' د.ع' : 'بلا سعر'}${p.activeIngredient ? ' · ' + docEsc(p.activeIngredient) : ''}</small></div>
+            ${sel ? `<span class="dc-dot ${st}" title="${DOC_ST[st]}"></span>` : ''}
+            <select class="dc-st" ${sel ? '' : 'disabled'} onchange="docSetSt('${id}',this.value)">${Object.keys(DOC_ST).map(k => `<option value="${k}" ${it && it.s === k ? 'selected' : ''}>${DOC_ST[k]}</option>`).join('')}</select>
+        </div>`;
+    }).join('');
+    box.innerHTML = `<div class="dc-count">معروض للطبيب <b>${fmtNum(selN)}</b> من ${fmtNum(products.length)} مادة${all.length !== products.length ? ' · نتائج الفلتر ' + fmtNum(all.length) : ''}</div>
+    <div class="dc-actions">
+        <button type="button" onclick="docSelAll()">☑ تحديد نتائج الفلتر</button>
+        <button type="button" ${selShown ? '' : 'disabled'} onclick="docClearAll()">✕ إلغاء تحديد النتائج</button>
+        <select id="docBulk" onchange="docBulkSet(this.value)" ${selShown ? '' : 'disabled'}><option value="">تغيير حالة المحدد…</option>${Object.keys(DOC_ST).map(k => `<option value="${k}">${DOC_ST[k]}</option>`).join('')}</select>
+    </div>
+    ${rows || '<div class="dh-note">لا توجد مواد مطابقة.</div>'}
+    ${all.length > shown.length ? `<button type="button" class="dc-more" onclick="docMore()">عرض المزيد (${fmtNum(all.length - shown.length)})</button>` : ''}`;
+}
+function docMore() { docShown += 80; docRenderList(); }
+function docCopy() { try { navigator.clipboard.writeText(docLink()); Swal.fire({ icon: 'success', title: 'تم نسخ الرابط', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 }); } catch (e) { /* تجاهل */ } }
+function docCfg(k, v) { docData.cfg[k] = v; docSaveSoon(); docRenderList(); }
+function docToggle(id) {
+    if (docData.items[id]) delete docData.items[id]; else docData.items[id] = { s: 'ok' };
+    docSaveSoon(); docRenderList();
+}
+function docSetSt(id, v) {
+    const it = docData.items[id]; if (!it) return;
+    it.s = v; if (v === 'back') { it.t = Date.now(); delete it.src; delete it.pv; } else { delete it.t; delete it.src; delete it.pv; }
+    docSaveSoon(); docRenderList();
+}
+function docSelAll() { docFiltered().forEach(p => { const id = String(p.id); if (!docData.items[id]) docData.items[id] = { s: 'ok' }; }); docSaveSoon(); docRenderList(); }
+async function docClearAll() {
+    const ids = docFiltered().filter(p => docData.items[String(p.id)]).map(p => String(p.id));
+    if (!ids.length) return;
+    if (!(await askSure('إلغاء تحديد ' + fmtNum(ids.length) + ' مادة؟', 'ستختفي هذه المواد من صفحة الطبيب.', 'إلغاء التحديد'))) return;
+    ids.forEach(id => delete docData.items[id]); docSaveSoon(); docRenderList();
+}
+function docBulkSet(v) {
+    if (!v) return;
+    docFiltered().forEach(p => { const id = String(p.id); if (docData.items[id]) docSetStQuiet(id, v); });
+    docSaveSoon(); docRenderList();
+}
+function docSetStQuiet(id, v) { const it = docData.items[id]; it.s = v; if (v === 'back') { it.t = Date.now(); } else delete it.t; delete it.src; delete it.pv; }

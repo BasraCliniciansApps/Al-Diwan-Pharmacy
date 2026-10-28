@@ -218,6 +218,7 @@ function rebuildProducts() {
         return normalizeStockFields(o);
     });
     products = merged.sort((a, b) => b.id - a.id);
+    try { if (typeof docOnProducts === 'function') docOnProducts(); } catch (e) { /* تجاهل */ }
 }
 function writeProductBatch(batch, p) {
     const { pub, stock, cost } = splitProduct(p);
