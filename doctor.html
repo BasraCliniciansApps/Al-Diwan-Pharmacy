@@ -214,7 +214,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .go.wa, .hb .wa { color: #128c4a; } .rxa .go.wa { background: color-mix(in srgb, #25d366 14%, var(--surface)); border: 1.5px solid #25d366; display: grid; place-items: center; padding: 0; } .rxa .go.wa svg { width: 24px; height: 24px; } .hb .wa { display: grid; place-items: center; } .hb .wa svg { width: 18px; height: 18px; }
 .clin { margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 0 12px 10px; } .clin summary { cursor: pointer; padding: 12px 0 4px; font-weight: 800; font-size: .8rem; color: var(--sub); list-style: none; } .clin summary::-webkit-details-marker { display: none; } .clin .rxl:first-child { margin-top: 4px; }
 .pr2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .pr2 > div { min-width: 0; } .pr2 > div:first-child { order: 2; }
-.bg.mid { align-items: center; } .bg.mid .sheet { width: calc(100% - 28px); border-radius: 26px; max-height: 86vh; padding-bottom: 20px; }
+.bg.mid { align-items: center; } .bg.mid .sheet > .grab { display: none; } .bg.mid .sheet { width: calc(100% - 28px); border-radius: 26px; max-height: 86vh; padding-bottom: 20px; }
 .sheet { overscroll-behavior: contain; touch-action: pan-y; } .bg { overscroll-behavior: contain; }
 html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
 .dsg { display: none; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-top: 4px; overflow: hidden; box-shadow: var(--shadow); } .dsg.show { display: block; }
@@ -287,7 +287,7 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
     <div class="foot-l"><button type="button" class="clr" id="clr" aria-label="عرض الكل">✕</button><b id="hl">كل المواد</b><em id="hc"></em></div>
     <div class="foot-r"><i></i><span id="updT">جارٍ التحديث…</span></div>
 </div></footer>
-<button type="button" class="fab sm" id="reqBtn" aria-label="طلب مادة" title="طلب مادة"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+<button type="button" class="fab sm" id="reqBtn" aria-label="طلب مادة" title="طلب مادة"><svg viewBox="0 0 24 24"><g transform="translate(-1.5 3) scale(.82)"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></g><path d="M19 2.5v6M16 5.5h6"/></svg></button>
 <button type="button" class="fab" id="rxBtn" aria-label="وصفة إلكترونية" title="وصفة إلكترونية"><span class="rxm">R<sub>x</sub></span></button>
 <div class="bg" id="bg"><div class="sheet" id="sheet"></div></div>
 
@@ -474,8 +474,10 @@ function reqOpen(pre) {
     openSheet(`<h3>طلب مادة من الصيدلية</h3><p>اكتب اسم الدواء الذي تحتاجه، وستصل رسالتك إلى الصيدلي مباشرة.</p>
     <input id="rqN" class="fld" type="text" dir="ltr" placeholder="اسم الدواء" value="${esc(pre || '')}" autocomplete="off">
     <input id="rqT" class="fld" type="text" placeholder="ملاحظة (اختياري)" autocomplete="off" style="margin-top:8px">
-    <button type="button" class="go" id="rqGo">إرسال الطلب</button>`);
-    $('rqGo').onclick = async () => { const n = $('rqN').value.trim(); if (n.length < 2) { toast('اكتب اسم الدواء'); return; } const t = $('rqT').value.trim(); await sendReq('q', '', n, null, false, t); closeSheet(); };
+    <label class="rxl" style="text-align:center">العدد المطلوب</label>
+    <div class="qty" style="margin-top:2px"><button type="button" data-q="-1" aria-label="إنقاص">−</button><input id="qtyN" type="number" inputmode="numeric" min="1" max="999" value="1"><button type="button" data-q="1" aria-label="زيادة">+</button></div>
+    <button type="button" class="go" id="rqGo">إرسال الطلب</button>`); $('bg').classList.add('mid');
+    $('rqGo').onclick = async () => { const n = $('rqN').value.trim(); if (n.length < 2) { toast('اكتب اسم الدواء'); return; } const t = $('rqT').value.trim(), qn = Math.min(999, Math.max(1, Math.floor(+$('qtyN').value || 1))); await sendReq('q', '', n, null, false, t, qn); closeSheet(); };
     setTimeout(() => { try { $('rqN').focus(); } catch (e) { /* تجاهل */ } }, 250);
 }
 // ---------- طلبات الأطباء (تصل إلى الصيدلي) ----------
@@ -842,7 +844,7 @@ function qtyOpen(id) {
     openSheet(`<h3>طلب توفير</h3><p dir="auto"><bdi>${esc(m.n)}</bdi><br>حدّد العدد المطلوب وسيصل الطلب إلى الصيدلية.</p>
     <div class="qty"><button type="button" data-q="-1" aria-label="إنقاص">−</button><input id="qtyN" type="number" inputmode="numeric" min="1" max="999" value="1"><button type="button" data-q="1" aria-label="زيادة">+</button></div>
     <div class="qc" style="justify-content:center">${[1, 2, 3, 5, 10, 20].map(n => `<button type="button" data-qs="${n}">${n}</button>`).join('')}</div>
-    <button type="button" class="go" id="qtyGo" data-qid="${esc(id)}">إرسال الطلب</button>`);
+    <button type="button" class="go" id="qtyGo" data-qid="${esc(id)}">إرسال الطلب</button>`); $('bg').classList.add('mid');
 }
 $('sheet').addEventListener('click', async e => {
     const q = e.target.closest('[data-q]'), qs = e.target.closest('[data-qs]'), go = e.target.closest('#qtyGo'), i = $('qtyN');
