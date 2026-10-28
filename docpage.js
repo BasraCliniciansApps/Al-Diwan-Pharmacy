@@ -243,7 +243,7 @@ const DOC_SEEN = 'diwanDocSeen';
 const DOC_KIND = { n: 'طلب توفر لمادة معروضة', q: 'طلب مادة غير موجودة في القائمة', s: 'بحث دون نتيجة' };
 function docMapReq(snap) {
     const a = []; rxRaw = [];
-    snap.forEach(d => { const x = d.data(); if (x.kind === 'r') { rxRaw.push({ id: d.id, rid: x.rid || d.id.replace(/^rx_/, ''), num: x.num || '', doctor: x.doctor || '', patient: x.patient || '', note: x.note || '', items: x.items || [], st: x.st || 'new', is: x.is || {}, msgs: x.msgs || [], ts: Date.parse(x.lastAt) || 0 }); return; } a.push({ id: d.id, name: x.name || '', note: x.note || '', kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
+    snap.forEach(d => { const x = d.data(); if (x.kind === 'r') { rxRaw.push({ id: d.id, rid: x.rid || d.id.replace(/^rx_/, ''), num: x.num || '', doctor: x.doctor || '', patient: x.patient || '', dx: x.dx || '', note: x.note || '', items: x.items || [], st: x.st || 'new', is: x.is || {}, msgs: x.msgs || [], ts: Date.parse(x.lastAt) || 0 }); return; } a.push({ id: d.id, name: x.name || '', note: x.note || '', kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
     return a.sort((p, q) => String(q.at).localeCompare(String(p.at)));
 }
 function docSeen() { try { return localStorage.getItem(DOC_SEEN) || ''; } catch (e) { return ''; } }

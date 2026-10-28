@@ -43,7 +43,7 @@ function rxDetail(el, r) {
     el.innerHTML = `<div class="tr-head"><b>📝 وصفة ${rxE(r.num)}</b><button type="button" class="tr-x" onclick="rxBack()" aria-label="رجوع"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button></div>
     <div class="dh-body">
     <div class="dc-card"><div class="qk-row"><div><b dir="auto">${rxE(r.doctor)}</b><small>المريض: <bdi>${rxE(r.patient)}</bdi> · ${rxTime(r.ts)}</small></div><span class="rx-p">${RX_ST[st]}</span></div>
-        ${r.note ? `<div class="rx-note">${rxE(r.note)}</div>` : ''}
+        ${r.dx ? `<div class="rx-note"><b>التشخيص: </b>${rxE(r.dx)}</div>` : ''}${r.note ? `<div class="rx-note">${rxE(r.note)}</div>` : ''}
         <div class="rx-bt"><button type="button" class="${st === 'prep' ? 'on' : ''}" onclick="rxSetSt('${rxE(r.id)}','prep')">قيد التجهيز</button><button type="button" class="${st === 'ready' ? 'on' : ''}" onclick="rxSetSt('${rxE(r.id)}','ready')">جاهزة</button><button type="button" class="${st === 'done' ? 'on' : ''}" onclick="rxSetSt('${rxE(r.id)}','done')">سُلِّمت</button></div></div>
     ${(r.items || []).map((i, k) => {
         const p = !i.ext && i.p ? products.find(x => String(x.id) === String(i.p)) : null, sk = is[k], stock = p ? (typeof isInStock === 'function' && isInStock(p)) : null;
@@ -83,7 +83,7 @@ async function rxReply(id) {
     const i = document.getElementById('rxMsg'), t = i ? i.value.trim() : ''; if (!t) return;
     if (await rxApply(id, ps => rxMsg(ps, 'msg', 'رد الصيدلية: ' + t))) { /* تم */ }
 }
-function rxPrint(id) { const r = rxRaw.find(x => x.id === id); if (r) rxPrintNow({ num: r.num, doctor: r.doctor, patient: r.patient, items: r.items || [], note: r.note, at: r.ts }); }
+function rxPrint(id) { const r = rxRaw.find(x => x.id === id); if (r) rxPrintNow({ num: r.num, doctor: r.doctor, patient: r.patient, dx: r.dx, items: r.items || [], note: r.note, at: r.ts }); }
 async function rxDel(id) {
     const r = rxRaw.find(x => x.id === id); if (!r) return;
     if (!(await askSure('حذف الوصفة ' + r.num + '؟', 'ستُحذف الوصفة نهائياً ولن يصل الطبيب أي تحديث عنها.', 'حذف'))) return;

@@ -138,6 +138,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .toast { position: fixed; bottom: calc(var(--fh) + 16px); left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 11px 18px; border-radius: 999px; font-size: .84rem; font-weight: 800; z-index: 90; box-shadow: 0 10px 28px rgba(0,0,0,.35); animation: rise .25s ease; }
 @media (max-width: 380px) { .card { grid-template-columns: 48px minmax(0, 1fr) 80px; } }
 
+.guess { display: flex; align-items: center; gap: 8px; font-size: .8rem; font-weight: 800; color: var(--gold-dark); background: color-mix(in srgb, var(--gold) 16%, transparent); border-radius: 14px; padding: 10px 12px; } :root[data-theme="dark"] .guess { color: var(--gold); }
 .th { width: 54px; height: 54px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; color: var(--sub); font-size: 1.5rem; }
 .th img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
 @media (max-width: 380px) { .th { width: 48px; height: 48px; } }
@@ -168,6 +169,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .zoom img { max-width: 100%; max-height: 100%; object-fit: contain; background: #fff; border-radius: 12px; }
 
 .fab { position: fixed; left: 16px; bottom: calc(var(--fh) + 14px); z-index: 25; width: 60px; height: 60px; border-radius: 50%; border: 0; background: linear-gradient(145deg, #fbbf24, var(--gold)); color: #0f1c38; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer; box-shadow: 0 10px 26px rgba(249,168,37,.5), 0 2px 6px rgba(0,0,0,.25); font: 800 .6rem 'Tajawal', sans-serif; }
+.fab .rxm { font: italic 800 1.9rem/1 'Times New Roman', Georgia, serif; letter-spacing: -1px; } .fab .rxm sub { font-size: .95rem; vertical-align: baseline; position: relative; top: .35em; margin-inline-start: 1px; }
 .fab svg { font-size: 1.45rem; } .fab:active { transform: scale(.94); }
 .fab.sm { width: 44px; height: 44px; left: 24px; bottom: calc(var(--fh) + 84px); background: var(--surface); color: var(--text); border: 1px solid var(--line); box-shadow: var(--shadow); } .fab.sm svg { font-size: 1.15rem; }
 .main { padding-bottom: calc(var(--fh) + 96px); }
@@ -229,7 +231,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
     <div class="foot-r"><i></i><span id="updT">جارٍ التحديث…</span></div>
 </div></footer>
 <button type="button" class="fab sm" id="reqBtn" aria-label="طلب مادة" title="طلب مادة"><svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
-<button type="button" class="fab" id="rxBtn" aria-label="وصفة إلكترونية" title="وصفة إلكترونية"><svg viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><path d="M14 2v6h6"/><path d="M12 18v-6M9 15h6"/></svg><b>وصفة</b></button>
+<button type="button" class="fab" id="rxBtn" aria-label="وصفة إلكترونية" title="وصفة إلكترونية"><span class="rxm">R<sub>x</sub></span></button>
 <div class="bg" id="bg"><div class="sheet" id="sheet"></div></div>
 
 <script src="rxprint.js"></script>
@@ -294,6 +296,33 @@ function altsOf(m) {
     if (!m.ik) return [];
     return ALL.filter(x => x.id !== m.id && x.ik === m.ik && (x.st === 'ok' || x.st === 'back')).slice(0, 8);
 }
+
+// ---------- بحث متسامح مع الأخطاء الإملائية ----------
+const fold = s => norm(s).replace(/ph/g, 'f').replace(/ck/g, 'k').replace(/c/g, 'k').replace(/y/g, 'i').replace(/z/g, 's').replace(/(.)\1+/g, '$1').replace(/[ءأإآؤئ]/g, 'ا');
+function osa(a, b, max) {
+    const n = a.length, m = b.length; if (Math.abs(n - m) > max) return max + 1;
+    let p2 = null, p1 = Array.from({ length: m + 1 }, (_, j) => j);
+    for (let i = 1; i <= n; i++) {
+        const c = [i];
+        for (let j = 1; j <= m; j++) { let v = Math.min(p1[j] + 1, c[j - 1] + 1, p1[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); if (p2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, p2[j - 2] + 1); c[j] = v; }
+        p2 = p1; p1 = c;
+    }
+    return p1[m];
+}
+function fuzzyScore(m, tokens) {
+    if (!m.fw) m.fw = fold(m.n + ' ' + m.a).split(/[^a-z0-9؀-ۿ]+/).filter(Boolean);
+    let tot = 0;
+    for (const t of tokens) {
+        const tol = t.length <= 3 ? 0 : t.length <= 5 ? 1 : 2; let best = 9;
+        for (const w of m.fw) { if (w.includes(t)) { best = 0; break; } const d = Math.min(osa(t, w, tol), osa(t, w.slice(0, t.length + 1), tol)); if (d < best) best = d; }
+        if (best > tol) return -1; tot += best;
+    }
+    return tot;
+}
+function fuzzyRows(list, q) {
+    const tokens = fold(q).split(/[^a-z0-9؀-ۿ]+/).filter(Boolean); if (!tokens.length || fold(q).length < 3) return [];
+    return list.map(m => [m, fuzzyScore(m, tokens)]).filter(x => x[1] >= 0).sort((a, b) => a[1] - b[1]).map(x => x[0]);
+}
 function ago(t) { const d = Math.floor((Date.now() - t) / 864e5); return d <= 0 ? 'عاد اليوم' : d === 1 ? 'عاد أمس' : 'عاد قبل ' + d + ' أيام'; }
 function renderRail(all) {
     const c = {}; ORDER.forEach(k => c[k] = 0); all.forEach(m => { c[m.st]++; if (m.st === 'nosup') c.noph++; });   // غير متوفر بالمذخر يعني غير متوفر بالصيدلية أيضاً
@@ -343,6 +372,8 @@ function render(anim) {
     renderRail(all);
     const nq = norm(q.trim());
     let rows = all.filter(m => (!tab || m.st === tab || (tab === 'noph' && m.st === 'nosup')) && (!favOnly || FAV.has(m.id)) && tfMatch(SEL, m.dk, m.ck) && (!nq || m.hay.includes(nq)));
+    let guess = false;
+    if (nq && !rows.length) { const base = all.filter(m => (!tab || m.st === tab || (tab === 'noph' && m.st === 'nosup')) && (!favOnly || FAV.has(m.id)) && tfMatch(SEL, m.dk, m.ck)); rows = fuzzyRows(base, q.trim()); guess = rows.length > 0; }
     lastRows = rows.length; VIEW = rows;
     $('hl').textContent = (favOnly ? 'المفضلة · ' : '') + (tab ? ST[tab].t : 'كل المواد');
     $('hc').textContent = num(rows.length);
@@ -360,7 +391,7 @@ function render(anim) {
     }
     const part = rows.slice(0, shown);
     box.classList.toggle('anim', !!anim);
-    box.innerHTML = part.map(m => cardHtml(m, cfg)).join('') + (rows.length > part.length ? `<button type="button" class="more" id="more">عرض المزيد (${num(rows.length - part.length)})</button>` : '');
+    box.innerHTML = (guess ? `<div class="guess">${svg('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>')}لا توجد نتيجة مطابقة تماماً، هل تقصد:</div>` : '') + part.map(m => cardHtml(m, cfg)).join('') + (rows.length > part.length ? `<button type="button" class="more" id="more">عرض المزيد (${num(rows.length - part.length)})</button>` : '');
     const mb = $('more'); if (mb) mb.onclick = () => { shown += 80; render(false); };
 }
 // ---------- طلب مادة (يصل إلى الصيدلي كتنبيه) ----------
@@ -464,6 +495,7 @@ function rxForm(keep) {
     sh.innerHTML = `<div class="grab"></div><div class="rxs"><div class="rxt"><h3>وصفة إلكترونية</h3><button type="button" class="lk" data-rx="clear">مسح الوصفة</button></div>
     <label class="rxl">اسم الطبيب <b>*</b></label><input class="fld" data-k="doctor" type="text" autocomplete="off" placeholder="د. ..." value="${esc(RX.doctor)}">
     <label class="rxl">اسم المريض <b>*</b></label><input class="fld" data-k="patient" type="text" autocomplete="off" placeholder="الاسم الثلاثي" value="${esc(RX.patient)}">
+    <label class="rxl">التشخيص (اختياري)</label><input class="fld" data-k="dx" type="text" autocomplete="off" placeholder="التشخيص" value="${esc(RX.dx || '')}">
     <label class="rxl">الأدوية <b>*</b></label>
     ${RX.items.map((it, i) => `<div class="rxi" data-i="${i}"><div class="rxh">${it.ext ? `<input class="fld" style="flex:1" data-f="n" type="text" dir="auto" placeholder="اسم الدواء (من خارج الصيدلية)" value="${esc(it.n)}">` : `<b dir="auto"><bdi>${esc(it.n)}</bdi></b>`}${it.ext ? '<span class="tag">خارجي</span>' : ''}<button type="button" class="x" data-rx="del" data-i="${i}" aria-label="حذف">${svg('<path d="M18 6 6 18M6 6l12 12"/>')}</button></div>
         <div class="rxg"><input class="fld full" data-f="dose" type="text" placeholder="الجرعة (مثل: قرص واحد، 5 مل، قطرتان)" value="${esc(it.dose)}">
@@ -481,28 +513,29 @@ function rxPickOpen() {
     sh.scrollTop = 0; rxPickList(''); setTimeout(() => { try { $('pkQ').focus(); } catch (e) { /* تجاهل */ } }, 200);
 }
 function rxPickList(t) {
-    const n = norm(t.trim()), rows = ALL.filter(m => !n || m.hay.includes(n)).slice(0, 40);
-    $('pkL').innerHTML = rows.map(m => `<div class="row s-${m.st}" data-add="${m.id}"><span dir="rtl"><bdi>${esc(m.n)}</bdi>${m.a ? `<small style="display:block;color:var(--sub);font-weight:500">${esc(m.a)}</small>` : ''}</span><i title="${ST[m.st].t}"></i></div>`).join('') || '<div class="noalt">لا توجد نتائج. يمكنك إضافته «من خارج الصيدلية».</div>';
+    const n = norm(t.trim()); let rows = ALL.filter(m => !n || m.hay.includes(n)), g = false;
+    if (n && !rows.length) { rows = fuzzyRows(ALL, t.trim()); g = rows.length > 0; } rows = rows.slice(0, 40);
+    $('pkL').innerHTML = (g ? '<div class="guess">هل تقصد:</div>' : '') + rows.map(m => `<div class="row s-${m.st}" data-add="${m.id}"><span dir="rtl"><bdi>${esc(m.n)}</bdi>${m.a ? `<small style="display:block;color:var(--sub);font-weight:500">${esc(m.a)}</small>` : ''}</span><i title="${ST[m.st].t}"></i></div>`).join('') || '<div class="noalt">لا توجد نتائج. يمكنك إضافته «من خارج الصيدلية».</div>';
 }
 function rxValid() {
     let ok = true; const sh = $('sheet');
     const mark = (el, bad) => { if (el) el.classList.toggle('bad', bad); if (bad) ok = false; };
-    mark(sh.querySelector('[data-k="doctor"]'), !RX.doctor.trim()); mark(sh.querySelector('[data-k="patient"]'), !RX.patient.trim());
+    mark(sh.querySelector('[data-k="doctor"]'), !RX.doctor.replace(/^\s*د\.?\s*/, '').trim()); mark(sh.querySelector('[data-k="patient"]'), !RX.patient.trim());
     sh.querySelectorAll('.rxi').forEach(c => { const it = RX.items[+c.dataset.i], nm = c.querySelector('[data-f="n"]'); if (nm) mark(nm, !it.n.trim()); });
     if (!RX.items.length) { ok = false; toast('أضف دواءً واحداً على الأقل'); }
     else if (!ok) toast('أكمل الحقول المطلوبة');
     return ok;
 }
-const rxRec = () => ({ num: RX.num, doctor: RX.doctor.trim(), patient: RX.patient.trim(), note: RX.note.trim(), at: Date.now(), items: RX.items.map(i => ({ p: i.p || '', n: i.n.trim(), ext: !!i.ext, dose: (i.dose || '').trim(), freq: i.freq || '', dur: i.dur || '', ins: (i.ins || '').trim() })) });
+const rxRec = () => ({ num: RX.num, doctor: RX.doctor.trim(), patient: RX.patient.trim(), dx: (RX.dx || '').trim(), note: RX.note.trim(), at: Date.now(), items: RX.items.map(i => ({ p: i.p || '', n: i.n.trim(), ext: !!i.ext, dose: (i.dose || '').trim(), freq: i.freq || '', dur: i.dur || '', ins: (i.ins || '').trim() })) });
 async function rxSend(btn) {
     if (!rxValid()) return;
     const rec = rxRec(), rid = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(36).padStart(2, '0')).join('') + Date.now().toString(36);
     btn.disabled = true;
     try {
-        await firebase.firestore().collection('pharmacy_search_misses').doc('rx_' + rid).set({ dr: 1, kind: 'r', rid, num: rec.num, doctor: rec.doctor, patient: rec.patient, note: rec.note, items: rec.items, st: 'new', ps: { msgs: [] }, count: 1, name: rec.patient, lastAt: new Date(rec.at).toISOString() });
+        await firebase.firestore().collection('pharmacy_search_misses').doc('rx_' + rid).set({ dr: 1, kind: 'r', rid, num: rec.num, doctor: rec.doctor, patient: rec.patient, dx: rec.dx, note: rec.note, items: rec.items, st: 'new', ps: { msgs: [] }, count: 1, name: rec.patient, lastAt: new Date(rec.at).toISOString() });
     } catch (e) { btn.disabled = false; toast('تعذر الإرسال، تحقق من الاتصال'); return; }
     MY.unshift({ rid, ...rec }); MY = MY.slice(0, 15); lsSet('diwanRx', MY); SEEN[rid] = Date.now(); lsSet('diwanRxSeen', SEEN);
-    RX = { num: mkNum(), doctor: rec.doctor, patient: '', items: [], note: '' }; saveDraft(); ntWatch();
+    RX = { num: mkNum(), doctor: rec.doctor, patient: '', dx: '', items: [], note: '' }; saveDraft(); ntWatch();
     closeSheet(); toast('أُرسلت الوصفة إلى الصيدلية'); ntBadge();
 }
 // ---------- إشعارات الطبيب ----------
@@ -538,6 +571,8 @@ $('sheet').addEventListener('input', e => {
     if (t.dataset.k) { RX[t.dataset.k] = t.value; t.classList.remove('bad'); saveDraft(); }
     else if (t.dataset.f) { const c = t.closest('.rxi'); RX.items[+c.dataset.i][t.dataset.f] = t.value; t.classList.remove('bad'); saveDraft(); }
 });
+$('sheet').addEventListener('focusin', e => { const t = e.target; if (rxMode === 'form' && t.dataset && t.dataset.k === 'doctor' && !t.value.trim()) { t.value = 'د. '; RX.doctor = t.value; saveDraft(); setTimeout(() => { try { t.setSelectionRange(t.value.length, t.value.length); } catch (x) { /* تجاهل */ } }, 0); } });
+$('sheet').addEventListener('focusout', e => { const t = e.target; if (rxMode === 'form' && t.dataset && t.dataset.k === 'doctor') { let v = t.value.trim(); if (v && !/^د\./.test(v)) v = 'د. ' + v.replace(/^د\s+/, ''); if (/^د\.?$/.test(v)) v = ''; t.value = v; RX.doctor = v; saveDraft(); } });
 $('sheet').addEventListener('focusin', e => { if (rxMode === 'form' && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) setTimeout(() => { try { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) { /* تجاهل */ } }, 320); });
 $('sheet').addEventListener('click', async e => {
     const b = e.target.closest('[data-rx]'), a = e.target.closest('[data-add]');
@@ -549,7 +584,7 @@ $('sheet').addEventListener('click', async e => {
     else if (k === 'ext') { RX.items.push({ p: '', n: '', ext: true, dose: '', freq: '', dur: '', ins: '' }); saveDraft(); rxForm(); $('sheet').scrollTop = $('sheet').scrollHeight; }
     else if (k === 'del') { if (await ask('حذف هذا الدواء من الوصفة؟', 'حذف')) { RX.items.splice(+b.dataset.i, 1); saveDraft(); rxForm(true); } }
     else if (k === 'ins') { const it = RX.items[+b.dataset.i], t = b.dataset.t; it.ins = it.ins ? (it.ins.includes(t) ? it.ins : it.ins + '، ' + t) : t; saveDraft(); const c = b.closest('.rxi').querySelector('[data-f="ins"]'); c.value = it.ins; }
-    else if (k === 'clear') { if (await ask('مسح الوصفة كاملة؟', 'مسح')) { RX = { num: mkNum(), doctor: RX.doctor, patient: '', items: [], note: '' }; saveDraft(); rxForm(); } }
+    else if (k === 'clear') { if (await ask('مسح الوصفة كاملة؟', 'مسح')) { RX = { num: mkNum(), doctor: RX.doctor, patient: '', dx: '', items: [], note: '' }; saveDraft(); rxForm(); } }
     else if (k === 'print') { if (rxValid()) rxPrintNow(rxRec()); }
     else if (k === 'send') { rxSend(b); }
     else if (k === 'reprint') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) rxPrintNow(r); }

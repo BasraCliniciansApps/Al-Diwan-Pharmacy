@@ -26,7 +26,8 @@ body { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; color: #0f
 .hd .m { text-align: left; font-size: 10.5px; color: #475569; line-height: 1.7; direction: ltr; } .hd .m b { color: #0f1c38; }
 .ln { height: 3px; background: linear-gradient(90deg, #f9a825, #fcd34d 60%, transparent); margin-top: 2px; border-radius: 2px; }
 .pt { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 6px; }
-.pt div { border: 1px solid #cbd5e1; border-radius: 9px; padding: 6px 10px; } .pt small { display: block; font-size: 9.5px; color: #64748b; font-weight: 700; } .pt b { font-size: 13.5px; }
+.pt div { border: 1px solid #cbd5e1; border-radius: 9px; padding: 6px 10px; } .pt .w { grid-column: 1 / -1; }
+.pt small { display: block; font-size: 9.5px; color: #64748b; font-weight: 700; } .pt b { font-size: 13.5px; }
 .rx { font: 700 46px/1 'Times New Roman', Georgia, serif; color: #0f1c38; margin: 4px 2px 2px; display: flex; align-items: baseline; gap: 8px; }
 .rx small { font: 700 11px 'Tajawal', sans-serif; color: #64748b; }
 table { width: 100%; border-collapse: collapse; font-size: 11.5px; margin-top: 4px; }
@@ -43,7 +44,7 @@ td.c { text-align: center; color: #64748b; width: 18px; } td.n b { font-size: 12
 </style></head><body><div class="pg">
 <div class="hd"><img src="${rxEsc(logo)}" alt=""><div class="t"><b>صيدلية الديوان</b><small>وصفة طبية إلكترونية</small></div>
 <div class="m"><div><b>No.</b> ${rxEsc(rx.num)}</div><div>${rxDateTxt(rx.at)}</div></div></div><div class="ln"></div>
-<div class="pt"><div><small>الطبيب</small><b dir="auto">${rxEsc(rx.doctor)}</b></div><div><small>المريض</small><b dir="auto">${rxEsc(rx.patient)}</b></div></div>
+<div class="pt"><div><small>الطبيب</small><b dir="auto">${rxEsc(rx.doctor)}</b></div><div><small>المريض</small><b dir="auto">${rxEsc(rx.patient)}</b></div>${rx.dx ? `<div class="w"><small>التشخيص</small><b dir="auto">${rxEsc(rx.dx)}</b></div>` : ''}</div>
 <div class="rx">℞<small>الأدوية الموصوفة</small></div>
 <table><thead><tr><th></th><th>الدواء</th><th>الجرعة</th><th>التكرار</th><th>المدة</th><th>التعليمات</th></tr></thead><tbody>${rows}</tbody></table>
 ${rx.note ? `<div class="nt"><b>ملاحظات: </b>${rxEsc(rx.note)}</div>` : ''}
