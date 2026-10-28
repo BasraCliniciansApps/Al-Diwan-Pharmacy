@@ -120,7 +120,7 @@ function docRender() {
     const el = docEl(); if (!el) return;
     const c = docData.cfg;
     el.innerHTML = `<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()" aria-label="إغلاق">✕</button></div>
-    <div class="dh-body dc-fx">
+    <div class="dh-body dc-fx ${docSetOpen ? 'sopen' : ''}">
       <div class="dc-fixed">
         <button type="button" class="dc-setbtn ${docSetOpen ? 'on' : ''}" onclick="docToggleSet()"><span>⚙ إعدادات الصفحة وطلبات الأطباء</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
         <div class="dc-setpanel" id="docSet" ${docSetOpen ? '' : 'hidden'}>
@@ -160,7 +160,7 @@ function docRenderMenu() {
     tfMount(document.getElementById('docTree'), docTreeCfg);
 }
 let docSetOpen = false;
-function docToggleSet() { docSetOpen = !docSetOpen; const p = document.getElementById('docSet'); if (p) p.hidden = !docSetOpen; const b = document.querySelector('.dc-setbtn'); if (b) b.classList.toggle('on', docSetOpen); }
+function docToggleSet() { docSetOpen = !docSetOpen; const p = document.getElementById('docSet'); if (p) p.hidden = !docSetOpen; const b = document.querySelector('.dc-setbtn'); if (b) b.classList.toggle('on', docSetOpen); const w = document.querySelector('.dh-body.dc-fx'); if (w) { w.classList.toggle('sopen', docSetOpen); w.scrollTop = 0; } }
 function docToggleMenu() { docMenu = !docMenu; docRenderMenu(); }
 function docSetFil(k) { docFil = k; docShown = 60; docRenderMenu(); docRenderList(); }
 let docSearchT = null;

@@ -3004,3 +3004,7 @@ body.doc-open #formModal { z-index: 9200; } body.doc-open .swal2-container { z-i
 [data-theme="dark"] .dc-setbtn { background: #1e293b; color: #e2e8f0; border-color: #334155; } 
 
 .dc-stick .dc-actions { grid-template-columns: 1fr; }
+
+#docHub .dh-body.dc-fx.sopen { overflow-y: auto; }
+.sopen .dc-setpanel { max-height: none; overflow: visible; }
+.sopen .dc-scroll { flex: none; overflow: visible; min-height: 0; }
