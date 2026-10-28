@@ -132,10 +132,11 @@ let activeDept = ALL_DEPTS;   // تفتح الصفحة على كل الأصنا�
 let mainTab = 'all';
 // فلاتر متعددة الاختيار (تُدار من نافذة التصفية)
 const filCats = new Set();
+const filDepts = new Set();
 const filBrands = new Set();
 const filForms = new Set();
 let filInStock = false;
-function clearFilterState() { filCats.clear(); filBrands.clear(); filForms.clear(); filInStock = false; }
+function clearFilterState() { filCats.clear(); filDepts.clear(); filBrands.clear(); filForms.clear(); filInStock = false; }
 
 // رقم واتساب الصيدلية (مع مفتاح العراق 964 بدون الصفر الأول) ويوزر صفحة الانستغرام:
 const PHARMACY_WHATSAPP = "9647805261843"; 
@@ -1130,7 +1131,7 @@ function getBaseFilteredByTab() {
 // ---------------- نافذة التصفية الموحدة ----------------
 function brandOf(p) { return (p.brand || 'GENERIC').trim(); }
 function formOf(p) { return getFormBadge(p).txt; }
-function activeFilterCount() { return filCats.size + filBrands.size + filForms.size + (filInStock ? 1 : 0); }
+function activeFilterCount() { return filCats.size + filDepts.size + filBrands.size + filForms.size + (filInStock ? 1 : 0); }
 
 // الأصناف بعد تطبيق القسم/التبويب والفلاتر والبحث (مرتبة بالأقرب أولاً عند البحث)
 function getFiltered(skipFilters) {
@@ -1139,7 +1140,7 @@ function getFiltered(skipFilters) {
     const scored = [];
     getBaseFilteredByTab().forEach(p => {
         if (!skipFilters) {
-            if (filCats.size && !catsOf(p).some(x => filCats.has(x))) return;
+            if ((filCats.size || filDepts.size) && !tfMatch({ d: filDepts, c: filCats }, deptsOf(p), catsOf(p))) return;
             if (filBrands.size && !filBrands.has(brandOf(p))) return;
             if (filForms.size && !filForms.has(formOf(p))) return;
             if (filInStock && !isInStock(p)) return;
@@ -1155,11 +1156,11 @@ function renderFilterChips() {
     const wrap = document.getElementById('activeFilters');
     const btn = document.getElementById('filterBtnCount');
     const n = activeFilterCount();
-    if (btn) { btn.innerText = n; btn.style.display = n ? 'flex' : 'none'; }
+    if (btn) { btn.innerText = n; btn.style.display = n ? 'flex' : 'none'; if (btn.parentNode) btn.parentNode.classList.toggle('on', n > 0); }
     if (!wrap) return;
-    if (!n) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+    if (!(filBrands.size + filForms.size + (filInStock ? 1 : 0))) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
     const chip = (kind, v) => `<button type="button" class="af-chip" onclick="removeFilter('${kind}', this.dataset.v)" data-v="${escapeHtml(v)}"><span>${escapeHtml(v)}</span><b>✕</b></button>`;
-    wrap.innerHTML = [...filCats].map(v => chip('cat', v)).join('') + [...filBrands].map(v => chip('brand', v)).join('') + [...filForms].map(v => chip('form', v)).join('') +
+    wrap.innerHTML = [...filBrands].map(v => chip('brand', v)).join('') + [...filForms].map(v => chip('form', v)).join('') +
         (filInStock ? `<button type="button" class="af-chip" onclick="removeFilter('stock')"><span>متوفر فقط</span><b>✕</b></button>` : '') +
         `<button type="button" class="af-clear" onclick="resetFilters()">مسح الكل</button>`;
     wrap.style.display = 'flex';
@@ -1176,6 +1177,28 @@ function toggleFilter(kind, v) {
     renderAll(); renderFilterSheet();
 }
 function toggleInStockFilter() { filInStock = !filInStock; renderAll(); renderFilterSheet(); }
+// شجرة الأقسام والتصنيفات لفلتر taxfilter.js (المخزن وإعدادات الطبيب)
+function tfAdminTree() {
+    const used = new Set(), placed = new Set(); products.forEach(p => catsOf(p).forEach(c => used.add(c)));
+    const tree = deptList().map(dp => { const cats = (deptSubs[dp] || []).filter(c => subCategories.includes(c) && (!taxLegacy.c.includes(c) || used.has(c))); cats.forEach(c => placed.add(c)); return { k: dp, n: dp, cats: cats.map(c => ({ k: c, n: c })) }; });
+    const orph = [...used].filter(c => !placed.has(c)); if (orph.length) tree.push({ k: '__other', n: 'تصنيفات أخرى', virtual: true, cats: orph.map(c => ({ k: c, n: c })) });
+    return tree;
+}
+function tfAdminCounter(list) {
+    const dm = new Map(), cm = new Map(); list.forEach(p => { deptsOf(p).forEach(k => dm.set(k, (dm.get(k) || 0) + 1)); catsOf(p).forEach(k => cm.set(k, (cm.get(k) || 0) + 1)); });
+    return (kind, k) => (kind === 'd' ? dm : cm).get(k) || 0;
+}
+let fsTreeCfg = null;
+function fsMountTree() {
+    const host = document.getElementById('fsTree'); if (!host) return;
+    fsTreeCfg = fsTreeCfg || { open: new Set(), q: '' };
+    Object.assign(fsTreeCfg, { tree: tfAdminTree(), sel: { d: filDepts, c: filCats }, count: tfAdminCounter(getBaseFilteredByTab()), onChange() { renderAll(); fsUpdateFoot(); }, onDone() { closeFilterSheet(); } });
+    tfMount(host, fsTreeCfg);
+}
+function fsUpdateFoot() {
+    const a = document.querySelector('#filterContent .fs-apply'); if (a) a.textContent = 'عرض ' + getFiltered().length + ' صنف';
+    const c = document.querySelector('#filterContent .fs-foot .icon-btn'); if (c) c.disabled = !activeFilterCount();
+}
 let ddOpen = '';                       // القائمة المنسدلة المفتوحة حالياً في نافذة التصفية
 const ddQuery = { cat: '', brand: '', form: '' };
 function openFilterSheet() {
@@ -1227,12 +1250,13 @@ function renderFilterSheet(focusKind) {
         <div class="fs-head"><h3>تصفية الأصناف</h3><button type="button" class="fs-x" onclick="closeFilterSheet()" aria-label="إغلاق">✕</button></div>
         <div class="fs-body">
             <button type="button" class="fs-switch ${filInStock ? 'on' : ''}" onclick="toggleInStockFilter()"><span>المتوفر فقط</span><i></i></button>
-            ${dd('cat')}${dd('brand')}${dd('form')}
+            <div class="fs-tree-h">الأقسام والتصنيفات</div><div id="fsTree" class="fs-tree"></div>${dd('brand')}${dd('form')}
         </div>
         <div class="fs-foot">
             <button type="button" class="icon-btn" onclick="resetFilters()" ${activeFilterCount() ? '' : 'disabled'}>مسح الكل</button>
             <button type="button" class="icon-btn primary-btn fs-apply" onclick="closeFilterSheet()">عرض ${total} صنف</button>
         </div>`;
+    fsMountTree();
     const nb = box.querySelector('.fs-body'); if (nb) nb.scrollTop = scroll;
     if (focusKind) { const i = box.querySelector('.fs-search[data-kind="' + focusKind + '"]'); if (i) { i.focus(); const l = i.value.length; try { i.setSelectionRange(l, l); } catch (e) {} } }
 }
@@ -1615,6 +1639,7 @@ async function removeListItem(kind, index) {
     if (kind === 'cat') { Object.keys(deptSubs).forEach(d => { deptSubs[d] = (deptSubs[d] || []).filter(x => x !== name); }); taxLegacy.c = taxLegacy.c.filter(x => x !== name); }
     if (kind === 'dept') { delete deptSubs[name]; taxLegacy.d = taxLegacy.d.filter(x => x !== name); }
     if (kind === 'cat') filCats.delete(name);
+    if (kind === 'dept') filDepts.delete(name);
     if (kind === 'dept' && activeDept === name) activeDept = ALL_DEPTS;
     return true;
 }

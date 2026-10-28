@@ -2969,3 +2969,15 @@ body.no-bnav { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 
 body.doc-open .sheet-backdrop { z-index: 9100; backdrop-filter: blur(8px); background: rgba(10,20,40,.5); } body.doc-open .bottom-sheet { z-index: 9101; }
 .dc-nm[role=button] { cursor: pointer; }
+
+/* زر الفلتر الموحد (يشبه زر صفحة الطبيب في الإعدادات) */
+.filter-btn { width: 46px; height: 46px; padding: 0; justify-content: center; background: #fff; color: #0f1c38; border: 1.5px solid #cbd5e1; }
+.filter-btn .fb-t { display: none; }
+.filter-btn.on { background: var(--gold, #f9a825); border-color: var(--gold, #f9a825); color: #0f1c38; }
+.filter-btn b { position: absolute; top: -6px; inset-inline-start: -6px; box-shadow: 0 0 0 2px #fff; }
+[data-theme="dark"] .filter-btn:not(.on) { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+.fs-tree-h { font-weight: 800; font-size: .86rem; margin: 4px 2px 8px; }
+.fs-tree .tf-p { box-shadow: none; padding: 8px; }
+.dc-fbtn { position: relative; display: grid; place-items: center; padding: 0; }
+.dc-fbtn .fb-n { position: absolute; top: -6px; inset-inline-start: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #0d9488; color: #fff; font: 800 .7rem/20px inherit; font-style: normal; text-align: center; }
+.dc-drop { display: flex; flex-direction: column; gap: 8px; }

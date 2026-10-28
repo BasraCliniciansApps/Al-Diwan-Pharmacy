@@ -46,6 +46,11 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .hbtn.on { background: var(--gold); border-color: var(--gold); color: #0f1c38; } .hbtn.on svg { fill: currentColor; }
 .hbtn i { position: absolute; top: -5px; inset-inline-start: -5px; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; background: var(--gold); color: #0f1c38; font: 800 .62rem/17px 'Tajawal', sans-serif; font-style: normal; text-align: center; }
 .hbtn i:empty { display: none; }
+.srow { margin-top: 12px; display: flex; gap: 8px; align-items: center; } .srow .search { margin-top: 0; flex: 1; min-width: 0; }
+.fbt { position: relative; flex: 0 0 48px; width: 48px; height: 48px; border-radius: 16px; border: 1.5px solid #cbd5e1; background: #fff; color: #0f1c38; display: grid; place-items: center; font-size: 1.25rem; cursor: pointer; } .fbt.on { background: var(--gold); border-color: var(--gold); }
+.fbt i { position: absolute; top: -6px; inset-inline-start: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #0d9488; color: #fff; font: 800 .7rem/20px 'Tajawal', sans-serif; font-style: normal; text-align: center; } .fbt i:empty { display: none; }
+.tfbg { position: fixed; inset: 0; z-index: 27; display: none; background: rgba(8,14,30,.35); backdrop-filter: blur(2px); } .tfbg.show { display: block; }
+.tfh { position: fixed; z-index: 28; top: calc(var(--hh) + 6px); left: 12px; right: 12px; max-width: 640px; margin: 0 auto; display: none; } .tfh.show { display: block; }
 .search { margin-top: 12px; display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 16px; padding: 0 14px; height: 48px; border: 1px solid var(--line); }
 .search svg { font-size: 1.2rem; color: var(--sub); }
 .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; font: 500 1rem 'Tajawal', sans-serif; color: var(--text); height: 100%; }
@@ -208,11 +213,12 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
         <button type="button" class="hbtn" id="favBtn" aria-label="المفضلة" title="المفضلة"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><i id="favN"></i></button>
         <button type="button" class="hbtn" id="theme" aria-label="تبديل الوضع" title="الوضع الليلي/النهاري"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></button>
     </div>
-    <label class="search" id="sbox"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+    <div class="srow"><label class="search" id="sbox"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
         <input id="q" type="search" inputmode="search" autocomplete="off" placeholder="ابحث باسم الدواء أو المادة الفعالة">
         <button type="button" id="qx" aria-label="مسح"><svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
-    </label>
+    </label><button type="button" class="fbt" id="fbt" aria-label="تصفية حسب القسم والتصنيف"><svg viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M10 18h4"/></svg><i id="fbn"></i></button></div>
 </div></header>
+<div class="tfbg" id="tfBg"></div><div class="tfh" id="tfHost"></div>
 
 <nav class="rail" id="rail" aria-label="حالة التوفر"></nav>
 
@@ -227,6 +233,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 <div class="bg" id="bg"><div class="sheet" id="sheet"></div></div>
 
 <script src="rxprint.js"></script>
+<script src="taxfilter.js"></script>
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyDimxdd2vaKdOFw-IDYfWaivslosGMFVh4", authDomain: "al-d1-pharmacy.firebaseapp.com", projectId: "al-d1-pharmacy",
@@ -268,6 +275,7 @@ const WEEK = 7 * 864e5;
 const IMGB = 'https://raw.githubusercontent.com/BasraCliniciansApps/Al-Diwan-Pharmacy/main/';
 const imgUrl = i => !i ? '' : (/^https?:/.test(i) ? i : IMGB + i);
 let VIEW = [], curId = null;
+const SEL = { d: new Set(), c: new Set() }; let TFC = null;
 const PILL = '<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>';
 function imgFail(e) { const p = e.parentNode; if (p.classList.contains('dimg')) p.classList.add('no'); p.innerHTML = svg(PILL); }
 const thumb = m => `<div class="th">${m.im ? `<img src="${esc(m.im)}" alt="" loading="lazy" decoding="async" onerror="imgFail(this)">` : svg(PILL)}</div>`;
@@ -277,7 +285,7 @@ function model() {
     Object.keys(doc.items || {}).forEach(id => {
         const it = doc.items[id]; if (!it || !it.n) return;
         out.push({ id, n: it.n, a: it.a || '', ik: ingKey(it.a || ''), p: it.p || 0, st: eff(it, cfg), t: it.t || 0, hay: norm(it.n + ' ' + (it.a || '')),
-            im: imgUrl(it.i), br: it.b || '', fm: it.f || '', nt: it.nt || '', isNew: it.ad && now - it.ad < WEEK, pc: it.pt && it.pp && now - it.pt < WEEK && it.pp !== it.p });
+            dk: (it.d || []).map(i => 'd' + i), ck: (it.c || []).map(i => 'c' + i), im: imgUrl(it.i), br: it.b || '', fm: it.f || '', nt: it.nt || '', isNew: it.ad && now - it.ad < WEEK, pc: it.pt && it.pp && now - it.pt < WEEK && it.pp !== it.p });
     });
     out.sort((a, b) => ORDER.indexOf(a.st) - ORDER.indexOf(b.st) || a.n.localeCompare(b.n, 'en'));
     return out;
@@ -334,12 +342,13 @@ function render(anim) {
     ALL = all;
     renderRail(all);
     const nq = norm(q.trim());
-    let rows = all.filter(m => (!tab || m.st === tab || (tab === 'noph' && m.st === 'nosup')) && (!favOnly || FAV.has(m.id)) && (!nq || m.hay.includes(nq)));
+    let rows = all.filter(m => (!tab || m.st === tab || (tab === 'noph' && m.st === 'nosup')) && (!favOnly || FAV.has(m.id)) && tfMatch(SEL, m.dk, m.ck) && (!nq || m.hay.includes(nq)));
     lastRows = rows.length; VIEW = rows;
     $('hl').textContent = (favOnly ? 'المفضلة · ' : '') + (tab ? ST[tab].t : 'كل المواد');
     $('hc').textContent = num(rows.length);
-    $('clr').classList.toggle('show', !!tab || favOnly);
+    $('clr').classList.toggle('show', !!tab || favOnly || tfCount(SEL) > 0);
     $('favBtn').classList.toggle('on', favOnly);
+    $('fbn').textContent = tfCount(SEL) || ''; $('fbt').classList.toggle('on', tfCount(SEL) > 0);
     $('favN').textContent = FAV.size ? num(FAV.size) : '';
     const box = $('list');
     if (!doc) return;
@@ -415,7 +424,7 @@ function stamp() {
 function setDoc(d) { doc = d || { cfg: {}, items: {} }; stamp(); render(false); try { localStorage.setItem(LS, JSON.stringify(doc)); } catch (e) { /* تجاهل */ } }
 
 $('rail').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; const k = b.dataset.k; tab = tab === k ? '' : k; shown = 60; render(true); if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) { /* تجاهل */ } });
-$('clr').onclick = () => { tab = ''; favOnly = false; shown = 60; render(true); };
+$('clr').onclick = () => { tab = ''; favOnly = false; SEL.d.clear(); SEL.c.clear(); if (TFC) tfRefresh($('tfHost')); shown = 60; render(true); };
 let srT = null, lastRows = 1;
 $('q').addEventListener('input', e => { q = e.target.value; clearTimeout(srT); srT = setTimeout(() => { const t = q.trim(); if (norm(t).length >= 3 && lastRows === 0) sendReq('s', '', t, null, true); }, 1800); $('sbox').classList.toggle('has', !!q); shown = 60; render(false); });
 $('qx').onclick = () => { $('q').value = ''; q = ''; $('sbox').classList.remove('has'); render(false); $('q').focus(); };
@@ -546,6 +555,23 @@ $('sheet').addEventListener('click', async e => {
     else if (k === 'reprint') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) rxPrintNow(r); }
     else if (k === 'forget') { if (await ask('إزالة هذه الوصفة من القائمة؟', 'إزالة')) { const id = b.dataset.rid; MY = MY.filter(x => x.rid !== id); lsSet('diwanRx', MY); if (NTU[id]) { try { NTU[id](); } catch (x) { /* تجاهل */ } delete NTU[id]; } delete NT[id]; ntRender(); } }
 });
+
+
+// ---------- فلتر الأقسام والتصنيفات ----------
+function tfTree() {
+    const tx = (doc && doc.tx) || { d: [], c: [] }, tree = tx.d.map((n, i) => ({ k: 'd' + i, n, cats: [] })); let oth = null;
+    (tx.c || []).forEach((c, j) => { const t = tree[c[1]] || (oth = oth || { k: 'd-1', n: 'تصنيفات أخرى', virtual: true, cats: [] }); t.cats.push({ k: 'c' + j, n: c[0] }); });
+    if (oth) tree.push(oth); return tree;
+}
+function tfCounter() { const dm = new Map(), cm = new Map(); ALL.forEach(m => { m.dk.forEach(k => dm.set(k, (dm.get(k) || 0) + 1)); m.ck.forEach(k => cm.set(k, (cm.get(k) || 0) + 1)); }); return (kind, k) => (kind === 'd' ? dm : cm).get(k) || 0; }
+function tfShow(on) { $('tfHost').classList.toggle('show', on); $('tfBg').classList.toggle('show', on); }
+$('fbt').onclick = () => {
+    if ($('tfHost').classList.contains('show')) { tfShow(false); return; }
+    TFC = TFC || { open: new Set(), q: '' };
+    Object.assign(TFC, { tree: tfTree(), sel: SEL, count: tfCounter(), onChange() { shown = 60; render(false); }, onDone() { tfShow(false); } });
+    tfMount($('tfHost'), TFC); tfShow(true);
+};
+$('tfBg').onclick = () => tfShow(false);
 
 $('reqBtn').onclick = () => reqOpen(q.trim());
 $('bg').addEventListener('click', e => { if (e.target === $('bg')) closeSheet(); });

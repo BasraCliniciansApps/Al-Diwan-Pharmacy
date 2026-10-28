@@ -5,7 +5,7 @@
 // =====================================================================
 const DOC_ST = { ok: 'متوفر', noph: 'غير متوفر بالصيدلية', nosup: 'غير متوفر بالمذخر', back: 'عاد بعد انقطاع' };
 const DOC_LS = 'diwanDocData';
-let docReqList = [], docReqUnsub = null, docData = null, docLoadP = null, docPubT = null, docWatchT = null, docQ = '', docFil = 'all', docShown = 60, docMenu = false;
+let docReqList = [], docReqUnsub = null, docData = null, docLoadP = null, docPubT = null, docWatchT = null, docQ = '', docFil = 'all', docShown = 60, docMenu = false, docSel = { d: new Set(), c: new Set() }, docTreeCfg = null;
 const docEsc = s => escapeHtml(String(s == null ? '' : s));
 const docDefault = () => ({ cfg: { auto: false, prices: true, detect: true, days: 7 }, items: {}, upd: 0, sig: '' });
 function docNorm(d) { const b = docDefault(); d = d || {}; return { cfg: { ...b.cfg, ...(d.cfg || {}) }, items: d.items || {}, upd: d.upd || 0, sig: d.sig || '' }; }
@@ -37,10 +37,11 @@ function docSnap(p) {
     const im = String(p.img || '').trim(); if (im && !im.startsWith('data:')) o.i = im.replace(DOC_IMG, '');
     if (p.brand && String(p.brand).trim().toUpperCase() !== 'GENERIC') o.b = String(p.brand).trim();
     try { if (p.form) o.f = formOf(p); } catch (e) { /* تجاهل */ }
+    o.dn = deptsOf(p).filter(Boolean); o.cn = catsOf(p);
     o.k = (typeof setupSkip === 'function' && setupSkip(p)) ? null : (isInStock(p) ? 1 : 0);
     return o;
 }
-function docSigOf(d) { return Object.keys(d.items).sort().map(id => { const p = docProd(id), x = p ? docSnap(p) : {}; return id + '|' + (x.n || '') + '|' + (x.p || 0) + '|' + (x.i || '') + (x.b || '') + (x.f || '') + (d.items[id].nt || '') + '|' + x.k + '|' + d.items[id].s + '|' + d.items[id].t; }).join('~') + '|' + JSON.stringify(d.cfg); }
+function docSigOf(d) { return Object.keys(d.items).sort().map(id => { const p = docProd(id), x = p ? docSnap(p) : {}; return id + '|' + (x.n || '') + '|' + (x.p || 0) + '|' + (x.i || '') + (x.b || '') + (x.f || '') + (x.dn || []).join(',') + (x.cn || []).join(',') + (d.items[id].nt || '') + '|' + x.k + '|' + d.items[id].s + '|' + d.items[id].t; }).join('~') + '|' + JSON.stringify(d.cfg); }
 async function docPublish() {
     const d = await docLoad();
     Object.keys(d.items).forEach(id => {
@@ -49,6 +50,16 @@ async function docPublish() {
         if (it.p != null && Number(it.p) !== sn.p && sn.p) { it.pp = Number(it.p); it.pt = Date.now(); }   // تغيّر السعر (تظهر الشارة أسبوعاً)
         delete it.i; delete it.b; delete it.f; Object.assign(it, sn);
     });
+    // أقسام وتصنيفات المواد المعروضة (فهارس مضغوطة) لفلتر صفحة الطبيب
+    const dIdx = new Map(), cIdx = new Map(), tx = { d: [], c: [] }, own = c => Object.keys(deptSubs).find(k => (deptSubs[k] || []).includes(c));
+    Object.keys(d.items).forEach(id => {
+        const it = d.items[id]; if (!it.dn) return;
+        it.d = it.dn.map(n => { if (!dIdx.has(n)) { dIdx.set(n, tx.d.length); tx.d.push(n); } return dIdx.get(n); });
+        it.c = (it.cn || []).map(n => { if (!cIdx.has(n)) { cIdx.set(n, tx.c.length); tx.c.push([n, -1]); } return cIdx.get(n); });
+        (it.cn || []).forEach((n, j) => { const k = cIdx.get(n); if (tx.c[k][1] < 0) { const o = own(n), oi = o != null ? dIdx.get(o) : undefined; tx.c[k][1] = oi != null ? oi : (it.d[0] != null ? it.d[0] : -1); } });
+    });
+    Object.keys(d.items).forEach(id => { delete d.items[id].dn; delete d.items[id].cn; });
+    d.tx = tx;
     d.upd = Date.now(); d.sig = docSigOf(d);
     try { localStorage.setItem(DOC_LS, JSON.stringify(d)); } catch (e) { /* تجاهل */ }
     try { if (typeof cloudReady === 'function' && cloudReady() && userRole === 'owner') await fsSet(db.collection('pharmacy').doc('doctor'), JSON.parse(JSON.stringify(d))); } catch (e) { console.warn('docPublish', e); }
@@ -90,7 +101,7 @@ async function docOpen() {
     let el = docEl();
     if (!el) { el = document.createElement('div'); el.id = 'docHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
     document.body.classList.add('doc-open'); el.style.display = 'flex'; el.innerHTML = '<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()">✕</button></div><div class="dh-body"><div class="dh-note">جارٍ التحميل…</div></div>';
-    await docLoad(); docQ = ''; docFil = 'all'; docShown = 60; docMenu = false; docRender();
+    await docLoad(); docQ = ''; docFil = 'all'; docShown = 60; docMenu = false; docSel.d.clear(); docSel.c.clear(); docRender();
 }
 function docClose() { document.body.classList.remove('doc-open'); const el = docEl(); if (el) el.style.display = 'none'; }
 function docLink() { try { return new URL('doctor.html', location.href).href; } catch (e) { return 'doctor.html'; } }
@@ -113,7 +124,7 @@ function docRender() {
         <div class="dc-card" id="docReq"><div class="dh-note">جارٍ تحميل طلبات الأطباء…</div></div>
         <div class="dc-bar">
             <input id="docQ" type="search" placeholder="ابحث باسم المادة أو المادة الفعالة" value="${docEsc(docQ)}" oninput="docSearch(this.value)">
-            <button type="button" class="dc-fbtn ${docFil !== 'all' ? 'on' : ''}" onclick="docToggleMenu()" aria-label="فلتر"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg></button>
+            <button type="button" class="dc-fbtn ${docFil !== 'all' || tfCount(docSel) ? 'on' : ''}" onclick="docToggleMenu()" aria-label="فلتر"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg></button>
         </div>
         <div id="docMenu"></div>
         <div id="docList"></div>
@@ -121,12 +132,21 @@ function docRender() {
     docRenderMenu(); docRenderList(); docLoadReq();
 }
 const DOC_FILTERS = [['all', 'كل المواد'], ['sel', 'المعروضة للطبيب'], ['unsel', 'غير المعروضة'], ['ok', 'متوفر'], ['noph', 'غير متوفر بالصيدلية'], ['nosup', 'غير متوفر بالمذخر'], ['back', 'عاد بعد انقطاع']];
+function docFbtn() {
+    const b = document.querySelector('.dc-fbtn'); if (!b) return; const n = tfCount(docSel) + (docFil !== 'all' ? 1 : 0);
+    b.classList.toggle('on', n > 0); let i = b.querySelector('.fb-n'); if (!i) { i = document.createElement('i'); i.className = 'fb-n'; b.appendChild(i); } i.textContent = n; i.style.display = n ? '' : 'none';
+}
 function docRenderMenu() {
     const m = document.getElementById('docMenu'); if (!m) return;
-    m.innerHTML = docMenu ? `<div class="dc-menu">${DOC_FILTERS.map(([k, t]) => `<button type="button" class="${docFil === k ? 'on' : ''}" onclick="docSetFil('${k}')">${t}</button>`).join('')}</div>` : '';
+    docFbtn();
+    if (!docMenu) { m.innerHTML = ''; return; }
+    m.innerHTML = `<div class="dc-drop"><div class="dc-menu">${DOC_FILTERS.map(([k, t]) => `<button type="button" class="${docFil === k ? 'on' : ''}" onclick="docSetFil('${k}')">${t}</button>`).join('')}</div><div id="docTree"></div></div>`;
+    docTreeCfg = docTreeCfg || { open: new Set(), q: '' };
+    Object.assign(docTreeCfg, { tree: tfAdminTree(), sel: docSel, count: tfAdminCounter(products), onChange() { docShown = 60; docRenderList(); docFbtn(); }, onDone() { docMenu = false; docRenderMenu(); } });
+    tfMount(document.getElementById('docTree'), docTreeCfg);
 }
 function docToggleMenu() { docMenu = !docMenu; docRenderMenu(); }
-function docSetFil(k) { docFil = k; docMenu = false; docShown = 60; docRenderMenu(); const b = document.querySelector('.dc-fbtn'); if (b) b.classList.toggle('on', k !== 'all'); docRenderList(); }
+function docSetFil(k) { docFil = k; docShown = 60; docRenderMenu(); docRenderList(); }
 let docSearchT = null;
 function docSearch(v) { docQ = v; clearTimeout(docSearchT); docSearchT = setTimeout(() => { docShown = 60; docRenderList(); }, 180); }
 const docNormS = s => String(s || '').toLowerCase();
@@ -135,6 +155,7 @@ function docFiltered() {
     return products.filter(p => {
         const it = docData.items[String(p.id)];
         if (q && !(docNormS(p.name).includes(q) || docNormS(p.activeIngredient).includes(q))) return false;
+        if ((docSel.d.size || docSel.c.size) && !tfMatch(docSel, deptsOf(p), catsOf(p))) return false;
         if (docFil === 'sel') return !!it;
         if (docFil === 'unsel') return !it;
         if (docFil === 'all') return true;
