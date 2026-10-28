@@ -399,6 +399,15 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
 .rxp .rxi.cl .tg { text-align: left; } .rxp .rxi.cl .tg > span { text-align: left; } .rxp .rxi.cl .tg small { unicode-bidi: plaintext; text-align: left; }
 .rxp .rxi .rxh b { text-align: left; flex: 1; min-width: 0; }
 .rxp .rxi.cl .tg svg { transform: rotate(90deg); }
+
+.vprev { position: relative; margin-top: 10px; border-radius: 16px; overflow: hidden; background: #fff; border: 1px solid var(--line); box-shadow: var(--shadow); }
+.vprev iframe { position: absolute; top: 0; left: 0; width: 397px; height: 559px; border: 0; transform-origin: top left; background: #fff; }
+.cfb { padding: 12px; } .cfb .cl-hint { margin: 0 0 8px; } .cfb .rp-paper { margin-top: 8px; box-shadow: none; }
+.bk-list { display: grid; gap: 10px; }
+.bk { display: flex; align-items: center; gap: 12px; width: 100%; text-align: start; border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 16px; padding: 12px; cursor: pointer; font-family: 'Tajawal', sans-serif; }
+.bk .i { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 13px; display: grid; place-items: center; background: color-mix(in srgb, var(--gold) 20%, transparent); color: var(--gold-dark); } .bk .i svg { width: 22px; height: 22px; }
+.bk b { display: block; font-size: .88rem; } .bk small { display: block; font-size: .7rem; color: var(--sub); font-weight: 600; margin-top: 2px; line-height: 1.5; }
+.bk:active { transform: scale(.98); }
 </style>
 </head>
 <body>
@@ -743,7 +752,7 @@ function rpHead(meta) {
 const sgBox = (k, lab) => `<div class="rp-sgb" data-rx="tab" data-t="cl"><small>${lab}</small>${CL[k] ? `<img src="${CL[k]}" alt="">` : ''}</div>`;
 function rxForm(keep) {
     const sh = $('sheet'), top = sh.scrollTop, miss = clMissing();
-    const banner = miss.length ? `<button type="button" class="rp-warn" data-rx="tab" data-t="cl">${svg(IC2.warn)}<span>لم تُضف: <b>${miss.map(esc).join('، ')}</b>. أضفها من تبويب «العيادة» لتظهر في الوصفة.</span></button>` : '';
+    const banner = miss.length ? `<button type="button" class="rp-warn" data-rx="tab" data-t="cl">${svg(IC2.warn)}<span>لم تُضف: <b>${miss.map(esc).join('، ')}</b>. أضفها من تبويب «الإعدادات» لتظهر في الوصفة.</span></button>` : '';
     sh.innerHTML = `<div class="grab"></div>${rxTabs('new')}<div class="rxs rxp"><div class="rxt">${RX.editRid ? '<h3>تعديل الوصفة ' + esc(RX.num) + '</h3>' : '<span></span>'}<button type="button" class="lk" data-rx="clear">مسح الوصفة</button></div>
     ${banner}<div class="rp-paper"><div data-rx="tab" data-t="cl" style="cursor:pointer">${rpHead(true)}</div>
     <div class="rp-pt"><label class="rp-row ph"><span>رقم الهاتف:</span><input data-k="phone" type="tel" inputmode="numeric" pattern="[0-9]*" dir="ltr" autocomplete="off" placeholder="07xx xxx xxxx" value="${esc(RX.phone || '')}"></label>
@@ -777,21 +786,28 @@ async function clImgSet(file) {
     } catch (e) { ph.fail('تعذر حفظ الصورة', 'جرّب صورة أخرى.'); }
 }
 const wi = r => Object.assign({}, r, { clinic: Object.assign({}, r.clinic || {}, { sg: CL.sg || '', st: CL.st || '' }) });
+let clInit = false;
+const dnFold = (k, lab, body) => `<details class="fold" data-fold="${k}" ${FOLD.has(k) ? 'open' : ''}><summary><span class="fl">${lab}</span>${svg('<path d="m6 9 6 6 6-6"/>')}</summary><div class="cfb">${body}</div></details>`;
 function clRender() {
-    rxMode = 'cl'; const sh = $('sheet'), f = (k, lab, ph, extra) => `<label class="rp-box w"><small>${lab}</small><input data-cl="${k}" type="${extra ? 'tel' : 'text'}" ${extra ? 'inputmode="numeric" pattern="[0-9]*" dir="ltr"' : ''} autocomplete="off" placeholder="${ph}" value="${esc(k === 'n' ? dnPlain() : CL[k])}"></label>`;
-    sh.innerHTML = `<div class="grab"></div>${rxTabs('cl')}<div class="rxs rxp"><div class="rxt"><h3>معلومات العيادة</h3></div>
-    <p class="cl-hint">تظهر هذه المعلومات في رأس كل وصفة مطبوعة بالشكل الموضّح. ما تتركه فارغاً يبقى فراغاً في المطبوع.</p>
+    rxMode = 'cl'; if (!clInit) { clInit = true; FOLD.add('clinic'); }
+    const sh = $('sheet'), f = (k, lab, ph, extra) => `<label class="rp-box w"><small>${lab}</small><input data-cl="${k}" type="${extra ? 'tel' : 'text'}" ${extra ? 'inputmode="numeric" pattern="[0-9]*" dir="ltr"' : ''} autocomplete="off" placeholder="${ph}" value="${esc(k === 'n' ? dnPlain() : CL[k])}"></label>`;
+    const clinic = `<p class="cl-hint">تظهر هذه المعلومات في رأس كل وصفة مطبوعة بالشكل الموضّح. ما تتركه فارغاً يبقى فراغاً في المطبوع.</p>
     <div class="rp-paper" id="clPrev">${rpHead(false)}</div>
     ${f('n', 'اسم الطبيب <b>*</b>', 'الاسم الثلاثي')}${f('s', 'التخصص', 'مثل: أخصائي أطفال')}${f('p', 'رقم العيادة', '07xx xxx xxxx', 1)}${f('a', 'العنوان', 'المحافظة، المنطقة، الشارع')}
-    <div class="cl-up">${upBox('sg', 'صورة التوقيع')}${upBox('st', 'صورة الختم')}</div><input type="file" id="clImg" accept="image/*" hidden></div>`;
+    <div class="cl-up">${upBox('sg', 'صورة التوقيع')}${upBox('st', 'صورة الختم')}</div><input type="file" id="clImg" accept="image/*" hidden>`;
+    const bk = `<p class="cl-hint">احفظ نسخة من سجل وصفاتك، واسترجعها عند تغيير الجهاز أو فقدان السجل.</p>
+    <div class="bk-list"><button type="button" class="bk" data-rx="exp"><span class="i">${svg('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>')}</span><span><b>نسخ احتياطي لسجل الوصفات</b><small>${num(MY.length)} وصفة · يُحفظ كملف على جهازك</small></span></button>
+    <button type="button" class="bk" data-rx="restore"><span class="i">${svg('<path d="M12 15V3M7 8l5-5 5 5M5 21h14"/>')}</span><span><b>استرجاع نسخة احتياطية</b><small>من ملف محفوظ لديك أو من نسخة الصيدلية</small></span></button></div>
+    <input type="file" id="impF" accept=".json,application/json" hidden>`;
+    sh.innerHTML = `<div class="grab"></div>${rxTabs('cl')}<div class="rxs rxp">${dnFold('clinic', 'معلومات العيادة', clinic)}${dnFold('bk', 'النسخ الاحتياطي والاسترجاع', bk)}</div>`;
     sh.scrollTop = 0;
 }
-const rxTabs = t => `<div class="pgh"><button type="button" data-pgclose="1" aria-label="رجوع">${svg('<path d="m9 18 6-6-6-6"/>')}</button><b>الوصفات الإلكترونية</b></div><div class="rxtabs"><button type="button" class="${t === 'new' ? 'on' : ''}" data-rx="tab" data-t="new">وصفة جديدة</button><button type="button" class="${t === 'hist' ? 'on' : ''}" data-rx="tab" data-t="hist">السجل</button><button type="button" class="${t === 'cl' ? 'on' : ''}" data-rx="tab" data-t="cl">العيادة</button></div>`;
+const rxTabs = t => `<div class="pgh"><button type="button" data-pgclose="1" aria-label="رجوع">${svg('<path d="m9 18 6-6-6-6"/>')}</button><b>الوصفات الإلكترونية</b></div><div class="rxtabs"><button type="button" class="${t === 'new' ? 'on' : ''}" data-rx="tab" data-t="new">وصفة جديدة</button><button type="button" class="${t === 'hist' ? 'on' : ''}" data-rx="tab" data-t="hist">السجل</button><button type="button" class="${t === 'cl' ? 'on' : ''}" data-rx="tab" data-t="cl">الإعدادات</button></div>`;
 const getDid = () => { let d = lsGet('diwanDid', ''); if (!d) { d = Array.from(crypto.getRandomValues(new Uint8Array(12))).map(b => b.toString(36).padStart(2, '0')).join('') + Date.now().toString(36); lsSet('diwanDid', d); } return d; };
 let HQ = '';
 function histRender() {
     rxMode = 'hist'; const sh = $('sheet');
-    sh.innerHTML = `<div class="grab"></div>${rxTabs('hist')}<div class="hqr"><input class="fld" id="hq" type="search" autocomplete="off" placeholder="ابحث باسم المريض أو الدواء" value="${esc(HQ)}"><button type="button" class="ib2" data-rx="exp" aria-label="تصدير نسخة احتياطية" title="تصدير نسخة احتياطية">${svg('<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>')}</button><button type="button" class="ib2" data-rx="imp" aria-label="استيراد نسخة احتياطية" title="استيراد نسخة احتياطية">${svg('<path d="M12 15V3M7 8l5-5 5 5M5 21h14"/>')}</button><input type="file" id="impF" accept=".json,application/json" hidden></div><div id="hlist"></div><button type="button" class="rsl" data-rx="rs">استرجاع سجلي من الصيدلية (جهاز جديد)</button>`;
+    sh.innerHTML = `<div class="grab"></div>${rxTabs('hist')}<div class="hqr"><input class="fld" id="hq" type="search" autocomplete="off" placeholder="ابحث باسم المريض أو الدواء" value="${esc(HQ)}"></div><div id="hlist"></div>`;
     histList(); sh.scrollTop = 0;
 }
 function histList() {
@@ -806,17 +822,18 @@ function histList() {
 function viewRender(rid) {
     const r = MY.find(x => x.rid === rid); if (!r) { histRender(); return; }
     rxMode = 'view'; const sh = $('sheet');
-    const it = (r.items || []).map(i => `<details class="vi"><summary><span><b dir="auto"><bdi>${esc(i.n)}</bdi></b>${i.ext ? ' <span class="tag">خارجي</span>' : ''}<small>${esc([i.dose, i.freq, i.dur].filter(Boolean).join(' · ') || '—')}</small></span>${svg('<path d="m9 18 6-6-6-6"/>')}</summary>${i.ins ? `<div class="vt"><small>التعليمات</small><b>${esc(i.ins)}</b></div>` : '<div class="vt"><small>لا توجد تعليمات</small></div>'}</details>`).join('');
-    sh.innerHTML = `<div class="grab"></div><div class="pgh"><button type="button" data-rx="tab" data-t="hist" aria-label="رجوع">${svg('<path d="m9 18 6-6-6-6"/>')}</button><b>عرض الوصفة</b></div>
-    <div class="vh"><div><small>المريض</small><b dir="auto"><bdi>${esc(r.patient)}</bdi></b></div>${r.phone ? `<div><small>الهاتف</small><b dir="ltr">${esc(r.phone)}</b></div>` : ''}<div><small>الطبيب</small><b dir="auto"><bdi>${esc(r.doctor)}</bdi></b></div><div><small>التاريخ</small><b>${hm(r.at)}</b></div>${r.dx ? `<div class="w"><small>التشخيص</small><b dir="auto">${esc(r.dx)}</b></div>` : ''}</div>
-    <label class="rxl">الأدوية</label>${it}${r.note ? `<label class="rxl">ملاحظات عامة</label><div class="vt vn"><b dir="auto">${esc(r.note)}</b></div>` : ''}
-    <div class="rxa"><button type="button" class="go alt" data-rx="reprint" data-rid="${rid}">طباعة</button>${r.phone ? `<button type="button" class="go wa" data-rx="wa" data-rid="${rid}" aria-label="إرسال واتساب">${RX_WA_ICON}</button>` : ''}<button type="button" class="go" data-rx="edit" data-rid="${rid}">تعديل</button></div>`;
+    sh.innerHTML = `<div class="grab"></div><div class="pgh"><button type="button" data-rx="tab" data-t="hist" aria-label="رجوع">${svg('<path d="m9 18 6-6-6-6"/>')}</button><b>عرض الوصفة</b></div><div class="vprev" id="vprev"><iframe id="vfr" title="الوصفة" scrolling="no"></iframe></div>`;
+    const fr = $('vfr'), box = $('vprev');
+    let html = rxPrintDoc(wi(r)).replace('</style>', 'html, body { background: #fff !important; overflow: hidden; } .pg { margin: 0 !important; box-shadow: none !important; } </style>');
+    fr.srcdoc = html;
+    const fit = () => { const w = box.clientWidth, k = w / 397; fr.style.transform = 'scale(' + k + ')'; box.style.height = Math.ceil(559 * k) + 'px'; };
+    fit(); fr.onload = () => { try { rxFit(fr.contentDocument); } catch (e) { /* تجاهل */ } };
     sh.scrollTop = 0;
 }
 // ---------- استرجاع السجل على جهاز جديد ----------
 function rsRender() {
     rxMode = 'rs'; const sh = $('sheet'), p = lsGet('diwanRs', null);
-    sh.innerHTML = `<div class="grab"></div><div class="rxt"><h3>استرجاع السجل</h3><button type="button" class="lk" style="color:var(--text)" data-rx="tab" data-t="hist">رجوع</button></div>
+    sh.innerHTML = `<div class="grab"></div><div class="rxt"><h3>استرجاع السجل</h3><button type="button" class="lk" style="color:var(--text)" data-rx="tab" data-t="cl">رجوع</button></div>
     ${p ? `<p>أُرسل طلبك باسم <b dir="auto"><bdi>${esc(p.name)}</bdi></b>. اطلب من الصيدلي رمز الاسترجاع (6 أرقام) ثم أدخله هنا.</p>
         <input class="fld" id="rsCode" type="text" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="الرمز" style="text-align:center;letter-spacing:6px;font-size:1.2rem">
         <button type="button" class="go" data-rx="rsget">استلام السجل</button><button type="button" class="rsl" data-rx="rscancel">إلغاء الطلب وكتابة اسم آخر</button>`
@@ -867,7 +884,7 @@ function rxValid(forSave) {
     sh.querySelectorAll('.rxi').forEach(c => { const it = RX.items[+c.dataset.i], nm = c.querySelector('[data-f="n"]'); if (nm) mark(nm, !it.n.trim()); });
     if (!RX.items.length) { ok = false; toast('أضف دواءً واحداً على الأقل'); }
     else if (!ok) toast('أكمل الحقول المطلوبة');
-    if (ok && forSave && !docName()) { toast('أضف اسمك في تبويب «العيادة» أولاً'); clRender(); return false; }
+    if (ok && forSave && !docName()) { toast('أضف اسمك في تبويب «الإعدادات» أولاً'); clRender(); return false; }
     return ok;
 }
 const rxRec = () => ({ num: RX.num, doctor: docName(), patient: RX.patient.trim(), phone: (RX.phone || '').trim(), clinic: { s: (CL.s || '').trim(), a: (CL.a || '').trim(), p: (CL.p || '').trim() }, dx: (RX.dx || '').trim(), note: RX.note.trim(), at: Date.now(), items: RX.items.map(i => ({ p: i.p || '', n: i.n.trim(), ext: !!i.ext, dose: (i.dose || '').trim(), freq: i.freq || '', dur: i.dur || '', ins: (i.ins || '').trim() })) });
@@ -897,6 +914,9 @@ async function rxSubmit(mode) {
     } catch (e) { ph.ok('حُفظت على جهازك وستُرسل عند توفر الاتصال'); }
 }
 // ---------- نسخة احتياطية: تصدير واستيراد ----------
+function restorePick() {
+    return new Promise(r => { const d = document.createElement('div'); d.className = 'qm'; d.innerHTML = `<div><b>استرجاع النسخة الاحتياطية من أين؟</b><div class="r" style="grid-template-columns:1fr"><button type="button" data-a="file">من ملف محفوظ على جهازي</button><button type="button" data-a="ph">من الصيدلية (برمز استرجاع)</button><button type="button" data-a="0">رجوع</button></div></div>`; d.onclick = e => { const b = e.target.closest('[data-a]'); if (b || e.target === d) { d.remove(); r(b ? b.dataset.a : '0'); } }; document.body.appendChild(d); });
+}
 function rxExport() {
     if (!MY.length) { toast('لا توجد وصفات لتصديرها'); return; }
     const ph = Prog.start('تصدير نسخة احتياطية', { text: 'تجهيز الملف...' });
@@ -917,7 +937,7 @@ async function rxImport(file) {
         if (o.name) dnAdd(o.name);
         MY.forEach(r => { SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, Date.now()); }); lsSet('diwanRxSeen', SEEN);
         try { ntWatch(); ntBadge(); } catch (e) { /* تجاهل */ }
-        ph.ok(n ? 'تم استيراد ' + num(n) + ' وصفة' : 'لا توجد وصفات جديدة'); histList();
+        ph.ok(n ? 'تم استيراد ' + num(n) + ' وصفة' : 'لا توجد وصفات جديدة'); if (rxMode === 'hist') histList();
     } catch (e) { ph.fail('تعذر قراءة الملف'); }
 }
 $('sheet').addEventListener('change', e => { if (e.target.id === 'impF' && e.target.files[0]) rxImport(e.target.files[0]); });
@@ -1010,6 +1030,7 @@ $('sheet').addEventListener('click', async e => {
     else if (k === 'tog') { const ti = +b.dataset.i; RXO.has(ti) ? RXO.delete(ti) : RXO.add(ti); rxForm(true); }
     else if (k === 'exp') { rxExport(); }
     else if (k === 'imp') { $('impF').value = ''; $('impF').click(); }
+    else if (k === 'restore') { const c = await restorePick(); if (c === 'file') { $('impF').value = ''; $('impF').click(); } else if (c === 'ph') rsRender(); }
     else if (k === 'ins') { const it = RX.items[+b.dataset.i], t = b.dataset.t; it.ins = it.ins ? (it.ins.includes(t) ? it.ins : it.ins + '، ' + t) : t; saveDraft(); const c = b.closest('.rxi').querySelector('[data-f="ins"]'); c.value = it.ins; }
     else if (k === 'clear') { if (await ask('مسح الوصفة كاملة؟', 'مسح')) { RX = { num: mkNum(), doctor: RX.doctor, patient: '', phone: '', dx: '', items: [], note: '' }; RXO = new Set(); saveDraft(); rxForm(); } }
     else if (k === 'print') { if (rxValid()) rxPrintNow(wi(rxRec())); }
