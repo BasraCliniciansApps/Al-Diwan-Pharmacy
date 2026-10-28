@@ -21,40 +21,43 @@ function rxPrintDoc(rx) {
 * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 html, body { margin: 0; background: #fff; }
 body { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; color: #0f1c38; }
-.pg { width: 105mm; min-height: 148mm; margin: 0 auto; padding: 6mm 6mm 5mm; position: relative; display: flex; flex-direction: column; }
-.hd { position: relative; text-align: center; padding: 2mm 0 8px; border-bottom: 2.5px solid #0f1c38; }
-.hd .dr { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; color: #0f1c38; line-height: 1.25; } .hd .dr .t1 { font-size: 17px; } .hd .dr .t3 { font-size: 9.5px; font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; font-weight: 600; color: #475569; margin-top: 3px; line-height: 1.6; }
+.pg { width: 105mm; height: 148mm; margin: 0 auto; padding: 5mm 6mm 4mm; position: relative; overflow: hidden; }
+.bd { height: 100%; display: flex; flex-direction: column; }
+.hd { position: relative; text-align: center; padding: 1mm 0 6px; border-bottom: 2.5px solid #0f1c38; }
+.hd .dr { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; color: #0f1c38; line-height: 1.2; } .hd .dr .t1 { font-size: 16px; } .hd .dr .t3 { font-size: 9.5px; font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; font-weight: 600; color: #475569; margin-top: 2px; line-height: 1.5; }
 .hd .dr .t4 { font-size: 10.5px; font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; font-weight: 800; color: #0f1c38; margin-top: 1px; direction: ltr; unicode-bidi: plaintext; }
-.hd .dr .t2 { font-size: 27px; margin-top: 2px; overflow-wrap: anywhere; }
-.hd img { width: 46px; height: 46px; border-radius: 11px; object-fit: cover; }
-.hd .t { flex: 1; } .hd .t b { display: block; font-size: 19px; color: #0f1c38; line-height: 1.2; } .hd .t small { color: #64748b; font-size: 10.5px; font-weight: 600; }
-.hd .m { position: absolute; left: 0; top: 0; text-align: left; font-size: 10.5px; color: #475569; line-height: 1.7; direction: ltr; } .hd .m b { color: #0f1c38; }
+.hd .dr .t2 { font-size: 26px; margin-top: 1px; overflow-wrap: anywhere; }
+.hd .m { position: absolute; left: 0; top: 0; text-align: left; font-size: 10px; color: #475569; line-height: 1.6; direction: ltr; } .hd .m b { color: #0f1c38; }
 .ln { height: 3px; background: linear-gradient(90deg, #f9a825, #fcd34d 60%, transparent); margin-top: 2px; border-radius: 2px; }
-.pt { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 12px 0 6px; }
-.pt div { border: 1px solid #cbd5e1; border-radius: 9px; padding: 6px 10px; } .pt .w { grid-column: 1 / -1; }
-.pt small { display: block; font-size: 9.5px; color: #64748b; font-weight: 700; } .pt b { font-size: 12px; }
-.rx { font: 700 36px/1 'Times New Roman', Georgia, serif; color: #0f1c38; margin: 4px 2px 2px; direction: ltr; display: flex; align-items: baseline; gap: 8px; }
-.rx small { font: 700 11px 'Tajawal', sans-serif; color: #64748b; }
-table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-top: 4px; }
-th { background: #0f1c38; color: #fff; font-weight: 700; padding: 5px 3px; font-size: 8.5px; text-align: right; }
+.pt { margin: 7px 0 2px; }
+.rw { display: flex; align-items: baseline; gap: 6px; padding: 3px 2px 2px; border-bottom: 1px dotted #94a3b8; min-height: 18px; }
+.rw span { font-size: 10px; font-weight: 800; color: #64748b; white-space: nowrap; } .rw b { font-size: 12px; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.rw.ph { width: 62%; margin-right: auto; } .rw.ph b { direction: ltr; text-align: left; unicode-bidi: plaintext; }
+.rx { font: 700 32px/1 'Times New Roman', Georgia, serif; color: #0f1c38; margin: 6px 2px 0; direction: ltr; padding-bottom: 3px; border-bottom: 1.5px solid #0f1c38; }
+table { width: 100%; border-collapse: collapse; font-size: 9.5px; margin-top: 5px; }
+th { background: #0f1c38; color: #fff; font-weight: 700; padding: 4px 3px; font-size: 8.5px; text-align: right; }
 th:first-child { border-radius: 0 7px 0 0; } th:last-child { border-radius: 7px 0 0 0; }
-td { padding: 5px 3px; border-bottom: 1px dashed #cbd5e1; vertical-align: top; text-align: right; }
+td { padding: 3px 3px; border-bottom: 1px dashed #cbd5e1; vertical-align: top; text-align: right; }
 td.c { text-align: center; color: #64748b; width: 18px; } td.n b { font-size: 10.5px; } td.n small { display: block; font-size: 9px; color: #a85d08; font-weight: 700; }
-.nt { margin-top: 10px; border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 9px; padding: 7px 10px; font-size: 11px; line-height: 1.7; } .nt b { color: #475569; }
-.sp { flex: 1; min-height: 14mm; }
-.sg { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
-.sg div { height: 24mm; border: 1.5px dashed #94a3b8; border-radius: 11px; padding: 6px 10px; font-size: 10px; color: #64748b; font-weight: 700; }
-.ft { margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 9.5px; color: #94a3b8; }
+.nt { margin-top: 6px; border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 9px; padding: 5px 9px; font-size: 10.5px; line-height: 1.55; } .nt b { color: #475569; }
+.sp { flex: 1; min-height: 2mm; }
+.sg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 6px; }
+.sg div { height: 22mm; border: 1.5px dashed #94a3b8; border-radius: 11px; padding: 5px 9px; font-size: 9.5px; color: #64748b; font-weight: 700; position: relative; overflow: hidden; }
+.sg div img { position: absolute; inset: 14px 6px 4px; width: calc(100% - 12px); height: calc(100% - 18px); object-fit: contain; }
 @media screen { body { background: #e5e7eb; } .pg { background: #fff; margin: 12px auto; box-shadow: 0 4px 20px rgba(0,0,0,.15); } }
-</style></head><body><div class="pg">
+</style></head><body><div class="pg"><div class="bd">
 <div class="hd"><div class="m"><div><b>No.</b> ${rxEsc(rx.num)}</div><div>${rxDateTxt(rx.at)}</div></div><div class="dr"><div class="t1">الدكتور</div><div class="t2" dir="auto">${rxEsc(String(rx.doctor || '').replace(/^\s*د\.?\s*/, ''))}</div>${(() => { const c = rx.clinic || {}, l = [c.s, c.a].filter(x => x && String(x).trim()); return (l.length ? `<div class="t3" dir="auto">${l.map(x => rxEsc(x)).join(' · ')}</div>` : '') + (c.p && String(c.p).trim() ? `<div class="t4">☎ ${rxEsc(c.p)}</div>` : ''); })()}</div></div><div class="ln"></div>
-<div class="pt"><div class="w"><small>المريض</small><b dir="auto">${rxEsc(rx.patient)}</b>${rx.phone ? `<small style="margin-top:2px;direction:ltr">${rxEsc(rx.phone)}</small>` : ''}</div>${rx.dx ? `<div class="w"><small>التشخيص</small><b dir="auto">${rxEsc(rx.dx)}</b></div>` : ''}</div>
+<div class="pt"><div class="rw ph"><span>رقم الهاتف:</span><b>${rxEsc(rx.phone || '')}</b></div><div class="rw"><span>اسم المريض:</span><b dir="auto">${rxEsc(rx.patient)}</b></div><div class="rw"><span>التشخيص:</span><b dir="auto">${rxEsc(rx.dx || '')}</b></div></div>
 <div class="rx">℞</div>
 <table><thead><tr><th></th><th>الدواء</th><th>الجرعة</th><th>التكرار</th><th>المدة</th><th>التعليمات</th></tr></thead><tbody>${rows}</tbody></table>
 ${rx.note ? `<div class="nt"><b>ملاحظات: </b>${rxEsc(rx.note)}</div>` : ''}
 <div class="sp"></div>
-<div class="sg"><div>توقيع الطبيب</div><div>ختم الطبيب</div></div>
-</div></body></html>`;
+<div class="sg"><div>توقيع الطبيب${(rx.clinic || {}).sg ? `<img src="${rxEsc(rx.clinic.sg)}" alt="">` : ''}</div><div>ختم الطبيب${(rx.clinic || {}).st ? `<img src="${rxEsc(rx.clinic.st)}" alt="">` : ''}</div></div>
+</div></div></body></html>`;
+}
+// يضغط المحتوى تلقائياً ليبقى الوصفة في ورقة واحدة
+function rxFit(d) {
+    try { const bd = d.querySelector('.bd'); if (!bd) return; let z = 1; bd.style.zoom = 1; while (bd.scrollHeight > bd.clientHeight + 1 && z > 0.45) { z -= 0.03; bd.style.zoom = z.toFixed(2); } } catch (e) { /* تجاهل */ }
 }
 // طباعة عبر إطار مخفي (يعمل على الهاتف والحاسوب)
 function rxPrintNow(rx) {
@@ -63,7 +66,7 @@ function rxPrintNow(rx) {
     document.body.appendChild(f);
     const d = f.contentWindow.document; d.open(); d.write(rxPrintDoc(rx)); d.close();
     let fired = false;
-    const go = () => { if (fired) return; fired = true; try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { /* تجاهل */ } setTimeout(() => f.remove(), 60000); };
+    const go = () => { if (fired) return; fired = true; rxFit(d); try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { /* تجاهل */ } setTimeout(() => f.remove(), 60000); };
     try { const fr = d.fonts && d.fonts.load ? d.fonts.load('700 30px "Aref Ruqaa"', 'الدكتور') : null; if (fr) { Promise.race([fr, new Promise(r => setTimeout(r, 2500))]).then(() => setTimeout(go, 150), () => setTimeout(go, 150)); setTimeout(go, 3200); } else setTimeout(go, 150); } catch (e) { setTimeout(go, 150); }
 }
 
@@ -102,8 +105,8 @@ async function rxPdfBlob(rx) {
     document.body.appendChild(f);
     const d = f.contentWindow.document; d.open(); d.write(html); d.close();
     try { await Promise.race([d.fonts.load('700 30px "Aref Ruqaa"', 'الدكتور'), new Promise(r => setTimeout(r, 2500))]); } catch (e) { /* تجاهل */ }
-    await new Promise(r => setTimeout(r, 150));
-    const pg = d.querySelector('.pg'), H = Math.max(559, Math.ceil(pg.getBoundingClientRect().height));
+    await new Promise(r => setTimeout(r, 150)); rxFit(d);
+    const pg = d.querySelector('.pg'), H = 559;
     const css = d.querySelector('style').textContent.replace(/@page[^}]*}/, '') + ' .pg { margin: 0 !important; box-shadow: none !important; } .wrap { background: #fff; font-family: Tajawal, "Segoe UI", Tahoma, Arial, sans-serif; color: #0f1c38; direction: rtl; }';
     const inner = new XMLSerializer().serializeToString(pg);
     f.remove();

@@ -3095,3 +3095,9 @@ html.lk, html.lk body { overflow: hidden; }
 [data-theme="dark"] .sp-card { background: #1e293b; } [data-theme="dark"] .sp-ti b, [data-theme="dark"] .sp-line, [data-theme="dark"] .sp-sum { color: #e2e8f0; } [data-theme="dark"] .sp-row { background: #0f172a; border-color: #334155; } [data-theme="dark"] .sp-row select, [data-theme="dark"] .sp-st button, [data-theme="dark"] .sp-st input, [data-theme="dark"] .sp-price, [data-theme="dark"] .sp-unit button, [data-theme="dark"] .sp-close { background: #1e293b; color: #e2e8f0; border-color: #475569; } [data-theme="dark"] .sp-sum { background: #3a2f10; }
 
 .rx-c.st-saved { border-inline-start-color: #94a3b8; }
+
+/* حركة اختيار التبويب: غطسة خفيفة للأسفل مع ارتداد */
+.nav-tab, .bill-tabs button, .al-tabs button { transition: transform .18s cubic-bezier(.3, 1.6, .5, 1), background .2s, color .2s, border-color .2s, box-shadow .2s; }
+.nav-tab:active, .bill-tabs button:active, .al-tabs button:active { transform: translateY(2px) scale(.97); }
+.nav-tab.active, .bill-tabs button.active, .al-tabs button.on { animation: tabDip .32s cubic-bezier(.3, 1.5, .5, 1); }
+@keyframes tabDip { 0% { transform: translateY(-3px); } 55% { transform: translateY(3px); } 100% { transform: none; } }

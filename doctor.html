@@ -309,6 +309,27 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
 .hc2-act { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .hc2-act button { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); display: grid; place-items: center; cursor: pointer; padding: 0; }
 .hc2-act button.d { color: var(--nosup); } .hc2-act svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+
+.rp-pt { display: block; }
+.rp-row { display: flex; align-items: center; gap: 8px; border-bottom: 1.5px dotted var(--line); padding: 5px 2px 3px; min-width: 0; }
+.rp-row span { font-size: .72rem; font-weight: 800; color: var(--sub); white-space: nowrap; } .rp-row span b { color: var(--nosup); }
+.rp-row input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text); font: 700 .92rem 'Tajawal', sans-serif; height: 28px; outline: none; padding: 0; }
+.rp-row.ph { width: 64%; margin-right: auto; } .rp-row.ph input { text-align: left; }
+.rp-row:focus-within { border-bottom-color: #f9a825; border-bottom-style: solid; }
+.rp-row:has(.bad) { border-bottom-color: var(--nosup); }
+.rp-rx { display: flex; align-items: center; gap: 10px; direction: ltr; margin: 12px 0 6px; padding-bottom: 6px; border-bottom: 1.5px solid var(--text); }
+.rp-rx span { font: 700 2.1rem/1 'Times New Roman', Georgia, serif; color: var(--text); }
+.rp-rx .fld { flex: 1; min-width: 0; direction: rtl; margin: 0; }
+.rp-sg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.rp-sgb { position: relative; height: 84px; border: 1.5px dashed var(--line); border-radius: 14px; padding: 6px 10px; cursor: pointer; overflow: hidden; }
+.rp-sgb small { font-size: .66rem; font-weight: 800; color: var(--sub); } .rp-sgb img { position: absolute; inset: 22px 8px 6px; width: calc(100% - 16px); height: calc(100% - 28px); object-fit: contain; }
+.cl-up { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.cl-ub { border: 1px solid var(--line); border-radius: 14px; background: var(--surface-2); padding: 8px 10px 10px; } .cl-ub small { display: block; font-size: .66rem; font-weight: 800; color: var(--sub); margin-bottom: 6px; }
+.cl-pick { width: 100%; height: 92px; border: 1.5px dashed var(--line); border-radius: 12px; background: var(--surface); color: var(--sub); display: grid; place-items: center; cursor: pointer; padding: 0; overflow: hidden; font: 800 .74rem 'Tajawal', sans-serif; }
+.cl-pick span { display: grid; place-items: center; gap: 4px; } .cl-pick svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; } .cl-pick img { width: 100%; height: 100%; object-fit: contain; }
+.cl-rm { width: 100%; margin-top: 6px; border: 0; background: transparent; color: var(--nosup); font: 800 .74rem 'Tajawal', sans-serif; cursor: pointer; padding: 4px; }
+.rxtabs button { transition: transform .18s cubic-bezier(.3, 1.6, .5, 1), background .2s, color .2s, box-shadow .2s; } .rxtabs button:active { transform: translateY(2px) scale(.97); }
+.rxtabs button.on { animation: tabDip .32s cubic-bezier(.3, 1.5, .5, 1); } @keyframes tabDip { 0% { transform: translateY(-3px); } 55% { transform: translateY(3px); } 100% { transform: none; } }
 </style>
 </head>
 <body>
@@ -643,33 +664,50 @@ function rpHead(meta) {
     const nm = dnPlain(), l = [CL.s, CL.a].map(x => String(x || '').trim()).filter(Boolean), ph = String(CL.p || '').trim(), d = new Date();
     return `<div class="rp-head">${meta ? `<div class="rp-meta"><span dir="ltr">No. ${esc(RX.num)}</span><span dir="ltr">${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}</span></div>` : ''}<div class="rp-t1">الدكتور</div><div class="rp-t2" dir="auto">${nm ? esc(nm) : '<span class="rp-ph">اسم الطبيب</span>'}</div>${l.length ? `<div class="rp-t3" dir="auto">${l.map(esc).join(' · ')}</div>` : ''}${ph ? `<div class="rp-t4">☎ ${esc(ph)}</div>` : ''}</div><div class="rp-line"></div>`;
 }
+const sgBox = (k, lab) => `<div class="rp-sgb" data-rx="tab" data-t="cl"><small>${lab}</small>${CL[k] ? `<img src="${CL[k]}" alt="">` : ''}</div>`;
 function rxForm(keep) {
     const sh = $('sheet'), top = sh.scrollTop, miss = clMissing();
     const banner = miss.length ? `<button type="button" class="rp-warn" data-rx="tab" data-t="cl">${svg(IC2.warn)}<span>لم تُضف: <b>${miss.map(esc).join('، ')}</b>. أضفها من تبويب «العيادة» لتظهر في الوصفة.</span></button>` : '';
-    sh.innerHTML = `<div class="grab"></div>${rxTabs('new')}<div class="rxs rxp"><div class="rxt"><h3>${RX.editRid ? 'تعديل الوصفة ' + esc(RX.num) : 'وصفة جديدة'}</h3><button type="button" class="lk" data-rx="clear">مسح الوصفة</button></div>
+    sh.innerHTML = `<div class="grab"></div>${rxTabs('new')}<div class="rxs rxp"><div class="rxt">${RX.editRid ? '<h3>تعديل الوصفة ' + esc(RX.num) + '</h3>' : '<span></span>'}<button type="button" class="lk" data-rx="clear">مسح الوصفة</button></div>
     ${banner}<div class="rp-paper"><div data-rx="tab" data-t="cl" style="cursor:pointer">${rpHead(true)}</div>
-    <div class="rp-pt"><label class="rp-box"><small>اسم المريض <b>*</b></small><input data-k="patient" type="text" autocomplete="off" placeholder="الاسم الثلاثي" value="${esc(RX.patient)}"></label><label class="rp-box"><small>رقم الهاتف</small><input data-k="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="off" placeholder="07xx xxx xxxx" value="${esc(RX.phone || '')}"></label></div>
-    <label class="rp-box w"><small>التشخيص</small><input data-k="dx" type="text" autocomplete="off" placeholder="التشخيص" value="${esc(RX.dx || '')}"></label>
-    <div class="rp-rx"><span>℞</span><small>الأدوية <b>*</b></small></div>
-    <input class="fld" id="adq" type="search" autocomplete="off" placeholder="ابحث عن دواء أو اكتب اسمه لإضافته"><div class="pk" id="adl"></div>
+    <div class="rp-pt"><label class="rp-row ph"><span>رقم الهاتف:</span><input data-k="phone" type="tel" inputmode="numeric" pattern="[0-9]*" dir="ltr" autocomplete="off" placeholder="07xx xxx xxxx" value="${esc(RX.phone || '')}"></label>
+    <label class="rp-row"><span>اسم المريض: <b>*</b></span><input data-k="patient" type="text" autocomplete="off" placeholder="الاسم الثلاثي" value="${esc(RX.patient)}"></label>
+    <label class="rp-row"><span>التشخيص:</span><input data-k="dx" type="text" autocomplete="off" placeholder="التشخيص" value="${esc(RX.dx || '')}"></label></div>
+    <div class="rp-rx"><span>℞</span><input class="fld" id="adq" type="search" autocomplete="off" placeholder="ابحث عن دواء أو اكتب اسمه لإضافته"></div><div class="pk" id="adl"></div>
     ${RX.items.map((it, i) => RXO.has(i) ? `<div class="rxi" data-i="${i}"><div class="rxh">${it.ext ? `<input class="fld" style="flex:1" data-f="n" type="text" dir="auto" placeholder="اسم الدواء (من خارج الصيدلية)" value="${esc(it.n)}">` : `<b dir="auto"><bdi>${esc(it.n)}</bdi></b>`}${it.ext ? '<span class="tag">خارجي</span>' : ''}<button type="button" class="tgl" data-rx="tog" data-i="${i}" aria-label="طي">${svg('<path d="m9 18 6-6-6-6"/>')}</button><button type="button" class="x" data-rx="del" data-i="${i}" aria-label="حذف">${svg('<path d="M18 6 6 18M6 6l12 12"/>')}</button></div>
         <div class="rxg"><input class="fld full" data-f="dose" type="text" placeholder="الجرعة (مثل: قرص واحد، 5 مل، قطرتان)" value="${esc(it.dose)}">
         <select class="fld" data-f="freq">${opts(FREQ, it.freq, 'التكرار')}</select><select class="fld" data-f="dur">${opts(DUR, it.dur, 'المدة')}</select></div>
         <input class="fld" data-f="ins" type="text" placeholder="تعليمات" value="${esc(it.ins)}">
         <div class="qc">${INS.map(t => `<button type="button" data-rx="ins" data-i="${i}" data-t="${t}">${t}</button>`).join('')}</div></div>`
         : `<div class="rxi cl" data-i="${i}"><button type="button" class="tg ${it.n.trim() ? '' : 'bad'}" data-rx="tog" data-i="${i}"><span><b dir="auto"><bdi>${esc(it.n.trim() || 'دواء بلا اسم')}</bdi></b>${it.ext ? ' <span class="tag">خارجي</span>' : ''}<small>${esc([it.dose, it.freq, it.dur].filter(Boolean).join(' · ') || 'لم تُحدد الجرعة والتكرار والمدة')}</small></span>${svg('<path d="m9 18 6-6-6-6"/>')}</button><button type="button" class="x" data-rx="del" data-i="${i}" aria-label="حذف">${svg('<path d="M18 6 6 18M6 6l12 12"/>')}</button></div>`).join('')}
-    <label class="rp-box w"><small>ملاحظات عامة</small><textarea data-k="note" placeholder="ملاحظة للصيدلي" style="direction:rtl;text-align:right">${esc(RX.note)}</textarea></label></div>
+    <label class="rp-box w"><small>ملاحظات عامة</small><textarea data-k="note" placeholder="ملاحظة للصيدلي" style="direction:rtl;text-align:right">${esc(RX.note)}</textarea></label>
+    <div class="rp-sg">${sgBox('sg', 'توقيع الطبيب')}${sgBox('st', 'ختم الطبيب')}</div></div>
     <div class="rp-bar"><button type="button" class="rp-ic" data-rx="print" aria-label="طباعة" title="طباعة">${svg(IC2.print)}</button>
     <div class="rp-send"><div class="rp-menu" id="rpMenu"><button type="button" data-rx="s-save" style="--c:#0f1c38"><span class="i">${svg(IC2.save)}</span><span><b>حفظ</b><small>على جهازك وفي سجلك</small></span></button><button type="button" data-rx="s-pharm" style="--c:#d97706"><span class="i">${svg(IC2.send)}</span><span><b>إرسال للصيدلية</b><small>تصل كتنبيه عند الصيدلية</small></span></button><button type="button" data-rx="s-wa" style="--c:#128c4a"><span class="i">${RX_WA_ICON}</span><span><b>إرسال عبر واتساب</b><small>ملف PDF للمريض</small></span></button></div>
     <button type="button" class="rp-ic pri" data-rx="sendmenu" aria-label="إرسال" title="إرسال">${svg(IC2.send)}</button></div></div></div>`;
     sh.scrollTop = keep ? top : 0;
 }
+const upBox = (k, lab) => `<div class="cl-ub"><small>${lab}</small><button type="button" class="cl-pick" data-rx="clup" data-k="${k}">${CL[k] ? `<img src="${CL[k]}" alt="">` : `<span>${svg('<path d="M12 15V3M7 8l5-5 5 5M5 21h14"/>')}رفع صورة</span>`}</button>${CL[k] ? `<button type="button" class="cl-rm" data-rx="cldel" data-k="${k}">حذف</button>` : ''}</div>`;
+let clKey = '';
+async function clImgSet(file) {
+    const k = clKey; if (!file || !k) return; const ph = Prog.start('حفظ الصورة', { text: 'معالجة الصورة...' });
+    try {
+        const url = await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file); });
+        const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = url; });
+        const sc = Math.min(1, 420 / Math.max(img.width, img.height)), cv = document.createElement('canvas'); cv.width = Math.max(1, Math.round(img.width * sc)); cv.height = Math.max(1, Math.round(img.height * sc));
+        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+        CL[k] = cv.toDataURL('image/png'); if (CL[k].length > 160000) CL[k] = cv.toDataURL('image/jpeg', 0.8);
+        lsSet('diwanClinic', CL); clRender(); ph.ok('تم حفظ الصورة');
+    } catch (e) { ph.fail('تعذر حفظ الصورة', 'جرّب صورة أخرى.'); }
+}
+const wi = r => Object.assign({}, r, { clinic: Object.assign({}, r.clinic || {}, { sg: CL.sg || '', st: CL.st || '' }) });
 function clRender() {
-    rxMode = 'cl'; const sh = $('sheet'), f = (k, lab, ph, extra) => `<label class="rp-box w"><small>${lab}</small><input data-cl="${k}" type="${extra ? 'tel' : 'text'}" ${extra ? 'inputmode="tel" dir="ltr"' : ''} autocomplete="off" placeholder="${ph}" value="${esc(k === 'n' ? dnPlain() : CL[k])}"></label>`;
+    rxMode = 'cl'; const sh = $('sheet'), f = (k, lab, ph, extra) => `<label class="rp-box w"><small>${lab}</small><input data-cl="${k}" type="${extra ? 'tel' : 'text'}" ${extra ? 'inputmode="numeric" pattern="[0-9]*" dir="ltr"' : ''} autocomplete="off" placeholder="${ph}" value="${esc(k === 'n' ? dnPlain() : CL[k])}"></label>`;
     sh.innerHTML = `<div class="grab"></div>${rxTabs('cl')}<div class="rxs rxp"><div class="rxt"><h3>معلومات العيادة</h3></div>
     <p class="cl-hint">تظهر هذه المعلومات في رأس كل وصفة مطبوعة بالشكل الموضّح. ما تتركه فارغاً يبقى فراغاً في المطبوع.</p>
     <div class="rp-paper" id="clPrev">${rpHead(false)}</div>
-    ${f('n', 'اسم الطبيب <b>*</b>', 'الاسم الثلاثي (بدون «د.»)')}${f('s', 'التخصص', 'مثل: أخصائي أطفال')}${f('p', 'رقم العيادة', '07xx xxx xxxx', 1)}${f('a', 'العنوان', 'المحافظة، المنطقة، الشارع')}</div>`;
+    ${f('n', 'اسم الطبيب <b>*</b>', 'الاسم الثلاثي (بدون «د.»)')}${f('s', 'التخصص', 'مثل: أخصائي أطفال')}${f('p', 'رقم العيادة', '07xx xxx xxxx', 1)}${f('a', 'العنوان', 'المحافظة، المنطقة، الشارع')}
+    <div class="cl-up">${upBox('sg', 'صورة التوقيع')}${upBox('st', 'صورة الختم')}</div><input type="file" id="clImg" accept="image/*" hidden></div>`;
     sh.scrollTop = 0;
 }
 const rxTabs = t => `<div class="pgh"><button type="button" data-pgclose="1" aria-label="رجوع">${svg('<path d="m9 18 6-6-6-6"/>')}</button><b>الوصفات الإلكترونية</b></div><div class="rxtabs"><button type="button" class="${t === 'new' ? 'on' : ''}" data-rx="tab" data-t="new">وصفة جديدة</button><button type="button" class="${t === 'hist' ? 'on' : ''}" data-rx="tab" data-t="hist">السجل</button><button type="button" class="${t === 'cl' ? 'on' : ''}" data-rx="tab" data-t="cl">العيادة</button></div>`;
@@ -856,12 +894,14 @@ $('sheet').addEventListener('input', e => {
     if (rxMode === 'pick' && t.id === 'pkQ') { rxPickList(t.value); return; }
     if (rxMode === 'form' && t.id === 'adq') { rxPickList(t.value, 'adl', 8); return; }
     if (rxMode === 'hist' && t.id === 'hq') { HQ = t.value; histList(); return; }
+    if (t.dataset.k === 'phone' || t.dataset.cl === 'p') { const v = t.value.replace(/[٠-٩]/g, c => c.charCodeAt(0) - 1632).replace(/[^\d+]/g, ''); if (v !== t.value) t.value = v; }
     if (rxMode === 'cl' && t.dataset.cl) { CL[t.dataset.cl] = t.value; lsSet('diwanClinic', CL); const pv = $('clPrev'); if (pv) pv.innerHTML = rpHead(false); return; }
     if (rxMode !== 'form') return;
     if (t.dataset.k === 'doctor') dnShow(t.value);
     if (t.dataset.k) { RX[t.dataset.k] = t.value; t.classList.remove('bad'); saveDraft(); }
     else if (t.dataset.f) { const c = t.closest('.rxi'); RX.items[+c.dataset.i][t.dataset.f] = t.value; t.classList.remove('bad'); saveDraft(); }
 });
+$('sheet').addEventListener('change', e => { if (e.target.id === 'clImg') clImgSet(e.target.files[0]); });
 $('sheet').addEventListener('focusin', e => { const t = e.target; if (rxMode === 'form' && t.dataset && t.dataset.k === 'doctor' && !t.value.trim()) { t.value = 'د. '; RX.doctor = t.value; saveDraft(); setTimeout(() => { try { t.setSelectionRange(t.value.length, t.value.length); } catch (x) { /* تجاهل */ } }, 0); } });
 $('sheet').addEventListener('focusout', e => { const t = e.target; if (rxMode === 'form' && t.dataset && t.dataset.k === 'doctor') { setTimeout(() => dnShow(''), 0); let v = t.value.trim(); if (v && !/^د\./.test(v)) v = 'د. ' + v.replace(/^د\s+/, ''); if (/^د\.?$/.test(v)) v = ''; t.value = v; RX.doctor = v; saveDraft(); dnAdd(v); } });
 $('sheet').addEventListener('focusin', e => { if (rxMode === 'form' && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) setTimeout(() => { try { e.target.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) { /* تجاهل */ } }, 320); });
@@ -878,7 +918,7 @@ $('sheet').addEventListener('click', async e => {
     else if (k === 'sendmenu') { const mn = $('rpMenu'); if (mn) mn.classList.toggle('show'); }
     else if (k === 's-save') { rxSubmit('save'); }
     else if (k === 's-pharm') { rxSubmit('send'); }
-    else if (k === 's-wa') { const mn = $('rpMenu'); if (mn) mn.classList.remove('show'); if (!(RX.phone || '').trim()) { toast('أدخل رقم هاتف المريض أولاً'); return; } if (rxValid()) rxShareWa(rxRec()); }
+    else if (k === 's-wa') { const mn = $('rpMenu'); if (mn) mn.classList.remove('show'); if (!(RX.phone || '').trim()) { toast('أدخل رقم هاتف المريض أولاً'); return; } if (rxValid()) rxShareWa(wi(rxRec())); }
     else if (k === 'rs') { rsRender(); }
     else if (k === 'rssend') { rsSend(); }
     else if (k === 'rsget') { rsGet(b); }
@@ -896,8 +936,10 @@ $('sheet').addEventListener('click', async e => {
     else if (k === 'imp') { $('impF').value = ''; $('impF').click(); }
     else if (k === 'ins') { const it = RX.items[+b.dataset.i], t = b.dataset.t; it.ins = it.ins ? (it.ins.includes(t) ? it.ins : it.ins + '، ' + t) : t; saveDraft(); const c = b.closest('.rxi').querySelector('[data-f="ins"]'); c.value = it.ins; }
     else if (k === 'clear') { if (await ask('مسح الوصفة كاملة؟', 'مسح')) { RX = { num: mkNum(), doctor: RX.doctor, patient: '', phone: '', dx: '', items: [], note: '' }; RXO = new Set(); saveDraft(); rxForm(); } }
-    else if (k === 'print') { if (rxValid()) rxPrintNow(rxRec()); }
-    else if (k === 'reprint') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) rxPrintNow(r); }
+    else if (k === 'print') { if (rxValid()) rxPrintNow(wi(rxRec())); }
+    else if (k === 'reprint') { const r = MY.find(x => x.rid === b.dataset.rid); if (r) rxPrintNow(wi(r)); }
+    else if (k === 'clup') { clKey = b.dataset.k; const f = $('clImg'); if (f) { f.value = ''; f.click(); } }
+    else if (k === 'cldel') { ask('حذف الصورة؟', 'حذف').then(ok => { if (ok) { delete CL[b.dataset.k]; lsSet('diwanClinic', CL); clRender(); } }); }
     else if (k === 'forget') { if (await ask('حذف هذه الوصفة من جهازك؟ تبقى نسخة محفوظة عند الصيدلية.', 'حذف')) { const id = b.dataset.rid; MY = MY.filter(x => x.rid !== id); lsSet('diwanRx', MY); if (NTU[id]) { try { NTU[id](); } catch (x) { /* تجاهل */ } delete NTU[id]; } delete NT[id]; if (rxMode === 'hist') histList(); else ntRender(); } }
 });
 
