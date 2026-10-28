@@ -702,7 +702,7 @@ let RX = lsGet('diwanRxDraft', null) || { num: mkNum(), doctor: '', patient: '',
 if (!RX.doctor) RX.doctor = lsGet('diwanDocName', '');
 let RXO = new Set(); let rxMode = '', MY = lsGet('diwanRx', []), SEEN = lsGet('diwanRxSeen', {}), NT = {}, NTU = {};
 let CL = Object.assign({ n: '', s: '', a: '', p: '' }, lsGet('diwanClinic', {}));
-if (!CL.n) { CL.n = lsGet('diwanDocName', '') || ''; if (CL.n) lsSet('diwanClinic', CL); }
+if (!CL.n && localStorage.getItem('diwanClinic') === null) { CL.n = lsGet('diwanDocName', '') || ''; if (CL.n) lsSet('diwanClinic', CL); }
 const DN = () => lsGet('diwanDocNames', []);
 const dnNorm = s => norm(String(s || '').replace(/^\s*د\.?\s*/, '')).trim();
 function dnAdd(n) { n = String(n || '').trim(); if (dnNorm(n).length < 2) return; const l = DN().filter(x => dnNorm(x) !== dnNorm(n)); l.unshift(n); lsSet('diwanDocNames', l.slice(0, 30)); }
@@ -728,7 +728,7 @@ const IC2 = {
     save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/>',
     warn: '<path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/>'
 };
-const dnPlain = () => String(CL.n || RX.doctor || '').trim().replace(/^د\.?\s*/, '').trim();
+const dnPlain = () => String(CL.n || '').trim().replace(/^د\.?\s*/, '').trim();
 const docName = () => { const v = dnPlain(); return v ? 'د. ' + v : ''; };
 function clMissing() { const m = []; if (!dnPlain()) m.push('اسم الطبيب'); if (!String(CL.s || '').trim()) m.push('التخصص'); if (!String(CL.p || '').trim()) m.push('رقم العيادة'); if (!String(CL.a || '').trim()) m.push('العنوان'); return m; }
 function rpHead(meta) {
@@ -777,7 +777,7 @@ function clRender() {
     sh.innerHTML = `<div class="grab"></div>${rxTabs('cl')}<div class="rxs rxp"><div class="rxt"><h3>معلومات العيادة</h3></div>
     <p class="cl-hint">تظهر هذه المعلومات في رأس كل وصفة مطبوعة بالشكل الموضّح. ما تتركه فارغاً يبقى فراغاً في المطبوع.</p>
     <div class="rp-paper" id="clPrev">${rpHead(false)}</div>
-    ${f('n', 'اسم الطبيب <b>*</b>', 'الاسم الثلاثي (بدون «د.»)')}${f('s', 'التخصص', 'مثل: أخصائي أطفال')}${f('p', 'رقم العيادة', '07xx xxx xxxx', 1)}${f('a', 'العنوان', 'المحافظة، المنطقة، الشارع')}
+    ${f('n', 'اسم الطبيب <b>*</b>', 'الاسم الثلاثي')}${f('s', 'التخصص', 'مثل: أخصائي أطفال')}${f('p', 'رقم العيادة', '07xx xxx xxxx', 1)}${f('a', 'العنوان', 'المحافظة، المنطقة، الشارع')}
     <div class="cl-up">${upBox('sg', 'صورة التوقيع')}${upBox('st', 'صورة الختم')}</div><input type="file" id="clImg" accept="image/*" hidden></div>`;
     sh.scrollTop = 0;
 }
@@ -865,7 +865,7 @@ function rxValid(forSave) {
     if (ok && forSave && !docName()) { toast('أضف اسمك في تبويب «العيادة» أولاً'); clRender(); return false; }
     return ok;
 }
-const rxRec = () => ({ num: RX.num, doctor: docName() || (RX.doctor || '').trim(), patient: RX.patient.trim(), phone: (RX.phone || '').trim(), clinic: { s: (CL.s || '').trim(), a: (CL.a || '').trim(), p: (CL.p || '').trim() }, dx: (RX.dx || '').trim(), note: RX.note.trim(), at: Date.now(), items: RX.items.map(i => ({ p: i.p || '', n: i.n.trim(), ext: !!i.ext, dose: (i.dose || '').trim(), freq: i.freq || '', dur: i.dur || '', ins: (i.ins || '').trim() })) });
+const rxRec = () => ({ num: RX.num, doctor: docName(), patient: RX.patient.trim(), phone: (RX.phone || '').trim(), clinic: { s: (CL.s || '').trim(), a: (CL.a || '').trim(), p: (CL.p || '').trim() }, dx: (RX.dx || '').trim(), note: RX.note.trim(), at: Date.now(), items: RX.items.map(i => ({ p: i.p || '', n: i.n.trim(), ext: !!i.ext, dose: (i.dose || '').trim(), freq: i.freq || '', dur: i.dur || '', ins: (i.ins || '').trim() })) });
 function rxPush(r, mode) {
     const o = { dr: 1, kind: 'r', rid: r.rid, did: getDid(), num: r.num, doctor: r.doctor, patient: r.patient, phone: r.phone || '', clinic: r.clinic || null, dx: r.dx || '', note: r.note || '', items: r.items, count: 1, name: r.patient, lastAt: new Date(r.at).toISOString() };
     if (mode === 'send') Object.assign(o, { st: 'new', ps: { msgs: [] }, silent: false });        // تصل كتنبيه عند الصيدلية
