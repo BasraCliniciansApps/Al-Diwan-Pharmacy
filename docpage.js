@@ -192,7 +192,7 @@ function docRenderList() {
     const sc = box.scrollTop;
     box.innerHTML = `<div class="dc-stick"><div class="dc-count">معروض للطبيب <b>${fmtNum(selN)}</b> من ${fmtNum(products.length)} مادة${all.length !== products.length ? ' · نتائج الفلتر ' + fmtNum(all.length) : ''}</div>
     <div class="dc-actions">
-        <select id="docBulk" onchange="docBulkSet(this.value)"><option value="">تغيير حالة المحدد…</option><optgroup label="عرض المواد"><option value="@unsel">${docFil === 'unsel' ? '✓ ' : ''}غير المعروضة فقط</option><option value="@sel">${docFil === 'sel' ? '✓ ' : ''}المعروضة فقط</option><option value="@all">${docFil === 'all' ? '✓ ' : ''}كل المواد</option></optgroup><optgroup label="تغيير الحالة">${Object.keys(DOC_ST).map(k => `<option value="${k}" ${selShown ? '' : 'disabled'}>${DOC_ST[k]}</option>`).join('')}</optgroup></select>
+        <select id="docBulk" onchange="docBulkSet(this.value)"><option value="">تغيير حالة المحدد…</option><optgroup label="عرض المواد"><option value="@unsel">${docFil === 'unsel' ? '✓ ' : ''}غير المعروضة فقط</option><option value="@sel">${docFil === 'sel' ? '✓ ' : ''}المعروضة فقط</option><option value="@all">${docFil === 'all' ? '✓ ' : ''}كل المواد</option>${Object.keys(DOC_ST).map(k => `<option value="@${k}">${docFil === k ? '✓ ' : ''}${DOC_ST[k]} (عرض فقط)</option>`).join('')}</optgroup><optgroup label="تغيير الحالة">${Object.keys(DOC_ST).map(k => `<option value="${k}" ${selShown ? '' : 'disabled'}>${DOC_ST[k]}</option>`).join('')}</optgroup></select>
     </div></div>
     ${rows || '<div class="dh-note">لا توجد مواد مطابقة.</div>'}
     ${all.length > shown.length ? `<button type="button" class="dc-more" onclick="docMore()">عرض المزيد (${fmtNum(all.length - shown.length)})</button>` : ''}`;
