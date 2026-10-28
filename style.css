@@ -903,8 +903,8 @@ body.admin-mode .sheet-admin-box { display: block; }
 }
 .share-btn:active { transform: scale(0.97); }
 
-.share-wa { background: #16a34a; }
-.share-ig { background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%); }
+.share-wa { background: #25D366; }
+.share-ig { background: #FF0069; }
 
 /* =====================================================
    تقليل الحركة لمن يفضّل ذلك
