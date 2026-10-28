@@ -2942,3 +2942,6 @@ body.no-bnav { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 .dh-body > * { min-width: 0; max-width: 100%; }
 .dc-link span { flex: 1 1 0; width: 0; min-width: 0; }
 .dc-link button { flex: 0 0 auto; }
+
+.dc-link2 { display: flex; gap: 8px; padding: 10px 0; border-bottom: 1px solid #eef2f7; }
+.dc-link2 .home-quick-link { gap: 6px; flex: 1 1 0; min-width: 0; text-decoration: none; cursor: pointer; font-size: .82rem; white-space: nowrap; }
