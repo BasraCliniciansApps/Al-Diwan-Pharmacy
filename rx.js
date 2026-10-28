@@ -21,7 +21,7 @@ function rxOpen() {
     if (typeof docStartWatch === 'function') docStartWatch();
     rxRender();
 }
-function rxClose() { document.body.classList.remove('doc-open'); const el = rxEl(); if (el) el.style.display = 'none'; rxCurId = null; }
+function rxClose() { const el = rxEl(); if (el) el.style.display = 'none'; rxCurId = null; if (typeof docSyncOpen === 'function') docSyncOpen(); }
 const rxTime = t => { const d = new Date(t), h = d.getHours(); return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + ((h % 12) || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + (h < 12 ? ' ص' : ' م'); };
 const rxLine = i => [i.dose, i.freq, i.dur, i.ins].filter(Boolean).join(' · ');
 function rxRender() {

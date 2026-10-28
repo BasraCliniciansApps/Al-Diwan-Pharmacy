@@ -109,7 +109,8 @@ async function docOpen() {
     document.body.classList.add('doc-open'); el.style.display = 'flex'; el.innerHTML = '<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()">✕</button></div><div class="dh-body"><div class="dh-note">جارٍ التحميل…</div></div>';
     await docLoad(); docQ = ''; docFil = 'all'; docShown = 60; docMenu = false; docSel.d.clear(); docSel.c.clear(); docRender();
 }
-function docClose() { document.body.classList.remove('doc-open'); const el = docEl(); if (el) el.style.display = 'none'; }
+function docSyncOpen() { const on = ['docHub', 'rxHub'].some(i => { const e = document.getElementById(i); return e && e.style.display === 'flex'; }); document.body.classList.toggle('doc-open', on); }
+function docClose() { const el = docEl(); if (el) el.style.display = 'none'; docSyncOpen(); }
 function docLink() { try { return new URL('doctor.html', location.href).href; } catch (e) { return 'doctor.html'; } }
 function docSw(label, sub, key) {
     return `<div class="qk-row"><div><b>${label}</b><small>${sub}</small></div><label class="setup-sw"><input type="checkbox" ${docData.cfg[key] ? 'checked' : ''} onchange="docCfg('${key}',this.checked)"><i></i></label></div>`;

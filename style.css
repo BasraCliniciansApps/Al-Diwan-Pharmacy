@@ -2982,4 +2982,4 @@ body.doc-open .sheet-backdrop { z-index: 9100; backdrop-filter: blur(8px); backg
 .dc-fbtn .fb-n { position: absolute; top: -6px; inset-inline-start: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #0d9488; color: #fff; font: 800 .7rem/20px inherit; font-style: normal; text-align: center; }
 .dc-drop { display: flex; flex-direction: column; gap: 8px; }
 .dc-link2 { flex-wrap: wrap; } .dc-link2 .home-quick-link:nth-child(3) { flex: 1 1 100%; }
-body.doc-open .modal-overlay { z-index: 9200; } body.doc-open .swal2-container { z-index: 9500; }
+body.doc-open #formModal { z-index: 9200; } body.doc-open .swal2-container { z-index: 9500; }
