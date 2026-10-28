@@ -122,6 +122,7 @@ function docRender() {
     <div class="dh-body">
         <div class="dc-card">
             <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button><a href="doctor.html" class="home-quick-link">👁 معاينة صفحة الطبيب</a><button type="button" class="home-quick-link" onclick="docPublishNow()">🔄 نشر التحديث الآن</button></div>
+            <div class="qk-row"><div><b>أسماء الأطباء المحفوظة على هذا الجهاز</b><small>قائمة الإكمال التلقائي لاسم الطبيب في الوصفة. محفوظة على كل جهاز لوحده ولا تُرفع للسحابة.</small></div><button type="button" class="dc-mini" onclick="docClearNames()">مسح</button></div>
             ${docSw('تحديث تلقائي من المخزن', 'تُحسب الحالة من كمية المخزن (المواد غير المجرودة تبقى يدوية). إذا كان مطفياً تتحكم بالحالة يدوياً.', 'auto')}
             ${docSw('إظهار الأسعار للطبيب', 'إطفاؤه يخفي أسعار كل المواد في صفحة الطبيب.', 'prices')}
             ${docSw('اكتشاف العودة من الوارد تلقائياً', 'المادة غير المتوفرة التي تدخل في قائمة وارد أو بونص تصير «عاد بعد انقطاع».', 'detect')}
@@ -290,4 +291,12 @@ function docRenderAlertBox(markSeen) {
         + docReqList.slice(0, 15).map(r => `<div class="da-row ${String(r.at) > s ? 'new' : ''}"><div><b dir="auto">${docEsc(r.name)}</b><small>${DOC_KIND[r.kind] || 'طلب'}${r.qty ? ' · الكمية: <b>' + fmtNum(r.qty) + '</b>' : ''}${r.note ? ' — ' + docEsc(r.note) : ''}${r.at ? ' · <bdi>' + docEsc(String(r.at).slice(0, 10)) + '</bdi>' : ''}</small></div>${r.count > 1 ? `<span class="da-cnt">${fmtNum(r.count)}×</span>` : ''}<button type="button" class="da-x" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('')
         + (docReqList.length > 15 ? `<div class="da-more">و ${fmtNum(docReqList.length - 15)} طلباً آخر في إعدادات صفحة الطبيب</div>` : '') + '</div>';
     if (markSeen) docMarkSeen();
+}
+
+async function docClearNames() {
+    let n = 0; try { n = (JSON.parse(localStorage.getItem('diwanDocNames')) || []).length; } catch (e) { /* تجاهل */ }
+    if (!n) { Swal.fire({ icon: 'info', title: 'لا توجد أسماء محفوظة على هذا الجهاز', confirmButtonColor: '#0f1c38' }); return; }
+    if (!(await askSure('مسح أسماء الأطباء المحفوظة؟', 'ستُحذف ' + fmtNum(n) + ' اسماً من هذا الجهاز فقط ولا يتأثر أي جهاز آخر.', 'مسح'))) return;
+    try { localStorage.removeItem('diwanDocNames'); } catch (e) { /* تجاهل */ }
+    Swal.fire({ icon: 'success', title: 'تم مسح الأسماء', timer: 1400, showConfirmButton: false });
 }
