@@ -74,6 +74,21 @@ function ssOpen(sel) {
     list.addEventListener('click', e => { const r = e.target.closest('.ss-row'); if (!r) return; ssPick(sel, r.dataset.v); });
     el.querySelector('.ss-bd').addEventListener('click', ssClose); el.querySelector('.ss-x').addEventListener('click', ssClose);
     const on = list.querySelector('.ss-row.on'); if (on) setTimeout(() => on.scrollIntoView({ block: 'center' }), 30);
+    // لوحة المفاتيح: نُبقي القائمة ضمن المساحة المرئية فوق الكيبورد (تتبع visualViewport)
+    const vv = window.visualViewport, sheet = el.querySelector('.ss-sheet');
+    // عند الكتابة بالبحث: القائمة تلتصق بأعلى المساحة المرئية وارتفاعها لا يتجاوز نصف الشاشة، فتبقى النتائج فوق الكيبورد حتى لو لم يُبلغ المتصفح عن حجمه
+    let kb = false;
+    const fit = () => {
+        const H = vv ? vv.height : window.innerHeight;
+        if (vv) { el.style.inset = 'auto'; el.style.left = '0'; el.style.right = '0'; el.style.top = vv.offsetTop + 'px'; el.style.height = vv.height + 'px'; }
+        el.style.alignItems = kb ? 'flex-start' : 'flex-end';
+        sheet.style.maxHeight = Math.round(kb ? Math.min(H * 0.94, window.innerHeight * 0.5) : H * 0.94) + 'px';
+        sheet.style.marginTop = kb ? '6px' : '';
+    };
+    q.addEventListener('focus', () => { kb = true; fit(); setTimeout(fit, 250); });
+    q.addEventListener('blur', () => { setTimeout(() => { kb = false; fit(); }, 150); });
+    fit();
+    if (vv) { vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); ssVvOff = () => { vv.removeEventListener('resize', fit); vv.removeEventListener('scroll', fit); }; }
     requestAnimationFrame(() => el.classList.add('on')); setTimeout(() => { try { q.focus({ preventScroll: true }); } catch (e) { /* تجاهل */ } }, 220);
 }
 function ssPick(sel, v) {
@@ -81,7 +96,8 @@ function ssPick(sel, v) {
     if (sel.value !== v) { sel.value = v; sel.dispatchEvent(new Event('change', { bubbles: true })); try { sel.dispatchEvent(new Event('input', { bubbles: true })); } catch (e) { /* تجاهل */ } }
     ssSync(sel);
 }
-function ssClose() { const el = document.getElementById('ssOv'); if (el) el.remove(); document.body.classList.remove('ss-lock'); ssCur = null; }
+let ssVvOff = null;
+function ssClose() { if (ssVvOff) { ssVvOff(); ssVvOff = null; } const el = document.getElementById('ssOv'); if (el) el.remove(); document.body.classList.remove('ss-lock'); ssCur = null; }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('ssOv')) { e.stopPropagation(); ssClose(); } }, true);
 document.addEventListener('DOMContentLoaded', ssInit);
 if (typeof openFormModal === 'function') { const _o = openFormModal; openFormModal = function () { _o.apply(this, arguments); ssInit(); SS_IDS.forEach(id => { const s = document.getElementById(id); if (s) ssSync(s); }); }; }
