@@ -13,7 +13,7 @@ function rxBadges() { const n = rxNewN(); document.querySelectorAll('.rx-badge')
 function rxChanged() { rxBadges(); if (rxEl() && rxEl().style.display === 'flex') rxRender(); if (typeof docRenderAlertBox === 'function') { const v = document.getElementById('alertsView'); if (v && v.classList.contains('active')) docRenderAlertBox(false); } }
 function rxAlertRow() {
     const n = rxNewN(), act = rxRaw.filter(r => rxSt(r) !== 'done').length; if (!act) return '';
-    return `<button type="button" class="da-rx" onclick="rxOpen()"><span>📝 ${n ? 'لديك <b>' + fmtNum(n) + '</b> وصفة جديدة' : fmtNum(act) + ' وصفة قيد المتابعة'}</span><span>‹</span></button>`;
+    return `<button type="button" class="da-rx" onclick="rxOpen()"><span>📝 ${n ? 'لديك <b>' + fmtNum(n) + '</b> وصفة جديدة' : fmtNum(act) + ' وصفة قيد المتابعة'}</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>`;
 }
 function rxOpen() {
     let el = rxEl(); if (!el) { el = document.createElement('div'); el.id = 'rxHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
@@ -40,7 +40,7 @@ function rxShow(id) { rxCurId = id; rxRender(); const b = document.querySelector
 function rxBack() { rxCurId = null; rxRender(); }
 function rxDetail(el, r) {
     const is = r.is || {}, st = rxSt(r);
-    el.innerHTML = `<div class="tr-head"><b>📝 وصفة ${rxE(r.num)}</b><button type="button" class="tr-x" onclick="rxBack()" aria-label="رجوع">›</button></div>
+    el.innerHTML = `<div class="tr-head"><b>📝 وصفة ${rxE(r.num)}</b><button type="button" class="tr-x" onclick="rxBack()" aria-label="رجوع"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button></div>
     <div class="dh-body">
     <div class="dc-card"><div class="qk-row"><div><b dir="auto">${rxE(r.doctor)}</b><small>المريض: <bdi>${rxE(r.patient)}</bdi> · ${rxTime(r.ts)}</small></div><span class="rx-p">${RX_ST[st]}</span></div>
         ${r.note ? `<div class="rx-note">${rxE(r.note)}</div>` : ''}
