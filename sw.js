@@ -6,7 +6,7 @@
    - طلبات Firebase وGitHub API لا يتدخل فيها أبداً
    لإجبار كل الأجهزة على تحديث الكاش: غيّر رقم VERSION
    ===================================================== */
-const VERSION = 'diwan-v225';
+const VERSION = 'diwan-v226';
 const SHELL_CACHE = VERSION + '-shell';
 const LIB_CACHE = VERSION + '-lib';
 const IMG_CACHE = VERSION + '-img';
