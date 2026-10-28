@@ -112,6 +112,8 @@ function alertKinds(p) {
     k.any = k.m6 || k.low;
     return k;
 }
+// بطاقة الدواء ونافذة التصفية تُرفع إلى مستوى الصفحة لتظهر فوق أي شاشة (كانت داخل شاشة المخزن فتنخفي عند فتحها من التنبيهات وغيرها)
+(function liftSheets() { ['sheetBackdrop', 'bottomSheet', 'filterBackdrop', 'filterSheet'].forEach(i => { const e = document.getElementById(i); if (e && e.parentNode !== document.body) document.body.appendChild(e); }); })();
 let alTab = 'ph';
 function alUpdateTabs() {
     const ph = document.getElementById('alNPh'), dr = document.getElementById('alNDr'); if (!ph || !dr) return;
