@@ -44,7 +44,7 @@ td.c { text-align: center; color: #64748b; width: 18px; } td.n b { font-size: 12
 </style></head><body><div class="pg">
 <div class="hd"><img src="${rxEsc(logo)}" alt=""><div class="t"><b>صيدلية الديوان</b><small>وصفة طبية إلكترونية</small></div>
 <div class="m"><div><b>No.</b> ${rxEsc(rx.num)}</div><div>${rxDateTxt(rx.at)}</div></div></div><div class="ln"></div>
-<div class="pt"><div><small>الطبيب</small><b dir="auto">${rxEsc(rx.doctor)}</b></div><div><small>المريض</small><b dir="auto">${rxEsc(rx.patient)}</b></div>${rx.dx ? `<div class="w"><small>التشخيص</small><b dir="auto">${rxEsc(rx.dx)}</b></div>` : ''}</div>
+<div class="pt"><div><small>الطبيب</small><b dir="auto">${rxEsc(rx.doctor)}</b></div><div><small>المريض</small><b dir="auto">${rxEsc(rx.patient)}</b>${rx.phone ? `<small style="margin-top:2px;direction:ltr">${rxEsc(rx.phone)}</small>` : ''}</div>${rx.dx ? `<div class="w"><small>التشخيص</small><b dir="auto">${rxEsc(rx.dx)}</b></div>` : ''}</div>
 <div class="rx">℞<small>الأدوية الموصوفة</small></div>
 <table><thead><tr><th></th><th>الدواء</th><th>الجرعة</th><th>التكرار</th><th>المدة</th><th>التعليمات</th></tr></thead><tbody>${rows}</tbody></table>
 ${rx.note ? `<div class="nt"><b>ملاحظات: </b>${rxEsc(rx.note)}</div>` : ''}
