@@ -7,7 +7,7 @@ const DOC_ST = { ok: 'متوفر', noph: 'غير متوفر في الصيدلي�
 const DOC_LS = 'diwanDocData';
 let docReqList = [], docReqUnsub = null, docData = null, docLoadP = null, docPubT = null, docWatchT = null, docQ = '', docFil = 'all', docShown = 60, docMenu = false, docSel = { d: new Set(), c: new Set() }, docTreeCfg = null;
 const docEsc = s => escapeHtml(String(s == null ? '' : s));
-const docDefault = () => ({ cfg: { auto: false, prices: true, detect: true, days: 7 }, items: {}, upd: 0, sig: '' });
+const docDefault = () => ({ cfg: { auto: false, prices: true, qty: false, detect: true, days: 7 }, items: {}, upd: 0, sig: '' });
 function docNorm(d) { const b = docDefault(); d = d || {}; return { cfg: { ...b.cfg, ...(d.cfg || {}) }, items: d.items || {}, upd: d.upd || 0, sig: d.sig || '' }; }
 // الحالة الفعلية (نفس المنطق في doctor.html)
 function docEff(it, cfg, now) {
@@ -41,14 +41,16 @@ function docSnap(p) {
     o.k = (typeof setupSkip === 'function' && setupSkip(p)) ? null : (isInStock(p) ? 1 : 0);
     return o;
 }
-function docSigOf(d) { return Object.keys(d.items).sort().map(id => { const p = docProd(id), x = p ? docSnap(p) : {}; return id + '|' + (x.n || '') + '|' + (x.p || 0) + '|' + (x.i || '') + (x.b || '') + (x.f || '') + (x.dn || []).join(',') + (x.cn || []).join(',') + (d.items[id].nt || '') + '|' + x.k + '|' + d.items[id].s + '|' + d.items[id].t; }).join('~') + '|' + JSON.stringify(d.cfg); }
+const docQty = p => Math.max(0, Math.floor(Number(p.qty) || 0));
+function docSigOf(d) { return Object.keys(d.items).sort().map(id => { const p = docProd(id), x = p ? docSnap(p) : {}; return id + '|' + (x.n || '') + '|' + (x.p || 0) + '|' + (x.i || '') + (x.b || '') + (x.f || '') + (x.dn || []).join(',') + (x.cn || []).join(',') + (d.items[id].nt || '') + '|' + x.k + (d.cfg.qty && p ? '#' + docQty(p) : '') + '|' + d.items[id].s + '|' + d.items[id].t; }).join('~') + '|' + JSON.stringify(d.cfg); }
 async function docPublish() {
     const d = await docLoad();
     Object.keys(d.items).forEach(id => {
         const p = docProd(id), it = d.items[id]; if (!p) return;
         const sn = docSnap(p);
         if (it.p != null && Number(it.p) !== sn.p && sn.p) { it.pp = Number(it.p); it.pt = Date.now(); }   // تغيّر السعر (تظهر الشارة أسبوعاً)
-        delete it.i; delete it.b; delete it.f; Object.assign(it, sn);
+        delete it.i; delete it.b; delete it.f; delete it.q; Object.assign(it, sn);
+        if (d.cfg.qty && sn.k !== null) it.q = docQty(p);
     });
     // أقسام وتصنيفات المواد المعروضة (فهارس مضغوطة) لفلتر صفحة الطبيب
     const dIdx = new Map(), cIdx = new Map(), tx = { d: [], c: [] }, own = c => Object.keys(deptSubs).find(k => (deptSubs[k] || []).includes(c));
@@ -128,6 +130,7 @@ function docRender() {
             <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button><a href="doctor.html" class="home-quick-link">👁 معاينة صفحة الطبيب</a><button type="button" class="home-quick-link" onclick="docPublishNow()">🔄 نشر التحديث الآن</button></div>
             <div class="qk-row"><div><b>أسماء الأطباء المحفوظة على هذا الجهاز</b><small>قائمة الإكمال التلقائي لاسم الطبيب في الوصفة. محفوظة على كل جهاز لوحده ولا تُرفع للسحابة.</small></div><button type="button" class="dc-mini" onclick="docClearNames()">مسح</button></div>
             ${docSw('تحديث تلقائي من المخزن', 'تُحسب الحالة من كمية المخزن (المواد غير المجرودة تبقى يدوية). إذا كان مطفياً تتحكم بالحالة يدوياً.', 'auto')}
+            ${docSw('إظهار العدد للطبيب', 'يعرض عدد العلب المتوفرة بدل عبارة «متوفر» في صفحة الطبيب، ويتحدث تلقائياً مع المخزن.', 'qty')}
             ${docSw('إظهار الأسعار للطبيب', 'إطفاؤه يخفي أسعار كل المواد في صفحة الطبيب.', 'prices')}
             ${docSw('اكتشاف العودة من الوارد تلقائياً', 'المادة غير المتوفرة التي تدخل في قائمة وارد أو بونص تصير «عاد بعد انقطاع».', 'detect')}
             <div class="qk-row"><div><b>مدة بقاء «عاد بعد انقطاع»</b><small>بعدها تعود المادة إلى «متوفر».</small></div>

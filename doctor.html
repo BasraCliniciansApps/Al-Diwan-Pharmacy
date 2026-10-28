@@ -97,14 +97,14 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .foot-r i { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 0 3px rgba(52,211,153,.25); }
 
 /* ---------- التابات الجانبية الثابتة (بين الترويسة والتذييل) ---------- */
-.main { max-width: 760px; margin: 0 auto; padding: calc(var(--hh) + 14px) 14px calc(var(--fh) + 22px) 14px; padding-inline-start: 50px; }
-.rail { position: fixed; z-index: 20; top: var(--hh); bottom: var(--fh); right: max(0px, calc((100vw - 760px) / 2)); display: flex; flex-direction: column; justify-content: center; align-items: flex-end; gap: clamp(5px, 1vh, 8px); padding: 8px 0; pointer-events: none; }
-.tab { pointer-events: auto; position: relative; flex: 0 1 auto; width: 36px; min-height: 0; border: 0; background: var(--surface); color: var(--text); border-radius: 14px 0 0 14px; padding: 9px 0 10px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; box-shadow: var(--shadow), inset 3px 0 0 var(--c); transition: transform .26s cubic-bezier(.2,.9,.25,1.2), background .2s, color .2s, box-shadow .2s; }
+.main { max-width: 760px; margin: 0 auto; padding: calc(var(--hh) + 14px) 14px calc(var(--fh) + 22px) 14px; padding-left: 50px; }
+.rail { position: fixed; z-index: 20; top: var(--hh); bottom: var(--fh); left: max(0px, calc((100vw - 760px) / 2)); display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: clamp(5px, 1vh, 8px); padding: 8px 0; pointer-events: none; }
+.tab { pointer-events: auto; position: relative; flex: 0 1 auto; width: 36px; min-height: 0; border: 0; background: var(--surface); color: var(--text); border-radius: 0 14px 14px 0; padding: 9px 0 10px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; box-shadow: var(--shadow), inset -3px 0 0 var(--c); transition: transform .26s cubic-bezier(.2,.9,.25,1.2), background .2s, color .2s, box-shadow .2s; }
 .tab .ic { display: none; }
 .tab .lb { writing-mode: vertical-rl; font-size: clamp(.58rem, 1.75vh, .72rem); font-weight: 800; line-height: 1; letter-spacing: 0; color: var(--text); white-space: nowrap; }
 .tab .ct { order: -1; font-size: .7rem; font-weight: 800; color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); border-radius: 999px; padding: 2px 0; width: 24px; text-align: center; }
-.tab.on { transform: translateX(-8px); background: var(--c); box-shadow: 0 8px 20px color-mix(in srgb, var(--c) 45%, transparent); }
-.tab.on::after { content: ''; position: absolute; top: 0; bottom: 0; right: -8px; width: 8px; background: var(--c); }
+.tab.on { transform: translateX(8px); background: var(--c); box-shadow: 0 8px 20px color-mix(in srgb, var(--c) 45%, transparent); }
+.tab.on::after { content: ''; position: absolute; top: 0; bottom: 0; left: -8px; width: 8px; background: var(--c); }
 .tab.on .lb { color: #fff; } .tab.on .ct { background: rgba(255,255,255,.26); color: #fff; }
 .tab:active { filter: brightness(.96); }
 .t-ok { --c: var(--ok); } .t-noph { --c: var(--noph); } .t-nosup { --c: var(--nosup); } .t-back { --c: var(--back); }
@@ -199,10 +199,10 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .zoom { position: fixed; inset: 0; z-index: 80; background: rgba(8,14,30,.92); display: grid; place-items: center; padding: 16px; cursor: zoom-out; }
 .zoom img { max-width: 100%; max-height: 100%; object-fit: contain; background: #fff; border-radius: 12px; }
 
-.fab { position: fixed; left: 16px; bottom: calc(var(--fh) + 14px); z-index: 25; width: 60px; height: 60px; border-radius: 50%; border: 0; background: linear-gradient(145deg, #fbbf24, var(--gold)); color: #0f1c38; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer; box-shadow: 0 10px 26px rgba(249,168,37,.5), 0 2px 6px rgba(0,0,0,.25); font: 800 .6rem 'Tajawal', sans-serif; }
+.fab { position: fixed; right: 16px; bottom: calc(var(--fh) + 14px); z-index: 25; width: 60px; height: 60px; border-radius: 50%; border: 0; background: linear-gradient(145deg, #fbbf24, var(--gold)); color: #0f1c38; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; cursor: pointer; box-shadow: 0 10px 26px rgba(249,168,37,.5), 0 2px 6px rgba(0,0,0,.25); font: 800 .6rem 'Tajawal', sans-serif; }
 .fab .rxm { font: italic 800 1.9rem/1 'Times New Roman', Georgia, serif; letter-spacing: -1px; } .fab .rxm sub { font-size: .95rem; vertical-align: baseline; position: relative; top: .35em; margin-inline-start: 1px; }
 .fab svg { font-size: 1.45rem; } .fab:active { transform: scale(.94); }
-.fab.sm { width: 44px; height: 44px; left: 24px; bottom: calc(var(--fh) + 84px); background: var(--surface); color: var(--text); border: 1px solid var(--line); box-shadow: var(--shadow); } .fab.sm svg { font-size: 1.15rem; }
+.fab.sm { width: 44px; height: 44px; right: 24px; bottom: calc(var(--fh) + 84px); background: var(--surface); color: var(--text); border: 1px solid var(--line); box-shadow: var(--shadow); } .fab.sm svg { font-size: 1.15rem; }
 .main { padding-bottom: calc(var(--fh) + 96px); }
 .sheet.big { width: 100%; max-width: none; height: 100dvh; max-height: 100dvh; border-radius: 0; padding-top: calc(8px + env(safe-area-inset-top)); animation: pgin .22s ease; } .sheet.big > .grab { display: none; }
 @keyframes pgin { from { transform: translateX(-30px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -330,6 +330,24 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
 .cl-rm { width: 100%; margin-top: 6px; border: 0; background: transparent; color: var(--nosup); font: 800 .74rem 'Tajawal', sans-serif; cursor: pointer; padding: 4px; }
 .rxtabs button { transition: transform .18s cubic-bezier(.3, 1.6, .5, 1), background .2s, color .2s, box-shadow .2s; } .rxtabs button:active { transform: translateY(2px) scale(.97); }
 .rxtabs button.on { animation: tabDip .32s cubic-bezier(.3, 1.5, .5, 1); } @keyframes tabDip { 0% { transform: translateY(-3px); } 55% { transform: translateY(3px); } 100% { transform: none; } }
+
+.card { direction: ltr; grid-template-columns: 54px minmax(0, 1fr); align-items: start; padding: 13px 14px 13px 18px; }
+.card::before { inset-inline-start: auto; left: 0; right: auto; border-radius: 0 4px 4px 0; }
+.card .cb { min-width: 0; display: flex; flex-direction: column; gap: 3px; text-align: left; }
+.card .cn { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; font-size: .95rem; font-weight: 800; line-height: 1.4; text-align: left; overflow-wrap: anywhere; }
+.card .cm { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 18px; }
+.card .cbr { font-size: .74rem; font-weight: 700; color: var(--sub); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .cpr { margin-left: auto; font-size: .9rem; font-weight: 800; color: var(--gold-dark); white-space: nowrap; direction: rtl; } .card .cpr small { font-size: .62rem; font-weight: 700; color: var(--sub); }
+:root[data-theme="dark"] .card .cpr { color: var(--gold); }
+.card .ca { font-size: .7rem; color: var(--sub); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.card .acts { grid-column: auto; margin-top: 4px; } .card .acts .chip { margin-inline-end: 0; direction: rtl; padding: 3px 10px; font-size: .72rem; }
+.card .acts .alc { direction: rtl; } .card .acts .ib.rq { margin-inline-start: auto; margin-left: auto; }
+.fmb { display: inline-flex; align-items: center; font-size: .66rem; font-weight: 800; color: var(--sub); background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 2px 8px; }
+.sheet h3.dn { text-align: left; margin: 14px 0 2px; }
+.dbr { font-size: .86rem; font-weight: 800; color: var(--sub); text-align: left; }
+.dai { font-size: .8rem; font-weight: 700; color: var(--text); opacity: .8; margin-top: 2px; text-align: left; overflow-wrap: anywhere; }
+.dfm { margin-top: 8px; text-align: left; } .dfm .fmb { font-size: .72rem; padding: 3px 11px; }
+.dimg { min-height: 0; padding: 6px; } .dimg img { max-height: 56vh; }
 </style>
 </head>
 <body>
@@ -417,7 +435,7 @@ function model() {
     Object.keys(doc.items || {}).forEach(id => {
         const it = doc.items[id]; if (!it || !it.n) return;
         out.push({ id, n: it.n, a: it.a || '', ik: ingKey(it.a || ''), p: it.p || 0, st: eff(it, cfg), t: it.t || 0, hay: norm(it.n + ' ' + (it.a || '')),
-            dk: (it.d || []).map(i => 'd' + i), ck: (it.c || []).map(i => 'c' + i), im: imgUrl(it.i), br: it.b || '', fm: it.f || '', nt: it.nt || '', isNew: it.ad && now - it.ad < WEEK, pc: it.pt && it.pp && now - it.pt < WEEK && it.pp !== it.p });
+            dk: (it.d || []).map(i => 'd' + i), ck: (it.c || []).map(i => 'c' + i), im: imgUrl(it.i), br: it.b || '', fm: it.f || '', nt: it.nt || '', q: (cfg.qty && it.q != null) ? it.q : null, isNew: it.ad && now - it.ad < WEEK, pc: it.pt && it.pp && now - it.pt < WEEK && it.pp !== it.p });
     });
     out.sort((a, b) => ORDER.indexOf(a.st) - ORDER.indexOf(b.st) || a.n.localeCompare(b.n, 'en'));
     return out;
@@ -474,14 +492,17 @@ function qtyBtn(m) {
     const key = 'dn_' + m.id, done = SENT[key] && Date.now() - SENT[key] < WEEK, off = m.st === 'nosup';
     return `<button type="button" class="ib rq ${off ? 'off' : ''} ${done ? 'sent' : ''}" ${off ? 'disabled' : ''} data-qty="${m.id}" aria-label="${off ? 'غير متوفر لدى المذخر' : 'طلب توفير'}" title="${off ? 'غير متوفر لدى المذخر' : done ? 'سُجِّل طلبك' : 'طلب توفير'}">${svg(done ? IC.check : IC.cart)}</button>`;
 }
+const chipTxt = m => m.q != null && m.st === 'ok' ? 'العدد: ' + num(m.q) : ST[m.st].t + (m.q != null && m.st === 'back' ? ' · ' + num(m.q) : '');
+const fmPill = m => m.fm ? `<span class="fmb" dir="auto">${esc(m.fm)}</span>` : '';
 function cardHtml(m, cfg) {
     const unav = m.st === 'noph' || m.st === 'nosup', na = unav ? altsOf(m).length : 0;
     return `<article class="card s-${m.st}" data-open="${m.id}" role="button" tabindex="0">
         ${thumb(m)}
-        <div class="nm"><b dir="rtl"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</b>${m.a ? `<small dir="rtl"><bdi>${esc(m.a)}</bdi></small>` : ''}</div>
-        <div class="pr">${cfg.prices !== false && m.p ? `${num(m.p)}<small>د.ع</small>` : ''}</div>
-        <div class="acts"><span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span>
-            ${na ? `<span class="alc">${svg(IC.swap)} ${na === 1 ? 'بديل' : na === 2 ? 'بديلان' : num(na) + (na > 10 ? ' بديلاً' : ' بدائل')}</span>` : ''}${unav ? qtyBtn(m) : ''}</div>
+        <div class="cb"><b class="cn" dir="ltr"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</b>
+        <div class="cm"><span class="cbr" dir="ltr">${esc(m.br || '')}</span>${cfg.prices !== false && m.p ? `<span class="cpr">${num(m.p)} <small>د.ع</small></span>` : ''}</div>
+        ${m.a ? `<small class="ca" dir="ltr">${esc(m.a)}</small>` : ''}
+        <div class="acts"><span class="chip"><i></i>${chipTxt(m)}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span>${fmPill(m)}
+            ${na ? `<span class="alc">${svg(IC.swap)} ${na === 1 ? 'بديل' : na === 2 ? 'بديلان' : num(na) + (na > 10 ? ' بديلاً' : ' بدائل')}</span>` : ''}${unav ? qtyBtn(m) : ''}</div></div>
     </article>`;
 }
 // ---------- تفاصيل المادة ----------
@@ -489,13 +510,14 @@ function detailHtml(m) {
     const cfg = (doc && doc.cfg) || {}, i = VIEW.findIndex(x => x.id === m.id), unav = m.st === 'noph' || m.st === 'nosup';
     const alts = unav ? altsOf(m) : [], same = m.br ? ALL.filter(x => x.id !== m.id && x.br === m.br && !alts.includes(x)).slice(0, 6) : [];
     const row = (x, dot) => `<div class="alt lnk s-${x.st}" data-open="${x.id}"><span class="l">${dot ? '<i class="dt"></i>' : ''}<span dir="rtl"><bdi>${esc(x.n)}</bdi></span></span>${cfg.prices !== false && x.p ? `<b>${num(x.p)} د.ع</b>` : ''}</div>`;
-    const kv = [['المادة الفعالة', m.a], ['الشركة', m.br], ['الشكل الدوائي', m.fm]].filter(k => k[1]);
     return `<div class="dh"><button type="button" class="nv" data-nav="-1" aria-label="السابق" ${i > 0 ? '' : 'disabled'}>${svg('<path d="m9 18 6-6-6-6"/>')}</button><span>${i >= 0 ? num(i + 1) + ' من ' + num(VIEW.length) : ''}</span><button type="button" class="nv" data-nav="1" aria-label="التالي" ${i >= 0 && i < VIEW.length - 1 ? '' : 'disabled'}>${svg('<path d="m15 18-6-6 6-6"/>')}</button></div>
     <div class="dimg ${m.im ? '' : 'no'}" ${m.im ? `data-zoom="${esc(m.im)}"` : ''}>${m.im ? `<img src="${esc(m.im)}" alt="" onerror="imgFail(this)">` : svg(PILL)}</div>
-    <h3 class="dn" dir="rtl"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</h3>
-    <div class="dpr s-${m.st}">${cfg.prices !== false && m.p ? `<span class="pv">${num(m.p)}<small>د.ع</small></span>` : '<span></span>'}<span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span></div>
+    <h3 class="dn" dir="ltr"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</h3>
+    ${m.br ? `<div class="dbr" dir="ltr">${esc(m.br)}</div>` : ''}
+    ${m.a ? `<div class="dai" dir="ltr">${esc(m.a)}</div>` : ''}
+    ${m.fm ? `<div class="dfm">${fmPill(m)}</div>` : ''}
+    <div class="dpr s-${m.st}">${cfg.prices !== false && m.p ? `<span class="pv">${num(m.p)}<small>د.ع</small></span>` : '<span></span>'}<span class="chip"><i></i>${chipTxt(m)}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span></div>
     ${m.nt ? `<div class="nt">${svg('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>')}<span>${esc(m.nt)}</span></div>` : ''}
-    ${kv.length ? `<div class="kv">${kv.map((k, j) => `<div class="${kv.length % 2 && j === kv.length - 1 ? 'w' : ''}"><small>${k[0]}</small><b dir="auto">${esc(k[1])}</b></div>`).join('')}</div>` : ''}
     <div class="dact s-${m.st}"><button type="button" class="ib ${FAV.has(m.id) ? 'on' : ''}" data-fav="${m.id}" aria-label="المفضلة">${svg(IC.star)}</button><button type="button" class="ib" data-share="${m.id}" aria-label="مشاركة">${svg(IC.share)}</button>${unav ? qtyBtn(m) + watchBtn(m) : ''}</div>
     ${unav ? (alts.length ? `<div class="sec">${svg(IC.swap)} بدائل متوفرة بنفس المادة الفعالة (${num(alts.length)})</div>${alts.map(a => row(a, false)).join('')}` : `<div class="noalt">لا توجد بدائل متوفرة بنفس المادة الفعالة حالياً.</div>`) : ''}
     ${same.length ? `<div class="sec">${svg(IC.plus)} مواد أخرى من ${esc(m.br)}</div>${same.map(a => row(a, true)).join('')}` : ''}`;
