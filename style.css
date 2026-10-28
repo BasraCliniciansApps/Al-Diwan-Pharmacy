@@ -3046,3 +3046,10 @@ body.doc-open #formModal { z-index: 9200; } body.doc-open .swal2-container { z-i
 .inv-btnote { font-size: .76rem; font-weight: 700; color: #b45309; background: #fef3c7; border-radius: 8px; padding: 6px 10px; }
 [data-theme="dark"] .inv-bt { background: #2a2214; border-color: #4a3b1c; } [data-theme="dark"] .inv-btbar { color: #e2e8f0; } [data-theme="dark"] .inv-btbar small { color: #fcd34d; } [data-theme="dark"] .inv-btadd { background: #1e293b; color: #fcd34d; } [data-theme="dark"] .inv-bttot { color: #e2e8f0; }
 .inv-step button:disabled { opacity: .4; }
+
+.fbt-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr auto; gap: 6px; align-items: end; margin-bottom: 6px; }
+.fbt-row > input { min-width: 0; }
+.fbt-row label { display: flex; flex-direction: column; gap: 3px; font-size: .72rem; font-weight: 800; color: #475569; min-width: 0; }
+.fbt-row label input { width: 100%; text-align: center; }
+.fbt-tot { font-size: .8rem; font-weight: 800; color: #0f1c38; text-align: center; margin-top: 4px; }
+[data-theme="dark"] .fbt-tot { color: #e2e8f0; }

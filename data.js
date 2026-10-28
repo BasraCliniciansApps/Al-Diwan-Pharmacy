@@ -1724,7 +1724,7 @@ function openFormModal(id = null) {
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = p.keywords || '';
         if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = '';
         formBarcodes = barcodesOf(p); renderBarcodeChips();
-        setExpiryDatesInForm(getProductExpiryDates(p));
+        fbtLoad(p);
         setExtraSelections(p);
         { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = (p.pricing === 'syndicate' || p.pricing === 'percent') ? p.pricing : 'manual'; const mk = document.getElementById('fMarkup'); if (mk) mk.value = p.markupPct != null ? p.markupPct : ''; }
     } else {
@@ -1748,7 +1748,7 @@ function openFormModal(id = null) {
         if (document.getElementById('fKeywords')) document.getElementById('fKeywords').value = '';
         if (document.getElementById('fBarcode')) document.getElementById('fBarcode').value = '';
         formBarcodes = []; renderBarcodeChips();
-        setExpiryDatesInForm([]);
+        fbtLoad(null);
         setExtraSelections(null);
         { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = 'manual'; const mk = document.getElementById('fMarkup'); if (mk) mk.value = ''; }
     }
@@ -1919,7 +1919,7 @@ async function saveFormProduct() {
         if (!(c > 0) || !(m >= 0)) return Swal.fire({ icon: 'warning', title: 'أدخل سعر الشراء ونسبة الإضافة', text: 'التسعير بنسبة مئوية يحتاج سعر الشراء ونسبة الإضافة (%) لحساب سعر البيع.', confirmButtonColor: '#0f1c38' });
         document.getElementById('fPrice').value = markupCalc(c, m);
     }
-    const expiryDates = getExpiryDatesFromForm();
+    const fbt = fbtResult(), expiryDates = fbt.dates;
     const pendingBc = cleanBarcode((document.getElementById('fBarcode') || {}).value);
     if (pendingBc && !formBarcodes.includes(pendingBc)) formBarcodes.push(pendingBc);
     const editId = document.getElementById('editId').value;
@@ -1951,6 +1951,7 @@ async function saveFormProduct() {
         ...((() => { const o = editId ? products.find(x => x.id === parseInt(editId)) : null; return o && o.lastPurchase ? { lastPurchase: o.lastPurchase } : {}; })()),
         expiryDates: expiryDates,
         expiryDate: expiryDates[0] || '',   // الأقرب نفاذاً (للتوافق مع الأكواد القديمة)
+        ...(fbt.bt ? { bt: fbt.bt } : {}),
         keywords: document.getElementById('fKeywords') ? document.getElementById('fKeywords').value.trim() : '',
         barcode: formBarcodes[0] || '',
         barcodes: formBarcodes.slice(),
@@ -2090,30 +2091,54 @@ function btPrepare(e) {
     btApply(p, arr);
     e.btOut = true;
 }
-function addExpiryRow(value = '') {
-    const wrap = document.getElementById('expiryDatesWrap');
-    if (!wrap) return;
-    const row = document.createElement('div');
-    row.className = 'expiry-row';
-    row.innerHTML = `<input type="month" dir="ltr" class="expiry-input" value="${value}">
-        <button type="button" class="icon-btn expiry-remove" title="حذف هذا التاريخ">✕</button>`;
-    row.querySelector('.expiry-remove').onclick = () => {
-        row.remove();
-        if (!wrap.children.length) addExpiryRow();   // دائماً يبقى حقل واحد على الأقل
-    };
-    wrap.appendChild(row);
+// ---- محرر الدفعات داخل نموذج الصنف: كل صف = تاريخ نفاذ + عدد العلب (+ أجزاء إن كانت المادة تتجزأ) ----
+let formBt = [];
+function fbtSc() { return Math.max(parseInt((document.getElementById('fSubCount') || {}).value) || 0, 1) >= 2 ? parseInt(document.getElementById('fSubCount').value) : 1; }
+function fbtUnits(b, sc) { return (parseInt(b.q) || 0) * sc + (sc > 1 ? (parseInt(b.l) || 0) : 0); }
+function fbtTotals() { const sc = fbtSc(), u = formBt.reduce((a, b) => a + fbtUnits(b, sc), 0); return { u, q: Math.floor(u / sc), l: sc > 1 ? u % sc : 0, sc }; }
+function fbtSync() {
+    const t = fbtTotals(), on = t.u > 0, q = document.getElementById('fQty'), l = document.getElementById('fLoose');
+    if (q) { if (on) q.value = t.q; q.readOnly = on; }
+    if (l && t.sc > 1) { if (on) l.value = t.l; l.readOnly = on; } else if (l) l.readOnly = false;
+    const tot = document.getElementById('fbtTot'); if (tot) tot.innerHTML = on ? 'المجموع: <b>' + t.q + '</b> علبة' + (t.sc > 1 ? ' + <b>' + t.l + '</b> جزء' : '') : 'أدخل عدد العلب لكل تاريخ، أو اترك العدد العام بالأعلى إن لم تكن للمادة تواريخ';
 }
-
-function setExpiryDatesInForm(dates) {
-    const wrap = document.getElementById('expiryDatesWrap');
-    if (!wrap) return;
-    wrap.innerHTML = '';
-    (dates && dates.length ? dates : ['']).forEach(dt => addExpiryRow(dt));
+function fbtRender() {
+    const wrap = document.getElementById('expiryDatesWrap'); if (!wrap) return;
+    const sc = fbtSc();
+    wrap.innerHTML = formBt.map((b, i) => `<div class="expiry-row fbt-row">
+        <input type="month" dir="ltr" class="expiry-input" value="${escapeHtml(b.e || '')}" onchange="fbtSet(${i}, 'e', this.value)" aria-label="تاريخ النفاذ">
+        <label><span>علب</span><input type="number" inputmode="numeric" min="0" value="${parseInt(b.q) || 0}" onchange="fbtSet(${i}, 'q', this.value)"></label>
+        ${sc > 1 ? `<label><span>أجزاء</span><input type="number" inputmode="numeric" min="0" value="${parseInt(b.l) || 0}" onchange="fbtSet(${i}, 'l', this.value)"></label>` : ''}
+        <button type="button" class="icon-btn expiry-remove" onclick="fbtDel(${i})" title="حذف هذه الدفعة">✕</button></div>`).join('') + '<div id="fbtTot" class="fbt-tot"></div>';
+    fbtSync();
 }
-
-function getExpiryDatesFromForm() {
-    const inputs = document.querySelectorAll('#expiryDatesWrap .expiry-input');
-    return [...new Set([...inputs].map(i => i.value).filter(Boolean))].sort();
+function fbtSet(i, f, v) { if (!formBt[i]) return; formBt[i][f] = f === 'e' ? v : Math.max(0, parseInt(v) || 0); fbtSync(); }
+function fbtDel(i) { formBt.splice(i, 1); fbtRender(); }
+function addExpiryRow(value = '') { formBt.push({ e: value || '', q: 0, l: 0 }); fbtRender(); }
+function fbtAddDate(d) {   // تاريخ مقروء (من الذكاء الاصطناعي): يأخذ الكمية غير الموزّعة إن وُجدت
+    if (!d || formBt.some(b => b.e === d)) return;
+    const rest = Math.max((parseInt((document.getElementById('fQty') || {}).value) || 0) - fbtTotals().q, 0);
+    const empty = formBt.find(b => !b.e && !fbtUnits(b, fbtSc()));
+    if (empty) { empty.e = d; empty.q = rest; } else formBt.push({ e: d, q: rest, l: 0 });
+    fbtRender();
+}
+function fbtLoad(p) {
+    formBt = [];
+    if (p) getBatches(p).forEach(b => { if (b.legacy) b.legacy.forEach(d => formBt.push({ e: d, q: 0, l: 0 })); else formBt.push({ e: b.e, q: b.q, l: b.l }); });   // مادة بتواريخ متعددة بلا توزيع: صف لكل تاريخ لتوزّع عليه
+    const sc = document.getElementById('fSubCount'); if (sc && !sc.dataset.fbt) { sc.dataset.fbt = '1'; sc.addEventListener('input', () => { fbtRender(); }); }
+    fbtRender();
+}
+function setExpiryDatesInForm(dates) { formBt = (dates || []).filter(Boolean).map(e => ({ e, q: 0, l: 0 })); fbtRender(); }
+function getExpiryDatesFromForm() { return [...new Set(formBt.map(b => b.e).filter(Boolean))].sort(); }
+// نتيجة المحرر عند الحفظ: دفعات بأعدادها (أو null إذا ما كان فيها أعداد فتبقى المادة بالنمط القديم)
+function fbtResult() {
+    const sc = fbtSc(), rows = formBt.map(b => ({ ...b }));
+    const qty = parseInt((document.getElementById('fQty') || {}).value) || 0;
+    const tot = rows.reduce((a, b) => a + fbtUnits(b, sc), 0);
+    const dated = rows.filter(b => b.e);
+    if (!tot && qty > 0 && dated.length === 1) { dated[0].q = qty; dated[0].l = sc > 1 ? (parseInt((document.getElementById('fLoose') || {}).value) || 0) : 0; }   // تاريخ واحد بلا عدد: كل الكمية له
+    const live = rows.filter(b => fbtUnits(b, sc) > 0);
+    return { bt: live.length ? btFromArr(live) : null, dates: [...new Set((live.length ? live : rows).map(b => b.e).filter(Boolean))].sort(), live };
 }
 
 function getExpiryStatus(expiryDateStr) {
@@ -2470,7 +2495,7 @@ async function scanWithOcr(event) {
             if (fullName) document.getElementById('fName').value = fullName;
             if (parsed.meta) document.getElementById('fMeta').value = parsed.meta;
             if (parsed.brand) document.getElementById('fBrand').value = parsed.brand;
-            if (parsed.expiry) setExpiryDatesInForm([...getExpiryDatesFromForm(), parsed.expiry]);
+            if (parsed.expiry) fbtAddDate(parsed.expiry);
         }
     } catch (err) {
         setStatus(''); h.fail('تعذر المسح', err.message || String(err));
@@ -3672,7 +3697,7 @@ function applyAiRows(rows, selectedKeys) {
         const r = rows.find(x => x.key === k);
         if (!r || !r.value) return;
         if (r.key === 'expiry') {
-            setExpiryDatesInForm([...getExpiryDatesFromForm(), r.value]);
+            fbtAddDate(r.value);
             return;
         }
         aiSetVal(r.field, r.raw);

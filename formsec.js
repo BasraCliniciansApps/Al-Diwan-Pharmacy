@@ -8,7 +8,7 @@ const FS_DEF = [
     { id: 'cls', ico: '🗂️', t: 'التصنيف', open: true, f: ['fDepartment', 'fCategory', 'fType', 'fForm', 'fFormOtherWrap'] },
     { id: 'price', ico: '💰', t: 'السعر', open: true, f: ['fPriceMode', 'fPrice', 'fCost'] },
     { id: 'stock', ico: '📦', t: 'المخزون والتجزئة', open: false, f: ['fQty', '.retail-box', 'fMinQty'] },
-    { id: 'exp', ico: '📅', t: 'تواريخ النفاذ', open: false, f: ['expiryDatesWrap'] },
+    { id: 'exp', ico: '📅', t: 'الدفعات وتواريخ النفاذ', open: false, f: ['expiryDatesWrap'] },
     { id: 'more', ico: '📝', t: 'تفاصيل إضافية', open: false, f: ['fActive', 'fDetails', 'fKeywords', 'fImg'] }
 ];
 let fsBuilt = false, fsTimer = null, fsQuick = false;
@@ -98,7 +98,7 @@ function fsDraftRestore() {
     FS_FIELDS.forEach(f => { if (f !== 'fDepartment') set(f, d.v[f]); });
     if (typeof onFormChange === 'function') try { onFormChange(); } catch (e) { /* تجاهل */ }
     if (typeof formBarcodes !== 'undefined') { formBarcodes = (d.bc || []).slice(); if (typeof renderBarcodeChips === 'function') renderBarcodeChips(); }
-    const wrap = fsEl('expiryDatesWrap'); if (wrap) { wrap.innerHTML = ''; (d.ex && d.ex.length ? d.ex : ['']).forEach(x => addExpiryRow(x)); }
+    if (fsEl('expiryDatesWrap')) setExpiryDatesInForm(d.ex || []);
     if (typeof onPriceModeChange === 'function') try { onPriceModeChange(); } catch (e) { /* تجاهل */ }
     fsClearDraft(); fsRefresh(); fsRenderDupes();
 }
