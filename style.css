@@ -3123,3 +3123,5 @@ button.rxi-chip { cursor: pointer; }
 .rx-alt { display: grid; gap: 8px; text-align: left; } .rx-alt p { margin: 0; font-size: .85rem; color: #64748b; text-align: center; }
 .rx-alt button { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 1.5px solid #cbd5e1; background: #fff; border-radius: 12px; padding: 10px 12px; font-weight: 800; font-size: .86rem; font-family: inherit; cursor: pointer; } .rx-alt button small { color: #b45309; font-weight: 800; }
 [data-theme="dark"] .rxi-ac button, [data-theme="dark"] .rx-ib, [data-theme="dark"] .rx-alt button { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+
+.home-tile.tile-rxh { background: linear-gradient(150deg, #1e3a8a, #2563eb); }
