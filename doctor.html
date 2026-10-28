@@ -503,7 +503,7 @@ function rxForm(keep) {
         <input class="fld" data-f="ins" type="text" placeholder="تعليمات (اختياري)" value="${esc(it.ins)}">
         <div class="qc">${INS.map(t => `<button type="button" data-rx="ins" data-i="${i}" data-t="${t}">${t}</button>`).join('')}</div></div>`).join('')}
     <div class="addrow"><button type="button" class="addb" data-rx="pick">${svg(IC.plus)}من الصيدلية</button><button type="button" class="addb ex" data-rx="ext">${svg(IC.plus)}من خارج الصيدلية</button></div>
-    <label class="rxl">ملاحظات عامة (اختياري)</label><textarea data-k="note" placeholder="تشخيص أو ملاحظة للصيدلي" style="min-height:76px;direction:rtl;text-align:right">${esc(RX.note)}</textarea>
+    <label class="rxl">ملاحظات عامة (اختياري)</label><textarea data-k="note" placeholder="ملاحظة للصيدلي" style="min-height:76px;direction:rtl;text-align:right">${esc(RX.note)}</textarea>
     <div class="rxa"><button type="button" class="go alt" data-rx="print">طباعة</button><button type="button" class="go" data-rx="send">إرسال للصيدلية</button></div></div>`;
     sh.scrollTop = keep ? top : 0;
 }
