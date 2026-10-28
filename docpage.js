@@ -31,19 +31,23 @@ async function docLoad() {
 }
 const docProd = id => products.find(p => String(p.id) === String(id));
 // لقطة المادة التي تقرؤها الصفحة العامة (بدون أي كمية)
+const DOC_IMG = 'https://raw.githubusercontent.com/BasraCliniciansApps/Al-Diwan-Pharmacy/main/';
 function docSnap(p) {
     const o = { n: p.name || '', a: p.activeIngredient || '', p: Number(p.price) || 0 };
+    const im = String(p.img || '').trim(); if (im && !im.startsWith('data:')) o.i = im.replace(DOC_IMG, '');
+    if (p.brand && String(p.brand).trim().toUpperCase() !== 'GENERIC') o.b = String(p.brand).trim();
+    try { if (p.form) o.f = formOf(p); } catch (e) { /* تجاهل */ }
     o.k = (typeof setupSkip === 'function' && setupSkip(p)) ? null : (isInStock(p) ? 1 : 0);
     return o;
 }
-function docSigOf(d) { return Object.keys(d.items).sort().map(id => { const p = docProd(id), x = p ? docSnap(p) : {}; return id + '|' + (x.n || '') + '|' + (x.p || 0) + '|' + x.k + '|' + d.items[id].s + '|' + d.items[id].t; }).join('~') + '|' + JSON.stringify(d.cfg); }
+function docSigOf(d) { return Object.keys(d.items).sort().map(id => { const p = docProd(id), x = p ? docSnap(p) : {}; return id + '|' + (x.n || '') + '|' + (x.p || 0) + '|' + (x.i || '') + (x.b || '') + (x.f || '') + (d.items[id].nt || '') + '|' + x.k + '|' + d.items[id].s + '|' + d.items[id].t; }).join('~') + '|' + JSON.stringify(d.cfg); }
 async function docPublish() {
     const d = await docLoad();
     Object.keys(d.items).forEach(id => {
         const p = docProd(id), it = d.items[id]; if (!p) return;
         const sn = docSnap(p);
         if (it.p != null && Number(it.p) !== sn.p && sn.p) { it.pp = Number(it.p); it.pt = Date.now(); }   // تغيّر السعر (تظهر الشارة أسبوعاً)
-        Object.assign(it, sn);
+        delete it.i; delete it.b; delete it.f; Object.assign(it, sn);
     });
     d.upd = Date.now(); d.sig = docSigOf(d);
     try { localStorage.setItem(DOC_LS, JSON.stringify(d)); } catch (e) { /* تجاهل */ }
@@ -148,6 +152,7 @@ function docRenderList() {
             <div class="dc-nm"><b dir="auto">${docEsc(p.name)}</b><small>${p.price ? fmtNum(p.price) + ' د.ع' : 'بلا سعر'}${p.activeIngredient ? ' · ' + docEsc(p.activeIngredient) : ''}</small></div>
             ${sel ? `<span class="dc-dot ${st}" title="${DOC_ST[st]}"></span>` : ''}
             <select class="dc-st" ${sel ? '' : 'disabled'} onchange="docSetSt('${id}',this.value)">${Object.keys(DOC_ST).map(k => `<option value="${k}" ${it && it.s === k ? 'selected' : ''}>${DOC_ST[k]}</option>`).join('')}</select>
+            ${sel ? `<input type="text" class="dc-note" maxlength="80" placeholder="ملاحظة للطبيب (اختياري): مثل يُحفظ في الثلاجة" value="${docEsc(it.nt || '')}" onchange="docSetNote('${id}',this.value)">` : ''}
         </div>`;
     }).join('');
     box.innerHTML = `<div class="dc-count">معروض للطبيب <b>${fmtNum(selN)}</b> من ${fmtNum(products.length)} مادة${all.length !== products.length ? ' · نتائج الفلتر ' + fmtNum(all.length) : ''}</div>
@@ -171,6 +176,7 @@ function docSetSt(id, v) {
     it.s = v; if (v === 'back') { it.t = Date.now(); delete it.src; delete it.pv; } else { delete it.t; delete it.src; delete it.pv; }
     docSaveSoon(); docRenderList();
 }
+function docSetNote(id, v) { const it = docData.items[id]; if (!it) return; v = String(v || '').trim(); if (v) it.nt = v; else delete it.nt; docSaveSoon(); }
 function docSelAll() { docFiltered().forEach(p => { const id = String(p.id); if (!docData.items[id]) docData.items[id] = { s: 'ok', ad: Date.now() }; }); docSaveSoon(); docRenderList(); }
 async function docClearAll() {
     const ids = docFiltered().filter(p => docData.items[String(p.id)]).map(p => String(p.id));

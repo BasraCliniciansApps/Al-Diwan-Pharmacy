@@ -2906,7 +2906,7 @@ body.no-bnav { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 .dc-actions button, .dc-actions select { min-height: 42px; border: 1.5px solid #cbd5e1; border-radius: 12px; background: #fff; color: #0f1c38; font: 800 .78rem inherit; font-family: inherit; cursor: pointer; padding: 0 8px; }
 .dc-actions select { grid-column: 1 / -1; }
 .dc-actions button:disabled, .dc-actions select:disabled { opacity: .45; cursor: not-allowed; }
-.dc-row { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 10px 12px; }
+.dc-row { flex-wrap: wrap; display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 10px 12px; }
 .dc-row.on { border-color: #0f766e; background: #f0fdfa; }
 .dc-nm { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .dc-nm b { font-size: .88rem; color: #0f1c38; overflow-wrap: anywhere; } .dc-nm small { color: #64748b; font-size: .72rem; overflow-wrap: anywhere; }
@@ -2945,3 +2945,6 @@ body.no-bnav { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 
 .dc-link2 { display: flex; gap: 8px; padding: 10px 0; border-bottom: 1px solid #eef2f7; }
 .dc-link2 .home-quick-link { gap: 6px; flex: 1 1 0; min-width: 0; text-decoration: none; cursor: pointer; font-size: .82rem; white-space: nowrap; }
+
+.dc-note { flex: 1 1 100%; min-height: 40px; border: 1.5px dashed #99d3cb; border-radius: 10px; background: #fff; color: #0f1c38; font-family: inherit; font-size: .78rem; padding: 0 10px; }
+[data-theme="dark"] .dc-note { background: #0f172a; color: #e2e8f0; border-color: #1f5f58; }

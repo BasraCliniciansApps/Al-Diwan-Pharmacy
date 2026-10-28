@@ -81,7 +81,7 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .list { display: flex; flex-direction: column; gap: 10px; }
 .list.anim .card { animation: rise .35s ease both; }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.card { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 8px 10px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 13px 16px 13px 14px; box-shadow: var(--shadow); }
+.card { position: relative; cursor: pointer; display: grid; grid-template-columns: 54px minmax(0, 1fr) 92px; gap: 8px 10px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 13px 16px 13px 14px; box-shadow: var(--shadow); }
 .card::before { content: ''; position: absolute; inset-block: 12px; inset-inline-start: 0; width: 4px; border-radius: 0 4px 4px 0; background: var(--c); }
 .card .nm { min-width: 0; }
 .card .nm b { display: block; font-size: .95rem; font-weight: 800; line-height: 1.45; overflow-wrap: anywhere; }
@@ -131,7 +131,36 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 :root[data-theme="dark"] .go { background: var(--gold); color: #0f1c38; }
 .fld { width: 100%; height: 50px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); padding: 0 14px; font: 500 .95rem 'Tajawal', sans-serif; text-align: start; }
 .toast { position: fixed; bottom: calc(var(--fh) + 16px); left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 11px 18px; border-radius: 999px; font-size: .84rem; font-weight: 800; z-index: 90; box-shadow: 0 10px 28px rgba(0,0,0,.35); animation: rise .25s ease; }
-@media (max-width: 380px) { .card { grid-template-columns: minmax(0, 1fr) 84px; } }
+@media (max-width: 380px) { .card { grid-template-columns: 48px minmax(0, 1fr) 80px; } }
+
+.th { width: 54px; height: 54px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; color: var(--sub); font-size: 1.5rem; }
+.th img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
+@media (max-width: 380px) { .th { width: 48px; height: 48px; } }
+.acts .alc { font-size: .72rem; font-weight: 800; color: var(--ok); display: inline-flex; align-items: center; gap: 5px; }
+.dh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.dh .nv { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); display: grid; place-items: center; font-size: 1.1rem; cursor: pointer; }
+.dh .nv:disabled { opacity: .35; } .dh span { font-size: .76rem; color: var(--sub); font-weight: 700; }
+.dimg { width: 100%; height: 210px; border-radius: 20px; background: #fff; border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; cursor: zoom-in; color: var(--sub); font-size: 3rem; }
+.dimg img { width: 100%; height: 100%; object-fit: contain; }
+.dimg.no { cursor: default; background: var(--surface-2); }
+.sheet h3.dn { margin: 14px 0 2px; font-size: 1.08rem; line-height: 1.5; overflow-wrap: anywhere; }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin: 10px 0; }
+.kv div { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 9px 12px; min-width: 0; }
+.kv div.w { grid-column: 1 / -1; }
+.kv small { display: block; color: var(--sub); font-size: .66rem; font-weight: 700; } .kv b { display: block; font-size: .84rem; margin-top: 2px; overflow-wrap: anywhere; }
+.dpr { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0; }
+.dpr .pv { font-size: 1.35rem; font-weight: 800; color: var(--gold-dark); } .dpr .pv small { font-size: .7rem; color: var(--sub); margin-inline-start: 3px; }
+:root[data-theme="dark"] .dpr .pv { color: var(--gold); }
+.dpr .chip { grid-column: auto; }
+.nt { background: color-mix(in srgb, var(--gold) 16%, transparent); border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent); border-radius: 14px; padding: 10px 12px; font-size: .82rem; font-weight: 700; line-height: 1.6; margin: 8px 0; display: flex; gap: 8px; align-items: flex-start; }
+.dact { display: flex; gap: 8px; margin: 10px 0 4px; flex-wrap: wrap; }
+.dact .ib { width: 46px; height: 46px; border-radius: 14px; font-size: 1.2rem; }
+.dact .need { flex: 1; height: 46px; border-radius: 14px; justify-content: center; font-size: .82rem; min-width: 150px; }
+.sec { font-size: .8rem; font-weight: 800; margin: 16px 0 6px; display: flex; align-items: center; gap: 7px; color: var(--text); }
+.alt.lnk { cursor: pointer; } .alt .l { display: flex; align-items: center; gap: 8px; min-width: 0; } .alt .l span { overflow-wrap: anywhere; }
+.alt .dt { width: 8px; height: 8px; border-radius: 50%; background: var(--c); flex: 0 0 auto; }
+.zoom { position: fixed; inset: 0; z-index: 80; background: rgba(8,14,30,.92); display: grid; place-items: center; padding: 16px; cursor: zoom-out; }
+.zoom img { max-width: 100%; max-height: 100%; object-fit: contain; background: #fff; border-radius: 12px; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
@@ -198,13 +227,19 @@ function eff(it, cfg) {
 }
 const ingKey = a => norm(a).replace(/[^a-z؀-ۿ]+/g, '');
 const WEEK = 7 * 864e5;
+const IMGB = 'https://raw.githubusercontent.com/BasraCliniciansApps/Al-Diwan-Pharmacy/main/';
+const imgUrl = i => !i ? '' : (/^https?:/.test(i) ? i : IMGB + i);
+let VIEW = [], curId = null;
+const PILL = '<path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>';
+function imgFail(e) { const p = e.parentNode; if (p.classList.contains('dimg')) p.classList.add('no'); p.innerHTML = svg(PILL); }
+const thumb = m => `<div class="th">${m.im ? `<img src="${esc(m.im)}" alt="" loading="lazy" decoding="async" onerror="imgFail(this)">` : svg(PILL)}</div>`;
 function model() {
     if (!doc) return [];
     const cfg = doc.cfg || {}, out = [], now = Date.now();
     Object.keys(doc.items || {}).forEach(id => {
         const it = doc.items[id]; if (!it || !it.n) return;
         out.push({ id, n: it.n, a: it.a || '', ik: ingKey(it.a || ''), p: it.p || 0, st: eff(it, cfg), t: it.t || 0, hay: norm(it.n + ' ' + (it.a || '')),
-            isNew: it.ad && now - it.ad < WEEK, pc: it.pt && it.pp && now - it.pt < WEEK && it.pp !== it.p });
+            im: imgUrl(it.i), br: it.b || '', fm: it.f || '', nt: it.nt || '', isNew: it.ad && now - it.ad < WEEK, pc: it.pt && it.pp && now - it.pt < WEEK && it.pp !== it.p });
     });
     out.sort((a, b) => ORDER.indexOf(a.st) - ORDER.indexOf(b.st) || a.n.localeCompare(b.n, 'en'));
     return out;
@@ -224,16 +259,37 @@ function reqBtn(m, big) {
     return `<button type="button" class="need ${done ? 'done' : ''}" data-need="${m.id}">${svg(IC.hand)}${done ? 'سُجِّل طلبك' : 'أحتاج هذه المادة'}</button>`;
 }
 function cardHtml(m, cfg) {
-    const unav = m.st === 'noph' || m.st === 'nosup', alts = unav ? altsOf(m) : [];
-    return `<article class="card s-${m.st}">
+    const unav = m.st === 'noph' || m.st === 'nosup', na = unav ? altsOf(m).length : 0;
+    return `<article class="card s-${m.st}" data-open="${m.id}" role="button" tabindex="0">
+        ${thumb(m)}
         <div class="nm"><b dir="rtl"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</b>${m.a ? `<small dir="rtl"><bdi>${esc(m.a)}</bdi></small>` : ''}</div>
         <div class="pr">${cfg.prices !== false && m.p ? `${num(m.p)}<small>د.ع</small>` : ''}</div>
-        <div class="acts ${unav ? 'u' : ''}"><span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span>
-            ${unav ? reqBtn(m) : ''}
-            <button type="button" class="ib ${FAV.has(m.id) ? 'on' : ''}" data-fav="${m.id}" aria-label="المفضلة">${svg(IC.star)}</button>
-            <button type="button" class="ib" data-share="${m.id}" aria-label="مشاركة">${svg(IC.share)}</button></div>
-        ${unav ? (alts.length ? `<details class="alts"><summary>${svg(IC.swap)} بدائل متوفرة بنفس المادة الفعالة (${num(alts.length)})</summary>${alts.map(a => `<div class="alt"><span dir="rtl"><bdi>${esc(a.n)}</bdi></span>${cfg.prices !== false && a.p ? `<b>${num(a.p)} د.ع</b>` : ''}</div>`).join('')}</details>` : '') : ''}
+        <div class="acts"><span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span>
+            ${na ? `<span class="alc">${svg(IC.swap)} ${na === 1 ? 'بديل' : na === 2 ? 'بديلان' : num(na) + (na > 10 ? ' بديلاً' : ' بدائل')}</span>` : ''}</div>
     </article>`;
+}
+// ---------- تفاصيل المادة ----------
+function detailHtml(m) {
+    const cfg = (doc && doc.cfg) || {}, i = VIEW.findIndex(x => x.id === m.id), unav = m.st === 'noph' || m.st === 'nosup';
+    const alts = unav ? altsOf(m) : [], same = m.br ? ALL.filter(x => x.id !== m.id && x.br === m.br && !alts.includes(x)).slice(0, 6) : [];
+    const row = (x, dot) => `<div class="alt lnk s-${x.st}" data-open="${x.id}"><span class="l">${dot ? '<i class="dt"></i>' : ''}<span dir="rtl"><bdi>${esc(x.n)}</bdi></span></span>${cfg.prices !== false && x.p ? `<b>${num(x.p)} د.ع</b>` : ''}</div>`;
+    const kv = [['المادة الفعالة', m.a], ['الشركة', m.br], ['الشكل الدوائي', m.fm]].filter(k => k[1]);
+    return `<div class="dh"><button type="button" class="nv" data-nav="-1" aria-label="السابق" ${i > 0 ? '' : 'disabled'}>›</button><span>${i >= 0 ? num(i + 1) + ' / ' + num(VIEW.length) : ''}</span><button type="button" class="nv" data-nav="1" aria-label="التالي" ${i >= 0 && i < VIEW.length - 1 ? '' : 'disabled'}>‹</button></div>
+    <div class="dimg ${m.im ? '' : 'no'}" ${m.im ? `data-zoom="${esc(m.im)}"` : ''}>${m.im ? `<img src="${esc(m.im)}" alt="" onerror="imgFail(this)">` : svg(PILL)}</div>
+    <h3 class="dn" dir="rtl"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</h3>
+    <div class="dpr s-${m.st}">${cfg.prices !== false && m.p ? `<span class="pv">${num(m.p)}<small>د.ع</small></span>` : '<span></span>'}<span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span></div>
+    ${m.nt ? `<div class="nt">${svg('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>')}<span>${esc(m.nt)}</span></div>` : ''}
+    ${kv.length ? `<div class="kv">${kv.map((k, j) => `<div class="${kv.length % 2 && j === kv.length - 1 ? 'w' : ''}"><small>${k[0]}</small><b dir="auto">${esc(k[1])}</b></div>`).join('')}</div>` : ''}
+    <div class="dact s-${m.st}"><button type="button" class="ib ${FAV.has(m.id) ? 'on' : ''}" data-fav="${m.id}" aria-label="المفضلة">${svg(IC.star)}</button><button type="button" class="ib" data-share="${m.id}" aria-label="مشاركة">${svg(IC.share)}</button>${unav ? reqBtn(m) : ''}</div>
+    ${unav ? (alts.length ? `<div class="sec">${svg(IC.swap)} بدائل متوفرة بنفس المادة الفعالة (${num(alts.length)})</div>${alts.map(a => row(a, false)).join('')}` : `<div class="noalt">لا توجد بدائل متوفرة بنفس المادة الفعالة حالياً.</div>`) : ''}
+    ${same.length ? `<div class="sec">${svg(IC.plus)} مواد أخرى من ${esc(m.br)}</div>${same.map(a => row(a, true)).join('')}` : ''}`;
+}
+function openDetail(id, keepScroll) {
+    const m = ALL.find(x => x.id === id); if (!m) return;
+    curId = id; const sh = $('sheet'), top = sh.scrollTop;
+    sh.innerHTML = '<div class="grab"></div>' + detailHtml(m);
+    $('bg').classList.add('show'); document.body.style.overflow = 'hidden';
+    sh.scrollTop = keepScroll ? top : 0;
 }
 function render(anim) {
     const all = model(), cfg = (doc && doc.cfg) || {};
@@ -241,7 +297,7 @@ function render(anim) {
     renderRail(all);
     const nq = norm(q.trim());
     let rows = all.filter(m => (!tab || m.st === tab || (tab === 'noph' && m.st === 'nosup')) && (!favOnly || FAV.has(m.id)) && (!nq || m.hay.includes(nq)));
-    lastRows = rows.length;
+    lastRows = rows.length; VIEW = rows;
     $('hl').textContent = (favOnly ? 'المفضلة · ' : '') + (tab ? ST[tab].t : 'كل المواد');
     $('hc').textContent = num(rows.length);
     $('clr').classList.toggle('show', !!tab || favOnly);
@@ -262,7 +318,7 @@ function render(anim) {
 }
 // ---------- طلب مادة (يصل إلى الصيدلي كتنبيه) ----------
 function openSheet(html) { $('sheet').innerHTML = '<div class="grab"></div>' + html; $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
-function closeSheet() { $('bg').classList.remove('show'); document.body.style.overflow = ''; }
+function closeSheet() { curId = null; $('bg').classList.remove('show'); document.body.style.overflow = ''; }
 function reqOpen(pre) {
     openSheet(`<h3>طلب مادة من الصيدلية</h3><p>اكتب اسم الدواء الذي تحتاجه، وستصل رسالتك إلى الصيدلي مباشرة.</p>
     <input id="rqN" class="fld" type="text" dir="ltr" placeholder="اسم الدواء" value="${esc(pre || '')}" autocomplete="off">
@@ -282,8 +338,33 @@ async function sendReq(kind, id, name, btn, quiet, note) {
         if (btn) { btn.classList.add('done'); btn.lastChild.nodeValue = kind === 'n' ? 'سُجِّل طلبك' : 'أُرسل الطلب'; }
     } catch (e) { if (!quiet) toast('تعذر إرسال الطلب، حاول لاحقاً'); }
 }
+function wrapTxt(c, t, w) { const out = []; let ln = ''; String(t).split(/\s+/).forEach(wd => { const x = ln ? ln + ' ' + wd : wd; if (c.measureText(x).width > w && ln) { out.push(ln); ln = wd; } else ln = x; }); if (ln) out.push(ln); return out; }
+function loadImg(u) { return new Promise(r => { if (!u) return r(null); const i = new Image(); i.crossOrigin = 'anonymous'; i.onload = () => r(i); i.onerror = () => r(null); i.src = u; }); }
+async function cardBlob(m) {
+    const W = 800, H = 1000, cv = document.createElement('canvas'); cv.width = W; cv.height = H; const c = cv.getContext('2d'); c.direction = 'rtl'; c.textAlign = 'center';
+    const dark = getComputedStyle(document.documentElement).getPropertyValue('--navy').trim() || '#0f1c38';
+    c.fillStyle = '#f1f4f9'; c.fillRect(0, 0, W, H);
+    const g = c.createLinearGradient(0, 0, W, 0); g.addColorStop(0, dark); g.addColorStop(1, '#1b2c52'); c.fillStyle = g; c.fillRect(0, 0, W, 120);
+    c.fillStyle = '#f9a825'; c.font = '700 44px "Aref Ruqaa", "Tajawal", serif'; c.fillText('صيدلية الديوان', W / 2, 78);
+    c.fillStyle = '#fff'; c.beginPath(); c.roundRect(60, 160, W - 120, 380, 28); c.fill();
+    const im = await loadImg(m.im);
+    if (im) { const r = Math.min((W - 160) / im.width, 340 / im.height); const iw = im.width * r, ih = im.height * r; c.drawImage(im, (W - iw) / 2, 160 + (380 - ih) / 2, iw, ih); }
+    else { c.fillStyle = '#cbd5e1'; c.font = '700 120px "Tajawal"'; c.fillText('💊', W / 2, 390); }
+    c.fillStyle = '#0f1c38'; c.font = '800 44px "Tajawal", sans-serif';
+    let y = 610; wrapTxt(c, m.n, W - 120).slice(0, 3).forEach(l => { c.fillText(l, W / 2, y); y += 58; });
+    if (m.a) { c.fillStyle = '#64748b'; c.font = '500 28px "Tajawal", sans-serif'; c.fillText(wrapTxt(c, m.a, W - 120)[0], W / 2, y + 4); y += 50; }
+    const col = { ok: '#16a34a', noph: '#d97706', nosup: '#dc2626', back: '#2563eb' }[m.st], t = ST[m.st].t;
+    c.font = '800 30px "Tajawal", sans-serif'; const tw = c.measureText(t).width + 56; c.fillStyle = col + '22'; c.beginPath(); c.roundRect((W - tw) / 2, y + 14, tw, 54, 27); c.fill(); c.fillStyle = col; c.fillText(t, W / 2, y + 52);
+    if (doc.cfg.prices !== false && m.p) { c.fillStyle = '#a85d08'; c.font = '800 52px "Tajawal", sans-serif'; c.fillText(num(m.p) + ' د.ع', W / 2, y + 140); }
+    c.fillStyle = '#94a3b8'; c.font = '500 24px "Tajawal", sans-serif'; c.fillText(new Date().toLocaleDateString('en-GB'), W / 2, H - 36);
+    return new Promise(r => cv.toBlob(r, 'image/png'));
+}
 async function shareItem(m) {
     const t = m.n + '\nالحالة: ' + ST[m.st].t + (doc.cfg.prices !== false && m.p ? '\nالسعر: ' + num(m.p) + ' د.ع' : '') + '\nصيدلية الديوان';
+    try {
+        const b = await cardBlob(m);
+        if (b) { const f = new File([b], 'diwan-' + m.id + '.png', { type: 'image/png' }); if (navigator.canShare && navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: m.n, text: t }); return; } }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
     try { if (navigator.share) { await navigator.share({ title: m.n, text: t, url: location.href }); return; } } catch (e) { return; }
     try { await navigator.clipboard.writeText(t + '\n' + location.href); toast('تم نسخ المعلومات'); } catch (e) { toast('تعذرت المشاركة'); }
 }
@@ -300,12 +381,20 @@ $('clr').onclick = () => { tab = ''; favOnly = false; shown = 60; render(true); 
 let srT = null, lastRows = 1;
 $('q').addEventListener('input', e => { q = e.target.value; clearTimeout(srT); srT = setTimeout(() => { const t = q.trim(); if (norm(t).length >= 3 && lastRows === 0) sendReq('s', '', t, null, true); }, 1800); $('sbox').classList.toggle('has', !!q); shown = 60; render(false); });
 $('qx').onclick = () => { $('q').value = ''; q = ''; $('sbox').classList.remove('has'); render(false); $('q').focus(); };
-$('list').addEventListener('click', e => {
-    const f = e.target.closest('[data-fav]'), sh = e.target.closest('[data-share]'), nd = e.target.closest('[data-need]');
-    if (f) { const id = f.dataset.fav; FAV.has(id) ? FAV.delete(id) : FAV.add(id); lsSet('diwanDocFav', [...FAV]); render(false); }
+$('list').addEventListener('click', e => { const c = e.target.closest('[data-open]'); if (c) openDetail(c.dataset.open); });
+$('list').addEventListener('keydown', e => { if (e.key === 'Enter') { const c = e.target.closest('[data-open]'); if (c) openDetail(c.dataset.open); } });
+$('sheet').addEventListener('click', e => {
+    const t = e.target, f = t.closest('[data-fav]'), sh = t.closest('[data-share]'), nd = t.closest('[data-need]'), op = t.closest('[data-open]'), nv = t.closest('[data-nav]'), z = t.closest('[data-zoom]');
+    if (f) { const id = f.dataset.fav; FAV.has(id) ? FAV.delete(id) : FAV.add(id); lsSet('diwanDocFav', [...FAV]); render(false); openDetail(id, true); }
     else if (sh) { const m = ALL.find(x => x.id === sh.dataset.share); if (m) shareItem(m); }
     else if (nd) { const m = ALL.find(x => x.id === nd.dataset.need); if (m) sendReq('n', m.id, m.n, nd); }
+    else if (nv) { const i = VIEW.findIndex(x => x.id === curId) + Number(nv.dataset.nav); if (VIEW[i]) openDetail(VIEW[i].id); }
+    else if (op) openDetail(op.dataset.open);
+    else if (z) { const d = document.createElement('div'); d.className = 'zoom'; d.innerHTML = `<img src="${esc(z.dataset.zoom)}" alt="">`; d.onclick = () => d.remove(); document.body.appendChild(d); }
 });
+let tx = null;
+$('sheet').addEventListener('touchstart', e => { tx = e.touches.length === 1 ? [e.touches[0].clientX, e.touches[0].clientY] : null; }, { passive: true });
+$('sheet').addEventListener('touchend', e => { if (!tx || !curId) return; const t = e.changedTouches[0], dx = t.clientX - tx[0], dy = t.clientY - tx[1]; tx = null; if (Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy) * 2) { const i = VIEW.findIndex(x => x.id === curId) + (dx < 0 ? 1 : -1); if (VIEW[i]) openDetail(VIEW[i].id); } }, { passive: true });
 $('reqBtn').onclick = () => reqOpen(q.trim());
 $('bg').addEventListener('click', e => { if (e.target === $('bg')) closeSheet(); });
 $('favBtn').onclick = () => { favOnly = !favOnly; shown = 60; render(true); };
