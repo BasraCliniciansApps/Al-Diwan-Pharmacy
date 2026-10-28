@@ -142,6 +142,9 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .th { width: 54px; height: 54px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; color: var(--sub); font-size: 1.5rem; }
 .th img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
 @media (max-width: 380px) { .th { width: 48px; height: 48px; } }
+.acts .ib.rq { margin-inline-start: auto; width: 36px; height: 36px; color: var(--c); border-color: color-mix(in srgb, var(--c) 45%, transparent); background: color-mix(in srgb, var(--c) 10%, transparent); } .acts .ib.rq.off { opacity: .38; cursor: not-allowed; color: var(--sub); border-color: var(--line); background: var(--surface-2); } .acts .ib.rq.sent { opacity: .6; }
+.need:disabled { opacity: .4; cursor: not-allowed; border-color: var(--line); color: var(--sub); }
+.qty { display: flex; align-items: center; justify-content: center; gap: 14px; margin: 14px 0 8px; } .qty button { width: 52px; height: 52px; border-radius: 16px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); font-size: 1.6rem; font-weight: 800; cursor: pointer; } .qty input { width: 96px; height: 56px; text-align: center; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); font: 800 1.5rem 'Tajawal', sans-serif; }
 .acts .alc { font-size: .72rem; font-weight: 800; color: var(--ok); display: inline-flex; align-items: center; gap: 5px; }
 .dh { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .dh .nv { width: 38px; height: 38px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); display: grid; place-items: center; font-size: 1.1rem; cursor: pointer; }
@@ -260,7 +263,9 @@ const IC = {
     share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/>',
     hand: '<path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>',
     swap: '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
-    plus: '<path d="M12 5v14M5 12h14"/>'
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    cart: '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/><path d="M12 9v5M9.5 11.5h5"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>'
 };
 const lsGet = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* تجاهل */ } };
@@ -330,8 +335,12 @@ function renderRail(all) {
 }
 function toast(t) { const e = document.createElement('div'); e.className = 'toast'; e.textContent = t; document.body.appendChild(e); setTimeout(() => e.remove(), 2200); }
 function reqBtn(m, big) {
-    const key = 'dn_' + m.id, done = SENT[key] && Date.now() - SENT[key] < WEEK;
-    return `<button type="button" class="need ${done ? 'done' : ''}" data-need="${m.id}">${svg(IC.hand)}${done ? 'سُجِّل طلبك' : 'أحتاج هذه المادة'}</button>`;
+    const key = 'dn_' + m.id, done = SENT[key] && Date.now() - SENT[key] < WEEK, off = m.st === 'nosup';
+    return `<button type="button" class="need ${done ? 'done' : ''}" ${off ? 'disabled' : ''} data-need="${m.id}">${svg(IC.hand)}${off ? 'غير متوفر لدى المذخر' : done ? 'سُجِّل طلبك' : 'أحتاج هذه المادة'}</button>`;
+}
+function qtyBtn(m) {
+    const key = 'dn_' + m.id, done = SENT[key] && Date.now() - SENT[key] < WEEK, off = m.st === 'nosup';
+    return `<button type="button" class="ib rq ${off ? 'off' : ''} ${done ? 'sent' : ''}" ${off ? 'disabled' : ''} data-qty="${m.id}" aria-label="${off ? 'غير متوفر لدى المذخر' : 'طلب توفير'}" title="${off ? 'غير متوفر لدى المذخر' : done ? 'سُجِّل طلبك' : 'طلب توفير'}">${svg(done ? IC.check : IC.cart)}</button>`;
 }
 function cardHtml(m, cfg) {
     const unav = m.st === 'noph' || m.st === 'nosup', na = unav ? altsOf(m).length : 0;
@@ -340,7 +349,7 @@ function cardHtml(m, cfg) {
         <div class="nm"><b dir="rtl"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</b>${m.a ? `<small dir="rtl"><bdi>${esc(m.a)}</bdi></small>` : ''}</div>
         <div class="pr">${cfg.prices !== false && m.p ? `${num(m.p)}<small>د.ع</small>` : ''}</div>
         <div class="acts"><span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span>
-            ${na ? `<span class="alc">${svg(IC.swap)} ${na === 1 ? 'بديل' : na === 2 ? 'بديلان' : num(na) + (na > 10 ? ' بديلاً' : ' بدائل')}</span>` : ''}</div>
+            ${na ? `<span class="alc">${svg(IC.swap)} ${na === 1 ? 'بديل' : na === 2 ? 'بديلان' : num(na) + (na > 10 ? ' بديلاً' : ' بدائل')}</span>` : ''}${unav ? qtyBtn(m) : ''}</div>
     </article>`;
 }
 // ---------- تفاصيل المادة ----------
@@ -406,11 +415,11 @@ function reqOpen(pre) {
     setTimeout(() => { try { $('rqN').focus(); } catch (e) { /* تجاهل */ } }, 250);
 }
 // ---------- طلبات الأطباء (تصل إلى الصيدلي) ----------
-async function sendReq(kind, id, name, btn, quiet, note) {
+async function sendReq(kind, id, name, btn, quiet, note, qty) {
     const key = (kind === 'n' ? 'dn_' + id : (kind === 's' ? 'ds_' : 'dq_') + encodeURIComponent(norm(name)).slice(0, 150));
     if (SENT[key] && Date.now() - SENT[key] < WEEK) { if (!quiet) toast('سُجِّل طلبك مسبقاً'); return; }
     try {
-        await firebase.firestore().collection('pharmacy_search_misses').doc(key).set({ dr: 1, kind, pid: id || null, name, note: note || '', count: firebase.firestore.FieldValue.increment(1), lastAt: new Date().toISOString() }, { merge: true });
+        await firebase.firestore().collection('pharmacy_search_misses').doc(key).set({ dr: 1, kind, pid: id || null, name, note: note || '', qty: qty || null, count: firebase.firestore.FieldValue.increment(1), lastAt: new Date().toISOString() }, { merge: true });
         SENT[key] = Date.now(); lsSet('diwanDocSent', SENT);
         if (!quiet) toast('سُجِّل طلبك وسيصل إلى الصيدلية');
         if (btn) { btn.classList.add('done'); btn.lastChild.nodeValue = kind === 'n' ? 'سُجِّل طلبك' : 'أُرسل الطلب'; }
@@ -459,13 +468,13 @@ $('clr').onclick = () => { tab = ''; favOnly = false; SEL.d.clear(); SEL.c.clear
 let srT = null, lastRows = 1;
 $('q').addEventListener('input', e => { q = e.target.value; clearTimeout(srT); srT = setTimeout(() => { const t = q.trim(); if (norm(t).length >= 3 && lastRows === 0) sendReq('s', '', t, null, true); }, 1800); $('sbox').classList.toggle('has', !!q); shown = 60; render(false); });
 $('qx').onclick = () => { $('q').value = ''; q = ''; $('sbox').classList.remove('has'); render(false); $('q').focus(); };
-$('list').addEventListener('click', e => { const c = e.target.closest('[data-open]'); if (c) openDetail(c.dataset.open); });
+$('list').addEventListener('click', e => { const r = e.target.closest('[data-qty]'); if (r) { e.stopPropagation(); if (!r.disabled) qtyOpen(r.dataset.qty); return; } const c = e.target.closest('[data-open]'); if (c) openDetail(c.dataset.open); });
 $('list').addEventListener('keydown', e => { if (e.key === 'Enter') { const c = e.target.closest('[data-open]'); if (c) openDetail(c.dataset.open); } });
 $('sheet').addEventListener('click', e => {
     const t = e.target, f = t.closest('[data-fav]'), sh = t.closest('[data-share]'), nd = t.closest('[data-need]'), op = t.closest('[data-open]'), nv = t.closest('[data-nav]'), z = t.closest('[data-zoom]');
     if (f) { const id = f.dataset.fav; FAV.has(id) ? FAV.delete(id) : FAV.add(id); lsSet('diwanDocFav', [...FAV]); render(false); openDetail(id, true); }
     else if (sh) { const m = ALL.find(x => x.id === sh.dataset.share); if (m) shareItem(m); }
-    else if (nd) { const m = ALL.find(x => x.id === nd.dataset.need); if (m) sendReq('n', m.id, m.n, nd); }
+    else if (nd) { if (!nd.disabled) qtyOpen(nd.dataset.need); }
     else if (nv) { const i = VIEW.findIndex(x => x.id === curId) + Number(nv.dataset.nav); if (VIEW[i]) openDetail(VIEW[i].id); }
     else if (op) openDetail(op.dataset.open);
     else if (z) { const d = document.createElement('div'); d.className = 'zoom'; d.innerHTML = `<img src="${esc(z.dataset.zoom)}" alt="">`; d.onclick = () => d.remove(); document.body.appendChild(d); }
@@ -607,6 +616,27 @@ $('fbt').onclick = () => {
     tfMount($('tfHost'), TFC); tfShow(true);
 };
 $('tfBg').onclick = () => tfShow(false);
+
+
+// ---------- طلب توفير بالعدد ----------
+function qtyOpen(id) {
+    const m = ALL.find(x => x.id === id); if (!m) return;
+    if (m.st === 'nosup') { toast('غير متوفر لدى المذخر حالياً'); return; }
+    const key = 'dn_' + id; if (SENT[key] && Date.now() - SENT[key] < WEEK) { toast('سُجِّل طلبك مسبقاً'); return; }
+    openSheet(`<h3>طلب توفير</h3><p dir="auto"><bdi>${esc(m.n)}</bdi><br>حدّد العدد المطلوب وسيصل الطلب إلى الصيدلية.</p>
+    <div class="qty"><button type="button" data-q="-1" aria-label="إنقاص">−</button><input id="qtyN" type="number" inputmode="numeric" min="1" max="999" value="1"><button type="button" data-q="1" aria-label="زيادة">+</button></div>
+    <div class="qc" style="justify-content:center">${[1, 2, 3, 5, 10, 20].map(n => `<button type="button" data-qs="${n}">${n}</button>`).join('')}</div>
+    <button type="button" class="go" id="qtyGo" data-qid="${esc(id)}">إرسال الطلب</button>`);
+}
+$('sheet').addEventListener('click', async e => {
+    const q = e.target.closest('[data-q]'), qs = e.target.closest('[data-qs]'), go = e.target.closest('#qtyGo'), i = $('qtyN');
+    if (q && i) i.value = Math.min(999, Math.max(1, (+i.value || 1) + +q.dataset.q));
+    else if (qs && i) i.value = qs.dataset.qs;
+    else if (go && i) {
+        const n = Math.min(999, Math.max(1, Math.floor(+i.value || 1))), m = ALL.find(x => x.id === go.dataset.qid); if (!m) return;
+        go.disabled = true; await sendReq('n', m.id, m.n, null, false, '', n); closeSheet(); render(false);
+    }
+});
 
 $('reqBtn').onclick = () => reqOpen(q.trim());
 $('bg').addEventListener('click', e => { if (e.target === $('bg')) closeSheet(); });
