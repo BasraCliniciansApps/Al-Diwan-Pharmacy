@@ -640,6 +640,23 @@ $('sheet').addEventListener('click', async e => {
     }
 });
 
+// ---------- زر الرجوع: يغلق آخر نافذة بدل مغادرة الصفحة ----------
+const LAY = []; let lyIgn = 0;
+function lyOpen(n) { if (LAY.includes(n)) return; LAY.push(n); try { history.pushState({ ly: n }, ''); } catch (e) { /* تجاهل */ } }
+function lyClosed(n) { const i = LAY.lastIndexOf(n); if (i < 0) return; LAY.splice(i, 1); lyIgn++; try { history.back(); } catch (e) { lyIgn--; } }
+addEventListener('popstate', () => {
+    if (lyIgn) { lyIgn--; return; }
+    const n = LAY.pop(); if (!n) return;
+    if (n === 'zoom') { const z = document.querySelector('.zoom'); if (z) z.remove(); }
+    else if (n === 'tf') tfShow(false);
+    else if (n === 'sheet') { if (rxMode === 'pick') { rxMode = 'form'; rxForm(); lyOpen('sheet'); return; } closeSheet(); }
+});
+try {
+    new MutationObserver(() => { $('bg').classList.contains('show') ? lyOpen('sheet') : lyClosed('sheet'); }).observe($('bg'), { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(() => { $('tfHost').classList.contains('show') ? lyOpen('tf') : lyClosed('tf'); }).observe($('tfHost'), { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(ms => { ms.forEach(m => { m.addedNodes.forEach(n => { if (n.classList && n.classList.contains('zoom')) { lyOpen('zoom'); new MutationObserver(() => { if (!document.body.contains(n)) lyClosed('zoom'); }).observe(document.body, { childList: true }); } }); }); }).observe(document.body, { childList: true });
+} catch (e) { /* تجاهل */ }
+
 $('reqBtn').onclick = () => reqOpen(q.trim());
 $('bg').addEventListener('click', e => { if (e.target === $('bg')) closeSheet(); });
 $('favBtn').onclick = () => { favOnly = !favOnly; shown = 60; render(true); };
