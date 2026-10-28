@@ -5161,6 +5161,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         { const sb0 = document.getElementById('sheetBackdrop'); if (document.body.classList.contains('doc-open') && sb0 && sb0.classList.contains('open')) { closeSheet(); return true; } }   // بطاقة الدواء فوق صفحة الطبيب
         if (vis('rxHub')) { if (typeof rxCurId !== 'undefined' && rxCurId) rxBack(); else rxClose(); return true; }
         if (vis('docHub')) { docClose(); return true; }
+        if (vis('drHub')) { drClose(); return true; }
         if (vis('catModal')) { if (typeof shCur !== 'undefined' && shCur) shHome(true); else closeCategoryManager(); return true; }
         if (vis('loginModal')) { closeLoginModal(); return true; }
         const sb = document.getElementById('sheetBackdrop');

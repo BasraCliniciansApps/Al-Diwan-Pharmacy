@@ -3125,3 +3125,18 @@ button.rxi-chip { cursor: pointer; }
 [data-theme="dark"] .rxi-ac button, [data-theme="dark"] .rx-ib, [data-theme="dark"] .rx-alt button { background: #1e293b; color: #e2e8f0; border-color: #334155; }
 
 .home-tile.tile-rxh { background: linear-gradient(150deg, #1e3a8a, #2563eb); }
+
+.home-sq { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.home-sq:has(.tile-scan:not([style])) { }
+body.role-staff:not(.can-scan) .home-sq, body.sc-off .home-sq { grid-template-columns: 1fr; }
+.home-tile.tile-sq { aspect-ratio: 1 / 1; min-height: 0; flex-direction: column; gap: 6px; margin: 0; justify-content: center; position: relative; }
+.home-tile.tile-sq b { font-size: 1.15rem; } .home-tile.tile-sq small { font-size: .72rem; opacity: .9; }
+.dc-fch { display: flex; flex-wrap: wrap; gap: 6px; } .dc-fch button { border: 1.5px solid #cbd5e1; background: #fff; color: #0f1c38; border-radius: 999px; padding: 7px 12px; font: inherit; font-weight: 800; font-size: .76rem; }
+.dc-fch button.on { background: #0f1c38; color: #fff; border-color: #0f1c38; }
+[data-theme="dark"] .dc-fch button:not(.on) { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+.dr-body { display: flex; flex-direction: column; gap: 12px; }
+.dr-btn { position: relative; display: flex; align-items: center; gap: 14px; min-height: 84px; padding: 14px 16px; border: 0; border-radius: 18px; color: #fff; text-align: start; font-family: inherit; }
+.dr-btn span:not(.tile-badge) { display: flex; flex-direction: column; gap: 3px; } .dr-btn b { font-size: 1.1rem; } .dr-btn small { font-size: .76rem; opacity: .9; }
+.dr-btn.b1 { background: linear-gradient(150deg, #1e3a8a, #2563eb); } .dr-btn.b2 { background: linear-gradient(150deg, #065f46, #10b981); }
+.dr-btn.b3 { background: linear-gradient(150deg, #475569, #64748b); } .dr-btn.b4 { background: linear-gradient(150deg, #9a3412, #f97316); }
+#drHub { z-index: 8900; }

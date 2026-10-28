@@ -154,3 +154,21 @@ function scSetMode(m) { const c = scCfg(); c.mode = m; scSave(c); scReSet(); }
 function scSetNum(k, v) { const c = scCfg(); const n = parseFloat(v); if (n >= 0) c[k] = n; scSave(c); }
 function scSetShow(k, v) { const c = scCfg(); c.show[k] = !!v; scSave(c); }
 document.addEventListener('DOMContentLoaded', scApplyHome);
+
+// من الرئيسية: يفتح الفاحص والكاميرا مباشرة؛ إن لم يُقرأ باركود خلال 8 ثوانٍ يتحول للبحث بالاسم
+const SC_SCAN_WAIT_MS = 8000;
+function scGo() {
+    showView('scan');
+    setTimeout(() => {
+        let t = 0;
+        const cb = code => { clearTimeout(t); const p = findByBarcode(code); if (p) scPick(p.id); else Swal.fire({ icon: 'info', title: 'لم يتم العثور على المادة', text: 'هذا الباركود غير مسجّل بأي مادة.', confirmButtonColor: '#0f1c38' }); };
+        t = setTimeout(() => {
+            if (typeof barcodeCallback === 'undefined' || barcodeCallback !== cb) return;
+            const m = document.getElementById('bcManual'); if (m && (m.value || document.activeElement === m)) return;
+            closeBarcodeScanner();
+            const q = scE('scQ'); if (q) q.focus();
+            Swal.fire({ icon: 'info', title: 'لم يُقرأ باركود — ابحث بالاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+        }, SC_SCAN_WAIT_MS);
+        openBarcodeScanner(cb);
+    }, 120);
+}

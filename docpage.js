@@ -106,13 +106,15 @@ async function docOnRevert(src) {
 
 // ---------- الواجهة ----------
 function docEl() { return document.getElementById('docHub'); }
-async function docOpen() {
+let docMode = 'list';
+async function docOpen(mode) {
+    docMode = mode === 'set' ? 'set' : 'list';
     let el = docEl();
     if (!el) { el = document.createElement('div'); el.id = 'docHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
     document.body.classList.add('doc-open'); el.style.display = 'flex'; el.innerHTML = '<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()">✕</button></div><div class="dh-body"><div class="dh-note">جارٍ التحميل…</div></div>';
     await docLoad(); docQ = ''; docFil = 'all'; docShown = 60; docMenu = false; docSel.d.clear(); docSel.c.clear(); docRender();
 }
-function docSyncOpen() { const on = ['docHub', 'rxHub'].some(i => { const e = document.getElementById(i); return e && e.style.display === 'flex'; }); document.body.classList.toggle('doc-open', on); }
+function docSyncOpen() { const on = ['docHub', 'rxHub', 'drHub'].some(i => { const e = document.getElementById(i); return e && e.style.display === 'flex'; }); document.body.classList.toggle('doc-open', on); }
 function docClose() { const el = docEl(); if (el) el.style.display = 'none'; docSyncOpen(); }
 function docLink() { try { return new URL('doctor.html', location.href).href; } catch (e) { return 'doctor.html'; } }
 function docSw(label, sub, key) {
@@ -121,13 +123,12 @@ function docSw(label, sub, key) {
 function docRender() {
     const el = docEl(); if (!el) return;
     const c = docData.cfg;
-    el.innerHTML = `<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()" aria-label="إغلاق">✕</button></div>
-    <div class="dh-body dc-fx ${docSetOpen ? 'sopen' : ''}">
+    el.innerHTML = `<div class="tr-head"><b>${docMode === 'set' ? '⚙ إعدادات صفحة الأطباء' : '💊 المواد المعروضة للأطباء'}</b><button type="button" class="tr-x" onclick="docClose()" aria-label="إغلاق">✕</button></div>
+    <div class="dh-body dc-fx ${docMode === 'set' || docSetOpen ? 'sopen' : ''}">
       <div class="dc-fixed">
-        <button type="button" class="dc-setbtn ${docSetOpen ? 'on' : ''}" onclick="docToggleSet()"><span>⚙ إعدادات الصفحة وطلبات الأطباء</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
-        <div class="dc-setpanel" id="docSet" ${docSetOpen ? '' : 'hidden'}>
+        ${docMode === 'set' ? `<div class="dc-setpanel" id="docSet">
         <div class="dc-card">
-            <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button><a href="doctor.html" class="home-quick-link">👁 معاينة صفحة الطبيب</a><button type="button" class="home-quick-link" onclick="docPublishNow()">🔄 نشر التحديث الآن</button></div>
+            <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button><button type="button" class="home-quick-link" onclick="docPublishNow()">🔄 نشر التحديث الآن</button></div>
             <div class="qk-row"><div><b>أسماء الأطباء المحفوظة على هذا الجهاز</b><small>قائمة الإكمال التلقائي لاسم الطبيب في الوصفة. محفوظة على كل جهاز لوحده ولا تُرفع للسحابة.</small></div><button type="button" class="dc-mini" onclick="docClearNames()">مسح</button></div>
             ${docSw('تحديث تلقائي من المخزن', 'تُحسب الحالة من كمية المخزن (المواد غير المجرودة تبقى يدوية). إذا كان مطفياً تتحكم بالحالة يدوياً.', 'auto')}
             ${docSw('إظهار العدد للطبيب', 'يعرض عدد العلب المتوفرة بدل عبارة «متوفر» في صفحة الطبيب، ويتحدث تلقائياً مع المخزن.', 'qty')}
@@ -137,18 +138,17 @@ function docRender() {
                 <select class="dc-days" onchange="docCfg('days',+this.value)">${[3, 7, 14, 30].map(n => `<option value="${n}" ${c.days === n ? 'selected' : ''}>${n} أيام</option>`).join('')}</select></div>
         </div>
         <div class="dc-card" id="docReq"><div class="dh-note">جارٍ تحميل طلبات الأطباء…</div></div>
-        </div>
-        <div class="dc-bar">
+        </div>` : `<div class="dc-bar">
             <input id="docQ" type="search" placeholder="ابحث باسم المادة أو المادة الفعالة" value="${docEsc(docQ)}" oninput="docSearch(this.value)">
             <button type="button" class="dc-fbtn ${docFil !== 'all' || tfCount(docSel) ? 'on' : ''}" onclick="docToggleMenu()" aria-label="فلتر"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg></button>
         </div>
-        <div id="docMenu"></div>
+        <div id="docMenu"></div>`}
       </div>
-      <div id="docList" class="dc-scroll"></div>
+      ${docMode === 'set' ? '' : '<div id="docList" class="dc-scroll"></div>'}
     </div>`;
     docRenderMenu(); docRenderList(); docLoadReq();
 }
-const DOC_FILTERS = [['all', 'كل المواد'], ['sel', 'المعروضة للطبيب'], ['unsel', 'غير المعروضة'], ['ok', 'متوفر'], ['noph', 'غير متوفر في الصيدلية'], ['nosup', 'غير متوفر في المذخر'], ['back', 'عاد بعد انقطاع']];
+const DOC_FILTERS = [['all', 'كل المواد'], ['unsel', 'غير المعروضة فقط (إخفاء المعروضة)'], ['sel', 'المعروضة فقط (إخفاء غير المعروضة)'], ['ok', 'متوفر'], ['noph', 'غير متوفر في الصيدلية'], ['nosup', 'غير متوفر في المذخر'], ['back', 'عاد بعد انقطاع']];
 function docFbtn() {
     const b = document.querySelector('.dc-fbtn'); if (!b) return; const n = tfCount(docSel) + (docFil !== 'all' ? 1 : 0);
     b.classList.toggle('on', n > 0); let i = b.querySelector('.fb-n'); if (!i) { i = document.createElement('i'); i.className = 'fb-n'; b.appendChild(i); } i.textContent = n; i.style.display = n ? '' : 'none';
@@ -157,7 +157,7 @@ function docRenderMenu() {
     const m = document.getElementById('docMenu'); if (!m) return;
     docFbtn();
     if (!docMenu) { m.innerHTML = ''; return; }
-    m.innerHTML = `<div class="dc-drop"><div id="docTree"></div></div>`;
+    m.innerHTML = `<div class="dc-drop"><div class="dc-fch">${DOC_FILTERS.map(([k, t]) => `<button type="button" class="${docFil === k ? 'on' : ''}" onclick="docSetFil('${k}')">${t}</button>`).join('')}</div><div id="docTree"></div></div>`;
     docTreeCfg = docTreeCfg || { open: new Set(), q: '' };
     Object.assign(docTreeCfg, { tree: tfAdminTree(), sel: docSel, count: tfAdminCounter(products), onChange() { docShown = 60; docRenderList(); docFbtn(); }, onDone() { docMenu = false; docRenderMenu(); } });
     tfMount(document.getElementById('docTree'), docTreeCfg);
@@ -314,3 +314,23 @@ async function docClearNames() {
     try { localStorage.removeItem('diwanDocNames'); } catch (e) { /* تجاهل */ }
     Swal.fire({ icon: 'success', title: 'تم مسح الأسماء', timer: 1400, showConfirmButton: false });
 }
+
+
+// ---------- ركن الأطباء: شاشة واحدة تجمع كل ما يخص الأطباء ----------
+function drEl() { return document.getElementById('drHub'); }
+function drOpen() {
+    let el = drEl();
+    if (!el) { el = document.createElement('div'); el.id = 'drHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
+    const ic = d => `<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+    const btn = (cls, on, i, t, sm, badge) => `<button type="button" class="dr-btn ${cls}" onclick="${on}">${badge ? '<span class="tile-badge rx-badge" style="display:none;">0</span>' : ''}${ic(i)}<span><b>${t}</b><small>${sm}</small></span></button>`;
+    el.innerHTML = `<div class="tr-head"><b>🩺 ركن الأطباء</b><button type="button" class="tr-x" onclick="drClose()" aria-label="إغلاق">✕</button></div>
+    <div class="dh-body dr-body">
+        ${btn('b1', 'rxOpen()', '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>', 'الوصفات الإلكترونية', 'وصفات الأطباء وسجلاتهم وتجهيزها', true)}
+        ${btn('b2', 'docOpen()', '<path d="M10.5 20.5 3.5 13.5a4.9 4.9 0 0 1 7-7l7 7a4.9 4.9 0 0 1-7 7z"/><path d="m8.5 8.5 7 7"/>', 'المواد المعروضة للأطباء', 'اختر المواد وحالتها في صفحة الأطباء')}
+        ${btn('b3', "docOpen('set')", '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 'إعدادات صفحة الأطباء', 'التحديث التلقائي، الأسعار، الرابط وطلبات الأطباء')}
+        ${btn('b4', "window.open('doctor.html','_blank')", '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>', 'معاينة صفحة الأطباء', 'افتح الصفحة كما يراها الطبيب')}
+    </div>`;
+    document.body.classList.add('doc-open'); el.style.display = 'flex';
+    try { rxBadges(); } catch (e) { /* تجاهل */ }
+}
+function drClose() { const el = drEl(); if (el) el.style.display = 'none'; docSyncOpen(); }
