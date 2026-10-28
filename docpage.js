@@ -107,7 +107,7 @@ async function docOpen(mode) {
     let el = docEl();
     if (!el) { el = document.createElement('div'); el.id = 'docHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
     document.body.classList.add('doc-open'); el.style.display = 'flex'; el.innerHTML = '<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()">✕</button></div><div class="dh-body"><div class="dh-note">جارٍ التحميل…</div></div>';
-    await docLoad(); docQ = ''; docFil = 'all'; docShown = 60; docMenu = false; docSel.d.clear(); docSel.c.clear(); docRender();
+    await docLoad(); docQ = ''; docFil = 'all'; docShown = 60; docMenu = false; docKeep.clear(); docSel.d.clear(); docSel.c.clear(); docRender();
 }
 function docSyncOpen() { const on = ['docHub', 'rxHub', 'drHub'].some(i => { const e = document.getElementById(i); return e && e.style.display === 'flex'; }); document.body.classList.toggle('doc-open', on); }
 function docClose() { const el = docEl(); if (el) el.style.display = 'none'; docSyncOpen(); }
@@ -157,9 +157,10 @@ function docRenderMenu() {
     tfMount(document.getElementById('docTree'), docTreeCfg);
 }
 let docSetOpen = false;
+let docKeep = new Set();   // مواد غُيّر تحديدها أثناء الفلتر الحالي: تبقى بمكانها حتى يتغير الفلتر
 function docToggleSet() { docSetOpen = !docSetOpen; const p = document.getElementById('docSet'); if (p) p.hidden = !docSetOpen; const b = document.querySelector('.dc-setbtn'); if (b) b.classList.toggle('on', docSetOpen); const w = document.querySelector('.dh-body.dc-fx'); if (w) { w.classList.toggle('sopen', docSetOpen); w.scrollTop = 0; } }
 function docToggleMenu() { docMenu = !docMenu; docRenderMenu(); }
-function docSetFil(k) { docFil = k; docShown = 60; docRenderMenu(); docRenderList(); }
+function docSetFil(k) { docFil = k; docKeep.clear(); docShown = 60; docRenderMenu(); docRenderList(); }
 let docSearchT = null;
 function docSearch(v) { docQ = v; clearTimeout(docSearchT); docSearchT = setTimeout(() => { docShown = 60; docRenderList(); }, 180); }
 const docNormS = s => String(s || '').toLowerCase();
@@ -169,8 +170,8 @@ function docFiltered() {
         const it = docData.items[String(p.id)];
         if (q && !(docNormS(p.name).includes(q) || docNormS(p.activeIngredient).includes(q))) return false;
         if ((docSel.d.size || docSel.c.size) && !tfMatch(docSel, deptsOf(p), catsOf(p))) return false;
-        if (docFil === 'sel') return !!it;
-        if (docFil === 'unsel') return !it;
+        if (docFil === 'sel') return !!it || docKeep.has(String(p.id));
+        if (docFil === 'unsel') return !it || docKeep.has(String(p.id));
         if (docFil === 'all') return true;
         { const e = docEff({ ...it, ...docSnap(p) }, docData.cfg); return !!it && (e === docFil || (docFil === 'noph' && e === 'nosup')); }
     });
@@ -212,6 +213,7 @@ function docMore() { docShown += 80; docRenderList(); }
 function docCopy() { try { navigator.clipboard.writeText(docLink()); Swal.fire({ icon: 'success', title: 'تم نسخ الرابط', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 }); } catch (e) { /* تجاهل */ } }
 function docCfg(k, v) { docData.cfg[k] = v; docSaveSoon(); docRenderList(); }
 function docToggle(id) {
+    docKeep.add(String(id));
     if (docData.items[id]) delete docData.items[id]; else docData.items[id] = { s: 'ok', ad: Date.now() };
     docSaveSoon(); docRenderList();
 }
