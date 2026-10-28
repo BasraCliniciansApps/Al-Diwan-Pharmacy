@@ -72,6 +72,7 @@ async function docPublishNow() {
 function docSaveSoon() { clearTimeout(docPubT); docPubT = setTimeout(docPublish, 700); }
 // مراقبة تغيّر الأسعار والتوفر وتحديث صفحة الطبيب تلقائياً
 function docOnProducts() {
+    try { const h = document.getElementById('docHub'); if (h && h.style.display === 'flex' && typeof docRenderList === 'function' && docData) docRenderList(); } catch (e) { /* تجاهل */ }
     if (typeof IS_ADMIN_PAGE === 'undefined' || !IS_ADMIN_PAGE || userRole !== 'owner') return;
     docStartWatch();
     clearTimeout(docWatchT);
@@ -190,10 +191,14 @@ function docRenderList() {
     ${rows || '<div class="dh-note">لا توجد مواد مطابقة.</div>'}
     ${all.length > shown.length ? `<button type="button" class="dc-more" onclick="docMore()">عرض المزيد (${fmtNum(all.length - shown.length)})</button>` : ''}`;
 }
+function docLiftModals() {
+    ['sheetBackdrop', 'bottomSheet'].forEach(i => { const e = document.getElementById(i); if (e && e.parentNode !== document.body) document.body.appendChild(e); });
+    document.querySelectorAll('#stockView .modal-overlay').forEach(e => document.body.appendChild(e));   // نماذج التعديل والتصنيفات تظهر فوق الإعدادات
+}
 function docDetail(id) {
     const p = docProd(id); if (!p || typeof openSheet !== 'function') return;
     // نافذة التفاصيل داخل عرض المخزن المخفي؛ ننقلها إلى جذر الصفحة لتظهر فوق الإعدادات
-    ['sheetBackdrop', 'bottomSheet'].forEach(i => { const e = document.getElementById(i); if (e && e.parentNode !== document.body) document.body.appendChild(e); });
+    docLiftModals();
     openSheet(p.id);
 }
 function docMore() { docShown += 80; docRenderList(); }
