@@ -386,6 +386,14 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
 .dimg { padding: 14px; background-color: var(--surface-2); background-image: radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--sub) 22%, transparent) 1px, transparent 0), linear-gradient(160deg, color-mix(in srgb, var(--c, var(--gold)) 10%, var(--surface-2)), var(--surface-2)); background-size: 14px 14px, 100% 100%; box-shadow: inset 0 0 0 1px var(--line); }
 .dimg img { width: auto; height: auto; max-width: 100%; max-height: 100%; border-radius: 16px; box-shadow: 0 6px 18px rgba(8, 14, 30, .18); background: #fff; }
 .dimg.no { background-image: none; }
+
+.fab { width: 58px; height: 58px; right: 16px; left: auto; }
+.fab.sm { width: 58px; height: 58px; right: 16px; left: auto; bottom: calc(var(--fh) + 86px); background: linear-gradient(145deg, #fff7e0, #fde9ad); color: #0f1c38; border: 2px solid var(--gold); box-shadow: 0 10px 26px rgba(249, 168, 37, .38), 0 2px 6px rgba(0, 0, 0, .2); }
+.fab.sm > svg { width: 27px; height: 27px; font-size: 27px; stroke-width: 2.1; }
+.fab.sm .pl { position: absolute; top: -7px; left: -7px; width: 22px; height: 22px; border-radius: 50%; background: #0f1c38; border: 2px solid #fff; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0, 0, 0, .35); }
+.fab.sm .pl svg { width: 12px; height: 12px; font-size: 12px; stroke: #fff; stroke-width: 3.6; }
+:root[data-theme="dark"] .fab.sm { background: linear-gradient(145deg, #3a2f12, #2a2210); color: var(--gold); border-color: var(--gold); }
+:root[data-theme="dark"] .fab.sm .pl { background: var(--gold); border-color: #1b1b1b; } :root[data-theme="dark"] .fab.sm .pl svg { stroke: #0f1c38; }
 </style>
 </head>
 <body>
@@ -412,7 +420,7 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
     <div class="foot-l"><button type="button" class="clr" id="clr" aria-label="عرض الكل">✕</button><b id="hl">كل المواد</b><em id="hc"></em></div>
     <div class="foot-r"><i></i><span id="updT">جارٍ التحديث…</span></div>
 </div></footer>
-<button type="button" class="fab sm" id="reqBtn" aria-label="طلب مادة" title="طلب مادة"><svg viewBox="0 0 24 24"><g transform="translate(-1.5 3) scale(.82)"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></g><path d="M19 2.5v6M16 5.5h6"/></svg></button>
+<button type="button" class="fab sm" id="reqBtn" aria-label="طلب مادة" title="طلب مادة"><svg viewBox="0 0 24 24"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg><span class="pl"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></button>
 <button type="button" class="fab" id="rxBtn" aria-label="وصفة إلكترونية" title="وصفة إلكترونية"><span class="rxm">R<sub>x</sub></span></button>
 <div class="bg" id="bg"><div class="sheet" id="sheet"></div></div>
 
