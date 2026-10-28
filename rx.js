@@ -39,23 +39,62 @@ function rxRender() {
     ${rows.map(x => `<button type="button" class="rx-c st-${rxSt(x)}" onclick="rxShow('${rxE(x.id)}')"><div><b dir="auto">${rxE(x.doctor)}</b><small>المريض: <bdi>${rxE(x.patient)}</bdi> · ${fmtNum((x.items || []).length)} ${(x.items || []).length > 2 && (x.items || []).length < 11 ? 'أدوية' : 'دواء'} · ${rxTime(x.ts)}</small></div><span class="rx-p">${RX_ST[rxSt(x)]}</span></button>`).join('') || '<div class="dh-note">لا توجد وصفات في هذا القسم.</div>'}</div>`;
 }
 function rxSetFil(k) { rxFil = k; rxRender(); }
-function rxShow(id) { rxCurId = id; rxRender(); const b = document.querySelector('#rxHub .dh-body'); if (b) b.scrollTop = 0; }
+function rxShow(id) { rxCurId = id; rxRender(); const b = document.querySelector('#rxHub .dh-body'); if (b) b.scrollTop = 0; rxAutoPrep(id); }
 function rxBack() { rxCurId = null; rxRender(); }
+// ---------- حالة كل دواء: تلقائية من المخزن، ويدوية عند الحاجة ----------
+const rxNa = {};   // أدوية اختار الصيدلي أنها غير متوفرة ولم يحدّد بديلها بعد (مؤقتة)
+const RX_IC = {
+    print: '<path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/>',
+    arch: '<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
+    back: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+    trash: '<path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6"/>',
+    chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'
+};
+const rxSvg = p => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+function rxProd(i) { return !i.ext && i.p ? products.find(x => String(x.id) === String(i.p)) : null; }
+// ok | sub | no | out (غير متوفر وينتظر قراراً) | unk (غير معروف) | na (اختيار يدوي بلا بديل بعد)
+function rxState(r, k) {
+    const i = r.items[k], sk = (r.is || {})[k]; if (sk && sk.s) return sk.s;
+    if (rxNa[r.id + '_' + k]) return 'na';
+    const p = rxProd(i); if (!p || (typeof setupSkip === 'function' && setupSkip(p))) return 'unk';
+    return (typeof isInStock === 'function' && isInStock(p)) ? 'ok-auto' : 'out';
+}
+const rxPendingN = r => (r.items || []).filter((_, k) => ['out', 'unk', 'na'].includes(rxState(r, k))).length;
+function rxAlts(i) {
+    const p = rxProd(i), key = x => String(x || '').trim().toLowerCase();
+    if (!p || !key(p.activeIngredient)) return [];
+    return products.filter(x => x.id !== p.id && key(x.activeIngredient) === key(p.activeIngredient) && typeof isInStock === 'function' && isInStock(x)).slice(0, 8);
+}
+function rxItemHtml(r, i, k, done) {
+    const st = rxState(r, k), sk = (r.is || {})[k] || {}, rid = rxE(r.id);
+    const chip = (cls, txt, act) => act && !done ? `<button type="button" class="rxi-chip ${cls}" onclick="${act}">${txt}</button>` : `<span class="rxi-chip ${cls}">${txt}</span>`;
+    let c = '', acts = '';
+    if (st === 'ok' || st === 'ok-auto') c = chip('ok', 'متوفر', `rxItemTog('${rid}',${k})`);
+    else if (st === 'sub') c = chip('sub', 'بديل: ' + rxE(sk.sub), `rxSubPick('${rid}',${k})`);
+    else if (st === 'no') c = chip('no', 'غير متوفر · لا بديل', `rxItemTog('${rid}',${k})`);
+    else if (st === 'unk') { c = chip('unk', 'غير محدد'); acts = done ? '' : `<div class="rxi-ac"><button type="button" class="ok" onclick="rxItem('${rid}',${k},'ok')">متوفر</button><button type="button" class="no" onclick="rxItemNa('${rid}',${k})">غير متوفر</button></div>`; }
+    else { c = chip('no', 'غير متوفر'); acts = done ? '' : `<div class="rxi-ac"><button type="button" class="sub" onclick="rxSubPick('${rid}',${k})">اقتراح بديل</button><button type="button" class="nob" onclick="rxItem('${rid}',${k},'no')">لا يوجد بديل</button></div>`; }
+    return `<div class="dc-card rx-i2"><div class="rxi-top"><div class="rxi-nm"><b dir="auto">${rxE(i.n)}</b><small>${rxLine(i) ? rxE(rxLine(i)) : 'بلا جرعة'}${i.ext ? ' · خارج الصيدلية' : ''}</small></div>${c}</div>${acts}</div>`;
+}
+const RX_QR = ['الوصفة جاهزة للاستلام', 'بعض الأدوية غير متوفرة حالياً', 'يرجى مراجعة الصيدلية'];
 function rxDetail(el, r) {
-    const is = r.is || {}, st = rxSt(r);
+    const st = rxSt(r), done = st === 'done', rid = rxE(r.id), pend = rxPendingN(r);
+    const main = done ? `<div class="rx-main done">✓ سُلِّمت للمريض</div><button type="button" class="rx-lk" onclick="rxSetSt('${rid}','ready')">إلغاء التسليم</button>`
+        : st === 'ready' ? `<button type="button" class="rx-main" onclick="rxAdvance('${rid}')">تم التسليم</button><button type="button" class="rx-lk" onclick="rxSetSt('${rid}','prep')">إرجاع إلى قيد التجهيز</button>`
+        : st === 'saved' ? `<button type="button" class="rx-main" onclick="rxSetSt('${rid}','prep')">بدء التجهيز</button>`
+        : `<button type="button" class="rx-main ${pend ? 'wait' : ''}" onclick="rxAdvance('${rid}')">${pend ? 'حدّد حالة ' + pend + (pend === 1 ? ' دواء' : pend === 2 ? ' دواءين' : ' أدوية') : 'جاهزة للاستلام'}</button>`;
+    const ic = (fn, ico, t, cls) => `<button type="button" class="rx-ib ${cls || ''}" onclick="${fn}" aria-label="${t}" title="${t}">${rxSvg(ico)}</button>`;
     el.innerHTML = `<div class="tr-head"><b>📝 وصفة ${rxE(r.num)}</b><button type="button" class="tr-x" onclick="rxBack()" aria-label="رجوع"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></button></div>
     <div class="dh-body">
     <div class="dc-card"><div class="qk-row"><div><b dir="auto">${rxE(r.doctor)}</b><small>المريض: <bdi>${rxE(r.patient)}</bdi>${r.phone ? ' · <bdi dir="ltr">' + rxE(r.phone) + '</bdi>' : ''} · ${rxTime(r.ts)}</small></div><span class="rx-p">${RX_ST[st]}</span></div>
-        ${r.dx ? `<div class="rx-note"><b>التشخيص: </b>${rxE(r.dx)}</div>` : ''}${r.note ? `<div class="rx-note">${rxE(r.note)}</div>` : ''}
-        <div class="rx-bt"><button type="button" class="${st === 'prep' ? 'on' : ''}" onclick="rxSetSt('${rxE(r.id)}','prep')">قيد التجهيز</button><button type="button" class="${st === 'ready' ? 'on' : ''}" onclick="rxSetSt('${rxE(r.id)}','ready')">جاهزة</button><button type="button" class="${st === 'done' ? 'on' : ''}" onclick="rxSetSt('${rxE(r.id)}','done')">سُلِّمت</button></div></div>
-    ${(r.items || []).map((i, k) => {
-        const p = !i.ext && i.p ? products.find(x => String(x.id) === String(i.p)) : null, sk = is[k], stock = p ? (typeof isInStock === 'function' && isInStock(p)) : null;
-        return `<div class="dc-card rx-i"><div class="qk-row"><div><b dir="auto">${rxE(i.n)}</b><small>${rxLine(i) ? rxE(rxLine(i)) : 'بلا جرعة'}</small></div>${i.ext ? '<span class="rx-p ex">خارج الصيدلية</span>' : stock === true ? '<span class="rx-p ok">في المخزن</span>' : stock === false ? '<span class="rx-p no">غير متوفر</span>' : ''}</div>
-        <div class="rx-bt s"><button type="button" class="${sk && sk.s === 'ok' ? 'on ok' : ''}" onclick="rxItem('${rxE(r.id)}',${k},'ok')">جاهز</button><button type="button" class="${sk && sk.s === 'no' ? 'on no' : ''}" onclick="rxItem('${rxE(r.id)}',${k},'no')">غير متوفر</button><button type="button" class="${sk && sk.s === 'sub' ? 'on sub' : ''}" onclick="rxItem('${rxE(r.id)}',${k},'sub')">بديل${sk && sk.s === 'sub' ? ': ' + rxE(sk.sub) : ''}</button></div></div>`;
-    }).join('')}
-    <div class="dc-card"><div class="qk-row"><div><b>رد للطبيب</b><small>رسالة حرة تصله كإشعار.</small></div></div><div class="rx-rp"><input type="text" id="rxMsg" placeholder="اكتب الرد…" maxlength="160"><button type="button" onclick="rxReply('${rxE(r.id)}')">إرسال</button></div>
-        ${(r.msgs || []).length ? `<div class="rx-ms">${(r.msgs || []).slice().reverse().slice(0, 12).map(m => `<div><span>${rxE(m.t)}</span><small>${rxTime(m.at)}</small></div>`).join('')}</div>` : ''}</div>
-    <div class="dc-actions"><button type="button" onclick="rxPrint('${rxE(r.id)}')">🖨 طباعة</button>${r.phone ? `<button type="button" onclick="rxWa('${rxE(r.id)}')" aria-label="إرسال واتساب" title="إرسال PDF عبر واتساب" style="display:inline-grid;place-items:center;color:#128c4a">${RX_WA_ICON.replace('<svg ','<svg width="20" height="20" ')}</button>` : ''}${r.arch ? `<button type="button" onclick="rxArchive('${rxE(r.id)}',false)">↩ إرجاع من الأرشيف</button><button type="button" onclick="rxDel('${rxE(r.id)}')">🗑 حذف نهائي</button>` : `<button type="button" onclick="rxArchive('${rxE(r.id)}',true)">🗄 أرشفة الوصفة</button>`}</div></div>`;
+        ${r.dx ? `<div class="rx-note"><b>التشخيص: </b>${rxE(r.dx)}</div>` : ''}${r.note ? `<div class="rx-note">${rxE(r.note)}</div>` : ''}</div>
+    ${(r.items || []).map((i, k) => rxItemHtml(r, i, k, done)).join('')}
+    <details class="dc-card rx-rpl"><summary>${rxSvg(RX_IC.chat)}<span>رد للطبيب</span></summary>
+        <div class="rx-qr">${RX_QR.map(t => `<button type="button" onclick="rxQuick('${rid}',this)" data-t="${rxE(t)}">${rxE(t)}</button>`).join('')}</div>
+        <div class="rx-rp"><input type="text" id="rxMsg" placeholder="أو اكتب رداً…" maxlength="160"><button type="button" onclick="rxReply('${rid}')">إرسال</button></div>
+        ${(r.msgs || []).length ? `<div class="rx-ms">${(r.msgs || []).slice().reverse().slice(0, 12).map(m => `<div><span>${rxE(m.t)}</span><small>${rxTime(m.at)}</small></div>`).join('')}</div>` : ''}</details>
+    <div class="rx-mainw">${main}</div>
+    <div class="rx-ibs">${ic(`rxPrint('${rid}')`, RX_IC.print, 'طباعة')}${r.phone ? `<button type="button" class="rx-ib wa" onclick="rxWa('${rid}')" aria-label="إرسال واتساب" title="إرسال PDF عبر واتساب">${RX_WA_ICON.replace('<svg ', '<svg width="20" height="20" ')}</button>` : ''}${r.arch ? ic(`rxArchive('${rid}',false)`, RX_IC.back, 'إرجاع من الأرشيف') + ic(`rxDel('${rid}')`, RX_IC.trash, 'حذف نهائي', 'd') : ic(`rxArchive('${rid}',true)`, RX_IC.arch, 'أرشفة الوصفة')}</div></div>`;
 }
 async function rxApply(id, fn) {
     const r = rxRaw.find(x => x.id === id); if (!r) return false;
@@ -71,18 +110,48 @@ const rxMsg = (ps, k, t) => ps.msgs.push({ at: Date.now(), k, t });
 function rxSetSt(id, st) {
     rxApply(id, (ps, r) => { if (ps.st === st) return; ps.st = st; rxMsg(ps, st, st === 'prep' ? 'الوصفة ' + r.num + ' قيد التجهيز' : st === 'ready' ? 'الوصفة ' + r.num + ' جاهزة للاستلام' : 'سُلِّمت الوصفة ' + r.num + ' للمريض'); });
 }
+function rxToast(t) { try { Swal.fire({ toast: true, position: 'top', showConfirmButton: false, timer: 1800, title: t }); } catch (e) { /* تجاهل */ } }
+function rxItemNa(id, k) { rxNa[id + '_' + k] = 1; rxRender(); }
+function rxItemTog(id, k) {
+    const r = rxRaw.find(x => x.id === id); if (!r) return;
+    const st = rxState(r, k); if (st === 'ok' || st === 'ok-auto') rxItemNa(id, k); else rxItem(id, k, 'ok');
+}
+async function rxSubPick(id, k) {
+    const r = rxRaw.find(x => x.id === id); if (!r) return; const it = r.items[k], alts = rxAlts(it);
+    const a = await Swal.fire({ title: 'بديل «' + (it.n || '') + '»', html: `<div class="rx-alt">${alts.length ? alts.map(x => `<button type="button" data-n="${rxE(x.name)}"><span dir="ltr">${rxE(x.name)}</span><small>${x.price ? fmtNum(x.price) + ' د.ع' : ''}</small></button>`).join('') : '<p>لا توجد بدائل متوفرة بنفس المادة الفعالة، اكتب اسم البديل.</p>'}<input id="rxAltIn" class="swal2-input" dir="ltr" placeholder="أو اكتب اسم البديل"></div>`,
+        showCancelButton: true, confirmButtonText: 'اعتماد وإرسال للطبيب', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38',
+        didOpen: () => { const inp = document.getElementById('rxAltIn'); document.querySelectorAll('.rx-alt button').forEach(b => b.onclick = () => { inp.value = b.dataset.n; Swal.clickConfirm(); }); },
+        preConfirm: () => { const v = (document.getElementById('rxAltIn').value || '').trim(); if (!v) { Swal.showValidationMessage('اختر بديلاً أو اكتب اسمه'); return false; } return v; } });
+    if (!a.isConfirmed) return;
+    delete rxNa[id + '_' + k]; const sub = a.value;
+    rxApply(id, ps => { ps.is[k] = { s: 'sub', sub }; if (ps.st === 'new' || ps.st === 'saved') ps.st = 'prep'; rxMsg(ps, 'sub', 'تم توفير بديل عن «' + it.n + '»: «' + sub + '»'); });
+}
 async function rxItem(id, k, s) {
-    const r = rxRaw.find(x => x.id === id); if (!r) return; const it = r.items[k]; let sub = '';
-    if (s === 'sub') {
-        const a = await Swal.fire({ title: 'اسم البديل', input: 'text', inputPlaceholder: 'اسم الدواء البديل', showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38', inputValidator: v => (v || '').trim() ? null : 'اكتب اسم البديل' });
-        if (!a.isConfirmed) return; sub = a.value.trim();
-    }
+    const r = rxRaw.find(x => x.id === id); if (!r) return; const it = r.items[k];
+    delete rxNa[id + '_' + k];
     rxApply(id, (ps) => {
-        ps.is[k] = s === 'sub' ? { s, sub } : { s };
-        if (ps.st === 'new') { ps.st = 'prep'; }
-        rxMsg(ps, s, s === 'ok' ? 'تم تجهيز «' + it.n + '»' : s === 'no' ? 'لم يُجهَّز «' + it.n + '» لعدم توفره' : 'تم تجهيز بديل عن «' + it.n + '»: «' + sub + '»');
+        ps.is[k] = { s };
+        if (ps.st === 'new' || ps.st === 'saved') { ps.st = 'prep'; }
+        rxMsg(ps, s, s === 'ok' ? 'تم تجهيز «' + it.n + '»' : 'لا يوجد بديل لـ «' + it.n + '» وهو غير متوفر');
     });
 }
+// الزر الرئيسي: يقدّم الوصفة مرحلة واحدة (تجهيز ← جاهزة ← تم التسليم)
+function rxAdvance(id) {
+    const r = rxRaw.find(x => x.id === id); if (!r) return; const st = rxSt(r);
+    if (st === 'ready') { rxSetSt(id, 'done'); return; }
+    const pend = rxPendingN(r); if (pend) { rxToast('حدّد حالة الأدوية غير المحسومة أولاً'); return; }
+    rxApply(id, (ps, rr) => {
+        rr.items.forEach((it, k) => { if (!ps.is[k]) ps.is[k] = { s: 'ok' }; });
+        const lack = rr.items.filter((it, k) => ps.is[k].s === 'no').map(it => it.n);
+        ps.st = 'ready'; rxMsg(ps, 'ready', 'الوصفة ' + rr.num + ' جاهزة للاستلام' + (lack.length ? ' (غير متوفر: ' + lack.join('، ') + ')' : ''));
+    });
+}
+// عند فتح وصفة جديدة: تُرسل تلقائياً أنها استُلمت وقيد التجهيز
+function rxAutoPrep(id) {
+    const r = rxRaw.find(x => x.id === id); if (!r || r.arch || r.silent || (r.st && r.st !== 'new')) return;
+    rxApply(id, (ps, rr) => { if (ps.st !== 'new') return; ps.st = 'prep'; rxMsg(ps, 'prep', 'تم استلام الوصفة ' + rr.num + ' وهي قيد التجهيز'); });
+}
+function rxQuick(id, b) { const t = b.dataset.t; rxApply(id, ps => rxMsg(ps, 'msg', 'رد الصيدلية: ' + t)); }
 async function rxReply(id) {
     const i = document.getElementById('rxMsg'), t = i ? i.value.trim() : ''; if (!t) return;
     if (await rxApply(id, ps => rxMsg(ps, 'msg', 'رد الصيدلية: ' + t))) { /* تم */ }

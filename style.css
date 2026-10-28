@@ -3101,3 +3101,25 @@ html.lk, html.lk body { overflow: hidden; }
 .nav-tab:active, .bill-tabs button:active, .al-tabs button:active { transform: translateY(2px) scale(.97); }
 .nav-tab.active, .bill-tabs button.active, .al-tabs button.on { animation: tabDip .32s cubic-bezier(.3, 1.5, .5, 1); }
 @keyframes tabDip { 0% { transform: translateY(-3px); } 55% { transform: translateY(3px); } 100% { transform: none; } }
+
+/* وصفة الطبيب عند الصيدلي: سطر لكل دواء وزر رئيسي واحد */
+.rx-i2 { padding: 10px 12px; }
+.rxi-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.rxi-nm { min-width: 0; } .rxi-nm b { display: block; font-size: .92rem; overflow-wrap: anywhere; } .rxi-nm small { display: block; color: #64748b; font-size: .74rem; margin-top: 2px; }
+.rxi-chip { flex: 0 0 auto; border: 0; border-radius: 999px; padding: 6px 12px; font-weight: 800; font-size: .74rem; font-family: inherit; max-width: 46%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.rxi-chip { cursor: pointer; }
+.rxi-chip.ok { background: #dcfce7; color: #15803d; } .rxi-chip.no { background: #fee2e2; color: #b91c1c; } .rxi-chip.sub { background: #fef3c7; color: #b45309; } .rxi-chip.unk { background: #f1f5f9; color: #64748b; }
+.rxi-ac { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.rxi-ac button { min-height: 42px; border-radius: 11px; border: 1.5px solid #cbd5e1; background: #fff; color: #0f1c38; font-weight: 800; font-size: .8rem; font-family: inherit; cursor: pointer; }
+.rxi-ac .ok { background: #16a34a; border-color: #16a34a; color: #fff; } .rxi-ac .no { background: #fff; border-color: #dc2626; color: #dc2626; } .rxi-ac .sub { background: #d97706; border-color: #d97706; color: #fff; }
+.rx-rpl summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: .86rem; } .rx-rpl summary::-webkit-details-marker { display: none; }
+.rx-qr { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; } .rx-qr button { border: 1.5px solid #ddd6fe; background: #f5f3ff; color: #6d28d9; border-radius: 999px; padding: 7px 12px; font-weight: 800; font-size: .74rem; font-family: inherit; cursor: pointer; }
+.rx-mainw { margin-top: 12px; display: grid; gap: 6px; }
+.rx-main { width: 100%; min-height: 54px; border: 0; border-radius: 16px; background: #16a34a; color: #fff; font-weight: 800; font-size: 1rem; font-family: inherit; cursor: pointer; box-shadow: 0 8px 20px rgba(22, 163, 74, .3); }
+.rx-main.wait { background: #94a3b8; box-shadow: none; } .rx-main.done { display: grid; place-items: center; background: #e2e8f0; color: #475569; box-shadow: none; cursor: default; }
+.rx-lk { border: 0; background: transparent; color: #64748b; font-weight: 700; font-size: .76rem; font-family: inherit; cursor: pointer; padding: 6px; text-decoration: underline; }
+.rx-ibs { display: flex; justify-content: center; gap: 10px; margin-top: 12px; }
+.rx-ib { width: 46px; height: 46px; border-radius: 14px; border: 1.5px solid #cbd5e1; background: #fff; color: #0f1c38; display: grid; place-items: center; cursor: pointer; } .rx-ib.d { color: #dc2626; } .rx-ib.wa { color: #128c4a; }
+.rx-alt { display: grid; gap: 8px; text-align: left; } .rx-alt p { margin: 0; font-size: .85rem; color: #64748b; text-align: center; }
+.rx-alt button { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 1.5px solid #cbd5e1; background: #fff; border-radius: 12px; padding: 10px 12px; font-weight: 800; font-size: .86rem; font-family: inherit; cursor: pointer; } .rx-alt button small { color: #b45309; font-weight: 800; }
+[data-theme="dark"] .rxi-ac button, [data-theme="dark"] .rx-ib, [data-theme="dark"] .rx-alt button { background: #1e293b; color: #e2e8f0; border-color: #334155; }
