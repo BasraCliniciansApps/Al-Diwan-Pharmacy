@@ -482,11 +482,11 @@
             </div>
             <div class="bc-video-wrap"><video id="bcVideo" playsinline muted></video><div class="bc-frame"></div></div>
             <div id="bcStatus" class="bc-status"></div>
-            <div class="bc-manual">
+            <div class="bc-manual" id="bcManualRow">
                 <input type="text" id="bcManual" dir="ltr" inputmode="numeric" placeholder="أو اكتب رقم الباركود" onkeydown="if(event.key==='Enter'){event.preventDefault();submitManualBarcode();}">
                 <button type="button" class="icon-btn" onclick="submitManualBarcode()">بحث</button>
             </div>
-            <button type="button" class="icon-btn bc-photo" id="bcSearchBtn" style="display:none;" onclick="scManual()">⌨ بحث يدوي بالاسم</button>
+            <div id="bcSearchBox" style="display:none;"><input type="search" id="bcName" class="bill-list-search" placeholder="بحث يدوي (اكتب اسم المادة)" autocomplete="off" oninput="scModalSearch(this.value)"><div id="bcRes" class="sc-reslist"></div></div>
             <label class="icon-btn bc-photo" for="bcPhoto">🖼️ قراءة من صورة</label>
             <input type="file" id="bcPhoto" accept="image/*" capture="environment" hidden onchange="barcodeFromPhoto(event)">
         </div>
