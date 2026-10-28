@@ -147,7 +147,7 @@ function renderInvoiceRows() {
             return `
             <tr>
                 <td class="c-n">${i + 1}</td>
-                <td class="c-name"><textarea rows="1" dir="auto" oninput="billItemEdit(${i}, 'name', this.value); autoGrow(this)">${escapeHtml(it.name)}</textarea>${unitSel}</td>
+                <td class="c-name"><textarea rows="1" dir="auto" oninput="billItemEdit(${i}, 'name', this.value); autoGrow(this)">${escapeHtml(it.name)}</textarea>${it.exp ? `<small class="bill-exp">📅 ${escapeHtml(it.exp)}</small>` : ''}${unitSel}${it.pid && typeof spOpen === 'function' ? `<button type="button" class="bill-bt no-print" onclick="spOpen(${it.pid}, { edit: true })">📅 الدفعات والسعر</button>` : ''}</td>
                 <td class="c-qty has-pv"><div class="bill-stepper"><button type="button" class="bill-step" onclick="billStep(${i}, -1)" aria-label="إنقاص">−</button><input type="number" inputmode="numeric" min="0" step="1" value="${escapeHtml(String(it.qty))}" oninput="billItemEdit(${i}, 'qty', this.value)"><button type="button" class="bill-step" onclick="billStep(${i}, 1)" aria-label="زيادة">+</button></div><span class="bill-pv" id="billQv${i}"></span></td>
                 <td class="c-price has-pv"><input type="number" inputmode="decimal" min="0" value="${escapeHtml(String(it.price))}" oninput="billItemEdit(${i}, 'price', this.value)"><span class="bill-pv" id="billPv${i}"></span></td>
                 <td class="c-sum" id="billSum${i}">0</td>
@@ -176,7 +176,7 @@ function billAddBlank() { bill.items.push({ name: '', qty: 1, price: '', unit: '
 function billAddProduct(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
-    const existing = bill.items.find(it => it.pid === id && it.unit !== 'part');
+    const existing = bill.items.find(it => it.pid === id && it.unit !== 'part' && !it.exp);
     if (existing) existing.qty = (parseFloat(existing.qty) || 0) + 1;
     else bill.items.push({ pid: id, name: p.name, qty: 1, price: p.price || '', unit: 'pack' });
     $b('billSearch').value = ''; $b('billResults').style.display = 'none';
@@ -206,7 +206,7 @@ function billSearchEnter() {
     const code = cleanBarcode(raw);
     if (code && code.length >= 4 && /\d/.test(code)) {
         const p = findByBarcode(code);
-        if (p) { billAddProduct(p.id); return; }
+        if (p) { if (typeof spOpen === 'function') { $b('billSearch').value = ''; $b('billResults').style.display = 'none'; spOpen(p.id, { scan: true }); } else billAddProduct(p.id); return; }
     }
     if (billFound.length) billAddProduct(billFound[0].id);
 }
@@ -214,6 +214,7 @@ function billScan() { openBarcodeScanner(billAddByBarcode); }
 function billAddByBarcode(code) {
     const p = findByBarcode(code);
     if (!p) { offerUnknownBarcode(code, p2 => billAddProduct(p2.id), { onNew: c => { openFormModal(); formBarcodes = [cleanBarcode(c)]; renderBarcodeChips(); } }); return; }
+    if (typeof spOpen === 'function') { spOpen(p.id, { scan: true }); return; }
     billAddProduct(p.id);
     Swal.fire({ icon: 'success', title: 'أُضيف: ' + p.name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1200 });
 }
@@ -320,15 +321,33 @@ function billPlan() {
         const p = itemProduct(it); const n = parseFloat(it.qty) || 0;
         if (!p || n <= 0 || setupSkip(p)) return;   // وضع التأسيس: المادة غير المجرودة لا يُخصم منها
         let e = map.get(p.id);
-        if (!e) { e = { p, from: { qty: parseInt(p.qty) || 0, loose: parseInt(p.loose) || 0 }, to: null, short: false, lines: [] }; e.to = { ...e.from }; map.set(p.id, e); }
+        if (!e) { e = { p, from: { qty: parseInt(p.qty) || 0, loose: parseInt(p.loose) || 0 }, to: null, short: false, lines: [], hints: [], bat: getBatches(p).map(b => ({ e: b.e, u: b.q * btSc(p) + b.l })), track: !!p.bt || !getBatches(p).some(b => b.legacy) }; e.to = { ...e.from }; map.set(p.id, e); }
         const unit = it.unit === 'part' && hasRetail(p) ? 'part' : 'pack';
         const sc = subCountOf(p);
         const avail = unit === 'part' ? e.to.qty * sc + e.to.loose : e.to.qty;
         if (avail < n) e.short = true;
         e.to = stockAfterSale({ ...p, qty: e.to.qty, loose: e.to.loose }, n, unit);
-        e.lines.push({ pid: p.id, unit, n });
+        billAllocate(e, p, unit, n, it.exp).forEach(a => {   // توزيع الكمية على الدفعات: الدفعة المحددة أولاً ثم الأقرب نفاذاً
+            e.lines.push({ pid: p.id, unit, n: a.n, exp: a.e, ...(a.over ? { over: true } : {}) });
+            if (e.track && !a.over) e.hints.push({ e: a.e, q: unit === 'pack' ? -a.n : 0, l: unit === 'part' ? -a.n : 0 });
+        });
     });
     return [...map.values()];
+}
+function billExpired(e) { if (!e) return false; const d = typeof expiryDaysOf === 'function' ? expiryDaysOf(e) : null; return d !== null && d <= 0; }
+function billAllocate(en, p, unit, n, prefer) {   // يرجع [{e, n}]؛ المنتهية لا تُباع (ما لا يُغطّى يُعدّ زائداً over)
+    const sc = btSc(p), per = unit === 'part' ? 1 : sc, out = [];
+    const rank = b => (prefer && b.e === prefer ? 0 : 1) * 10 + (billExpired(b.e) ? 3 : (b.e ? 0 : 1));
+    const order = en.bat.slice().sort((a, b) => rank(a) - rank(b) || String(a.e).localeCompare(String(b.e)));
+    let need = n;
+    for (const b of order) {
+        if (need <= 0) break;
+        if (billExpired(b.e)) continue;
+        const avail = Math.floor(b.u / per), take = Math.min(need, avail);
+        if (take > 0) { b.u -= take * per; need -= take; out.push({ e: b.e, n: take }); }
+    }
+    if (need > 0) out.push({ e: '', n: need, over: true });
+    return out;
 }
 function stockTxt(p, s) { return hasRetail(p) && s.loose ? `${s.qty}+${s.loose}` : String(s.qty); }
 
@@ -337,6 +356,7 @@ async function issueInvoice(doPrintAfter) {   // true/undefined: إصدار وط
     readInvoiceFields();
     if (bill.issued) { printInvoice(); return; }
     if (!bill.items.length) { printInvoice(); return; }
+    if (billHasExpired()) return;
     const t = billTotals();
     const deduct = bill.deduct !== false;
     const plan = deduct ? billPlan() : [];
@@ -355,9 +375,9 @@ async function issueInvoice(doPrintAfter) {   // true/undefined: إصدار وط
     let lines = [];
     if (deduct && plan.length) {
         if (!writesAllowed()) return;
-        plan.forEach(e => { e.p.qty = e.to.qty; e.p.loose = e.to.loose; });
+        plan.forEach(e => { e.p.qty = e.to.qty; e.p.loose = e.to.loose; e.p._badd = (e.p._badd || []).concat(e.hints); });
         const ok = await saveProductsDelta(plan.map(e => ({ p: e.p, dq: e.to.qty - e.from.qty, dl: e.to.loose - e.from.loose })));
-        if (!ok) { plan.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; }); renderAll(); return; }
+        if (!ok) { plan.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; delete e.p._badd; }); renderAll(); return; }
         plan.forEach(e => { logAction('qty', e.p, [{ f: 'الكمية (فاتورة ' + bill.no + ')', from: stockTxt(e.p, e.from), to: stockTxt(e.p, e.to) }]); lines = lines.concat(e.lines); });
         renderAll();
     }
@@ -371,6 +391,12 @@ async function issueInvoice(doPrintAfter) {   // true/undefined: إصدار وط
     if (doPrintAfter === false) Swal.fire({ icon: 'success', title: 'صدرت الفاتورة ' + bill.no, toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     else printInvoice();
 }
+function billHasExpired() {   // بيع دفعة منتهية ممنوع نهائياً
+    const bad = bill.items.filter(it => it.exp && billExpired(it.exp));
+    if (!bad.length) return false;
+    Swal.fire({ icon: 'error', title: 'دفعة منتهية الصلاحية', html: 'لا يمكن بيع دفعة منتهية:<br>' + bad.map(it => escapeHtml(it.name) + ' (' + escapeHtml(it.exp) + ')').join('<br>') + '<br><small>احذف السطر أو غيّر الدفعة.</small>', confirmButtonColor: '#0f1c38' });
+    return true;
+}
 function billSnapCosts() {   // سعر الشراء وقت الإصدار (لحساب الربح لاحقاً)
     bill.items.forEach(it => { const p = itemProduct(it); const c = p ? parseFloat(p.costPrice) || 0 : 0; if (c > 0) { const sc = subCountOf(p); it.cost = it.unit === 'part' && hasRetail(p) ? c / sc : c; } else delete it.cost; });
 }
@@ -382,6 +408,7 @@ function restoreDeducted(lines, snap) {
         const p = products.find(x => x.id === l.pid); if (!p) return; snap(p);
         if (l.unit === 'part' && hasRetail(p)) { const tot = totalParts(p) + l.n, sc = subCountOf(p); p.qty = Math.floor(tot / sc); p.loose = tot % sc; }
         else p.qty = (parseInt(p.qty) || 0) + l.n;
+        if (l.exp !== undefined && !l.over && (p.bt || !getBatches(p).some(b => b.legacy))) p._badd = (p._badd || []).concat([{ e: l.exp, q: l.unit === 'part' ? 0 : l.n, l: l.unit === 'part' ? l.n : 0 }]);   // يرجع للدفعة نفسها
     });
 }
 function editIssuedInvoice() {
@@ -403,6 +430,7 @@ async function saveInvoiceEdit(doPrintAfter) {
     if (!bill || !bill.issued || !bill.editing) return;
     readInvoiceFields();
     if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'لا يمكن حفظ فاتورة بلا مواد. استعمل «إلغاء الفاتورة» بدلاً من ذلك.', confirmButtonColor: '#0f1c38' }); return; }
+    if (billHasExpired()) return;
     const old = billEditBase || bill;
     const hadDeduct = !!old.deducted;
     const snaps = new Map(), snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose }); };
@@ -414,11 +442,11 @@ async function saveInvoiceEdit(doPrintAfter) {
     }
     const short = plan.filter(e => e.short);
     const r = await Swal.fire({ icon: 'question', title: 'حفظ تعديل الفاتورة ' + escapeHtml(bill.no) + '؟', html: `المبلغ الكلي: <b>${fmtNum(billTotals().total)} د.ع</b>` + (hadDeduct ? '<br>سيُصحَّح المخزن بالفرق عن الفاتورة السابقة.' : '') + (short.length ? `<div style="margin-top:10px;color:#b45309;font-weight:700;font-size:.85rem;">⚠️ كميات غير كافية:<br>${short.map(e => escapeHtml(e.p.name) + ' (المتوفر ' + stockLabel(e.p) + ')').join('<br>')}</div>` : ''), showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'رجوع' });
-    const rollback = () => { snaps.forEach(s => { s.p.qty = s.qty; s.p.loose = s.loose; }); };
+    const rollback = () => { snaps.forEach(s => { s.p.qty = s.qty; s.p.loose = s.loose; delete s.p._badd; }); };
     if (!r.isConfirmed) { rollback(); return; }
     if (hadDeduct) {
         if (!writesAllowed()) { rollback(); return; }
-        plan.forEach(e => { e.p.qty = e.to.qty; e.p.loose = e.to.loose; lines = lines.concat(e.lines); });
+        plan.forEach(e => { e.p.qty = e.to.qty; e.p.loose = e.to.loose; lines = lines.concat(e.lines); e.p._badd = (e.p._badd || []).concat(e.hints); });
         const ok = await saveProductsDelta([...snaps.values()].map(s => ({ p: s.p, dq: (parseInt(s.p.qty) || 0) - (parseInt(s.qty) || 0), dl: (parseInt(s.p.loose) || 0) - (parseInt(s.loose) || 0) })));
         if (!ok) { rollback(); renderAll(); return; }
         snaps.forEach(s => { const from = { qty: parseInt(s.qty) || 0, loose: parseInt(s.loose) || 0 }, to = { qty: parseInt(s.p.qty) || 0, loose: parseInt(s.p.loose) || 0 }; if (from.qty !== to.qty || from.loose !== to.loose) logAction('qty', s.p, [{ f: 'الكمية (تعديل فاتورة ' + bill.no + ')', from: stockTxt(s.p, from), to: stockTxt(s.p, to) }]); });
@@ -455,9 +483,10 @@ async function cancelInvoice(target) {
                 const tot = totalParts(p) + l.n, sc = subCountOf(p);
                 p.qty = Math.floor(tot / sc); p.loose = tot % sc;
             } else p.qty = (parseInt(p.qty) || 0) + l.n;
+            if (l.exp !== undefined && !l.over && (p.bt || !getBatches(p).some(x => x.legacy))) p._badd = (p._badd || []).concat([{ e: l.exp, q: l.unit === 'part' ? 0 : l.n, l: l.unit === 'part' ? l.n : 0 }]);
         });
         const ok = await saveProductsDelta([...touched.values()].map(e => ({ p: e.p, dq: (parseInt(e.p.qty) || 0) - e.from.qty, dl: (parseInt(e.p.loose) || 0) - e.from.loose })));
-        if (!ok) { touched.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; }); renderAll(); return; }
+        if (!ok) { touched.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; delete e.p._badd; }); renderAll(); return; }
         touched.forEach(e => logAction('qty', e.p, [{ f: 'الكمية (إلغاء فاتورة ' + b.no + ')', from: stockTxt(e.p, e.from), to: stockTxt(e.p, { qty: parseInt(e.p.qty) || 0, loose: parseInt(e.p.loose) || 0 }) }]));
         renderAll();
     }

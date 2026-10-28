@@ -2060,7 +2060,9 @@ function getBatches(p, o) {
     const target = unitsOf(p.qty, p.loose);
     let list = [];
     if (p.bt && typeof p.bt === 'object') {
-        Object.keys(p.bt).forEach(k => { const b = p.bt[k] || {}, u = unitsOf(b.q, b.l); if (u > 0) list.push({ e: btDate(k), u }); });
+        const um = {}; Object.keys(p.bt).forEach(k => { const b = p.bt[k] || {}; um[k] = unitsOf(b.q, b.l); });
+        if (Array.isArray(p._badd)) p._badd.forEach(h => { const k = btKey(h.e); um[k] = Math.max(0, (um[k] || 0) + (parseInt(h.q) || 0) * sc + (sc > 1 ? (parseInt(h.l) || 0) : (parseInt(h.l) || 0) * 0)); });   // تلميحات معلّقة (وارد/فاتورة) بالوحدات
+        Object.keys(um).forEach(k => { if (um[k] > 0) list.push({ e: btDate(k), u: um[k] }); });
     } else {
         const ds = getProductExpiryDates(p);
         return target > 0 ? [{ e: ds.length === 1 ? ds[0] : '', q: parseInt(p.qty) || 0, l: sc > 1 ? (parseInt(p.loose) || 0) : 0, legacy: ds.length > 1 ? ds : null }] : [];
@@ -2085,7 +2087,7 @@ function btPrepare(e) {
     delete p._badd;
     if (!p.bt && !hint && !e.btSet) return;
     if (!p.bt) p.bt = btFromArr(getBatches({ qty: cur.qty, loose: cur.loose, subCount: p.subCount, expiryDates: cur.expiryDates, expiryDate: cur.expiryDate }));
-    if (hint) hint.forEach(h => { const k = btKey(h.e), b = p.bt[k] || (p.bt[k] = { q: 0, l: 0 }); b.q = Math.max(0, (parseInt(b.q) || 0) + (parseInt(h.q) || 0)); b.l = Math.max(0, (parseInt(b.l) || 0) + (parseInt(h.l) || 0)); });
+    if (hint) { const sc = btSc(p); hint.forEach(h => { const k = btKey(h.e), b = p.bt[k] || (p.bt[k] = { q: 0, l: 0 }); const u = Math.max(0, (parseInt(b.q) || 0) * sc + (sc > 1 ? (parseInt(b.l) || 0) : 0) + (parseInt(h.q) || 0) * sc + (sc > 1 ? (parseInt(h.l) || 0) : 0)); b.q = Math.floor(u / sc); b.l = sc > 1 ? u % sc : 0; }); }
     (e.expRemove || []).forEach(d => { delete p.bt[btKey(d)]; });
     const arr = getBatches(p, { surplusTo: (e.expAdd || [])[0] });
     btApply(p, arr);
