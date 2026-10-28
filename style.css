@@ -3027,3 +3027,6 @@ body.doc-open #formModal { z-index: 9200; } body.doc-open .swal2-container { z-i
 .al-tabs .ph.on { background: #fff7ed; border-color: #d97706; color: #9a3412; box-shadow: 0 0 0 3px rgba(217, 119, 6, .15); }
 .al-tabs .dr.on { background: #f0fdfa; border-color: #0d9488; color: #0f766e; box-shadow: 0 0 0 3px rgba(13, 148, 136, .15); }
 [data-theme="dark"] .al-tabs button { background: #1e293b; color: #e2e8f0; border-color: #334155; } [data-theme="dark"] .al-tabs .ph.on { background: #3a2410; color: #fdba74; } [data-theme="dark"] .al-tabs .dr.on { background: #0b2e2a; color: #5eead4; }
+
+.cat-doneT { background: #dcfce7; color: #15803d; }
+[data-theme="dark"] .cat-doneT { background: #14352a; color: #86efac; }

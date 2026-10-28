@@ -2669,6 +2669,7 @@ async function saveProductsDelta(entries) {
             const batch = db.batch();
             entries.slice(i, i + 15).forEach(e => {
                 if (e.mark && can('stockEdit')) e.p.counted = true;   // ضبط العدد يدوياً = المادة صارت مجرودة
+                if (e.unmark && can('stockEdit')) e.p.counted = false;   // التراجع عن اعتماد الرصيد
                 const { pub, stock, cost } = splitProduct(e.p);
                 if (can('stockEdit')) batch.set(db.collection('pharmacy_products').doc(String(e.p.id)), pub);
                 else batch.update(db.collection('pharmacy_products').doc(String(e.p.id)), { inStock: pub.inStock });   // البائع يحدّث حالة التوفر فقط
@@ -2680,6 +2681,7 @@ async function saveProductsDelta(entries) {
                 if (e.dq) u.qty = F.increment(e.dq);
                 if (e.dl) u.loose = F.increment(e.dl);
                 if (e.mark && can('stockEdit')) u.counted = true;
+                if (e.unmark && can('stockEdit')) u.counted = false;
                 if (!costSplitOn) { if (e.cost !== undefined) u.costPrice = e.cost; if (e.lastSet) u.lastPurchase = e.last; }
                 if (e.expChanged) {
                     if (e.expAdd.length && !e.expRemove.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayUnion(...e.expAdd);

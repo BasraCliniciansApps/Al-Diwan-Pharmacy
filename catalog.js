@@ -17,6 +17,13 @@ async function catConfirm(id) {   // اعتماد الرصيد الحالي لل
     const ok = await saveProductsDelta([{ p, dq: 0, dl: 0, mark: true }]);
     if (ok) { logAction('qty', p, [{ f: 'اعتماد الرصيد كمجرود (وضع التأسيس)', from: stockLabel(p), to: stockLabel(p) }]); renderCatalog(); }
 }
+async function catUnconfirm(id) {   // التراجع عن اعتماد الرصيد: ترجع المادة «لم تُجرد» وتبقى كميتها
+    const p = products.find(x => x.id === id); if (!p || !writesAllowed() || !can('stockEdit')) return;
+    const r = await Swal.fire({ icon: 'question', title: 'إلغاء اعتماد الرصيد؟', html: 'ستعود المادة «' + escapeHtml(p.name) + '» إلى حالة «لم تُجرد» وتبقى كميتها كما هي.', showCancelButton: true, confirmButtonText: 'نعم، إلغاء الاعتماد', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38' });
+    if (!r.isConfirmed) return;
+    const ok = await saveProductsDelta([{ p, dq: 0, dl: 0, unmark: true }]);
+    if (ok) { logAction('qty', p, [{ f: 'إلغاء اعتماد الرصيد (وضع التأسيس)', from: stockLabel(p), to: stockLabel(p) }]); renderCatalog(); }
+}
 function catInput() { catQ = (document.getElementById('catSearch') || {}).value || ''; renderCatalog(); }
 function renderCatalog() {
     const box = document.getElementById('catList'); if (!box) return;
@@ -41,7 +48,7 @@ function renderCatalog() {
     box.innerHTML = part.map(p => {
         const n = barcodesOf(p).length, meta = [p.brand, fixMetaOrder(p.meta || '')].filter(Boolean).join(' · ');
         return `<div class="cat-row"><span class="cat-n">${rank.get(p.id)}</span>
-            <div class="cat-main" onclick="catPrice(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b>${p.incomplete ? '<span class="cat-uncT" style="background:#e0e7ff;color:#3730a3" title="أُضيفت من الوارد بدون تفاصيل">ناقصة</span>' : ''}${setupMode && p.counted !== true ? `<span class="cat-uncT" onclick="event.stopPropagation();catConfirm(${p.id})" title="اضغط لاعتماد الرصيد الحالي كمجرود">لم تُجرد ✓</span>` : ''}<small dir="ltr">${escapeHtml(meta) || '—'}</small></div>
+            <div class="cat-main" onclick="catPrice(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b>${p.incomplete ? '<span class="cat-uncT" style="background:#e0e7ff;color:#3730a3" title="أُضيفت من الوارد بدون تفاصيل">ناقصة</span>' : ''}${setupMode && p.counted !== true ? `<span class="cat-uncT" onclick="event.stopPropagation();catConfirm(${p.id})" title="اضغط لاعتماد الرصيد الحالي كمجرود">لم تُجرد ✓</span>` : ''}${setupMode && p.counted === true && can('stockEdit') ? `<span class="cat-uncT cat-doneT" onclick="event.stopPropagation();catUnconfirm(${p.id})" title="اضغط للتراجع عن اعتماد الرصيد">✓ مجرودة</span>` : ''}<small dir="ltr">${escapeHtml(meta) || '—'}</small></div>
             <button type="button" class="cat-btn cat-merge" onclick="catMergeStart(${p.id})" title="ضم لمادة أخرى">⇄<small>ضم</small></button>
             <button type="button" class="cat-btn cat-bc ${n ? 'has' : 'none'}" onclick="catBarcode(${p.id})" title="${n ? n + ' باركود' : 'بلا باركود'}">▦<small>${n ? n : 'ربط'}</small></button>
             <div class="cat-sub">
