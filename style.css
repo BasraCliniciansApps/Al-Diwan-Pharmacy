@@ -2983,3 +2983,7 @@ body.doc-open .sheet-backdrop { z-index: 9100; backdrop-filter: blur(8px); backg
 .dc-drop { display: flex; flex-direction: column; gap: 8px; }
 .dc-link2 { flex-wrap: wrap; } .dc-link2 .home-quick-link:nth-child(3) { flex: 1 1 100%; }
 body.doc-open #formModal { z-index: 9200; } body.doc-open .swal2-container { z-index: 9500; }
+
+.dc-nm .dc-ai { display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.5; }
+.dc-nm .dc-pr { color: #a85d08 !important; font-weight: 800; font-size: .8rem !important; }
+[data-theme="dark"] .dc-nm .dc-pr { color: #f9a825 !important; }

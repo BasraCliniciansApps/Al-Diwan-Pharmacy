@@ -177,7 +177,7 @@ function docRenderList() {
         const id = String(p.id), it = docData.items[id], sel = !!it, st = it ? docEff({ ...it, ...docSnap(p) }, docData.cfg) : '';
         return `<div class="dc-row ${sel ? 'on' : ''}">
             <button type="button" class="sel-ck ${sel ? 'on' : ''}" onclick="docToggle('${id}')" aria-label="تحديد">${sel ? '✓' : ''}</button>
-            <div class="dc-nm" onclick="docDetail('${id}')" role="button"><b dir="auto">${docEsc(p.name)}</b><small>${p.price ? fmtNum(p.price) + ' د.ع' : 'بلا سعر'}${p.activeIngredient ? ' · ' + docEsc(p.activeIngredient) : ''}</small>${p.brand && String(p.brand).trim().toUpperCase() !== 'GENERIC' ? `<small class="dc-co">${docEsc(String(p.brand).trim())}</small>` : ''}</div>
+            <div class="dc-nm" onclick="docDetail('${id}')" role="button"><b dir="auto">${docEsc(p.name)}</b>${p.brand && String(p.brand).trim().toUpperCase() !== 'GENERIC' ? `<small class="dc-co">${docEsc(String(p.brand).trim())}</small>` : ''}${p.activeIngredient ? `<small class="dc-ai" dir="auto">${docEsc(p.activeIngredient)}</small>` : ''}<small class="dc-pr">${p.price ? fmtNum(p.price) + ' د.ع' : 'بلا سعر'}</small></div>
             ${sel ? `<span class="dc-dot ${st}" title="${DOC_ST[st]}"></span>` : ''}
             <select class="dc-st" ${sel ? '' : 'disabled'} onchange="docSetSt('${id}',this.value)">${Object.keys(DOC_ST).map(k => `<option value="${k}" ${it && it.s === k ? 'selected' : ''}>${DOC_ST[k]}</option>`).join('')}</select>
             ${sel ? `<input type="text" class="dc-note" maxlength="80" placeholder="ملاحظة للطبيب (اختياري): مثل يُحفظ في الثلاجة" value="${docEsc(it.nt || '')}" onchange="docSetNote('${id}',this.value)">` : ''}
