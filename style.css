@@ -2937,3 +2937,8 @@ body.no-bnav { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 .da-x { flex: 0 0 auto; border: 1px solid #cbd5e1; background: #fff; color: #b91c1c; border-radius: 10px; width: 34px; height: 34px; cursor: pointer; font-size: .9rem; }
 .da-more { text-align: center; color: #0f766e; font-size: .76rem; padding-top: 8px; }
 [data-theme="dark"] .da-card { background: #0f2a2a; border-color: #115e59; } [data-theme="dark"] .da-row { background: #14202a; border-color: #134e4a; } [data-theme="dark"] .da-row b { color: #e2e8f0; } [data-theme="dark"] .da-x { background: #1e293b; border-color: #334155; }
+/* إصلاح: الرابط الطويل كان يوسّع البطاقة ويخرج المفاتيح خارج الشاشة */
+.dc-card { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.dh-body > * { min-width: 0; max-width: 100%; }
+.dc-link span { flex: 1 1 0; width: 0; min-width: 0; }
+.dc-link button { flex: 0 0 auto; }
