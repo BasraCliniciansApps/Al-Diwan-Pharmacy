@@ -3140,3 +3140,7 @@ body.role-staff:not(.can-scan) .home-sq, body.sc-off .home-sq { grid-template-co
 .dr-btn.b1 { background: linear-gradient(150deg, #1e3a8a, #2563eb); } .dr-btn.b2 { background: linear-gradient(150deg, #065f46, #10b981); }
 .dr-btn.b3 { background: linear-gradient(150deg, #475569, #64748b); } .dr-btn.b4 { background: linear-gradient(150deg, #9a3412, #f97316); }
 #drHub { z-index: 8900; }
+
+#scanView.sc-ov { position: fixed; inset: 0; z-index: 8800; background: var(--bg, #f1f5f9); display: none; flex-direction: column; direction: rtl; }
+.sc-ovb { flex: 1; overflow-y: auto; padding: 14px 10px calc(30px + env(safe-area-inset-bottom)); overscroll-behavior: contain; }
+body.sc-open .modal-overlay#barcodeModal { z-index: 9300; }

@@ -45,7 +45,7 @@ function scBuyLines(p) {
 // ---- الشاشة ----
 let scCur = null;
 const scE = id => document.getElementById(id);
-function scInit() { scApplyHome(); const q = scE('scQ'); if (q) { q.value = ''; } scList([]); scCur = null; scE('scCard').innerHTML = '<div class="sc-hint">امسح باركود المادة أو ابحث باسمها 👆</div>'; setTimeout(() => { try { q && q.focus(); } catch (e) { /* تجاهل */ } }, 150); }
+function scInit() { scApplyHome(); const q = scE('scQ'); if (q) { q.value = ''; } scList([]); scCur = null; scE('scCard').innerHTML = '<div class="sc-hint">امسح باركود المادة أو ابحث باسمها 👆</div>'; }
 function scScan() { openBarcodeScanner(code => { const p = findByBarcode(code); if (p) { scPick(p.id); } else Swal.fire({ icon: 'info', title: 'لم يتم العثور على المادة', text: 'هذا الباركود غير مسجّل بأي مادة.', confirmButtonColor: '#0f1c38' }); }); }
 function scSearch(v) {
     const qn = normSearch(v || ''), qt = qn ? qn.split(' ') : [];
@@ -55,7 +55,7 @@ function scSearch(v) {
     if (/^\d{6,}$/.test(String(v).trim())) { const p = findByBarcode(v.trim()); if (p) scPick(p.id); }
 }
 function scList(arr) { const b = scE('scRes'); if (!b) return; b.innerHTML = arr.map(p => `<button type="button" class="sc-res" onclick="scPick(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')}</small><span>${fmtNum(p.price || 0)}</span></button>`).join(''); }
-function scPick(id) { scCur = id; scList([]); const q = scE('scQ'); if (q) q.value = ''; scRender(); window.scrollTo({ top: 0 }); }
+function scPick(id) { scCur = id; scList([]); const q = scE('scQ'); if (q) q.value = ''; scRender(); const b = document.querySelector('#scanView .sc-ovb'); if (b) b.scrollTop = 0; }
 const scFmtD = ym => { const [y, m] = String(ym).split('-'); return m ? m + '/' + y : ym; };
 function scRender() {
     const box = scE('scCard'), p = products.find(x => x.id === scCur); if (!box || !p) return;
@@ -155,20 +155,24 @@ function scSetNum(k, v) { const c = scCfg(); const n = parseFloat(v); if (n >= 0
 function scSetShow(k, v) { const c = scCfg(); c.show[k] = !!v; scSave(c); }
 document.addEventListener('DOMContentLoaded', scApplyHome);
 
-// من الرئيسية: يفتح الفاحص والكاميرا مباشرة؛ إن لم يُقرأ باركود خلال 8 ثوانٍ يتحول للبحث بالاسم
+// من الرئيسية: نافذة فوق الصفحة تفتح الكاميرا مباشرة؛ زر «بحث يدوي» أو مرور 8 ثوانٍ بلا باركود يحوّلان للبحث بالاسم في النافذة نفسها
 const SC_SCAN_WAIT_MS = 8000;
-function scGo() {
-    showView('scan');
-    setTimeout(() => {
-        let t = 0;
-        const cb = code => { clearTimeout(t); const p = findByBarcode(code); if (p) scPick(p.id); else Swal.fire({ icon: 'info', title: 'لم يتم العثور على المادة', text: 'هذا الباركود غير مسجّل بأي مادة.', confirmButtonColor: '#0f1c38' }); };
-        t = setTimeout(() => {
-            if (typeof barcodeCallback === 'undefined' || barcodeCallback !== cb) return;
-            const m = document.getElementById('bcManual'); if (m && (m.value || document.activeElement === m)) return;
-            closeBarcodeScanner();
-            const q = scE('scQ'); if (q) q.focus();
-            Swal.fire({ icon: 'info', title: 'لم يُقرأ باركود — ابحث بالاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
-        }, SC_SCAN_WAIT_MS);
-        openBarcodeScanner(cb);
-    }, 120);
+let scTimer = 0;
+function scOvEl() { return document.getElementById('scanView'); }
+function scGo() { const el = scOvEl(); scApplyHome(); el.style.display = 'flex'; document.body.classList.add('sc-open'); scInit(); scScanTimed(); }
+function scClose() { clearTimeout(scTimer); try { if (document.getElementById('barcodeModal').style.display === 'flex') closeBarcodeScanner(); } catch (e) { /* تجاهل */ } const el = scOvEl(); if (el) el.style.display = 'none'; document.body.classList.remove('sc-open'); scCur = null; }
+function scManual() { clearTimeout(scTimer); closeBarcodeScanner(); const q = scE('scQ'); if (q) setTimeout(() => q.focus(), 100); }
+function scScanTimed() {
+    clearTimeout(scTimer);
+    const cb = code => { clearTimeout(scTimer); const p = findByBarcode(code); if (p) scPick(p.id); else Swal.fire({ icon: 'info', title: 'لم يتم العثور على المادة', text: 'هذا الباركود غير مسجّل بأي مادة.', confirmButtonColor: '#0f1c38' }); };
+    scTimer = setTimeout(() => {
+        if (typeof barcodeCallback === 'undefined' || barcodeCallback !== cb) return;
+        const m = document.getElementById('bcManual'); if (m && (m.value || document.activeElement === m)) return;
+        scManual();
+        Swal.fire({ icon: 'info', title: 'لم يُقرأ باركود — ابحث بالاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    }, SC_SCAN_WAIT_MS);
+    openBarcodeScanner(cb);
+    const b = document.getElementById('bcSearchBtn'); if (b) b.style.display = '';
 }
+// عند الرجوع من البطاقة: ارجع للكاميرا ثم أغلق
+function scBack() { if (scCur) { scInit(); scScanTimed(); } else scClose(); }

@@ -4628,6 +4628,7 @@ function openBarcodeScanner(cb) {
 
 function closeBarcodeScanner() {
     stopBarcodeCamera();
+    { const sb = document.getElementById('bcSearchBtn'); if (sb) sb.style.display = 'none'; }
     document.getElementById('barcodeModal').style.display = 'none';
     barcodeCallback = null;
 }
@@ -5162,6 +5163,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         if (vis('rxHub')) { if (typeof rxCurId !== 'undefined' && rxCurId) rxBack(); else rxClose(); return true; }
         if (vis('docHub')) { docClose(); return true; }
         if (vis('drHub')) { drClose(); return true; }
+        if (vis('scanView')) { scBack(); return true; }
         if (vis('catModal')) { if (typeof shCur !== 'undefined' && shCur) shHome(true); else closeCategoryManager(); return true; }
         if (vis('loginModal')) { closeLoginModal(); return true; }
         const sb = document.getElementById('sheetBackdrop');
