@@ -2918,3 +2918,7 @@ body.no-bnav { padding-bottom: calc(24px + env(safe-area-inset-bottom)); }
 #docList { display: flex; flex-direction: column; gap: 8px; }
 [data-theme="dark"] .dc-card, [data-theme="dark"] .dc-row, [data-theme="dark"] .dc-bar input, [data-theme="dark"] .dc-fbtn, [data-theme="dark"] .dc-menu button, [data-theme="dark"] .dc-actions button, [data-theme="dark"] .dc-actions select, [data-theme="dark"] .dc-st, [data-theme="dark"] .dc-days { background: #1e293b; color: #e2e8f0; border-color: #334155; }
 [data-theme="dark"] .dc-row.on { background: #12332f; border-color: #0f766e; } [data-theme="dark"] .dc-nm b, [data-theme="dark"] .dc-count b { color: #e2e8f0; } [data-theme="dark"] .dc-link span { background: #0f172a; color: #94a3b8; }
+
+.dc-mini { flex: 0 0 auto; border: 1px solid #cbd5e1; background: #fff; color: #b91c1c; border-radius: 10px; min-width: 36px; height: 34px; padding: 0 10px; font: 800 .74rem inherit; font-family: inherit; cursor: pointer; }
+.dc-cnt { flex: 0 0 auto; min-width: 30px; text-align: center; background: #0f1c38; color: #fff; border-radius: 999px; padding: 3px 9px; font-weight: 800; font-size: .78rem; }
+[data-theme="dark"] .dc-mini { background: #1e293b; border-color: #334155; }

@@ -39,7 +39,12 @@ function docSnap(p) {
 function docSigOf(d) { return Object.keys(d.items).sort().map(id => { const p = docProd(id), x = p ? docSnap(p) : {}; return id + '|' + (x.n || '') + '|' + (x.p || 0) + '|' + x.k + '|' + d.items[id].s + '|' + d.items[id].t; }).join('~') + '|' + JSON.stringify(d.cfg); }
 async function docPublish() {
     const d = await docLoad();
-    Object.keys(d.items).forEach(id => { const p = docProd(id); if (p) Object.assign(d.items[id], docSnap(p)); });
+    Object.keys(d.items).forEach(id => {
+        const p = docProd(id), it = d.items[id]; if (!p) return;
+        const sn = docSnap(p);
+        if (it.p != null && Number(it.p) !== sn.p && sn.p) { it.pp = Number(it.p); it.pt = Date.now(); }   // تغيّر السعر (تظهر الشارة أسبوعاً)
+        Object.assign(it, sn);
+    });
     d.upd = Date.now(); d.sig = docSigOf(d);
     try { localStorage.setItem(DOC_LS, JSON.stringify(d)); } catch (e) { /* تجاهل */ }
     try { if (typeof cloudReady === 'function' && cloudReady() && userRole === 'owner') await fsSet(db.collection('pharmacy').doc('doctor'), JSON.parse(JSON.stringify(d))); } catch (e) { console.warn('docPublish', e); }
@@ -100,6 +105,7 @@ function docRender() {
             <div class="qk-row"><div><b>مدة بقاء «عاد بعد انقطاع»</b><small>بعدها تعود المادة إلى «متوفر».</small></div>
                 <select class="dc-days" onchange="docCfg('days',+this.value)">${[3, 7, 14, 30].map(n => `<option value="${n}" ${c.days === n ? 'selected' : ''}>${n} أيام</option>`).join('')}</select></div>
         </div>
+        <div class="dc-card" id="docReq"><div class="dh-note">جارٍ تحميل طلبات الأطباء…</div></div>
         <div class="dc-bar">
             <input id="docQ" type="search" placeholder="ابحث باسم المادة أو المادة الفعالة" value="${docEsc(docQ)}" oninput="docSearch(this.value)">
             <button type="button" class="dc-fbtn ${docFil !== 'all' ? 'on' : ''}" onclick="docToggleMenu()" aria-label="فلتر"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg></button>
@@ -107,7 +113,7 @@ function docRender() {
         <div id="docMenu"></div>
         <div id="docList"></div>
     </div>`;
-    docRenderMenu(); docRenderList();
+    docRenderMenu(); docRenderList(); docLoadReq();
 }
 const DOC_FILTERS = [['all', 'كل المواد'], ['sel', 'المعروضة للطبيب'], ['unsel', 'غير المعروضة'], ['ok', 'متوفر'], ['noph', 'غير متوفر بالصيدلية'], ['nosup', 'غير متوفر بالمذخر'], ['back', 'عاد بعد انقطاع']];
 function docRenderMenu() {
@@ -156,7 +162,7 @@ function docMore() { docShown += 80; docRenderList(); }
 function docCopy() { try { navigator.clipboard.writeText(docLink()); Swal.fire({ icon: 'success', title: 'تم نسخ الرابط', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 }); } catch (e) { /* تجاهل */ } }
 function docCfg(k, v) { docData.cfg[k] = v; docSaveSoon(); docRenderList(); }
 function docToggle(id) {
-    if (docData.items[id]) delete docData.items[id]; else docData.items[id] = { s: 'ok' };
+    if (docData.items[id]) delete docData.items[id]; else docData.items[id] = { s: 'ok', ad: Date.now() };
     docSaveSoon(); docRenderList();
 }
 function docSetSt(id, v) {
@@ -164,7 +170,7 @@ function docSetSt(id, v) {
     it.s = v; if (v === 'back') { it.t = Date.now(); delete it.src; delete it.pv; } else { delete it.t; delete it.src; delete it.pv; }
     docSaveSoon(); docRenderList();
 }
-function docSelAll() { docFiltered().forEach(p => { const id = String(p.id); if (!docData.items[id]) docData.items[id] = { s: 'ok' }; }); docSaveSoon(); docRenderList(); }
+function docSelAll() { docFiltered().forEach(p => { const id = String(p.id); if (!docData.items[id]) docData.items[id] = { s: 'ok', ad: Date.now() }; }); docSaveSoon(); docRenderList(); }
 async function docClearAll() {
     const ids = docFiltered().filter(p => docData.items[String(p.id)]).map(p => String(p.id));
     if (!ids.length) return;
@@ -177,3 +183,30 @@ function docBulkSet(v) {
     docSaveSoon(); docRenderList();
 }
 function docSetStQuiet(id, v) { const it = docData.items[id]; it.s = v; if (v === 'back') { it.t = Date.now(); } else delete it.t; delete it.src; delete it.pv; }
+
+// ---------- طلبات الأطباء (من «أحتاج هذه المادة» و«اطلب هذه المادة») ----------
+let docReqList = [];
+async function docLoadReq() {
+    const box = document.getElementById('docReq'); if (!box) return;
+    try {
+        if (!(typeof cloudReady === 'function' && cloudReady())) { box.innerHTML = '<div class="dh-note">طلبات الأطباء تحتاج اتصالاً بالسحابة.</div>'; return; }
+        const snap = await db.collection('pharmacy_search_misses').where('dr', '==', 1).get();
+        docReqList = []; snap.forEach(d => { const x = d.data(); docReqList.push({ id: d.id, name: x.name || '', kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
+        docReqList.sort((a, b) => b.count - a.count || String(b.at).localeCompare(String(a.at)));
+        docRenderReq();
+    } catch (e) { box.innerHTML = '<div class="dh-note">تعذر تحميل طلبات الأطباء.</div>'; }
+}
+function docRenderReq() {
+    const box = document.getElementById('docReq'); if (!box) return;
+    if (!docReqList.length) { box.innerHTML = '<div class="qk-row"><div><b>طلبات الأطباء</b><small>لا توجد طلبات بعد. تظهر هنا المواد التي يحتاجها الأطباء، مرتبة بالأكثر طلباً.</small></div></div>'; return; }
+    box.innerHTML = `<div class="qk-row"><div><b>طلبات الأطباء (${fmtNum(docReqList.length)})</b><small>مرتبة بالأكثر طلباً؛ استفد منها في قرارات الشراء.</small></div><button type="button" class="dc-mini" onclick="docReqClear()">مسح الكل</button></div>`
+        + docReqList.slice(0, 40).map(r => `<div class="qk-row"><div><b dir="auto">${docEsc(r.name)}</b><small>${r.kind === 'n' ? 'طلب توفر لمادة معروضة' : 'مادة غير موجودة في القائمة'}${r.at ? ' · ' + docEsc(String(r.at).slice(0, 10)) : ''}</small></div><span class="dc-cnt">${fmtNum(r.count)}</span><button type="button" class="dc-mini" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('');
+}
+async function docReqDel(id) {
+    if (!(await askSure('حذف هذا الطلب؟', 'سيُحذف الطلب من القائمة.', 'حذف'))) return;
+    try { await db.collection('pharmacy_search_misses').doc(id).delete(); docReqList = docReqList.filter(r => r.id !== id); docRenderReq(); } catch (e) { /* تجاهل */ }
+}
+async function docReqClear() {
+    if (!(await askSure('مسح كل طلبات الأطباء؟', 'ستُحذف ' + fmtNum(docReqList.length) + ' طلباً نهائياً.', 'مسح الكل'))) return;
+    try { for (let i = 0; i < docReqList.length; i += 400) { const b = db.batch(); docReqList.slice(i, i + 400).forEach(r => b.delete(db.collection('pharmacy_search_misses').doc(r.id))); await b.commit(); } docReqList = []; docRenderReq(); } catch (e) { /* تجاهل */ }
+}

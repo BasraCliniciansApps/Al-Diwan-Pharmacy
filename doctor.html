@@ -89,7 +89,40 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .empty svg { font-size: 2.2rem; opacity: .6; margin-bottom: 8px; } .empty b { display: block; color: var(--text); margin-bottom: 4px; }
 .sk { height: 84px; border-radius: 18px; background: linear-gradient(90deg, var(--surface) 25%, var(--surface-2) 50%, var(--surface) 75%); background-size: 200% 100%; animation: sh 1.2s infinite; border: 1px solid var(--line); }
 @keyframes sh { to { background-position: -200% 0; } }
-.foot { max-width: 760px; margin: 22px auto 0; padding: 0 20px; text-align: center; color: var(--sub); font-size: .74rem; line-height: 1.8; }
+.tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.pill { border: 1px solid var(--line); background: var(--surface); color: var(--text); border-radius: 999px; padding: 8px 14px 8px 16px; font: 800 .78rem 'Tajawal', sans-serif; display: inline-flex; align-items: center; gap: 7px; cursor: pointer; box-shadow: var(--shadow); }
+.pill svg { font-size: 1.05rem; } .pill.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+:root[data-theme="dark"] .pill.on { background: var(--gold); color: #0f1c38; border-color: var(--gold); }
+.acts { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.acts .chip { margin-inline-end: auto; }
+.ib { width: 34px; height: 34px; border-radius: 11px; border: 1px solid var(--line); background: var(--surface-2); color: var(--sub); display: grid; place-items: center; cursor: pointer; font-size: 1.05rem; }
+.ib.on { color: var(--gold-dark); background: color-mix(in srgb, var(--gold) 20%, transparent); border-color: var(--gold); }
+.ib.on svg { fill: var(--gold); }
+.need { border: 1px solid var(--c); color: var(--c); background: transparent; border-radius: 11px; padding: 0 11px; height: 34px; font: 800 .72rem 'Tajawal', sans-serif; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.need.done { opacity: .55; pointer-events: none; }
+.tag { font-size: .64rem; font-weight: 800; border-radius: 999px; padding: 2px 8px; background: color-mix(in srgb, var(--gold) 22%, transparent); color: var(--gold-dark); margin-inline-start: 6px; vertical-align: middle; white-space: nowrap; }
+:root[data-theme="dark"] .tag { color: var(--gold); }
+.alts { grid-column: 1 / -1; border-top: 1px dashed var(--line); padding-top: 8px; }
+.alts summary { cursor: pointer; font-size: .78rem; font-weight: 800; color: var(--ok); list-style: none; display: flex; align-items: center; gap: 7px; }
+.alts summary::-webkit-details-marker { display: none; } .alts summary::after { content: '‹'; margin-inline-start: auto; transition: transform .2s; font-size: 1.1rem; } .alts[open] summary::after { transform: rotate(-90deg); }
+.alt { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: .82rem; font-weight: 700; background: var(--surface-2); border-radius: 12px; padding: 9px 11px; margin-top: 6px; }
+.alt b { color: var(--gold-dark); white-space: nowrap; } :root[data-theme="dark"] .alt b { color: var(--gold); }
+.noalt { font-size: .74rem; color: var(--sub); padding-top: 8px; grid-column: 1 / -1; }
+.bg { position: fixed; inset: 0; z-index: 60; background: rgba(8,14,30,.55); display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(2px); }
+.bg.show { display: flex; }
+.sheet { width: 100%; max-width: 640px; max-height: 88vh; overflow: auto; background: var(--bg); border-radius: 26px 26px 0 0; padding: 10px 16px calc(20px + env(safe-area-inset-bottom)); animation: up .28s ease; }
+@keyframes up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.sheet .grab { width: 44px; height: 5px; border-radius: 9px; background: var(--line); margin: 4px auto 12px; }
+.sheet h3 { margin: 0 0 4px; font-size: 1.05rem; } .sheet p { margin: 0 0 10px; color: var(--sub); font-size: .8rem; line-height: 1.7; }
+.sheet textarea { width: 100%; min-height: 120px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); padding: 12px 14px; font: 500 .95rem 'Tajawal', sans-serif; resize: vertical; direction: ltr; text-align: left; }
+.go { width: 100%; margin-top: 10px; height: 50px; border: 0; border-radius: 16px; background: var(--navy); color: #fff; font: 800 .95rem 'Tajawal', sans-serif; cursor: pointer; }
+:root[data-theme="dark"] .go { background: var(--gold); color: #0f1c38; }
+.rxr { display: grid; gap: 10px; margin-top: 14px; }
+.rxi { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 11px 13px; display: grid; gap: 8px; }
+.rxi > small { color: var(--sub); font-size: .72rem; }
+.rxm { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rxm b { font-size: .88rem; min-width: 0; overflow-wrap: anywhere; }
+.toast { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 11px 18px; border-radius: 999px; font-size: .84rem; font-weight: 800; z-index: 90; box-shadow: 0 10px 28px rgba(0,0,0,.35); animation: rise .25s ease; }
 @media (max-width: 380px) { .layout { grid-template-columns: 70px minmax(0, 1fr); gap: 8px; } .tab .lb { font-size: .6rem; } .card { grid-template-columns: minmax(0, 1fr) 84px; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
@@ -114,11 +147,12 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 <main class="layout">
     <nav class="rail" id="rail" aria-label="حالة التوفر"></nav>
     <section>
+        <div class="tools"><button type="button" class="pill" id="rxBtn"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h6M9 13h6M9 17h6"/></svg> فحص وصفة</button><button type="button" class="pill" id="favBtn"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg> المفضلة <span id="favN"></span></button></div>
         <div class="head-line"><b id="hl">كل المواد <small id="hc"></small></b><button type="button" class="clear" id="clr">عرض الكل</button></div>
         <div class="list" id="list"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
     </section>
 </main>
-<p class="foot">الحالة تُحدَّث باستمرار وقد تتغيّر خلال اليوم. للتأكيد على مادة بعينها تواصل مع الصيدلية.</p>
+<div class="bg" id="bg"><div class="sheet" id="sheet"></div></div>
 
 <script>
 const firebaseConfig = {
@@ -133,12 +167,22 @@ const ST = {
     back: { t: 'عاد بعد انقطاع', lb: 'عاد بعد انقطاع', ic: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>' }
 };
 const ORDER = ['ok', 'noph', 'nosup', 'back'];
-let doc = null, tab = '', q = '', shown = 60;
+let doc = null, tab = '', q = '', shown = 60, favOnly = false, ALL = [];
 const $ = id => document.getElementById(id);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = s => String(s || '').toLowerCase().replace(/[ً-ٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
 const num = n => Number(n).toLocaleString('en-US');
 const svg = p => `<svg viewBox="0 0 24 24">${p}</svg>`;
+const IC = {
+    star: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/>',
+    share: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"/>',
+    hand: '<path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>',
+    swap: '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>'
+};
+const lsGet = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* تجاهل */ } };
+let FAV = new Set(lsGet('diwanDocFav', [])), SENT = lsGet('diwanDocSent', {});
 
 function eff(it, cfg) {
     if (it.s === 'back' && Date.now() - (it.t || 0) <= (cfg.days || 7) * 864e5) return 'back';
@@ -146,38 +190,109 @@ function eff(it, cfg) {
     if (cfg.auto && it.k != null) return it.k ? 'ok' : 'noph';
     return it.s === 'noph' ? 'noph' : 'ok';
 }
+const ingKey = a => norm(a).replace(/[^a-z؀-ۿ]+/g, '');
+const WEEK = 7 * 864e5;
 function model() {
     if (!doc) return [];
-    const cfg = doc.cfg || {}, out = [];
-    Object.keys(doc.items || {}).forEach(id => { const it = doc.items[id]; if (!it || !it.n) return; out.push({ id, n: it.n, a: it.a || '', p: it.p || 0, st: eff(it, cfg), t: it.t || 0, hay: norm(it.n + ' ' + (it.a || '')) }); });
+    const cfg = doc.cfg || {}, out = [], now = Date.now();
+    Object.keys(doc.items || {}).forEach(id => {
+        const it = doc.items[id]; if (!it || !it.n) return;
+        out.push({ id, n: it.n, a: it.a || '', ik: ingKey(it.a || ''), p: it.p || 0, st: eff(it, cfg), t: it.t || 0, hay: norm(it.n + ' ' + (it.a || '')),
+            isNew: it.ad && now - it.ad < WEEK, pc: it.pt && it.pp && now - it.pt < WEEK && it.pp !== it.p });
+    });
     out.sort((a, b) => ORDER.indexOf(a.st) - ORDER.indexOf(b.st) || a.n.localeCompare(b.n, 'en'));
     return out;
+}
+function altsOf(m) {
+    if (!m.ik) return [];
+    return ALL.filter(x => x.id !== m.id && x.ik === m.ik && (x.st === 'ok' || x.st === 'back')).slice(0, 8);
 }
 function ago(t) { const d = Math.floor((Date.now() - t) / 864e5); return d <= 0 ? 'عاد اليوم' : d === 1 ? 'عاد أمس' : 'عاد قبل ' + d + ' أيام'; }
 function renderRail(all) {
     const c = {}; ORDER.forEach(k => c[k] = 0); all.forEach(m => c[m.st]++);
     $('rail').innerHTML = ORDER.map(k => `<button type="button" class="tab t-${k} ${tab === k ? 'on' : ''}" data-k="${k}" aria-pressed="${tab === k}"><span class="ic">${svg(ST[k].ic)}</span><span class="lb">${ST[k].lb}</span><span class="ct">${num(c[k])}</span></button>`).join('');
 }
+function toast(t) { const e = document.createElement('div'); e.className = 'toast'; e.textContent = t; document.body.appendChild(e); setTimeout(() => e.remove(), 2200); }
+function reqBtn(m, big) {
+    const key = 'dn_' + m.id, done = SENT[key] && Date.now() - SENT[key] < WEEK;
+    return `<button type="button" class="need ${done ? 'done' : ''}" data-need="${m.id}">${svg(IC.hand)}${done ? 'سُجِّل طلبك' : 'أحتاج هذه المادة'}</button>`;
+}
+function cardHtml(m, cfg) {
+    const unav = m.st === 'noph' || m.st === 'nosup', alts = unav ? altsOf(m) : [];
+    return `<article class="card s-${m.st}">
+        <div class="nm"><b dir="rtl"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</b>${m.a ? `<small dir="rtl"><bdi>${esc(m.a)}</bdi></small>` : ''}</div>
+        <div class="pr">${cfg.prices !== false && m.p ? `${num(m.p)}<small>د.ع</small>` : ''}</div>
+        <div class="acts"><span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span>
+            ${unav ? reqBtn(m) : ''}
+            <button type="button" class="ib ${FAV.has(m.id) ? 'on' : ''}" data-fav="${m.id}" aria-label="المفضلة">${svg(IC.star)}</button>
+            <button type="button" class="ib" data-share="${m.id}" aria-label="مشاركة">${svg(IC.share)}</button></div>
+        ${unav ? (alts.length ? `<details class="alts"><summary>${svg(IC.swap)} بدائل متوفرة بنفس المادة الفعالة (${num(alts.length)})</summary>${alts.map(a => `<div class="alt"><span dir="rtl"><bdi>${esc(a.n)}</bdi></span>${cfg.prices !== false && a.p ? `<b>${num(a.p)} د.ع</b>` : ''}</div>`).join('')}</details>` : '') : ''}
+    </article>`;
+}
 function render(anim) {
     const all = model(), cfg = (doc && doc.cfg) || {};
+    ALL = all;
     renderRail(all);
     const nq = norm(q.trim());
-    let rows = all.filter(m => (!tab || m.st === tab) && (!nq || m.hay.includes(nq)));
-    $('hl').firstChild.nodeValue = tab ? ST[tab].t + ' ' : 'كل المواد ';
+    let rows = all.filter(m => (!tab || m.st === tab) && (!favOnly || FAV.has(m.id)) && (!nq || m.hay.includes(nq)));
+    $('hl').firstChild.nodeValue = (favOnly ? 'المفضلة · ' : '') + (tab ? ST[tab].t : 'كل المواد') + ' ';
     $('hc').textContent = '· ' + num(rows.length);
     $('clr').classList.toggle('show', !!tab);
+    $('favBtn').classList.toggle('on', favOnly);
+    $('favN').textContent = FAV.size ? '(' + num(FAV.size) + ')' : '';
     const box = $('list');
     if (!doc) return;
-    if (!all.length) { box.innerHTML = `<div class="empty">${svg('<circle cx="12" cy="12" r="10"/><path d="M8 15h8M9 9h.01M15 9h.01"/>')}<b>لا توجد مواد معروضة حالياً</b>سيظهر هنا ما تحدده الصيدلية للأطباء.</div>`; return; }
-    if (!rows.length) { box.innerHTML = `<div class="empty">${svg('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>')}<b>لا توجد نتائج</b>جرّب اسماً آخر أو أزل التصفية.</div>`; return; }
+    if (!all.length) { box.innerHTML = `<div class="empty">${svg('<circle cx="12" cy="12" r="10"/><path d="M8 15h8M9 9h.01M15 9h.01"/>')}<b>لا توجد مواد معروضة حالياً</b></div>`; return; }
+    if (!rows.length) {
+        box.innerHTML = `<div class="empty">${svg('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>')}<b>${favOnly && !nq ? 'لم تضف مواد إلى المفضلة بعد' : 'لا توجد نتائج'}</b>${favOnly && !nq ? 'اضغط على النجمة في أي مادة لحفظها هنا.' : ''}${nq ? `<br><button type="button" class="need s-ok" style="margin-top:12px" id="askQ">${svg(IC.plus)}اطلب هذه المادة من الصيدلية</button>` : ''}</div>`;
+        const a = $('askQ'); if (a) a.onclick = () => sendReq('q', '', q.trim(), a);
+        return;
+    }
     const part = rows.slice(0, shown);
     box.classList.toggle('anim', !!anim);
-    box.innerHTML = part.map(m => `<article class="card s-${m.st}">
-        <div class="nm"><b dir="rtl"><bdi>${esc(m.n)}</bdi></b>${m.a ? `<small dir="rtl"><bdi>${esc(m.a)}</bdi></small>` : ''}</div>
-        <div class="pr">${cfg.prices !== false && m.p ? `${num(m.p)}<small>د.ع</small>` : ''}</div>
-        <span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span>
-    </article>`).join('') + (rows.length > part.length ? `<button type="button" class="more" id="more">عرض المزيد (${num(rows.length - part.length)})</button>` : '');
+    box.innerHTML = part.map(m => cardHtml(m, cfg)).join('') + (rows.length > part.length ? `<button type="button" class="more" id="more">عرض المزيد (${num(rows.length - part.length)})</button>` : '');
     const mb = $('more'); if (mb) mb.onclick = () => { shown += 80; render(false); };
+}
+// ---------- طلبات الأطباء (تصل إلى الصيدلي) ----------
+async function sendReq(kind, id, name, btn) {
+    const key = kind === 'n' ? 'dn_' + id : 'dq_' + encodeURIComponent(norm(name)).slice(0, 150);
+    if (SENT[key] && Date.now() - SENT[key] < WEEK) { toast('سُجِّل طلبك مسبقاً'); return; }
+    try {
+        await firebase.firestore().collection('pharmacy_search_misses').doc(key).set({ dr: 1, kind, pid: id || null, name, count: firebase.firestore.FieldValue.increment(1), lastAt: new Date().toISOString() }, { merge: true });
+        SENT[key] = Date.now(); lsSet('diwanDocSent', SENT);
+        toast('سُجِّل طلبك وسيصل إلى الصيدلية');
+        if (btn) { btn.classList.add('done'); btn.lastChild.nodeValue = kind === 'n' ? 'سُجِّل طلبك' : 'أُرسل الطلب'; }
+    } catch (e) { toast('تعذر إرسال الطلب، حاول لاحقاً'); }
+}
+async function shareItem(m) {
+    const t = m.n + '\nالحالة: ' + ST[m.st].t + (doc.cfg.prices !== false && m.p ? '\nالسعر: ' + num(m.p) + ' د.ع' : '') + '\nصيدلية الديوان';
+    try { if (navigator.share) { await navigator.share({ title: m.n, text: t, url: location.href }); return; } } catch (e) { return; }
+    try { await navigator.clipboard.writeText(t + '\n' + location.href); toast('تم نسخ المعلومات'); } catch (e) { toast('تعذرت المشاركة'); }
+}
+// ---------- فحص الوصفة ----------
+function openSheet(html) { $('sheet').innerHTML = '<div class="grab"></div>' + html; $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
+function closeSheet() { $('bg').classList.remove('show'); document.body.style.overflow = ''; }
+function rxOpen() {
+    openSheet(`<h3>فحص وصفة</h3><p>اكتب أسماء الأدوية، كل دواء في سطر (أو افصل بينها بفاصلة)، لتعرف توفرها وبدائلها دفعة واحدة.</p>
+    <textarea id="rxT" placeholder="Augmentin 1g&#10;Panadol Extra&#10;Tamoxifen" dir="ltr"></textarea><button type="button" class="go" id="rxGo">افحص الوصفة</button><div class="rxr" id="rxR"></div>`);
+    $('rxGo').onclick = rxRun;
+}
+function rxMatch(line) {
+    const toks = norm(line).split(/[^a-z0-9؀-ۿ.]+/).filter(t => t.length > 1);
+    if (!toks.length) return [];
+    return ALL.filter(m => toks.every(t => m.hay.includes(t))).sort((a, b) => a.n.length - b.n.length).slice(0, 3);
+}
+function rxRun() {
+    const lines = $('rxT').value.split(/[\n,،;+]+/).map(x => x.trim()).filter(Boolean).slice(0, 30);
+    const cfg = doc.cfg || {};
+    $('rxR').innerHTML = lines.map((ln, i) => {
+        const ms = rxMatch(ln);
+        if (!ms.length) return `<div class="rxi"><div class="rxm"><b dir="ltr">${esc(ln)}</b><span class="chip s-noph" style="grid-column:auto"><i></i>غير موجودة في القائمة</span></div><button type="button" class="need s-ok" data-rq="${i}">${svg(IC.plus)}اطلبها من الصيدلية</button></div>`;
+        return ms.map(m => { const unav = m.st === 'noph' || m.st === 'nosup', al = unav ? altsOf(m).slice(0, 3) : [];
+            return `<div class="rxi s-${m.st}"><div class="rxm"><b dir="ltr"><bdi>${esc(m.n)}</bdi></b>${cfg.prices !== false && m.p ? `<b style="color:var(--gold-dark);white-space:nowrap">${num(m.p)} د.ع</b>` : ''}</div>
+            <span class="chip" style="grid-column:auto"><i></i>${ST[m.st].t}</span>${al.length ? `<small>البدائل المتوفرة: ${al.map(a => esc(a.n)).join('، ')}</small>` : ''}</div>`; }).join('');
+    }).join('') || '<div class="empty">اكتب دواءً واحداً على الأقل.</div>';
+    $('rxR').querySelectorAll('[data-rq]').forEach(b => b.onclick = () => sendReq('q', '', lines[+b.dataset.rq], b));
 }
 function stamp() {
     if (!doc || !doc.upd) { $('updT').textContent = 'الحالة حسب آخر تحديث'; return; }
@@ -191,6 +306,16 @@ $('rail').addEventListener('click', e => { const b = e.target.closest('.tab'); i
 $('clr').onclick = () => { tab = ''; shown = 60; render(true); };
 $('q').addEventListener('input', e => { q = e.target.value; $('sbox').classList.toggle('has', !!q); shown = 60; render(false); });
 $('qx').onclick = () => { $('q').value = ''; q = ''; $('sbox').classList.remove('has'); render(false); $('q').focus(); };
+$('list').addEventListener('click', e => {
+    const f = e.target.closest('[data-fav]'), sh = e.target.closest('[data-share]'), nd = e.target.closest('[data-need]');
+    if (f) { const id = f.dataset.fav; FAV.has(id) ? FAV.delete(id) : FAV.add(id); lsSet('diwanDocFav', [...FAV]); render(false); }
+    else if (sh) { const m = ALL.find(x => x.id === sh.dataset.share); if (m) shareItem(m); }
+    else if (nd) { const m = ALL.find(x => x.id === nd.dataset.need); if (m) sendReq('n', m.id, m.n, nd); }
+});
+$('rxBtn').onclick = rxOpen;
+$('favBtn').onclick = () => { favOnly = !favOnly; shown = 60; render(true); };
+$('bg').addEventListener('click', e => { if (e.target === $('bg')) closeSheet(); });
+$('sheet').addEventListener('click', e => { const nd = e.target.closest('[data-rq]'); if (nd) return; });
 $('theme').onclick = () => { const r = document.documentElement, n = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; r.setAttribute('data-theme', n); try { localStorage.setItem('diwanTheme', n); } catch (e) { /* تجاهل */ } };
 
 try { const c = JSON.parse(localStorage.getItem(LS)); if (c) setDoc(c); } catch (e) { /* تجاهل */ }
