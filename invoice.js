@@ -210,7 +210,21 @@ function billSearchEnter() {
     }
     if (billFound.length) billAddProduct(billFound[0].id);
 }
-function billScan() { openBarcodeScanner(billAddByBarcode); }
+const BILL_SCAN_WAIT_MS = 8000;   // إن لم يُقرأ باركود خلال هذه المدة تُغلق الكاميرا ويُفتح البحث بالاسم تلقائياً
+function billScan() {
+    let t = 0;
+    const cb = (code, gs1) => { clearTimeout(t); billAddByBarcode(code, gs1); };
+    t = setTimeout(() => {
+        if (typeof barcodeCallback === 'undefined' || barcodeCallback !== cb) return;   // أُغلق الماسح يدوياً أو قُرئ باركود
+        const m = document.getElementById('bcManual');
+        if (m && (m.value || document.activeElement === m)) return;                    // المستخدم يكتب الباركود بنفسه
+        closeBarcodeScanner();
+        const s = $b('billSearch');
+        if (s) { s.scrollIntoView({ block: 'center' }); s.focus(); }
+        Swal.fire({ icon: 'info', title: 'لم يُقرأ باركود — ابحث بالاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    }, BILL_SCAN_WAIT_MS);
+    openBarcodeScanner(cb);
+}
 function billAddByBarcode(code) {
     const p = findByBarcode(code);
     if (!p) { offerUnknownBarcode(code, p2 => billAddProduct(p2.id), { onNew: c => { openFormModal(); formBarcodes = [cleanBarcode(c)]; renderBarcodeChips(); } }); return; }

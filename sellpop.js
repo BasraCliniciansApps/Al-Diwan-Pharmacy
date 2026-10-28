@@ -139,5 +139,5 @@ function spCommit(next) {
     spClose();
     renderInvoiceRows(); billChanged();
     Swal.fire({ icon: 'success', title: (edit ? 'عُدّلت: ' : 'أُضيفت: ') + name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1100 });
-    if (next) setTimeout(() => openBarcodeScanner(billAddByBarcode), 250);
+    if (next) setTimeout(() => billScan(), 250);
 }
