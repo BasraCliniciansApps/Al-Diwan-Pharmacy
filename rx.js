@@ -87,7 +87,7 @@ async function rxReply(id) {
     const i = document.getElementById('rxMsg'), t = i ? i.value.trim() : ''; if (!t) return;
     if (await rxApply(id, ps => rxMsg(ps, 'msg', 'رد الصيدلية: ' + t))) { /* تم */ }
 }
-function rxPrint(id) { const r = rxRaw.find(x => x.id === id); if (r) rxPrintNow({ num: r.num, doctor: r.doctor, patient: r.patient, phone: r.phone, dx: r.dx, items: r.items || [], note: r.note, at: r.ts }); }
+function rxPrint(id) { const r = rxRaw.find(x => x.id === id); if (r) rxPrintNow({ num: r.num, doctor: r.doctor, patient: r.patient, phone: r.phone, clinic: r.clinic, dx: r.dx, items: r.items || [], note: r.note, at: r.ts }); }
 async function rxDel(id) {
     const x = rxRaw.find(q => q.id === id); if (!x) return;
     if (!(await askSure('حذف الوصفة ' + x.num + ' نهائياً؟', 'ستُحذف من سجل الطبيب عندك نهائياً ولا يمكن استرجاعها. الأفضل الأرشفة.', 'حذف نهائي'))) return;
@@ -123,7 +123,7 @@ async function rxImportFile(file) {
         if (!o || o.app !== 'diwan-rx-admin' || !Array.isArray(o.recs)) { h.fail('الملف ليس نسخة احتياطية صالحة'); return; }
         const have = new Set(rxRaw.map(x => x.rid)), add = o.recs.filter(x => x && x.rid && x.patient && !have.has(x.rid));
         if (!add.length) { h.ok('لا توجد وصفات جديدة في الملف'); return; }
-        for (let i = 0; i < add.length; i += 400) { const b = db.batch(); add.slice(i, i + 400).forEach(x => b.set(db.collection('pharmacy_search_misses').doc('rx_' + x.rid), { dr: 1, kind: 'r', rid: x.rid, did: x.did || '', num: x.num || '', doctor: x.doctor || '', patient: x.patient, dx: x.dx || '', note: x.note || '', items: x.items || [], st: x.st || 'new', is: x.is || {}, msgs: x.msgs || [], arch: !!x.arch, count: 1, name: x.patient, lastAt: new Date(x.ts || Date.now()).toISOString() })); await b.commit(); h.tick(Math.min(i + 400, add.length), add.length, 'رفع الوصفات...'); }
+        for (let i = 0; i < add.length; i += 400) { const b = db.batch(); add.slice(i, i + 400).forEach(x => b.set(db.collection('pharmacy_search_misses').doc('rx_' + x.rid), { dr: 1, kind: 'r', rid: x.rid, did: x.did || '', num: x.num || '', doctor: x.doctor || '', patient: x.patient, clinic: x.clinic || null, dx: x.dx || '', note: x.note || '', items: x.items || [], st: x.st || 'new', is: x.is || {}, msgs: x.msgs || [], arch: !!x.arch, count: 1, name: x.patient, lastAt: new Date(x.ts || Date.now()).toISOString() })); await b.commit(); h.tick(Math.min(i + 400, add.length), add.length, 'رفع الوصفات...'); }
         h.ok('تم استيراد ' + fmtNum(add.length) + ' وصفة');
     } catch (e) { h.fail('تعذر الاستيراد', 'تحقق من الملف والاتصال.'); }
 }
@@ -167,7 +167,7 @@ async function rxIssue(rid) {
     try {
         let did = g.did; if (!did) { did = rxNewDid(); await rxSetDid(g.list, did); }
         h.set(25, 'تشفير السجل...');
-        let recs = g.list.map(x => ({ rid: x.rid, num: x.num, doctor: x.doctor, patient: x.patient, dx: x.dx, note: x.note, items: x.items || [], at: x.ts }));
+        let recs = g.list.map(x => ({ rid: x.rid, num: x.num, doctor: x.doctor, patient: x.patient, phone: x.phone, clinic: x.clinic, dx: x.dx, note: x.note, items: x.items || [], at: x.ts }));
         const code = String(100000 + Math.floor(Math.random() * 900000));
         let enc = await rxEncrypt(code, rid, { did, name: g.name, recs });
         while (enc.data.length > 900000 && recs.length > 10) { recs = recs.slice(0, Math.floor(recs.length * 0.8)); enc = await rxEncrypt(code, rid, { did, name: g.name, recs }); }
@@ -204,4 +204,4 @@ async function rxClean() {
 }
 let x0 = '';
 
-function rxWa(id) { const r = rxRaw.find(q => q.id === id); if (r) rxShareWa({ num: r.num, doctor: r.doctor, patient: r.patient, phone: r.phone, dx: r.dx, items: r.items || [], note: r.note, at: r.ts }, () => { }); }
+function rxWa(id) { const r = rxRaw.find(q => q.id === id); if (r) rxShareWa({ num: r.num, doctor: r.doctor, patient: r.patient, phone: r.phone, clinic: r.clinic, dx: r.dx, items: r.items || [], note: r.note, at: r.ts }, () => { }); }

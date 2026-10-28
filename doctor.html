@@ -210,7 +210,9 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .vh { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; } .vh > div { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; min-width: 0; } .vh .w { grid-column: 1 / -1; } .vh small, .vt small { display: block; color: var(--sub); font-size: .68rem; font-weight: 700; } .vh b { font-size: .9rem; overflow-wrap: anywhere; }
 .vi { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-top: 8px; box-shadow: var(--shadow); } .vi summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 12px; } .vi summary::-webkit-details-marker { display: none; } .vi summary > span { flex: 1; min-width: 0; } .vi summary b { font-size: .9rem; overflow-wrap: anywhere; } .vi summary small { display: block; color: var(--sub); font-size: .74rem; margin-top: 2px; } .vi summary svg { width: 16px; height: 16px; flex: 0 0 auto; transform: rotate(90deg); transition: transform .2s; } .vi[open] summary svg { transform: rotate(-90deg); }
 .vt { padding: 4px 12px 12px; } .vt b { font-size: .86rem; } .vt.vn { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.ib.wt.on { color: var(--ok); border-color: var(--ok); background: color-mix(in srgb, var(--ok) 12%, var(--surface)); }
 .go.wa, .hb .wa { color: #128c4a; } .rxa .go.wa { background: color-mix(in srgb, #25d366 14%, var(--surface)); border: 1.5px solid #25d366; display: grid; place-items: center; padding: 0; } .rxa .go.wa svg { width: 24px; height: 24px; } .hb .wa { display: grid; place-items: center; } .hb .wa svg { width: 18px; height: 18px; }
+.clin { margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 0 12px 10px; } .clin summary { cursor: pointer; padding: 12px 0 4px; font-weight: 800; font-size: .8rem; color: var(--sub); list-style: none; } .clin summary::-webkit-details-marker { display: none; } .clin .rxl:first-child { margin-top: 4px; }
 .pr2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .pr2 > div { min-width: 0; } .pr2 > div:first-child { order: 2; }
 .bg.mid { align-items: center; } .bg.mid .sheet { width: calc(100% - 28px); border-radius: 26px; max-height: 86vh; padding-bottom: 20px; }
 .sheet { overscroll-behavior: contain; touch-action: pan-y; } .bg { overscroll-behavior: contain; }
@@ -392,6 +394,13 @@ function reqBtn(m, big) {
     const key = 'dn_' + m.id, done = SENT[key] && Date.now() - SENT[key] < WEEK, off = m.st === 'nosup';
     return `<button type="button" class="need ${done ? 'done' : ''}" ${off ? 'disabled' : ''} data-need="${m.id}">${svg(IC.hand)}${off ? 'غير متوفر لدى المذخر' : done ? 'سُجِّل طلبك' : 'أحتاج هذه المادة'}</button>`;
 }
+let WATCH = lsGet('diwanWatch', {}), AV = lsGet('diwanAvail', []);
+const watchBtn = m => { const on = !!WATCH[m.id]; return `<button type="button" class="ib wt ${on ? 'on' : ''}" data-watch="${m.id}" aria-label="${on ? 'إلغاء التنبيه عند التوفر' : 'نبّهني عند التوفر'}" title="${on ? 'سيصلك تنبيه عند توفره، اضغط للإلغاء' : 'نبّهني عند التوفر'}">${svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>')}</button>`; };
+function checkWatch() {
+    let ch = false;
+    Object.keys(WATCH).forEach(id => { const m = ALL.find(x => x.id === id); if (m && (m.st === 'ok' || m.st === 'back')) { AV.unshift({ id, n: m.n, at: Date.now(), seen: false }); delete WATCH[id]; ch = true; toast(m.n + ' صار متوفراً'); } });
+    if (ch) { AV = AV.slice(0, 30); lsSet('diwanWatch', WATCH); lsSet('diwanAvail', AV); try { ntBadge(); } catch (e) { /* تجاهل */ } }
+}
 function qtyBtn(m) {
     const key = 'dn_' + m.id, done = SENT[key] && Date.now() - SENT[key] < WEEK, off = m.st === 'nosup';
     return `<button type="button" class="ib rq ${off ? 'off' : ''} ${done ? 'sent' : ''}" ${off ? 'disabled' : ''} data-qty="${m.id}" aria-label="${off ? 'غير متوفر لدى المذخر' : 'طلب توفير'}" title="${off ? 'غير متوفر لدى المذخر' : done ? 'سُجِّل طلبك' : 'طلب توفير'}">${svg(done ? IC.check : IC.cart)}</button>`;
@@ -418,7 +427,7 @@ function detailHtml(m) {
     <div class="dpr s-${m.st}">${cfg.prices !== false && m.p ? `<span class="pv">${num(m.p)}<small>د.ع</small></span>` : '<span></span>'}<span class="chip"><i></i>${ST[m.st].t}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span></div>
     ${m.nt ? `<div class="nt">${svg('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>')}<span>${esc(m.nt)}</span></div>` : ''}
     ${kv.length ? `<div class="kv">${kv.map((k, j) => `<div class="${kv.length % 2 && j === kv.length - 1 ? 'w' : ''}"><small>${k[0]}</small><b dir="auto">${esc(k[1])}</b></div>`).join('')}</div>` : ''}
-    <div class="dact s-${m.st}"><button type="button" class="ib ${FAV.has(m.id) ? 'on' : ''}" data-fav="${m.id}" aria-label="المفضلة">${svg(IC.star)}</button><button type="button" class="ib" data-share="${m.id}" aria-label="مشاركة">${svg(IC.share)}</button>${unav ? qtyBtn(m) : ''}</div>
+    <div class="dact s-${m.st}"><button type="button" class="ib ${FAV.has(m.id) ? 'on' : ''}" data-fav="${m.id}" aria-label="المفضلة">${svg(IC.star)}</button><button type="button" class="ib" data-share="${m.id}" aria-label="مشاركة">${svg(IC.share)}</button>${unav ? qtyBtn(m) + watchBtn(m) : ''}</div>
     ${unav ? (alts.length ? `<div class="sec">${svg(IC.swap)} بدائل متوفرة بنفس المادة الفعالة (${num(alts.length)})</div>${alts.map(a => row(a, false)).join('')}` : `<div class="noalt">لا توجد بدائل متوفرة بنفس المادة الفعالة حالياً.</div>`) : ''}
     ${same.length ? `<div class="sec">${svg(IC.plus)} مواد أخرى من ${esc(m.br)}</div>${same.map(a => row(a, true)).join('')}` : ''}`;
 }
@@ -517,7 +526,7 @@ function stamp() {
     const h = d.getHours(), tm = ((h % 12) || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + (h < 12 ? ' ص' : ' م');
     $('updT').textContent = 'تحديث ' + (same ? 'اليوم ' : d.getDate() + '/' + (d.getMonth() + 1) + ' ') + tm;
 }
-function setDoc(d) { doc = d || { cfg: {}, items: {} }; stamp(); render(false); try { localStorage.setItem(LS, JSON.stringify(doc)); } catch (e) { /* تجاهل */ } }
+function setDoc(d) { doc = d || { cfg: {}, items: {} }; stamp(); render(false); try { checkWatch(); } catch (e) { /* تجاهل */ } try { localStorage.setItem(LS, JSON.stringify(doc)); } catch (e) { /* تجاهل */ } }
 
 $('rail').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; const k = b.dataset.k; tab = tab === k ? '' : k; shown = 60; render(true); if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) { /* تجاهل */ } });
 $('clr').onclick = () => { tab = ''; favOnly = false; SEL.d.clear(); SEL.c.clear(); if (TFC) tfRefresh($('tfHost')); shown = 60; render(true); };
@@ -527,6 +536,8 @@ $('qx').onclick = () => { $('q').value = ''; q = ''; $('sbox').classList.remove(
 $('list').addEventListener('click', e => { const r = e.target.closest('[data-qty]'); if (r) { e.stopPropagation(); if (!r.disabled) qtyOpen(r.dataset.qty); return; } const c = e.target.closest('[data-open]'); if (c) openDetail(c.dataset.open); });
 $('list').addEventListener('keydown', e => { if (e.key === 'Enter') { const c = e.target.closest('[data-open]'); if (c) openDetail(c.dataset.open); } });
 $('sheet').addEventListener('click', e => {
+    const wb = e.target.closest('[data-watch]');
+    if (wb) { const id = wb.dataset.watch, m = ALL.find(x => x.id === id); if (!m) return; if (WATCH[id]) { ask('إلغاء التنبيه عند توفر هذا الدواء؟', 'إلغاء التنبيه').then(y => { if (y) { delete WATCH[id]; lsSet('diwanWatch', WATCH); openDetail(id, true); toast('أُلغي التنبيه'); } }); } else { WATCH[id] = { n: m.n, at: Date.now() }; lsSet('diwanWatch', WATCH); openDetail(id, true); toast('سيصلك تنبيه بالجرس عند توفره'); } return; }
     const t = e.target, f = t.closest('[data-fav]'), sh = t.closest('[data-share]'), nd = t.closest('[data-need]'), op = t.closest('[data-open]'), nv = t.closest('[data-nav]'), z = t.closest('[data-zoom]');
     if (f) { const id = f.dataset.fav; FAV.has(id) ? FAV.delete(id) : FAV.add(id); lsSet('diwanDocFav', [...FAV]); render(false); openDetail(id, true); }
     else if (sh) { const m = ALL.find(x => x.id === sh.dataset.share); if (m) shareItem(m); }
@@ -548,6 +559,7 @@ const mkNum = () => 'RX-' + Math.random().toString(36).slice(2, 8).toUpperCase()
 let RX = lsGet('diwanRxDraft', null) || { num: mkNum(), doctor: '', patient: '', items: [], note: '' };
 if (!RX.doctor) RX.doctor = lsGet('diwanDocName', '');
 let RXO = new Set(); let rxMode = '', MY = lsGet('diwanRx', []), SEEN = lsGet('diwanRxSeen', {}), NT = {}, NTU = {};
+let CL = lsGet('diwanClinic', { s: '', a: '', p: '' });
 const DN = () => lsGet('diwanDocNames', []);
 const dnNorm = s => norm(String(s || '').replace(/^\s*د\.?\s*/, '')).trim();
 function dnAdd(n) { n = String(n || '').trim(); if (dnNorm(n).length < 2) return; const l = DN().filter(x => dnNorm(x) !== dnNorm(n)); l.unshift(n); lsSet('diwanDocNames', l.slice(0, 30)); }
@@ -567,6 +579,7 @@ function rxForm(keep) {
     const sh = $('sheet'), top = sh.scrollTop;
     sh.innerHTML = `<div class="grab"></div>${rxTabs('new')}<div class="rxs"><div class="rxt"><h3>${RX.editRid ? 'تعديل الوصفة ' + esc(RX.num) : 'وصفة إلكترونية'}</h3><button type="button" class="lk" data-rx="clear">مسح الوصفة</button></div>
     <label class="rxl">اسم الطبيب <b>*</b></label><input class="fld" data-k="doctor" type="text" autocomplete="off" placeholder="د. ..." value="${esc(RX.doctor)}"><div class="dsg" id="dnSug"></div>
+    <details class="clin" ${CL.s || CL.a || CL.p ? 'open' : ''}><summary>معلومات العيادة (تظهر تحت اسمك بالوصفة)</summary><div class="pr2"><div><label class="rxl">التخصص</label><input class="fld" data-cl="s" type="text" autocomplete="off" placeholder="مثل: أخصائي أطفال" value="${esc(CL.s)}"></div><div><label class="rxl">رقم العيادة</label><input class="fld" data-cl="p" type="tel" inputmode="tel" dir="ltr" autocomplete="off" placeholder="07xx xxx xxxx" value="${esc(CL.p)}"></div></div><label class="rxl">العنوان</label><input class="fld" data-cl="a" type="text" autocomplete="off" placeholder="المحافظة، المنطقة، الشارع" value="${esc(CL.a)}"></details>
     <div class="pr2"><div><label class="rxl">رقم الهاتف</label><input class="fld" data-k="phone" type="tel" inputmode="tel" dir="ltr" autocomplete="off" placeholder="07xx xxx xxxx" value="${esc(RX.phone || '')}"></div><div><label class="rxl">اسم المريض <b>*</b></label><input class="fld" data-k="patient" type="text" autocomplete="off" placeholder="الاسم الثلاثي" value="${esc(RX.patient)}"></div></div>
     <label class="rxl">التشخيص</label><input class="fld" data-k="dx" type="text" autocomplete="off" placeholder="التشخيص" value="${esc(RX.dx || '')}">
     <label class="rxl">الأدوية <b>*</b></label>
@@ -665,9 +678,9 @@ function rxValid() {
     else if (!ok) toast('أكمل الحقول المطلوبة');
     return ok;
 }
-const rxRec = () => ({ num: RX.num, doctor: RX.doctor.trim(), patient: RX.patient.trim(), phone: (RX.phone || '').trim(), dx: (RX.dx || '').trim(), note: RX.note.trim(), at: Date.now(), items: RX.items.map(i => ({ p: i.p || '', n: i.n.trim(), ext: !!i.ext, dose: (i.dose || '').trim(), freq: i.freq || '', dur: i.dur || '', ins: (i.ins || '').trim() })) });
+const rxRec = () => ({ num: RX.num, doctor: RX.doctor.trim(), patient: RX.patient.trim(), phone: (RX.phone || '').trim(), clinic: { s: (CL.s || '').trim(), a: (CL.a || '').trim(), p: (CL.p || '').trim() }, dx: (RX.dx || '').trim(), note: RX.note.trim(), at: Date.now(), items: RX.items.map(i => ({ p: i.p || '', n: i.n.trim(), ext: !!i.ext, dose: (i.dose || '').trim(), freq: i.freq || '', dur: i.dur || '', ins: (i.ins || '').trim() })) });
 function rxPush(r) {
-    const w = firebase.firestore().collection('pharmacy_search_misses').doc('rx_' + r.rid).set({ dr: 1, kind: 'r', rid: r.rid, did: getDid(), num: r.num, doctor: r.doctor, patient: r.patient, phone: r.phone || '', dx: r.dx || '', note: r.note || '', items: r.items, st: 'new', ps: { msgs: [] }, count: 1, name: r.patient, lastAt: new Date(r.at).toISOString() }, { merge: true });
+    const w = firebase.firestore().collection('pharmacy_search_misses').doc('rx_' + r.rid).set({ dr: 1, kind: 'r', rid: r.rid, did: getDid(), num: r.num, doctor: r.doctor, patient: r.patient, phone: r.phone || '', clinic: r.clinic || null, dx: r.dx || '', note: r.note || '', items: r.items, st: 'new', ps: { msgs: [] }, count: 1, name: r.patient, lastAt: new Date(r.at).toISOString() }, { merge: true });
     return Promise.race([w, new Promise((_, rej) => setTimeout(() => rej(new Error('t')), 9000))]);
 }
 function rxRetry() {
@@ -730,7 +743,7 @@ $('sheet').addEventListener('touchend', () => {
 $('bg').addEventListener('touchmove', e => { const s = e.target.closest('.sheet'); if (!s || s.scrollHeight <= s.clientHeight + 1) e.preventDefault(); }, { passive: false });
 try { new MutationObserver(() => { document.documentElement.classList.toggle('lk', $('bg').classList.contains('show')); }).observe($('bg'), { attributes: true, attributeFilter: ['class'] }); } catch (e) { /* تجاهل */ }
 // ---------- إشعارات الطبيب ----------
-function ntUnread() { let n = 0; Object.keys(NT).forEach(rid => { const d = NT[rid]; if (d && d.msgs) n += d.msgs.filter(m => m.at > (SEEN[rid] || 0)).length; }); return n; }
+function ntUnread() { let n = AV.filter(a => !a.seen).length; Object.keys(NT).forEach(rid => { const d = NT[rid]; if (d && d.msgs) n += d.msgs.filter(m => m.at > (SEEN[rid] || 0)).length; }); return n; }
 function ntBadge() { const n = ntUnread(); $('ntN').textContent = n ? num(n) : ''; }
 function ntWatch() {
     MY.slice(0, 15).forEach(r => {
@@ -741,16 +754,17 @@ function ntWatch() {
 const hm = t => { const d = new Date(t), h = d.getHours(); return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + ((h % 12) || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + (h < 12 ? ' ص' : ' م'); };
 function ntRender() {
     const sh = $('sheet'), top = sh.scrollTop;
-    const html = MY.map(r => {
+    const avh = AV.length ? `<div class="nrx"><div class="hd2"><b>أصبحت متوفرة</b></div>${AV.map((a, i) => `<div class="it" style="align-items:center"><span dir="auto"><bdi>${esc(a.n)}</bdi><small style="display:block">${hm(a.at)}</small></span><span style="display:flex;gap:6px"><button type="button" class="addb" style="height:36px;padding:0 12px;border-style:solid" data-open="${esc(a.id)}">عرض</button><button type="button" class="addb ex" style="height:36px;padding:0 12px;border-style:solid" data-avx="${i}">إزالة</button></span></div>`).join('')}</div>` : '';
+    const html = avh + MY.map(r => {
         const d = NT[r.rid], st = (d && d.st) || 'new', S = NSTAT[st] || NSTAT.new, ms = ((d && d.msgs) || []).slice().sort((a, b) => b.at - a.at), seen = ntSeenView[r.rid] != null ? ntSeenView[r.rid] : (SEEN[r.rid] || 0);
         return `<div class="nrx"><div class="hd2"><div><b>${esc(r.num)} · <bdi>${esc(r.patient)}</bdi></b><small>${hm(r.at)} · ${num(r.items.length)} ${r.items.length > 2 && r.items.length < 11 ? 'أدوية' : 'دواء'}</small></div><span class="st" style="--c:var(--${S[1]})">${S[0]}</span></div>
         <div style="margin-top:6px">${r.items.map((it, i) => { const x = d && d.is && d.is[i]; const t = x ? (x.s === 'no' ? '<span class="st" style="--c:var(--nosup)">غير متوفر</span>' : x.s === 'sub' ? `<span class="st" style="--c:var(--noph)">بديل: ${esc(x.sub || '')}</span>` : '<span class="st" style="--c:var(--ok)">مُجهَّز</span>') : ''; return `<div class="it"><span dir="auto"><bdi>${esc(it.n)}</bdi></span>${t}</div>`; }).join('')}</div>
         ${ms.length ? `<div class="ms">${ms.map(m => `<div class="${m.k || ''} ${m.at > seen ? 'nw' : ''}">${esc(m.t)}<small>${hm(m.at)}</small></div>`).join('')}</div>` : ''}
         <div class="addrow"><button type="button" class="addb" style="border-style:solid" data-rx="reprint" data-rid="${r.rid}">طباعة نسخة</button><button type="button" class="addb ex" style="border-style:solid" data-rx="forget" data-rid="${r.rid}">إزالة من القائمة</button></div></div>`;
     }).join('');
-    sh.innerHTML = `<div class="grab"></div><div class="rxt"><h3>إشعارات الوصفات</h3></div><p>تصلك هنا ردود الصيدلية على وصفاتك المرسلة.</p>${html || '<div class="empty"><b>لا توجد وصفات مرسلة</b>اضغط زر «وصفة» لإنشاء وصفة جديدة.</div>'}`;
+    sh.innerHTML = `<div class="grab"></div><div class="rxt"><h3>إشعارات الوصفات</h3></div><p>تصلك هنا ردود الصيدلية وتنبيهات توفر الأدوية.</p>${html || '<div class="empty"><b>لا توجد تنبيهات</b></div>'}`;
     sh.scrollTop = top;
-    MY.forEach(r => { const d = NT[r.rid]; if (d && d.msgs && d.msgs.length) SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, ...d.msgs.map(m => m.at)); }); lsSet('diwanRxSeen', SEEN); ntBadge();
+    MY.forEach(r => { const d = NT[r.rid]; if (d && d.msgs && d.msgs.length) SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, ...d.msgs.map(m => m.at)); }); lsSet('diwanRxSeen', SEEN); AV.forEach(a => { a.seen = true; }); lsSet('diwanAvail', AV); ntBadge();
 }
 let ntSeenView = {};
 function ntOpen() { ntSeenView = {}; MY.forEach(r => ntSeenView[r.rid] = SEEN[r.rid] || 0); rxMode = 'nt'; $('sheet').classList.add('big'); $('bg').classList.remove('mid'); ntRender(); $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
@@ -761,6 +775,7 @@ $('sheet').addEventListener('input', e => {
     if (rxMode === 'form' && t.id === 'adq') { rxPickList(t.value, 'adl', 8); return; }
     if (rxMode === 'hist' && t.id === 'hq') { HQ = t.value; histList(); return; }
     if (rxMode !== 'form') return;
+    if (t.dataset.cl) { CL[t.dataset.cl] = t.value; lsSet('diwanClinic', CL); return; }
     if (t.dataset.k === 'doctor') dnShow(t.value);
     if (t.dataset.k) { RX[t.dataset.k] = t.value; t.classList.remove('bad'); saveDraft(); }
     else if (t.dataset.f) { const c = t.closest('.rxi'); RX.items[+c.dataset.i][t.dataset.f] = t.value; t.classList.remove('bad'); saveDraft(); }
@@ -773,6 +788,7 @@ $('sheet').addEventListener('click', async e => {
     const b = e.target.closest('[data-rx]'), a = e.target.closest('[data-add]'), ax = e.target.closest('[data-addx]');
     if (ax && (rxMode === 'pick' || rxMode === 'form')) { const v = (($('adq') || $('pkQ')).value || '').trim(); if (v) { RX.items.push({ p: '', n: v, ext: true, dose: '', freq: '', dur: '', ins: '' }); RXO = new Set([RX.items.length - 1]); saveDraft(); rxMode = 'form'; rxForm(true); const q2 = $('adq'); if (q2) q2.focus({ preventScroll: true }); } return; }
     if (a && (rxMode === 'pick' || rxMode === 'form')) { const m = ALL.find(x => x.id === a.dataset.add); if (m) { RX.items.push({ p: m.id, n: m.n, ext: false, dose: '', freq: '', dur: '', ins: '' }); RXO = new Set([RX.items.length - 1]); saveDraft(); rxMode = 'form'; rxForm(true); const q2 = $('adq'); if (q2) q2.focus({ preventScroll: true }); } return; }
+    const avx = e.target.closest('[data-avx]'); if (avx && rxMode === 'nt') { if (await ask('إزالة هذا التنبيه؟', 'إزالة')) { AV.splice(+avx.dataset.avx, 1); lsSet('diwanAvail', AV); ntRender(); } return; }
     if (!b || !['form', 'nt', 'hist', 'rs', 'view'].includes(rxMode)) return;
     const k = b.dataset.rx;
     if (k === 'tab') { if (b.dataset.t === 'hist') { histRender(); } else { rxMode = 'form'; rxForm(); } }

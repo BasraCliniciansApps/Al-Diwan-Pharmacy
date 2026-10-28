@@ -2994,3 +2994,11 @@ body.doc-open #formModal { z-index: 9200; } body.doc-open .swal2-container { z-i
 
 .rx-tr { display: flex; gap: 8px; align-items: center; } .rx-tr .rx-top { flex: 1; min-width: 0; }
 .rx-bk { display: flex; gap: 6px; flex: 0 0 auto; } .rx-bk button { width: 44px; height: 44px; border-radius: 12px; border: 1.5px solid #cbd5e1; background: #fff; color: #0f1c38; display: grid; place-items: center; cursor: pointer; } [data-theme="dark"] .rx-bk button { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+
+#docHub .dh-body.dc-fx { overflow: hidden; gap: 8px; padding-bottom: 0; }
+.dc-fixed { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; }
+.dc-setbtn { min-height: 44px; border-radius: 14px; border: 1.5px solid #cbd5e1; background: #fff; color: #0f1c38; font: 800 .86rem inherit; font-family: inherit; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; cursor: pointer; } .dc-setbtn svg { transition: transform .2s; } .dc-setbtn.on svg { transform: rotate(180deg); }
+.dc-setpanel { max-height: 42vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; overscroll-behavior: contain; } .dc-setpanel[hidden] { display: none; }
+.dc-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-bottom: calc(14px + env(safe-area-inset-bottom)); overscroll-behavior: contain; }
+.dc-stick { position: sticky; top: 0; z-index: 2; background: var(--bg, #f1f5f9); padding-bottom: 6px; display: flex; flex-direction: column; gap: 8px; }
+[data-theme="dark"] .dc-setbtn { background: #1e293b; color: #e2e8f0; border-color: #334155; } 

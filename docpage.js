@@ -120,7 +120,10 @@ function docRender() {
     const el = docEl(); if (!el) return;
     const c = docData.cfg;
     el.innerHTML = `<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()" aria-label="إغلاق">✕</button></div>
-    <div class="dh-body">
+    <div class="dh-body dc-fx">
+      <div class="dc-fixed">
+        <button type="button" class="dc-setbtn ${docSetOpen ? 'on' : ''}" onclick="docToggleSet()"><span>⚙ إعدادات الصفحة وطلبات الأطباء</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></button>
+        <div class="dc-setpanel" id="docSet" ${docSetOpen ? '' : 'hidden'}>
         <div class="dc-card">
             <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button><a href="doctor.html" class="home-quick-link">👁 معاينة صفحة الطبيب</a><button type="button" class="home-quick-link" onclick="docPublishNow()">🔄 نشر التحديث الآن</button></div>
             <div class="qk-row"><div><b>أسماء الأطباء المحفوظة على هذا الجهاز</b><small>قائمة الإكمال التلقائي لاسم الطبيب في الوصفة. محفوظة على كل جهاز لوحده ولا تُرفع للسحابة.</small></div><button type="button" class="dc-mini" onclick="docClearNames()">مسح</button></div>
@@ -131,12 +134,14 @@ function docRender() {
                 <select class="dc-days" onchange="docCfg('days',+this.value)">${[3, 7, 14, 30].map(n => `<option value="${n}" ${c.days === n ? 'selected' : ''}>${n} أيام</option>`).join('')}</select></div>
         </div>
         <div class="dc-card" id="docReq"><div class="dh-note">جارٍ تحميل طلبات الأطباء…</div></div>
+        </div>
         <div class="dc-bar">
             <input id="docQ" type="search" placeholder="ابحث باسم المادة أو المادة الفعالة" value="${docEsc(docQ)}" oninput="docSearch(this.value)">
             <button type="button" class="dc-fbtn ${docFil !== 'all' || tfCount(docSel) ? 'on' : ''}" onclick="docToggleMenu()" aria-label="فلتر"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg></button>
         </div>
         <div id="docMenu"></div>
-        <div id="docList"></div>
+      </div>
+      <div id="docList" class="dc-scroll"></div>
     </div>`;
     docRenderMenu(); docRenderList(); docLoadReq();
 }
@@ -154,6 +159,8 @@ function docRenderMenu() {
     Object.assign(docTreeCfg, { tree: tfAdminTree(), sel: docSel, count: tfAdminCounter(products), onChange() { docShown = 60; docRenderList(); docFbtn(); }, onDone() { docMenu = false; docRenderMenu(); } });
     tfMount(document.getElementById('docTree'), docTreeCfg);
 }
+let docSetOpen = false;
+function docToggleSet() { docSetOpen = !docSetOpen; const p = document.getElementById('docSet'); if (p) p.hidden = !docSetOpen; const b = document.querySelector('.dc-setbtn'); if (b) b.classList.toggle('on', docSetOpen); }
 function docToggleMenu() { docMenu = !docMenu; docRenderMenu(); }
 function docSetFil(k) { docFil = k; docShown = 60; docRenderMenu(); docRenderList(); }
 let docSearchT = null;
@@ -185,14 +192,15 @@ function docRenderList() {
             ${sel ? `<input type="text" class="dc-note" maxlength="80" placeholder="ملاحظة للطبيب (اختياري): مثل يُحفظ في الثلاجة" value="${docEsc(it.nt || '')}" onchange="docSetNote('${id}',this.value)">` : ''}
         </div>`;
     }).join('');
-    box.innerHTML = `<div class="dc-count">معروض للطبيب <b>${fmtNum(selN)}</b> من ${fmtNum(products.length)} مادة${all.length !== products.length ? ' · نتائج الفلتر ' + fmtNum(all.length) : ''}</div>
+    const sc = box.scrollTop;
+    box.innerHTML = `<div class="dc-stick"><div class="dc-count">معروض للطبيب <b>${fmtNum(selN)}</b> من ${fmtNum(products.length)} مادة${all.length !== products.length ? ' · نتائج الفلتر ' + fmtNum(all.length) : ''}</div>
     <div class="dc-actions">
-        <button type="button" onclick="docSelAll()">☑ تحديد نتائج الفلتر</button>
-        <button type="button" ${selShown ? '' : 'disabled'} onclick="docClearAll()">✕ إلغاء تحديد النتائج</button>
+        <button type="button" onclick="docClearAll()">✕ إلغاء تحديد النتائج</button>
         <select id="docBulk" onchange="docBulkSet(this.value)" ${selShown ? '' : 'disabled'}><option value="">تغيير حالة المحدد…</option>${Object.keys(DOC_ST).map(k => `<option value="${k}">${DOC_ST[k]}</option>`).join('')}</select>
-    </div>
+    </div></div>
     ${rows || '<div class="dh-note">لا توجد مواد مطابقة.</div>'}
     ${all.length > shown.length ? `<button type="button" class="dc-more" onclick="docMore()">عرض المزيد (${fmtNum(all.length - shown.length)})</button>` : ''}`;
+    box.scrollTop = sc;
 }
 function docLiftModals() {
     ['sheetBackdrop', 'bottomSheet'].forEach(i => { const e = document.getElementById(i); if (e && e.parentNode !== document.body) document.body.appendChild(e); });
@@ -220,7 +228,7 @@ function docSetNote(id, v) { const it = docData.items[id]; if (!it) return; v = 
 function docSelAll() { docFiltered().forEach(p => { const id = String(p.id); if (!docData.items[id]) docData.items[id] = { s: 'ok', ad: Date.now() }; }); docSaveSoon(); docRenderList(); }
 async function docClearAll() {
     const ids = docFiltered().filter(p => docData.items[String(p.id)]).map(p => String(p.id));
-    if (!ids.length) return;
+    if (!ids.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد محددة ضمن النتائج', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 }); return; }
     if (!(await askSure('إلغاء تحديد ' + fmtNum(ids.length) + ' مادة؟', 'ستختفي هذه المواد من صفحة الطبيب.', 'إلغاء التحديد'))) return;
     ids.forEach(id => delete docData.items[id]); docSaveSoon(); docRenderList();
 }
@@ -263,7 +271,7 @@ const DOC_SEEN = 'diwanDocSeen';
 const DOC_KIND = { n: 'طلب توفر لمادة معروضة', q: 'طلب مادة غير موجودة في القائمة', s: 'بحث دون نتيجة', x: 'دواء وصفه الطبيب وغير موجود في الصيدلية (عدد مرات الوصف)' };
 function docMapReq(snap) {
     const a = []; rxRaw = []; rxRs = [];
-    snap.forEach(d => { const x = d.data(); if (x.kind === 'rs') { rxRs.push({ id: d.id, rid: x.rid || d.id.replace(/^rs_/, ''), name: x.doctor || x.name || '', ts: Date.parse(x.lastAt) || 0, issued: !!x.issued, claimed: !!x.claimed }); return; } if (x.kind === 'r') { rxRaw.push({ id: d.id, did: x.did || '', arch: !!x.arch, rid: x.rid || d.id.replace(/^rx_/, ''), num: x.num || '', doctor: x.doctor || '', patient: x.patient || '', phone: x.phone || '', dx: x.dx || '', note: x.note || '', items: x.items || [], st: x.st || 'new', is: x.is || {}, msgs: x.msgs || [], ts: Date.parse(x.lastAt) || 0 }); return; } a.push({ id: d.id, name: x.name || '', note: x.note || '', qty: x.qty || 0, kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
+    snap.forEach(d => { const x = d.data(); if (x.kind === 'rs') { rxRs.push({ id: d.id, rid: x.rid || d.id.replace(/^rs_/, ''), name: x.doctor || x.name || '', ts: Date.parse(x.lastAt) || 0, issued: !!x.issued, claimed: !!x.claimed }); return; } if (x.kind === 'r') { rxRaw.push({ id: d.id, did: x.did || '', arch: !!x.arch, rid: x.rid || d.id.replace(/^rx_/, ''), num: x.num || '', doctor: x.doctor || '', patient: x.patient || '', phone: x.phone || '', clinic: x.clinic || null, dx: x.dx || '', note: x.note || '', items: x.items || [], st: x.st || 'new', is: x.is || {}, msgs: x.msgs || [], ts: Date.parse(x.lastAt) || 0 }); return; } a.push({ id: d.id, name: x.name || '', note: x.note || '', qty: x.qty || 0, kind: x.kind, count: x.count || 1, at: x.lastAt || '' }); });
     return a.sort((p, q) => String(q.at).localeCompare(String(p.at)));
 }
 function docSeen() { try { return localStorage.getItem(DOC_SEEN) || ''; } catch (e) { return ''; } }

@@ -23,7 +23,8 @@ html, body { margin: 0; background: #fff; }
 body { font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; color: #0f1c38; }
 .pg { width: 105mm; margin: 0 auto; padding: 6mm 6mm 5mm; position: relative; display: flex; flex-direction: column; }
 .hd { position: relative; text-align: center; padding: 2mm 0 8px; border-bottom: 2.5px solid #0f1c38; }
-.hd .dr { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; color: #0f1c38; line-height: 1.25; } .hd .dr .t1 { font-size: 17px; } .hd .dr .t2 { font-size: 27px; margin-top: 2px; overflow-wrap: anywhere; }
+.hd .dr { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; color: #0f1c38; line-height: 1.25; } .hd .dr .t1 { font-size: 17px; } .hd .dr .t3 { font-size: 9.5px; font-family: 'Tajawal', 'Segoe UI', Tahoma, Arial, sans-serif; font-weight: 600; color: #475569; margin-top: 3px; line-height: 1.6; }
+.hd .dr .t2 { font-size: 27px; margin-top: 2px; overflow-wrap: anywhere; }
 .hd img { width: 46px; height: 46px; border-radius: 11px; object-fit: cover; }
 .hd .t { flex: 1; } .hd .t b { display: block; font-size: 19px; color: #0f1c38; line-height: 1.2; } .hd .t small { color: #64748b; font-size: 10.5px; font-weight: 600; }
 .hd .m { position: absolute; left: 0; top: 0; text-align: left; font-size: 10.5px; color: #475569; line-height: 1.7; direction: ltr; } .hd .m b { color: #0f1c38; }
@@ -45,7 +46,7 @@ td.c { text-align: center; color: #64748b; width: 18px; } td.n b { font-size: 10
 .ft { margin-top: 8px; padding-top: 6px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 9.5px; color: #94a3b8; }
 @media screen { body { background: #e5e7eb; } .pg { background: #fff; margin: 12px auto; box-shadow: 0 4px 20px rgba(0,0,0,.15); } }
 </style></head><body><div class="pg">
-<div class="hd"><div class="m"><div><b>No.</b> ${rxEsc(rx.num)}</div><div>${rxDateTxt(rx.at)}</div></div><div class="dr"><div class="t1">الدكتور</div><div class="t2" dir="auto">${rxEsc(String(rx.doctor || '').replace(/^\s*د\.?\s*/, ''))}</div></div></div><div class="ln"></div>
+<div class="hd"><div class="m"><div><b>No.</b> ${rxEsc(rx.num)}</div><div>${rxDateTxt(rx.at)}</div></div><div class="dr"><div class="t1">الدكتور</div><div class="t2" dir="auto">${rxEsc(String(rx.doctor || '').replace(/^\s*د\.?\s*/, ''))}</div>${(() => { const c = rx.clinic || {}, l = [c.s, c.a, c.p].filter(x => x && String(x).trim()); return l.length ? `<div class="t3" dir="auto">${l.map(x => rxEsc(x)).join(' · ')}</div>` : ''; })()}</div></div><div class="ln"></div>
 <div class="pt"><div class="w"><small>المريض</small><b dir="auto">${rxEsc(rx.patient)}</b>${rx.phone ? `<small style="margin-top:2px;direction:ltr">${rxEsc(rx.phone)}</small>` : ''}</div>${rx.dx ? `<div class="w"><small>التشخيص</small><b dir="auto">${rxEsc(rx.dx)}</b></div>` : ''}</div>
 <div class="rx">℞</div>
 <table><thead><tr><th></th><th>الدواء</th><th>الجرعة</th><th>التكرار</th><th>المدة</th><th>التعليمات</th></tr></thead><tbody>${rows}</tbody></table>
