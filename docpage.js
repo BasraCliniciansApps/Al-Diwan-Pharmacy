@@ -55,8 +55,8 @@ async function docPublish() {
     Object.keys(d.items).forEach(id => {
         const it = d.items[id]; if (!it.dn) return;
         it.d = it.dn.map(n => { if (!dIdx.has(n)) { dIdx.set(n, tx.d.length); tx.d.push(n); } return dIdx.get(n); });
-        it.c = (it.cn || []).map(n => { if (!cIdx.has(n)) { cIdx.set(n, tx.c.length); tx.c.push([n, -1]); } return cIdx.get(n); });
-        (it.cn || []).forEach((n, j) => { const k = cIdx.get(n); if (tx.c[k][1] < 0) { const o = own(n), oi = o != null ? dIdx.get(o) : undefined; tx.c[k][1] = oi != null ? oi : (it.d[0] != null ? it.d[0] : -1); } });
+        it.c = (it.cn || []).map(n => { if (!cIdx.has(n)) { cIdx.set(n, tx.c.length); tx.c.push({ n, d: -1 }); } return cIdx.get(n); });
+        (it.cn || []).forEach((n, j) => { const k = cIdx.get(n); if (tx.c[k].d < 0) { const o = own(n), oi = o != null ? dIdx.get(o) : undefined; tx.c[k].d = oi != null ? oi : (it.d[0] != null ? it.d[0] : -1); } });
     });
     Object.keys(d.items).forEach(id => { delete d.items[id].dn; delete d.items[id].cn; });
     d.tx = tx;

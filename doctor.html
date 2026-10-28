@@ -595,7 +595,7 @@ $('sheet').addEventListener('click', async e => {
 // ---------- فلتر الأقسام والتصنيفات ----------
 function tfTree() {
     const tx = (doc && doc.tx) || { d: [], c: [] }, tree = tx.d.map((n, i) => ({ k: 'd' + i, n, cats: [] })); let oth = null;
-    (tx.c || []).forEach((c, j) => { const t = tree[c[1]] || (oth = oth || { k: 'd-1', n: 'تصنيفات أخرى', virtual: true, cats: [] }); t.cats.push({ k: 'c' + j, n: c[0] }); });
+    (tx.c || []).forEach((c, j) => { const t = tree[c.d] || (oth = oth || { k: 'd-1', n: 'تصنيفات أخرى', virtual: true, cats: [] }); t.cats.push({ k: 'c' + j, n: c.n }); });
     if (oth) tree.push(oth); return tree;
 }
 function tfCounter() { const dm = new Map(), cm = new Map(); ALL.forEach(m => { m.dk.forEach(k => dm.set(k, (dm.get(k) || 0) + 1)); m.ck.forEach(k => cm.set(k, (cm.get(k) || 0) + 1)); }); return (kind, k) => (kind === 'd' ? dm : cm).get(k) || 0; }
