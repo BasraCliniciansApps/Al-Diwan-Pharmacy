@@ -117,11 +117,6 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 .sheet textarea { width: 100%; min-height: 120px; border: 1.5px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); padding: 12px 14px; font: 500 .95rem 'Tajawal', sans-serif; resize: vertical; direction: ltr; text-align: left; }
 .go { width: 100%; margin-top: 10px; height: 50px; border: 0; border-radius: 16px; background: var(--navy); color: #fff; font: 800 .95rem 'Tajawal', sans-serif; cursor: pointer; }
 :root[data-theme="dark"] .go { background: var(--gold); color: #0f1c38; }
-.rxr { display: grid; gap: 10px; margin-top: 14px; }
-.rxi { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 11px 13px; display: grid; gap: 8px; }
-.rxi > small { color: var(--sub); font-size: .72rem; }
-.rxm { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.rxm b { font-size: .88rem; min-width: 0; overflow-wrap: anywhere; }
 .toast { position: fixed; bottom: calc(22px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 11px 18px; border-radius: 999px; font-size: .84rem; font-weight: 800; z-index: 90; box-shadow: 0 10px 28px rgba(0,0,0,.35); animation: rise .25s ease; }
 @media (max-width: 380px) { .layout { grid-template-columns: 70px minmax(0, 1fr); gap: 8px; } .tab .lb { font-size: .6rem; } .card { grid-template-columns: minmax(0, 1fr) 84px; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
@@ -147,12 +142,11 @@ svg { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 2
 <main class="layout">
     <nav class="rail" id="rail" aria-label="حالة التوفر"></nav>
     <section>
-        <div class="tools"><button type="button" class="pill" id="rxBtn"><svg viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v5h6M9 13h6M9 17h6"/></svg> فحص وصفة</button><button type="button" class="pill" id="favBtn"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg> المفضلة <span id="favN"></span></button></div>
+        <div class="tools"><button type="button" class="pill" id="favBtn"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg> المفضلة <span id="favN"></span></button></div>
         <div class="head-line"><b id="hl">كل المواد <small id="hc"></small></b><button type="button" class="clear" id="clr">عرض الكل</button></div>
         <div class="list" id="list"><div class="sk"></div><div class="sk"></div><div class="sk"></div><div class="sk"></div></div>
     </section>
 </main>
-<div class="bg" id="bg"><div class="sheet" id="sheet"></div></div>
 
 <script>
 const firebaseConfig = {
@@ -270,31 +264,6 @@ async function shareItem(m) {
     try { if (navigator.share) { await navigator.share({ title: m.n, text: t, url: location.href }); return; } } catch (e) { return; }
     try { await navigator.clipboard.writeText(t + '\n' + location.href); toast('تم نسخ المعلومات'); } catch (e) { toast('تعذرت المشاركة'); }
 }
-// ---------- فحص الوصفة ----------
-function openSheet(html) { $('sheet').innerHTML = '<div class="grab"></div>' + html; $('bg').classList.add('show'); document.body.style.overflow = 'hidden'; }
-function closeSheet() { $('bg').classList.remove('show'); document.body.style.overflow = ''; }
-function rxOpen() {
-    openSheet(`<h3>فحص وصفة</h3><p>اكتب أسماء الأدوية، كل دواء في سطر (أو افصل بينها بفاصلة)، لتعرف توفرها وبدائلها دفعة واحدة.</p>
-    <textarea id="rxT" placeholder="Augmentin 1g&#10;Panadol Extra&#10;Tamoxifen" dir="ltr"></textarea><button type="button" class="go" id="rxGo">افحص الوصفة</button><div class="rxr" id="rxR"></div>`);
-    $('rxGo').onclick = rxRun;
-}
-function rxMatch(line) {
-    const toks = norm(line).split(/[^a-z0-9؀-ۿ.]+/).filter(t => t.length > 1);
-    if (!toks.length) return [];
-    return ALL.filter(m => toks.every(t => m.hay.includes(t))).sort((a, b) => a.n.length - b.n.length).slice(0, 3);
-}
-function rxRun() {
-    const lines = $('rxT').value.split(/[\n,،;+]+/).map(x => x.trim()).filter(Boolean).slice(0, 30);
-    const cfg = doc.cfg || {};
-    $('rxR').innerHTML = lines.map((ln, i) => {
-        const ms = rxMatch(ln);
-        if (!ms.length) return `<div class="rxi"><div class="rxm"><b dir="ltr">${esc(ln)}</b><span class="chip s-noph" style="grid-column:auto"><i></i>غير موجودة في القائمة</span></div><button type="button" class="need s-ok" data-rq="${i}">${svg(IC.plus)}اطلبها من الصيدلية</button></div>`;
-        return ms.map(m => { const unav = m.st === 'noph' || m.st === 'nosup', al = unav ? altsOf(m).slice(0, 3) : [];
-            return `<div class="rxi s-${m.st}"><div class="rxm"><b dir="ltr"><bdi>${esc(m.n)}</bdi></b>${cfg.prices !== false && m.p ? `<b style="color:var(--gold-dark);white-space:nowrap">${num(m.p)} د.ع</b>` : ''}</div>
-            <span class="chip" style="grid-column:auto"><i></i>${ST[m.st].t}</span>${al.length ? `<small>البدائل المتوفرة: ${al.map(a => esc(a.n)).join('، ')}</small>` : ''}</div>`; }).join('');
-    }).join('') || '<div class="empty">اكتب دواءً واحداً على الأقل.</div>';
-    $('rxR').querySelectorAll('[data-rq]').forEach(b => b.onclick = () => sendReq('q', '', lines[+b.dataset.rq], b));
-}
 function stamp() {
     if (!doc || !doc.upd) { $('updT').textContent = 'الحالة حسب آخر تحديث'; return; }
     const d = new Date(doc.upd), now = new Date(), same = d.toDateString() === now.toDateString();
@@ -314,10 +283,7 @@ $('list').addEventListener('click', e => {
     else if (sh) { const m = ALL.find(x => x.id === sh.dataset.share); if (m) shareItem(m); }
     else if (nd) { const m = ALL.find(x => x.id === nd.dataset.need); if (m) sendReq('n', m.id, m.n, nd); }
 });
-$('rxBtn').onclick = rxOpen;
 $('favBtn').onclick = () => { favOnly = !favOnly; shown = 60; render(true); };
-$('bg').addEventListener('click', e => { if (e.target === $('bg')) closeSheet(); });
-$('sheet').addEventListener('click', e => { const nd = e.target.closest('[data-rq]'); if (nd) return; });
 $('theme').onclick = () => { const r = document.documentElement, n = r.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'; r.setAttribute('data-theme', n); try { localStorage.setItem('diwanTheme', n); } catch (e) { /* تجاهل */ } };
 
 try { const c = JSON.parse(localStorage.getItem(LS)); if (c) setDoc(c); } catch (e) { /* تجاهل */ }
