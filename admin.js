@@ -107,7 +107,7 @@ function expiryDaysOf(dateStr) {   // نفس حساب التطبيق: اعتبا
 // يحدد حالات التنبيه للصنف حسب أقرب تاريخ نفاذ (التصنيف تراكمي: خلال شهر ⊂ خلال 3 أشهر ⊂ خلال 6 أشهر)
 function alertKinds(p) {
     let days = null, date = '';
-    getProductExpiryDates(p).forEach(d => { const n = expiryDaysOf(d); if (n !== null && (days === null || n < days)) { days = n; date = d; } });
+    (hasUnits(p) ? getProductExpiryDates(p) : []).forEach(d => { const n = expiryDaysOf(d); if (n !== null && (days === null || n < days)) { days = n; date = d; } });
     const k = { days, date, expired: days !== null && days <= 0, m1: days !== null && days <= alertMonths[0] * 30, m3: days !== null && days <= alertMonths[1] * 30, m6: days !== null && days <= alertMonths[2] * 30, low: isLowStock(p) };
     k.any = k.m6 || k.low;
     return k;

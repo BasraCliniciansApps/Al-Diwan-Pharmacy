@@ -2095,9 +2095,11 @@ function getExpiryStatus(expiryDateStr) {
     return null; 
 }
 
+function hasUnits(p) { return (parseInt(p.qty) || 0) > 0 || (parseInt(p.loose) || 0) > 0; }   // تنبيهات النفاذ تخص المواد الموجودة فعلاً بالمخزن فقط
 function getExpiringProducts() {
     const list = [];
     products.forEach(p => {
+        if (!hasUnits(p)) return;
         getProductExpiryDates(p).forEach(date => {
             const status = getExpiryStatus(date);
             if (status) list.push({ product: p, status, date });
