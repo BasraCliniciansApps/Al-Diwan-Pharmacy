@@ -348,6 +348,26 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
 .dai { font-size: .8rem; font-weight: 700; color: var(--text); opacity: .8; margin-top: 2px; text-align: left; overflow-wrap: anywhere; }
 .dfm { margin-top: 8px; text-align: left; } .dfm .fmb { font-size: .72rem; padding: 3px 11px; }
 .dimg { min-height: 0; padding: 6px; } .dimg img { max-height: 56vh; }
+
+.icard { margin-top: 12px; background: linear-gradient(180deg, color-mix(in srgb, var(--c) 9%, var(--surface)), var(--surface) 70%); border: 1px solid color-mix(in srgb, var(--c) 28%, var(--line)); border-top: 4px solid var(--c); border-radius: 18px; padding: 14px 16px 14px; box-shadow: var(--shadow); }
+.icard h3.dn { margin: 0 0 6px; padding: 0; font-size: 1.05rem; line-height: 1.45; }
+.icard .dbr { display: flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 800; color: var(--gold-dark); text-transform: uppercase; letter-spacing: .02em; } .icard .dbr svg { width: 15px; height: 15px; } :root[data-theme="dark"] .icard .dbr { color: var(--gold); }
+.dai2 { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); } .dai2 > span:first-child { font-size: .8rem; font-weight: 700; color: var(--text); min-width: 0; overflow-wrap: anywhere; }
+.icard .dpr { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
+.icard .nt { margin: 10px 0 0; }
+.fold { margin-top: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); overflow: hidden; }
+.fold summary { list-style: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 13px 14px; font-size: .84rem; font-weight: 800; } .fold summary::-webkit-details-marker { display: none; }
+.fold .fl { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; } .fold .fl svg { width: 17px; height: 17px; color: var(--ok); } .fold .fl bdi { color: var(--gold-dark); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } :root[data-theme="dark"] .fold .fl bdi { color: var(--gold); }
+.fold summary em { font-style: normal; font-size: .7rem; font-weight: 800; min-width: 24px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; }
+.fold summary > svg { width: 18px; height: 18px; color: var(--sub); transition: transform .22s; } .fold[open] summary > svg { transform: rotate(180deg); }
+.fold[open] summary { border-bottom: 1px solid var(--line); }
+.fold .fb { max-height: 220px; overflow-y: auto; padding: 6px; margin: 8px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--bg); overscroll-behavior: contain; }
+.fold .fb .alt { margin-top: 0; background: transparent; border-radius: 8px; border-bottom: 1px solid var(--line); } .fold .fb .alt:last-child { border-bottom: 0; }
+.fold .fb .alt .l { direction: ltr; }
+.dh .nv { background: var(--navy); color: #fff; border-color: var(--navy); box-shadow: var(--shadow); } .dh .nv svg { width: 20px; height: 20px; stroke-width: 2.6; }
+.dh .nv:disabled { opacity: 1; background: var(--surface-2); color: var(--sub); border-color: var(--line); box-shadow: none; } .dh .nv:disabled svg { opacity: .45; }
+:root[data-theme="dark"] .dh .nv:not(:disabled) { background: var(--gold); color: #0f1c38; border-color: var(--gold); }
+.dact { margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -506,22 +526,24 @@ function cardHtml(m, cfg) {
     </article>`;
 }
 // ---------- تفاصيل المادة ----------
+const FOLD = new Set();
+const foldBox = (k, lab, n, body) => `<details class="fold" data-fold="${k}" ${FOLD.has(k) ? 'open' : ''}><summary><span class="fl">${lab}</span><em>${num(n)}</em>${svg('<path d="m6 9 6 6 6-6"/>')}</summary><div class="fb">${body}</div></details>`;
 function detailHtml(m) {
     const cfg = (doc && doc.cfg) || {}, i = VIEW.findIndex(x => x.id === m.id), unav = m.st === 'noph' || m.st === 'nosup';
-    const alts = unav ? altsOf(m) : [], same = m.br ? ALL.filter(x => x.id !== m.id && x.br === m.br && !alts.includes(x)).slice(0, 6) : [];
+    const alts = unav ? altsOf(m) : [], same = m.br ? ALL.filter(x => x.id !== m.id && x.br === m.br && !alts.includes(x)).slice(0, 30) : [];
     const row = (x, dot) => `<div class="alt lnk s-${x.st}" data-open="${x.id}"><span class="l">${dot ? '<i class="dt"></i>' : ''}<span dir="rtl"><bdi>${esc(x.n)}</bdi></span></span>${cfg.prices !== false && x.p ? `<b>${num(x.p)} د.ع</b>` : ''}</div>`;
     return `<div class="dh"><button type="button" class="nv" data-nav="-1" aria-label="السابق" ${i > 0 ? '' : 'disabled'}>${svg('<path d="m9 18 6-6-6-6"/>')}</button><span>${i >= 0 ? num(i + 1) + ' من ' + num(VIEW.length) : ''}</span><button type="button" class="nv" data-nav="1" aria-label="التالي" ${i >= 0 && i < VIEW.length - 1 ? '' : 'disabled'}>${svg('<path d="m15 18-6-6 6-6"/>')}</button></div>
     <div class="dimg ${m.im ? '' : 'no'}" ${m.im ? `data-zoom="${esc(m.im)}"` : ''}>${m.im ? `<img src="${esc(m.im)}" alt="" onerror="imgFail(this)">` : svg(PILL)}</div>
-    <h3 class="dn" dir="ltr"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</h3>
-    ${m.br ? `<div class="dbr" dir="ltr">${esc(m.br)}</div>` : ''}
-    ${m.a ? `<div class="dai" dir="ltr">${esc(m.a)}</div>` : ''}
-    ${m.fm ? `<div class="dfm">${fmPill(m)}</div>` : ''}
+    <div class="icard s-${m.st}"><h3 class="dn" dir="ltr"><bdi>${esc(m.n)}</bdi>${m.isNew ? '<span class="tag">جديد</span>' : ''}${m.pc ? '<span class="tag">تغيّر السعر</span>' : ''}</h3>
+    ${m.br ? `<div class="dbr" dir="ltr">${svg('<path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/>')}<bdi>${esc(m.br)}</bdi></div>` : ''}
+    ${m.a || m.fm ? `<div class="dai2">${m.a ? `<span dir="ltr">${esc(m.a)}</span>` : '<span></span>'}${fmPill(m)}</div>` : ''}
     <div class="dpr s-${m.st}">${cfg.prices !== false && m.p ? `<span class="pv">${num(m.p)}<small>د.ع</small></span>` : '<span></span>'}<span class="chip"><i></i>${chipTxt(m)}${m.st === 'back' && m.t ? ` <em>· ${ago(m.t)}</em>` : ''}</span></div>
-    ${m.nt ? `<div class="nt">${svg('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>')}<span>${esc(m.nt)}</span></div>` : ''}
+    ${m.nt ? `<div class="nt">${svg('<circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>')}<span>${esc(m.nt)}</span></div>` : ''}</div>
     <div class="dact s-${m.st}"><button type="button" class="ib ${FAV.has(m.id) ? 'on' : ''}" data-fav="${m.id}" aria-label="المفضلة">${svg(IC.star)}</button><button type="button" class="ib" data-share="${m.id}" aria-label="مشاركة">${svg(IC.share)}</button>${unav ? qtyBtn(m) + watchBtn(m) : ''}</div>
-    ${unav ? (alts.length ? `<div class="sec">${svg(IC.swap)} بدائل متوفرة بنفس المادة الفعالة (${num(alts.length)})</div>${alts.map(a => row(a, false)).join('')}` : `<div class="noalt">لا توجد بدائل متوفرة بنفس المادة الفعالة حالياً.</div>`) : ''}
-    ${same.length ? `<div class="sec">${svg(IC.plus)} مواد أخرى من ${esc(m.br)}</div>${same.map(a => row(a, true)).join('')}` : ''}`;
+    ${unav ? (alts.length ? foldBox('alt', svg(IC.swap) + 'بدائل متوفرة بنفس المادة الفعالة', alts.length, alts.map(a => row(a, false)).join('')) : `<div class="noalt">لا توجد بدائل متوفرة بنفس المادة الفعالة حالياً.</div>`) : ''}
+    ${same.length ? foldBox('br', svg(IC.plus) + '<span style="white-space:nowrap">مواد أخرى من</span><bdi dir="ltr">' + esc(m.br) + '</bdi>', same.length, same.map(a => row(a, true)).join('')) : ''}`;
 }
+$('sheet').addEventListener('toggle', e => { const d = e.target; if (d && d.dataset && d.dataset.fold) { if (d.open) FOLD.add(d.dataset.fold); else FOLD.delete(d.dataset.fold); } }, true);
 function openDetail(id, keepScroll) {
     const m = ALL.find(x => x.id === id); if (!m) return;
     curId = id; const sh = $('sheet'), top = sh.scrollTop;
