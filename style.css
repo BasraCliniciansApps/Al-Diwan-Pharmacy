@@ -3093,3 +3093,5 @@ html.lk, html.lk body { overflow: hidden; }
 .bill-exp { display: block; font-size: .72rem; font-weight: 800; color: #92400e; margin-top: 2px; }
 .bill-bt { display: block; margin-top: 4px; min-height: 32px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; font: 800 .74rem inherit; font-family: inherit; color: #0f1c38; cursor: pointer; }
 [data-theme="dark"] .sp-card { background: #1e293b; } [data-theme="dark"] .sp-ti b, [data-theme="dark"] .sp-line, [data-theme="dark"] .sp-sum { color: #e2e8f0; } [data-theme="dark"] .sp-row { background: #0f172a; border-color: #334155; } [data-theme="dark"] .sp-row select, [data-theme="dark"] .sp-st button, [data-theme="dark"] .sp-st input, [data-theme="dark"] .sp-price, [data-theme="dark"] .sp-unit button, [data-theme="dark"] .sp-close { background: #1e293b; color: #e2e8f0; border-color: #475569; } [data-theme="dark"] .sp-sum { background: #3a2f10; }
+
+.rx-c.st-saved { border-inline-start-color: #94a3b8; }

@@ -4,17 +4,17 @@
 // =====================================================================
 let rxRaw = [], rxRs = [], rxFil = 'act', rxCurId = null, rxTop = 'rx', rxDrKey = null;
 const rxCleaned = new Set();
-const RX_ST = { new: 'جديدة', prep: 'قيد التجهيز', ready: 'جاهزة', done: 'مُسلَّمة' };
-const RX_FIL = [['act', 'النشطة'], ['new', 'جديدة'], ['prep', 'قيد التجهيز'], ['ready', 'جاهزة'], ['done', 'مُسلَّمة'], ['arch', 'المؤرشفة']];
+const RX_ST = { new: 'جديدة', prep: 'قيد التجهيز', ready: 'جاهزة', done: 'مُسلَّمة', saved: 'محفوظة' };
+const RX_FIL = [['act', 'النشطة'], ['new', 'جديدة'], ['prep', 'قيد التجهيز'], ['ready', 'جاهزة'], ['done', 'مُسلَّمة'], ['saved', 'محفوظة'], ['arch', 'المؤرشفة']];
 const rxE = s => escapeHtml(String(s == null ? '' : s));
 const rxEl = () => document.getElementById('rxHub');
-const rxSt = r => r.st || 'new';
+const rxSt = r => r.silent ? 'saved' : (r.st || 'new');   // «محفوظة»: حفظها الطبيب في سجله بدون إرسال (لا تنبيه)
 function rxPendRs() { return rxRs.filter(x => !x.issued && !x.claimed).length; }
 function rxNewN() { return rxRaw.filter(r => !r.arch && rxSt(r) === 'new').length + rxPendRs(); }
 function rxBadges() { const n = rxNewN(); document.querySelectorAll('.rx-badge').forEach(e => { e.textContent = n; e.style.display = n ? 'flex' : 'none'; }); }
 function rxChanged() { rxClean(); rxBadges(); if (rxEl() && rxEl().style.display === 'flex') rxRender(); if (typeof docRenderAlertBox === 'function') { const v = document.getElementById('alertsView'); if (v && v.classList.contains('active')) docRenderAlertBox(false); } }
 function rxAlertRow() {
-    const n = rxNewN(), act = rxRaw.filter(r => !r.arch && rxSt(r) !== 'done').length; if (!act && !n) return '';
+    const n = rxNewN(), act = rxRaw.filter(r => !r.arch && !['done', 'saved'].includes(rxSt(r))).length; if (!act && !n) return '';
     return `<button type="button" class="da-rx" onclick="rxOpen()"><span>📝 ${n ? 'لديك <b>' + fmtNum(n) + '</b> وصفة جديدة' : fmtNum(act) + ' وصفة قيد المتابعة'}</span><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg></button>`;
 }
 function rxOpen() {
@@ -32,8 +32,8 @@ function rxRender() {
     if (r) { rxDetail(el, r); return; }
     rxCurId = null;
     if (rxTop === 'dr') { rxDrRender(el); return; }
-    const cnt = k => k === 'arch' ? rxRaw.filter(x => x.arch).length : k === 'act' ? rxRaw.filter(x => !x.arch && rxSt(x) !== 'done').length : rxRaw.filter(x => !x.arch && rxSt(x) === k).length;
-    const rows = rxRaw.filter(x => rxFil === 'arch' ? x.arch : (!x.arch && (rxFil === 'act' ? rxSt(x) !== 'done' : rxSt(x) === rxFil))).sort((a, b) => b.ts - a.ts);
+    const cnt = k => k === 'arch' ? rxRaw.filter(x => x.arch).length : k === 'act' ? rxRaw.filter(x => !x.arch && !['done', 'saved'].includes(rxSt(x))).length : rxRaw.filter(x => !x.arch && rxSt(x) === k).length;
+    const rows = rxRaw.filter(x => rxFil === 'arch' ? x.arch : (!x.arch && (rxFil === 'act' ? !['done', 'saved'].includes(rxSt(x)) : rxSt(x) === rxFil))).sort((a, b) => b.ts - a.ts);
     el.innerHTML = `<div class="tr-head"><b>📝 الوصفات الإلكترونية</b><button type="button" class="tr-x" onclick="rxClose()" aria-label="إغلاق">✕</button></div>
     <div class="dh-body">${rxTopBar()}<div class="rx-fs">${RX_FIL.map(f => `<button type="button" class="${rxFil === f[0] ? 'on' : ''}" onclick="rxSetFil('${f[0]}')">${f[1]} <em>${fmtNum(cnt(f[0]))}</em></button>`).join('')}</div>
     ${rows.map(x => `<button type="button" class="rx-c st-${rxSt(x)}" onclick="rxShow('${rxE(x.id)}')"><div><b dir="auto">${rxE(x.doctor)}</b><small>المريض: <bdi>${rxE(x.patient)}</bdi> · ${fmtNum((x.items || []).length)} ${(x.items || []).length > 2 && (x.items || []).length < 11 ? 'أدوية' : 'دواء'} · ${rxTime(x.ts)}</small></div><span class="rx-p">${RX_ST[rxSt(x)]}</span></button>`).join('') || '<div class="dh-note">لا توجد وصفات في هذا القسم.</div>'}</div>`;
@@ -59,12 +59,12 @@ function rxDetail(el, r) {
 }
 async function rxApply(id, fn) {
     const r = rxRaw.find(x => x.id === id); if (!r) return false;
-    const ps = { st: rxSt(r), is: { ...(r.is || {}) }, msgs: [...(r.msgs || [])] }; fn(ps, r); ps.msgs = ps.msgs.slice(-40);
+    const ps = { st: r.st || 'new', is: { ...(r.is || {}) }, msgs: [...(r.msgs || [])] }; fn(ps, r); ps.msgs = ps.msgs.slice(-40);
     const h = Prog.start('تحديث الوصفة ' + (r.num || ''), { text: 'حفظ في السحابة...' });
     try {
-        await fsSet(db.collection('pharmacy_search_misses').doc(id), { st: ps.st, is: ps.is, msgs: ps.msgs }, { merge: true }); h.set(55, 'إشعار الطبيب...');
+        await fsSet(db.collection('pharmacy_search_misses').doc(id), { st: ps.st, is: ps.is, msgs: ps.msgs, silent: false }, { merge: true }); h.set(55, 'إشعار الطبيب...');
         await fsSet(db.collection('pharmacy').doc('rx_' + r.rid), { num: r.num, st: ps.st, is: ps.is, msgs: ps.msgs, upd: Date.now() });
-        Object.assign(r, ps); rxBadges(); rxRender(); h.ok('تم حفظ الإجراء'); return true;
+        Object.assign(r, ps); r.silent = false; rxBadges(); rxRender(); h.ok('تم حفظ الإجراء'); return true;
     } catch (e) { h.fail('تعذر حفظ الإجراء', 'تحقق من الاتصال وحاول مرة أخرى.'); return false; }
 }
 const rxMsg = (ps, k, t) => ps.msgs.push({ at: Date.now(), k, t });
