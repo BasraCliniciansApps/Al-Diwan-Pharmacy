@@ -657,7 +657,7 @@ function renderManagerLists() {
     const ownerOf = c => Object.keys(deptSubs).find(d => (deptSubs[d] || []).includes(c)) || '';
     subContainer.innerHTML = subCategories.map((c, i) => `
         <div class="manager-item">
-            <span>${escapeHtml(c)}${ownerOf(c) ? ` <small style="color:var(--text-sub)">· ${escapeHtml(ownerOf(c))}</small>` : ''}${taxLegacy.c.includes(c) ? ` <em class="tg warn">قديم${cUsed.has(c) ? ' — ' + cnt('category', 'extraCategories', c) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
+            <span>${escapeHtml(c)}${ownerOf(c) ? ` <small style="color:var(--text-sub)">${escapeHtml(ownerOf(c))}</small>` : ''}${taxLegacy.c.includes(c) ? ` <em class="tg warn">قديم${cUsed.has(c) ? ' — ' + cnt('category', 'extraCategories', c) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
             <div style="display:flex; gap:6px;">
                 <button class="icon-btn mi-edit" aria-label="نقل إلى قسم" onclick="moveSubCategory(${i})">📂<span class="mi-t"> نقل</span></button>
                 <button class="icon-btn mi-edit" aria-label="تعديل الاسم" onclick="renameSubCategory(${i})">✏️<span class="mi-t"> تعديل الاسم</span></button>
