@@ -18,7 +18,7 @@ const TAX_SEED = {
     'الدم والتخثر': ['مضادات التخثر', 'مضادات الصفيحات', 'أدوية فقر الدم', 'مرقئات', 'حقن الحديد', 'فيتامين K', 'أدوية الثلاسيميا', 'أدوية نزف الدورة', 'محفزات الدم', 'أدوية الدوالي والخثار'],
     'الأورام والمناعة': ['أدوية الأورام', 'مثبطات المناعة', 'أدوية بيولوجية', 'أدوية السرطان الفموية', 'العلاج الهرموني للأورام', 'أدوية الغثيان الكيماوي', 'أدوية زرع الأعضاء', 'كورتيزونات مناعية', 'عوامل النمو'],
     'اللقاحات والأمصال': ['لقاحات', 'أمصال', 'لقاحات الأطفال', 'لقاحات البالغين', 'لقاحات السفر', 'مصل الكزاز والسعار', 'مضادات السموم', 'غلوبيولينات مناعية (Anti-D / IVIG)'],
-    'الفيتامينات والمعادن والمكملات': ['فيتامينات متعددة', 'فيتامين د وكالسيوم', 'حديد ومعادن', 'أوميغا 3 وزيوت', 'مكملات رياضية', 'مكملات الشعر والبشرة', 'فيتامين ب والأعصاب', 'فيتامين C والمناعة', 'فيتامين E ومضادات الأكسدة', 'زنك وسيلينيوم ومعادن نادرة', 'مغنيسيوم', 'ميلاتونين والنوم والاسترخاء', 'التوتر والمزاج', 'الذاكرة والتركيز والدماغ', 'خصوبة الرجال', 'خصوبة النساء', 'الحمل والرضاعة', 'صحة الرجل والبروستات', 'صحة المرأة وسن اليأس', 'المفاصل والغضاريف', 'صحة العيون', 'القلب والدورة الدموية', 'السكر والتمثيل الغذائي', 'الوزن والحرق', 'الكبد والتنظيف', 'الهضم والألياف', 'الطاقة ومكافحة التعب', 'المسالك البولية', 'الغدة الدرقية', 'كولاجين وببتيدات', 'أحماض أمينية وكرياتين', 'كبار السن (50+)', 'بروبيوتيك وبريبيوتيك'],
+    'الفيتامينات والمعادن والمكملات': ['فيتامينات متعددة', 'فيتامين د وكالسيوم', 'حديد ومعادن', 'أوميغا 3 وزيوت', 'مكملات رياضية', 'مكملات الشعر والبشرة', 'فيتامين ب والأعصاب', 'فيتامين C والمناعة', 'فيتامين E ومضادات الأكسدة', 'زنك وسيلينيوم ومعادن نادرة', 'مغنيسيوم', 'ميلاتونين والنوم والاسترخاء', 'التوتر والمزاج', 'الذاكرة والتركيز والدماغ', 'خصوبة الرجال', 'خصوبة النساء', 'الحمل والرضاعة', 'صحة الرجل والبروستات', 'صحة المرأة وسن اليأس', 'المفاصل والغضاريف', 'صحة العيون', 'القلب والدورة الدموية', 'السكر والتمثيل الغذائي', 'الوزن والحرق', 'الكبد والتنظيف', 'الهضم والألياف', 'الطاقة ومكافحة التعب', 'المسالك البولية', 'الغدة الدرقية', 'كولاجين وببتيدات', 'أحماض أمينية وكرياتين', 'كبار السن (50+)', 'بروبيوتيك وبريبيوتيك', 'محفزات الشهية'],
     'الأم والطفل': ['حليب أطفال', 'حفاضات', 'مكملات الأطفال', 'شرابات الأطفال', 'مستلزمات الرضاعة', 'العناية ببشرة الطفل', 'مراهم الحفاض', 'مستلزمات الاستحمام للأطفال', 'علاج المغص والتسنين', 'قطرات فيتامين للأطفال', 'مستلزمات الحمل', 'مستلزمات النفاس', 'مناديل مبللة', 'حليب أطفال خاص (علاجي)', 'مضخات الحليب', 'ألعاب وسكاكر الأطفال', 'كريمات الحلمات', 'مستلزمات تغذية الطفل'],
     'الفم والأسنان': ['معاجين وفُرش', 'غسول الفم', 'جل فموي', 'أدوية اللثة والفم', 'خيط أسنان وفرش بين الأسنان', 'تبييض الأسنان', 'مثبتات أطقم الأسنان', 'علاج حساسية الأسنان', 'قطرات ومسكنات الأسنان', 'علاج قروح الفم', 'منتجات تقويم الأسنان', 'معاجين الأطفال', 'معطرات الفم ورائحة الفم', 'منظفات اللسان', 'علك'],
     'العناية الشخصية والتجميل': ['العناية بالبشرة', 'العناية بالشعر', 'العطور ومزيلات العرق', 'العناية بالجسم', 'المكياج', 'العناية بالأظافر', 'صابون ومنظفات', 'الحلاقة وإزالة الشعر', 'العناية النسائية الحميمة', 'العناية بالشفاه', 'العناية بالقدم واليد', 'العناية بالعين والهالات', 'صبغات الشعر', 'أدوات التجميل', 'التسمير والعناية بعد الشمس', 'العناية بالرجال'],
@@ -32,6 +32,18 @@ const TAX_SEED = {
 const TAX_BASE = 22;   // الأقسام الجاهزة الأصلية؛ ما بعدها أقسام أُضيفت لاحقاً (تنضاف بزر «إضافة التصنيفات الجديدة»)
 function taxSeeded() { return Object.keys(TAX_SEED).slice(0, TAX_BASE).every(d => departments.includes(d)); }
 const TAX_OLD_NAMES = { 'الحلاقة وإزالة الشعر': 'الحلاقة والعناية بالرجل' };   // الاسم الجديد ← الاسم القديم الذي قد يكون محمّلاً سابقاً
+const TAX_MOVES = { 'محفزات الشهية': ['الجهاز الهضمي والكبد', 'الفيتامينات والمعادن والمكملات'] };   // تصنيف نُقل من قسم إلى آخر (يبقى موضعه القديم بالقائمة الجاهزة لتثبيت الأرقام)
+function taxPendingMoves() { return Object.keys(TAX_MOVES).filter(n => { const [o, d] = TAX_MOVES[n]; return (deptSubs[o] || []).includes(n) && departments.includes(d); }); }
+function taxApplyMoves() {   // ينقل التصنيف بين الأقسام الحالية ويرجع المواد المتأثرة
+    const touched = new Set();
+    taxPendingMoves().forEach(n => {
+        const [o, d] = TAX_MOVES[n];
+        deptSubs[o] = (deptSubs[o] || []).filter(x => x !== n);
+        if (!(deptSubs[d] || []).includes(n)) deptSubs[d] = (deptSubs[d] || []).concat(n);
+        products.forEach(p => { if (p.department === o && p.category === n) { p.department = d; touched.add(p); } });
+    });
+    return [...touched];
+}
 function taxPendingRenames() { return Object.keys(TAX_OLD_NAMES).filter(n => subCategories.includes(TAX_OLD_NAMES[n]) && !subCategories.includes(n)); }
 function taxApplyRenames() {   // يعيد تسمية تصنيف محمَّل سابقاً (في القوائم والمواد) ويرجع المواد المتأثرة
     const touched = new Set();
@@ -43,17 +55,17 @@ function taxApplyRenames() {   // يعيد تسمية تصنيف محمَّل س
     });
     return [...touched];
 }
-function taxMissingSubs() { const out = []; Object.keys(TAX_SEED).forEach((d, i) => { if (!departments.includes(d) && i < TAX_BASE) return; const have = departments.includes(d) ? (deptSubs[d] || []) : []; TAX_SEED[d].forEach(s => { if (!have.includes(s) && !(taxLegacy.c || []).includes(s)) out.push([d, s]); }); }); return out; }
+function taxMissingSubs() { const out = []; Object.keys(TAX_SEED).forEach((d, i) => { if (!departments.includes(d) && i < TAX_BASE) return; const have = departments.includes(d) ? (deptSubs[d] || []) : []; TAX_SEED[d].forEach(s => { if (TAX_MOVES[s] && TAX_MOVES[s][0] === d) return; if (!have.includes(s) && !(taxLegacy.c || []).includes(s)) out.push([d, s]); }); }); return out; }
 async function taxAddNew(btn) {
     if (btn) { btn.disabled = true; btn.textContent = '⏳ جاري الإضافة...'; }
     const h = Prog.start('إضافة الأقسام والتصنيفات الجديدة', { text: 'تجهيز...' });
     try {
         if (!writesAllowed()) { h.fail('لا يوجد اتصال', 'الإضافة تُحفظ في السحابة، اتصل بالإنترنت وأعد المحاولة'); renderManagerLists(); return; }
-        const renamed = taxApplyRenames(), miss = taxMissingSubs();
-        if (!miss.length && !renamed.length) { h.ok('كل التصنيفات موجودة أصلاً'); renderManagerLists(); return; }
+        const mvN = taxPendingMoves().length, renamed = taxApplyRenames().concat(taxApplyMoves()), miss = taxMissingSubs();
+        if (!miss.length && !renamed.length && !mvN) { h.ok('كل التصنيفات موجودة أصلاً'); renderManagerLists(); return; }
         miss.forEach(([d, s]) => { if (!departments.includes(d)) departments.push(d); deptSubs[d] = (deptSubs[d] || []).concat(s); if (!subCategories.includes(s)) subCategories.push(s); });
         renderManagerLists(); try { renderAll(); } catch (e) { /* تجاهل */ }   // تظهر محلياً فوراً
-        h.set(null, 'حفظ ' + fmtNum(miss.length) + ' تصنيف في السحابة...');
+        h.set(null, 'حفظ ' + fmtNum(miss.length + mvN) + ' تغيير في السحابة...');
         await pushToCloud(true);
         if (renamed.length) { h.set(null, 'تحديث اسم التصنيف في ' + fmtNum(renamed.length) + ' مادة...'); await saveProductsDelta(renamed.map(p => ({ p, dq: 0, dl: 0 }))); }
         h.ok('أُضيف ' + fmtNum(miss.length) + ' تصنيف جديد' + (renamed.length ? ' وحُدّث اسم تصنيف لـ ' + fmtNum(renamed.length) + ' مادة' : ''));
@@ -65,7 +77,7 @@ async function taxAddNew(btn) {
 function renderTaxSeedBox() {
     const box = document.getElementById('taxSeedBox'); if (!box) return;
     const subs = Object.values(TAX_SEED).reduce((n, a) => n + a.length, 0);
-    const nm = taxSeeded() ? taxMissingSubs().length + taxPendingRenames().length : 0;
+    const nm = taxSeeded() ? taxMissingSubs().length + taxPendingRenames().length + taxPendingMoves().length : 0;
     box.innerHTML = taxSeeded()
         ? (nm ? `<h4>🆕 ${fmtNum(nm)} تصنيف جديد متوفر</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تصنيفات إضافية (مثل الخصوبة والميلاتونين والمفاصل...). تُضاف إلى الأقسام دون المساس بموادك أو تعديلاتك.</small><button type="button" class="icon-btn primary-btn" onclick="taxAddNew(this)">➕ إضافة التصنيفات الجديدة</button><hr style="margin:12px 0;border:none;border-top:1px solid #e2e8f0">` : '') + `<h4>✅ الأقسام الجاهزة محمَّلة</h4><small style="display:block;color:var(--text-sub);line-height:1.8">القديم معلَّم «قديم» ويختفي تلقائياً عندما لا تبقى مادة عليه. يمكنك تعديل أي قسم أو تصنيف أو إضافته أو حذفه. وحذف القديم النهائي يكون من 🗑️ بعد نقل مواده.</small>`
         : `<h4>📥 الأقسام الجاهزة (${Object.keys(TAX_SEED).length} قسم، ${subs} تصنيف)</h4><small style="display:block;color:var(--text-sub);line-height:1.8;margin-bottom:8px">تُضيف أقساماً علاجية جاهزة وتصنيفاتها. <b>لا تغيّر أي مادة</b>، والأقسام القديمة تبقى وتُعلَّم «قديم». يمكنك تعديل الكل بعدها.</small><button type="button" class="icon-btn primary-btn" onclick="taxSeed()">📥 تحميل الأقسام الجاهزة</button>`;
@@ -314,7 +326,13 @@ function taxIngHit(text) {
     return null;
 }
 const TAX_GENERIC_FIRST = new Set(['natural', 'nature', 'baby', 'babies', 'kids', 'kid', 'junior', 'children', 'hair', 'skin', 'body', 'face', 'pure', 'organic', 'herbal', 'super', 'extra', 'plus', 'active', 'forte', 'ultra', 'multi', 'vitamin', 'vitamins', 'complete', 'advanced', 'intense', 'intensive', 'fresh', 'daily', 'original', 'classic', 'white', 'black', 'cream', 'drops', 'tablet', 'syrup', 'sugar', 'medical', 'dental', 'oral']);
-function taxSuggest(p) {   // يرجع {d, s, guess} أو null
+function taxSuggest(p) {   // مع تحويل التصنيفات المنقولة إلى مكانها الجديد
+    const r = taxSuggest0(p); if (!r) return r;
+    const dn = TAX_DEPTS[r.d - 1], sn = dn && (TAX_SEED[dn] || [])[r.s - 1], mv = sn && TAX_MOVES[sn];
+    if (mv && mv[0] === dn) { const nd = TAX_DEPTS.indexOf(mv[1]) + 1, ns = (TAX_SEED[mv[1]] || []).indexOf(sn) + 1; if (nd && ns) return Object.assign({}, r, { d: nd, s: ns }); }
+    return r;
+}
+function taxSuggest0(p) {   // يرجع {d, s, guess} أو null
     const cu = typeof dhCustomHit === 'function' ? dhCustomHit(p) : null; if (cu) return cu;   // قواعدك الخاصة أولاً
     const ai = String(p.activeIngredient || '').trim(), txt = ai ? p.name + ' ' + ai : p.name;   // الاسم العلمي يدخل بكل القواعد لزيادة الدقة
     const kw = taxKwHit(txt); if (kw) return kw;

@@ -20,7 +20,7 @@ function shCard() { return document.querySelector('#catModal .modal-card'); }
 function shBuzz() { try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { /* تجاهل */ } }
 function shSummary(p) {
     try {
-        if (p.id === 'tax') { const n = (typeof taxSeeded === 'function' && taxSeeded()) ? taxMissingSubs().length + taxPendingRenames().length : 0; return { s: `${fmtNum(departments.length)} قسم · ${fmtNum(subCategories.length)} تصنيف`, badge: n ? fmtNum(n) + ' جديد' : '' }; }
+        if (p.id === 'tax') { const n = (typeof taxSeeded === 'function' && taxSeeded()) ? taxMissingSubs().length + taxPendingRenames().length + taxPendingMoves().length : 0; return { s: `${fmtNum(departments.length)} قسم · ${fmtNum(subCategories.length)} تصنيف`, badge: n ? fmtNum(n) + ' جديد' : '' }; }
         if (p.id === 'hub') return { s: 'المواد الفعالة والتصنيف والنواقص' };
         if (p.id === 'doctor') { const n = (typeof docData !== 'undefined' && docData) ? Object.keys(docData.items).length : 0; return { s: n ? fmtNum(n) + ' مادة معروضة للأطباء' : 'اختر المواد وحالاتها للأطباء' }; }
         if (p.id === 'rx') { const n = (typeof rxNewN === 'function') ? rxNewN() : 0; return { s: n ? fmtNum(n) + ' وصفة جديدة' : 'وصفات الأطباء وحالات التجهيز' }; }
