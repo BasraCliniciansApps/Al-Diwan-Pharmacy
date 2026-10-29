@@ -8,7 +8,7 @@ const VIEW_PERM = { bill: 'sell', stock: 'stockView', purch: 'purchases', alerts
 function showView(v) {
     if (VIEW_PERM[v] && typeof can === 'function' && !can(VIEW_PERM[v])) v = 'home';
     const _vs = window.__viewStack = window.__viewStack || [];
-    if (v === 'home') _vs.length = 0;
+    if (v === 'home') { _vs.length = 0; try { const hv = document.getElementById('homeView'); if (hv) { hv.classList.remove('tiles-in'); void hv.offsetWidth; hv.classList.add('tiles-in'); setTimeout(() => hv.classList.remove('tiles-in'), 900); } } catch (e) { /* تجاهل */ } }
     else if (!window.__navBack && currentView && currentView !== v && !['splash', 'login', 'home'].includes(currentView)) { if (_vs[_vs.length - 1] !== currentView) _vs.push(currentView); }
     currentView = v;
     document.body.dataset.view = v;

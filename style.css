@@ -3149,3 +3149,15 @@ body.sc-open .modal-overlay#barcodeModal { z-index: 9300; }
 
 button.pz-n { border: 0; background: transparent; padding: 0; font-family: inherit; display: flex; justify-content: space-between; align-items: center; width: 100%; cursor: pointer; }
 button.pz-n i { font-style: normal; color: #94a3b8; font-size: 1.2rem; }
+
+/* ===== نقش إسلامي هادئ وحركة خفيفة للبلاطات (بدون تغيير الألوان أو الأحجام) ===== */
+.home-tile { position: relative; overflow: hidden; isolation: isolate; transition: transform .14s ease, box-shadow .14s ease; }
+.home-tile::after { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2244%22%20height%3D%2244%22%20viewBox%3D%220%200%2044%2044%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-opacity%3D%220.5%22%20stroke-width%3D%221.1%22%3E%3Cpath%20d%3D%22M22%202l5.7%208.3L38%208l-2.3%2010.3L42%2022l-6.3%203.7L38%2036l-10.3-2.3L22%2042l-5.7-8.3L6%2036l2.3-10.3L2%2022l6.3-3.7L6%208l10.3%202.3z%22/%3E%3Ccircle%20cx%3D%2222%22%20cy%3D%2222%22%20r%3D%224.5%22/%3E%3C/svg%3E"); background-size: 34px; opacity: .13;
+    -webkit-mask-image: radial-gradient(circle at 100% 0, #000 0, transparent 62%), radial-gradient(circle at 0 100%, #000 0, transparent 55%); mask-image: radial-gradient(circle at 100% 0, #000 0, transparent 62%), radial-gradient(circle at 0 100%, #000 0, transparent 55%); }
+.home-tile.tile-stock::after { filter: invert(1); opacity: .12; }
+.home-tile:active { box-shadow: 0 2px 8px rgba(15,28,56,.25); }
+@keyframes tileIn { from { opacity: 0; transform: translateY(10px) scale(.98); } to { opacity: 1; transform: none; } }
+#homeView.tiles-in .home-tile { animation: tileIn .42s ease both; }
+#homeView.tiles-in .home-tile:nth-child(2) { animation-delay: .05s; }
+#homeView.tiles-in .home-tile:nth-child(3) { animation-delay: .1s; }
+@media (prefers-reduced-motion: reduce) { #homeView.tiles-in .home-tile { animation: none; } .home-tile { transition: none; } }
