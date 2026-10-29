@@ -33,12 +33,6 @@ function qiFabSync() {
     const oc = spCommit;
     spCommit = function (next) {
         if (!qi) return oc.apply(this, arguments);
-        if (sp && !sp.edit && !(parseFloat(sp.price) > 0)) {   // مادة بلا سعر: لا يُنتقل للخطوة التالية قبل إدخاله
-            const pi = document.querySelector('#spCard .sp-price');
-            if (pi) { pi.focus(); pi.classList.add('qi-need'); }
-            Swal.fire({ icon: 'warning', title: 'أدخل سعر المادة أولاً', toast: true, position: 'top', showConfirmButton: false, timer: 2000 });
-            return;
-        }
         oc.call(this, false);
         if (sp) return;                                    // لم تُضف (رسالة تنبيه)
         qiStrip();

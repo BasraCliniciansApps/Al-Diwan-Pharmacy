@@ -176,6 +176,7 @@ function billAddBlank() { bill.items.push({ name: '', qty: 1, price: '', unit: '
 function billAddProduct(id) {
     const p = products.find(x => x.id === id);
     if (!p) return;
+    if (typeof spOpen === 'function') { $b('billSearch').value = ''; $b('billResults').style.display = 'none'; spOpen(id, { scan: true }); return; }   // نافذة البيع تفرض كتابة السعر
     const existing = bill.items.find(it => it.pid === id && it.unit !== 'part' && !it.exp);
     if (existing) existing.qty = (parseFloat(existing.qty) || 0) + 1;
     else bill.items.push({ pid: id, name: p.name, qty: 1, price: p.price || '', unit: 'pack' });

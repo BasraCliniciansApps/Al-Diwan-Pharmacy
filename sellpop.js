@@ -48,6 +48,7 @@ function spOpen(pid, opts) {
     spEnsureDom(); spRender();
     document.getElementById('spModal').style.display = 'flex';
     document.documentElement.classList.add('lk');
+    if (!sp.edit && !(parseFloat(sp.price) > 0)) setTimeout(() => { const pi = document.querySelector('#spCard .sp-price'); if (pi) pi.focus(); }, 80);
 }
 function spClose() { const m = document.getElementById('spModal'); if (m) m.style.display = 'none'; document.documentElement.classList.remove('lk'); sp = null; }
 function spEnsureDom() {
@@ -124,6 +125,12 @@ function spRender() {
 function spCommit(next) {
     if (!sp) return;
     const p = products.find(x => x.id === sp.pid); if (!p) return;
+    if (!(parseFloat(sp.price) > 0)) {   // لا تنزل مادة للفاتورة قبل كتابة سعرها
+        const pi = document.querySelector('#spCard .sp-price');
+        if (pi) { pi.focus(); pi.classList.add('qi-need'); }
+        Swal.fire({ icon: 'warning', title: 'أدخل سعر المادة أولاً', toast: true, position: 'top', showConfirmButton: false, timer: 2000 });
+        return;
+    }
     const rows = sp.rows.filter(r => r.n > 0 && !billExpired(r.e));
     const lines = rows.map(r => ({ e: r.e, n: r.n }));
     if (sp.short > 0) lines.push({ e: '', n: sp.short });
