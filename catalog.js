@@ -1,5 +1,5 @@
 // سجل الأدوية: كل الأصناف بتسلسل الإدخال، مع زر ضم لمادة أخرى وزر قراءة/ربط الباركود
-let catQ = '', catUncounted = false, catIncomplete = false;
+let catQ = '', catUncounted = false, catIncomplete = false, catTodo = false;
 function catRankMap() { const m = new Map(); products.slice().sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)).forEach((p, i) => m.set(p.id, i + 1)); return m; }
 async function toggleSetupMode(on) {
     if (userRole !== 'owner' || !db || !currentUser) { renderCatalog(); return; }
@@ -33,12 +33,15 @@ function renderCatalog() {
     const unc = setupMode ? products.filter(p => p.counted !== true).length : 0;
     if (!setupMode) catUncounted = false;
     if (catUncounted) arr = arr.filter(p => p.counted !== true);
+    const catDone = p => parseFloat(p.price) > 0 && barcodesOf(p).length > 0;
+    const todoN = products.filter(p => !catDone(p)).length;
+    if (catTodo) arr = arr.filter(p => !catDone(p));
     const inc = products.filter(p => p.incomplete).length;
     if (!inc) catIncomplete = false;
     if (catIncomplete) arr = arr.filter(p => p.incomplete);
     const withBc = products.filter(p => barcodesOf(p).length).length;
     const sum = document.getElementById('catSum');
-    if (sum) sum.innerHTML = `<span>${fmtNum(products.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><span class="cat-no">🔴 بلا باركود ${fmtNum(products.length - withBc)}</span>${inc ? `<button type="button" class="cat-unc ${catIncomplete ? 'on' : ''}" onclick="catIncomplete = !catIncomplete; renderCatalog()">✏️ ناقصة التفاصيل ${fmtNum(inc)}</button>` : ''}${setupMode ? `<button type="button" class="cat-unc ${catUncounted ? 'on' : ''}" onclick="catToggleUnc()">🧮 لم تُجرد ${fmtNum(unc)} من ${fmtNum(products.length)}</button>` : ''}`;
+    if (sum) sum.innerHTML = `<span>${fmtNum(products.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><span class="cat-no">🔴 بلا باركود ${fmtNum(products.length - withBc)}</span><button type="button" class="cat-unc ${catTodo ? 'on' : ''}" onclick="catTodo = !catTodo; renderCatalog()" title="إخفاء المواد المسعّرة وبباركود وإبقاء غير المكتملة فقط">⏳ غير المكتملة ${fmtNum(todoN)}</button>${inc ? `<button type="button" class="cat-unc ${catIncomplete ? 'on' : ''}" onclick="catIncomplete = !catIncomplete; renderCatalog()">✏️ ناقصة التفاصيل ${fmtNum(inc)}</button>` : ''}${setupMode ? `<button type="button" class="cat-unc ${catUncounted ? 'on' : ''}" onclick="catToggleUnc()">🧮 لم تُجرد ${fmtNum(unc)} من ${fmtNum(products.length)}</button>` : ''}`;
     const sb = document.getElementById('catSetup');
     if (sb) {
         const own = userRole === 'owner', sw = `<label class="setup-sw ${own ? '' : 'ro'}" title="${own ? 'تشغيل / إيقاف وضع التأسيس' : 'للمالك فقط'}"><input type="checkbox" ${setupMode ? 'checked' : ''} ${own ? '' : 'disabled'} onchange="toggleSetupMode(this.checked)"><i></i></label>`;
