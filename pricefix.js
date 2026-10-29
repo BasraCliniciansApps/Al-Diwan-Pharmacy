@@ -1,5 +1,6 @@
 // أداة: مواد بدون سعر بيع — تعرض آخر سعر شراء من الوارد وتسعّرها دفعة وحدة
 let pzRows = [];
+let pzScroll = 0;   // موضع التمرير في القائمة عند فتح تفاصيل مادة، ليرجع المستخدم لنفس المكان
 const pzDraft = new Map();   // أسعار مكتوبة في القائمة وتُحفظ مؤقتاً عند فتح تفاصيل مادة
 function pzLastCost(p) {
     let best = null;
@@ -17,13 +18,13 @@ function pzBuild() {
     return pzRows;
 }
 async function pzOpen(loss, keep) {
-    pzLoss = !!loss; if (!keep) pzDraft.clear();
+    pzLoss = !!loss; if (!keep) { pzDraft.clear(); pzScroll = 0; }
     const rows = pzBuild();
     if (!rows.length) { Swal.fire({ icon: 'info', title: pzLoss ? 'لا توجد مواد سعر بيعها أقل من الكلفة' : 'كل المواد المشتراة مسعّرة', confirmButtonColor: '#0f1c38' }); return; }
     const html = `<div class="pz-wrap"><div class="pz-hint">${fmtNum(rows.length)} ${pzLoss ? 'مادة سعر بيعها أقل من سعر شرائها أو يساويه (خسارة). اكتب' : 'مادة بدون سعر بيع. اكتب'} السعر أو اضغط «تعبئة حسب النقابة».</div>
         <div class="pz-list">${rows.map((x, i) => `<div class="pz-row"><button type="button" class="pz-n" dir="ltr" onclick="pzDetail(${i})">${escapeHtml(x.p.name)}<i>›</i></button><div class="pz-c">سعر الشراء <b>${fmtNum(x.cost)}</b>${pzLoss ? ' • البيع الحالي <b style="color:#b91c1c">' + fmtNum(x.p.price) + '</b>' : ''} • النقابة <b>${fmtNum(syndPrice(x.cost))}</b></div><input type="number" inputmode="numeric" min="0" id="pzIn${i}" placeholder="سعر البيع" value="${pzDraft.get(x.p.id) || ''}"></div>`).join('')}</div>
         <button type="button" class="pz-fill" onclick="pzFill()">✨ ${pzLoss ? 'تعبئة حسب النقابة للكل' : 'تعبئة حسب النقابة للفارغ'}</button></div>`;
-    const r = await Swal.fire({ title: pzLoss ? 'مواد تُباع بخسارة' : 'مواد بدون سعر بيع', html, width: 640, showCancelButton: true, confirmButtonText: 'حفظ الأسعار', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { popup: 'pz-pop' } });
+    const r = await Swal.fire({ title: pzLoss ? 'مواد تُباع بخسارة' : 'مواد بدون سعر بيع', html, width: 640, showCancelButton: true, confirmButtonText: 'حفظ الأسعار', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { popup: 'pz-pop' }, didOpen: () => { const l = document.querySelector('.pz-list'); if (l && pzScroll) l.scrollTop = pzScroll; } });
     if (!r.isConfirmed) return;
     const upd = [];
     pzRows.forEach((x, i) => { const el = document.getElementById('pzIn' + i); const v = el ? puNum(el.value) : 0; if (v > 0) { x.p.price = v; x.p.pricing = 'manual'; x.p.markupPct = null; if (!(puNum(x.p.costPrice) > 0)) x.p.costPrice = x.cost; upd.push(x.p); } });
@@ -36,7 +37,7 @@ async function pzOpen(loss, keep) {
 }
 function pzFill() { pzRows.forEach((x, i) => { const el = document.getElementById('pzIn' + i); if (el && (pzLoss || !el.value)) el.value = syndPrice(x.cost) || ''; }); }
 
-function pzStash() { pzRows.forEach((x, i) => { const el = document.getElementById('pzIn' + i); if (el) { if (el.value) pzDraft.set(x.p.id, el.value); else pzDraft.delete(x.p.id); } }); }
+function pzStash() { { const l = document.querySelector('.pz-list'); if (l) pzScroll = l.scrollTop; } pzRows.forEach((x, i) => { const el = document.getElementById('pzIn' + i); if (el) { if (el.value) pzDraft.set(x.p.id, el.value); else pzDraft.delete(x.p.id); } }); }
 function pzDetailHtml(x) {
     const p = x.p, sub = subCountOf(p) ? p : null, types = subTypes.slice(); if (sub && sub.subType && !types.includes(sub.subType)) types.push(sub.subType);
     return `<div class="qp">
