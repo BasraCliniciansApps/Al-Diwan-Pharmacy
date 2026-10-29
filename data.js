@@ -980,6 +980,7 @@ const FORMS = [
     mkForm('surgtape', 'Surgical / Medical Tape', 'badge-gel', 'Dressings & Supplies', /surgical\s*tape|medical\s*tape|micropore|paper\s*tape|zinc\s*oxide\s*tape|لاصق طبي/),
     mkForm('gauze', 'Gauze / Swabs', 'badge-gel', 'Dressings & Supplies', /gauze|swabs?\b|شاش/),
     mkForm('bandage', 'Elastic / Crepe Bandage', 'badge-gel', 'Dressings & Supplies', /elastic\s*bandage|crepe|bandage|ضماد ضاغط|رباط/),
+    mkForm('cottonbuds', 'Cotton Buds / Swabs', 'badge-other', 'Dressings & Supplies', /cotton\s*(buds?|swabs?|sticks?|tips?|applicators?)|q-?\s*tips?|ear\s*(buds?|swabs?|picks?)|swab\s*sticks?|أعواد\s*(ال)?قطن|عيدان\s*(ال)?قطن/i),
     mkForm('cotton', 'Cotton', 'badge-gel', 'Dressings & Supplies', /cotton|قطن/),
     mkForm('gloves', 'Gloves', 'badge-other', 'Dressings & Supplies', /gloves?\b|قفاز/),
     mkForm('syringe', 'Syringe / Needle', 'badge-inj', 'Dressings & Supplies', /\bsyringes?\b(?!.*(pre-?filled))|\bneedles?\b|محقنة|محاقن|إبرة/),
