@@ -55,7 +55,7 @@ function scSearch(v) {
     if (/^\d{6,}$/.test(String(v).trim())) { const p = findByBarcode(v.trim()); if (p) scPick(p.id); }
 }
 function scList(arr) { const b = scE('scRes'); if (!b) return; b.innerHTML = arr.map(p => `<button type="button" class="sc-res" onclick="scPick(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')}</small><span>${fmtNum(p.price || 0)}</span></button>`).join(''); }
-function scPick(id) { scCur = id; scList([]); const q = scE('scQ'); if (q) q.value = ''; scRender(); const b = document.querySelector('#scanView .sc-ovb'); if (b) b.scrollTop = 0; }
+function scPick(id) { scShowOv(); scCur = id; scList([]); const q = scE('scQ'); if (q) q.value = ''; scRender(); const b = document.querySelector('#scanView .sc-ovb'); if (b) b.scrollTop = 0; }
 const scFmtD = ym => { const [y, m] = String(ym).split('-'); return m ? m + '/' + y : ym; };
 function scRender() {
     const box = scE('scCard'), p = products.find(x => x.id === scCur); if (!box || !p) return;
@@ -159,7 +159,8 @@ document.addEventListener('DOMContentLoaded', scApplyHome);
 const SC_SCAN_WAIT_MS = 8000;
 let scTimer = 0;
 function scOvEl() { return document.getElementById('scanView'); }
-function scGo() { const el = scOvEl(); scApplyHome(); el.style.display = 'flex'; document.body.classList.add('sc-open'); scInit(); scScanTimed(); }
+function scGo() { scApplyHome(); scInit(); scScanTimed(); }   // الكاميرا فقط؛ لا تظهر نافذة الفاحص إلا عند اختيار مادة
+function scShowOv() { const el = scOvEl(); if (el && el.style.display !== 'flex') { el.style.display = 'flex'; document.body.classList.add('sc-open'); } }
 function scClose() { clearTimeout(scTimer); try { if (document.getElementById('barcodeModal').style.display === 'flex') closeBarcodeScanner(); } catch (e) { /* تجاهل */ } const el = scOvEl(); if (el) el.style.display = 'none'; document.body.classList.remove('sc-open'); scCur = null; }
 function scManual() { clearTimeout(scTimer); const q = scE('bcName'); if (q) q.focus(); }
 function scModalSearch(v) {
@@ -183,3 +184,6 @@ function scScanTimed() {
 }
 // عند الرجوع من البطاقة: ارجع للكاميرا ثم أغلق
 function scBack() { if (scCur) { scInit(); scScanTimed(); } else scClose(); }
+
+// إغلاق الكاميرا دون اختيار مادة يعيد المستخدم للرئيسية مباشرة (بلا شاشة فارغة)
+function scOnCamClose() { const el = scOvEl(); if (el && el.style.display === 'flex' && !scCur) scClose(); }

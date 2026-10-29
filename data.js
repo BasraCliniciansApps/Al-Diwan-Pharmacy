@@ -4632,6 +4632,7 @@ function closeBarcodeScanner() {
     { const sb = document.getElementById('bcSearchBox'), mr = document.getElementById('bcManualRow'); if (sb) sb.style.display = 'none'; if (mr) mr.style.display = ''; }
     document.getElementById('barcodeModal').style.display = 'none';
     barcodeCallback = null;
+    if (typeof scOnCamClose === 'function') scOnCamClose();
 }
 
 function stopBarcodeCamera() {
