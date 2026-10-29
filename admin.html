@@ -160,7 +160,8 @@
             <div class="cat-manager-box" style="margin-top:16px;">
                 <h4>2. التصنيفات الفرعية (قابلة لتعديل التسمية)</h4>
                 <div id="subCatListManager" class="manager-list"></div>
-                <div class="add-inline-row">
+                <div class="add-inline-row" style="flex-wrap:wrap;">
+                    <select id="newSubCatDept" aria-label="القسم الرئيسي للتصنيف" style="flex:1 1 100%;"></select>
                     <input type="text" id="newSubCatInput" placeholder="اسم تصنيف فرعي جديد...">
                     <button class="icon-btn primary-btn" onclick="addSubCategory()">+ إضافة</button>
                 </div>

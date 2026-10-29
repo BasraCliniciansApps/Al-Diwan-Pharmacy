@@ -527,7 +527,7 @@ async function pushToCloud(onlyMetadata = false) {
             setSyncText("☁️ تم الحفظ");
         } catch (err) {
             setSyncText("❌ خطأ");
-            alert("خطأ في الحفظ السحابي: " + err.message);
+            askNotice("خطأ في الحفظ السحابي", err.message, "error");
         }
     }
 }
@@ -659,12 +659,14 @@ function renderManagerLists() {
         <div class="manager-item">
             <span>${escapeHtml(c)}${ownerOf(c) ? ` <small style="color:var(--text-sub)">· ${escapeHtml(ownerOf(c))}</small>` : ''}${taxLegacy.c.includes(c) ? ` <em class="tg warn">قديم${cUsed.has(c) ? ' — ' + cnt('category', 'extraCategories', c) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
             <div style="display:flex; gap:6px;">
+                <button class="icon-btn mi-edit" aria-label="نقل إلى قسم" onclick="moveSubCategory(${i})">📂<span class="mi-t"> نقل</span></button>
                 <button class="icon-btn mi-edit" aria-label="تعديل الاسم" onclick="renameSubCategory(${i})">✏️<span class="mi-t"> تعديل الاسم</span></button>
                 <button class="icon-btn mi-del" aria-label="حذف" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteManagerItem('cat', ${i})">🗑️</button>
             </div>
         </div>
     `).join('');
 
+    { const sel = document.getElementById('newSubCatDept'); if (sel) { const v = sel.value; sel.innerHTML = '<option value="">بدون قسم</option>' + departments.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join(''); sel.value = departments.includes(v) ? v : ''; } }
     const tabContainer = document.getElementById('tabListManager');
     if (tabContainer) {
         const builtin = (key, note = '') => `
@@ -686,9 +688,9 @@ function renderManagerLists() {
     }
 }
 
-function renameTab(key) {
+async function renameTab(key) {
     const oldName = tabLabels[key];
-    const newName = prompt("تعديل اسم التبويب:", oldName);
+    const newName = await askText('تعديل اسم التبويب', 'الاسم الجديد', oldName);
     if (newName && newName.trim() && newName.trim() !== oldName) {
         tabLabels[key] = newName.trim();
         pushToCloud(true);
@@ -740,11 +742,11 @@ function addCustomTab() {
     const name = nameEl.value.trim();
     if (!name) return;
     if (customTabs.length >= MAX_CUSTOM_TABS) {
-        alert('الحد الأقصى ' + MAX_CUSTOM_TABS + ' تبويبات إضافية حتى يبقى الشريط واضحاً على الهاتف. احذف تبويباً لإضافة آخر.');
+        askNotice('بلغت الحد الأقصى', 'الحد الأقصى ' + MAX_CUSTOM_TABS + ' تبويبات إضافية حتى يبقى الشريط واضحاً على الهاتف. احذف تبويباً لإضافة آخر.');
         return;
     }
     const used = [...Object.values(tabLabels), ...customTabs.map(t => t.name)];
-    if (used.includes(name)) { alert('هذا الاسم مستخدم مسبقاً.'); return; }
+    if (used.includes(name)) { askNotice('الاسم مستخدم', 'هذا الاسم مستخدم مسبقاً.'); return; }
     const icon = Array.from(iconEl.value.trim())[0] || '🏷️';
     customTabs.push({ id: 'c' + Date.now(), name, icon });
     nameEl.value = '';
@@ -754,10 +756,10 @@ function addCustomTab() {
     renderAll();
 }
 
-function renameCustomTab(id) {
+async function renameCustomTab(id) {
     const t = customTabs.find(x => x.id === id);
     if (!t) return;
-    const newName = prompt("تعديل اسم التبويب:", t.name);
+    const newName = await askText('تعديل اسم التبويب', 'الاسم الجديد', t.name);
     if (newName && newName.trim() && newName.trim() !== t.name) {
         t.name = newName.trim();
         pushToCloud(true);
@@ -766,14 +768,14 @@ function renameCustomTab(id) {
     }
 }
 
-function deleteCustomTab(id) {
+async function deleteCustomTab(id) {
     const t = customTabs.find(x => x.id === id);
     if (!t) return;
     const count = products.filter(p => p.type === id || inExtraTab(p, id)).length;
     const msg = count
         ? `حذف تبويب "${t.name}"؟ سيتم إرجاع ${count} صنف إلى التصنيف التلقائي (أدوية/كوزمتك). لن يُحذف أي صنف.`
         : `حذف تبويب "${t.name}"؟`;
-    if (!confirm(msg)) return;
+    if (!(await askSure('حذف التبويب؟', msg, 'نعم، احذف'))) return;
     customTabs = customTabs.filter(x => x.id !== id);
     products.forEach(p => {
         if (p.type === id) p.type = '';
@@ -785,9 +787,9 @@ function deleteCustomTab(id) {
     renderAll();
 }
 
-function renameDepartment(index) {
+async function renameDepartment(index) {
     const oldName = departments[index];
-    const newName = prompt("تعديل اسم القسم الرئيسي:", oldName);
+    const newName = await askText('تعديل اسم القسم الرئيسي', 'الاسم الجديد', oldName);
     if (newName && newName.trim() && newName.trim() !== oldName) {
         const clean = newName.trim();
         departments[index] = clean;
@@ -815,9 +817,9 @@ function addDepartment() {
     }
 }
 
-function renameSubCategory(index) {
+async function renameSubCategory(index) {
     const oldName = subCategories[index];
-    const newName = prompt("تعديل تسمية التصنيف الفرعي:", oldName);
+    const newName = await askText('تعديل اسم التصنيف الفرعي', 'الاسم الجديد', oldName);
     if (newName && newName.trim() && newName.trim() !== oldName) {
         const clean = newName.trim();
         subCategories[index] = clean;
@@ -834,10 +836,35 @@ function renameSubCategory(index) {
     }
 }
 
+async function moveSubCategory(index) {   // نقل تصنيف فرعي إلى قسم رئيسي آخر (أو ربط تصنيف غير مرتبط)
+    const c = subCategories[index]; if (!c) return;
+    const cur = Object.keys(deptSubs).find(d => (deptSubs[d] || []).includes(c)) || '';
+    const opts = { '': 'بدون قسم' }; departments.forEach(d => { opts[d] = d; });
+    const r = await Swal.fire({ title: 'نقل التصنيف إلى قسم', text: c, input: 'select', inputOptions: opts, inputValue: cur, showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نقل', cancelButtonText: 'إلغاء' });
+    if (!r.isConfirmed) return;
+    const nd = r.value || '';
+    if (nd === cur) return;
+    const mv = cur && nd ? products.filter(p => p.category === c && p.department === cur) : [];
+    if (mv.length) {
+        const ok = await askSure('نقل المواد أيضاً؟', 'سيُنقل ' + fmtNum(mv.length) + ' مادة تصنيفها «' + c + '» من «' + cur + '» إلى «' + nd + '».', 'نعم، انقل');
+        if (!ok) return;
+    }
+    Object.keys(deptSubs).forEach(d => { deptSubs[d] = (deptSubs[d] || []).filter(x => x !== c); });
+    if (nd) deptSubs[nd] = (deptSubs[nd] || []).concat(c);
+    mv.forEach(p => { p.department = nd; });
+    pushToCloud(false);
+    renderManagerLists();
+    renderAll();
+    Swal.fire({ icon: 'success', title: nd ? 'نُقل إلى «' + nd + '»' : 'أُزيل ارتباطه بالقسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
+}
+
 function addSubCategory() {
     const val = document.getElementById('newSubCatInput').value.trim();
+    if (val && subCategories.includes(val)) { askNotice('التصنيف موجود', 'هذا التصنيف موجود مسبقاً.', 'info'); return; }
     if (val && !subCategories.includes(val)) {
         subCategories.push(val);
+        const sd = (document.getElementById('newSubCatDept') || {}).value;
+        if (sd) deptSubs[sd] = (deptSubs[sd] || []).concat(val);
         document.getElementById('newSubCatInput').value = '';
         pushToCloud(true);
         renderManagerLists();
@@ -1764,6 +1791,12 @@ function openFormModal(id = null) {
     formSnapshot = formSerialize();
 }
 // نافذة تأكيد موحّدة للإلغاء والحذف: تُرجع true عند التأكيد
+async function askText(title, label, value) {   // نافذة إدخال نصي بنمط التطبيق (بدل نافذة المتصفح)؛ ترجع النص أو null
+    const r = await Swal.fire({ title, input: 'text', inputLabel: label || '', inputValue: value || '', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
+        inputValidator: v => (String(v || '').trim() ? undefined : 'اكتب الاسم أولاً') });
+    return r.isConfirmed ? String(r.value || '').trim() : null;
+}
+function askNotice(title, text, icon) { return Swal.fire({ icon: icon || 'warning', title, text: text || '', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); }
 async function askSure(title, text, btn) {
     const r = await Swal.fire({ icon: 'warning', title, text: text || '', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: btn || 'نعم', cancelButtonText: 'رجوع', reverseButtons: true });
     return !!r.isConfirmed;
