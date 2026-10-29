@@ -3146,3 +3146,6 @@ body.role-staff:not(.can-scan) .home-sq, body.sc-off .home-sq { grid-template-co
 body.sc-open .modal-overlay#barcodeModal { z-index: 9300; }
 
 #bcSearchBox { width: 100%; display: flex; flex-direction: column; gap: 6px; margin-top: 8px; } #bcSearchBox .bill-list-search { width: 100%; box-sizing: border-box; margin: 0; }
+
+button.pz-n { border: 0; background: transparent; padding: 0; font-family: inherit; display: flex; justify-content: space-between; align-items: center; width: 100%; cursor: pointer; }
+button.pz-n i { font-style: normal; color: #94a3b8; font-size: 1.2rem; }

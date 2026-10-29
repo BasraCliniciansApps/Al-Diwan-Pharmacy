@@ -281,8 +281,8 @@ function catPriceWire(p) {
     ['qpMode', 'qpCost', 'qpMk', 'qpPrice', 'qpSc'].forEach(id => $(id).addEventListener('input', refresh));
     mode.addEventListener('change', refresh);
     $('qpSp').addEventListener('input', () => { $('qpSp').dataset.manual = '1'; });
-    const qq = $('qpQty'); $('qpMinus').addEventListener('click', () => { qq.value = Math.max(0, (parseInt(qq.value) || 0) - 1); }); $('qpPlus').addEventListener('click', () => { qq.value = (parseInt(qq.value) || 0) + 1; });
-    $('qpScan').addEventListener('click', () => openBarcodeScanner(code => { const c = cleanBarcode(code); if ($('qpBc')) $('qpBc').value = c; }));
+    const qq = $('qpQty'); if (qq) { $('qpMinus').addEventListener('click', () => { qq.value = Math.max(0, (parseInt(qq.value) || 0) - 1); }); $('qpPlus').addEventListener('click', () => { qq.value = (parseInt(qq.value) || 0) + 1; }); }
+    if ($('qpScan')) $('qpScan').addEventListener('click', () => openBarcodeScanner(code => { const c = cleanBarcode(code); if ($('qpBc')) $('qpBc').value = c; }));
     refresh();
 }
 function catPriceRead() {
