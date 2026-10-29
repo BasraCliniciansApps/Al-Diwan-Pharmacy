@@ -33,6 +33,12 @@ function qiFabSync() {
     const oc = spCommit;
     spCommit = function (next) {
         if (!qi) return oc.apply(this, arguments);
+        if (sp && !sp.edit && !(parseFloat(sp.price) > 0)) {   // مادة بلا سعر: لا يُنتقل للخطوة التالية قبل إدخاله
+            const pi = document.querySelector('#spCard .sp-price');
+            if (pi) { pi.focus(); pi.classList.add('qi-need'); }
+            Swal.fire({ icon: 'warning', title: 'أدخل سعر المادة أولاً', toast: true, position: 'top', showConfirmButton: false, timer: 2000 });
+            return;
+        }
         oc.call(this, false);
         if (sp) return;                                    // لم تُضف (رسالة تنبيه)
         qiStrip();
@@ -174,7 +180,7 @@ async function qiFinish() {
     if (!(await qiRound())) return;
     const t = billTotals();
     const r2 = await Swal.fire({ icon: 'success', title: 'جاهزة للإصدار', confirmButtonText: 'عرض الفاتورة', showCancelButton: true, cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38',
-        html: `<div class="qi-sum">المجموع: <b>${fmtNum(t.total)} د.ع</b></div>
+        html: `<div class="qi-final"><small>السعر النهائي</small><b>${fmtNum(t.total)} د.ع</b></div>
             <label class="qi-credit"><input type="checkbox" id="qiCredit"> بيع آجل (دفع جزء من المبلغ)</label>
             <div id="qiPaidBox" style="display:none"><input id="qiPaid" type="number" inputmode="numeric" min="0" class="swal2-input" placeholder="المبلغ المدفوع (اتركه 0 إن لم يُدفع شيء)"></div>`,
         didOpen: () => { const c = document.getElementById('qiCredit'); c.onchange = () => { document.getElementById('qiPaidBox').style.display = c.checked ? '' : 'none'; }; },
@@ -184,4 +190,34 @@ async function qiFinish() {
     writeInvoiceFields(); billChanged(); renderInvoiceRows();
     lsSet(BILL_LS.draft, JSON.stringify(bill));
     qiClose();
+}
+
+// ===== مشاركة الفاتورة كملف PDF (واتساب وغيره) =====
+function qiLoadScript(src) { return new Promise((res, rej) => { if ([...document.scripts].some(x => x.src && x.src.endsWith(src))) return res(); const e = document.createElement('script'); e.src = src; e.onload = res; e.onerror = () => rej(new Error('تعذر تحميل ' + src)); document.head.appendChild(e); }); }
+async function billSharePdf() {
+    readInvoiceFields();
+    if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'أضف مادة واحدة على الأقل قبل المشاركة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+    const h = Prog.start('تجهيز ملف الفاتورة', { text: 'تحميل الأدوات...' });
+    try {
+        await qiLoadScript('vendor/html-to-image.js'); await qiLoadScript('vendor/pdf-lib.min.js');
+        h.set(25, 'تصوير الفاتورة...');
+        const sheet = document.getElementById('billSheet');
+        document.body.classList.add('capturing-bill'); document.querySelectorAll('#billPane-new textarea').forEach(autoGrow); await new Promise(r => setTimeout(r, 60));
+        let png; try { png = await htmlToImage.toPng(sheet, { pixelRatio: 2.5, backgroundColor: '#ffffff', cacheBust: true, filter: n => !(n.classList && n.classList.contains('no-print')) }); } finally { document.body.classList.remove('capturing-bill'); }
+        h.set(65, 'إنشاء ملف PDF...');
+        const { PDFDocument } = PDFLib, doc = await PDFDocument.create(), img = await doc.embedPng(png);
+        const W = 595.28, H = 841.89, M = 24, usable = H - 2 * M; let iw = W - 2 * M, ih = img.height * iw / img.width;
+        if (ih > usable && ih <= usable * 1.3) { iw = iw * usable / ih; ih = usable; }   // تُضغط لتتسع بصفحة واحدة إن كانت قريبة من حجمها
+        const pages = Math.max(1, Math.ceil(ih / usable - 0.02));
+        for (let i = 0; i < pages; i++) { const pg = doc.addPage([W, H]); pg.drawImage(img, { x: (W - iw) / 2, y: H - M - ih + i * usable, width: iw, height: ih }); if (i > 0 || pages > 1) { pg.drawRectangle({ x: 0, y: H - M, width: W, height: M, color: PDFLib.rgb(1, 1, 1) }); pg.drawRectangle({ x: 0, y: 0, width: W, height: M, color: PDFLib.rgb(1, 1, 1) }); } }
+        const bytes = await doc.save(), name = (bill.no || 'invoice') + '.pdf';
+        const file = new File([bytes], name, { type: 'application/pdf' });
+        h.ok('الملف جاهز');
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try { await navigator.share({ files: [file], title: 'فاتورة ' + (bill.no || '') }); } catch (e) { if (e && e.name !== 'AbortError') throw e; }
+        } else {
+            const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+            Swal.fire({ icon: 'info', title: 'نُزّل الملف', text: 'المشاركة المباشرة غير مدعومة في هذا المتصفح؛ أرفق الملف من التنزيلات في واتساب.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        }
+    } catch (e) { h.fail('تعذّر تجهيز الملف', String(e && e.message || e)); }
 }

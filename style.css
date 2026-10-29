@@ -3184,3 +3184,31 @@ body.sc-open #formModal { z-index: 9200; } body.sc-open .swal2-container { z-ind
 .qi-rl { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; max-height: 34vh; overflow: auto; text-align: right; }
 .qi-rr { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 12px; cursor: pointer; } .qi-rr span { flex: 1; font-weight: 700; } .qi-rr input { flex: 0 0 auto; width: 20px !important; height: 20px !important; }
 .qi-rb { display: flex; gap: 10px; } .qi-rb button { flex: 1; height: 54px; border: 0; border-radius: 14px; background: #0f1c38; color: #fff; font-size: 1.2rem; font-weight: 800; cursor: pointer; } .qi-rb button:first-child { background: #b45309; }
+
+.qi-ov { align-items: center; padding: 16px; box-sizing: border-box; } .qi-card { border-radius: 20px; max-height: 86vh; }
+.qi-need { border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220,38,38,.2); }
+.qi-final { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 16px; margin-bottom: 8px; background: #f0fdf4; border: 2px solid #16a34a; border-radius: 16px; color: #14532d; } .qi-final small { font-size: .85rem; font-weight: 700; } .qi-final b { font-size: 2.1rem; line-height: 1.2; }
+[data-theme="dark"] .qi-final { background: #052e16; color: #bbf7d0; }
+#billPane-new .bill-actions #billNewBtn { flex: 0 0 22%; font-size: .78rem; padding: 0 4px; }
+#billPane-new .bill-actions #billWaBtn { flex: 0 0 13%; padding: 0; }
+#billPane-new .bill-actions #billPrintOnlyBtn, #billPane-new .bill-actions #billIssueOnlyBtn { flex: 1 1 0; font-size: .76rem; padding: 0 4px; }
+
+/* التقاط الفاتورة كصورة لملف PDF: نفس قواعد الطباعة */
+body.capturing-bill .no-print { display: none !important; }
+body.capturing-bill .bill-sheet { box-shadow: none !important; max-width: none !important; padding: 0 !important; border-radius: 0 !important; }
+body.capturing-bill .bill-field input, body.capturing-bill .bill-field textarea { border-bottom: 1px solid #555 !important; }
+body.capturing-bill .bill-date-input { display: none !important; }
+body.capturing-bill .bill-date-txt { display: inline !important; border-bottom: 1px solid #555; padding: 6px 10px; }
+body.capturing-bill .bill-trow input { border-bottom: 0 !important; }
+body.capturing-bill .bill-table th, body.capturing-bill .bill-grand, body.capturing-bill .bill-table th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body.capturing-bill .bill-disc input:placeholder-shown, body.capturing-bill .bill-paid input:placeholder-shown { color: transparent; }
+body.capturing-bill .has-pv input { display: none !important; }
+body.capturing-bill .has-pv .bill-pv { display: inline; }
+body.capturing-bill .bill-trow.bill-empty { display: none; }
+body.capturing-bill .bill-table .c-n { display: table-cell !important; }
+body.capturing-bill .bill-paid:has(.bill-pv:empty) { display: none; }
+body.capturing-bill .bill-table td textarea { overflow: visible; }
+body.capturing-bill .bill-step, body.capturing-bill .bill-unit, body.capturing-bill .bill-bt { display: none !important; }
+body.capturing-bill .c-qty .bill-pv { display: inline; }
+body.capturing-bill .bill-field input:placeholder-shown, body.capturing-bill .bill-field textarea:placeholder-shown { color: transparent; }
+body.capturing-bill .bill-sheet.cancelled::after { display: block; }
