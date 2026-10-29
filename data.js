@@ -1041,6 +1041,7 @@ const FORMS = [
     mkForm('enema', 'Enema', 'badge-oint', 'Rectal & Vaginal', /enema|حقنة شرجية/),
     mkForm('supp', 'Suppository', 'badge-oint', 'Rectal & Vaginal', /suppositor|\bsupp\b|pessar|تحميل|تحاميل/),
     mkForm('patch', 'Patch', 'badge-gel', 'Topical', /\bpatch|plaster|لصق/),
+    mkForm('nebsusp', 'Nebulizer Suspension', 'badge-spray', 'Inhalation', /nebuli[sz]er\s*suspension|nebuli[sz]ation\s*suspension|respules?\s*suspension|معلق\s*(للاستنشاق|نيبولايزر)/i),
     mkForm('inhaler', 'Inhaler / Nebulizer', 'badge-spray', 'Inhalation', /inhaler|nebul|respules|استنشاق|نيبول/),
     mkForm('mdi', 'MDI Inhaler', 'badge-spray', 'Inhalation'),
     mkForm('dpi', 'DPI (Powder Inhaler)', 'badge-spray', 'Inhalation'),
