@@ -247,6 +247,7 @@ function catPriceHtml(p, isNew, pre) {
             <div class="qf"><span>العدد (عبوات)</span><div class="qstep"><button type="button" id="qpMinus">−</button><input id="qpQty" type="number" inputmode="numeric" min="0" value="${p ? (parseInt(p.qty) || 0) : 0}" onfocus="this.select()"><button type="button" id="qpPlus">+</button></div></div>
             <div class="qf"><span>الباركود</span><div class="qbc"><input id="qpBc" class="qin ltr" dir="ltr" inputmode="numeric" value="${escapeHtml(p ? (barcodesOf(p)[0] || '') : preBc)}" placeholder="اكتب أو امسح"><button type="button" id="qpScan" aria-label="مسح">▦</button></div></div>
         </div>
+        ${isNew ? '<div class="qf qrow"><span>تاريخ النفاذ (اختياري، للعدد المُدخل)</span><input id="qpExp" type="month" class="qin ltr" dir="ltr"></div>' : ''}
         <div class="qsep"></div>
         <div class="qf qrow"><span>طريقة التسعير</span><select id="qpMode" class="qin"><option value="manual">يدوي — ملصق الوزارة</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></div>
         <div class="qg2 qrow">
@@ -293,10 +294,10 @@ function catPriceRead() {
     if (mode === 'percent' && (!(cost > 0) || !(mk >= 0))) { Swal.showValidationMessage('التسعير بنسبة يحتاج سعر الشراء ونسبة الإضافة'); return false; }
     if (mode === 'syndicate' && !(cost > 0)) { Swal.showValidationMessage('أدخل سعر الشراء (سعر المذخر) لحساب السعر'); return false; }
     const sc = parseInt($('qpSc').value) || 0, sp = parseFloat($('qpSp').value);
-    return { name, qty: Math.max(0, parseInt($('qpQty').value) || 0), loose: Math.max(0, parseInt($('qpLoose').value) || 0), bc: cleanBarcode($('qpBc').value), pricing: mode, costPrice: cost, price, markupPct: mode === 'percent' ? mk : null,
+    return { name, exp: ($('qpExp') && $('qpExp').value) || '', qty: Math.max(0, parseInt($('qpQty').value) || 0), loose: Math.max(0, parseInt($('qpLoose').value) || 0), bc: cleanBarcode($('qpBc').value), pricing: mode, costPrice: cost, price, markupPct: mode === 'percent' ? mk : null,
         retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || 'جزء', subPrice: sp > 0 ? sp : subPriceCalc(price, sc) } };
 }
-async function catPrice(id, pre) {
+async function catPrice(id, pre, cb) {
     const p = id ? products.find(x => x.id === id) : null; if (id && !p) return;
     if (!writesAllowed()) return;
     const isNew = !p;
@@ -310,10 +311,12 @@ async function catPrice(id, pre) {
         const obj = { id: Date.now(), department: dept, category: subCategories[0] || '', type: '', extraDepartments: [], extraCategories: [], extraTypes: [], form: '', activeIngredient: '', minQty: null, brand: 'GENERIC', name: v.name, details: '', meta: '',
             qty: v.qty, price: v.price, costPrice: v.costPrice, pricing: v.pricing, markupPct: v.markupPct, ...v.retail, ...(() => { const n = catNorm(v.qty, v.loose, v.retail.subCount); return { qty: n.q, loose: n.l }; })(), expiryDates: [], expiryDate: '', keywords: '', barcode: v.bc, barcodes: v.bc ? [v.bc] : [], img: '' };
         if (obj.qty > 0 || obj.loose > 0) obj.counted = true;
+        if (v.exp) { if (obj.qty > 0 || obj.loose > 0) btApply(obj, [{ e: v.exp, q: obj.qty, l: obj.loose }]); else { obj.expiryDates = [v.exp]; obj.expiryDate = v.exp; } }
         products.unshift(obj); renderAll(); renderCatalog();
         const ok = await saveSingleProductToCloud(obj);
         if (typeof onProductSaved === 'function') onProductSaved(obj);
         if (ok) { logAction('add', obj, []); Swal.fire({ icon: 'success', title: 'أُضيفت المادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 }); }
+        if (typeof cb === 'function') cb(obj);
         return;
     }
     const old = JSON.parse(JSON.stringify(p)), oldQty = parseInt(p.qty) || 0, oldLoose = parseInt(p.loose) || 0;

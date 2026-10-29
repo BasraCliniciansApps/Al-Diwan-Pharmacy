@@ -4833,7 +4833,7 @@ async function offerUnknownBarcode(code, after, opts) {
         confirmButtonColor: '#0f1c38', denyButtonColor: '#047857'
     });
     if (r.isConfirmed) openAttachBarcodePicker(code, after);
-    else if (r.isDenied) { if (opts.onNew) opts.onNew(code); else { openFormModal(); formBarcodes = [cleanBarcode(code)]; renderBarcodeChips(); } }
+    else if (r.isDenied) { if (opts.onNew) opts.onNew(code); else if (typeof catPrice === 'function') catPrice(0, cleanBarcode(code), p2 => { if (after) after(p2); }); else { openFormModal(); formBarcodes = [cleanBarcode(code)]; renderBarcodeChips(); } }
 }
 function bcpRowHtml(p) {
     const img = p.img ? `<img src="${escapeHtml(p.img)}" alt="" loading="lazy" onerror="this.replaceWith(Object.assign(document.createElement('span'),{textContent:'💊'}))">` : '<span>💊</span>';

@@ -228,7 +228,7 @@ function billScan() {
 }
 function billAddByBarcode(code) {
     const p = findByBarcode(code);
-    if (!p) { offerUnknownBarcode(code, p2 => billAddProduct(p2.id), { onNew: c => { openFormModal(); formBarcodes = [cleanBarcode(c)]; renderBarcodeChips(); } }); return; }
+    if (!p) { offerUnknownBarcode(code, p2 => billAddProduct(p2.id)); return; }
     if (typeof spOpen === 'function') { spOpen(p.id, { scan: true }); return; }
     billAddProduct(p.id);
     Swal.fire({ icon: 'success', title: 'أُضيف: ' + p.name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1200 });
