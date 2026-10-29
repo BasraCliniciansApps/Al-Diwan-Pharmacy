@@ -100,6 +100,7 @@ function taxKey(n) { return String(n || '').toLowerCase().split(/\s\d|\s*\(|\s[x
 let taxFirstIdx = null;
 // قواعد بالكلمات (أولوية على الجدول) للمنتجات الواضحة: [regex، القسم، التصنيف]
 const TAX_KW = [
+    [/pregnancy\s*(test|strip|cassette|midstream)|\bhcg\s*(test|strip|cassette|midstream)|ovulation\s*(test|strip|kit)|\blh\s*(test|strip)|اختبار\s*(ال)?(حمل|تبويض)|فحص\s*(ال)?حمل/i, 'النسائية والتوليد والهرمونات', 'اختبارات الحمل والتبويض'],
     [/^(?!.*(nicotine|nicorette|nicotinell|medicated|toothpaste|mouth\s*wash|gel|cream|spray)).*(chewing\s*gum|(?<!xanthan )(?<!guar )(?<!acacia )(?<!gellan )(?<!arabic )\bgum\b(?!\s*(care|health|protect|disease|problems?|guard|expert|therapy|repair|rescue|resin)))|(^|\s)علكة?(\s|$)/i, 'الفم والأسنان', 'علك'],
     [/meropenem|merrem|imipenem|ertapenem|doripenem|invanz|tienam|ميروبينيم|ميروبنم/i, 'المضادات الحيوية ومضادات العدوى', 'كاربابينيمات'],
     [/methyldopa|aldomet|dopegyt|ميثيل\s*دوبا|ألدومت|الدومت/i, 'القلب والضغط والدهون', 'خافضات الضغط المركزية'],
