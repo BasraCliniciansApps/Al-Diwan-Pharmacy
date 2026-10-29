@@ -420,11 +420,13 @@ function taxRvYes(id) {
     if (!e.d) { taxRvNo(id); return; }
     taxRv[id] = { d: e.d, s: e.s, f: e.f, x: e.x || [], st: e.st === 'edit' ? 'edit' : 'ok' }; taxRvSave(); taxRvRender(true);
 }
+function taxSubsOf(d) { return departments.includes(d) && Array.isArray(deptSubs[d]) ? deptSubs[d].slice() : (TAX_SEED[d] || []).slice(); }   // تصنيفات القسم الفعلية (تشمل ما أضفتَه أو نقلتَه)
+function taxDeptList() { return TAX_DEPTS.concat((typeof departments !== 'undefined' ? departments : []).filter(d => !TAX_DEPTS.includes(d) && !(taxLegacy.d || []).includes(d))); }
 async function taxRvNo(id) {
     const p = products.find(x => x.id === id); if (!p) return; const e = taxRvEntry(p);
-    const dOpts = TAX_DEPTS.map(d => `<option value="${escapeHtml(d)}" ${d === e.d ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
+    const dOpts = taxDeptList().map(d => `<option value="${escapeHtml(d)}" ${d === e.d ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
     const fOpts = '<option value="">تلقائي</option>' + FORM_GROUPS.map(g => `<optgroup label="${g}">${FORMS.filter(f => f.g === g).map(f => `<option value="${f.id}" ${f.id === e.f ? 'selected' : ''}>${escapeHtml(f.txt)}</option>`).join('')}</optgroup>`).join('') + FORMS.filter(f => !f.g).map(f => `<option value="${f.id}" ${f.id === e.f ? 'selected' : ''}>${escapeHtml(f.txt)}</option>`).join('');
-    const fillSubs = () => { const d = document.getElementById('trD').value; document.getElementById('trS').innerHTML = (TAX_SEED[d] || []).map(s => `<option value="${escapeHtml(s)}" ${s === e.s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join(''); };
+    const fillSubs = () => { const d = document.getElementById('trD').value; document.getElementById('trS').innerHTML = taxSubsOf(d).map(s => `<option value="${escapeHtml(s)}" ${s === e.s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join(''); };
     const xsel = (e.x || []).map(c => c.slice());
     const r = await Swal.fire({ title: escapeHtml(p.name), showCancelButton: true, showDenyButton: true, confirmButtonText: 'حفظ التصحيح', denyButtonText: 'تخطّي', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38', width: 'min(94vw, 460px)',
         html: `<div class="sw-form" style="text-align:right"><label>القسم<select id="trD" onchange="">${dOpts}${e.d ? '' : '<option value="" selected>— اختر —</option>'}</select></label><label>التصنيف<select id="trS"></select></label><label>الشكل الدوائي<select id="trF">${fOpts}</select></label>
@@ -432,7 +434,7 @@ async function taxRvNo(id) {
         didOpen: () => {
             const d = document.getElementById('trD'); d.addEventListener('change', () => { e.s = ''; fillSubs(); }); fillSubs();
             const xd = document.getElementById('trXD'), xs = document.getElementById('trXS'), xl = document.getElementById('trXL');
-            const fillX = () => { xs.innerHTML = (TAX_SEED[xd.value] || []).map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join(''); };
+            const fillX = () => { xs.innerHTML = taxSubsOf(xd.value).map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join(''); };
             const showX = () => { xl.innerHTML = xsel.map((c, i) => `<span class="tr-chip">${escapeHtml(c[0])} › ${escapeHtml(c[1])} <button type="button" data-i="${i}" aria-label="حذف">✕</button></span>`).join('') || '<small>لا يوجد</small>'; xl.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { xsel.splice(+b.dataset.i, 1); showX(); })); };
             xd.addEventListener('change', fillX); fillX(); showX();
             document.getElementById('trXB').addEventListener('click', () => { const c = [xd.value, xs.value]; if (c[1] && !xsel.some(z => z[0] === c[0] && z[1] === c[1])) { xsel.push(c); showX(); } });
