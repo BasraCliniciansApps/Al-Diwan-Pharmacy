@@ -795,12 +795,16 @@ async function renameDepartment(index) {
         departments[index] = clean;
         if (deptSubs[oldName]) { deptSubs[clean] = deptSubs[oldName]; delete deptSubs[oldName]; }
         taxLegacy.d = taxLegacy.d.map(x => x === oldName ? clean : x);
+        const touched = [];
         products.forEach(p => {
-            if (p.department === oldName) p.department = clean;
-            if (extrasOf(p.extraDepartments).includes(oldName)) p.extraDepartments = p.extraDepartments.map(x => x === oldName ? clean : x);
+            let hit = false;
+            if (p.department === oldName) { p.department = clean; hit = true; }
+            if (extrasOf(p.extraDepartments).includes(oldName)) { p.extraDepartments = p.extraDepartments.map(x => x === oldName ? clean : x); hit = true; }
+            if (hit) touched.push(p);
         });
         if (activeDept === oldName) activeDept = clean;
-        pushToCloud(false);
+        await pushToCloud(true);
+        if (touched.length) await saveProductsDelta(touched.map(p => ({ p, dq: 0, dl: 0 })));
         renderManagerLists();
         renderAll();
     }
@@ -825,12 +829,16 @@ async function renameSubCategory(index) {
         subCategories[index] = clean;
         Object.keys(deptSubs).forEach(d => { deptSubs[d] = (deptSubs[d] || []).map(x => x === oldName ? clean : x); });
         taxLegacy.c = taxLegacy.c.map(x => x === oldName ? clean : x);
+        const touched = [];
         products.forEach(p => {
-            if (p.category === oldName) p.category = clean;
-            if (extrasOf(p.extraCategories).includes(oldName)) p.extraCategories = p.extraCategories.map(x => x === oldName ? clean : x);
+            let hit = false;
+            if (p.category === oldName) { p.category = clean; hit = true; }
+            if (extrasOf(p.extraCategories).includes(oldName)) { p.extraCategories = p.extraCategories.map(x => x === oldName ? clean : x); hit = true; }
+            if (hit) touched.push(p);
         });
         if (filCats.has(oldName)) { filCats.delete(oldName); filCats.add(clean); }
-        pushToCloud(false);
+        await pushToCloud(true);
+        if (touched.length) await saveProductsDelta(touched.map(p => ({ p, dq: 0, dl: 0 })));
         renderManagerLists();
         renderAll();
     }
@@ -852,7 +860,8 @@ async function moveSubCategory(index) {   // نقل تصنيف فرعي إلى �
     Object.keys(deptSubs).forEach(d => { deptSubs[d] = (deptSubs[d] || []).filter(x => x !== c); });
     if (nd) deptSubs[nd] = (deptSubs[nd] || []).concat(c);
     mv.forEach(p => { p.department = nd; });
-    pushToCloud(false);
+    await pushToCloud(true);   // القوائم فقط، ثم المواد المتأثرة وحدها (بدل رفع كل الأصناف)
+    if (mv.length) await saveProductsDelta(mv.map(p => ({ p, dq: 0, dl: 0 })));
     renderManagerLists();
     renderAll();
     Swal.fire({ icon: 'success', title: nd ? 'نُقل إلى «' + nd + '»' : 'أُزيل ارتباطه بالقسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
