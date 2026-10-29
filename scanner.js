@@ -46,7 +46,7 @@ function scBuyLines(p) {
 let scCur = null;
 const scE = id => document.getElementById(id);
 function scInit() { scApplyHome(); const q = scE('scQ'); if (q) { q.value = ''; } scList([]); scCur = null; scE('scCard').innerHTML = '<div class="sc-hint">امسح باركود المادة أو ابحث باسمها 👆</div>'; }
-function scScan() { openBarcodeScanner(code => { const p = findByBarcode(code); if (p) { scPick(p.id); } else Swal.fire({ icon: 'info', title: 'لم يتم العثور على المادة', text: 'هذا الباركود غير مسجّل بأي مادة.', confirmButtonColor: '#0f1c38' }); }); }
+function scScan() { openBarcodeScanner(code => { const p = findByBarcode(code); if (p) { scPick(p.id); } else scUnknown(code); }); }
 function scSearch(v) {
     const qn = normSearch(v || ''), qt = qn ? qn.split(' ') : [];
     if (!qn) { scList([]); return; }
@@ -172,7 +172,7 @@ function scModalSearch(v) {
 function scModalPick(id) { clearTimeout(scTimer); closeBarcodeScanner(); scPick(id); }
 function scScanTimed() {
     clearTimeout(scTimer);
-    const cb = code => { clearTimeout(scTimer); const p = findByBarcode(code); if (p) scPick(p.id); else Swal.fire({ icon: 'info', title: 'لم يتم العثور على المادة', text: 'هذا الباركود غير مسجّل بأي مادة.', confirmButtonColor: '#0f1c38' }); };
+    const cb = code => { clearTimeout(scTimer); const p = findByBarcode(code); if (p) scPick(p.id); else scUnknown(code); };
     scTimer = setTimeout(() => {
         if (typeof barcodeCallback === 'undefined' || barcodeCallback !== cb) return;
         const m = scE('bcName'); if (m && (m.value || document.activeElement === m)) return;
@@ -187,3 +187,6 @@ function scBack() { if (scCur) { scInit(); scScanTimed(); } else scClose(); }
 
 // إغلاق الكاميرا دون اختيار مادة يعيد المستخدم للرئيسية مباشرة (بلا شاشة فارغة)
 function scOnCamClose() { const el = scOvEl(); if (el && el.style.display === 'flex' && !scCur) scClose(); }
+
+// باركود غير مسجّل: إضافته لمادة موجودة (ربط) أو إنشاء مادة جديدة، مثل شاشة الوارد، ثم تُعرض بطاقة المادة
+function scUnknown(code) { offerUnknownBarcode(cleanBarcode(code), p2 => scPick(p2.id)); }
