@@ -53,7 +53,7 @@ async function qiStart() {
         if (r.isDismissed) return;
         if (r.isDenied) { bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); billTab('new'); } else keep = true;
     }
-    qi = { keep };
+    qi = { keep }; document.body.classList.add('qi-open');
     qiFabSync();
     qiStep1();
 }
@@ -135,7 +135,7 @@ async function qiAbandon() {
     if (ok) qiClose();
 }
 function qiClose() {
-    qi = null; const h = document.getElementById('qiPanel'); if (h) h.style.display = 'none';
+    qi = null; document.body.classList.remove('qi-open'); const h = document.getElementById('qiPanel'); if (h) h.style.display = 'none';
     qiFabSync(); try { window.scrollTo(0, 0); } catch (e) { /* تجاهل */ }
 }
 // ---- الإنهاء ----

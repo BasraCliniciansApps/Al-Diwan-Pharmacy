@@ -3212,3 +3212,5 @@ body.capturing-bill .bill-step, body.capturing-bill .bill-unit, body.capturing-b
 body.capturing-bill .c-qty .bill-pv { display: inline; }
 body.capturing-bill .bill-field input:placeholder-shown, body.capturing-bill .bill-field textarea:placeholder-shown { color: transparent; }
 body.capturing-bill .bill-sheet.cancelled::after { display: block; }
+
+body.qi-open #formModal { z-index: 9200; } body.qi-open .swal2-container { z-index: 9500; }
