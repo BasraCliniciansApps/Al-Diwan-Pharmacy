@@ -998,6 +998,7 @@ const FORMS = [
     mkForm('toothbrush', 'Toothbrush', 'badge-other', 'Oral Care', /tooth\s*brush|toothbrush|interdental|فرشاة اسنان|فرشاة أسنان|فرشاة/),
     mkForm('toothpick', 'Toothpick', 'badge-other', 'Oral Care', /tooth\s*picks?|dental\s*picks?|خلة اسنان|خلة أسنان|عيدان اسنان|عيدان أسنان/i),
     mkForm('floss', 'Dental Floss', 'badge-other', 'Oral Care', /floss|خيط اسنان|خيط أسنان/),
+    mkForm('chewgum', 'Gum', 'badge-oral', 'Oral Care', /^(?!.*(nicotine|nicorette|nicotinell|medicated|toothpaste|mouth\s*wash|gel|cream|spray)).*(chewing\s*gum|(?<!xanthan )(?<!guar )(?<!acacia )(?<!gellan )(?<!arabic )\bgum\b(?!\s*(care|health|protect|disease|problems?|guard|expert|therapy|repair|rescue|resin)))|(^|\s)علكة?(\s|$)/i),
     mkForm('gummy', 'Gummies', 'badge-oral', 'Oral Solid', /gumm|gumies|gumi\b|gummi|gelly\s*bears?|jelly\s*bears?|gummy\s*bears?|pectin|chewies|جمي|جمّي|غمي|علك مطاطي|علكات/),
     mkForm('lollipop', 'Lollipop', 'badge-oral', 'Oral Solid', /loll[iy]pops?|مصاصة/),
     mkForm('oralvial', 'Oral Vial / Drinkable Ampoule', 'badge-syrup', 'Oral Liquid', /oral\s*(vial|ampoule|amp)\b|drinkable/),
