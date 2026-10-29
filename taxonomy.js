@@ -425,7 +425,7 @@ function taxDeptList() { return TAX_DEPTS.concat((typeof departments !== 'undefi
 async function taxRvNo(id) {
     const p = products.find(x => x.id === id); if (!p) return; const e = taxRvEntry(p);
     const dOpts = taxDeptList().map(d => `<option value="${escapeHtml(d)}" ${d === e.d ? 'selected' : ''}>${escapeHtml(d)}</option>`).join('');
-    const fOpts = '<option value="">تلقائي</option>' + FORM_GROUPS.map(g => `<optgroup label="${g}">${FORMS.filter(f => f.g === g).map(f => `<option value="${f.id}" ${f.id === e.f ? 'selected' : ''}>${escapeHtml(f.txt)}</option>`).join('')}</optgroup>`).join('') + FORMS.filter(f => !f.g).map(f => `<option value="${f.id}" ${f.id === e.f ? 'selected' : ''}>${escapeHtml(f.txt)}</option>`).join('');
+    const fOpts = '<option value="">تلقائي</option>' + FORM_GROUPS.map(g => `<optgroup label="${g}">${FORMS.filter(f => f.g === g && (!f.hidden || f.id === e.f)).map(f => `<option value="${f.id}" ${f.id === e.f ? 'selected' : ''}>${escapeHtml(f.txt)}</option>`).join('')}</optgroup>`).join('') + FORMS.filter(f => !f.g).map(f => `<option value="${f.id}" ${f.id === e.f ? 'selected' : ''}>${escapeHtml(f.txt)}</option>`).join('');
     const fillSubs = () => { const d = document.getElementById('trD').value; document.getElementById('trS').innerHTML = taxSubsOf(d).map(s => `<option value="${escapeHtml(s)}" ${s === e.s ? 'selected' : ''}>${escapeHtml(s)}</option>`).join(''); };
     const xsel = (e.x || []).map(c => c.slice());
     const r = await Swal.fire({ title: escapeHtml(p.name), showCancelButton: true, showDenyButton: true, confirmButtonText: 'حفظ التصحيح', denyButtonText: 'تخطّي', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38', width: 'min(94vw, 460px)',

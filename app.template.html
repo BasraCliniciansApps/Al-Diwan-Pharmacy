@@ -323,6 +323,18 @@
                 <p class="ai-note">الإعدادات والمفتاح يُحفظان على هذا الجهاز فقط، ولا يُرفعان للسحابة ولا يدخلان النسخة الاحتياطية. عند استعمال الذكاء الصناعي تُرسل صورة العبوة إلى جوجل (والطبقة المجانية قد تُستخدم لتحسين منتجاتها)، فلا تصوّر أي شيء يخص الزبائن. الذكاء الصناعي قد يخطئ، فراجع الاسم والتركيز والمادة الفعالة قبل الحفظ.</p>
             </div>
 
+            <div class="cat-manager-box" style="margin-top:16px;">
+                <h4>الأشكال الدوائية (إضافة ونقل وتعديل الأسماء)</h4>
+                <input type="search" class="bill-list-search" placeholder="🔍 ابحث عن شكل..." oninput="fmSearch(this.value)" style="margin-bottom:8px;">
+                <div id="formListManager" class="manager-list" style="max-height:320px;"></div>
+                <div class="add-inline-row" style="flex-wrap:wrap;">
+                    <select id="newFormGroup" aria-label="مجموعة الشكل" style="flex:1 1 100%;"></select>
+                    <input type="text" id="newFormInput" placeholder="اسم شكل دوائي جديد..." dir="ltr">
+                    <button class="icon-btn primary-btn" onclick="fmAdd()">+ إضافة</button>
+                </div>
+                <button type="button" class="icon-btn" onclick="fmAddGroup()" style="margin-top:8px;width:100%">＋ إضافة مجموعة أشكال</button>
+            </div>
+
             <div class="modal-actions-row" style="margin-top:18px;">
                 <button class="icon-btn" onclick="closeCategoryManager()">إغلاق</button>
             </div>
@@ -670,7 +682,7 @@
     <script src="seed.js"></script>
     <script src="prog.js"></script>
     <script src="data.js"></script>
-<!--A--><script src="invoice.js"></script><script src="sellpop.js"></script><script src="quickinv.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="datahub.js"></script><script src="taxfilter.js"></script><script src="docpage.js"></script><script src="rxprint.js"></script><script src="rx.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><script src="navtabs.js"></script><!--/A-->
+<!--A--><script src="invoice.js"></script><script src="sellpop.js"></script><script src="quickinv.js"></script><script src="formsmgr.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="datahub.js"></script><script src="taxfilter.js"></script><script src="docpage.js"></script><script src="rxprint.js"></script><script src="rx.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><script src="navtabs.js"></script><!--/A-->
     <script>
         if ('serviceWorker' in navigator) {
             const hadCtl = !!navigator.serviceWorker.controller;

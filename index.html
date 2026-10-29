@@ -319,6 +319,18 @@
                 <p class="ai-note">الإعدادات والمفتاح يُحفظان على هذا الجهاز فقط، ولا يُرفعان للسحابة ولا يدخلان النسخة الاحتياطية. عند استعمال الذكاء الصناعي تُرسل صورة العبوة إلى جوجل (والطبقة المجانية قد تُستخدم لتحسين منتجاتها)، فلا تصوّر أي شيء يخص الزبائن. الذكاء الصناعي قد يخطئ، فراجع الاسم والتركيز والمادة الفعالة قبل الحفظ.</p>
             </div>
 
+            <div class="cat-manager-box" style="margin-top:16px;">
+                <h4>الأشكال الدوائية (إضافة ونقل وتعديل الأسماء)</h4>
+                <input type="search" class="bill-list-search" placeholder="🔍 ابحث عن شكل..." oninput="fmSearch(this.value)" style="margin-bottom:8px;">
+                <div id="formListManager" class="manager-list" style="max-height:320px;"></div>
+                <div class="add-inline-row" style="flex-wrap:wrap;">
+                    <select id="newFormGroup" aria-label="مجموعة الشكل" style="flex:1 1 100%;"></select>
+                    <input type="text" id="newFormInput" placeholder="اسم شكل دوائي جديد..." dir="ltr">
+                    <button class="icon-btn primary-btn" onclick="fmAdd()">+ إضافة</button>
+                </div>
+                <button type="button" class="icon-btn" onclick="fmAddGroup()" style="margin-top:8px;width:100%">＋ إضافة مجموعة أشكال</button>
+            </div>
+
             <div class="modal-actions-row" style="margin-top:18px;">
                 <button class="icon-btn" onclick="closeCategoryManager()">إغلاق</button>
             </div>

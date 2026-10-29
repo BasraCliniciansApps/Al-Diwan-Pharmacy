@@ -3222,3 +3222,6 @@ body.qi-open #formModal { z-index: 9200; } body.qi-open .swal2-container { z-ind
 
 #catModal .manager-list > .manager-item { flex: 0 0 auto; }
 #catModal .manager-item > span small { display: block; margin-top: 2px; font-weight: 500; }
+#formListManager .manager-item > span > span { font-weight: 800; } #formListManager.manager-list { padding: 0; }
+.fm-off { opacity: .55; }
+#newFormGroup { height: 46px; padding: 0 12px; border: 1.5px solid var(--border, #cbd5e1); border-radius: 12px; background: var(--surface, #fff); color: var(--text-main, #0f172a); font: inherit; }

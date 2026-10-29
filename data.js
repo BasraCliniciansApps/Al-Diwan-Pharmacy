@@ -407,6 +407,7 @@ async function initFirebase() {
                 if (Array.isArray(data.alertMonths) && data.alertMonths.length === 3) alertMonths = data.alertMonths;
                 if (data.pricingCfg) pricingCfg = normPricingCfg(data.pricingCfg);
                 if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
+                if (data.formCfg && typeof formCfgImport === 'function') formCfgImport(data.formCfg);
                 saveLocal();
                 renderAll();
             }
@@ -444,6 +445,7 @@ function saveLocal() {
         localStorage.setItem('diwanAlertMonths', JSON.stringify(alertMonths));
         localStorage.setItem('diwanPricing', JSON.stringify(pricingCfg));
         localStorage.setItem('diwanSubTypes', JSON.stringify(subTypes));
+        if (typeof formCfg !== 'undefined') localStorage.setItem('diwanFormCfg', JSON.stringify(formCfg));
         localStorage.setItem('diwanProducts', JSON.stringify(products));
     } catch (e) {
         // إذا امتلأت ذاكرة المتصفح، نمسح النسخة المحلية القديمة لكي يقرأ المتصفح من السحابة المحدثة دائماً!
@@ -505,6 +507,7 @@ async function pushToCloud(onlyMetadata = false) {
                 alertMonths,
                 pricingCfg,
                 subTypes,
+                formCfg: typeof formCfg !== 'undefined' ? formCfg : null,
                 updatedAt: new Date().toISOString()
             });
 
@@ -667,6 +670,7 @@ function renderManagerLists() {
     `).join('');
 
     { const sel = document.getElementById('newSubCatDept'); if (sel) { const v = sel.value; sel.innerHTML = '<option value="">بدون قسم</option>' + departments.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join(''); sel.value = departments.includes(v) ? v : ''; } }
+    if (typeof renderFormManager === 'function') renderFormManager();
     const tabContainer = document.getElementById('tabListManager');
     if (tabContainer) {
         const builtin = (key, note = '') => `
@@ -1128,7 +1132,7 @@ function getFormBadge(item) {
 function onFormChange() { const w = document.getElementById('fFormOtherWrap'), v = document.getElementById('fForm'); if (w && v) w.style.display = v.value === 'other' ? '' : 'none'; }
 function fillFormSelect() {
     const el = document.getElementById('fForm');
-    if (el && !el.options.length) el.innerHTML = '<option value="">تلقائي (حسب الاسم والعبوة)</option>' + FORM_GROUPS.map(g => `<optgroup label="${g}">${FORMS.filter(f => f.g === g).map(f => `<option value="${f.id}">${f.txt}</option>`).join('')}</optgroup>`).join('') + FORMS.filter(f => !f.g).map(f => `<option value="${f.id}">${f.txt}</option>`).join('');
+    if (el && !el.options.length) el.innerHTML = '<option value="">تلقائي (حسب الاسم والعبوة)</option>' + FORM_GROUPS.map(g => `<optgroup label="${g}">${FORMS.filter(f => f.g === g && !f.hidden).map(f => `<option value="${f.id}">${f.txt}</option>`).join('')}</optgroup>`).join('') + FORMS.filter(f => !f.g).map(f => `<option value="${f.id}">${f.txt}</option>`).join('');
 }
 
 function renderDepartmentsBar() {
@@ -3054,6 +3058,7 @@ function buildBackupObject() {
         alertMonths,
         pricingCfg,
         subTypes,
+        formCfg: typeof formCfg !== 'undefined' ? formCfg : null,
         products
     };
 }
@@ -3220,6 +3225,7 @@ async function applyBackupData(data) {
                 if (Array.isArray(data.alertMonths) && data.alertMonths.length === 3) alertMonths = data.alertMonths;
         if (data.pricingCfg) pricingCfg = normPricingCfg(data.pricingCfg);
         if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
+        if (data.formCfg && typeof formCfgImport === 'function') formCfgImport(data.formCfg);
 
         if (isImp) {   // الاستيراد: نكتب الأصناف الجديدة فقط ونُظهر أي خطأ من السحابة بوضوح
             PH.set(12, 'حفظ الإعدادات...'); await pushToCloud(true);
