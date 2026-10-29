@@ -246,7 +246,7 @@ function billSaveMeta() {
 function renderInvMeta() {
     const m = getInvMeta();
     document.getElementById('billPhLine1').innerText = m.addr || '';
-    document.getElementById('billPhLine2').innerText = [m.phone ? 'هاتف: ' + m.phone : '', m.lic].filter(Boolean).join('  |  ');
+    document.getElementById('billPhLine2').innerHTML = [m.phone ? 'هاتف: <bdi dir="ltr">' + escapeHtml(m.phone) + '</bdi>' : '', escapeHtml(m.lic || '')].filter(Boolean).join('  |  ');
     document.getElementById('billFootTxt').innerText = m.foot || '';
     document.getElementById('billRetTxt').innerText = m.ret ? 'سياسة الإرجاع: ' + m.ret : '';
 }
@@ -681,7 +681,7 @@ const poExtra = new Set();   // أصناف أُضيفت يدوياً من صفح
 function poCandidates() { return products.filter(p => !isInStock(p) || isLowStock(p) || poExtra.has(p.id)).sort((a, b) => (parseInt(a.qty) || 0) - (parseInt(b.qty) || 0) || String(a.brand).localeCompare(String(b.brand))); }
 function renderPO() {
     const m = getInvMeta();
-    $b('poPhLine').innerText = [m.addr, m.phone ? 'هاتف: ' + m.phone : ''].filter(Boolean).join('  |  ');
+    $b('poPhLine').innerHTML = [escapeHtml(m.addr || ''), m.phone ? 'هاتف: <bdi dir="ltr">' + escapeHtml(m.phone) + '</bdi>' : ''].filter(Boolean).join('  |  ');
     $b('poDateTxt').innerText = fmtDateDMY(todayLocalISO());
     $b('poFoot').innerText = m.foot || '';
     $b('poSupplier').value = lsGet(BILL_LS.supplier) || '';
