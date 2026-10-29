@@ -139,34 +139,39 @@ function qiClose() {
     qiFabSync(); try { window.scrollTo(0, 0); } catch (e) { /* تجاهل */ }
 }
 // ---- الإنهاء ----
-function qiRoundOptions() {
-    const t = billTotals(), r = Math.round(t.total) % 1000;
-    if (![250, 500, 750].includes(r)) return null;
-    const opts = [];
+function qiEligible() {   // مواد غير مسعّرة بملصق الوزارة (نقابة/نسبة) وكميتها تقبل خطوة 250
+    const out = [];
     bill.items.forEach((it, i) => {
         const p = it.pid && products.find(x => x.id === it.pid);
-        if (!p || p.pricing === 'manual' || !p.pricing) return;
-        const qty = parseFloat(it.qty) || 0, price = parseFloat(it.price) || 0; if (qty <= 0) return;
-        [[1000 - r, '+'], [-r, '−']].forEach(([d, sg]) => {
-            if (!Number.isInteger(d / qty)) return;
-            const np = price + d / qty; if (np <= 0) return;
-            opts.push({ i, d, sg, np, qty, name: it.name, price });
-        });
+        const qty = parseFloat(it.qty) || 0;
+        if (!p || !qty || !['syndicate', 'percent'].includes(p.pricing)) return;
+        if (!Number.isInteger(250 / qty)) return;
+        out.push(i);
     });
-    return { r, opts };
+    return out;
+}
+async function qiRound() {   // false = رجوع
+    const rem = () => Math.round(billTotals().total) % 1000;
+    if (rem() === 0) return true;
+    const el = qiEligible();
+    if (!el.length) { await Swal.fire({ icon: 'info', title: 'المجموع ليس ألفاً كاملة', text: 'لا توجد مواد غير مسعّرة بالملصق يمكن تعديل سعرها.', confirmButtonText: 'متابعة', confirmButtonColor: '#0f1c38' }); return true; }
+    let cur = el[0];
+    const r = await Swal.fire({ title: 'تسوية المجموع إلى ألف كاملة', showCancelButton: true, confirmButtonText: 'تم', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38',
+        html: `<div class="qi-sum">المجموع: <b id="qiRT"></b></div>
+            <div class="qi-rl">${el.map(i => `<label class="qi-rr"><input type="radio" name="qiRI" value="${i}" ${i === cur ? 'checked' : ''}><span dir="ltr">${escapeHtml(bill.items[i].name)}</span><b id="qiRP${i}"></b></label>`).join('')}</div>
+            <div class="qi-rb"><button type="button" id="qiRm">− 250</button><button type="button" id="qiRp">+ 250</button></div>`,
+        didOpen: () => {
+            const upd = () => { document.getElementById('qiRT').innerText = fmtNum(billTotals().total) + ' د.ع'; el.forEach(i => { const e = document.getElementById('qiRP' + i); if (e) e.innerText = fmtNum(bill.items[i].price); }); };
+            const step = d => { const it = bill.items[cur], np = (parseFloat(it.price) || 0) + d / (parseFloat(it.qty) || 1); if (np <= 0) return; it.price = np; renderInvoiceRows(); billChanged(); upd(); };
+            document.querySelectorAll('input[name=qiRI]').forEach(x => x.onchange = () => { cur = +x.value; });
+            document.getElementById('qiRm').onclick = () => step(-250); document.getElementById('qiRp').onclick = () => step(250); upd();
+        } });
+    return !r.isDismissed;
 }
 async function qiFinish() {
     readInvoiceFields();
     if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'أضف مادة واحدة على الأقل', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 }); return; }
-    const ro = qiRoundOptions();
-    if (ro && ro.opts.length) {
-        const inputOptions = { '': 'بدون تقريب' };
-        ro.opts.forEach((o, k) => { inputOptions[k] = `${o.sg}${fmtNum(Math.abs(o.d))} على «${o.name}» (${fmtNum(o.price)} ← ${fmtNum(o.np)})`; });
-        const r = await Swal.fire({ icon: 'question', title: 'تقريب المجموع', text: `المجموع ينتهي بـ ${fmtNum(ro.r)} دينار. اختر التعديل المناسب ليصبح ألفاً كاملة:`,
-            input: 'select', inputOptions, inputValue: '', showCancelButton: true, confirmButtonText: 'متابعة', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38' });
-        if (r.isDismissed) return;
-        if (r.value !== '' && r.value != null) { const o = ro.opts[+r.value]; if (o) { bill.items[o.i].price = o.np; renderInvoiceRows(); billChanged(); } }
-    }
+    if (!(await qiRound())) return;
     const t = billTotals();
     const r2 = await Swal.fire({ icon: 'success', title: 'جاهزة للإصدار', confirmButtonText: 'عرض الفاتورة', showCancelButton: true, cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38',
         html: `<div class="qi-sum">المجموع: <b>${fmtNum(t.total)} د.ع</b></div>

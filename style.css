@@ -3180,3 +3180,7 @@ body.sc-open #formModal { z-index: 9200; } body.sc-open .swal2-container { z-ind
 .qi-sum { font-size: 1.1rem; margin-bottom: 10px; } .qi-credit { display: flex; align-items: center; gap: 10px; justify-content: center; margin: 8px 0; font-weight: 700; }
 [data-theme="dark"] .qi-strip { background: #1e293b; color: #e2e8f0; } [data-theme="dark"] .qi-x { background: #334155; color: #e2e8f0; } [data-theme="dark"] .qi-l input, [data-theme="dark"] .qi-q { border-color: #475569; }
 @media print { .qi-fab, .qi-ov { display: none !important; } }
+
+.qi-rl { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; max-height: 34vh; overflow: auto; text-align: right; }
+.qi-rr { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid #cbd5e1; border-radius: 12px; cursor: pointer; } .qi-rr span { flex: 1; font-weight: 700; } .qi-rr input { flex: 0 0 auto; width: 20px !important; height: 20px !important; }
+.qi-rb { display: flex; gap: 10px; } .qi-rb button { flex: 1; height: 54px; border: 0; border-radius: 14px; background: #0f1c38; color: #fff; font-size: 1.2rem; font-weight: 800; cursor: pointer; } .qi-rb button:first-child { background: #b45309; }
