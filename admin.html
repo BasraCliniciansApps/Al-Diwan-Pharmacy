@@ -210,9 +210,7 @@
                 <div class="form-group"><label>تاريخ الكتاب:</label><input type="date" id="pcBookDate"></div>
                 <div class="form-group"><label>تقريب السعر لأقرب (دينار، 0 = بدون تقريب):</label><input type="number" id="pcRound" min="0" inputmode="numeric"></div>
                 <div class="form-group"><label>الشرائح (سعر المذخر بالدولار ← نسبة الإضافة):</label><div id="pcRows"></div></div>
-                <button type="button" class="icon-btn" onclick="pzOpen()" style="margin-bottom:8px;width:100%">🏷️ مواد بدون سعر بيع (مع سعر شرائها)</button>
-                <button type="button" class="icon-btn" onclick="pzOpen(true)" style="margin-bottom:8px;width:100%">⚠️ مواد تُباع بخسارة (سعر البيع ≤ الكلفة)</button>
-                <button type="button" class="icon-btn" onclick="openCostSplit()" style="margin-bottom:8px;width:100%">🔒 فصل سعر الشراء</button>
+                <button type="button" class="icon-btn" onclick="dhOpen('miss')" style="margin-bottom:8px;width:100%">🏷️ المواد غير المسعّرة أو المباعة بخسارة</button>
                 <button type="button" class="icon-btn primary-btn" onclick="savePricingSettings()">💾 حفظ وإعادة تسعير المواد</button>
                 <small style="display:block;margin-top:8px;color:#64748b;line-height:1.7;">تغيير سعر الصرف أو النسب يعيد حساب أسعار كل المواد المسعّرة «حسب كتاب النقابة» دفعة واحدة، بعد تأكيدك. المواد اليدوية لا تتأثر.</small>
             </div>
@@ -233,10 +231,7 @@
             <div class="cat-manager-box" style="margin-top:16px;">
                 <h4>أدوات المخزون</h4>
                 <div class="tools-grid">
-                    <button class="icon-btn" onclick="closeCategoryManager(); openInventory()">📋 وضع الجرد</button>
-                    <button class="icon-btn" onclick="puBackfill()">🔄 تحديث المواد من سجل الوارد</button>
                     <button class="icon-btn" onclick="puExpBackfill()">📅 إضافة تواريخ الانتهاء من الفواتير المؤجَّلة</button>
-                    <button class="icon-btn" onclick="migrateStockPrivate()" style="grid-column:1/-1;">🔒 حماية بيانات المخزون (إخفاء الكميات عن الزبائن)</button>
                 </div>
             </div>
 
@@ -334,6 +329,14 @@
                 <h4>التطبيق</h4>
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="installApp()" style="grid-column:1/-1;">📲 تثبيت التطبيق على الجهاز</button>
+                </div>
+            </div>
+
+            <div class="cat-manager-box" id="dataProtectBox" style="margin-top:16px;">
+                <h4>حماية البيانات</h4>
+                <div class="tools-grid">
+                    <button class="icon-btn" onclick="migrateStockPrivate()" style="grid-column:1/-1;">🔒 حماية بيانات المخزون (إخفاء الكميات عن الزبائن)</button>
+                    <button class="icon-btn" onclick="openCostSplit()" style="grid-column:1/-1;">🔒 فصل سعر الشراء (إخفاء الكلفة عن البائعين)</button>
                 </div>
             </div>
 
@@ -854,9 +857,9 @@
     </div>
     <div class="bill-tabs no-print" id="puTabs">
         <button type="button" data-tab="new" class="active" onclick="puTab('new')">➕ وارد جديد</button>
-        <button type="button" data-tab="log" onclick="puTab('log')">📚 السجل</button>
+        <button type="button" data-tab="log" onclick="puTab('log')">🧾 فواتير الوارد</button>
         <button type="button" data-tab="debt" onclick="puTab('debt')">💳 مستحقات المذاخر</button>
-        <button type="button" data-tab="hub" onclick="puTab('hub')" id="puTabHub">📚 السجلات</button>
+        <button type="button" data-tab="hub" onclick="puTab('hub')" id="puTabHub">🗂️ السجلات والكشوف</button>
         <button type="button" data-tab="sup" onclick="puTab('sup')">🏭 المذاخر والأسعار</button>
     </div>
 

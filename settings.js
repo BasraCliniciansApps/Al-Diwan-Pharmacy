@@ -8,9 +8,8 @@ const SH_PAGES = [
     { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح فصل سعر الشراء كلفة pricing' },
     { id: 'scanner', ico: '🔎', t: 'المسح والذكاء الصناعي', boxes: [9], kw: 'فاحص المادة مسح باركود سعر خصم حد الخصم اكسباير نفاذ هامش ربح scanner discount ذكاء صناعي مسح عبوة gemini ocr قراءة العبوة' },
     { id: 'ui', ico: '🧩', t: 'الواجهة والتبويبات', boxes: [3, 11], kw: 'تبويب تبويبات الشريط السفلي واجهة تثبيت التطبيق tabs install' },
-    { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة users permissions security log trash' },
+    { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8, 12], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة users permissions security log trash' },
     { id: 'sys', ico: '💾', t: 'النسخ والبيانات', boxes: [6], kw: 'نسخ احتياطي استرجاع تصدير نسخ سحابية backup restore export csv' },
-    { id: 'catalog', ico: '📋', t: 'سجل الأدوية', boxes: [], act: 'openCatalog', kw: 'سجل ادوية كتالوج دليل مواد catalog' },
     { id: 'invset', ico: '🧾', t: 'إعدادات الفواتير', boxes: [], act: 'shGoInvSettings', kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع invoice' },
     { id: 'docset', ico: '🩺', t: 'إعدادات صفحة الأطباء', boxes: [], act: 'shGoDocSettings', kw: 'طبيب اطباء صفحة الاطباء المواد المعروضة doctor' },
 ];

@@ -5,9 +5,9 @@
     </div>
     <div class="bill-tabs no-print" id="puTabs">
         <button type="button" data-tab="new" class="active" onclick="puTab('new')">➕ وارد جديد</button>
-        <button type="button" data-tab="log" onclick="puTab('log')">📚 السجل</button>
+        <button type="button" data-tab="log" onclick="puTab('log')">🧾 فواتير الوارد</button>
         <button type="button" data-tab="debt" onclick="puTab('debt')">💳 مستحقات المذاخر</button>
-        <button type="button" data-tab="hub" onclick="puTab('hub')" id="puTabHub">📚 السجلات</button>
+        <button type="button" data-tab="hub" onclick="puTab('hub')" id="puTabHub">🗂️ السجلات والكشوف</button>
         <button type="button" data-tab="sup" onclick="puTab('sup')">🏭 المذاخر والأسعار</button>
     </div>
 

@@ -32,7 +32,7 @@ function lgRenderHub() {
 }
 function lgTabBadge() {
     const n = lgRets().filter(e => lgStatus(e) === 'pending').length, b = $b('puTabHub');
-    if (b) b.textContent = '📚 السجلات' + (n ? ' (' + n + ')' : '');
+    if (b) b.textContent = '🗂️ السجلات والكشوف' + (n ? ' (' + n + ')' : '');
     if ($b('lgHub') && puTabName === 'hub') lgRenderHub();
 }
 
