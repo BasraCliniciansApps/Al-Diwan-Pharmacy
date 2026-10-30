@@ -5188,15 +5188,14 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     swipeClose('filterSheet', () => closeFilterSheet());
     const fc = document.querySelector && document.querySelector('#formModal .modal-card'); if (fc && fc.addEventListener) { fc.id = fc.id || 'formCard'; swipeClose(fc.id, () => requestCloseForm()); }
 
-    // 2) زر الرجوع: يرجع خطوة (نافذة ← شاشة ← الرئيسية) ثم يسأل قبل الخروج
-    // سجل المتصفح يتجاهل أي إدخال يُضاف قبل أول لمسة من المستخدم، فنضيف حارس الرجوع عند أول لمسة.
-    let exiting = false, armed = false, lastBack = 0;
+    // 2) زر الرجوع (أسلوب التطبيقات الاحترافية):
+    //   - عند الشاشة الرئيسية بلا أي نافذة: لا نعترض الرجوع إطلاقاً، فيخرج التطبيق طبيعياً (قاعدة Android).
+    //   - عند فتح نافذة/شاشة داخلية: نضيف إدخالات حارسة بعدد الطبقات المفتوحة (+ هامش)، ونزيلها عند العودة للرئيسية.
+    //   - الرجوع يغلق الأعلى فقط، وبعد آخر طبقة يخرج التطبيق.
+    // الإدخالات تُضاف داخل لمسة المستخدم فقط (المتصفح يتجاهل ما يُضاف بدونها)؛ لذلك نزامنها بعد كل لمسة.
+    let exiting = false, syncing = 0;
     try { history.replaceState({ g: 0 }, ''); } catch (e) { return; }
-    // مهم: المتصفح لا يعدّ touchstart/pointerdown تفاعلاً حقيقياً (user activation)، والإدخال المضاف بدونه يُتجاهل عند الرجوع؛ لذلك نستمع لرفع الإصبع فقط.
-    // نضيف عدة حرّاس دفعة واحدة داخل نفس اللمسة (الإدخال المضاف داخل popstate قد يتجاهله المتصفح)، ونعيد التعبئة عند كل لمسة
-    const GUARDS = 8, gcur = () => (history.state && history.state.g) || 0;
-    const arm = () => { try { let g = gcur(); if (g >= GUARDS) { armed = true; return; } for (g++; g <= GUARDS; g++) history.pushState({ g }, ''); armed = true; } catch (e) { /* تجاهل */ } };
-    ['touchend', 'pointerup', 'click', 'mousedown', 'keydown'].forEach(t => window.addEventListener(t, arm, { passive: true, capture: true }));
+    const GMAX = 14, SLACK = 2, gcur = () => (history.state && history.state.g) || 0;
     const vis = id => { const e = document.getElementById(id); return !!e && e.style.display && e.style.display !== 'none'; };
     // سجلّ الطبقات: كل طبقة تُغلق بدالّتها الأصلية (لا إخفاء مباشر)، ونختار الأعلى فعلياً بحسب z-index (وعند التساوي بترتيب القائمة)
     const LAYERS = [
@@ -5245,16 +5244,30 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         window.__navBack = true; try { showView(prev && prev !== currentView ? prev : 'home'); } finally { window.__navBack = false; }
         return true;
     }
-    const guard = () => { try { if (gcur() < 1) history.pushState({ g: 1 }, ''); } catch (e) { /* تجاهل */ } };
-    window.addEventListener('popstate', async () => {
-        if (exiting || !armed) return;
-        if (closeTopLayer() || (window.__tabBack && window.__tabBack()) || backView()) { guard(); return; }
-        // الرئيسية: أسلوب التطبيقات الاحترافية — أول ضغطة تُظهر تنبيهاً قصيراً، والثانية خلال ثانيتين تخرج
-        const now = Date.now();
-        if (now - lastBack > 2200) { lastBack = now; guard(); try { Swal.fire({ toast: true, position: 'bottom', icon: 'info', title: 'اضغط رجوع مرة أخرى للخروج', showConfirmButton: false, timer: 2000, width: 'auto' }); } catch (e) { /* تجاهل */ } return; }
+    function depthNow() {
+        let d = 0;
+        LAYERS.forEach(([id, on]) => { try { if (on()) d++; } catch (e) { /* تجاهل */ } });
+        try { if (window.Swal && Swal.isVisible && Swal.isVisible() && !(Swal.getPopup() && Swal.getPopup().classList.contains('swal2-toast'))) d++; } catch (e) { /* تجاهل */ }
+        try { if (IS_ADMIN_PAGE && typeof currentView !== 'undefined' && !['home', 'login', 'splash'].includes(currentView)) d += 1 + (window.__viewStack || []).length + (window.__tabDepth ? window.__tabDepth() : 0); } catch (e) { /* تجاهل */ }
+        return d;
+    }
+    function syncGuards() {
+        if (exiting || syncing) return;
+        try {
+            const d = depthNow(), t = d > 0 ? Math.min(GMAX, d + SLACK) : 0, g = gcur();
+            if (g < t) { for (let i = g + 1; i <= t; i++) history.pushState({ g: i }, ''); }
+            else if (g > t) { syncing++; history.go(-(g - t)); setTimeout(() => { syncing = Math.max(0, syncing - 1); }, 500); }
+        } catch (e) { /* تجاهل */ }
+    }
+    const syncSoon = () => { [0, 120, 450].forEach(ms => setTimeout(syncGuards, ms)); };
+    ['touchend', 'pointerup', 'click', 'keydown'].forEach(t => window.addEventListener(t, syncSoon, { passive: true, capture: true }));
+    window.__syncBackGuards = syncGuards;
+    window.addEventListener('popstate', () => {
+        if (exiting || syncing) return;
+        if (closeTopLayer() || (window.__tabBack && window.__tabBack()) || backView()) { setTimeout(syncGuards, 0); return; }
+        // لا شيء يُغلق: نخرج من التطبيق (نتجاوز ما بقي من الإدخالات الحارسة)
         exiting = true;
         try { window.close(); } catch (e) { /* تجاهل */ }
-        setTimeout(() => { try { const g = gcur(); if (g > 0) history.go(-g); } catch (e) { /* تجاهل */ } }, 250);
-        setTimeout(() => { if (!document.hidden) Swal.fire({ icon: 'info', title: 'اضغط رجوع مرة أخرى', text: 'للخروج النهائي من التطبيق.', timer: 2600, showConfirmButton: false }); }, 900);
+        try { history.go(-(gcur() + 1)); } catch (e) { /* تجاهل */ }
     });
 })();

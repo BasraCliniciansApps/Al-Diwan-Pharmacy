@@ -10,6 +10,7 @@
         { fn: 'billTab', view: 'bill', get: () => (typeof currentBillTab !== 'undefined' ? currentBillTab : null) },
         { fn: 'setMainTab', view: 'stock', get: () => (typeof mainTab !== 'undefined' ? mainTab : null) }
     ];
+    window.__tabDepth = function () { const v = typeof currentView !== 'undefined' ? currentView : ''; return stack.filter(e => e.view === v).length; };
     window.__tabBack = function () {
         const v = typeof currentView !== 'undefined' ? currentView : '';
         while (stack.length) {
