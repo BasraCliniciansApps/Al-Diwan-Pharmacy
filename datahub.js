@@ -50,15 +50,17 @@ function dhLossCount() { const keep = pzLoss; pzLoss = true; const c = pzBuild()
 function dhOpen(screen) {
     let el = dhEl();
     if (!el) { el = document.createElement('div'); el.id = 'dataHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
-    el.style.display = 'flex'; dhGo(screen || 'home');
+    el.style.display = 'flex'; dhDirect = !!screen && screen !== 'home'; dhGo(screen || 'home');
 }
+let dhDirect = false;   // فُتح مباشرة على شاشة فرعية (من خارج المركز): الرجوع يغلقه بدل الذهاب لرئيسيته
+function dhBack() { if (dhDirect || dhScreen === 'home') dhClose(); else dhGo('home'); }
 function dhClose() {
     const el = dhEl(); if (el) el.style.display = 'none';
     try { renderAll(); } catch (e) { /* تجاهل */ }
 }
 function dhGo(s) { dhScreen = s; dhQ = ''; dhShown = 40; if (s === 'ing') dhFilter = 'miss'; dhRender(); }
 function dhHead(title, back) {
-    return `<div class="tr-head"><b>${title}</b><span>${back ? '<button type="button" class="tr-x" style="margin-inline-end:8px" onclick="dhGo(\'home\')" aria-label="رجوع">↩</button>' : ''}<button type="button" class="tr-x" onclick="dhClose()" aria-label="إغلاق">✕</button></span></div>`;
+    return `<div class="tr-head"><b>${title}</b><span>${back ? '<button type="button" class="tr-x" style="margin-inline-end:8px" onclick="dhBack()" aria-label="رجوع">↩</button>' : ''}<button type="button" class="tr-x" onclick="dhClose()" aria-label="إغلاق">✕</button></span></div>`;
 }
 function dhRender(keep) {
     const el = dhEl(); if (!el) return;

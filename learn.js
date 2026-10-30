@@ -133,7 +133,7 @@ function learnOpen() {
         <div class="ln-stat">مواد محفوظة بالاسم: <b>${ex}</b> · قواعد كلمات مفعّلة: <b>${rows.length}</b></div>
         <div class="ln-list">${rows.length ? rows.map(r => `<div class="ln-row"><span><b dir="ltr">${esc(r.tok)}</b> ← ${esc(r.ch)}${r.kind === 'f' ? ' <em>(شكل)</em>' : ''}<small>تأكّدت في ${r.n} مواد</small></span><button type="button" onclick="learnDel('${esc(r.tok)}','${r.kind}')" aria-label="حذف">✕</button></div>`).join('') : '<div class="ln-empty">لا توجد قواعد كلمات بعد. تتكوّن عندما تختار التصنيف نفسه لمادتين تشتركان في كلمة.</div>'}</div>
         <button type="button" class="ln-clear" onclick="learnClear()">مسح كل ما تعلّمه</button></div>`;
-    Swal.fire({ title: 'قواعدي', html, width: 'min(94vw, 520px)', confirmButtonColor: '#0f1c38', confirmButtonText: 'تم', didOpen: () => { const c = document.getElementById('lnOn'); if (c) c.addEventListener('change', () => { learnData.off = !c.checked; learnSave(); learnPush(); }); } });
+    Swal.fire({ title: 'ما تعلّمه التطبيق', html, width: 'min(94vw, 520px)', confirmButtonColor: '#0f1c38', confirmButtonText: 'تم', didOpen: () => { const c = document.getElementById('lnOn'); if (c) c.addEventListener('change', () => { learnData.off = !c.checked; learnSave(); learnPush(); }); } });
 }
 async function learnDel(tok, kind) {
     const a = learnData.tk[tok]; if (!a) return;

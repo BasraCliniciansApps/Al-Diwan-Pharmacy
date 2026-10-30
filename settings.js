@@ -3,11 +3,11 @@
 // ما تغيّر محتوى الإعدادات القديمة، بس ترتّبه (تعرض صناديق كل صفحة وتخفي الباقي).
 // =====================================================================
 const SH_PAGES = [
-    { id: 'tax', ico: '🗂️', t: 'التصنيف والبيانات', boxes: [0, 1, 2, 10, 11], kw: 'ادخال سريع تعلم قواعدي قواعد تصنيفي الخاصة تصنيف تلقائي شكل دوائي تلقائي مركز تجهيز البيانات اشكال الاشكال الدوائية شكل دوائي مجموعة أشكال forms قسم اقسام تصنيف تصنيفات فرعية جاهزة مراجعة الأقسام الرئيسية departments categories إكمال المواد الفعالة سجل البحث الفاشل' },
+    { id: 'tax', ico: '🗂️', t: 'التصنيف والبيانات', boxes: [0, 1, 2, 10], kw: 'ادخال سريع تعلم ما تعلمه التطبيق قواعد تصنيفي الخاصة سجل البحث الفاشل مواد فعالة اكمال تصنيف تلقائي شكل دوائي تلقائي مركز تجهيز البيانات اشكال الاشكال الدوائية شكل دوائي مجموعة أشكال forms قسم اقسام تصنيف تصنيفات فرعية جاهزة مراجعة الأقسام الرئيسية departments categories إكمال المواد الفعالة سجل البحث الفاشل' },
     { id: 'inv', ico: '📦', t: 'المخزون والتنبيهات', boxes: [4, 7], kw: 'مخزون تنبيه تنبيهات نقص كمية صلاحية انتهاء مدة نفاذ جرد وضع الجرد تحديث المواد من الوارد تواريخ الانتهاء الفواتير المؤجلة حماية بيانات المخزون اخفاء الكميات inventory alerts' },
     { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح فصل سعر الشراء كلفة pricing' },
     { id: 'scanner', ico: '🔎', t: 'المسح والذكاء الصناعي', boxes: [9], kw: 'فاحص المادة مسح باركود سعر خصم حد الخصم اكسباير نفاذ هامش ربح scanner discount ذكاء صناعي مسح عبوة gemini ocr قراءة العبوة' },
-    { id: 'ui', ico: '🧩', t: 'الواجهة والتبويبات', boxes: [3, 12], kw: 'تبويب تبويبات الشريط السفلي واجهة تثبيت التطبيق tabs install' },
+    { id: 'ui', ico: '🧩', t: 'الواجهة والتبويبات', boxes: [3, 11], kw: 'تبويب تبويبات الشريط السفلي واجهة تثبيت التطبيق tabs install' },
     { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة users permissions security log trash' },
     { id: 'sys', ico: '💾', t: 'النسخ والبيانات', boxes: [6], kw: 'نسخ احتياطي استرجاع تصدير نسخ سحابية backup restore export csv' },
     { id: 'catalog', ico: '📋', t: 'سجل الأدوية', boxes: [], act: 'openCatalog', kw: 'سجل ادوية كتالوج دليل مواد catalog' },
@@ -76,14 +76,14 @@ function shQuickHtml() {
     const lr = typeof learnRules === 'function' ? learnRules().length : 0;
     return `<small style="display:block;color:var(--text-sub);margin:0 0 6px">إعدادات الإدخال السريع محفوظة على هذا الجهاز</small>${rows}
     <div class="qk-row"><div><b>التعلّم من اختياراتي بصمت</b><small>يتذكّر تصنيفاتك وأشكالك ويطبّقها لاحقاً (يتزامن بين الأجهزة)</small></div><label class="setup-sw"><input type="checkbox" ${learnOn() ? 'checked' : ''} onchange="learnToggle(this.checked)" aria-label="التعلّم"><i></i></label></div>
-    <div class="qk-row"><div><b>قواعدي</b><small>${fmtNum(lr)} قاعدة كلمات · اعرضها واحذف ما لا تريده</small></div><button type="button" class="ln-btn" onclick="learnOpen()">فتح</button></div>
+    <div class="qk-row"><div><b>ما تعلّمه التطبيق</b><small>${fmtNum(lr)} قاعدة متعلَّمة من اختياراتك · اعرضها واحذف ما لا تريده</small></div><button type="button" class="ln-btn" onclick="learnOpen()">فتح</button></div>
     <div class="sh-danger"><h5>⚠️ منطقة الخطر</h5><p>يمسح كل ما تعلّمه التطبيق من اختياراتك (المواد لا تتأثر).</p><button type="button" class="sh-dbtn" onclick="learnClear()">🗑️ مسح كل التعلّم</button></div>`;
 }
-function shTaxExtraHtml() {   // إعدادات الإدخال السريع والتعلّم وقواعد التصنيف تُعرض ضمن صفحة الأقسام والتصنيفات
-    const n = typeof dhRules !== 'undefined' ? dhRules.length : 0;
+function shTaxExtraHtml() {   // مجموعتان أسفل صفحة «التصنيف والبيانات»: التعلّم والإدخال السريع، ثم تجهيز البيانات (مدخل واحد بلا تكرار)
     return `<h4 style="margin:0 0 8px">🧩 الإدخال السريع والتعلّم</h4>${shQuickHtml()}
-    <div class="qk-row"><div><b>قواعد تصنيفي الخاصة</b><small>${fmtNum(n)} قاعدة · كلمات تحدد تصنيف المادة تلقائياً</small></div><button type="button" class="ln-btn" onclick="dhOpen('rules')">فتح</button></div>
-    <div class="qk-row"><div><b>مركز تجهيز البيانات</b><small>المواد الفعالة والمكررة والنواقص</small></div><button type="button" class="ln-btn" onclick="dhOpen()">فتح</button></div>`;
+    <h4 style="margin:18px 0 8px">🧰 تجهيز البيانات</h4>
+    <div class="qk-row"><div><b>مركز تجهيز البيانات</b><small>المواد الفعالة · مراجعة التصنيف · المكررة · النواقص · قواعد التصنيف الخاصة</small></div><button type="button" class="ln-btn" onclick="dhOpen()">فتح</button></div>
+    <div class="qk-row"><div><b>سجل البحث الفاشل</b><small>كلمات بحث لم تُعطِ نتيجة، لتعرف ما ينقص فهرسك</small></div><button type="button" class="ln-btn" onclick="openMissModal()">فتح</button></div>`;
 }
 function shInit() {
     const card = shCard(); if (!card || card.dataset.sh) return; card.dataset.sh = '1';

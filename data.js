@@ -5205,7 +5205,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         ['reportViewer', () => !!document.getElementById('reportViewer'), () => closeReport()],
         ['zoomModal', () => vis('zoomModal'), () => { document.getElementById('zoomModal').style.display = 'none'; }],
         ['spModal', () => vis('spModal'), () => { if (typeof spClose === 'function') spClose(); else document.getElementById('spModal').style.display = 'none'; }],
-        ['dataHub', () => vis('dataHub'), () => { if (typeof dhScreen !== 'undefined' && dhScreen !== 'home') dhGo('home'); else dhClose(); }],
+        ['dataHub', () => vis('dataHub'), () => dhBack()],
         ['taxRv', () => vis('taxRv'), () => taxRvClose()],
         ['inventoryModal', () => vis('inventoryModal'), () => closeInventory()],
         ['ingModal', () => vis('ingModal'), () => closeIngredientModal()],
