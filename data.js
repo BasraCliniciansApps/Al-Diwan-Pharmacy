@@ -5190,7 +5190,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
 
     // 2) زر الرجوع: يرجع خطوة (نافذة ← شاشة ← الرئيسية) ثم يسأل قبل الخروج
     // سجل المتصفح يتجاهل أي إدخال يُضاف قبل أول لمسة من المستخدم، فنضيف حارس الرجوع عند أول لمسة.
-    let exiting = false, asking = false, armed = false;
+    let exiting = false, armed = false, lastBack = 0;
     try { history.replaceState({ g: 0 }, ''); } catch (e) { return; }
     // مهم: المتصفح لا يعدّ touchstart/pointerdown تفاعلاً حقيقياً (user activation)، والإدخال المضاف بدونه يُتجاهل عند الرجوع؛ لذلك نستمع لرفع الإصبع فقط.
     // نضيف عدة حرّاس دفعة واحدة داخل نفس اللمسة (الإدخال المضاف داخل popstate قد يتجاهله المتصفح)، ونعيد التعبئة عند كل لمسة
@@ -5198,40 +5198,49 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     const arm = () => { try { let g = gcur(); if (g >= GUARDS) { armed = true; return; } for (g++; g <= GUARDS; g++) history.pushState({ g }, ''); armed = true; } catch (e) { /* تجاهل */ } };
     ['touchend', 'pointerup', 'click', 'mousedown', 'keydown'].forEach(t => window.addEventListener(t, arm, { passive: true, capture: true }));
     const vis = id => { const e = document.getElementById(id); return !!e && e.style.display && e.style.display !== 'none'; };
+    // سجلّ الطبقات: كل طبقة تُغلق بدالّتها الأصلية (لا إخفاء مباشر)، ونختار الأعلى فعلياً بحسب z-index (وعند التساوي بترتيب القائمة)
+    const LAYERS = [
+        ['ssOv', () => !!document.getElementById('ssOv'), () => { if (typeof ssClose === 'function') ssClose(); else document.getElementById('ssOv').remove(); }],
+        ['barcodeModal', () => vis('barcodeModal'), () => closeBarcodeScanner()],
+        ['reportViewer', () => !!document.getElementById('reportViewer'), () => closeReport()],
+        ['zoomModal', () => vis('zoomModal'), () => { document.getElementById('zoomModal').style.display = 'none'; }],
+        ['spModal', () => vis('spModal'), () => { if (typeof spClose === 'function') spClose(); else document.getElementById('spModal').style.display = 'none'; }],
+        ['dataHub', () => vis('dataHub'), () => { if (typeof dhScreen !== 'undefined' && dhScreen !== 'home') dhGo('home'); else dhClose(); }],
+        ['taxRv', () => vis('taxRv'), () => taxRvClose()],
+        ['inventoryModal', () => vis('inventoryModal'), () => closeInventory()],
+        ['ingModal', () => vis('ingModal'), () => closeIngredientModal()],
+        ['missModal', () => vis('missModal'), () => closeMissModal()],
+        ['expiryModal', () => vis('expiryModal'), () => closeExpiryModal()],
+        ['formModal', () => vis('formModal'), () => requestCloseForm()],
+        ['rxHub', () => vis('rxHub'), () => { if (typeof rxCurId !== 'undefined' && rxCurId) rxBack(); else rxClose(); }],
+        ['docHub', () => vis('docHub'), () => docClose()],
+        ['drHub', () => vis('drHub'), () => drClose()],
+        ['qiPanel', () => vis('qiPanel') && typeof qiAbandon === 'function', () => qiAbandon()],
+        ['lgOv', () => !!document.querySelector('.lg-ov') && [...document.querySelectorAll('.lg-ov')].some(e => e.style.display && e.style.display !== 'none'), () => { const lg = [...document.querySelectorAll('.lg-ov')].find(e => e.style.display && e.style.display !== 'none'); if (lg.id === 'lgRet' && typeof lgrClose === 'function') lgrClose(); else if (lg.id === 'lgX' && typeof lgxClose === 'function') lgxClose(); else lg.style.display = 'none'; }],
+        ['scanView', () => vis('scanView'), () => scBack()],
+        ['catModal', () => vis('catModal'), () => { if (typeof shCur !== 'undefined' && shCur) shHome(true); else closeCategoryManager(); }],
+        ['loginModal', () => vis('loginModal'), () => closeLoginModal()],
+        ['bottomSheet', () => { const sb = document.getElementById('sheetBackdrop'); return !!sb && sb.classList.contains('open'); }, () => closeSheet()],
+        ['filterSheet', () => { const fs = document.getElementById('filterSheet'); return !!fs && fs.classList.contains('open'); }, () => closeFilterSheet()]
+    ];
+    const LAYER_EL = { lgOv: () => document.querySelector('.lg-ov'), bottomSheet: () => document.getElementById('bottomSheet'), filterSheet: () => document.getElementById('filterSheet') };
+    const layerEl = id => (LAYER_EL[id] ? LAYER_EL[id]() : document.getElementById(id));
+    function layerZ(id) { const e = layerEl(id); if (!e) return 0; const z = parseInt(getComputedStyle(e).zIndex, 10); return isNaN(z) ? 0 : z; }
     function closeTopLayer() {
-        if (window.Swal && Swal.isVisible && Swal.isVisible()) { Swal.close(); return true; }
-        if (document.getElementById('ssOv') && typeof ssClose === 'function') { ssClose(); return true; }
-        if (vis('barcodeModal')) { closeBarcodeScanner(); return true; }
-        if (document.getElementById('reportViewer')) { closeReport(); return true; }
-        if (vis('zoomModal')) { document.getElementById('zoomModal').style.display = 'none'; return true; }
-        if (vis('dataHub')) { if (typeof dhScreen !== 'undefined' && dhScreen !== 'home') dhGo('home'); else dhClose(); return true; }
-        if (vis('taxRv')) { taxRvClose(); return true; }
-        if (vis('inventoryModal')) { closeInventory(); return true; }
-        if (vis('ingModal')) { closeIngredientModal(); return true; }
-        if (vis('missModal')) { closeMissModal(); return true; }
-        if (vis('expiryModal')) { closeExpiryModal(); return true; }
-        if (vis('formModal')) { requestCloseForm(); return true; }
-        { const sb0 = document.getElementById('sheetBackdrop'); if (document.body.classList.contains('doc-open') && sb0 && sb0.classList.contains('open')) { closeSheet(); return true; } }   // بطاقة الدواء فوق صفحة الطبيب
-        if (vis('rxHub')) { if (typeof rxCurId !== 'undefined' && rxCurId) rxBack(); else rxClose(); return true; }
-        if (vis('docHub')) { docClose(); return true; }
-        if (vis('qiPanel') && typeof qiAbandon === 'function') { qiAbandon(); return true; }
-        if (vis('drHub')) { drClose(); return true; }
-        if (vis('scanView')) { scBack(); return true; }
-        if (vis('catModal')) { if (typeof shCur !== 'undefined' && shCur) shHome(true); else closeCategoryManager(); return true; }
-        if (vis('loginModal')) { closeLoginModal(); return true; }
-        const sb = document.getElementById('sheetBackdrop');
-        if (sb && sb.classList.contains('open')) { closeSheet(); return true; }
-        const fs = document.getElementById('filterSheet');
-        if (fs && fs.classList.contains('open')) { closeFilterSheet(); return true; }
-        const lg = [...document.querySelectorAll('.lg-ov')].find(e => e.style.display && e.style.display !== 'none');
-        if (lg) { if (lg.id === 'lgRet' && typeof lgrClose === 'function') lgrClose(); else if (lg.id === 'lgX' && typeof lgxClose === 'function') lgxClose(); else lg.style.display = 'none'; return true; }
+        if (window.Swal && Swal.isVisible && Swal.isVisible() && !(Swal.getPopup() && Swal.getPopup().classList.contains('swal2-toast'))) { if (Swal.isLoading && Swal.isLoading()) return true; Swal.close(); return true; }   // أثناء تحميل داخل نافذة: نتجاهل الرجوع
+        let best = null;
+        LAYERS.forEach(([id, on, close], i) => { let ok = false; try { ok = on(); } catch (e) { ok = false; } if (!ok) return; const z = layerZ(id), el = layerEl(id); if (!best || z > best.z || (z === best.z && el && best.el && (best.el.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING))) best = { z, el, close }; });   // عند تساوي z يعلو العنصر الأحدث في الصفحة
+        if (best) { try { best.close(); } catch (e) { /* تجاهل */ } return true; }
         const any = [...document.querySelectorAll('.modal-overlay')].find(e => getComputedStyle(e).display !== 'none');
         if (any) { any.style.display = 'none'; return true; }
         return false;
     }
     function backView() {
         if (!(IS_ADMIN_PAGE && typeof currentView !== 'undefined' && !['home', 'login', 'splash'].includes(currentView))) return false;
-        if (currentView === 'bill' && typeof bill !== 'undefined' && bill && bill.editing) { try { cancelInvoiceEditNow(); } catch (e) { /* تجاهل */ } }
+        if (currentView === 'bill' && typeof bill !== 'undefined' && bill && bill.editing) {   // فاتورة قيد التعديل: لا نخرج بصمت، نسأل أولاً
+            (async () => { let ok = false; try { ok = await askSure('إلغاء التعديل؟', 'ستضيع كل التغييرات غير المحفوظة على هذه الفاتورة.', 'إلغاء التعديل'); } catch (e) { /* تجاهل */ } if (!ok) return; try { cancelInvoiceEditNow(); } catch (e) { /* تجاهل */ } const prev = (window.__viewStack || []).pop(); window.__navBack = true; try { showView(prev && prev !== currentView ? prev : 'home'); } finally { window.__navBack = false; } })();
+            return true;
+        }
         const prev = (window.__viewStack || []).pop();
         window.__navBack = true; try { showView(prev && prev !== currentView ? prev : 'home'); } finally { window.__navBack = false; }
         return true;
@@ -5240,13 +5249,9 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     window.addEventListener('popstate', async () => {
         if (exiting || !armed) return;
         if (closeTopLayer() || (window.__tabBack && window.__tabBack()) || backView()) { guard(); return; }
-        if (asking) { return; }
-        // الرئيسية: لا نعيد الحارس أثناء السؤال، فإذا ضغط رجوع ثانية يخرج مباشرة
-        asking = true;
-        let ok = false;
-        try { ok = (await Swal.fire({ icon: 'question', title: 'الخروج من التطبيق؟', text: 'يمكنك أيضاً الضغط على رجوع مرة ثانية للخروج.', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'خروج', cancelButtonText: 'البقاء' })).isConfirmed; } catch (e) { /* تجاهل */ }
-        asking = false;
-        if (!ok) { guard(); return; }
+        // الرئيسية: أسلوب التطبيقات الاحترافية — أول ضغطة تُظهر تنبيهاً قصيراً، والثانية خلال ثانيتين تخرج
+        const now = Date.now();
+        if (now - lastBack > 2200) { lastBack = now; guard(); try { Swal.fire({ toast: true, position: 'bottom', icon: 'info', title: 'اضغط رجوع مرة أخرى للخروج', showConfirmButton: false, timer: 2000, width: 'auto' }); } catch (e) { /* تجاهل */ } return; }
         exiting = true;
         try { window.close(); } catch (e) { /* تجاهل */ }
         setTimeout(() => { try { const g = gcur(); if (g > 0) history.go(-g); } catch (e) { /* تجاهل */ } }, 250);
