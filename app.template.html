@@ -151,7 +151,7 @@
             <div class="cat-manager-box" id="taxSeedBox"></div>
 
             <div class="cat-manager-box">
-                <h4>1. الأقسام الرئيسية (مثل: قسم الجلدية)</h4>
+                <h4>الأقسام الرئيسية (مثل: قسم الجلدية)</h4>
                 <div id="deptListManager" class="manager-list"></div>
                 <div class="add-inline-row">
                     <input type="text" id="newDeptInput" placeholder="اسم قسم رئيسي جديد...">
@@ -160,7 +160,7 @@
             </div>
 
             <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>2. التصنيفات الفرعية (قابلة لتعديل التسمية)</h4>
+                <h4>التصنيفات الفرعية (قابلة لتعديل التسمية)</h4>
                 <div id="subCatListManager" class="manager-list"></div>
                 <div class="add-inline-row" style="flex-wrap:wrap;">
                     <select id="newSubCatDept" aria-label="القسم الرئيسي للتصنيف" style="flex:1 1 100%;"></select>
@@ -170,7 +170,7 @@
             </div>
 
             <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>3. تبويبات الشريط السفلي (تعديل الأسماء وإضافة تبويبات جديدة)</h4>
+                <h4>تبويبات الشريط السفلي (تعديل الأسماء وإضافة تبويبات جديدة)</h4>
                 <div id="tabListManager" class="manager-list"></div>
                 <div class="add-inline-row">
                     <input type="text" id="newTabIcon" placeholder="🏷️" maxlength="4" style="width:56px; flex-grow:0; text-align:center;">
@@ -180,7 +180,7 @@
             </div>
 
             <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>4. التنبيهات والمدد</h4>
+                <h4>التنبيهات والمدد</h4>
                 <div class="form-group" style="margin-bottom:10px;">
                     <label>تنبيه الكمية القليلة: عندما تصل كمية الصنف إلى (أو أقل من):</label>
                     <div class="add-inline-row">
@@ -205,7 +205,7 @@
             </div>
 
             <div class="cat-manager-box" id="pricingBox" style="margin-top:16px;">
-                <h4>5. التسعير حسب كتاب النقابة وسعر الصرف</h4>
+                <h4>التسعير حسب كتاب النقابة وسعر الصرف</h4>
                 <div class="form-group"><label>سعر الصرف (دينار لكل 1 دولار):</label><input type="number" id="pcRate" min="1" inputmode="decimal"></div>
                 <div class="form-group"><label>إذا كان السعر بالدولار يساوي حد الشريحة بالضبط (مثلاً 5$):</label><select id="pcBoundary"><option value="upper">يدخل الشريحة الأعلى (مثلاً 5$ ← 30%)</option><option value="lower">يدخل الشريحة الأدنى (مثلاً 5$ ← 40%)</option></select></div>
                 <div class="form-group"><label>رقم الكتاب النقابي:</label><input type="text" id="pcBookNo" dir="ltr"></div>
@@ -220,11 +220,12 @@
             </div>
 
             <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>6. النسخ الاحتياطي</h4>
+                <h4>النسخ الاحتياطي والاسترجاع</h4>
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="exportFullBackup()" style="grid-column: 1 / -1;">💾 نسخة احتياطية كاملة (كل شيء)</button>
                     <button class="icon-btn" onclick="exportBackupJson()">📦 الأصناف فقط</button>
                     <button class="icon-btn" onclick="exportCsv()">📊 تصدير Excel (CSV)</button>
+                    <button class="icon-btn" onclick="openCloudBackupsModal()">☁️ النسخ السحابية</button>
                     <label class="icon-btn" for="restoreInput" style="grid-column: 1 / -1;">♻️ استرجاع من نسخة احتياطية</label>
                     <input type="file" id="restoreInput" accept=".json,application/json" hidden onchange="restoreBackup(event)">
                 </div>
@@ -232,31 +233,27 @@
             </div>
 
             <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>7. أدوات سريعة</h4>
+                <h4>أدوات المخزون</h4>
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="closeCategoryManager(); openInventory()">📋 وضع الجرد</button>
-                    <button class="icon-btn" onclick="installApp()">📲 تثبيت التطبيق</button>
                     <button class="icon-btn" onclick="puBackfill()">🔄 تحديث المواد من سجل الوارد</button>
                     <button class="icon-btn" onclick="puExpBackfill()">📅 إضافة تواريخ الانتهاء من الفواتير المؤجَّلة</button>
-                    <button class="icon-btn" onclick="openIngredientModal()">🧪 إكمال المواد الفعالة</button>
-                    <button class="icon-btn" onclick="openMissModal()">🔍 سجل البحث الفاشل</button>
+                    <button class="icon-btn" onclick="migrateStockPrivate()" style="grid-column:1/-1;">🔒 حماية بيانات المخزون (إخفاء الكميات عن الزبائن)</button>
                 </div>
             </div>
 
             <div class="cat-manager-box" id="securityBox" style="margin-top:16px;">
-                <h4>8. الحسابات والأمان</h4>
+                <h4>الحسابات والأمان</h4>
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="openUsers()">👥 المستخدمون والصلاحيات</button>
                     <button class="icon-btn" onclick="openLogModal()">📜 سجل الإجراءات</button>
                     <button class="icon-btn" onclick="openTrashModal()">🗑️ سلة المحذوفات</button>
-                    <button class="icon-btn" onclick="openCloudBackupsModal()">☁️ النسخ السحابية</button>
-                    <button class="icon-btn" onclick="migrateStockPrivate()" style="grid-column:1/-1;">🔒 حماية بيانات المخزون (إخفاء الكميات عن الزبائن)</button>
                 </div>
                 <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">الحذف ينقل الصنف للسلة 30 يوماً. تُنشأ نسخة سحابية تلقائياً كل 7 أيام عند دخولك، ويُحتفظ بآخر 4 نسخ.</p>
             </div>
 
             <div class="cat-manager-box" id="aiSettingsBox" style="margin-top:16px;">
-                <h4>9. الذكاء الصناعي لمسح العبوة (إعدادات هذا الجهاز)</h4>
+                <h4>الذكاء الصناعي لمسح العبوة (إعدادات هذا الجهاز)</h4>
                 <div class="form-group">
                     <label>محرك القراءة:</label>
                     <select id="aiEngineSelect" onchange="setAiEngine(this.value)">
@@ -335,7 +332,24 @@
                 <button type="button" class="icon-btn" onclick="fmAddGroup()" style="margin-top:8px;width:100%">＋ إضافة مجموعة أشكال</button>
             </div>
 
-            <div class="modal-actions-row" style="margin-top:18px;">
+            <div
+
+            <div class="cat-manager-box" style="margin-top:16px;">
+                <h4>أدوات البيانات</h4>
+                <div class="tools-grid">
+                    <button class="icon-btn" onclick="openIngredientModal()">🧪 إكمال المواد الفعالة</button>
+                    <button class="icon-btn" onclick="openMissModal()">🔍 سجل البحث الفاشل</button>
+                </div>
+            </div>
+
+            <div class="cat-manager-box" style="margin-top:16px;">
+                <h4>التطبيق</h4>
+                <div class="tools-grid">
+                    <button class="icon-btn" onclick="installApp()" style="grid-column:1/-1;">📲 تثبيت التطبيق على الجهاز</button>
+                </div>
+            </div>
+
+class="modal-actions-row" style="margin-top:18px;">
                 <button class="icon-btn" onclick="closeCategoryManager()">إغلاق</button>
             </div>
         </div>

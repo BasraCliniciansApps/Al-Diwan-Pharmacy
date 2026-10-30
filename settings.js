@@ -3,15 +3,19 @@
 // ما تغيّر محتوى الإعدادات القديمة، بس ترتّبه (تعرض صناديق كل صفحة وتخفي الباقي).
 // =====================================================================
 const SH_PAGES = [
-    { id: 'hub', ico: '🧰', t: 'مركز تجهيز البيانات', boxes: [], act: 'dhOpen', kw: 'تجهيز بيانات مادة فعالة تصنيف مكرر نواقص قواعد اكتمال data hub ingredient' },
-    { id: 'catalog', ico: '📋', t: 'سجل الأدوية', boxes: [], act: 'openCatalog', kw: 'سجل ادوية كتالوج دليل مواد catalog' },
-    { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيفات', boxes: [0, 1, 2, 10], kw: 'ادخال سريع تعلم قواعدي قواعد تصنيفي الخاصة تصنيف تلقائي شكل دوائي تلقائي مركز تجهيز البيانات اشكال الاشكال الدوائية شكل دوائي مجموعة أشكال forms قسم اقسام تصنيف تصنيفات فرعية جاهزة مراجعة الأقسام الرئيسية departments categories' },
+    { id: 'tax', ico: '🗂️', t: 'التصنيف والبيانات', boxes: [0, 1, 2, 10, 11], kw: 'ادخال سريع تعلم قواعدي قواعد تصنيفي الخاصة تصنيف تلقائي شكل دوائي تلقائي مركز تجهيز البيانات اشكال الاشكال الدوائية شكل دوائي مجموعة أشكال forms قسم اقسام تصنيف تصنيفات فرعية جاهزة مراجعة الأقسام الرئيسية departments categories إكمال المواد الفعالة سجل البحث الفاشل' },
+    { id: 'inv', ico: '📦', t: 'المخزون والتنبيهات', boxes: [4, 7], kw: 'مخزون تنبيه تنبيهات نقص كمية صلاحية انتهاء مدة نفاذ جرد وضع الجرد تحديث المواد من الوارد تواريخ الانتهاء الفواتير المؤجلة حماية بيانات المخزون اخفاء الكميات inventory alerts' },
     { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح فصل سعر الشراء كلفة pricing' },
-    { id: 'tabs', ico: '🔔', t: 'التبويبات والتنبيهات', boxes: [3, 4], kw: 'تبويب تبويبات الشريط السفلي تنبيه تنبيهات نقص كمية صلاحية انتهاء مدة نفاذ alerts tabs' },
-    { id: 'scanner', ico: '🔎', t: 'فاحص المادة', boxes: [], kw: 'فاحص المادة مسح باركود سعر خصم حد الخصم اكسباير نفاذ هامش ربح scanner discount' },
-    { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة نسخ سحابية users permissions security log trash' },
-    { id: 'sys', ico: '⚙️', t: 'النظام والأدوات', boxes: [6, 7, 9], kw: 'نسخ احتياطي استرجاع تصدير جرد تثبيت التطبيق تحديث المواد من الوارد إكمال مواد فعالة بحث فاشل ذكاء صناعي مسح عبوة gemini ocr backup restore tools ai' }
+    { id: 'scanner', ico: '🔎', t: 'المسح والذكاء الصناعي', boxes: [9], kw: 'فاحص المادة مسح باركود سعر خصم حد الخصم اكسباير نفاذ هامش ربح scanner discount ذكاء صناعي مسح عبوة gemini ocr قراءة العبوة' },
+    { id: 'ui', ico: '🧭', t: 'الواجهة والتبويبات', boxes: [3, 12], kw: 'تبويب تبويبات الشريط السفلي واجهة تثبيت التطبيق tabs install' },
+    { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة users permissions security log trash' },
+    { id: 'sys', ico: '💾', t: 'النسخ والبيانات', boxes: [6], kw: 'نسخ احتياطي استرجاع تصدير نسخ سحابية backup restore export csv' },
+    { id: 'catalog', ico: '📋', t: 'سجل الأدوية', boxes: [], act: 'openCatalog', kw: 'سجل ادوية كتالوج دليل مواد catalog' },
+    { id: 'invset', ico: '🧾', t: 'إعدادات الفواتير', boxes: [], act: 'shGoInvSettings', kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع invoice' },
+    { id: 'docset', ico: '🩺', t: 'إعدادات صفحة الأطباء', boxes: [], act: 'shGoDocSettings', kw: 'طبيب اطباء صفحة الاطباء المواد المعروضة doctor' },
 ];
+function shGoInvSettings() { try { closeCategoryManager(); } catch (e) { /* تجاهل */ } showView('bill'); billTab('settings'); }
+function shGoDocSettings() { try { closeCategoryManager(); } catch (e) { /* تجاهل */ } docOpen('set'); }
 let shCur = null;
 const shNorm = s => String(s || '').toLowerCase().replace(/[ً-ٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
 function shBoxes() { return [...document.querySelectorAll('#catModal .cat-manager-box:not(#shQuick)')]; }
@@ -25,12 +29,15 @@ function shSummary(p) {
         if (p.id === 'rx') { const n = (typeof rxNewN === 'function') ? rxNewN() : 0; return { s: n ? fmtNum(n) + ' وصفة جديدة' : 'وصفات الأطباء وحالات التجهيز' }; }
         if (p.id === 'catalog') return { s: 'دليل المواد الدوائية' };
         if (p.id === 'hub') return { s: 'المواد الفعالة والتصنيف والنواقص' };
-        if (p.id === 'tabs') return { s: `حد النقص ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر` };
+        if (p.id === 'tabs' || p.id === 'ui') return { s: 'التبويبات السفلية · تثبيت التطبيق' };
+        if (p.id === 'inv') return { s: `حد النقص ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر · الجرد` };
+        if (p.id === 'invset') return { s: 'بيانات الصيدلية والختم والتوقيع' };
+        if (p.id === 'docset') return { s: 'المواد المعروضة للأطباء' };
         if (p.id === 'price') return { s: `سعر الصرف ${fmtNum(pricingCfg.rate)}` };
         if (p.id === 'quick') { const c = qkCfg(), on = ['form', 'dept', 'like'].filter(k => c[k]).length, r = typeof learnRules === 'function' ? learnRules().length : 0; return { s: `الإدخال ${on}/3 · التعلّم ${learnOn() ? 'مفعّل' : 'متوقف'}${r ? ' · ' + fmtNum(r) + ' قاعدة' : ''}` }; }
         if (p.id === 'scanner') { const c = typeof scCfg === 'function' ? scCfg() : null; return { s: c ? (c.on ? 'مشغّل · ' : 'متوقف · ') + (c.mode === 'safe' ? 'خصم محمي' : 'خصم كامل') : '' }; }
         if (p.id === 'sec') return { s: 'المستخدمون · السجل · السلة' };
-        if (p.id === 'sys') return { s: 'النسخ الاحتياطي · الجرد · الذكاء' };
+        if (p.id === 'sys') return { s: 'نسخ احتياطي · تصدير · استرجاع · نسخ سحابية' };
     } catch (e) { /* تجاهل */ }
     return { s: '' };
 }
@@ -112,8 +119,8 @@ function shOpen(id, boxIdx) {
     const all = shBoxes(), q = document.getElementById('shQuick');
     all.forEach(b => { b.classList.remove('sh-show', 'sh-single'); });
     if (id === 'scanner') { document.getElementById('shHub').after(q); q.innerHTML = shScanHtml(); q.hidden = false; q.classList.add('sh-show'); q.classList.remove('sh-pg'); void q.offsetWidth; q.classList.add('sh-pg'); }
-    else {
-        if (id === 'tax') { q.innerHTML = shTaxExtraHtml(); q.hidden = false; q.classList.add('sh-show', 'sh-pg'); const lb = all[p.boxes[p.boxes.length - 1]]; if (lb) lb.after(q); } else { q.hidden = true; document.getElementById('shHub').after(q); }
+    {
+        if (id === 'tax') { q.innerHTML = shTaxExtraHtml(); q.hidden = false; q.classList.add('sh-show', 'sh-pg'); const lb = all[p.boxes[p.boxes.length - 1]]; if (lb) lb.after(q); } else if (id !== 'scanner') { q.hidden = true; document.getElementById('shHub').after(q); }
         p.boxes.forEach((i, k) => { const b = all[i]; if (!b) return; b.classList.add('sh-show'); if (p.boxes.length === 1) b.classList.add('sh-single'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (p.boxes.length === 1 || (boxIdx != null ? i === boxIdx : k === (id === 'tax' ? 99 : 0))) b.classList.add('open'); });
         if (boxIdx != null && all[boxIdx]) { const b = all[boxIdx]; b.classList.add('open'); setTimeout(() => { b.scrollIntoView({ behavior: 'smooth', block: 'start' }); b.classList.add('sh-flash'); setTimeout(() => b.classList.remove('sh-flash'), 1600); }, 120); }
         else card.scrollTop = 0;
