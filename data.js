@@ -1428,31 +1428,9 @@ function openSheet(id) {
         <div class="sheet-section">
             <h4>التركيب والاستخدام الطبي</h4>
             ${activeLine}
-            <p>${p.details}</p>
-        </div>
-
-        <div class="sheet-section" style="display:flex; justify-content:space-between; align-items:center; gap:12px;">
-            <div>
-                <h4>القسم والتصنيف</h4>
-                <p style="font-size:0.86rem; font-weight:700;">${deptsOf(p).map(escapeHtml).join(' + ')} - ${catsOf(p).map(escapeHtml).join(' + ')}</p>
-            </div>
-            <div style="text-align:left;">
-                <h4>العبوة / الشكل الدوائي</h4>
-                <p dir="ltr" style="font-size:0.92rem; font-weight:800; color:var(--primary-dark); text-align:left;">&lrm;${cleanMeta}</p>
-            </div>
-        </div>
-
-        ${retailInfo}
-        ${altHtml}
-
-        <!-- أزرار مشاركة المنتج إلى واتساب أو دايركت انستغرام -->
-        <div class="share-row">
-            <button class="share-btn share-wa" onclick="shareProduct(${p.id}, 'whatsapp')">
-                ${SHARE_WA_SVG} <span>مشاركة واتساب</span>
-            </button>
-            <button class="share-btn share-ig" onclick="shareProduct(${p.id}, 'instagram')">
-                ${SHARE_IG_SVG} <span>دايركت انستغرام</span>
-            </button>
+            ${p.details ? `<p>${p.details}</p>` : ''}
+            <h4 style="margin-top:10px;">العبوة | الشكل الدوائي</h4>
+            <p dir="ltr" style="font-size:0.92rem; font-weight:800; color:var(--primary-dark); text-align:left;">&lrm;${cleanMeta}</p>
         </div>
 
         ${(!IS_ADMIN_PAGE || !can('stockEdit')) ? '' : `<div class="sheet-admin-box">
@@ -1471,6 +1449,19 @@ function openSheet(id) {
                 <button class="icon-btn act-del" onclick="deleteItem(${p.id})">🗑️ حذف الصنف</button>
             </div>
         </div>`}
+
+        ${retailInfo}
+        ${altHtml}
+
+        <!-- أزرار مشاركة المنتج إلى واتساب أو دايركت انستغرام -->
+        <div class="share-row">
+            <button class="share-btn share-wa" onclick="shareProduct(${p.id}, 'whatsapp')">
+                ${SHARE_WA_SVG} <span>مشاركة واتساب</span>
+            </button>
+            <button class="share-btn share-ig" onclick="shareProduct(${p.id}, 'instagram')">
+                ${SHARE_IG_SVG} <span>دايركت انستغرام</span>
+            </button>
+        </div>
     `;
 
     document.getElementById('sheetBackdrop').classList.add('open');
