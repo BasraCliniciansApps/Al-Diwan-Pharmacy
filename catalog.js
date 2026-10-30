@@ -215,7 +215,7 @@ async function catMerge(s, d) {
         Swal.fire({ icon: 'error', title: 'تعذر إكمال الضم', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' });
     }
 }
-function openCatalog() { try { closeCategoryManager(); } catch (e) { /* تجاهل */ } showView('catalog'); }
+function openCatalog() { shLeave('view'); showView('catalog'); }
 
 // ---------- صورة المادة من نافذة التفاصيل: لا صورة = إضافة، وجود صورة = عرض مع تبديل ----------
 function sheetImgTap(id) {

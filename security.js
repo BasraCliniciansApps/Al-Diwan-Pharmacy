@@ -4,7 +4,7 @@ const COST_RULE = `match /pharmacy_cost/{id} {
 }`;
 function costLeftovers() { return Object.entries(stockMap).filter(([, s]) => s && COST_FIELDS.some(f => f in s)).map(([id]) => id); }
 async function openCostSplit() {
-    try { closeCategoryManager(); } catch (e) { /* تجاهل */ }
+    shLeave('layer');
     if (!currentUser || !isFirebaseReady) { Swal.fire({ icon: 'error', title: 'سجّل الدخول أولاً', confirmButtonColor: '#0f1c38' }); return; }
     const withCost = products.filter(p => parseFloat(p.costPrice) > 0 || p.lastPurchase || parseFloat(p.markupPct) > 0).length;
     const left = costLeftovers().length;
@@ -113,7 +113,7 @@ const permBoxes = (cur) => Object.keys(PERM_LABELS).map(p => `<label class="pu-c
 const readPerms = () => { const o = {}; document.querySelectorAll('.uPerm').forEach(c => { if (c.checked) o[c.dataset.p] = true; }); if (o.catalog) o.stockEdit = true; if (o.sell || o.stockEdit || o.purchases) o.stockView = true; return o; };
 let usersCache = [];
 async function openUsers() {
-    try { closeCategoryManager(); } catch (e) { /* تجاهل */ }
+    shLeave('layer');
     if (userRole !== 'owner') return;
     if (!requireOnline()) return;
     let rows = '';

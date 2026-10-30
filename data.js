@@ -611,6 +611,7 @@ async function performLogin() {
 // 6. إدارة الأقسام الكبرى والتصنيفات الفرعية
 // ============================================================================
 function openCategoryManager() {
+    if (window.__shRetClear) window.__shRetClear();
     renderManagerLists();
     const lowInput = document.getElementById('lowThresholdInput');
     if (lowInput) lowInput.value = lowStockThreshold;
@@ -5264,10 +5265,10 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     }
     const syncSoon = () => { [0, 120, 450].forEach(ms => setTimeout(syncGuards, ms)); };
     ['touchend', 'pointerup', 'click', 'keydown'].forEach(t => window.addEventListener(t, syncSoon, { passive: true, capture: true }));
-    window.__syncBackGuards = syncGuards;
+    window.__syncBackGuards = syncGuards; window.__backDepth = depthNow;
     window.addEventListener('popstate', () => {
         if (exiting || syncing) return;
-        if (closeTopLayer() || (window.__tabBack && window.__tabBack()) || backView()) { setTimeout(syncGuards, 0); return; }
+        if (closeTopLayer() || (window.__tabBack && window.__tabBack()) || backView()) { setTimeout(syncGuards, 0); setTimeout(() => { try { if (window.__shReturn) window.__shReturn('back'); } catch (e) { /* تجاهل */ } }, 60); return; }
         // لا شيء يُغلق: نخرج من التطبيق (نتجاوز ما بقي من الإدخالات الحارسة)
         exiting = true;
         try { window.close(); } catch (e) { /* تجاهل */ }

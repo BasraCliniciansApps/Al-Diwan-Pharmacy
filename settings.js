@@ -13,8 +13,27 @@ const SH_PAGES = [
     { id: 'invset', ico: '🧾', t: 'إعدادات الفواتير', boxes: [], act: 'shGoInvSettings', kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع invoice' },
     { id: 'docset', ico: '🩺', t: 'إعدادات صفحة الأطباء', boxes: [], act: 'shGoDocSettings', kw: 'طبيب اطباء صفحة الاطباء المواد المعروضة doctor' },
 ];
-function shGoInvSettings() { try { closeCategoryManager(); } catch (e) { /* تجاهل */ } showView('bill'); billTab('settings'); }
-function shGoDocSettings() { try { closeCategoryManager(); } catch (e) { /* تجاهل */ } docOpen('set'); }
+// الرجوع الصحيح: النافذة التي تُفتح من الإعدادات (اختصار/أداة) تغلق الإعدادات مؤقتًا؛ عند الرجوع منها نعيد الإعدادات
+// في الصفحة التي كنت فيها، لا أن نتركك في الرئيسية. kind: 'layer' نافذة (تُراقَب) أو 'view' شاشة (تُعاد بزر الرجوع).
+let shRet = null;
+function shLeave(kind) {
+    shRet = { page: typeof shCur !== 'undefined' ? shCur : null, kind, seen: false, t: Date.now() };
+    try { closeCategoryManager(); } catch (e) { /* تجاهل */ }
+}
+function shReturn(src) {
+    const r = shRet; if (!r) return;
+    const d = typeof window.__backDepth === 'function' ? window.__backDepth() : 0;
+    if (d > 0) { r.seen = true; return; }
+    if (!r.seen) { if (Date.now() - r.t > 60000) shRet = null; return; }
+    if (r.kind === 'view' && src !== 'back') return;
+    shRet = null;
+    try { openCategoryManager(); if (r.page) shOpen(r.page); } catch (e) { /* تجاهل */ }
+}
+window.__shRetClear = () => { shRet = null; };
+window.__shReturn = shReturn;
+setInterval(() => { if (shRet) shReturn(); }, 350);
+function shGoInvSettings() { shLeave('view'); showView('bill'); billTab('settings'); }
+function shGoDocSettings() { shLeave('layer'); docOpen('set'); }
 let shCur = null;
 const shNorm = s => String(s || '').toLowerCase().replace(/[ً-ٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
 function shBoxes() { return [...document.querySelectorAll('#catModal .cat-manager-box:not(#shQuick)')]; }
