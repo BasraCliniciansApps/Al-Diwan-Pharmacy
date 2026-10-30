@@ -732,7 +732,7 @@ function renderBottomNav() {
         ...customTabs.map(t => ({ key: t.id, icon: t.icon || '🏷️', name: t.name })),
         { key: 'out', icon: IS_ADMIN_PAGE ? '⚠️' : '🚫', name: outTabLabel() }
     ];
-    if (IS_ADMIN_PAGE) { nav.innerHTML = ''; nav.style.display = 'none'; document.body.classList.add('no-bnav'); return; }   // الشريط السفلي محذوف في لوحة الصيدلي (التنبيهات تكفي)
+    nav.innerHTML = ''; nav.style.display = 'none'; document.body.classList.add('no-bnav'); mainTab = 'all'; return;   // الشريط السفلي محذوف في كل الصفحات (الأدوية/كوزمتك/النواقص...)
     if (!tabs.some(t => t.key === mainTab)) mainTab = 'all';   // تبويب محذوف
     nav.innerHTML = tabs.map(t => `
         <button class="nav-tab ${mainTab === t.key ? 'active' : ''}" onclick="setMainTab('${t.key}')">
