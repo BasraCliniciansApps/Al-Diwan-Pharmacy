@@ -190,3 +190,20 @@ function scOnCamClose() { const el = scOvEl(); if (el && el.style.display === 'f
 
 // باركود غير مسجّل: إضافته لمادة موجودة (ربط) أو إنشاء مادة جديدة، مثل شاشة الوارد، ثم تُعرض بطاقة المادة
 function scUnknown(code) { offerUnknownBarcode(cleanBarcode(code), p2 => scPick(p2.id)); }
+
+// ===== مادة غير مسعّرة: تُفتح نافذة التسعير السريع (طرق التسعير، التجزئة، الدفعات) تلقائياً =====
+{
+    const _scPick = scPick;
+    scPick = function (id) {
+        _scPick.apply(this, arguments);
+        try {
+            const p = products.find(x => x.id === id);
+            if (!p || parseFloat(p.price) > 0 || typeof catPrice !== 'function' || !can('stockEdit')) return;
+            setTimeout(async () => {
+                if (scCur !== id || (Swal.isVisible && Swal.isVisible())) return;   // تغيّر الاختيار أو نافذة أخرى مفتوحة
+                try { await catPrice(id); } catch (e) { /* تجاهل */ }
+                if (scCur === id) scRender();   // تحديث بطاقة الفاحص بعد الحفظ
+            }, 250);
+        } catch (e) { /* تجاهل */ }
+    };
+}
