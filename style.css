@@ -3225,3 +3225,23 @@ body.qi-open #formModal { z-index: 9200; } body.qi-open .swal2-container { z-ind
 #formListManager .manager-item > span > span { font-weight: 800; } #formListManager.manager-list { padding: 0; }
 .fm-off { opacity: .55; }
 #newFormGroup { height: 46px; padding: 0 12px; border: 1.5px solid var(--border, #cbd5e1); border-radius: 12px; background: var(--surface, #fff); color: var(--text-main, #0f172a); font: inherit; }
+
+/* ===== زر الشرح ⓘ ===== */
+.inf-i { display: inline-grid; place-items: center; width: 22px; height: 22px; margin-inline-start: 6px; vertical-align: middle; color: #64748b; border-radius: 50%; cursor: pointer; flex: 0 0 auto; -webkit-tap-highlight-color: transparent; }
+.inf-i svg { width: 15px; height: 15px; }
+.inf-i:hover, .inf-i:focus-visible { color: var(--navy, #0f1c38); background: rgba(15,28,56,.08); outline: none; }
+.inf-i.danger { color: #b45309; }
+.inf-i.inf-t { position: absolute; top: 4px; left: 28px; right: auto; margin: 0; width: 22px; height: 22px; }
+.cmb-head span .inf-i { margin-inline-start: 8px; }
+.inf-pop { max-width: 92vw; }
+.inf-pop .swal2-title { font-size: 1.05rem; line-height: 1.6; }
+.inf-body { text-align: right; display: grid; gap: 10px; }
+.inf-row { border-radius: 12px; padding: 9px 12px; background: #f1f5f9; }
+.inf-row b { display: block; font-size: .78rem; color: #475569; margin-bottom: 2px; }
+.inf-row p { margin: 0; font-size: .92rem; line-height: 1.8; color: #0f172a; }
+.inf-row.n { background: #fffbeb; } .inf-row.n b { color: #92400e; }
+.inf-row.n.d { background: #fef2f2; } .inf-row.n.d b { color: #b91c1c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .inf-row { background: #1e293b; } :root:not([data-theme="light"]) .inf-row p { color: #e2e8f0; } :root:not([data-theme="light"]) .inf-row b { color: #94a3b8; } :root:not([data-theme="light"]) .inf-row.n { background: #3a2f12; } :root:not([data-theme="light"]) .inf-row.n.d { background: #3b1a1a; } }
+:root[data-theme="dark"] .inf-row { background: #1e293b; } :root[data-theme="dark"] .inf-row p { color: #e2e8f0; } :root[data-theme="dark"] .inf-row b { color: #94a3b8; } :root[data-theme="dark"] .inf-row.n { background: #3a2f12; } :root[data-theme="dark"] .inf-row.n.d { background: #3b1a1a; }
+#catModal .tools-grid > button.inf-has { padding-left: 54px !important; }
+#catModal .tools-grid > button.inf-has { height: auto !important; min-height: 48px; padding-top: 10px !important; padding-bottom: 10px !important; line-height: 1.5; }
