@@ -3515,10 +3515,11 @@ async function callGeminiRestOnce(opts, modelName) {
     const fast = JSON.parse(JSON.stringify(body));
     fast.generationConfig = Object.assign({}, fast.generationConfig, { thinkingConfig: { thinkingBudget: 0 } });
     let res = await send(fast);
-    if (res.status === 400) {
+    if (res.status === 400) {   // أي رفض 400: نعيد بدون إعداد «التفكير» (بعض النماذج ترفضه برسالة عامة)، ثم بدون بحث جوجل
         const err = await aiHttpError(res);
-        if (/thinking/i.test(err.message)) res = await send(body);
-        else throw err;
+        res = await send(body);
+        if (res.status === 400 && body.tools) { const plain = JSON.parse(JSON.stringify(body)); delete plain.tools; if (plain.generationConfig && !opts.json) delete plain.generationConfig; res = await send(plain); }
+        if (res.status === 400) throw err;
     }
     if (!res.ok) throw await aiHttpError(res);
     return extractGeminiText(await res.json());
