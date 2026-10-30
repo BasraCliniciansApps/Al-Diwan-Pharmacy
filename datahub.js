@@ -217,7 +217,7 @@ function dhRenderMiss(el) {
 
 // ---------- قواعد تصنيفي الخاصة ----------
 function dhRenderRules(el) {
-    const depts = TAX_DEPTS;
+    const depts = taxDeptList();
     el.innerHTML = `${dhHead('⚙️ قواعد تصنيفي الخاصة', true)}<div class="dh-body">
         <div class="dh-note">إذا ظهرت أي كلمة من كلماتك في اسم المادة أو اسمها العلمي، يُقترح التصنيف الذي تحدده. قواعدك تتقدم على القواعد الجاهزة.</div>
         <div class="dh-row"><label><span>الكلمات (افصل بينها بفاصلة)</span><input type="text" id="dhRw" dir="ltr" placeholder="مثال: eye drops, ophthalmic"></label>
@@ -230,7 +230,7 @@ function dhRenderRules(el) {
 }
 function dhRuleCats() {
     const d = document.getElementById('dhRd'), c = document.getElementById('dhRc'); if (!d || !c) return;
-    c.innerHTML = (TAX_SEED[d.value] || []).map(x => `<option>${dhEsc(x)}</option>`).join('');
+    c.innerHTML = taxSubsOf(d.value).map(x => `<option>${dhEsc(x)}</option>`).join('');
 }
 function dhRuleAdd() {
     const words = document.getElementById('dhRw').value.split(/[,،]+/).map(x => x.trim()).filter(Boolean);

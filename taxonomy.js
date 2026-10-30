@@ -326,7 +326,24 @@ function taxIngHit(text) {
     return null;
 }
 const TAX_GENERIC_FIRST = new Set(['natural', 'nature', 'baby', 'babies', 'kids', 'kid', 'junior', 'children', 'hair', 'skin', 'body', 'face', 'pure', 'organic', 'herbal', 'super', 'extra', 'plus', 'active', 'forte', 'ultra', 'multi', 'vitamin', 'vitamins', 'complete', 'advanced', 'intense', 'intensive', 'fresh', 'daily', 'original', 'classic', 'white', 'black', 'cream', 'drops', 'tablet', 'syrup', 'sugar', 'medical', 'dental', 'oral']);
+// مزامنة قوائم الاقتراح الجاهزة مع أقسام وتصنيفات التطبيق الفعلية (المضافة يدوياً): تُلحق بنهاية القوائم فتبقى الأرقام الأصلية ثابتة
+let taxLiveSig = '', taxLiveNew = { d: [], c: {} };
+function taxSyncLive() {
+    if (typeof departments === 'undefined' || !Array.isArray(departments)) return;
+    const sig = departments.length + ':' + subCategories.length + ':' + departments.map(d => (deptSubs[d] || []).length).join(',') + ':' + ((typeof taxLegacy !== 'undefined' && taxLegacy.d) || []).length;
+    if (sig === taxLiveSig) return; taxLiveSig = sig;
+    Object.keys(taxLiveNew.c).forEach(d => { if (TAX_SEED[d]) TAX_SEED[d] = TAX_SEED[d].filter(x => !taxLiveNew.c[d].includes(x)); });
+    taxLiveNew.d.forEach(d => { delete TAX_SEED[d]; const i = TAX_DEPTS.indexOf(d); if (i >= 0) TAX_DEPTS.splice(i, 1); });
+    taxLiveNew = { d: [], c: {} };
+    const lgD = (typeof taxLegacy !== 'undefined' && taxLegacy.d) || [], lgC = (typeof taxLegacy !== 'undefined' && taxLegacy.c) || [];
+    departments.forEach(d => {
+        if (lgD.includes(d)) return;
+        if (!TAX_SEED[d]) { TAX_SEED[d] = []; TAX_DEPTS.push(d); taxLiveNew.d.push(d); }
+        (deptSubs[d] || []).forEach(c => { if (lgC.includes(c) || TAX_SEED[d].includes(c)) return; TAX_SEED[d].push(c); (taxLiveNew.c[d] = taxLiveNew.c[d] || []).push(c); });
+    });
+}
 function taxSuggest(p) {   // مع تحويل التصنيفات المنقولة إلى مكانها الجديد
+    taxSyncLive();
     const r = taxSuggest0(p); if (!r) return r;
     const dn = TAX_DEPTS[r.d - 1], sn = dn && (TAX_SEED[dn] || [])[r.s - 1], mv = sn && TAX_MOVES[sn];
     if (mv && mv[0] === dn) { const nd = TAX_DEPTS.indexOf(mv[1]) + 1, ns = (TAX_SEED[mv[1]] || []).indexOf(sn) + 1; if (nd && ns) return Object.assign({}, r, { d: nd, s: ns }); }

@@ -5,10 +5,9 @@
 const SH_PAGES = [
     { id: 'hub', ico: '🧰', t: 'مركز تجهيز البيانات', boxes: [], act: 'dhOpen', kw: 'تجهيز بيانات مادة فعالة تصنيف مكرر نواقص قواعد اكتمال data hub ingredient' },
     { id: 'catalog', ico: '📋', t: 'سجل الأدوية', boxes: [], act: 'openCatalog', kw: 'سجل ادوية كتالوج دليل مواد catalog' },
-    { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيفات', boxes: [0, 1, 2, 10], kw: 'اشكال الاشكال الدوائية شكل دوائي مجموعة أشكال forms قسم اقسام تصنيف تصنيفات فرعية جاهزة مراجعة الأقسام الرئيسية departments categories' },
+    { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيفات', boxes: [0, 1, 2, 10], kw: 'ادخال سريع تعلم قواعدي قواعد تصنيفي الخاصة تصنيف تلقائي شكل دوائي تلقائي مركز تجهيز البيانات اشكال الاشكال الدوائية شكل دوائي مجموعة أشكال forms قسم اقسام تصنيف تصنيفات فرعية جاهزة مراجعة الأقسام الرئيسية departments categories' },
     { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح فصل سعر الشراء كلفة pricing' },
     { id: 'tabs', ico: '🔔', t: 'التبويبات والتنبيهات', boxes: [3, 4], kw: 'تبويب تبويبات الشريط السفلي تنبيه تنبيهات نقص كمية صلاحية انتهاء مدة نفاذ alerts tabs' },
-    { id: 'quick', ico: '🧩', t: 'الإدخال السريع والتعلّم', boxes: [], kw: 'ادخال سريع تعلم قواعدي تلقائي شكل دوائي تصنيف تلقائي quick learn' },
     { id: 'scanner', ico: '🔎', t: 'فاحص المادة', boxes: [], kw: 'فاحص المادة مسح باركود سعر خصم حد الخصم اكسباير نفاذ هامش ربح scanner discount' },
     { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة نسخ سحابية users permissions security log trash' },
     { id: 'sys', ico: '⚙️', t: 'النظام والأدوات', boxes: [6, 7, 9], kw: 'نسخ احتياطي استرجاع تصدير جرد تثبيت التطبيق تحديث المواد من الوارد إكمال مواد فعالة بحث فاشل ذكاء صناعي مسح عبوة gemini ocr backup restore tools ai' }
@@ -73,6 +72,12 @@ function shQuickHtml() {
     <div class="qk-row"><div><b>قواعدي</b><small>${fmtNum(lr)} قاعدة كلمات · اعرضها واحذف ما لا تريده</small></div><button type="button" class="ln-btn" onclick="learnOpen()">فتح</button></div>
     <div class="sh-danger"><h5>⚠️ منطقة الخطر</h5><p>يمسح كل ما تعلّمه التطبيق من اختياراتك (المواد لا تتأثر).</p><button type="button" class="sh-dbtn" onclick="learnClear()">🗑️ مسح كل التعلّم</button></div>`;
 }
+function shTaxExtraHtml() {   // إعدادات الإدخال السريع والتعلّم وقواعد التصنيف تُعرض ضمن صفحة الأقسام والتصنيفات
+    const n = typeof dhRules !== 'undefined' ? dhRules.length : 0;
+    return `<h4 style="margin:0 0 8px">🧩 الإدخال السريع والتعلّم</h4>${shQuickHtml()}
+    <div class="qk-row"><div><b>قواعد تصنيفي الخاصة</b><small>${fmtNum(n)} قاعدة · كلمات تحدد تصنيف المادة تلقائياً</small></div><button type="button" class="ln-btn" onclick="dhOpen('rules')">فتح</button></div>
+    <div class="qk-row"><div><b>مركز تجهيز البيانات</b><small>المواد الفعالة والمكررة والنواقص</small></div><button type="button" class="ln-btn" onclick="dhOpen()">فتح</button></div>`;
+}
 function shInit() {
     const card = shCard(); if (!card || card.dataset.sh) return; card.dataset.sh = '1';
     card.insertAdjacentHTML('afterbegin', '<div class="sh-grab" aria-hidden="true"></div>');
@@ -106,9 +111,9 @@ function shOpen(id, boxIdx) {
     if (typeof setupSettingsAccordion === 'function') setupSettingsAccordion();
     const all = shBoxes(), q = document.getElementById('shQuick');
     all.forEach(b => { b.classList.remove('sh-show', 'sh-single'); });
-    if (id === 'quick' || id === 'scanner') { q.innerHTML = id === 'quick' ? shQuickHtml() : shScanHtml(); q.hidden = false; q.classList.add('sh-show'); q.classList.remove('sh-pg'); void q.offsetWidth; q.classList.add('sh-pg'); }
+    if (id === 'scanner') { document.getElementById('shHub').after(q); q.innerHTML = shScanHtml(); q.hidden = false; q.classList.add('sh-show'); q.classList.remove('sh-pg'); void q.offsetWidth; q.classList.add('sh-pg'); }
     else {
-        q.hidden = true;
+        if (id === 'tax') { q.innerHTML = shTaxExtraHtml(); q.hidden = false; q.classList.add('sh-show', 'sh-pg'); const lb = all[p.boxes[p.boxes.length - 1]]; if (lb) lb.after(q); } else { q.hidden = true; document.getElementById('shHub').after(q); }
         p.boxes.forEach((i, k) => { const b = all[i]; if (!b) return; b.classList.add('sh-show'); if (p.boxes.length === 1) b.classList.add('sh-single'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (p.boxes.length === 1 || (boxIdx != null ? i === boxIdx : k === (id === 'tax' ? 99 : 0))) b.classList.add('open'); });
         if (boxIdx != null && all[boxIdx]) { const b = all[boxIdx]; b.classList.add('open'); setTimeout(() => { b.scrollIntoView({ behavior: 'smooth', block: 'start' }); b.classList.add('sh-flash'); setTimeout(() => b.classList.remove('sh-flash'), 1600); }, 120); }
         else card.scrollTop = 0;
@@ -171,8 +176,8 @@ function shAutoBind() {
 { const _si = shInit; shInit = function () { _si(); shAutoBind(); }; }
 { const _so = shOpen; shOpen = function () { Object.values(SH_AUTO).forEach(g => { try { g.prev = g.get(); } catch (e) { g.prev = null; } }); return _so.apply(this, arguments); }; }
 // مفاتيح الإدخال السريع والتعلّم: حفظ فوري + تراجع
-if (typeof qkSet === 'function') { const _q = qkSet; qkSet = function (k, v) { _q(k, v); shToast('تم الحفظ ✓', () => { _q(k, !v); if (shCur === 'quick') shOpen('quick'); shToast('تم التراجع'); }); }; }
-if (typeof learnToggle === 'function') { const _l = learnToggle; learnToggle = function (v) { _l(v); shToast('تم الحفظ ✓', () => { _l(!v); if (shCur === 'quick') shOpen('quick'); shToast('تم التراجع'); }); }; }
+if (typeof qkSet === 'function') { const _q = qkSet; qkSet = function (k, v) { _q(k, v); shToast('تم الحفظ ✓', () => { _q(k, !v); if (shCur === 'tax') shOpen('tax'); shToast('تم التراجع'); }); }; }
+if (typeof learnToggle === 'function') { const _l = learnToggle; learnToggle = function (v) { _l(v); shToast('تم الحفظ ✓', () => { _l(!v); if (shCur === 'tax') shOpen('tax'); shToast('تم التراجع'); }); }; }
 // ===== منطقة الخطر =====
 async function shRestore() {
     const r = await Swal.fire({ icon: 'warning', title: 'استرجاع من نسخة احتياطية', html: '<div style="text-align:right;font-size:.88rem;line-height:1.9">الاسترجاع يدمج النسخة مع بياناتك الحالية ويرفعها للسحابة.<br><b>يُنصح بأخذ نسخة كاملة قبله.</b><br>اكتب كلمة <b>استرجاع</b> للمتابعة:</div>', input: 'text', inputPlaceholder: 'استرجاع', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'متابعة', cancelButtonText: 'رجوع', preConfirm: v => (String(v || '').trim() === 'استرجاع') || (Swal.showValidationMessage('اكتب الكلمة بالضبط'), false) });
