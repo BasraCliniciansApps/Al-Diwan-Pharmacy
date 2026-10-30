@@ -3245,3 +3245,21 @@ body.qi-open #formModal { z-index: 9200; } body.qi-open .swal2-container { z-ind
 :root[data-theme="dark"] .inf-row { background: #1e293b; } :root[data-theme="dark"] .inf-row p { color: #e2e8f0; } :root[data-theme="dark"] .inf-row b { color: #94a3b8; } :root[data-theme="dark"] .inf-row.n { background: #3a2f12; } :root[data-theme="dark"] .inf-row.n.d { background: #3b1a1a; }
 #catModal .tools-grid > button.inf-has { padding-left: 54px !important; }
 #catModal .tools-grid > button.inf-has { height: auto !important; min-height: 48px; padding-top: 10px !important; padding-bottom: 10px !important; line-height: 1.5; }
+
+/* الأرشفة وتحديد المواد في سجل الأدوية */
+.cat-arch { border-color: #cbd5e1; color: #475569; }
+.cat-arch.on { border-color: #16a34a; color: #166534; background: #f0fdf4; }
+.cat-row { grid-template-columns: 30px minmax(0, 1fr) 48px 48px 48px; grid-template-areas: "n main mg ar bc" "sub sub sub sub sub"; }
+.cat-row > .cat-arch { grid-area: ar; width: 48px; height: 48px; min-height: 0; }
+button.cat-pick { border: 2px solid #cbd5e1; border-radius: 10px; background: #fff; height: 30px; padding: 0; font: 900 .78rem/1 inherit; color: #64748b; cursor: pointer; }
+button.cat-pick.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+.cat-row.sel { outline: 2px solid #1d4ed8; }
+.cat-bulk { flex: 1 1 100%; display: flex; flex-direction: column; gap: 8px; padding: 10px; border-radius: 14px; background: #eff6ff; border: 1px solid #bfdbfe; }
+.cat-bulk-r, .cat-bulk-a { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cat-bulk button { min-height: 40px; padding: 0 12px; border-radius: 10px; border: 1px solid #94a3b8; background: #fff; color: #0f1c38; font: 800 .8rem/1 inherit; cursor: pointer; }
+.cat-bulk button.wn { background: #f59e0b; border-color: #f59e0b; color: #fff; }
+.cat-bulk button.dg { background: #b91c1c; border-color: #b91c1c; color: #fff; }
+.cat-bulk button.ok { background: #16a34a; border-color: #16a34a; color: #fff; }
+.cat-bulk button:disabled { opacity: .45; cursor: not-allowed; }
+:root[data-theme="dark"] .cat-bulk { background: var(--surface); border-color: #334155; }
+:root[data-theme="dark"] .cat-bulk button:not(.wn):not(.dg):not(.ok), :root[data-theme="dark"] button.cat-pick:not(.on), :root[data-theme="dark"] .cat-arch.on { background: var(--surface); color: #e2e8f0; }

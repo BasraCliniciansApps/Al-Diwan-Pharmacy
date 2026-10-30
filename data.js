@@ -192,12 +192,13 @@ function splitProduct(p) {
         else if (STOCK_FIELDS.includes(k)) stock[k] = full[k];
         else pub[k] = full[k];
     });
-    pub.inStock = (parseInt(full.qty) || 0) > 0 || (parseInt(full.loose) || 0) > 0;
+    pub.inStock = !full.arch && ((parseInt(full.qty) || 0) > 0 || (parseInt(full.loose) || 0) > 0);
     if (userRole === 'owner' && typeof scLimitFor === 'function') { const v = scLimitFor(full); if (v !== undefined) pub.dlim = v; }   // حد الخصم للبائعين (بدون كشف الكلفة)
     return { pub, stock, cost };
 }
 // هل الصنف متوفر؟ (يعمل في الصفحتين)
 function isInStock(p) {
+    if (p.arch) return false;   // مادة مؤرشفة = غير متوفرة (تعود بإدخالها في فاتورة وارد)
     if (p.qty !== undefined && p.qty !== null) return (parseInt(p.qty) || 0) > 0 || (parseInt(p.loose) || 0) > 0;
     return p.inStock === true;
 }
@@ -1161,6 +1162,7 @@ function setMainTab(tab) {
 
 function getBaseFilteredByTab() {
     return products.filter(p => {
+        if (p.arch) return false;   // المؤرشفة تخرج من قوائم المخزن والجرد والزبائن
         const matchDept = activeDept === ALL_DEPTS || deptsOf(p).includes(activeDept);
         if (!matchDept) return false;
         if (mainTab === 'out') return !isInStock(p);
@@ -2225,7 +2227,7 @@ function hasUnits(p) { return (parseInt(p.qty) || 0) > 0 || (parseInt(p.loose) |
 function getExpiringProducts() {
     const list = [];
     products.forEach(p => {
-        if (!hasUnits(p)) return;
+        if (p.arch || !hasUnits(p)) return;
         (p.bt ? getBatches(p).map(b => b.e).filter(Boolean) : getProductExpiryDates(p)).forEach(date => {
             const status = getExpiryStatus(date);
             if (status) list.push({ product: p, status, date });
@@ -2590,6 +2592,7 @@ function getMinQty(p) {
 }
 
 function isLowStock(p) {
+    if (p.arch) return false;
     const q = parseInt(p.qty) || 0;
     return q > 0 && q <= getMinQty(p);
 }

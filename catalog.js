@@ -1,5 +1,6 @@
 // سجل الأدوية: كل الأصناف بتسلسل الإدخال، مع زر ضم لمادة أخرى وزر قراءة/ربط الباركود
-let catQ = '', catUncounted = false, catIncomplete = false, catTodo = false;
+let catQ = '', catUncounted = false, catIncomplete = false, catTodo = false, catArch = false, catSelMode = false;
+const catSel = new Set();
 function catRankMap() { const m = new Map(); products.slice().sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)).forEach((p, i) => m.set(p.id, i + 1)); return m; }
 async function toggleSetupMode(on) {
     if (userRole !== 'owner' || !db || !currentUser) { renderCatalog(); return; }
@@ -24,24 +25,82 @@ async function catUnconfirm(id) {   // التراجع عن اعتماد الرص
     const ok = await saveProductsDelta([{ p, dq: 0, dl: 0, unmark: true }]);
     if (ok) { logAction('qty', p, [{ f: 'إلغاء اعتماد الرصيد (وضع التأسيس)', from: stockLabel(p), to: stockLabel(p) }]); renderCatalog(); }
 }
+// ---------- الأرشفة وإلغاء الاعتماد (فردي ودفعة) ----------
+function catSelToggleMode() { catSelMode = !catSelMode; catSel.clear(); renderCatalog(); }
+function catSelToggle(id) { if (catSel.has(id)) catSel.delete(id); else catSel.add(id); renderCatalog(); }
+function catSelAll(kind) {
+    const qn = normSearch(catQ), toks = qn.split(' ');
+    products.forEach(p => {
+        if (!!p.arch !== catArch) return;
+        if (qn && searchScore(p, qn, toks) <= 0) return;
+        if (kind === 'counted' && p.counted !== true) return;
+        catSel.add(p.id);
+    });
+    renderCatalog();
+}
+function catBulkBar(arr) {
+    const n = catSel.size, cn = products.filter(p => catSel.has(p.id) && p.counted === true).length;
+    return `<div class="cat-bulk"><div class="cat-bulk-r"><button type="button" onclick="catSelAll('all')">تحديد كل المعروض</button><button type="button" onclick="catSelAll('counted')">تحديد المجرودة فقط</button><button type="button" onclick="catSel.clear(); renderCatalog()">مسح التحديد</button></div>
+        <div class="cat-bulk-a"><b>المحدّد: ${fmtNum(n)}</b>${catArch ? `<button type="button" class="ok" ${n ? '' : 'disabled'} onclick="catBulkArchive(false)">↩ استرجاع (${fmtNum(n)})</button>` : `<button type="button" class="wn" ${cn ? '' : 'disabled'} onclick="catBulkUnconfirm()">إلغاء الاعتماد (${fmtNum(cn)})</button><button type="button" class="dg" ${n ? '' : 'disabled'} onclick="catBulkArchive(true)">🗄️ أرشفة (${fmtNum(n)})</button>`}</div></div>`;
+}
+async function catSaveMany(list, title, doneMsg) {
+    const h = Prog.start(title, { text: 'جارٍ الحفظ...', indeterminate: false });
+    let ok = 0;
+    try {
+        for (let i = 0; i < list.length; i += 25) {
+            const part = list.slice(i, i + 25);
+            if (!(await saveProductsDelta(part))) { h.fail('تعذر الحفظ', 'تم حفظ ' + ok + ' من ' + list.length); return ok; }
+            ok += part.length; h.tick(ok, list.length, ok + ' من ' + list.length);
+        }
+        h.ok(doneMsg);
+    } catch (e) { h.fail('تعذر الحفظ', e && e.message); }
+    return ok;
+}
+async function catArchiveOne(id, on) {
+    const p = products.find(x => x.id === id); if (!p || !writesAllowed() || !can('stockEdit')) return;
+    if (on && !(await askSure('أرشفة المادة؟', 'ستخرج «' + p.name + '» من سجل الأدوية وتُعدّ غير متوفرة، وترجع تلقائيًا عند إدخالها في فاتورة وارد جديدة.', 'نعم، أرشفة'))) return;
+    const old = !!p.arch; p.arch = on;
+    if (!(await saveProductsDelta([{ p, dq: 0, dl: 0 }]))) { p.arch = old; return; }
+    logAction('edit', p, [{ f: 'الأرشفة', from: old ? 'مؤرشفة' : 'ظاهرة', to: on ? 'مؤرشفة' : 'ظاهرة' }]);
+    renderCatalog();
+    Swal.fire({ icon: 'success', title: on ? 'أُرشفت المادة' : 'أُلغيت أرشفة المادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
+}
+async function catBulkArchive(on) {
+    const list = products.filter(p => catSel.has(p.id)); if (!list.length || !writesAllowed() || !can('stockEdit')) return;
+    if (on && !(await askSure('أرشفة ' + fmtNum(list.length) + ' مادة؟', 'ستخرج من سجل الأدوية وتُعدّ غير متوفرة، وترجع تلقائيًا عند إدخال كل مادة في فاتورة وارد جديدة.', 'نعم، أرشفة'))) return;
+    list.forEach(p => { p.arch = on; });
+    const ok = await catSaveMany(list.map(p => ({ p, dq: 0, dl: 0 })), on ? 'أرشفة المواد' : 'استرجاع المواد', on ? 'تمت الأرشفة' : 'تم الاسترجاع');
+    if (ok < list.length) list.slice(ok).forEach(p => { p.arch = !on; });
+    list.slice(0, ok).forEach(p => logAction('edit', p, [{ f: 'الأرشفة', from: on ? 'ظاهرة' : 'مؤرشفة', to: on ? 'مؤرشفة' : 'ظاهرة' }]));
+    catSel.clear(); renderCatalog();
+}
+async function catBulkUnconfirm() {
+    const list = products.filter(p => catSel.has(p.id) && p.counted === true); if (!list.length || !writesAllowed() || !can('stockEdit')) return;
+    if (!(await askSure('إلغاء اعتماد ' + fmtNum(list.length) + ' مادة؟', 'سترجع هذه المواد إلى حالة «لم تُجرد» وتبقى كمياتها كما هي.', 'نعم، إلغاء الاعتماد'))) return;
+    const ok = await catSaveMany(list.map(p => ({ p, dq: 0, dl: 0, unmark: true })), 'إلغاء الاعتماد', 'أُلغي الاعتماد');
+    list.slice(0, ok).forEach(p => logAction('qty', p, [{ f: 'إلغاء اعتماد الرصيد (وضع التأسيس)', from: stockLabel(p), to: stockLabel(p) }]));
+    catSel.clear(); renderCatalog();
+}
 function catInput() { catQ = (document.getElementById('catSearch') || {}).value || ''; renderCatalog(); }
 function renderCatalog() {
     const box = document.getElementById('catList'); if (!box) return;
     const rank = catRankMap(), qn = normSearch(catQ);
-    let arr = products.slice().sort((a, b) => rank.get(a.id) - rank.get(b.id));
+    const act = products.filter(p => !p.arch), archN = products.length - act.length;
+    if (!archN) catArch = false;
+    let arr = (catArch ? products.filter(p => p.arch) : act).sort((a, b) => rank.get(a.id) - rank.get(b.id));
     if (qn) { const toks = qn.split(' '); arr = arr.filter(p => searchScore(p, qn, toks) > 0); }
-    const unc = setupMode ? products.filter(p => p.counted !== true).length : 0;
+    const unc = setupMode ? act.filter(p => p.counted !== true).length : 0;
     if (!setupMode) catUncounted = false;
     if (catUncounted) arr = arr.filter(p => p.counted !== true);
     const catDone = p => parseFloat(p.price) > 0 && barcodesOf(p).length > 0;
-    const todoN = products.filter(p => !catDone(p)).length;
+    const todoN = act.filter(p => !catDone(p)).length;
     if (catTodo) arr = arr.filter(p => !catDone(p));
-    const inc = products.filter(p => p.incomplete).length;
+    const inc = act.filter(p => p.incomplete).length;
     if (!inc) catIncomplete = false;
     if (catIncomplete) arr = arr.filter(p => p.incomplete);
-    const withBc = products.filter(p => barcodesOf(p).length).length;
+    const withBc = act.filter(p => barcodesOf(p).length).length;
     const sum = document.getElementById('catSum');
-    if (sum) sum.innerHTML = `<span>${fmtNum(products.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><span class="cat-no">🔴 بلا باركود ${fmtNum(products.length - withBc)}</span><button type="button" class="cat-unc ${catTodo ? 'on' : ''}" onclick="catTodo = !catTodo; renderCatalog()" title="إخفاء المواد المسعّرة وبباركود وإبقاء غير المكتملة فقط">⏳ غير المكتملة ${fmtNum(todoN)}</button>${inc ? `<button type="button" class="cat-unc ${catIncomplete ? 'on' : ''}" onclick="catIncomplete = !catIncomplete; renderCatalog()">✏️ ناقصة التفاصيل ${fmtNum(inc)}</button>` : ''}${setupMode ? `<button type="button" class="cat-unc ${catUncounted ? 'on' : ''}" onclick="catToggleUnc()">🧮 لم تُجرد ${fmtNum(unc)} من ${fmtNum(products.length)}</button>` : ''}`;
+    if (sum) sum.innerHTML = `<span>${fmtNum(act.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><span class="cat-no">🔴 بلا باركود ${fmtNum(act.length - withBc)}</span><button type="button" class="cat-unc ${catTodo ? 'on' : ''}" onclick="catTodo = !catTodo; renderCatalog()" title="إخفاء المواد المسعّرة وبباركود وإبقاء غير المكتملة فقط">⏳ غير المكتملة ${fmtNum(todoN)}</button>${inc ? `<button type="button" class="cat-unc ${catIncomplete ? 'on' : ''}" onclick="catIncomplete = !catIncomplete; renderCatalog()">✏️ ناقصة التفاصيل ${fmtNum(inc)}</button>` : ''}${setupMode ? `<button type="button" class="cat-unc ${catUncounted ? 'on' : ''}" onclick="catToggleUnc()">🧮 لم تُجرد ${fmtNum(unc)} من ${fmtNum(act.length)}</button>` : ''}${archN ? `<button type="button" class="cat-unc ${catArch ? 'on' : ''}" onclick="catArch = !catArch; catSel.clear(); renderCatalog()" title="المواد المؤرشفة (خارج السجل لحين إدخالها بفاتورة وارد)">🗄️ الأرشيف ${fmtNum(archN)}</button>` : ''}${can('stockEdit') ? `<button type="button" class="cat-unc ${catSelMode ? 'on' : ''}" onclick="catSelToggleMode()" title="تحديد عدة مواد لإلغاء اعتمادها أو أرشفتها دفعة واحدة">☑️ تحديد</button>` : ''}${catSelMode ? catBulkBar(arr) : ''}`;
     const sb = document.getElementById('catSetup');
     if (sb) {
         const own = userRole === 'owner', sw = `<label class="setup-sw ${own ? '' : 'ro'}" title="${own ? 'تشغيل / إيقاف وضع التأسيس' : 'للمالك فقط'}"><input type="checkbox" ${setupMode ? 'checked' : ''} ${own ? '' : 'disabled'} onchange="toggleSetupMode(this.checked)"><i></i></label>`;
@@ -50,9 +109,11 @@ function renderCatalog() {
     const SHOW = 300, part = arr.slice(0, SHOW);
     box.innerHTML = part.map(p => {
         const n = barcodesOf(p).length, meta = [p.brand, fixMetaOrder(p.meta || '')].filter(Boolean).join(' · ');
-        return `<div class="cat-row"><span class="cat-n">${rank.get(p.id)}</span>
+        const on = catSel.has(p.id);
+        return `<div class="cat-row ${on ? 'sel' : ''}">${catSelMode ? `<button type="button" class="cat-n cat-pick ${on ? 'on' : ''}" onclick="catSelToggle(${p.id})" aria-pressed="${on}" aria-label="تحديد">${on ? '✓' : rank.get(p.id)}</button>` : `<span class="cat-n">${rank.get(p.id)}</span>`}
             <div class="cat-main" onclick="catPrice(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b>${p.incomplete ? '<span class="cat-uncT" style="background:#e0e7ff;color:#3730a3" title="أُضيفت من الوارد بدون تفاصيل">ناقصة</span>' : ''}${setupMode && p.counted !== true ? `<span class="cat-uncT" onclick="event.stopPropagation();catConfirm(${p.id})" title="اضغط لاعتماد الرصيد الحالي كمجرود">لم تُجرد ✓</span>` : ''}${setupMode && p.counted === true && can('stockEdit') ? `<span class="cat-uncT cat-doneT" onclick="event.stopPropagation();catUnconfirm(${p.id})" title="اضغط للتراجع عن اعتماد الرصيد">✓ مجرودة</span>` : ''}<small dir="ltr">${escapeHtml(meta) || '—'}</small></div>
             <button type="button" class="cat-btn cat-merge" onclick="catMergeStart(${p.id})" title="ضم لمادة أخرى">⇄<small>ضم</small></button>
+            ${p.arch ? `<button type="button" class="cat-btn cat-arch on" onclick="catArchiveOne(${p.id}, false)" title="استرجاع من الأرشيف">↩<small>استرجاع</small></button>` : `<button type="button" class="cat-btn cat-arch" onclick="catArchiveOne(${p.id}, true)" title="أرشفة: إخراج المادة من السجل">🗄️<small>أرشفة</small></button>`}
             <button type="button" class="cat-btn cat-bc ${n ? 'has' : 'none'}" onclick="catBarcode(${p.id})" title="${n ? n + ' باركود' : 'بلا باركود'}">▦<small>${n ? n : 'ربط'}</small></button>
             <div class="cat-sub">
                 <div class="cat-qty"><button type="button" onclick="catQty(${p.id},-1)" aria-label="نقص">−</button><input type="number" inputmode="numeric" min="0" id="cq${p.id}" value="${parseInt(p.qty) || 0}" onchange="catQtySet(${p.id},this.value)" onfocus="this.select()"><button type="button" onclick="catQty(${p.id},1)" aria-label="زيادة">+</button>${hasRetail(p) ? `<button type="button" class="cat-parts ${(parseInt(p.loose) || 0) > 0 ? 'on' : ''}" onclick="openCountDialog(${p.id})" title="تعديل العلب والأجزاء">🧩 ${parseInt(p.loose) || 0}</button>` : ''}</div>

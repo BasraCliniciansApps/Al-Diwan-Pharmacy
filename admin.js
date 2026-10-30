@@ -68,7 +68,7 @@ function goStock(tab) { showView('stock'); setMainTab(tab || 'all'); }
 function goAddProduct() { showView('stock'); openFormModal(); }
 
 async function refreshHome() {
-    const out = products.filter(p => !isInStock(p)).length;
+    const out = products.filter(p => !p.arch && !isInStock(p)).length;
     const low = products.filter(isLowStock).length;
     let exp = 0; try { exp = getExpiringProducts().length; } catch (e) { /* تجاهل */ }
     const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}" onclick="${onclick}"><b>${val}</b><span>${label}</span></button>`;
@@ -108,6 +108,7 @@ function expiryDaysOf(dateStr) {   // نفس حساب التطبيق: اعتبا
 }
 // يحدد حالات التنبيه للصنف حسب أقرب تاريخ نفاذ (التصنيف تراكمي: خلال شهر ⊂ خلال 3 أشهر ⊂ خلال 6 أشهر)
 function alertKinds(p) {
+    if (p.arch) return { days: null, date: '', bq: null, expired: false, m1: false, m3: false, m6: false, low: false, any: false };
     let days = null, date = '', bq = null;
     const bts = p.bt ? getBatches(p).filter(b => b.e) : null;
     (bts ? bts.map(b => b.e) : (hasUnits(p) ? getProductExpiryDates(p) : [])).forEach(d => { const n = expiryDaysOf(d); if (n !== null && (days === null || n < days)) { days = n; date = d; } });

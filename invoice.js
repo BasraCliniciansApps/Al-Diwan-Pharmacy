@@ -679,7 +679,7 @@ function salesTodayTotal() { const t = todayLocalISO(); return billAll.filter(b 
 // ---------- طلب الشراء ----------
 let poState = {};
 const poExtra = new Set();   // أصناف أُضيفت يدوياً من صفحة التنبيهات
-function poCandidates() { return products.filter(p => !isInStock(p) || isLowStock(p) || poExtra.has(p.id)).sort((a, b) => (parseInt(a.qty) || 0) - (parseInt(b.qty) || 0) || String(a.brand).localeCompare(String(b.brand))); }
+function poCandidates() { return products.filter(p => !p.arch && (!isInStock(p) || isLowStock(p) || poExtra.has(p.id))).sort((a, b) => (parseInt(a.qty) || 0) - (parseInt(b.qty) || 0) || String(a.brand).localeCompare(String(b.brand))); }
 function renderPO() {
     const m = getInvMeta();
     $b('poPhLine').innerHTML = [escapeHtml(m.addr || ''), m.phone ? 'هاتف: <bdi dir="ltr">' + escapeHtml(m.phone) + '</bdi>' : ''].filter(Boolean).join('  |  ');

@@ -321,6 +321,14 @@ const puXbHtml = (it, i) => (it.xb || []).map((b, j) => `<div class="pu-xb"><div
 async function puRemoveItem(i) { const it = pu.items[i]; if (!it) return; if (!(await askSure('حذف هذه المادة من الفاتورة؟', it.name, 'حذف'))) return; pu.items.splice(i, 1); puRenderItems(); puChanged(); }
 function puAddProduct(id) {
     const p = products.find(x => x.id === id); if (!p) return;
+    if (p.arch) {   // دخول مادة مؤرشفة بفاتورة وارد جديدة يفك أرشفتها تلقائيًا
+        p.arch = false;
+        saveProductsDelta([{ p, dq: 0, dl: 0 }]).then(ok => {
+            if (!ok) { p.arch = true; return; }
+            logAction('edit', p, [{ f: 'الأرشفة', from: 'مؤرشفة', to: 'ظاهرة (فاتورة وارد)' }]);
+            Swal.fire({ icon: 'info', title: 'أُلغيت أرشفة «' + p.name + '»', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+        });
+    }
     if (puPendingBc) { puAttachBarcode(p, puPendingBc); puPendingBc = ''; puShowPending(); }
     const ex = pu.items.find(it => it.pid === id);
     pu.items.forEach(it => { it.open = false; });   // القديمة تنطوي والجديدة تُفتح
