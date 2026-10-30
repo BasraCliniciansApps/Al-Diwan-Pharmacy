@@ -187,6 +187,7 @@ function docRenderList() {
             <div class="dc-nm" onclick="docDetail('${id}')" role="button"><b dir="auto">${docEsc(p.name)}</b>${p.brand && String(p.brand).trim().toUpperCase() !== 'GENERIC' ? `<small class="dc-co">${docEsc(String(p.brand).trim())}</small>` : ''}${p.activeIngredient ? `<small class="dc-ai" dir="auto">${docEsc(p.activeIngredient)}</small>` : ''}<small class="dc-pr">${p.price ? fmtNum(p.price) + ' د.ع' : 'بلا سعر'}</small></div>
             ${sel ? `<span class="dc-dot ${st}" title="${DOC_ST[st]}"></span>` : ''}
             <select class="dc-st" ${sel ? '' : 'disabled'} onchange="docSetSt('${id}',this.value)">${Object.keys(DOC_ST).map(k => `<option value="${k}" ${it && it.s === k ? 'selected' : ''}>${DOC_ST[k]}</option>`).join('')}</select>
+            ${sel ? `<button type="button" class="dc-bell ${it.al && Date.now() - it.al.t < 864e5 ? 'sent' : ''}" onclick="docAlert('${id}')" aria-label="إرسال تنبيه بحالة المادة للأطباء" title="${it.al ? 'آخر تنبيه: ' + DOC_ST[it.al.s] : 'إرسال تنبيه بحالة المادة للأطباء'}"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>` : ''}
             ${sel ? `<input type="text" class="dc-note" maxlength="80" placeholder="ملاحظة للطبيب (اختياري): مثل يُحفظ في الثلاجة" value="${docEsc(it.nt || '')}" onchange="docSetNote('${id}',this.value)">` : ''}
         </div>`;
     }).join('');
@@ -221,6 +222,18 @@ function docSetSt(id, v) {
     const it = docData.items[id]; if (!it) return;
     it.s = v; if (v === 'back') { it.t = Date.now(); delete it.src; delete it.pv; } else { delete it.t; delete it.src; delete it.pv; }
     docSaveSoon(); docRenderList();
+}
+// تنبيه الأطباء بحالة المادة الآن: يُحفظ مع المادة في وثيقة الطبيب، وتلتقطه صفحة كل طبيب مرة واحدة على جهازه
+async function docAlert(id) {
+    const it = docData.items[id], p = docProd(id); if (!it || !p) return;
+    const st = docEff({ ...it, ...docSnap(p) }, docData.cfg);
+    if (!(await askSure('إرسال تنبيه للأطباء؟', 'سيصل الأطباء تنبيه بأن «' + p.name + '»: ' + DOC_ST[st] + '.', 'إرسال التنبيه'))) return;
+    const h = Prog.start('إرسال التنبيه', { text: 'نشر حالة المادة...' });
+    const old = it.al; it.al = { s: st, t: Date.now() };
+    const ok = await docPublish();
+    if (ok) { h.ok('وصل التنبيه إلى صفحة الأطباء'); logAction('edit', p, [{ f: 'تنبيه الأطباء', from: '', to: DOC_ST[st] }]); }
+    else { if (old) it.al = old; else delete it.al; h.fail('تعذر الإرسال', 'تحقق من الاتصال وسجّل دخول المالك'); }
+    docRenderList();
 }
 function docSetNote(id, v) { const it = docData.items[id]; if (!it) return; v = String(v || '').trim(); if (v) it.nt = v; else delete it.nt; docSaveSoon(); }
 function docSelAll() { docFiltered().forEach(p => { const id = String(p.id); if (!docData.items[id]) docData.items[id] = { s: 'ok', ad: Date.now() }; }); docSaveSoon(); docRenderList(); }

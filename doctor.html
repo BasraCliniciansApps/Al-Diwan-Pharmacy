@@ -543,6 +543,20 @@ function reqBtn(m, big) {
 }
 let WATCH = lsGet('diwanWatch', {}), AV = lsGet('diwanAvail', []);
 const watchBtn = m => { const on = !!WATCH[m.id]; return `<button type="button" class="ib wt ${on ? 'on' : ''}" data-watch="${m.id}" aria-label="${on ? 'إلغاء التنبيه عند التوفر' : 'نبّهني عند التوفر'}" title="${on ? 'سيصلك تنبيه عند توفره، اضغط للإلغاء' : 'نبّهني عند التوفر'}">${svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>')}</button>`; };
+const AVT = { ok: 'متوفرة الآن', back: 'عادت بعد انقطاع', noph: 'غير متوفرة حالياً في الصيدلية', nosup: 'غير متوفرة في المذخر' };
+let GOT = lsGet('diwanAlGot', {});
+// تنبيهات الصيدلي بحالة المادة: كل جهاز يلتقط التنبيه مرة واحدة ويحفظ ذلك محلياً (لا يتأثر بقية الأطباء)
+function checkAlerts() {
+    if (!doc || !doc.items) return;
+    let ch = false; const now = Date.now();
+    Object.keys(doc.items).forEach(id => {
+        const it = doc.items[id], al = it && it.al; if (!al || !al.t || (GOT[id] || 0) >= al.t) return;
+        GOT[id] = al.t; ch = true;
+        if (now - al.t > 3 * 864e5) return;   // تنبيه قديم: لا نزعج جهازاً جديداً
+        AV.unshift({ id, n: it.n || '', at: al.t, seen: false, s: al.s }); toast((it.n || 'مادة') + ': ' + (AVT[al.s] || ''));
+    });
+    if (ch) { AV = AV.slice(0, 30); lsSet('diwanAlGot', GOT); lsSet('diwanAvail', AV); try { ntBadge(); } catch (e) { /* تجاهل */ } }
+}
 function checkWatch() {
     let ch = false;
     Object.keys(WATCH).forEach(id => { const m = ALL.find(x => x.id === id); if (m && (m.st === 'ok' || m.st === 'back')) { AV.unshift({ id, n: m.n, at: Date.now(), seen: false }); delete WATCH[id]; ch = true; toast(m.n + ' صار متوفراً'); } });
@@ -681,7 +695,7 @@ function stamp() {
     const h = d.getHours(), tm = ((h % 12) || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + (h < 12 ? ' ص' : ' م');
     $('updT').textContent = 'تحديث ' + (same ? 'اليوم ' : d.getDate() + '/' + (d.getMonth() + 1) + ' ') + tm;
 }
-function setDoc(d) { doc = d || { cfg: {}, items: {} }; stamp(); render(false); try { checkWatch(); } catch (e) { /* تجاهل */ } try { localStorage.setItem(LS, JSON.stringify(doc)); } catch (e) { /* تجاهل */ } }
+function setDoc(d) { doc = d || { cfg: {}, items: {} }; stamp(); render(false); try { checkWatch(); } catch (e) { /* تجاهل */ } try { checkAlerts(); } catch (e) { /* تجاهل */ } try { localStorage.setItem(LS, JSON.stringify(doc)); } catch (e) { /* تجاهل */ } }
 
 $('rail').addEventListener('click', e => { const b = e.target.closest('.tab'); if (!b) return; const k = b.dataset.k; tab = tab === k ? '' : k; shown = 60; render(true); if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) { /* تجاهل */ } });
 $('clr').onclick = () => { tab = ''; favOnly = false; SEL.d.clear(); SEL.c.clear(); if (TFC) tfRefresh($('tfHost')); shown = 60; render(true); };
@@ -971,7 +985,7 @@ function ntWatch() {
 const hm = t => { const d = new Date(t), h = d.getHours(); return d.getDate() + '/' + (d.getMonth() + 1) + ' ' + ((h % 12) || 12) + ':' + String(d.getMinutes()).padStart(2, '0') + (h < 12 ? ' ص' : ' م'); };
 function ntRender() {
     const sh = $('sheet'), top = sh.scrollTop;
-    const avh = AV.length ? `<div class="nrx"><div class="hd2"><b>أصبحت متوفرة</b></div>${AV.map((a, i) => `<div class="it" style="align-items:center"><span dir="auto"><bdi>${esc(a.n)}</bdi><small style="display:block">${hm(a.at)}</small></span><span style="display:flex;gap:6px"><button type="button" class="addb" style="height:36px;padding:0 12px;border-style:solid" data-open="${esc(a.id)}">عرض</button><button type="button" class="addb ex" style="height:36px;padding:0 12px;border-style:solid" data-avx="${i}">إزالة</button></span></div>`).join('')}</div>` : '';
+    const avh = AV.length ? `<div class="nrx"><div class="hd2"><b>تنبيهات المواد</b></div>${AV.map((a, i) => `<div class="it" style="align-items:center"><span dir="auto"><bdi>${esc(a.n)}</bdi><small style="display:block">${esc(AVT[a.s] || 'أصبحت متوفرة')} · ${hm(a.at)}</small></span><span style="display:flex;gap:6px"><button type="button" class="addb" style="height:36px;padding:0 12px;border-style:solid" data-open="${esc(a.id)}">عرض</button><button type="button" class="addb ex" style="height:36px;padding:0 12px;border-style:solid" data-avx="${i}">إزالة</button></span></div>`).join('')}</div>` : '';
     const html = avh + MY.map(r => {
         const d = NT[r.rid], st = (d && d.st) || 'new', S = NSTAT[st] || NSTAT.new, ms = ((d && d.msgs) || []).slice().sort((a, b) => b.at - a.at), seen = ntSeenView[r.rid] != null ? ntSeenView[r.rid] : (SEEN[r.rid] || 0);
         return `<div class="nrx"><div class="hd2"><div><b>${esc(r.num)} · <bdi>${esc(r.patient)}</bdi></b><small>${hm(r.at)} · ${num(r.items.length)} ${r.items.length > 2 && r.items.length < 11 ? 'أدوية' : 'دواء'}</small></div><span class="st" style="--c:var(--${S[1]})">${S[0]}</span></div>

@@ -3263,3 +3263,8 @@ button.cat-pick.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
 .cat-bulk button:disabled { opacity: .45; cursor: not-allowed; }
 :root[data-theme="dark"] .cat-bulk { background: var(--surface); border-color: #334155; }
 :root[data-theme="dark"] .cat-bulk button:not(.wn):not(.dg):not(.ok), :root[data-theme="dark"] button.cat-pick:not(.on), :root[data-theme="dark"] .cat-arch.on { background: var(--surface); color: #e2e8f0; }
+
+.dc-bell { flex: 0 0 40px; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 1.5px solid #cbd5e1; border-radius: 10px; background: #fff; color: #0f1c38; cursor: pointer; padding: 0; }
+.dc-bell.sent { border-color: #0f766e; color: #0f766e; background: #f0fdfa; }
+.dc-bell:active { transform: scale(.94); }
+[data-theme="dark"] .dc-bell { background: #0f172a; color: #e2e8f0; border-color: #334155; }
