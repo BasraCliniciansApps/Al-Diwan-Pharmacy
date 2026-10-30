@@ -74,8 +74,18 @@ function loginKey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/
 async function resolveRole(user) {
     userRole = 'staff'; userPerms = {}; userName = '';
     if (user.uid === OWNER_UID) { userRole = 'owner'; userName = 'المالك'; return true; }
-    let doc = null;
-    try { const s = await db.collection('pharmacy_users').doc(user.uid).get(); doc = s.exists ? s.data() : null; } catch (e) { doc = null; }
+    let doc = null, failed = false;
+    const RK = 'diwanRoleCache';
+    try { const s = await db.collection('pharmacy_users').doc(user.uid).get(); doc = s.exists ? s.data() : null; } catch (e) { failed = true; }
+    if (failed) {   // لا اتصال: نعتمد آخر صلاحيات حُفظت على هذا الجهاز لنفس الحساب (تتحدّث وتُتحقق من السحابة عند توفر الإنترنت)
+        try { const c = JSON.parse(localStorage.getItem(RK)); if (c && c.uid === user.uid && c.doc && c.doc.active !== false) { userPerms = c.doc.perms || {}; userName = c.doc.name || ''; return true; } } catch (e) { /* تجاهل */ }
+        currentUser = null; document.body.classList.remove('admin-mode', 'role-staff');
+        showView('login');
+        const er = document.getElementById('gateError'); if (er) { er.innerText = 'تعذّر التحقق من صلاحيات الحساب بدون إنترنت. سجّل الدخول مرة واحدة مع اتصال.'; er.style.display = 'block'; }
+        return false;
+    }
+    if (doc && doc.active !== false) { try { localStorage.setItem(RK, JSON.stringify({ uid: user.uid, doc: { name: doc.name || '', perms: doc.perms || {}, active: true } })); } catch (e) { /* تجاهل */ } }
+    else { try { localStorage.removeItem(RK); } catch (e) { /* تجاهل */ } }
     if (!doc || doc.active === false) {
         try { await auth.signOut(); } catch (e) { /* تجاهل */ }
         currentUser = null; document.body.classList.remove('admin-mode', 'role-staff');

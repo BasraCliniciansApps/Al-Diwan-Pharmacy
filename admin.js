@@ -36,6 +36,7 @@ async function gateLogin() {
     const fail = m => { err.innerText = m; err.style.display = 'block'; };
     err.style.display = 'none';
     if (!email || !pass) return fail('أدخل اسم المستخدم (أو البريد) وكلمة المرور');
+    if (navigator.onLine === false) return fail('لا يوجد اتصال بالإنترنت. تسجيل الدخول الجديد يحتاج اتصالاً (لمرة واحدة فقط).');
     if (!isFirebaseReady || !auth) return fail('الاتصال بـ Firebase غير جاهز. تأكد من الإنترنت ثم أعد تحميل الصفحة.');
     btn.disabled = true; btn.innerText = 'جاري التحقق...';
     try {
@@ -48,13 +49,14 @@ async function gateLogin() {
         await auth.signInWithEmailAndPassword(email, pass);
         document.getElementById('gatePass').value = '';
     } catch (e) {
-        fail('بيانات الدخول غير صحيحة');
+        fail(e && e.code === 'auth/network-request-failed' ? 'تعذّر الاتصال بالخادم. تحقق من الإنترنت وأعد المحاولة.' : 'بيانات الدخول غير صحيحة');
     } finally { btn.disabled = false; btn.innerText = 'تسجيل الدخول'; }
 }
 
 async function gateLogout() {
     const r = await Swal.fire({ title: 'تسجيل الخروج؟', icon: 'question', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم، خروج', cancelButtonText: 'إلغاء' });
     if (!r || !r.isConfirmed) return;
+    try { localStorage.removeItem('diwanRoleCache'); } catch (e) { /* تجاهل */ }
     try { if (typeof stopStockListener === 'function') stopStockListener(); } catch (e) { /* تجاهل */ }
     try { if (auth) await Promise.race([auth.signOut(), new Promise(res => setTimeout(res, 4000))]); } catch (e) { console.warn('signOut:', e && e.message); }
     // نضمن الخروج من الواجهة حتى لو تأخر رد Firebase
