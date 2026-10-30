@@ -4048,7 +4048,7 @@ async function testAiConnection() {
         else setAiTestMsg('⚠️ الاتصال يعمل لكن القراءة لم تطابق المتوقع. ردّ النموذج: ' + aiClean(out, 60), true);
     } catch (err) {
         if (err && err.code === 'NO_KEY') setAiTestMsg('أدخل المفتاح أولاً.', true);
-        else setAiTestMsg('❌ ' + friendlyAiError(err), true);
+        else setAiTestMsg('❌ ' + friendlyAiError(err) + '\n[التفاصيل التقنية: ' + String((err && (err.code ? err.code + ' ' : '') + (err.message || err)) || '').replace(/\s+/g, ' ').slice(0, 260) + ']', true);
     }
 }
 
