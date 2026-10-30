@@ -1141,6 +1141,7 @@ function renderDepartmentsBar() {
     const bar = document.getElementById('departmentsBar');
     const dl = deptList();
     if (activeDept !== ALL_DEPTS && !dl.includes(activeDept)) activeDept = ALL_DEPTS;
+    if (!bar) return;
     bar.innerHTML = `<button class="dept-chip ${activeDept === ALL_DEPTS ? 'active' : ''}" onclick="selectDepartment('${ALL_DEPTS}')">🗂️ ${ALL_DEPTS_LABEL}</button>` +
         dl.map(d => `
         <button class="dept-chip ${activeDept === d ? 'active' : ''}" onclick="selectDepartment(this.dataset.d)" data-d="${escapeHtml(d)}">
