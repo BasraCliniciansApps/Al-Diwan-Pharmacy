@@ -1817,7 +1817,7 @@ function onPriceModeChange(initial) {
     const mkw = document.getElementById('fMarkupWrap'), mk = document.getElementById('fMarkup');
     if (mkw) mkw.style.display = per ? '' : 'none';
     pr.readOnly = syn || per;
-    if (hint) { hint.innerHTML = syn ? syndHintHtml(cost && cost.value) : per ? markupHintHtml(cost && cost.value, mk && mk.value)   : pm.value === 'free' ? 'اكتب سعر البيع بنفسك، ويمكن تعديله بمقدار 250 أو 500 أو 750 عند البيع بالفاتورة.' : 'اكتب السعر المطبوع على ملصق الوزارة.'; hint.style.display = ''; }
+    if (hint) { hint.innerHTML = syn ? syndHintHtml(cost && cost.value) : per ? markupHintHtml(cost && cost.value, mk && mk.value)   : pm.value === 'free' ? 'اكتب سعر البيع.' : 'اكتب السعر المطبوع على ملصق الوزارة.'; hint.style.display = ''; }
     if (syn && cost && Number(cost.value) > 0) { pr.value = syndPrice(cost.value); if (typeof retailAutoPrice === 'function') retailAutoPrice(); }
     if (per && cost && Number(cost.value) > 0 && mk && mk.value !== '' && Number(mk.value) >= 0) { pr.value = markupCalc(cost.value, mk.value); if (typeof retailAutoPrice === 'function') retailAutoPrice(); }
 }

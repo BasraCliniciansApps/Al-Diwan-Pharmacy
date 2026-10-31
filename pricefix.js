@@ -42,7 +42,7 @@ function pzDetailHtml(x) {
     const p = x.p, sub = subCountOf(p) ? p : null, types = subTypes.slice(); if (sub && sub.subType && !types.includes(sub.subType)) types.push(sub.subType);
     return `<div class="qp">
         <div class="qf"><span>المادة</span><div class="qin ltr" dir="ltr" style="display:flex;align-items:center;font-weight:800">${escapeHtml(p.name)}</div></div>
-        <div class="qf qrow"><span>طريقة التسعير</span><select id="qpMode" class="qin"><option value="manual">تسعيرة وزارة الصحة (الملصق)</option><option value="free">يدوي (يقبل تعديل ±250 عند البيع)</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></div>
+        <div class="qf qrow"><span>طريقة التسعير</span><select id="qpMode" class="qin"><option value="manual">تسعيرة وزارة الصحة (الملصق)</option><option value="free">يدوي</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></div>
         <div class="qg2 qrow">
             <div class="qf"><span>سعر الشراء (د.ع)</span><input id="qpCost" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${x.cost || ''}"></div>
             <div class="qf"><span>سعر البيع (د.ع)</span><input id="qpPrice" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${Number(p.price) > 0 ? p.price : (pzDraft.get(p.id) || '')}"></div>
