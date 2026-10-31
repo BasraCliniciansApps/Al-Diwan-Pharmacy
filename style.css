@@ -3268,3 +3268,38 @@ button.cat-pick.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
 .dc-bell.sent { border-color: #0f766e; color: #0f766e; background: #f0fdfa; }
 .dc-bell:active { transform: scale(.94); }
 [data-theme="dark"] .dc-bell { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+
+/* ===== تحسين بلاطات الرئيسية (v369): تدرجات أغنى، أيقونة بدائرة زجاجية، لمعان، ظلال ملونة، حركة خفيفة ===== */
+#homeView .home-tile { border-radius: 28px; border: 1px solid rgba(255,255,255,.16); }
+#homeView .home-tile.tile-sm, #homeView .home-tile.tile-sq { border-radius: 24px; }
+#homeView .home-tile::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,.22) 0%, rgba(255,255,255,0) 42%), linear-gradient(105deg, transparent 40%, rgba(255,255,255,.3) 50%, transparent 60%);
+    background-size: 100% 100%, 300% 100%; background-position: 0 0, 150% 0; background-repeat: no-repeat; }
+#homeView.tiles-in .home-tile::before { animation: tileSheen 3s ease 1s 1 both; }
+@keyframes tileSheen { from { background-position: 0 0, 150% 0; } to { background-position: 0 0, -50% 0; } }
+#homeView .home-tile > svg { box-sizing: content-box; padding: 13px; border-radius: 50%; background: rgba(255,255,255,.2); border: 1.5px solid rgba(255,255,255,.4);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.4), 0 6px 14px -6px rgba(0,0,0,.35); stroke-width: 1.8; width: 32px; height: 32px; }
+#homeView .tile-purch > svg { width: 30px; height: 30px; padding: 12px; }
+#homeView .tile-sq > svg { width: 30px; height: 30px; padding: 12px; }
+#homeView .tile-sm > svg { width: 28px; height: 28px; padding: 10px; }
+#homeView .tile-stock > svg { background: rgba(43,23,0,.14); border-color: rgba(43,23,0,.25); }
+#homeView .home-tile b { font-weight: 800; }
+#homeView .tile-bill  { background: linear-gradient(155deg, #1e3a78 0%, #0e1b3c 100%); box-shadow: 0 2px 3px rgba(14,27,60,.3), 0 18px 30px -14px rgba(14,27,60,.7); }
+#homeView .tile-stock { background: linear-gradient(155deg, #f4b93e 0%, #c96a12 100%); color: #2b1700; box-shadow: 0 2px 3px rgba(150,80,10,.3), 0 18px 30px -14px rgba(180,90,10,.75); }
+#homeView .home-tile.tile-purch { background: linear-gradient(100deg, #0b7a5a 0%, #18b98a 100%); box-shadow: 0 2px 3px rgba(11,122,90,.3), 0 18px 30px -16px rgba(11,122,90,.75); }
+#homeView .home-tile.tile-rxh { background: linear-gradient(155deg, #2f66e8 0%, #1b3a9e 100%); box-shadow: 0 2px 3px rgba(27,58,158,.3), 0 18px 30px -14px rgba(27,58,158,.75); }
+#homeView .home-tile.tile-scan { background: linear-gradient(155deg, #8b4df0 0%, #4a1fb5 100%); box-shadow: 0 2px 3px rgba(74,31,181,.3), 0 18px 30px -14px rgba(74,31,181,.75); }
+#homeView .tile-inv   { background: linear-gradient(155deg, #18b09c 0%, #0b6f65 100%); box-shadow: 0 2px 3px rgba(11,111,101,.3), 0 14px 24px -14px rgba(11,111,101,.75); }
+#homeView .tile-alert { background: linear-gradient(155deg, #f2605c 0%, #be2323 100%); box-shadow: 0 2px 3px rgba(190,35,35,.3), 0 14px 24px -14px rgba(190,35,35,.75); }
+#homeView .tile-gear  { background: linear-gradient(155deg, #5f7093 0%, #2e3b58 100%); box-shadow: 0 2px 3px rgba(46,59,88,.3), 0 14px 24px -14px rgba(46,59,88,.75); }
+#homeView .home-tile:active { transform: scale(.97); }
+#homeView.tiles-in .home-tile { animation: tileIn .38s cubic-bezier(.2,.8,.2,1) both; }
+#homeView.tiles-in .tile-bill { animation-delay: .1s; } #homeView.tiles-in .tile-stock { animation-delay: .125s; } #homeView.tiles-in .tile-purch { animation-delay: .15s; }
+#homeView.tiles-in .tile-scan { animation-delay: .175s; } #homeView.tiles-in .tile-rxh { animation-delay: .2s; }
+#homeView.tiles-in .tile-inv { animation-delay: .225s; } #homeView.tiles-in .tile-alert { animation-delay: .25s; } #homeView.tiles-in .tile-gear { animation-delay: .275s; }
+#homeView .kpi { border: 1px solid #e6eaf3; border-radius: 18px; box-shadow: 0 8px 16px -12px rgba(15,28,56,.45); }
+#homeView .kpi b { font-size: 1.3rem; }
+#homeView .kpi span { font-weight: 700; }
+#homeView .home-quick button, #homeView .home-quick-link { border-radius: 25px; min-height: 50px; font-weight: 800; box-shadow: 0 6px 14px -10px rgba(15,28,56,.4); }
+:root[data-theme="dark"] #homeView .kpi { border-color: #334155; }
+@media (prefers-reduced-motion: reduce) { #homeView.tiles-in .home-tile::before { animation: none; } #homeView.tiles-in .home-tile { animation: none; } }
