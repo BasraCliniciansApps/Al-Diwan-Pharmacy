@@ -27,7 +27,7 @@ async function pzOpen(loss, keep) {
     const r = await Swal.fire({ title: pzLoss ? 'مواد تُباع بخسارة' : 'مواد بدون سعر بيع', html, width: 640, showCancelButton: true, confirmButtonText: 'حفظ الأسعار', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { popup: 'pz-pop' }, didOpen: () => { const l = document.querySelector('.pz-list'); if (l && pzScroll) l.scrollTop = pzScroll; } });
     if (!r.isConfirmed) return;
     const upd = [];
-    pzRows.forEach((x, i) => { const el = document.getElementById('pzIn' + i); const v = el ? puNum(el.value) : 0; if (v > 0) { x.p.price = v; x.p.pricing = 'manual'; x.p.markupPct = null; if (!(puNum(x.p.costPrice) > 0)) x.p.costPrice = x.cost; upd.push(x.p); } });
+    pzRows.forEach((x, i) => { const el = document.getElementById('pzIn' + i); const v = el ? puNum(el.value) : 0; if (v > 0) { x.p.price = v; x.p.pricing = x.p.pricing === 'free' ? 'free' : 'manual'; x.p.markupPct = null; if (!(puNum(x.p.costPrice) > 0)) x.p.costPrice = x.cost; upd.push(x.p); } });
     pzDraft.clear();
     if (!upd.length) return;
     const h = Prog.open('حفظ أسعار المواد', { text: fmtNum(upd.length) + ' مادة' });
@@ -42,7 +42,7 @@ function pzDetailHtml(x) {
     const p = x.p, sub = subCountOf(p) ? p : null, types = subTypes.slice(); if (sub && sub.subType && !types.includes(sub.subType)) types.push(sub.subType);
     return `<div class="qp">
         <div class="qf"><span>المادة</span><div class="qin ltr" dir="ltr" style="display:flex;align-items:center;font-weight:800">${escapeHtml(p.name)}</div></div>
-        <div class="qf qrow"><span>طريقة التسعير</span><select id="qpMode" class="qin"><option value="manual">يدوي — ملصق الوزارة</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></div>
+        <div class="qf qrow"><span>طريقة التسعير</span><select id="qpMode" class="qin"><option value="manual">تسعيرة وزارة الصحة (الملصق)</option><option value="free">يدوي (يقبل تعديل ±250 عند البيع)</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></div>
         <div class="qg2 qrow">
             <div class="qf"><span>سعر الشراء (د.ع)</span><input id="qpCost" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${x.cost || ''}"></div>
             <div class="qf"><span>سعر البيع (د.ع)</span><input id="qpPrice" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${Number(p.price) > 0 ? p.price : (pzDraft.get(p.id) || '')}"></div>

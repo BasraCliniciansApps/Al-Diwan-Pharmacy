@@ -122,7 +122,8 @@ function pricingInfoHtml(p) {
         return `<div style="font-size:0.76rem;margin-bottom:8px;color:#334155;">🏷️ مسعّر حسب كتاب النقابة${r ? ': سعر المذخر ' + fmtNum(p.costPrice) + ' + ' + r.pct + '% = <b>' + fmtNum(p.price) + '</b>' : ''}</div>`;
     }
     if (p.pricing === 'percent') return `<div style="font-size:0.76rem;margin-bottom:8px;color:#334155;">🏷️ مسعّر بنسبة إضافة: سعر الشراء ${fmtNum(p.costPrice)} + ${Number(p.markupPct) || 0}% = <b>${fmtNum(p.price)}</b></div>`;
-    if (p.pricing === 'manual') return '<div style="font-size:0.76rem;margin-bottom:8px;color:#64748b;">🏷️ التسعير: يدوي (ملصق الوزارة)</div>';
+    if (p.pricing === 'free') return '<div style="font-size:0.76rem;margin-bottom:8px;color:#64748b;">🏷️ التسعير: يدوي</div>';
+    if (p.pricing === 'manual') return '<div style="font-size:0.76rem;margin-bottom:8px;color:#64748b;">🏷️ التسعير: تسعيرة وزارة الصحة (الملصق)</div>';
     return '';
 }
 
@@ -1767,7 +1768,7 @@ function openFormModal(id = null) {
         formBarcodes = barcodesOf(p); renderBarcodeChips();
         fbtLoad(p);
         setExtraSelections(p);
-        { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = (p.pricing === 'syndicate' || p.pricing === 'percent') ? p.pricing : 'manual'; const mk = document.getElementById('fMarkup'); if (mk) mk.value = p.markupPct != null ? p.markupPct : ''; }
+        { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = (p.pricing === 'syndicate' || p.pricing === 'percent' || p.pricing === 'free') ? p.pricing : 'manual'; const mk = document.getElementById('fMarkup'); if (mk) mk.value = p.markupPct != null ? p.markupPct : ''; }
     } else {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
@@ -1816,7 +1817,7 @@ function onPriceModeChange(initial) {
     const mkw = document.getElementById('fMarkupWrap'), mk = document.getElementById('fMarkup');
     if (mkw) mkw.style.display = per ? '' : 'none';
     pr.readOnly = syn || per;
-    if (hint) { hint.innerHTML = syn ? syndHintHtml(cost && cost.value) : per ? markupHintHtml(cost && cost.value, mk && mk.value) : 'اكتب السعر المطبوع على ملصق الوزارة.'; hint.style.display = ''; }
+    if (hint) { hint.innerHTML = syn ? syndHintHtml(cost && cost.value) : per ? markupHintHtml(cost && cost.value, mk && mk.value)   : pm.value === 'free' ? 'اكتب سعر البيع بنفسك، ويمكن تعديله بمقدار 250 أو 500 أو 750 عند البيع بالفاتورة.' : 'اكتب السعر المطبوع على ملصق الوزارة.'; hint.style.display = ''; }
     if (syn && cost && Number(cost.value) > 0) { pr.value = syndPrice(cost.value); if (typeof retailAutoPrice === 'function') retailAutoPrice(); }
     if (per && cost && Number(cost.value) > 0 && mk && mk.value !== '' && Number(mk.value) >= 0) { pr.value = markupCalc(cost.value, mk.value); if (typeof retailAutoPrice === 'function') retailAutoPrice(); }
 }

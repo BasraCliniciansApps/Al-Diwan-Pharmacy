@@ -139,12 +139,12 @@ function qiClose() {
     qiFabSync(); try { window.scrollTo(0, 0); } catch (e) { /* تجاهل */ }
 }
 // ---- الإنهاء ----
-function qiEligible() {   // مواد غير مسعّرة بملصق الوزارة (نقابة/نسبة) وكميتها تقبل خطوة 250
+function qiEligible() {   // مواد غير مسعّرة بملصق الوزارة (نقابة/نسبة/يدوي) وكميتها تقبل خطوة 250
     const out = [];
     bill.items.forEach((it, i) => {
         const p = it.pid && products.find(x => x.id === it.pid);
         const qty = parseFloat(it.qty) || 0;
-        if (!p || !qty || !['syndicate', 'percent'].includes(p.pricing)) return;
+        if (!p || !qty || !['syndicate', 'percent', 'free'].includes(p.pricing)) return;
         if (!Number.isInteger(250 / qty)) return;
         out.push(i);
     });
@@ -159,12 +159,13 @@ async function qiRound() {   // false = رجوع
     const r = await Swal.fire({ title: 'تسوية المجموع إلى ألف كاملة', showCancelButton: true, confirmButtonText: 'تم', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38',
         html: `<div class="qi-sum">المجموع: <b id="qiRT"></b></div>
             <div class="qi-rl">${el.map(i => `<label class="qi-rr"><input type="radio" name="qiRI" value="${i}" ${i === cur ? 'checked' : ''}><span dir="ltr">${escapeHtml(bill.items[i].name)}</span><b id="qiRP${i}"></b></label>`).join('')}</div>
-            <div class="qi-rb"><button type="button" id="qiRm">− 250</button><button type="button" id="qiRp">+ 250</button></div>`,
+            <div class="qi-rb" id="qiRb"><button type="button" data-d="-750">− 750</button><button type="button" data-d="-500">− 500</button><button type="button" data-d="-250">− 250</button></div>
+            <div class="qi-rb" id="qiRb2" style="margin-top:8px"><button type="button" data-d="250">+ 250</button><button type="button" data-d="500">+ 500</button><button type="button" data-d="750">+ 750</button></div>`,
         didOpen: () => {
             const upd = () => { document.getElementById('qiRT').innerText = fmtNum(billTotals().total) + ' د.ع'; el.forEach(i => { const e = document.getElementById('qiRP' + i); if (e) e.innerText = fmtNum(bill.items[i].price); }); };
             const step = d => { const it = bill.items[cur], np = (parseFloat(it.price) || 0) + d / (parseFloat(it.qty) || 1); if (np <= 0) return; it.price = np; renderInvoiceRows(); billChanged(); upd(); };
             document.querySelectorAll('input[name=qiRI]').forEach(x => x.onchange = () => { cur = +x.value; });
-            document.getElementById('qiRm').onclick = () => step(-250); document.getElementById('qiRp').onclick = () => step(250); upd();
+            document.querySelectorAll('#qiRb button, #qiRb2 button').forEach(b => { b.onclick = () => step(+b.dataset.d); }); upd();
         } });
     return !r.isDismissed;
 }

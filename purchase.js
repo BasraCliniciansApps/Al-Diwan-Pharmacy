@@ -211,10 +211,10 @@ function puRecalc() {
 }
 function puThumb(pid) { const p = products.find(x => x.id === pid); return p && p.img ? `<img class="pk-img" src="${escapeHtml(p.img)}" alt="" onerror="this.style.visibility='hidden'">` : '<span class="pk-img pk-noimg">💊</span>'; }
 function puSub(pid) { const p = products.find(x => x.id === pid); return p ? [p.brand, fixMetaOrder(p.meta || ''), 'بالمخزن ' + stockLabel(p)].filter(Boolean).join(' · ') : ''; }
-function puPM(it) { const p = products.find(x => x.id === it.pid); return it.pmode || (p && (p.pricing === 'syndicate' || p.pricing === 'percent') ? p.pricing : 'manual'); }
+function puPM(it) { const p = products.find(x => x.id === it.pid); return it.pmode || (p && (p.pricing === 'syndicate' || p.pricing === 'percent' || p.pricing === 'free') ? p.pricing : 'manual'); }
 function puMk(it) { const p = products.find(x => x.id === it.pid); return it.pmarkup != null && it.pmarkup !== '' ? it.pmarkup : (p && p.pricing === 'percent' && p.markupPct != null ? p.markupPct : ''); }
 function puCurPrice(pid) { const p = products.find(x => x.id === pid); return p && p.price ? '(الحالي ' + fmtNum(p.price) + ')' : ''; }
-function puPriceMode(i, v) { const it = pu.items[i]; if (!it) return; it.pmode = v; const a = $b('puPm-' + i), b = $b('puPs-' + i); if (a) a.style.display = v === 'manual' ? 'block' : 'none'; if (b) b.style.display = v === 'syndicate' || v === 'percent' ? 'block' : 'none'; const c = $b('puPk-' + i); if (c) c.style.display = v === 'percent' ? 'block' : 'none'; if (v === 'percent' && it.pmarkup == null) it.pmarkup = puMk(it); puRecalc(); puChanged(); }
+function puPriceMode(i, v) { const it = pu.items[i]; if (!it) return; it.pmode = v; const a = $b('puPm-' + i), b = $b('puPs-' + i); if (a) a.style.display = v === 'manual' || v === 'free' ? 'block' : 'none'; if (b) b.style.display = v === 'syndicate' || v === 'percent' ? 'block' : 'none'; const c = $b('puPk-' + i); if (c) c.style.display = v === 'percent' ? 'block' : 'none'; if (v === 'percent' && it.pmarkup == null) it.pmarkup = puMk(it); puRecalc(); puChanged(); }
 function puRenderItems() {
     $b('puCount').innerText = pu.items.length ? 'عدد المواد في الفاتورة: ' + pu.items.length : '';
     $b('puItems').innerHTML = pu.items.map((it, i) => `
@@ -237,11 +237,12 @@ function puRenderItems() {
                 ${pu.gift ? '' : puXbHtml(it, i) + `<button type="button" class="pu-xb-add" onclick="puXbAdd(${i})">＋ دفعة بانتهاء آخر لنفس المادة</button>`}
                 <div class="pu-price">
                     <label class="pu-nogift"><span>طريقة تسعير البيع</span><select onchange="puPriceMode(${i},this.value)">
-                        <option value="manual" ${puPM(it) === 'manual' ? 'selected' : ''}>يدوي — مسعّر من الوزارة (ملصق)</option>
+                        <option value="manual" ${puPM(it) === 'manual' ? 'selected' : ''}>تسعيرة وزارة الصحة (الملصق)</option>
+                        <option value="free" ${puPM(it) === 'free' ? 'selected' : ''}>يدوي</option>
                         <option value="syndicate" ${puPM(it) === 'syndicate' ? 'selected' : ''}>حسب كتاب نقابة الصيادلة</option>
                         <option value="percent" ${puPM(it) === 'percent' ? 'selected' : ''}>بنسبة مئوية أدخلها (سعر الشراء + %)</option></select></label>
                     <label id="puPk-${i}" style="display:${puPM(it) === 'percent' ? 'block' : 'none'}"><span>نسبة الإضافة على سعر الشراء (%)</span><input type="number" min="0" step="any" inputmode="decimal" placeholder="مثال: 25" value="${escapeHtml(String(puMk(it)))}" oninput="puItemEdit(${i},'pmarkup',this.value)"></label>
-                    <label id="puPm-${i}" style="display:${(pu.gift || puPM(it) === 'manual') ? 'block' : 'none'}"><span>سعر البيع المطبوع على الملصق ${puCurPrice(it.pid)}</span><input type="number" min="0" inputmode="decimal" placeholder="اتركه فارغاً للإبقاء على السعر الحالي" value="${escapeHtml(it.pprice || '')}" oninput="puItemEdit(${i},'pprice',this.value)"></label>
+                    <label id="puPm-${i}" style="display:${(pu.gift || puPM(it) === 'manual' || puPM(it) === 'free') ? 'block' : 'none'}"><span>سعر البيع المطبوع على الملصق ${puCurPrice(it.pid)}</span><input type="number" min="0" inputmode="decimal" placeholder="اتركه فارغاً للإبقاء على السعر الحالي" value="${escapeHtml(it.pprice || '')}" oninput="puItemEdit(${i},'pprice',this.value)"></label>
                     <div id="puPs-${i}" class="pu-syn" style="display:${puPM(it) === 'syndicate' || puPM(it) === 'percent' ? 'block' : 'none'}"></div>
                 </div>
                 ${puRetailHtml(it, i)}
@@ -465,7 +466,7 @@ async function puSave() {
         // السعر والكلفة يُحفظان دائماً (وضع التأسيس يحمي الكمية فقط)
         if (cost > 0) p.costPrice = cost;
         if (gift) { if (puNum(it.pprice) > 0) { p.markupPct = null; p.pricing = 'manual'; p.price = puNum(it.pprice); } }   // البونص بلا كلفة: السعر الجديد فقط إن كتبته، وإلا يبقى سعر المادة الحالي
-        else { const pm = puPM(it); if (pm === 'percent') { const mk = puNum(puMk(it)); p.pricing = 'percent'; p.markupPct = mk; if (cost > 0) p.price = markupCalc(cost, mk); } else if (pm === 'syndicate') { p.markupPct = null; p.pricing = 'syndicate'; if (cost > 0) p.price = syndPrice(cost); } else { p.markupPct = null; p.pricing = 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
+        else { const pm = puPM(it); if (pm === 'percent') { const mk = puNum(puMk(it)); p.pricing = 'percent'; p.markupPct = mk; if (cost > 0) p.price = markupCalc(cost, mk); } else if (pm === 'syndicate') { p.markupPct = null; p.pricing = 'syndicate'; if (cost > 0) p.price = syndPrice(cost); } else { p.markupPct = null; p.pricing = pm === 'free' ? 'free' : 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
         line.salePrice = Number(p.price) || 0;   // سعر البيع وقت الوارد (للرجوع إليه)
         if (!applied) {   // مادة غير مجرودة / «لا تحدّث المخزن»: الكمية ما تتغير لكن قيمة البونص تنحسب
             line.bonusSale = bn * (Number(p.price) || 0);

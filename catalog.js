@@ -313,7 +313,7 @@ function catPriceHtml(p, isNew, pre) {
         </div>
         ${true ? '<div class="qf qrow" id="qpBtW"><span>الدفعات (تاريخ النفاذ + العدد) — اختياري، يُحسب العدد الكلي منها</span><div id="qpBt"></div><button type="button" class="qp-addbt" id="qpBtAdd">＋ إضافة دفعة</button></div>' : ''}
         <div class="qsep"></div>
-        <div class="qf qrow"><span>طريقة التسعير</span><select id="qpMode" class="qin"><option value="manual">يدوي — ملصق الوزارة</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></div>
+        <div class="qf qrow"><span>طريقة التسعير</span><select id="qpMode" class="qin"><option value="manual">تسعيرة وزارة الصحة (الملصق)</option><option value="free">يدوي (يقبل تعديل ±250 عند البيع)</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></div>
         <div class="qg2 qrow">
             <div class="qf"><span>سعر الشراء (د.ع)</span><input id="qpCost" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${p && p.costPrice ? p.costPrice : ''}"></div>
             <div class="qf"><span>سعر البيع (د.ع)</span><input id="qpPrice" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${p && p.price ? p.price : ''}"></div>
@@ -336,10 +336,10 @@ function catPriceWire(p) {
     const refresh = (fromUser) => {
         const m = mode.value, cost = $('qpCost').value, mk = $('qpMk').value;
         $('qpMkW').style.display = m === 'percent' ? '' : 'none';
-        $('qpPrice').readOnly = m !== 'manual';
+        $('qpPrice').readOnly = m === 'syndicate' || m === 'percent';
         if (m === 'syndicate') { { const r = syndCalc(cost); $('qpHint').innerHTML = r ? `سعر المذخر ${Number(cost).toLocaleString()} ≈ $${r.usd.toFixed(2)} ← نسبة ${r.pct}% ← ${r.price.toLocaleString()} د.ع · ${escapeHtml(syndBookText())} · الصرف ${pricingCfg.rate.toLocaleString()}` : 'أدخل سعر الشراء (سعر المذخر) ليُحسب السعر تلقائياً.'; } if (Number(cost) > 0) $('qpPrice').value = syndPrice(cost); }
         else if (m === 'percent') { $('qpHint').innerHTML = markupHintHtml(cost, mk).replace(/<\/?b>/g, ''); if (Number(cost) > 0 && mk !== '' && Number(mk) >= 0) $('qpPrice').value = markupCalc(cost, mk); }
-        else $('qpHint').textContent = 'اكتب السعر المطبوع على ملصق الوزارة.';
+        else $('qpHint').textContent = m === 'free' ? 'اكتب سعر البيع بنفسك، ويمكن تعديله بمقدار 250 أو 500 أو 750 عند البيع بالفاتورة.' : 'اكتب السعر المطبوع على ملصق الوزارة.';
         const sc = parseInt($('qpSc').value) || 0, sp = $('qpSp'), price = parseFloat($('qpPrice').value) || 0;
         if (sp.dataset.manual !== '1') sp.value = sc > 1 && price > 0 ? subPriceCalc(price, sc) : '';
     };
