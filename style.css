@@ -3390,3 +3390,10 @@ button.cat-pick.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
 /* v384: شريط معاينة المستخدم */
 .pv-bar { position: fixed; z-index: 100000; bottom: calc(14px + env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; max-width: calc(100vw - 32px); padding: 8px 8px 8px 14px; background: #0f1c38; color: #fff; border: 2px solid #f59e0b; border-radius: 999px; box-shadow: 0 6px 20px rgba(0,0,0,.35); font-size: .8rem; font-weight: 700; white-space: nowrap; }
 .pv-bar button { min-height: 34px; padding: 0 12px; border: 0; border-radius: 999px; background: #f59e0b; color: #1c1917; font-weight: 800; font-family: inherit; cursor: pointer; }
+
+/* v385: ركن الأطباء للمالك فقط + إصلاح عرض شريط المعاينة */
+body.role-staff .tile-rxh { display: none !important; }
+body.role-staff .home-sq { grid-template-columns: 1fr; }
+.pv-bar { white-space: normal; width: max-content; justify-content: space-between; box-sizing: border-box; }
+.pv-bar span { min-width: 0; }
+.pv-bar button { flex-shrink: 0; white-space: nowrap; }

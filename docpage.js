@@ -323,7 +323,7 @@ async function docClearNames() {
 
 // ---------- ركن الأطباء: شاشة واحدة تجمع كل ما يخص الأطباء ----------
 function drEl() { return document.getElementById('drHub'); }
-function drOpen() {
+function drOpen() { if (typeof userRole !== "undefined" && userRole !== "owner") return;
     let el = drEl();
     if (!el) { el = document.createElement('div'); el.id = 'drHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
     const ic = d => `<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
