@@ -4,7 +4,7 @@
 // ما يغيّر أي حقل أو id؛ فقط ينقل الحقول داخل أقسام.
 // ============================================================================
 const FS_DEF = [
-    { id: 'basic', ico: '🏷️', t: 'الأساسي', open: true, f: ['fName', 'fBrand', 'fMeta', 'fBarcode'] },
+    { id: 'basic', ico: '🏷️', t: 'الأساسي', open: true, f: ['fName', 'fBrand', 'fMeta'] },
     { id: 'cls', ico: '🗂️', t: 'التصنيف', open: true, f: ['fDepartment', 'fCategory', 'fType', 'fForm', 'fFormOtherWrap'] },
     {
         id: 'ps', ico: '💰', t: 'التسعير والمخزون', open: true, subs: [
@@ -37,6 +37,9 @@ function fsBuild() {
         else s.f.forEach(f => { const g = fsGroup(f); if (g && !seen.has(g)) { seen.add(g); body.appendChild(g); } });
         wrap.appendChild(sec);
     });
+    const bcg = fsGroup('fBarcode'); if (bcg) { bcg.classList.add('fs-bcTop'); scan.insertAdjacentElement('beforebegin', bcg); }
+    const sh = scan.querySelector('.scan-head'); if (sh) { sh.style.cursor = 'pointer'; sh.addEventListener('click', e => { if (e.target.closest('select,button')) return; scan.classList.toggle('fs-open'); }); const ch = document.createElement('span'); ch.className = 'fs-chev scan-chev'; ch.textContent = '▾'; sh.insertBefore(ch, sh.firstChild); }
+    scan.classList.add('fs-scan');
     scan.insertAdjacentElement('afterend', wrap);
     card.addEventListener('input', fsRefresh); card.addEventListener('change', fsRefresh);
     fsBuilt = true;
@@ -62,6 +65,7 @@ function fsRefresh() {
 }
 function fsApply(id) {
     fsBuild(); if (!fsBuilt) return;
+    const sb = document.querySelector('#formModal .scan-box'); if (sb) sb.classList.remove('fs-open');
     const isNew = !id; fsQuick = !!(isNew && typeof puAwaiting !== 'undefined' && puAwaiting);
     FS_DEF.forEach(s => { const e = fsEl('fs-' + s.id); if (!e) return; e.classList.toggle('open', s.open); (s.subs || []).forEach(u => { const x = fsEl('fs-' + u.id); if (!x) return; let o = u.open; if (u.id === 'stock' && isNew && !fsQuick) o = true; x.classList.toggle('open', o); x.classList.toggle('fs-hide', fsQuick && u.id !== 'price'); }); });
     let n = fsEl('fsQuickNote'); if (fsQuick) { if (!n) { n = document.createElement('div'); n.id = 'fsQuickNote'; n.className = 'fs-note'; n.innerHTML = '⚡ <b>إضافة سريعة من الوارد</b> — الكمية والنفاذ وسعر الشراء تُسجَّل من الوارد نفسه. أكمل الاسم والتصنيف والسعر فقط.'; fsEl('fsSections').insertAdjacentElement('beforebegin', n); } n.style.display = 'block'; } else if (n) n.style.display = 'none';

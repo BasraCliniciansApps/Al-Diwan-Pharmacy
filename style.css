@@ -3447,3 +3447,18 @@ body.pv-on { padding-bottom: 76px; }
 .fs-subbody .retail-grid { margin-top: 0; }
 .fs-subbody .fs-margin { margin-top: 0; }
 [data-theme="dark"] .fs-sub { background: #0f172a; border-color: #334155; }
+
+/* v398: الباركود بأعلى النموذج + «تعبئة سريعة» مطوية + اختصار الباركود الطويل */
+.fs-bcTop { border: 1px solid var(--border, #e5eaf2); border-radius: 16px; background: var(--surface-2, #f8fafc); padding: 10px 14px 12px; margin-bottom: 12px; }
+.fs-bcTop > label { font-size: .82rem; font-weight: 800; }
+.fs-bcTop .bc-chip { max-width: 100%; min-width: 0; }
+.fs-bcTop .bc-chip { direction: ltr; }
+.bc-chip { max-width: 100%; box-sizing: border-box; overflow: hidden; }
+.bc-chip > :not(button) { min-width: 0; }
+.fs-scan.scan-box > :not(.scan-head) { display: none; }
+.fs-scan.fs-open > :not(.scan-head):not(input[type=file]) { display: flex; }
+.fs-scan.fs-open > small.scan-hint, .fs-scan.fs-open > .scan-status { display: block; }
+.fs-scan .scan-head { min-height: 38px; }
+.fs-scan .scan-chev { color: #94a3b8; transition: transform .15s; } .fs-scan.fs-open .scan-chev { transform: rotate(180deg); }
+[data-theme="dark"] .fs-bcTop { background: #1e293b; border-color: #334155; }
+.fs-scan:not(.fs-open) .scan-engine { display: none; }

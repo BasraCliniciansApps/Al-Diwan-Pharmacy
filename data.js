@@ -4876,7 +4876,7 @@ let formBarcodes = [];
 function renderBarcodeChips() {
     const box = document.getElementById('fBarcodeChips');
     if (!box) return;
-    box.innerHTML = formBarcodes.map((b, i) => `<span class="bc-chip" dir="ltr">${i === 0 ? '★ ' : ''}${escapeHtml(b)}<button type="button" aria-label="حذف" onclick="removeFormBarcode(${i})">✕</button></span>`).join('');
+    box.innerHTML = formBarcodes.map((b, i) => `<span class="bc-chip" dir="ltr" title="${escapeHtml(b)}"><span class="bc-t">${i === 0 ? '★ ' : ''}${escapeHtml(b.length > 18 ? b.slice(0, 9) + '…' + b.slice(-6) : b)}</span><button type="button" aria-label="حذف" onclick="removeFormBarcode(${i})">✕</button></span>`).join('');
 }
 function removeFormBarcode(i) { formBarcodes.splice(i, 1); renderBarcodeChips(); }
 async function addFormBarcode(code) {
