@@ -117,7 +117,7 @@ function lgStmtRowHtml(x, i, detail) {
 }
 function lgLetterhead(title, sub) {
     const meta = getInvMeta();
-    return `<div class="bill-letterhead"><img src="icon.jpg" alt="" class="bill-logo"><div class="bill-ph"><div class="bill-ph-name">صيدلية الديوان</div><div class="bill-ph-line">${escapeHtml(meta.addr || '')}</div><div class="bill-ph-line">${meta.phone ? 'هاتف: ' + escapeHtml(meta.phone) : ''}</div></div><div class="bill-title-box"><div class="bill-title">${title}</div><div class="pu-mtitle">${sub}</div></div></div>`;
+    return `<div class="bill-letterhead"><img src="icon.jpg" alt="" class="bill-logo"><div class="bill-ph"><div class="bill-ph-name">صيدلية الديوان</div><div class="bill-ph-line">${escapeHtml(meta.addr || '')}</div><div class="bill-ph-line">${meta.phone ? 'هاتف: <bdi dir="ltr">' + escapeHtml(meta.phone) + '</bdi>' : ''}</div></div><div class="bill-title-box"><div class="bill-title">${title}</div><div class="pu-mtitle">${sub}</div></div></div>`;
 }
 function renderPuMonth() {
     const rg = puStmtRange(), sup = $b('puMonthSup').value, detail = $b('puDetail').checked, group = $b('puGroup').checked;
@@ -146,7 +146,7 @@ function renderPuMonth() {
             (d.rows.length ? `<tfoot><tr><td colspan="5">المجموع</td><td>${fmtNum(s.total)}</td><td>${fmtNum(s.ret)}</td><td>${fmtNum(s.net)}</td></tr></tfoot>` : '') + '</table></div>';
     }
     $b('puMonthSheet').innerHTML = lgLetterhead(rg.year ? 'سجل الطلبيات السنوي' : 'سجل الطلبيات الشهري', escapeHtml(rg.label) + (sup ? ' — ' + escapeHtml(sup) : '')) + body +
-        `<div class="bill-bottom"><div class="bill-totals"><div class="bill-trow bill-grand"><span>${rg.year ? 'المجموع السنوي' : 'التوتل الشهري'}</span><b>${fmtNum(s.net)} د.ع</b></div></div></div>` +
+        `<div class="bill-bottom"><div class="bill-totals"><div class="bill-trow bill-grand"><span>${rg.year ? 'المجموع السنوي' : 'المجموع الشهري'}</span><b>${fmtNum(s.net)} د.ع</b></div></div></div>` +
         `<div class="bill-words">${s.net > 0 ? 'المبلغ كتابةً: ' + escapeHtml(numberToArabicWords(s.net)) + ' دينار عراقي فقط لا غير' : ''}</div>`;
     lgRenderCloseBar(rg, sup);
 }
