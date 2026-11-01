@@ -5227,8 +5227,9 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     const LAYER_EL = { lgOv: () => document.querySelector('.lg-ov'), bottomSheet: () => document.getElementById('bottomSheet'), filterSheet: () => document.getElementById('filterSheet') };
     const layerEl = id => (LAYER_EL[id] ? LAYER_EL[id]() : document.getElementById(id));
     function layerZ(id) { const e = layerEl(id); if (!e) return 0; const z = parseInt(getComputedStyle(e).zIndex, 10); return isNaN(z) ? 0 : z; }
+    const swalLive = () => { try { if (!(window.Swal && Swal.isVisible && Swal.isVisible())) return false; const p = Swal.getPopup(); return !(p && (p.classList.contains('swal2-toast') || p.classList.contains('swal2-hide'))); } catch (e) { return false; } };   // نافذة تُغلق (حركة الإخفاء) لا تُحسب طبقة
     function closeTopLayer() {
-        if (window.Swal && Swal.isVisible && Swal.isVisible() && !(Swal.getPopup() && Swal.getPopup().classList.contains('swal2-toast'))) { if (Swal.isLoading && Swal.isLoading()) return true; Swal.close(); return true; }   // أثناء تحميل داخل نافذة: نتجاهل الرجوع
+        if (swalLive()) { if (Swal.isLoading && Swal.isLoading()) return true; Swal.close(); return true; }   // أثناء تحميل داخل نافذة: نتجاهل الرجوع
         let best = null;
         LAYERS.forEach(([id, on, close], i) => { let ok = false; try { ok = on(); } catch (e) { ok = false; } if (!ok) return; const z = layerZ(id), el = layerEl(id); if (!best || z > best.z || (z === best.z && el && best.el && (best.el.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING))) best = { z, el, close }; });   // عند تساوي z يعلو العنصر الأحدث في الصفحة
         if (best) { try { best.close(); } catch (e) { /* تجاهل */ } return true; }
@@ -5249,15 +5250,16 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     function depthNow() {
         let d = 0;
         LAYERS.forEach(([id, on]) => { try { if (on()) d++; } catch (e) { /* تجاهل */ } });
-        try { if (window.Swal && Swal.isVisible && Swal.isVisible() && !(Swal.getPopup() && Swal.getPopup().classList.contains('swal2-toast'))) d++; } catch (e) { /* تجاهل */ }
+        if (swalLive()) d++;
         try { if (IS_ADMIN_PAGE && typeof currentView !== 'undefined' && !['home', 'login', 'splash'].includes(currentView)) d += 1 + (window.__viewStack || []).length + (window.__tabDepth ? window.__tabDepth() : 0); } catch (e) { /* تجاهل */ }
         return d;
     }
-    function syncGuards() {
+    function syncGuards(noGrow) {
         if (exiting || syncing) return;
         try {
             const d = depthNow(), t = d > 0 ? Math.min(GMAX, d + SLACK) : 0, g = gcur();
-            if (g < t) { for (let i = g + 1; i <= t; i++) history.pushState({ g: i }, ''); }
+            if (g < t) { if (noGrow === true) return;   // الإدخالات المضافة بلا لمسة يتجاهلها المتصفح فيقفز الرجوع فوقها: لا نزيد بعد رجوع
+                 for (let i = g + 1; i <= t; i++) history.pushState({ g: i }, ''); }
             else if (g > t) { syncing++; history.go(-(g - t)); setTimeout(() => { syncing = Math.max(0, syncing - 1); }, 500); }
         } catch (e) { /* تجاهل */ }
     }
@@ -5266,7 +5268,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     window.__syncBackGuards = syncGuards; window.__backDepth = depthNow;
     window.addEventListener('popstate', () => {
         if (exiting || syncing) return;
-        if (closeTopLayer() || (window.__tabBack && window.__tabBack()) || backView()) { setTimeout(syncGuards, 0); setTimeout(() => { try { if (window.__shReturn) window.__shReturn('back'); } catch (e) { /* تجاهل */ } }, 60); return; }
+        if (closeTopLayer() || (window.__tabBack && window.__tabBack()) || backView()) { setTimeout(() => syncGuards(true), 0); setTimeout(() => { try { if (window.__shReturn) window.__shReturn('back'); } catch (e) { /* تجاهل */ } }, 60); return; }
         // لا شيء يُغلق: نخرج من التطبيق (نتجاوز ما بقي من الإدخالات الحارسة)
         exiting = true;
         try { window.close(); } catch (e) { /* تجاهل */ }
