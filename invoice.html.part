@@ -1,6 +1,6 @@
 <div id="billView" class="app-view bill-view" dir="rtl">
     <div class="bill-top no-print">
-    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button></div></div>
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
 <div class="page-title">🧾 الفواتير</div>
     </div>
     <div class="bill-tabs no-print" id="billTabs">

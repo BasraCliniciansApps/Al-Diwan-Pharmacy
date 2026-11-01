@@ -5197,6 +5197,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     const vis = id => { const e = document.getElementById(id); return !!e && e.style.display && e.style.display !== 'none'; };
     // سجلّ الطبقات: كل طبقة تُغلق بدالّتها الأصلية (لا إخفاء مباشر)، ونختار الأعلى فعلياً بحسب z-index (وعند التساوي بترتيب القائمة)
     const LAYERS = [
+        ['helpHub', () => vis('helpHub'), () => helpBack()],
         ['ssOv', () => !!document.getElementById('ssOv'), () => { if (typeof ssClose === 'function') ssClose(); else document.getElementById('ssOv').remove(); }],
         ['barcodeModal', () => vis('barcodeModal'), () => closeBarcodeScanner()],
         ['reportViewer', () => !!document.getElementById('reportViewer'), () => closeReport()],
