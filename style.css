@@ -3426,3 +3426,24 @@ body.pv-on { padding-bottom: 76px; }
 .pcd-h { margin-top: 8px; font-size: .76rem; font-weight: 800; color: #0f766e; }
 .pcd-edit { width: 100%; margin-top: 10px; }
 [data-theme="dark"] .pcd { background: #1e293b; border-color: #334155; } [data-theme="dark"] .pcd > summary, [data-theme="dark"] .pcd-r b { color: #e2e8f0; } [data-theme="dark"] .pcd-b, [data-theme="dark"] .pcd-r { border-color: #334155; }
+
+/* v397: قسم «التسعير والمخزون» الموحّد بمقاطع داخلية */
+.fs-sub { border: 1px solid var(--border, #e5eaf2); border-radius: 12px; background: #fff; margin-top: 8px; overflow: hidden; }
+.fs-sub.fs-hide { display: none; }
+.fs-subbar { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 46px; padding: 6px 12px; border: 0; background: transparent; cursor: pointer; font-family: inherit; color: inherit; text-align: right; }
+.fs-subbar .fs-t { font-weight: 800; font-size: .9rem; }
+.fs-sub .fs-chev { color: #94a3b8; transition: transform .15s; margin-inline-start: auto; } .fs-sub.open > .fs-subbar .fs-chev { transform: rotate(180deg); }
+.fs-subbody { display: none; padding: 4px 12px 12px; } .fs-sub.open > .fs-subbody { display: block; }
+.fs-subbody > .form-group:last-child, .fs-row2 > .form-group { margin-bottom: 0; }
+.fs-subbody > .form-group { margin-bottom: 10px; }
+.fs-row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; align-items: start; }
+.fs-row2 > .form-group { min-width: 0; }
+.fs-row2 label, .fs-subbody .form-group > label { font-size: .8rem; font-weight: 700; display: block; margin-bottom: 4px; }
+.fs-subbody input[type=number], .fs-subbody select, .fs-subbody input[type=month] { height: 44px; box-sizing: border-box; width: 100%; }
+.fs-priv { white-space: nowrap; font-size: .66rem; color: #64748b; font-weight: 600; }
+.fs-hide-lbl { display: none !important; }
+.fs-subbody .retail-box { border: 0; padding: 0; margin: 0; }
+.fs-subbody .retail-box > label { display: none; }
+.fs-subbody .retail-grid { margin-top: 0; }
+.fs-subbody .fs-margin { margin-top: 0; }
+[data-theme="dark"] .fs-sub { background: #0f172a; border-color: #334155; }

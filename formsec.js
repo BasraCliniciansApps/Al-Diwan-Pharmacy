@@ -6,9 +6,14 @@
 const FS_DEF = [
     { id: 'basic', ico: '🏷️', t: 'الأساسي', open: true, f: ['fName', 'fBrand', 'fMeta', 'fBarcode'] },
     { id: 'cls', ico: '🗂️', t: 'التصنيف', open: true, f: ['fDepartment', 'fCategory', 'fType', 'fForm', 'fFormOtherWrap'] },
-    { id: 'price', ico: '💰', t: 'السعر', open: true, f: ['fPriceMode', 'fPrice', 'fCost'] },
-    { id: 'stock', ico: '📦', t: 'المخزون والتجزئة', open: false, f: ['fQty', '.retail-box', 'fMinQty'] },
-    { id: 'exp', ico: '📅', t: 'الدفعات وتواريخ النفاذ', open: false, f: ['expiryDatesWrap'] },
+    {
+        id: 'ps', ico: '💰', t: 'التسعير والمخزون', open: true, subs: [
+            { id: 'price', ico: '💰', t: 'السعر', open: true, rows: [['fPriceMode'], ['fPrice', 'fCost']], strip: true },
+            { id: 'stock', ico: '📦', t: 'المخزون', open: false, rows: [['fQty', 'fMinQty']] },
+            { id: 'retail', ico: '🧩', t: 'البيع بالتجزئة', open: false, rows: [['.retail-box']] },
+            { id: 'exp', ico: '📅', t: 'الدفعات وتواريخ النفاذ', open: false, rows: [['expiryDatesWrap']] }
+        ]
+    },
     { id: 'more', ico: '📝', t: 'تفاصيل إضافية', open: false, f: ['fActive', 'fDetails', 'fKeywords', 'fImg'] }
 ];
 let fsBuilt = false, fsTimer = null, fsQuick = false;
@@ -21,15 +26,23 @@ function fsBuild() {
         const sec = document.createElement('div'); sec.className = 'fs-sec' + (s.open ? ' open' : ''); sec.id = 'fs-' + s.id;
         sec.innerHTML = `<button type="button" class="fs-bar" onclick="fsToggle('${s.id}')"><span class="fs-ico">${s.ico}</span><span class="fs-t">${s.t}</span><small class="fs-sum" id="fsSum-${s.id}"></small><i class="fs-dot" id="fsDot-${s.id}"></i><span class="fs-chev">▾</span></button><div class="fs-body"></div>`;
         const body = sec.querySelector('.fs-body'), seen = new Set();
-        s.f.forEach(f => { const g = fsGroup(f); if (g && !seen.has(g)) { seen.add(g); body.appendChild(g); } });
+        if (s.subs) s.subs.forEach(u => {
+            const sub = document.createElement('div'); sub.className = 'fs-sub' + (u.open ? ' open' : ''); sub.id = 'fs-' + u.id;
+            sub.innerHTML = `<button type="button" class="fs-subbar" onclick="fsToggle('${u.id}')"><span class="fs-ico">${u.ico}</span><span class="fs-t">${u.t}</span><small class="fs-sum" id="fsSum-${u.id}"></small><span class="fs-chev">▾</span></button><div class="fs-subbody"></div>`;
+            const sb = sub.querySelector('.fs-subbody');
+            u.rows.forEach(r => { const gs = r.map(fsGroup).filter(g => g && !seen.has(g)); gs.forEach(g => seen.add(g)); if (!gs.length) return; if (gs.length === 1) sb.appendChild(gs[0]); else { const row = document.createElement('div'); row.className = 'fs-row2'; gs.forEach(g => row.appendChild(g)); sb.appendChild(row); } });
+            if (u.strip) { const m = document.createElement('div'); m.id = 'fMarginLive'; m.className = 'fs-margin'; sb.appendChild(m); }
+            body.appendChild(sub);
+        });
+        else s.f.forEach(f => { const g = fsGroup(f); if (g && !seen.has(g)) { seen.add(g); body.appendChild(g); } });
         wrap.appendChild(sec);
     });
-    const m = document.createElement('div'); m.id = 'fMarginLive'; m.className = 'fs-margin'; wrap.querySelector('#fs-price .fs-body').appendChild(m);
     scan.insertAdjacentElement('afterend', wrap);
     card.addEventListener('input', fsRefresh); card.addEventListener('change', fsRefresh);
     fsBuilt = true;
 }
 function fsToggle(id) { const s = fsEl('fs-' + id); if (s) s.classList.toggle('open'); }
+const FS_SUBS = ['price', 'stock', 'retail', 'exp'];
 function fsSelTxt(id) { const e = fsEl(id); if (!e) return ''; const o = e.options && e.options[e.selectedIndex]; return o ? o.textContent.trim() : (e.value || ''); }
 function fsRefresh() {
     if (!fsBuilt) return; const v = id => ((fsEl(id) || {}).value || '').trim(), set = (id, t, bad) => { const s = fsEl('fsSum-' + id), d = fsEl('fsDot-' + id); if (s) s.textContent = t; if (d) d.className = 'fs-dot' + (bad ? ' bad' : ''); };
@@ -38,16 +51,19 @@ function fsRefresh() {
     set('cls', [dep && cat ? dep + ' › ' + cat : (dep || cat), form].filter(Boolean).join(' · ') || 'غير محدد', !dep);
     const pr = parseFloat(v('fPrice')) || 0, co = parseFloat(v('fCost')) || 0;
     let mg = ''; if (pr > 0 && co > 0) mg = ' · هامش ' + ((pr - co) / pr * 100).toFixed(1) + '٪';
-    set('price', pr > 0 ? fmtNum(pr) + ' د.ع' + mg : 'غير مسعّر', !(pr > 0));
+    set('price', pr > 0 ? fmtNum(pr) + ' د.ع' : 'غير مسعّر', !(pr > 0));
     const ml = fsEl('fMarginLive'); if (ml) { ml.style.display = pr > 0 && co > 0 ? 'block' : 'none'; if (pr > 0 && co > 0) { ml.className = 'fs-margin' + (pr < co ? ' bad' : ''); ml.innerHTML = 'الربح: <b>' + fmtNum(pr - co) + ' د.ع (' + ((pr - co) / pr * 100).toFixed(1) + '٪)</b>'; } }
-    const q = parseInt(v('fQty')) || 0, sc = parseInt(v('fSubCount')) || 0; set('stock', q + ' عبوة' + (sc > 1 ? ' · تجزئة ' + sc + ' ' + fsSelTxt('fSubType') : '') + (parseInt(v('fMinQty')) > 0 ? ' · تنبيه ' + v('fMinQty') : ''));
-    const ex = [...document.querySelectorAll('#expiryDatesWrap .expiry-input')].filter(i => i.value).length; set('exp', ex ? ex + (ex === 1 ? ' تاريخ' : ' تواريخ') : 'لا يوجد');
+    const bt = fsEl('fbtTot'); if (bt && bt.textContent.indexOf('المجموع') === 0) bt.textContent = bt.textContent.replace('المجموع:', 'الإجمالي بالدفعات:');
+    const q = parseInt(v('fQty')) || 0, sc = parseInt(v('fSubCount')) || 0; set('stock', q + ' علبة' + (parseInt(v('fMinQty')) > 0 ? ' · تنبيه ' + v('fMinQty') : ''));
+    set('retail', sc > 1 ? sc + ' ' + fsSelTxt('fSubType') + (parseFloat(v('fSubPrice')) > 0 ? ' · ' + fmtNum(parseFloat(v('fSubPrice'))) + ' د.ع' : '') : 'بدون تجزئة');
+    const ex = [...document.querySelectorAll('#expiryDatesWrap .expiry-input')].filter(i => i.value).length; set('exp', ex ? ex + (ex === 1 ? ' دفعة' : ' دفعات') : 'لا يوجد');
+    set('ps', [pr > 0 ? fmtNum(pr) + ' د.ع' : 'غير مسعّر', mg ? mg.replace(' · ', '') : '', q + ' علبة', ex ? ex + (ex === 1 ? ' دفعة' : ' دفعات') : ''].filter(Boolean).join(' · '), !(pr > 0));
     set('more', [v('fActive'), v('fKeywords')].filter(Boolean).join(' · ') || (v('fImg') ? 'صورة مضافة' : 'اختياري'));
 }
 function fsApply(id) {
     fsBuild(); if (!fsBuilt) return;
     const isNew = !id; fsQuick = !!(isNew && typeof puAwaiting !== 'undefined' && puAwaiting);
-    FS_DEF.forEach(s => { const e = fsEl('fs-' + s.id); if (!e) return; let open = s.open; if (s.id === 'stock' && isNew && !fsQuick) open = true; e.classList.toggle('open', open); e.classList.toggle('fs-hide', fsQuick && (s.id === 'stock' || s.id === 'exp')); });
+    FS_DEF.forEach(s => { const e = fsEl('fs-' + s.id); if (!e) return; e.classList.toggle('open', s.open); (s.subs || []).forEach(u => { const x = fsEl('fs-' + u.id); if (!x) return; let o = u.open; if (u.id === 'stock' && isNew && !fsQuick) o = true; x.classList.toggle('open', o); x.classList.toggle('fs-hide', fsQuick && u.id !== 'price'); }); });
     let n = fsEl('fsQuickNote'); if (fsQuick) { if (!n) { n = document.createElement('div'); n.id = 'fsQuickNote'; n.className = 'fs-note'; n.innerHTML = '⚡ <b>إضافة سريعة من الوارد</b> — الكمية والنفاذ وسعر الشراء تُسجَّل من الوارد نفسه. أكمل الاسم والتصنيف والسعر فقط.'; fsEl('fsSections').insertAdjacentElement('beforebegin', n); } n.style.display = 'block'; } else if (n) n.style.display = 'none';
     fsRefresh(); clearInterval(fsTimer); fsTimer = setInterval(() => { const m = fsEl('formModal'); if (!m || m.style.display === 'none') { clearInterval(fsTimer); return; } fsRefresh(); }, 700);
     const card = document.querySelector('#formModal .modal-card'); if (card) card.scrollTop = 0;
@@ -111,7 +127,7 @@ function fsDraftBanner(isNew) {
 }
 // ---- تمييز الحقل الناقص ----
 function fsMark(id, msg) {
-    const e = fsEl(id); if (!e) return; const sec = e.closest('.fs-sec'); if (sec) sec.classList.add('open');
+    const e = fsEl(id); if (!e) return; const sec = e.closest('.fs-sec'), sub = e.closest('.fs-sub'); if (sec) sec.classList.add('open'); if (sub) sub.classList.add('open');
     e.classList.add('fs-err'); setTimeout(() => e.classList.remove('fs-err'), 2600);
     try { e.scrollIntoView({ block: 'center', behavior: 'smooth' }); e.focus({ preventScroll: true }); } catch (x) { /* تجاهل */ }
 }
