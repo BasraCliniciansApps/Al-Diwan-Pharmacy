@@ -193,8 +193,8 @@ function userPreview(uid) {
     userRole = 'staff'; userPerms = Object.assign({}, u.perms || {}); userName = u.name || '';
     pvBlock(true); window.__pvOn = true;
     const d = document.createElement('div'); d.id = 'pvBar'; d.className = 'pv-bar'; d.dir = 'rtl';
-    d.innerHTML = `<span>👁 معاينة: <b>${escapeHtml(u.name || '')}</b> — عرض فقط</span><button type="button" onclick="userPreviewExit()">خروج من المعاينة</button>`;
-    document.body.appendChild(d);
+    d.innerHTML = `<span>👁 معاينة: <b>${escapeHtml(u.name || '')}</b></span><button type="button" onclick="userPreviewExit()">خروج من المعاينة</button>`;
+    document.body.appendChild(d); document.body.classList.add('pv-on');
     try { applyRoleUI(); } catch (e) { /* تجاهل */ }
     showView('home'); try { renderAll(); } catch (e) { /* تجاهل */ }
 }
@@ -202,7 +202,7 @@ function userPreviewExit() {
     if (!pvSaved) return;
     const pvSaved0 = pvSaved.sh; userRole = pvSaved.role; userPerms = pvSaved.perms; userName = pvSaved.name; pvSaved = null; window.__pvOn = false;
     pvBlock(false);
-    const d = document.getElementById('pvBar'); if (d) d.remove();
+    const d = document.getElementById('pvBar'); if (d) d.remove(); document.body.classList.remove('pv-on');
     try { applyRoleUI(); } catch (e) { /* تجاهل */ }
     const sh = pvSaved0; showView('home'); try { renderAll(); } catch (e) { /* تجاهل */ }
     if (sh) { try { openCategoryManager(); if (sh.page) shOpen(sh.page); } catch (e) { /* تجاهل */ } } else openUsers();

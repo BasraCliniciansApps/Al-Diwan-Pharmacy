@@ -3393,7 +3393,11 @@ button.cat-pick.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
 
 /* v385: ركن الأطباء للمالك فقط + إصلاح عرض شريط المعاينة */
 body.role-staff .tile-rxh { display: none !important; }
-body.role-staff .home-sq { grid-template-columns: 1fr; }
+body.role-staff .home-sq .tile-scan { grid-column: 1 / -1; aspect-ratio: auto; min-height: 120px; }   /* بلا ركن الأطباء: الفاحص بعرض كامل وبارتفاع معتدل */
 .pv-bar { white-space: normal; width: max-content; justify-content: space-between; box-sizing: border-box; }
 .pv-bar span { min-width: 0; }
 .pv-bar button { flex-shrink: 0; white-space: nowrap; }
+
+.pv-bar { white-space: nowrap; width: auto; }
+.pv-bar span { overflow: hidden; text-overflow: ellipsis; }
+body.pv-on { padding-bottom: 76px; }
