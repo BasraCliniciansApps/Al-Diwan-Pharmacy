@@ -1,5 +1,5 @@
 // سجل الأدوية: كل الأصناف بتسلسل الإدخال، مع زر ضم لمادة أخرى وزر قراءة/ربط الباركود
-let catSetupInfo = false, catQ = '', catNoBc = false, catHasBc = false, catFOpen = false, catUncounted = false, catIncomplete = false, catTodo = false, catArch = false, catSelMode = false;
+let catPriced = false, catUnpriced = false, catSetupInfo = false, catQ = '', catNoBc = false, catHasBc = false, catFOpen = false, catUncounted = false, catIncomplete = false, catTodo = false, catArch = false, catSelMode = false;
 const catSel = new Set();
 function catRankMap() { const m = new Map(); products.slice().sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)).forEach((p, i) => m.set(p.id, i + 1)); return m; }
 async function toggleSetupMode(on) {
@@ -15,13 +15,15 @@ async function toggleSetupMode(on) {
 function catFToggle(k) {
     if (k === 'nobc') { catNoBc = !catNoBc; if (catNoBc) catHasBc = false; }
     else if (k === 'bc') { catHasBc = !catHasBc; if (catHasBc) catNoBc = false; }
+    else if (k === 'pr') { catPriced = !catPriced; if (catPriced) catUnpriced = false; }
+    else if (k === 'npr') { catUnpriced = !catUnpriced; if (catUnpriced) catPriced = false; }
     else if (k === 'todo') catTodo = !catTodo;
     else if (k === 'inc') catIncomplete = !catIncomplete;
     else if (k === 'unc') catUncounted = !catUncounted;
     else if (k === 'arch') { catArch = !catArch; catSel.clear(); }
     renderCatalog();
 }
-function catFClear() { catNoBc = catHasBc = catTodo = catIncomplete = catUncounted = catArch = false; catSel.clear(); renderCatalog(); }
+function catFClear() { catPriced = catUnpriced = catNoBc = catHasBc = catTodo = catIncomplete = catUncounted = catArch = false; catSel.clear(); renderCatalog(); }
 function catFOpenToggle(v) { catFOpen = v === undefined ? !catFOpen : v; renderCatalog(); }
 function catToggleUnc() { catUncounted = !catUncounted; renderCatalog(); }
 async function catConfirm(id) {   // اعتماد الرصيد الحالي للمادة كمجرود بدون تغيير العدد
@@ -112,13 +114,18 @@ function renderCatalog() {
     if (catNoBc) arr = arr.filter(p => !barcodesOf(p).length);
     if (!withBc0) catHasBc = false;
     if (catHasBc) arr = arr.filter(p => barcodesOf(p).length);
+    const prN = act.filter(p => parseFloat(p.price) > 0).length;
+    if (!prN) catPriced = false;
+    if (prN === act.length) catUnpriced = false;
+    if (catPriced) arr = arr.filter(p => parseFloat(p.price) > 0);
+    if (catUnpriced) arr = arr.filter(p => !(parseFloat(p.price) > 0));
     const inc = act.filter(p => p.incomplete).length;
     if (!inc) catIncomplete = false;
     if (catIncomplete) arr = arr.filter(p => p.incomplete);
     const withBc = act.filter(p => barcodesOf(p).length).length;
     const sum = document.getElementById('catSum');
     if (sum) {
-        const opts = [['nobc', 'بلا باركود', act.length - withBc, catNoBc], ['bc', 'بباركود', withBc, catHasBc], ['todo', 'غير المكتملة', todoN, catTodo]];
+        const opts = [['nobc', 'بلا باركود', act.length - withBc, catNoBc], ['bc', 'بباركود', withBc, catHasBc], ['npr', 'غير مسعّرة', act.length - prN, catUnpriced], ['pr', 'مسعّرة', prN, catPriced], ['todo', 'غير المكتملة', todoN, catTodo]];
         if (inc) opts.push(['inc', 'ناقصة التفاصيل', inc, catIncomplete]);
         if (setupMode) opts.push(['unc', 'لم تُجرد', unc, catUncounted]);
         if (archN) opts.push(['arch', 'الأرشيف', archN, catArch]);
