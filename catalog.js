@@ -1,5 +1,5 @@
 // سجل الأدوية: كل الأصناف بتسلسل الإدخال، مع زر ضم لمادة أخرى وزر قراءة/ربط الباركود
-let catQ = '', catNoBc = false, catUncounted = false, catIncomplete = false, catTodo = false, catArch = false, catSelMode = false;
+let catQ = '', catNoBc = false, catHasBc = false, catFOpen = false, catUncounted = false, catIncomplete = false, catTodo = false, catArch = false, catSelMode = false;
 const catSel = new Set();
 function catRankMap() { const m = new Map(); products.slice().sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)).forEach((p, i) => m.set(p.id, i + 1)); return m; }
 async function toggleSetupMode(on) {
@@ -12,6 +12,17 @@ async function toggleSetupMode(on) {
     setupMode = !!on; renderAll(); renderCatalog();
     Swal.fire({ icon: 'success', title: on ? 'وضع التأسيس مفعّل' : 'وضع التأسيس متوقف', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
 }
+function catFToggle(k) {
+    if (k === 'nobc') { catNoBc = !catNoBc; if (catNoBc) catHasBc = false; }
+    else if (k === 'bc') { catHasBc = !catHasBc; if (catHasBc) catNoBc = false; }
+    else if (k === 'todo') catTodo = !catTodo;
+    else if (k === 'inc') catIncomplete = !catIncomplete;
+    else if (k === 'unc') catUncounted = !catUncounted;
+    else if (k === 'arch') { catArch = !catArch; catSel.clear(); }
+    renderCatalog();
+}
+function catFClear() { catNoBc = catHasBc = catTodo = catIncomplete = catUncounted = catArch = false; catSel.clear(); renderCatalog(); }
+function catFOpenToggle(v) { catFOpen = v === undefined ? !catFOpen : v; renderCatalog(); }
 function catToggleUnc() { catUncounted = !catUncounted; renderCatalog(); }
 async function catConfirm(id) {   // اعتماد الرصيد الحالي للمادة كمجرود بدون تغيير العدد
     const p = products.find(x => x.id === id); if (!p || !writesAllowed()) return;
@@ -96,15 +107,27 @@ function renderCatalog() {
     const catDone = p => parseFloat(p.price) > 0 && barcodesOf(p).length > 0;
     const todoN = act.filter(p => !catDone(p)).length;
     if (catTodo) arr = arr.filter(p => !catDone(p));
-    const noBcN = act.filter(p => !barcodesOf(p).length).length;
+    const noBcN = act.filter(p => !barcodesOf(p).length).length, withBc0 = act.length - noBcN;
     if (!noBcN) catNoBc = false;
     if (catNoBc) arr = arr.filter(p => !barcodesOf(p).length);
+    if (!withBc0) catHasBc = false;
+    if (catHasBc) arr = arr.filter(p => barcodesOf(p).length);
     const inc = act.filter(p => p.incomplete).length;
     if (!inc) catIncomplete = false;
     if (catIncomplete) arr = arr.filter(p => p.incomplete);
     const withBc = act.filter(p => barcodesOf(p).length).length;
     const sum = document.getElementById('catSum');
-    if (sum) sum.innerHTML = `<span>${fmtNum(act.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><button type="button" class="cat-unc ${catNoBc ? 'on' : ''}" onclick="catNoBc = !catNoBc; renderCatalog()" title="عرض المواد التي بلا باركود فقط">🔴 بلا باركود ${fmtNum(act.length - withBc)}</button><button type="button" class="cat-unc ${catTodo ? 'on' : ''}" onclick="catTodo = !catTodo; renderCatalog()" title="إخفاء المواد المسعّرة وبباركود وإبقاء غير المكتملة فقط">⏳ غير المكتملة ${fmtNum(todoN)}</button>${inc ? `<button type="button" class="cat-unc ${catIncomplete ? 'on' : ''}" onclick="catIncomplete = !catIncomplete; renderCatalog()">✏️ ناقصة التفاصيل ${fmtNum(inc)}</button>` : ''}${setupMode ? `<button type="button" class="cat-unc ${catUncounted ? 'on' : ''}" onclick="catToggleUnc()">🧮 لم تُجرد ${fmtNum(unc)} من ${fmtNum(act.length)}</button>` : ''}${archN ? `<button type="button" class="cat-unc ${catArch ? 'on' : ''}" onclick="catArch = !catArch; catSel.clear(); renderCatalog()" title="المواد المؤرشفة (خارج السجل لحين إدخالها بفاتورة وارد)">🗄️ الأرشيف ${fmtNum(archN)}</button>` : ''}${can('stockEdit') ? `<button type="button" class="cat-unc ${catSelMode ? 'on' : ''}" onclick="catSelToggleMode()" title="تحديد عدة مواد لإلغاء اعتمادها أو أرشفتها دفعة واحدة">☑️ تحديد</button>` : ''}${catSelMode ? catBulkBar(arr) : ''}`;
+    if (sum) {
+        const opts = [['nobc', 'بلا باركود', act.length - withBc, catNoBc], ['bc', 'بباركود', withBc, catHasBc], ['todo', 'غير المكتملة', todoN, catTodo]];
+        if (inc) opts.push(['inc', 'ناقصة التفاصيل', inc, catIncomplete]);
+        if (setupMode) opts.push(['unc', 'لم تُجرد', unc, catUncounted]);
+        if (archN) opts.push(['arch', 'الأرشيف', archN, catArch]);
+        const on = opts.filter(o => o[3]), lab = on.length ? on[0][1] + (on.length > 1 ? ' +' + (on.length - 1) : '') : 'الكل';
+        const rows = opts.filter(o => o[2] > 0 || o[3]).map(o => `<button type="button" class="cat-frow ${o[3] ? 'on' : ''}" onclick="catFToggle('${o[0]}')" aria-pressed="${o[3]}"><u>${o[3] ? '✓' : ''}</u><b>${o[1]}</b><em>${fmtNum(o[2])}</em></button>`).join('');
+        sum.innerHTML = `<div class="cat-fwrap"><div class="cat-fline"><button type="button" class="cat-fbtn ${on.length ? 'has' : ''}" onclick="catFOpenToggle()" aria-expanded="${catFOpen}"><b>تصفية</b><em>${lab}</em><i>${catFOpen ? '▴' : '▾'}</i></button>${can('stockEdit') ? `<button type="button" class="cat-fsel ${catSelMode ? 'on' : ''}" onclick="catSelToggleMode()" aria-label="تحديد عدة مواد" title="تحديد عدة مواد لإلغاء اعتمادها أو أرشفتها أو طباعة ملصقاتها">☑️</button>` : ''}</div>`
+            + (catFOpen ? `<div class="cat-fpanel">${rows}<div class="cat-ffoot"><button type="button" onclick="catFClear()" ${on.length ? '' : 'disabled'}>مسح الكل</button><button type="button" class="ok" onclick="catFOpenToggle(false)">تم</button></div></div>` : '')
+            + `<div class="cat-shown">${fmtNum(arr.length)} مادة معروضة من ${fmtNum(catArch ? archN : act.length)}</div></div>${catSelMode ? catBulkBar(arr) : ''}`;
+    }
     const sb = document.getElementById('catSetup');
     if (sb) {
         const own = userRole === 'owner', sw = `<label class="setup-sw ${own ? '' : 'ro'}" title="${own ? 'تشغيل / إيقاف وضع التأسيس' : 'للمالك فقط'}"><input type="checkbox" ${setupMode ? 'checked' : ''} ${own ? '' : 'disabled'} onchange="toggleSetupMode(this.checked)"><i></i></label>`;
