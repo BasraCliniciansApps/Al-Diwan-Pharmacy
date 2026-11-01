@@ -40,7 +40,7 @@ function fsBuild() {
     const bcg = fsGroup('fBarcode'); if (bcg) { bcg.classList.add('fs-bcTop'); scan.insertAdjacentElement('beforebegin', bcg); }
     const sh = scan.querySelector('.scan-head'); if (sh) { sh.style.cursor = 'pointer'; sh.addEventListener('click', e => { if (e.target.closest('select,button')) return; scan.classList.toggle('fs-open'); }); const ch = document.createElement('span'); ch.className = 'fs-chev scan-chev'; ch.textContent = '▾'; sh.insertBefore(ch, sh.firstChild); }
     scan.classList.add('fs-scan');
-    scan.insertAdjacentElement('afterend', wrap);
+    scan.insertAdjacentElement('afterend', wrap); wrap.insertAdjacentElement('afterend', scan); scan.style.marginTop = '12px';
     card.addEventListener('input', fsRefresh); card.addEventListener('change', fsRefresh);
     fsBuilt = true;
 }
