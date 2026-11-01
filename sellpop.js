@@ -6,12 +6,12 @@ let sp = null;   // { pid, unit, qty, rows:[{e,n}], price, edit, scan, short }
 
 function spDays(e) { return e && typeof expiryDaysOf === 'function' ? expiryDaysOf(e) : null; }
 function spSim(p, unit, editing) {   // الدفعات المتاحة بعد خصم ما أُضيف أصلاً للفاتورة (عدا السطور قيد التعديل)
-    const sc = btSc(p), sim = { bat: getBatches(p).map(b => ({ e: b.e, u: b.q * sc + b.l })) };
+    const sc = btSc(p), sim = { bat: getBatches(p).map(b => ({ e: b.e, pr: b.pr || 0, u: b.q * sc + b.l })) };
     (bill ? bill.items : []).forEach(it => {
         if (it.pid !== p.id) return;
         if (editing && (it.unit === 'part' ? 'part' : 'pack') === unit) return;
         const u = it.unit === 'part' && hasRetail(p) ? 'part' : 'pack', n = parseFloat(it.qty) || 0;
-        if (n > 0) billAllocate(sim, p, u, n, it.exp);
+        if (n > 0) billAllocate(sim, p, u, n, it.exp, it.bpr);
     });
     return sim;
 }
@@ -21,7 +21,7 @@ function spAutoRows() {
     const sim = spSim(p, sp.unit, sp.edit);
     sp.sim = sim.bat.map(b => ({ ...b }));
     const out = billAllocate(sim, p, sp.unit, sp.qty);
-    sp.rows = out.filter(a => !a.over).map(a => ({ e: a.e, n: a.n }));
+    sp.rows = out.filter(a => !a.over).map(a => ({ e: a.e, pr: a.pr || 0, n: a.n }));
     sp.short = out.filter(a => a.over).reduce((s, a) => s + a.n, 0);
 }
 function spOpen(pid, opts) {
@@ -38,7 +38,7 @@ function spOpen(pid, opts) {
         sp.qty = mine.reduce((s, it) => s + (parseFloat(it.qty) || 0), 0) || 1;
         sp.price = mine[0] ? mine[0].price : '';
         const sim = spSim(p, unit, true); sp.sim = sim.bat.map(b => ({ ...b }));
-        sp.rows = mine.map(it => ({ e: it.exp || '', n: parseFloat(it.qty) || 0 }));
+        sp.rows = mine.map(it => ({ e: it.exp || '', pr: it.bpr || 0, n: parseFloat(it.qty) || 0 }));
         const cov = sp.rows.reduce((s, r) => s + r.n, 0);
         sp.short = Math.max(sp.qty - cov, 0);
     } else {
@@ -58,10 +58,12 @@ function spEnsureDom() {
     d.addEventListener('click', ev => { if (ev.target === d) spClose(); });
     document.body.appendChild(d);
 }
+// الدفعة = تاريخ + سعر خاص (اختياري). مفتاح الاختيار: التاريخ|السعر
+const spKey = (e, pr) => (e || '') + '|' + (pr || 0);
+const spFind = (list, e, pr) => (list || []).find(x => spKey(x.e, x.pr) === spKey(e, pr));
 // سعر السطر: للدفعة سعرها الخاص (تسعيرة وزارة مختلفة) إن وُجد، وإلا السعر المكتوب في النافذة
-function spRowPrice(p, e, unit) {
-    const pb = btPrice(p, e);
-    if (pb > 0) return unit === 'part' ? (subPriceCalc(pb, btSc(p)) || 0) : pb;
+function spRowPrice(p, r, unit) {
+    if (r.pr > 0) return unit === 'part' ? (subPriceCalc(r.pr, btSc(p)) || 0) : r.pr;
     return parseFloat(sp.price) || 0;
 }
 function spUnitSwitch(u) { if (!sp || sp.unit === u) return; const p = products.find(x => x.id === sp.pid); sp.unit = u; sp.price = u === 'part' ? subPriceOf(p) : (p.price || ''); sp.qty = 1; spAutoRows(); spRender(); }
@@ -71,22 +73,22 @@ function spPrice(v) { if (!sp) return; sp.price = v; spTotalRefresh(); }
 function spRowSet(i, f, v) {
     if (!sp || !sp.rows[i]) return;
     const p = products.find(x => x.id === sp.pid), r = sp.rows[i];
-    if (f === 'e') { r.e = v; }
+    if (f === 'e') { const i2 = String(v).lastIndexOf('|'); r.e = i2 < 0 ? v : String(v).slice(0, i2); r.pr = i2 < 0 ? 0 : (parseInt(String(v).slice(i2 + 1)) || 0); }
     else {
-        const b = (sp.sim || []).find(x => x.e === r.e), max = b ? spAvail(b, p, sp.unit) : 0;
+        const b = spFind(sp.sim, r.e, r.pr), max = b ? spAvail(b, p, sp.unit) : 0;
         r.n = Math.max(0, Math.min(parseInt(v) || 0, max));
     }
-    const b2 = (sp.sim || []).find(x => x.e === r.e); if (b2) r.n = Math.min(r.n, spAvail(b2, p, sp.unit));   // الحد الأعلى للدفعة الجديدة
+    const b2 = spFind(sp.sim, r.e, r.pr); if (b2) r.n = Math.min(r.n, spAvail(b2, p, sp.unit));   // الحد الأعلى للدفعة الجديدة
     sp.qty = sp.rows.reduce((s, x) => s + x.n, 0) || 1; sp.short = 0;
     spRender();
 }
 function spRowDel(i) { if (!sp) return; sp.rows.splice(i, 1); sp.qty = sp.rows.reduce((s, x) => s + x.n, 0) || 1; spRender(); }
 function spRowAdd() {
     if (!sp) return; const p = products.find(x => x.id === sp.pid);
-    const used = new Set(sp.rows.map(r => r.e));
-    const b = (sp.sim || []).find(x => !used.has(x.e) && !billExpired(x.e) && spAvail(x, p, sp.unit) > 0);
+    const used = new Set(sp.rows.map(r => spKey(r.e, r.pr)));
+    const b = (sp.sim || []).find(x => !used.has(spKey(x.e, x.pr)) && !billExpired(x.e) && spAvail(x, p, sp.unit) > 0);
     if (!b) { Swal.fire({ icon: 'info', title: 'لا توجد دفعة أخرى متاحة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 }); return; }
-    sp.rows.push({ e: b.e, n: 1 }); sp.qty = sp.rows.reduce((s, x) => s + x.n, 0); spRender();
+    sp.rows.push({ e: b.e, pr: b.pr || 0, n: 1 }); sp.qty = sp.rows.reduce((s, x) => s + x.n, 0); spRender();
 }
 function spDayTag(e) {
     if (!e) return '<em class="sp-nd">بدون تاريخ</em>';
@@ -98,7 +100,7 @@ function spDayTag(e) {
 function spTotalRefresh() {
     const el = document.getElementById('spTot'); if (!el || !sp) return;
     const n = sp.rows.reduce((s, r) => s + r.n, 0) + (sp.short || 0);
-    const p = products.find(x => x.id === sp.pid); const tot = sp.rows.reduce((s, r) => s + r.n * spRowPrice(p, r.e, sp.unit), 0) + (sp.short || 0) * (parseFloat(sp.price) || 0);
+    const p = products.find(x => x.id === sp.pid); const tot = sp.rows.reduce((s, r) => s + r.n * spRowPrice(p, r, sp.unit), 0) + (sp.short || 0) * (parseFloat(sp.price) || 0);
     el.innerText = fmtNum(tot) + ' د.ع';
 }
 function spRender() {
@@ -108,10 +110,10 @@ function spRender() {
     const total = sp.rows.reduce((s, r) => s + r.n, 0) + (sp.short || 0);
     const unitName = sp.unit === 'part' ? (subTypeOf(p) || 'جزء') : 'علبة';
     const rowsHtml = sp.rows.map((r, i) => {
-        const opts = (sp.sim || []).filter(b => !billExpired(b.e) && (spAvail(b, p, sp.unit) > 0 || b.e === r.e)).map(b => `<option value="${escapeHtml(b.e)}" ${b.e === r.e ? 'selected' : ''}>${escapeHtml(b.e || 'بدون تاريخ')} · ${spAvail(b, p, sp.unit)}</option>`).join('');
+        const opts = (sp.sim || []).filter(b => !billExpired(b.e) && (spAvail(b, p, sp.unit) > 0 || spKey(b.e, b.pr) === spKey(r.e, r.pr))).map(b => `<option value="${escapeHtml(spKey(b.e, b.pr))}" ${spKey(b.e, b.pr) === spKey(r.e, r.pr) ? 'selected' : ''}>${escapeHtml(b.e || 'بدون تاريخ')}${b.pr ? ' · ' + fmtNum(b.pr) + ' د.ع' : ''} · ${spAvail(b, p, sp.unit)}</option>`).join('');
         return `<div class="sp-row"><select onchange="spRowSet(${i}, 'e', this.value)" aria-label="الدفعة">${opts}</select>
             <div class="sp-st"><button type="button" onclick="spRowSet(${i}, 'n', ${r.n - 1})" aria-label="إنقاص">−</button><input type="number" inputmode="numeric" min="0" value="${r.n}" onchange="spRowSet(${i}, 'n', this.value)"><button type="button" onclick="spRowSet(${i}, 'n', ${r.n + 1})" aria-label="زيادة">+</button></div>
-            <button type="button" class="sp-x" onclick="spRowDel(${i})" aria-label="حذف الدفعة">✕</button>${spDayTag(r.e) ? `<div class="sp-tag">${spDayTag(r.e)}</div>` : ''}${btPrice(p, r.e) > 0 ? `<div class="sp-pr">💲 سعر هذه الدفعة: ${fmtNum(spRowPrice(p, r.e, sp.unit))} د.ع</div>` : ''}</div>`;
+            <button type="button" class="sp-x" onclick="spRowDel(${i})" aria-label="حذف الدفعة">✕</button>${spDayTag(r.e) ? `<div class="sp-tag">${spDayTag(r.e)}</div>` : ''}${r.pr > 0 ? `<div class="sp-pr">💲 سعر هذه الدفعة: ${fmtNum(spRowPrice(p, r, sp.unit))} د.ع</div>` : ''}</div>`;
     }).join('');
     const expiredHave = (sp.sim || []).filter(b => billExpired(b.e) && b.u > 0);
     card.innerHTML = `
@@ -132,7 +134,7 @@ function spRender() {
 function spCommit(next) {
     if (!sp) return;
     const p = products.find(x => x.id === sp.pid); if (!p) return;
-    const needDef = sp.rows.some(r => r.n > 0 && !billExpired(r.e) && !(btPrice(p, r.e) > 0)) || sp.short > 0;   // الدفعات ذات السعر الخاص لا تحتاج سعراً مكتوباً
+    const needDef = sp.rows.some(r => r.n > 0 && !billExpired(r.e) && !(r.pr > 0)) || sp.short > 0;   // الدفعات ذات السعر الخاص لا تحتاج سعراً مكتوباً
     if (needDef && !(parseFloat(sp.price) > 0)) {   // لا تنزل مادة للفاتورة قبل كتابة سعرها
         const pi = document.querySelector('#spCard .sp-price');
         if (pi) { pi.focus(); pi.classList.add('qi-need'); }
@@ -140,16 +142,16 @@ function spCommit(next) {
         return;
     }
     const rows = sp.rows.filter(r => r.n > 0 && !billExpired(r.e));
-    const lines = rows.map(r => ({ e: r.e, n: r.n }));
+    const lines = rows.map(r => ({ e: r.e, pr: r.pr || 0, n: r.n }));
     if (sp.short > 0) lines.push({ e: '', n: sp.short });
     if (!lines.length) { Swal.fire({ icon: 'warning', title: 'حدد العدد أولاً', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 }); return; }
     const unit = sp.unit;
     if (sp.edit) bill.items = bill.items.filter(it => !(it.pid === p.id && (it.unit === 'part' ? 'part' : 'pack') === unit));
     lines.forEach(l => {
-        const ex = bill.items.find(it => it.pid === p.id && (it.unit === 'part' ? 'part' : 'pack') === unit && (it.exp || '') === l.e);
-        const price = spRowPrice(p, l.e, unit) || (sp.price === '' ? '' : 0);   // سعر الدفعة، أو السعر المكتوب
+        const ex = bill.items.find(it => it.pid === p.id && (it.unit === 'part' ? 'part' : 'pack') === unit && (it.exp || '') === l.e && (it.bpr || 0) === (l.pr || 0));
+        const price = spRowPrice(p, l, unit) || (sp.price === '' ? '' : 0);   // سعر الدفعة، أو السعر المكتوب
         if (ex) { ex.qty = (parseFloat(ex.qty) || 0) + l.n; ex.price = price; }
-        else bill.items.push({ pid: p.id, name: p.name, qty: l.n, price, unit, partType: unit === 'part' ? subTypeOf(p) : '', ...(l.e ? { exp: l.e } : {}) });
+        else bill.items.push({ pid: p.id, name: p.name, qty: l.n, price, unit, partType: unit === 'part' ? subTypeOf(p) : '', ...(l.e ? { exp: l.e } : {}), ...(l.pr ? { bpr: l.pr } : {}) });
     });
     const name = p.name, edit = sp.edit;
     spClose();

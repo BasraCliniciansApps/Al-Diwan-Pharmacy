@@ -336,30 +336,30 @@ function billPlan() {
         const p = itemProduct(it); const n = parseFloat(it.qty) || 0;
         if (!p || n <= 0 || setupSkip(p)) return;   // وضع التأسيس: المادة غير المجرودة لا يُخصم منها
         let e = map.get(p.id);
-        if (!e) { e = { p, from: { qty: parseInt(p.qty) || 0, loose: parseInt(p.loose) || 0 }, to: null, short: false, lines: [], hints: [], bat: getBatches(p).map(b => ({ e: b.e, u: b.q * btSc(p) + b.l })), track: !!p.bt || !getBatches(p).some(b => b.legacy) }; e.to = { ...e.from }; map.set(p.id, e); }
+        if (!e) { e = { p, from: { qty: parseInt(p.qty) || 0, loose: parseInt(p.loose) || 0 }, to: null, short: false, lines: [], hints: [], bat: getBatches(p).map(b => ({ e: b.e, pr: b.pr || 0, u: b.q * btSc(p) + b.l })), track: !!p.bt || !getBatches(p).some(b => b.legacy) }; e.to = { ...e.from }; map.set(p.id, e); }
         const unit = it.unit === 'part' && hasRetail(p) ? 'part' : 'pack';
         const sc = subCountOf(p);
         const avail = unit === 'part' ? e.to.qty * sc + e.to.loose : e.to.qty;
         if (avail < n) e.short = true;
         e.to = stockAfterSale({ ...p, qty: e.to.qty, loose: e.to.loose }, n, unit);
-        billAllocate(e, p, unit, n, it.exp).forEach(a => {   // توزيع الكمية على الدفعات: الدفعة المحددة أولاً ثم الأقرب نفاذاً
-            e.lines.push({ pid: p.id, unit, n: a.n, exp: a.e, ...(a.over ? { over: true } : {}) });
-            if (e.track && !a.over) e.hints.push({ e: a.e, q: unit === 'pack' ? -a.n : 0, l: unit === 'part' ? -a.n : 0 });
+        billAllocate(e, p, unit, n, it.exp, it.bpr).forEach(a => {   // توزيع الكمية على الدفعات: الدفعة المحددة أولاً ثم الأقرب نفاذاً
+            e.lines.push({ pid: p.id, unit, n: a.n, exp: a.e, ...(a.pr ? { pr: a.pr } : {}), ...(a.over ? { over: true } : {}) });
+            if (e.track && !a.over) e.hints.push({ e: a.e, pr: a.pr, q: unit === 'pack' ? -a.n : 0, l: unit === 'part' ? -a.n : 0 });
         });
     });
     return [...map.values()];
 }
 function billExpired(e) { if (!e) return false; const d = typeof expiryDaysOf === 'function' ? expiryDaysOf(e) : null; return d !== null && d <= 0; }
-function billAllocate(en, p, unit, n, prefer) {   // يرجع [{e, n}]؛ المنتهية لا تُباع (ما لا يُغطّى يُعدّ زائداً over)
+function billAllocate(en, p, unit, n, prefer, preferPr) {   // يرجع [{e, n}]؛ المنتهية لا تُباع (ما لا يُغطّى يُعدّ زائداً over)
     const sc = btSc(p), per = unit === 'part' ? 1 : sc, out = [];
-    const rank = b => (prefer && b.e === prefer ? 0 : 1) * 10 + (billExpired(b.e) ? 3 : (b.e ? 0 : 1));
-    const order = en.bat.slice().sort((a, b) => rank(a) - rank(b) || String(a.e).localeCompare(String(b.e)));
+    const rank = b => (prefer && b.e === prefer && (b.pr || 0) === (preferPr || 0) ? 0 : 1) * 10 + (billExpired(b.e) ? 3 : (b.e ? 0 : 1));
+    const order = en.bat.slice().sort((a, b) => rank(a) - rank(b) || String(a.e).localeCompare(String(b.e)) || (a.pr || 0) - (b.pr || 0));
     let need = n;
     for (const b of order) {
         if (need <= 0) break;
         if (billExpired(b.e)) continue;
         const avail = Math.floor(b.u / per), take = Math.min(need, avail);
-        if (take > 0) { b.u -= take * per; need -= take; out.push({ e: b.e, n: take }); }
+        if (take > 0) { b.u -= take * per; need -= take; out.push({ e: b.e, n: take, pr: b.pr || 0 }); }
     }
     if (need > 0) out.push({ e: '', n: need, over: true });
     return out;
@@ -423,7 +423,7 @@ function restoreDeducted(lines, snap) {
         const p = products.find(x => x.id === l.pid); if (!p) return; snap(p);
         if (l.unit === 'part' && hasRetail(p)) { const tot = totalParts(p) + l.n, sc = subCountOf(p); p.qty = Math.floor(tot / sc); p.loose = tot % sc; }
         else p.qty = (parseInt(p.qty) || 0) + l.n;
-        if (l.exp !== undefined && !l.over && (p.bt || !getBatches(p).some(b => b.legacy))) p._badd = (p._badd || []).concat([{ e: l.exp, q: l.unit === 'part' ? 0 : l.n, l: l.unit === 'part' ? l.n : 0 }]);   // يرجع للدفعة نفسها
+        if (l.exp !== undefined && !l.over && (p.bt || !getBatches(p).some(b => b.legacy))) p._badd = (p._badd || []).concat([{ e: l.exp, pr: l.pr, q: l.unit === 'part' ? 0 : l.n, l: l.unit === 'part' ? l.n : 0 }]);   // يرجع للدفعة نفسها
     });
 }
 function editIssuedInvoice() {
@@ -498,7 +498,7 @@ async function cancelInvoice(target) {
                 const tot = totalParts(p) + l.n, sc = subCountOf(p);
                 p.qty = Math.floor(tot / sc); p.loose = tot % sc;
             } else p.qty = (parseInt(p.qty) || 0) + l.n;
-            if (l.exp !== undefined && !l.over && (p.bt || !getBatches(p).some(x => x.legacy))) p._badd = (p._badd || []).concat([{ e: l.exp, q: l.unit === 'part' ? 0 : l.n, l: l.unit === 'part' ? l.n : 0 }]);
+            if (l.exp !== undefined && !l.over && (p.bt || !getBatches(p).some(x => x.legacy))) p._badd = (p._badd || []).concat([{ e: l.exp, pr: l.pr, q: l.unit === 'part' ? 0 : l.n, l: l.unit === 'part' ? l.n : 0 }]);
         });
         const ok = await saveProductsDelta([...touched.values()].map(e => ({ p: e.p, dq: (parseInt(e.p.qty) || 0) - e.from.qty, dl: (parseInt(e.p.loose) || 0) - e.from.loose })));
         if (!ok) { touched.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; delete e.p._badd; }); renderAll(); return; }

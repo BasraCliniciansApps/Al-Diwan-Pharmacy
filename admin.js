@@ -112,7 +112,7 @@ function alertKinds(p) {
     let days = null, date = '', bq = null;
     const bts = p.bt ? getBatches(p).filter(b => b.e) : null;
     (bts ? bts.map(b => b.e) : (hasUnits(p) ? getProductExpiryDates(p) : [])).forEach(d => { const n = expiryDaysOf(d); if (n !== null && (days === null || n < days)) { days = n; date = d; } });
-    if (bts && date) bq = bts.find(b => b.e === date);
+    if (bts && date) { const same = bts.filter(b => b.e === date); bq = same.length > 1 ? { e: date, q: same.reduce((s, b) => s + (b.q || 0), 0), l: same.reduce((s, b) => s + (b.l || 0), 0) } : same[0]; }
     const k = { days, date, bq, expired: days !== null && days <= 0, m1: days !== null && days <= alertMonths[0] * 30, m3: days !== null && days <= alertMonths[1] * 30, m6: days !== null && days <= alertMonths[2] * 30, low: isLowStock(p) };
     k.any = k.m6 || k.low;
     return k;

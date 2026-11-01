@@ -1393,11 +1393,11 @@ function openSheet(id) {
     // سطر تاريخ النفاذ داخل لوحة الصيدلي فقط
     const btList = p.bt ? getBatches(p).filter(b => b.e) : null;
     const expDates = btList ? [...new Set(btList.map(b => b.e).concat(btDateOnly(p)))].sort() : getProductExpiryDates(p);
-    const btCnt = {}; (btList || []).forEach(b => { btCnt[b.e] = btFmt(b, p) + (b.pr ? ' · ' + fmtNum(b.pr) + ' د.ع' : ''); });
+    const btCnt = {}; (btList || []).forEach(b => { (btCnt[b.e] = btCnt[b.e] || []).push(btFmt(b, p) + (b.pr ? ' (' + fmtNum(b.pr) + ' د.ع)' : '')); });
     const expiryInfo = expDates.length
         ? `<div style="font-size:0.78rem; font-weight:700; color:#475569; margin-bottom:8px;">📅 ${expDates.length > 1 ? 'تواريخ النفاذ' : 'تاريخ النفاذ'}: ${expDates.map(dt => {
             const st = getExpiryStatus(dt);
-            return `<span dir="ltr" style="display:inline-block; margin:0 0 3px 4px; padding:1px 8px; border-radius:6px; background:${st ? st.bg : '#f1f5f9'}; color:${st ? st.color : '#334155'};">${dt}${btCnt[dt] ? ' × ' + btCnt[dt] : ''}</span>`;
+            return `<span dir="ltr" style="display:inline-block; margin:0 0 3px 4px; padding:1px 8px; border-radius:6px; background:${st ? st.bg : '#f1f5f9'}; color:${st ? st.color : '#334155'};">${dt}${btCnt[dt] ? ' × ' + btCnt[dt].join(' + ') : ''}</span>`;
         }).join('')}</div>`
         : `<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📅 تاريخ النفاذ: غير محدد</div>`;
 
@@ -2102,8 +2102,10 @@ function getProductExpiryDates(p) {
 // الكمية الكلية p.qty / p.loose هي المرجع دائماً؛ getBatches تُطابق الدفعات معها (النقص من الأقرب نفاذاً، والزيادة لدفعة «بدون تاريخ»)
 // مواد بلا p.bt (القديمة) تبقى كما هي حتى تُجرد بالدفعات أو يدخل لها وارد
 // ============================================================================
-function btKey(e) { return e ? String(e).replace(/-/g, '_') : 'none'; }
-function btDate(k) { return k === 'none' ? '' : String(k).replace(/_/g, '-'); }
+// الدفعة = تاريخ النفاذ + سعر البيع الخاص بها (اختياري): نفس التاريخ بسعرين = دفعتان. المفتاح: 2027_03 أو 2027_03~13750
+function btKey(e, pr) { const b = e ? String(e).replace(/-/g, '_') : 'none', n = Math.round(Number(pr) || 0); return n > 0 ? b + '~' + n : b; }
+function btDate(k) { const b = String(k).split('~')[0]; return b === 'none' ? '' : b.replace(/_/g, '-'); }
+function btPr(k, ent) { const m = /~(\d+)$/.exec(String(k)); return m ? parseInt(m[1]) : Math.round(Number(ent && ent.pr) || 0); }
 function btSc(p) { const s = parseInt(p.subCount) || 0; return s >= 2 ? s : 1; }
 function getBatches(p, o) {
     o = o || {};
@@ -2113,27 +2115,24 @@ function getBatches(p, o) {
     if (p.bt && typeof p.bt === 'object') {
         const um = {}; Object.keys(p.bt).forEach(k => { const b = p.bt[k] || {}; um[k] = unitsOf(b.q, b.l); });
         if (Array.isArray(p._badd)) p._badd.forEach(h => { const k = btKey(h.e); um[k] = Math.max(0, (um[k] || 0) + (parseInt(h.q) || 0) * sc + (sc > 1 ? (parseInt(h.l) || 0) : (parseInt(h.l) || 0) * 0)); });   // تلميحات معلّقة (وارد/فاتورة) بالوحدات
-        Object.keys(um).forEach(k => { if (um[k] > 0) list.push({ e: btDate(k), u: um[k] }); });
+        Object.keys(um).forEach(k => { if (um[k] > 0) list.push({ e: btDate(k), u: um[k], pr: btPr(k, p.bt[k]) }); });
     } else {
         const ds = getProductExpiryDates(p);
         return target > 0 ? [{ e: ds.length === 1 ? ds[0] : '', q: parseInt(p.qty) || 0, l: sc > 1 ? (parseInt(p.loose) || 0) : 0, legacy: ds.length > 1 ? ds : null }] : [];
     }
-    list.sort((a, b) => (a.e ? 0 : 1) - (b.e ? 0 : 1) || String(a.e).localeCompare(String(b.e)));
+    list.sort((a, b) => (a.e ? 0 : 1) - (b.e ? 0 : 1) || String(a.e).localeCompare(String(b.e)) || (a.pr || 0) - (b.pr || 0));
     let tot = list.reduce((s, b) => s + b.u, 0);
     if (tot > target) { let ex = tot - target; for (const b of list) { const t = Math.min(b.u, ex); b.u -= t; ex -= t; if (!ex) break; } }
-    else if (tot < target) { const sur = target - tot; let b = o.surplusTo ? list.find(x => x.e === o.surplusTo) : null; if (!b) b = list.find(x => !x.e); if (!b) { b = { e: o.surplusTo || '', u: 0 }; list.push(b); list.sort((a, c) => (a.e ? 0 : 1) - (c.e ? 0 : 1) || String(a.e).localeCompare(String(c.e))); } b.u += sur; }
-    return list.filter(b => b.u > 0).map(b => { const pr = p.bt && p.bt[btKey(b.e)] ? Math.round(Number(p.bt[btKey(b.e)].pr) || 0) : 0; return { e: b.e, q: Math.floor(b.u / sc), l: b.u % sc, ...(pr > 0 ? { pr } : {}) }; });   // pr = سعر بيع العبوة الخاص بهذه الدفعة (تسعيرة وزارة مختلفة)
+    else if (tot < target) { const sur = target - tot; let b = o.surplusTo ? list.find(x => x.e === o.surplusTo) : null; if (!b) b = list.find(x => !x.e); if (!b) { b = { e: o.surplusTo || '', u: 0 }; list.push(b); list.sort((a, c) => (a.e ? 0 : 1) - (c.e ? 0 : 1) || String(a.e).localeCompare(String(c.e)) || (a.pr || 0) - (c.pr || 0)); } b.u += sur; }
+    return list.filter(b => b.u > 0).map(b => ({ e: b.e, q: Math.floor(b.u / sc), l: b.u % sc, ...(b.pr > 0 ? { pr: b.pr } : {}) }));   // pr = سعر بيع العبوة الخاص بهذه الدفعة (تسعيرة وزارة مختلفة)
 }
 // تاريخ بلا عدد يُحفظ كدفعة {q:0,l:0,d:1} (علامة d) حتى لا يضيع؛ وتزول العلامة تلقائياً عندما يدخل للتاريخ عدد
-function btFromArr(arr) { const m = {}; (arr || []).forEach(b => { const q = parseInt(b.q) || 0, l = parseInt(b.l) || 0, dOnly = q <= 0 && l <= 0; if (dOnly && !(b.d && b.e)) return; const k = btKey(b.e); if (m[k]) { m[k].q += q; m[k].l += l; if (m[k].q > 0 || m[k].l > 0) delete m[k].d; } else m[k] = dOnly ? { q: 0, l: 0, d: 1 } : { q, l }; const pr = Math.round(Number(b.pr) || 0); if (pr > 0 && m[k] && !m[k].d && !m[k].pr) m[k].pr = pr; }); return m; }
-function btPrice(p, e) { const b = p && p.bt && p.bt[btKey(e)]; return b && b.pr > 0 && !b.d ? Math.round(b.pr) : 0; }   // سعر العبوة الخاص بالدفعة (0 = يتبع سعر المادة)
+function btFromArr(arr) { const m = {}; (arr || []).forEach(b => { const q = parseInt(b.q) || 0, l = parseInt(b.l) || 0, dOnly = q <= 0 && l <= 0; if (dOnly && !(b.d && b.e)) return; const pr = dOnly ? 0 : Math.round(Number(b.pr) || 0), k = btKey(b.e, pr); if (m[k]) { m[k].q += q; m[k].l += l; if (m[k].q > 0 || m[k].l > 0) delete m[k].d; } else m[k] = dOnly ? { q: 0, l: 0, d: 1 } : { q, l, ...(pr > 0 ? { pr } : {}) }; }); return m; }
 function btDateOnly(p) { return p && p.bt && typeof p.bt === 'object' ? Object.keys(p.bt).filter(k => k !== 'none' && p.bt[k] && p.bt[k].d && !((parseInt(p.bt[k].q) || 0) > 0 || (parseInt(p.bt[k].l) || 0) > 0)).map(btDate) : []; }
 function btDateRows(dates) { return (dates || []).filter(Boolean).map(e => ({ e, q: 0, l: 0, d: 1 })); }
 function btApply(p, arr) {   // يضبط p.bt ويشتق منه تواريخ النفاذ (ليبقى باقي النظام متوافقاً)
-    const prev = p.bt && typeof p.bt === 'object' ? p.bt : {};
     p.bt = btFromArr(arr);
-    Object.keys(p.bt).forEach(k => { if (!p.bt[k].pr && prev[k] && prev[k].pr > 0 && !(arr || []).some(b => btKey(b.e) === k && b.pr === 0)) p.bt[k].pr = prev[k].pr; });   // سعر الدفعة يبقى ما لم يُمسح صراحةً (pr: 0)
-    const ds = Object.keys(p.bt).map(btDate).filter(Boolean).sort();
+    const ds = [...new Set(Object.keys(p.bt).map(btDate).filter(Boolean))].sort();
     p.expiryDates = ds; p.expiryDate = ds[0] || '';
 }
 function btFmt(b, p) { const sc = btSc(p); return (b.q ? b.q + ' علبة' : '') + (b.q && b.l ? ' + ' : '') + (b.l ? b.l + ' ' + (p.subType || 'جزء') : '') || '0'; }
@@ -2144,10 +2143,10 @@ function btPrepare(e) {
     delete p._badd;
     if (!p.bt && !hint && !e.btSet) return;
     if (!p.bt) { const base = getBatches({ qty: cur.qty, loose: cur.loose, subCount: p.subCount, expiryDates: cur.expiryDates, expiryDate: cur.expiryDate }); p.bt = btFromArr(base.concat(base.length ? [] : btDateRows(getProductExpiryDates({ expiryDates: cur.expiryDates, expiryDate: cur.expiryDate })))); }   // تواريخ المادة الصفرية (بلا أعداد) لا تضيع عند أول وارد
-    if (hint) { const sc = btSc(p); hint.forEach(h => { const k = btKey(h.e), b = p.bt[k] || (p.bt[k] = { q: 0, l: 0 }); const u = Math.max(0, (parseInt(b.q) || 0) * sc + (sc > 1 ? (parseInt(b.l) || 0) : 0) + (parseInt(h.q) || 0) * sc + (sc > 1 ? (parseInt(h.l) || 0) : 0)); b.q = Math.floor(u / sc); b.l = sc > 1 ? u % sc : 0; if (u > 0) delete b.d; }); }
-    (e.expRemove || []).forEach(d => { delete p.bt[btKey(d)]; });
+    if (hint) { const sc = btSc(p); hint.forEach(h => { const k = btKey(h.e, h.pr), b = p.bt[k] || (p.bt[k] = { q: 0, l: 0, ...(btPr(k) > 0 ? { pr: btPr(k) } : {}) }); const u = Math.max(0, (parseInt(b.q) || 0) * sc + (sc > 1 ? (parseInt(b.l) || 0) : 0) + (parseInt(h.q) || 0) * sc + (sc > 1 ? (parseInt(h.l) || 0) : 0)); b.q = Math.floor(u / sc); b.l = sc > 1 ? u % sc : 0; if (u > 0) delete b.d; }); }
+    (e.expRemove || []).forEach(d => { Object.keys(p.bt).forEach(k => { if (btDate(k) === d) delete p.bt[k]; }); });   // حذف تاريخ = كل دفعاته
     const arr = getBatches(p, { surplusTo: (e.expAdd || [])[0] });
-    const keep = btDateRows(btDateOnly(p).concat(e.expAdd || [])).filter(x => !arr.some(a => btKey(a.e) === btKey(x.e)));   // التواريخ التي بلا أعداد تبقى كما هي
+    const keep = btDateRows(btDateOnly(p).concat(e.expAdd || [])).filter(x => !arr.some(a => a.e === x.e));   // التواريخ التي بلا أعداد تبقى كما هي
     btApply(p, arr.concat(keep));
     e.btOut = true;
 }
@@ -2236,7 +2235,7 @@ function getExpiringProducts() {
     const list = [];
     products.forEach(p => {
         if (p.arch || !hasUnits(p)) return;
-        (p.bt ? getBatches(p).map(b => b.e).filter(Boolean) : getProductExpiryDates(p)).forEach(date => {
+        [...new Set(p.bt ? getBatches(p).map(b => b.e).filter(Boolean) : getProductExpiryDates(p))].forEach(date => {
             const status = getExpiryStatus(date);
             if (status) list.push({ product: p, status, date });
         });
