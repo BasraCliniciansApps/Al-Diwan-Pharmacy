@@ -4875,6 +4875,7 @@ async function addFormBarcode(code) {
 let bcAttach = { code: '', after: null, list: [] };
 async function offerUnknownBarcode(code, after, opts) {
     opts = opts || {};
+    if (!can('newItem')) { Swal.fire({ icon: 'info', title: 'باركود غير مسجّل', html: `<div dir="ltr" style="font-weight:800;margin-bottom:6px">${escapeHtml(code)}</div><div style="font-size:.9rem">لا يوجد صنف بهذا الباركود في المخزن.</div>`, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }   // صلاحية إضافة صنف أو ربط باركود
     const r = await Swal.fire({
         icon: 'question', title: 'باركود غير مسجّل',
         html: `<div dir="ltr" style="font-weight:800; margin-bottom:6px;">${escapeHtml(code)}</div><div style="font-size:0.9rem;">لا يوجد صنف بهذا الباركود. ماذا تريد؟</div>`,
