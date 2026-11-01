@@ -1443,7 +1443,7 @@ function openSheet(id) {
                     <button onclick="updateItemQty(${p.id}, 1)">+</button>
             </div></div>
             <div class="act-grid">
-                <button class="icon-btn" onclick="closeSheet(); openFormModal(${p.id});">✏️ تعديل الصنف</button>
+                <button class="icon-btn" onclick="window.__sheetRet = ${p.id}; closeSheet(); openFormModal(${p.id});">✏️ تعديل الصنف</button>
                 ${typeof lgxOpen === 'function' ? `<button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('exp'); lgxOpen('exp',{pid:${p.id}});">🗑️ منتهي / تالف</button>
                 <button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('xfer'); lgxOpen('xfer',{pid:${p.id}});">🔁 مناقلة</button>
                 <button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('ret'); lgOpenReturn({pid:${p.id}});">↩️ إرجاع لمذخر</button>` : ''}
@@ -1839,6 +1839,9 @@ async function requestCloseForm() {   // إغلاق ذكي: يسأل إن كان
 
 function closeFormModal() {
     document.getElementById('formModal').style.display = 'none';
+    const r = window.__sheetRet; window.__sheetRet = null;   // فُتح التعديل من ورقة المادة: نعود إليها
+    if (r && products.some(x => x.id === r)) setTimeout(() => { try { openSheet(r); } catch (e) { /* تجاهل */ } }, 0);
+    try { if (typeof currentView !== 'undefined' && currentView === 'home' && typeof refreshHome === 'function') refreshHome(); } catch (e) { /* تجاهل */ }
 }
 
 // 1. دالة رفع الصورة مباشرة داخل مجلد (images) في مستودع GitHub

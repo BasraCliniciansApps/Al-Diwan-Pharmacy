@@ -65,7 +65,7 @@ async function gateLogout() {
 }
 
 function goStock(tab) { showView('stock'); setMainTab(tab || 'all'); }
-function goAddProduct() { showView('stock'); openFormModal(); }
+function goAddProduct() { openFormModal(); }   // تُفتح فوق الشاشة الحالية، فيرجعك الإغلاق إلى مكانك لا إلى المخزن
 
 async function refreshHome() {
     const out = products.filter(p => !p.arch && !isInStock(p)).length;

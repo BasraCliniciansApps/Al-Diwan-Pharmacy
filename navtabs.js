@@ -5,6 +5,7 @@
 (function () {
     'use strict';
     const MAX = 5, stack = [];   // عناصر: { view, fn, arg }
+    let fresh = false;   // true في نفس اللحظة التي تتغير فيها الشاشة: التبويب المفتوح مباشرة بعدها (اختصار) ليس تنقلاً يُرجع إليه
     const defs = [
         { fn: 'puTab', view: 'purch', get: () => (typeof puTabName !== 'undefined' ? puTabName : null) },
         { fn: 'billTab', view: 'bill', get: () => (typeof currentBillTab !== 'undefined' ? currentBillTab : null) },
@@ -25,7 +26,7 @@
     defs.forEach(d => {
         const orig = window[d.fn]; if (typeof orig !== 'function') return;
         window[d.fn] = function (arg) {
-            if (!window.__tabNav) {
+            if (!window.__tabNav && !fresh) {
                 const cur = d.get();
                 if (cur != null && cur !== arg) {
                     const last = stack[stack.length - 1];
@@ -39,6 +40,6 @@
     // تصفير عند تغيير الشاشة (لا يمس الرجوع نفسه)
     if (typeof window.showView === 'function') {
         const sv = window.showView;
-        window.showView = function (v) { if (typeof currentView !== 'undefined' && v !== currentView && !window.__navBack) stack.length = 0; return sv.apply(this, arguments); };
+        window.showView = function (v) { if (typeof currentView !== 'undefined' && v !== currentView && !window.__navBack) { stack.length = 0; fresh = true; setTimeout(() => { fresh = false; }, 0); } return sv.apply(this, arguments); };
     }
 })();
