@@ -393,24 +393,25 @@ function catPriceWire(p) {
     if ($('qpBtAdd')) {
         const box = $('qpBt'), qq2 = $('qpQty');
         const sum = () => { const rows = [...box.querySelectorAll('.qp-bt')]; const tot = rows.reduce((s, r) => s + (parseInt(r.querySelector('.qb-q').value) || 0), 0); if (rows.length) { qq2.value = tot; qq2.readOnly = true; $('qpMinus').disabled = $('qpPlus').disabled = true; } else { qq2.readOnly = false; $('qpMinus').disabled = $('qpPlus').disabled = false; } };
-        const add = (e0, q0) => {
+        const add = (e0, q0, p0) => {
             if (typeof e0 !== 'string') e0 = '';
             const r = document.createElement('div'); r.className = 'qp-bt';
-            r.innerHTML = '<input type="month" class="qin ltr qb-e" dir="ltr" aria-label="تاريخ النفاذ"><input type="number" inputmode="numeric" min="0" class="qin ltr qb-q" dir="ltr" placeholder="العدد" aria-label="عدد الدفعة"><button type="button" class="qb-x" aria-label="حذف الدفعة">✕</button>';
+            r.innerHTML = '<input type="month" class="qin ltr qb-e" dir="ltr" aria-label="تاريخ النفاذ"><input type="number" inputmode="numeric" min="0" class="qin ltr qb-q" dir="ltr" placeholder="العدد" aria-label="عدد الدفعة"><input type="number" inputmode="numeric" min="0" class="qin ltr qb-p" dir="ltr" placeholder="سعر العبوة" aria-label="سعر بيع هذه الدفعة (اختياري)"><button type="button" class="qb-x" aria-label="حذف الدفعة">✕</button>';
             r.querySelector('.qb-q').addEventListener('input', sum);
             const x = r.querySelector('.qb-x'); let armed = 0;
             x.addEventListener('click', () => { if (armed) { r.remove(); sum(); } else { armed = 1; x.classList.add('sure'); x.textContent = 'تأكيد'; setTimeout(() => { armed = 0; x.classList.remove('sure'); x.textContent = '✕'; }, 3000); } });
             box.appendChild(r);
             if (e0) r.querySelector('.qb-e').value = e0;
             if (q0 > 0) r.querySelector('.qb-q').value = q0;
+            if (p0 > 0) r.querySelector('.qb-p').value = p0;
             sum(); if (q0 === undefined) r.querySelector('.qb-e').focus();
         };
         $('qpBtAdd').addEventListener('click', () => add());
         // مادة موجودة: نعرض دفعاتها الحالية للتعديل (إن كانت قابلة للعرض بلا فقدان: بدون أجزاء مفتوحة موزعة ولا تواريخ قديمة غير موزعة)
         if (p) {
-            let init = []; try { const L = getBatches(p); if (!L.some(b => b.legacy || (parseInt(b.l) || 0) > 0)) { init = L.filter(b => (parseInt(b.q) || 0) > 0).map(b => ({ e: b.e || '', q: parseInt(b.q) || 0 })); const have = new Set(init.map(b => b.e)); const dd = (p.bt ? btDateOnly(p) : ((parseInt(p.qty) || 0) > 0 ? [] : getProductExpiryDates(p))); dd.forEach(d => { if (!have.has(d)) init.push({ e: d, q: 0 }); }); } } catch (e) { init = []; }
+            let init = []; try { const L = getBatches(p); if (!L.some(b => b.legacy || (parseInt(b.l) || 0) > 0)) { init = L.filter(b => (parseInt(b.q) || 0) > 0).map(b => ({ e: b.e || '', q: parseInt(b.q) || 0, pr: b.pr || 0 })); const have = new Set(init.map(b => b.e)); const dd = (p.bt ? btDateOnly(p) : ((parseInt(p.qty) || 0) > 0 ? [] : getProductExpiryDates(p))); dd.forEach(d => { if (!have.has(d)) init.push({ e: d, q: 0, pr: 0 }); }); } } catch (e) { init = []; }
             box.dataset.init = JSON.stringify(init);
-            init.forEach(b => add(b.e, b.q));
+            init.forEach(b => add(b.e, b.q, b.pr));
         }
     }
     refresh();
@@ -423,8 +424,8 @@ function catPriceRead() {
     if (mode === 'percent' && (!(cost > 0) || !(mk >= 0))) { Swal.showValidationMessage('التسعير بنسبة يحتاج سعر الشراء ونسبة الإضافة'); return false; }
     if (mode === 'syndicate' && !(cost > 0)) { Swal.showValidationMessage('أدخل سعر الشراء (سعر المذخر) لحساب السعر'); return false; }
     const sc = parseInt($('qpSc').value) || 0, sp = parseFloat($('qpSp').value);
-    const rowsAll = [...document.querySelectorAll('#qpBt .qp-bt')].map(r => ({ e: r.querySelector('.qb-e').value || '', q: parseInt(r.querySelector('.qb-q').value) || 0 })), bts = rowsAll.filter(b => b.q > 0), dateOnly = [...new Set(rowsAll.filter(b => b.q <= 0 && b.e).map(b => b.e))];   // صف بتاريخ بلا عدد: يُحفظ التاريخ فقط
-    const btBox = $('qpBt'), btsChanged = !!btBox && btBox.dataset.init !== undefined && btBox.dataset.init !== JSON.stringify(rowsAll.filter(b => b.q > 0 || b.e).map(b => ({ e: b.e, q: b.q })));
+    const rowsAll = [...document.querySelectorAll('#qpBt .qp-bt')].map(r => ({ e: r.querySelector('.qb-e').value || '', q: parseInt(r.querySelector('.qb-q').value) || 0, pr: Math.round(parseFloat(r.querySelector('.qb-p').value) || 0) })), bts = rowsAll.filter(b => b.q > 0), dateOnly = [...new Set(rowsAll.filter(b => b.q <= 0 && b.e).map(b => b.e))];   // صف بتاريخ بلا عدد: يُحفظ التاريخ فقط
+    const btBox = $('qpBt'), btsChanged = !!btBox && btBox.dataset.init !== undefined && btBox.dataset.init !== JSON.stringify(rowsAll.filter(b => b.q > 0 || b.e).map(b => ({ e: b.e, q: b.q, pr: b.pr })));
     return { name, bts, dateOnly, btsChanged, qty: Math.max(0, bts.length ? bts.reduce((s, b) => s + b.q, 0) : (parseInt($('qpQty').value) || 0)), loose: Math.max(0, parseInt($('qpLoose').value) || 0), bc: cleanBarcode($('qpBc').value), pricing: mode, costPrice: cost, price, markupPct: mode === 'percent' ? mk : null,
         retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || 'جزء', subPrice: sp > 0 ? sp : subPriceCalc(price, sc) } };
 }
@@ -442,7 +443,7 @@ async function catPrice(id, pre, cb) {
         const obj = { id: Date.now(), department: dept, category: subCategories[0] || '', type: '', extraDepartments: [], extraCategories: [], extraTypes: [], form: '', activeIngredient: '', minQty: null, brand: 'GENERIC', name: v.name, details: '', meta: '',
             qty: v.qty, price: v.price, costPrice: v.costPrice, pricing: v.pricing, markupPct: v.markupPct, ...v.retail, ...(() => { const n = catNorm(v.qty, v.loose, v.retail.subCount); return { qty: n.q, loose: n.l }; })(), expiryDates: [], expiryDate: '', keywords: '', barcode: v.bc, barcodes: v.bc ? [v.bc] : [], img: '' };
         if (obj.qty > 0 || obj.loose > 0) obj.counted = true;
-        if ((v.bts && v.bts.length) || (v.dateOnly && v.dateOnly.length)) btApply(obj, (v.bts || []).map((b, i) => ({ e: b.e, q: b.q, l: i === 0 ? obj.loose : 0 })).concat(btDateRows(v.dateOnly)));   // التواريخ بلا أعداد تُحفظ أيضاً
+        if ((v.bts && v.bts.length) || (v.dateOnly && v.dateOnly.length)) btApply(obj, (v.bts || []).map((b, i) => ({ e: b.e, q: b.q, pr: b.pr, l: i === 0 ? obj.loose : 0 })).concat(btDateRows(v.dateOnly)));   // التواريخ بلا أعداد تُحفظ أيضاً
         products.unshift(obj); renderAll(); renderCatalog();
         const ok = await saveSingleProductToCloud(obj);
         if (typeof onProductSaved === 'function') onProductSaved(obj);
@@ -453,7 +454,7 @@ async function catPrice(id, pre, cb) {
     const old = JSON.parse(JSON.stringify(p)), oldQty = parseInt(p.qty) || 0, oldLoose = parseInt(p.loose) || 0;
     const nn = catNorm(v.qty, v.loose, v.retail.subCount);
     Object.assign(p, { name: v.name, qty: nn.q, loose: nn.l, price: v.price, costPrice: v.costPrice, pricing: v.pricing, markupPct: v.markupPct, ...v.retail });
-    if (v.btsChanged) btApply(p, v.bts.map((b, i) => ({ e: b.e, q: b.q, l: i === 0 ? nn.l : 0 })).concat(btDateRows(v.dateOnly)));   // تعديل الدفعات من نافذة التسعير
+    if (v.btsChanged) btApply(p, v.bts.map((b, i) => ({ e: b.e, q: b.q, pr: b.pr, l: i === 0 ? nn.l : 0 })).concat(btDateRows(v.dateOnly)));   // تعديل الدفعات من نافذة التسعير
     const bcs = barcodesOf(p).filter(b => b !== v.bc); if (v.bc) bcs.unshift(v.bc);
     p.barcodes = v.bc ? bcs : barcodesOf(old); p.barcode = p.barcodes[0] || '';
     const ok = await saveProductsDelta([{ p, dq: nn.q - oldQty, dl: nn.l - oldLoose, cost: p.costPrice, mark: nn.q !== oldQty || nn.l !== oldLoose }]);

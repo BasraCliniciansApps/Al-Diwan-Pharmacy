@@ -3401,3 +3401,7 @@ body.role-staff .home-sq .tile-scan { grid-column: 1 / -1; aspect-ratio: auto; m
 .pv-bar { white-space: nowrap; width: auto; }
 .pv-bar span { overflow: hidden; text-overflow: ellipsis; }
 body.pv-on { padding-bottom: 76px; }
+
+/* v392: سعر خاص لكل دفعة */
+.qp-bt .qb-p { flex: 1.1; min-width: 0; }
+.sp-row .sp-pr { grid-column: 1 / -1; font-size: .72rem; font-weight: 800; color: #0f766e; }
