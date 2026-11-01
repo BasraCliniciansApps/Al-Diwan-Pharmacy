@@ -3339,3 +3339,15 @@ button.cat-pick.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
 .cat-ffoot { display: flex; gap: 8px; padding: 6px 4px 2px; border-top: 1px solid #f1f5f9; margin-top: 4px; }
 .cat-ffoot button { flex: 1; height: 40px; border-radius: 10px; border: 1px solid #cbd5e1; background: #fff; font-family: inherit; font-weight: 800; cursor: pointer; } .cat-ffoot button.ok { background: #0f1c38; color: #fff; border-color: #0f1c38; } .cat-ffoot button:disabled { opacity: .45; }
 .cat-shown { font-size: .78rem; font-weight: 700; color: #64748b; }
+
+/* v374 تصغير شريط التحديد ووضع التأسيس */
+.cat-bulk { gap: 6px; padding: 8px; }
+.cat-bulk-r { flex-wrap: nowrap; gap: 6px; } .cat-bulk-r b { flex: 1; font-size: .82rem; }
+.cat-bulk button.sm { min-height: 32px; padding: 0 10px; font-size: .74rem; }
+.cat-bulk-a { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.cat-bulk-a button { min-height: 40px; padding: 0 6px; font-size: .74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cat-bulk-a button:only-child { grid-column: 1 / -1; }
+.setup-bar.on, .setup-bar.off { padding: 6px 12px; margin: 6px 0; }
+.setup-txt b { display: flex; align-items: center; gap: 8px; font-size: .86rem; }
+.setup-i { border: 0 !important; background: none !important; padding: 0 4px !important; font-size: 1rem !important; color: #475569 !important; }
+.setup-txt span[hidden] { display: none; }

@@ -1,5 +1,5 @@
 // سجل الأدوية: كل الأصناف بتسلسل الإدخال، مع زر ضم لمادة أخرى وزر قراءة/ربط الباركود
-let catQ = '', catNoBc = false, catHasBc = false, catFOpen = false, catUncounted = false, catIncomplete = false, catTodo = false, catArch = false, catSelMode = false;
+let catSetupInfo = false, catQ = '', catNoBc = false, catHasBc = false, catFOpen = false, catUncounted = false, catIncomplete = false, catTodo = false, catArch = false, catSelMode = false;
 const catSel = new Set();
 function catRankMap() { const m = new Map(); products.slice().sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)).forEach((p, i) => m.set(p.id, i + 1)); return m; }
 async function toggleSetupMode(on) {
@@ -51,8 +51,8 @@ function catSelAll(kind) {
 }
 function catBulkBar(arr) {
     const n = catSel.size, cn = products.filter(p => catSel.has(p.id) && p.counted === true).length;
-    return `<div class="cat-bulk"><div class="cat-bulk-r"><button type="button" onclick="catSelAll('all')">تحديد كل المعروض</button><button type="button" onclick="catSelAll('counted')">تحديد المجرودة فقط</button><button type="button" onclick="catSel.clear(); renderCatalog()">مسح التحديد</button></div>
-        <div class="cat-bulk-a"><b>المحدّد: ${fmtNum(n)}</b>${catArch ? `<button type="button" class="ok" ${n ? '' : 'disabled'} onclick="catBulkArchive(false)">↩ استرجاع (${fmtNum(n)})</button>` : `<button type="button" class="wn" ${cn ? '' : 'disabled'} onclick="catBulkUnconfirm()">إلغاء الاعتماد (${fmtNum(cn)})</button><button type="button" class="ok" ${n ? '' : 'disabled'} onclick="catBulkLabels()">🏷️ ملصقات الباركود (${fmtNum(n)})</button><button type="button" class="dg" ${n ? '' : 'disabled'} onclick="catBulkArchive(true)">🗄️ أرشفة (${fmtNum(n)})</button>`}</div></div>`;
+    return `<div class="cat-bulk"><div class="cat-bulk-r"><b>المحدّد: ${fmtNum(n)}</b><button type="button" class="sm" onclick="catSelAll('all')">الكل</button><button type="button" class="sm" onclick="catSelAll('counted')">المجرودة</button><button type="button" class="sm" onclick="catSel.clear(); renderCatalog()">مسح</button></div>
+        <div class="cat-bulk-a">${catArch ? `<button type="button" class="ok" ${n ? '' : 'disabled'} onclick="catBulkArchive(false)">↩ استرجاع (${fmtNum(n)})</button>` : `<button type="button" class="ok" ${n ? '' : 'disabled'} onclick="catBulkLabels()">🏷️ ملصقات (${fmtNum(n)})</button><button type="button" class="wn" ${cn ? '' : 'disabled'} onclick="catBulkUnconfirm()">إلغاء الاعتماد (${fmtNum(cn)})</button><button type="button" class="dg" ${n ? '' : 'disabled'} onclick="catBulkArchive(true)">🗄️ أرشفة (${fmtNum(n)})</button>`}</div></div>`;
 }
 async function catSaveMany(list, title, doneMsg) {
     const h = Prog.start(title, { text: 'جارٍ الحفظ...', indeterminate: false });
@@ -131,7 +131,7 @@ function renderCatalog() {
     const sb = document.getElementById('catSetup');
     if (sb) {
         const own = userRole === 'owner', sw = `<label class="setup-sw ${own ? '' : 'ro'}" title="${own ? 'تشغيل / إيقاف وضع التأسيس' : 'للمالك فقط'}"><input type="checkbox" ${setupMode ? 'checked' : ''} ${own ? '' : 'disabled'} onchange="toggleSetupMode(this.checked)"><i></i></label>`;
-        sb.innerHTML = `<div class="setup-bar ${setupMode ? 'on' : 'off'}">${sw}<div class="setup-txt"><b>🧮 وضع التأسيس: ${setupMode ? 'مفعّل' : 'متوقف'}</b><span>${setupMode ? 'الوارد والبيع والمردود <u>لا تغيّر</u> كمية أي مادة «لم تُجرد». المادة تصير مجرودة أول ما تضبط عددها' + (unc ? '.' : ' — كل المواد انجردت 🎉') : 'كل المواد تتأثر بالوارد والبيع بشكل عادي. شغّله أثناء إدخال أرصدة الصيدلية.'}</span></div></div>`;
+        sb.innerHTML = `<div class="setup-bar ${setupMode ? 'on' : 'off'}">${sw}<div class="setup-txt"><b>🧮 وضع التأسيس: ${setupMode ? 'مفعّل' : 'متوقف'}<button type="button" class="setup-i" onclick="catSetupInfo = !catSetupInfo; renderCatalog()" aria-label="تفاصيل">ⓘ</button></b><span ${catSetupInfo ? '' : 'hidden'}>${setupMode ? 'الوارد والبيع والمردود <u>لا تغيّر</u> كمية أي مادة «لم تُجرد». المادة تصير مجرودة أول ما تضبط عددها' + (unc ? '.' : ' — كل المواد انجردت 🎉') : 'كل المواد تتأثر بالوارد والبيع بشكل عادي. شغّله أثناء إدخال أرصدة الصيدلية.'}</span></div></div>`;
     }
     const SHOW = 300, part = arr.slice(0, SHOW);
     box.innerHTML = part.map(p => {
