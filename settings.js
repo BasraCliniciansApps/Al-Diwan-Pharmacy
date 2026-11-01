@@ -34,6 +34,7 @@ function shReturn(src) {
 window.__shRetClear = () => { shRet = null; };
 window.__shStale = () => { if (shRet && shRet.kind === 'view' && shRet.seen) shRet = null; };   // انتقلتَ لشاشة أخرى بنفسك بعد مغادرة الإعدادات: لا تُعاد الإعدادات لاحقاً
 window.__shReturn = shReturn;
+window.__shSnap = () => (shRet ? { page: shRet.page } : null);   // لمعرفة صفحة الإعدادات التي جئنا منها
 setInterval(() => { if (shRet) shReturn(); }, 350);
 function shGoInvSettings() { shLeave('view'); showView('bill'); billTab('settings'); }
 function shGoDocSettings() { shLeave('layer'); docOpen('set'); }

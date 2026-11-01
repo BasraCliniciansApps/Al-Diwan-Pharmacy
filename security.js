@@ -188,7 +188,8 @@ function pvBlock(on) {
 }
 function userPreview(uid) {
     const u = usersCache.find(x => x.uid === uid); if (!u || pvSaved) return;
-    pvSaved = { role: userRole, perms: userPerms, name: userName };
+    pvSaved = { role: userRole, perms: userPerms, name: userName, sh: window.__shSnap ? window.__shSnap() : null };
+    if (window.__shRetClear) window.__shRetClear();   // لا نعيد الإعدادات أثناء المعاينة
     userRole = 'staff'; userPerms = Object.assign({}, u.perms || {}); userName = u.name || '';
     pvBlock(true); window.__pvOn = true;
     const d = document.createElement('div'); d.id = 'pvBar'; d.className = 'pv-bar'; d.dir = 'rtl';
@@ -199,10 +200,10 @@ function userPreview(uid) {
 }
 function userPreviewExit() {
     if (!pvSaved) return;
-    userRole = pvSaved.role; userPerms = pvSaved.perms; userName = pvSaved.name; pvSaved = null; window.__pvOn = false;
+    const pvSaved0 = pvSaved.sh; userRole = pvSaved.role; userPerms = pvSaved.perms; userName = pvSaved.name; pvSaved = null; window.__pvOn = false;
     pvBlock(false);
     const d = document.getElementById('pvBar'); if (d) d.remove();
     try { applyRoleUI(); } catch (e) { /* تجاهل */ }
-    showView('home'); try { renderAll(); } catch (e) { /* تجاهل */ }
-    openUsers();
+    const sh = pvSaved0; showView('home'); try { renderAll(); } catch (e) { /* تجاهل */ }
+    if (sh) { try { openCategoryManager(); if (sh.page) shOpen(sh.page); } catch (e) { /* تجاهل */ } } else openUsers();
 }
