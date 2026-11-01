@@ -3475,3 +3475,15 @@ body.pv-on { padding-bottom: 76px; }
 .lbl-pop .swal2-actions { gap: 10px; width: 100%; padding: 0 12px; box-sizing: border-box; flex-direction: row-reverse; }
 .lbl-pop .swal2-actions button { flex: 1; height: 48px; margin: 0; border-radius: 12px; font-weight: 800; box-sizing: border-box; }
 .lbl-pop .swal2-cancel { background: #fff !important; color: #0f1c38 !important; border: 1.5px solid #cbd5e1 !important; }
+
+/* v401: صفحة الإعدادات الرئيسية — قائمة بصفوف كاملة العرض (عنوان وشرح بسطر واحد) */
+#shGrid { grid-template-columns: 1fr; grid-auto-rows: auto; gap: 8px; }
+#shGrid .sh-card { min-height: 64px; padding: 10px 14px; gap: 12px; }
+#shGrid .sh-ico { width: 42px; height: 42px; border-radius: 12px; }
+#shGrid .sh-tx { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+#shGrid .sh-tx b { font-size: .95rem; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#shGrid .sh-tx small { font-size: .74rem; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-sub, #64748b); }
+#shGrid .sh-badge, #shGrid .sh-star { position: static; flex: none; }
+#shGrid .sh-badge { padding: 2px 8px; }
+#shGrid .sh-star { width: 32px; height: 32px; }
+#shGrid { grid-template-columns: minmax(0, 1fr); } #shGrid .sh-card { min-width: 0; width: 100%; box-sizing: border-box; overflow: hidden; }
