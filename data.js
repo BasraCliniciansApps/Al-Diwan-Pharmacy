@@ -117,14 +117,26 @@ function syndHintHtml(cost) {
     return `سعر المذخر ${Number(cost).toLocaleString()} د.ع ≈ $${r.usd.toFixed(2)} ← نسبة ${r.pct}% ← <b>${r.price.toLocaleString()} د.ع</b><br><small>${escapeHtml(syndBookText())} · الصرف ${pricingCfg.rate.toLocaleString()}</small>`;
 }
 function pricingInfoHtml(p) {
-    if (p.pricing === 'syndicate') {
-        const r = syndCalc(p.costPrice);
-        return `<div style="font-size:0.76rem;margin-bottom:8px;color:#334155;">🏷️ مسعّر حسب كتاب النقابة${r ? ': سعر المذخر ' + fmtNum(p.costPrice) + ' + ' + r.pct + '% = <b>' + fmtNum(p.price) + '</b>' : ''}</div>`;
+    const price = Number(p.price) || 0, cost = Number(p.costPrice) || 0, owner = userRole === 'owner';
+    const mode = p.pricing === 'syndicate' ? 'كتاب النقابة' : p.pricing === 'percent' ? 'نسبة إضافة' : p.pricing === 'free' ? 'يدوي' : 'تسعيرة وزارة الصحة (الملصق)';
+    const short = p.pricing === 'syndicate' ? 'النقابة' : p.pricing === 'percent' ? 'نسبة' : p.pricing === 'free' ? 'يدوي' : 'وزارة الصحة';
+    let formula = '';
+    if (p.pricing === 'syndicate') { const r = syndCalc(p.costPrice); if (r) formula = 'سعر المذخر ' + fmtNum(p.costPrice) + ' + ' + r.pct + '٪ = ' + fmtNum(p.price); }
+    else if (p.pricing === 'percent') formula = 'سعر الشراء ' + fmtNum(p.costPrice) + ' + ' + (Number(p.markupPct) || 0) + '٪ = ' + fmtNum(p.price);
+    const row = (k, v, cls) => `<div class="pcd-r"><span>${k}</span><b class="${cls || ''}">${v}</b></div>`;
+    let rows = row('طريقة التسعير', mode) + (formula ? `<div class="pcd-f">${formula}</div>` : '') + row('سعر البيع', price > 0 ? fmtNum(price) + ' د.ع' : 'غير مسعّر', price > 0 ? '' : 'bad');
+    if (owner) {
+        rows += row('سعر الشراء', cost > 0 ? fmtNum(cost) + ' د.ع' : 'غير مسجّل');
+        if (price > 0 && cost > 0) { const pf = price - cost, pc = pf / price * 100; rows += row('الربح', fmtNum(pf) + ' د.ع (' + pc.toFixed(1) + '٪)', pf < 0 ? 'bad' : 'good'); }
     }
-    if (p.pricing === 'percent') return `<div style="font-size:0.76rem;margin-bottom:8px;color:#334155;">🏷️ مسعّر بنسبة إضافة: سعر الشراء ${fmtNum(p.costPrice)} + ${Number(p.markupPct) || 0}% = <b>${fmtNum(p.price)}</b></div>`;
-    if (p.pricing === 'free') return '<div style="font-size:0.76rem;margin-bottom:8px;color:#64748b;">🏷️ التسعير: يدوي</div>';
-    if (p.pricing === 'manual') return '<div style="font-size:0.76rem;margin-bottom:8px;color:#64748b;">🏷️ التسعير: تسعيرة وزارة الصحة (الملصق)</div>';
-    return '';
+    if (hasRetail(p)) {
+        const sp = Number(p.subPrice) || (typeof subPriceCalc === 'function' ? subPriceCalc(price, subCountOf(p)) : 0);
+        rows += row('البيع بالتجزئة', fmtNum(subCountOf(p)) + ' ' + escapeHtml(subTypeOf(p) || 'جزء') + ' بالعبوة · سعر الجزء ' + (sp > 0 ? fmtNum(sp) : '—'));
+    }
+    let bt = '';
+    try { const L = p.bt ? getBatches(p).filter(b => b.e || b.pr) : []; if (L.some(b => b.pr)) bt = '<div class="pcd-h">أسعار الدفعات</div>' + L.map(b => row(escapeHtml(b.e || 'بدون تاريخ') + ' · ' + btFmt(b, p), b.pr ? fmtNum(b.pr) + ' د.ع' : 'سعر المادة', b.pr ? 'good' : '')).join(''); } catch (e) { bt = ''; }
+    const head = `<span>💰 التسعير</span><small>${price > 0 ? fmtNum(price) + ' د.ع · ' : ''}${short}</small>`;
+    return `<details class="pcd"><summary>${head}</summary><div class="pcd-b">${rows}${bt}<button type="button" class="icon-btn pcd-edit" onclick="const i=${p.id};closeSheet();catPrice(i).then(()=>{try{openSheet(i)}catch(e){}})">💲 تسعير سريع</button></div></details>`;
 }
 
 const ALL_DEPTS = '__all__';

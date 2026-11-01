@@ -3413,3 +3413,16 @@ body.pv-on { padding-bottom: 76px; }
 .qp-bt-hint { display: block; margin-top: 4px; font-size: .74rem; font-weight: 600; line-height: 1.7; color: #64748b; }
 .fbt-pr { grid-column: 1 / -1; display: grid; gap: 3px; font-size: .74rem; font-weight: 800; color: #475569; } .fbt-pr input { width: 100%; box-sizing: border-box; }
 .fbt-hint { display: block; margin-bottom: 6px; font-size: .74rem; font-weight: 600; line-height: 1.7; color: #64748b; }
+
+/* v396: بطاقة التسعير القابلة للطي في صفحة المادة */
+.pcd { margin-bottom: 8px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; overflow: hidden; }
+.pcd > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 12px; cursor: pointer; list-style: none; font-size: .82rem; font-weight: 800; color: #0f1c38; }
+.pcd > summary::-webkit-details-marker { display: none; }
+.pcd > summary small { font-size: .74rem; font-weight: 700; color: #64748b; }
+.pcd > summary::after { content: '▾'; color: #94a3b8; transition: transform .2s; margin-inline-start: 6px; } .pcd[open] > summary::after { transform: rotate(180deg); }
+.pcd-b { padding: 4px 12px 10px; border-top: 1px solid #eef2f7; }
+.pcd-r { display: flex; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1px dashed #eef2f7; font-size: .78rem; color: #475569; } .pcd-r b { color: #0f1c38; font-weight: 800; text-align: end; } .pcd-r b.good { color: #047857; } .pcd-r b.bad { color: #b91c1c; }
+.pcd-f { padding: 4px 0 6px; font-size: .74rem; color: #64748b; line-height: 1.7; }
+.pcd-h { margin-top: 8px; font-size: .76rem; font-weight: 800; color: #0f766e; }
+.pcd-edit { width: 100%; margin-top: 10px; }
+[data-theme="dark"] .pcd { background: #1e293b; border-color: #334155; } [data-theme="dark"] .pcd > summary, [data-theme="dark"] .pcd-r b { color: #e2e8f0; } [data-theme="dark"] .pcd-b, [data-theme="dark"] .pcd-r { border-color: #334155; }
