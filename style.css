@@ -3303,3 +3303,23 @@ button.cat-pick.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
 #homeView .home-quick button, #homeView .home-quick-link { border-radius: 25px; min-height: 50px; font-weight: 800; box-shadow: 0 6px 14px -10px rgba(15,28,56,.4); }
 :root[data-theme="dark"] #homeView .kpi { border-color: #334155; }
 @media (prefers-reduced-motion: reduce) { #homeView.tiles-in .home-tile::before { animation: none; } #homeView.tiles-in .home-tile { animation: none; } }
+
+/* v373 ملصقات الباركود */
+.lbl-pop .swal2-html-container { margin: 0 !important; padding: 0 12px !important; max-height: 70vh; overflow-y: auto; text-align: right; }
+.lbl-box { display: flex; flex-direction: column; gap: 10px; text-align: right; }
+.lbl-f { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; font-weight: 700; color: #334155; }
+.lbl-f input, .lbl-f select, #lbQ { height: 42px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0 10px; font-family: inherit; font-size: .9rem; background: #fff; width: 100%; box-sizing: border-box; }
+.lbl-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.lbl-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: .85rem; font-weight: 700; padding: 2px 0; }
+.lbl-sec { font-size: .8rem; font-weight: 800; color: #0f1c38; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-top: 4px; }
+.lbl-sum, .lbl-info { font-size: .8rem; color: #475569; }
+.lbl-gen { height: 44px; border: 0; border-radius: 12px; background: #0f1c38; color: #fff; font-family: inherit; font-weight: 800; font-size: .85rem; cursor: pointer; }
+.lbl-pv { position: relative; overflow: hidden; border: 1px solid #e2e8f0; border-radius: 10px; background: #f1f5f9; direction: ltr; width: 100%; }
+.lbl-det summary { cursor: pointer; font-size: .82rem; font-weight: 800; padding: 6px 0; }
+.lbl-det .lbl-grid, .lbl-det .lbl-row { margin-top: 6px; }
+.lbl-note { font-size: .72rem; color: #64748b; }
+.lbl-res { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.lbl-res button { display: flex; justify-content: space-between; align-items: center; gap: 8px; height: 40px; padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; font-family: inherit; font-size: .82rem; cursor: pointer; text-align: right; }
+.lbl-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.lbl-chip { display: inline-flex; align-items: center; gap: 6px; background: #eef2ff; border-radius: 999px; padding: 4px 6px 4px 10px; font-size: .78rem; }
+.lbl-chip button { border: 0; background: #c7d2fe; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; line-height: 1; }

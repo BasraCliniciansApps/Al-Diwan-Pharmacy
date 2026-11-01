@@ -229,6 +229,7 @@
                 <h4>أدوات المخزون</h4>
                 <div class="tools-grid">
                     <button class="icon-btn" onclick="puExpBackfill()">📅 إضافة تواريخ الانتهاء من الفواتير المؤجَّلة</button>
+                    <button class="icon-btn" onclick="lblOpen()">🏷️ ملصقات الباركود</button>
                 </div>
             </div>
 
@@ -413,6 +414,10 @@
                     <input type="text" id="fBarcode" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="امسح أو اكتب الرقم" onkeydown="if(event.key==='Enter'){event.preventDefault();addFormBarcode();}">
                     <button type="button" class="icon-btn" onclick="addFormBarcode()">＋</button>
                     <button type="button" class="icon-btn" onclick="scanBarcodeToForm()">▦ مسح</button>
+                </div>
+                <div class="add-inline-row" style="margin-top:6px">
+                    <button type="button" class="icon-btn" onclick="lblGenForm()">⚙ توليد باركود داخلي</button>
+                    <button type="button" class="icon-btn" onclick="lblFormPrint()">🏷️ طباعة ملصق</button>
                 </div>
                 <div id="fBarcodeChips" class="bc-chips"></div>
             </div>

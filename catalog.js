@@ -1,5 +1,5 @@
 // سجل الأدوية: كل الأصناف بتسلسل الإدخال، مع زر ضم لمادة أخرى وزر قراءة/ربط الباركود
-let catQ = '', catUncounted = false, catIncomplete = false, catTodo = false, catArch = false, catSelMode = false;
+let catQ = '', catNoBc = false, catUncounted = false, catIncomplete = false, catTodo = false, catArch = false, catSelMode = false;
 const catSel = new Set();
 function catRankMap() { const m = new Map(); products.slice().sort((a, b) => (Number(a.id) || 0) - (Number(b.id) || 0)).forEach((p, i) => m.set(p.id, i + 1)); return m; }
 async function toggleSetupMode(on) {
@@ -41,7 +41,7 @@ function catSelAll(kind) {
 function catBulkBar(arr) {
     const n = catSel.size, cn = products.filter(p => catSel.has(p.id) && p.counted === true).length;
     return `<div class="cat-bulk"><div class="cat-bulk-r"><button type="button" onclick="catSelAll('all')">تحديد كل المعروض</button><button type="button" onclick="catSelAll('counted')">تحديد المجرودة فقط</button><button type="button" onclick="catSel.clear(); renderCatalog()">مسح التحديد</button></div>
-        <div class="cat-bulk-a"><b>المحدّد: ${fmtNum(n)}</b>${catArch ? `<button type="button" class="ok" ${n ? '' : 'disabled'} onclick="catBulkArchive(false)">↩ استرجاع (${fmtNum(n)})</button>` : `<button type="button" class="wn" ${cn ? '' : 'disabled'} onclick="catBulkUnconfirm()">إلغاء الاعتماد (${fmtNum(cn)})</button><button type="button" class="dg" ${n ? '' : 'disabled'} onclick="catBulkArchive(true)">🗄️ أرشفة (${fmtNum(n)})</button>`}</div></div>`;
+        <div class="cat-bulk-a"><b>المحدّد: ${fmtNum(n)}</b>${catArch ? `<button type="button" class="ok" ${n ? '' : 'disabled'} onclick="catBulkArchive(false)">↩ استرجاع (${fmtNum(n)})</button>` : `<button type="button" class="wn" ${cn ? '' : 'disabled'} onclick="catBulkUnconfirm()">إلغاء الاعتماد (${fmtNum(cn)})</button><button type="button" class="ok" ${n ? '' : 'disabled'} onclick="catBulkLabels()">🏷️ ملصقات الباركود (${fmtNum(n)})</button><button type="button" class="dg" ${n ? '' : 'disabled'} onclick="catBulkArchive(true)">🗄️ أرشفة (${fmtNum(n)})</button>`}</div></div>`;
 }
 async function catSaveMany(list, title, doneMsg) {
     const h = Prog.start(title, { text: 'جارٍ الحفظ...', indeterminate: false });
@@ -65,6 +65,7 @@ async function catArchiveOne(id, on) {
     renderCatalog();
     Swal.fire({ icon: 'success', title: on ? 'أُرشفت المادة' : 'أُلغيت أرشفة المادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
 }
+function catBulkLabels() { const list = products.filter(p => catSel.has(p.id)); if (list.length) lblOpen(list); }
 async function catBulkArchive(on) {
     const list = products.filter(p => catSel.has(p.id)); if (!list.length || !writesAllowed() || !can('stockEdit')) return;
     if (on && !(await askSure('أرشفة ' + fmtNum(list.length) + ' مادة؟', 'ستخرج من سجل الأدوية وتُعدّ غير متوفرة، وترجع تلقائيًا عند إدخال كل مادة في فاتورة وارد جديدة.', 'نعم، أرشفة'))) return;
@@ -95,12 +96,15 @@ function renderCatalog() {
     const catDone = p => parseFloat(p.price) > 0 && barcodesOf(p).length > 0;
     const todoN = act.filter(p => !catDone(p)).length;
     if (catTodo) arr = arr.filter(p => !catDone(p));
+    const noBcN = act.filter(p => !barcodesOf(p).length).length;
+    if (!noBcN) catNoBc = false;
+    if (catNoBc) arr = arr.filter(p => !barcodesOf(p).length);
     const inc = act.filter(p => p.incomplete).length;
     if (!inc) catIncomplete = false;
     if (catIncomplete) arr = arr.filter(p => p.incomplete);
     const withBc = act.filter(p => barcodesOf(p).length).length;
     const sum = document.getElementById('catSum');
-    if (sum) sum.innerHTML = `<span>${fmtNum(act.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><span class="cat-no">🔴 بلا باركود ${fmtNum(act.length - withBc)}</span><button type="button" class="cat-unc ${catTodo ? 'on' : ''}" onclick="catTodo = !catTodo; renderCatalog()" title="إخفاء المواد المسعّرة وبباركود وإبقاء غير المكتملة فقط">⏳ غير المكتملة ${fmtNum(todoN)}</button>${inc ? `<button type="button" class="cat-unc ${catIncomplete ? 'on' : ''}" onclick="catIncomplete = !catIncomplete; renderCatalog()">✏️ ناقصة التفاصيل ${fmtNum(inc)}</button>` : ''}${setupMode ? `<button type="button" class="cat-unc ${catUncounted ? 'on' : ''}" onclick="catToggleUnc()">🧮 لم تُجرد ${fmtNum(unc)} من ${fmtNum(act.length)}</button>` : ''}${archN ? `<button type="button" class="cat-unc ${catArch ? 'on' : ''}" onclick="catArch = !catArch; catSel.clear(); renderCatalog()" title="المواد المؤرشفة (خارج السجل لحين إدخالها بفاتورة وارد)">🗄️ الأرشيف ${fmtNum(archN)}</button>` : ''}${can('stockEdit') ? `<button type="button" class="cat-unc ${catSelMode ? 'on' : ''}" onclick="catSelToggleMode()" title="تحديد عدة مواد لإلغاء اعتمادها أو أرشفتها دفعة واحدة">☑️ تحديد</button>` : ''}${catSelMode ? catBulkBar(arr) : ''}`;
+    if (sum) sum.innerHTML = `<span>${fmtNum(act.length)} مادة</span><span class="cat-ok">🟢 بباركود ${fmtNum(withBc)}</span><button type="button" class="cat-unc ${catNoBc ? 'on' : ''}" onclick="catNoBc = !catNoBc; renderCatalog()" title="عرض المواد التي بلا باركود فقط">🔴 بلا باركود ${fmtNum(act.length - withBc)}</button><button type="button" class="cat-unc ${catTodo ? 'on' : ''}" onclick="catTodo = !catTodo; renderCatalog()" title="إخفاء المواد المسعّرة وبباركود وإبقاء غير المكتملة فقط">⏳ غير المكتملة ${fmtNum(todoN)}</button>${inc ? `<button type="button" class="cat-unc ${catIncomplete ? 'on' : ''}" onclick="catIncomplete = !catIncomplete; renderCatalog()">✏️ ناقصة التفاصيل ${fmtNum(inc)}</button>` : ''}${setupMode ? `<button type="button" class="cat-unc ${catUncounted ? 'on' : ''}" onclick="catToggleUnc()">🧮 لم تُجرد ${fmtNum(unc)} من ${fmtNum(act.length)}</button>` : ''}${archN ? `<button type="button" class="cat-unc ${catArch ? 'on' : ''}" onclick="catArch = !catArch; catSel.clear(); renderCatalog()" title="المواد المؤرشفة (خارج السجل لحين إدخالها بفاتورة وارد)">🗄️ الأرشيف ${fmtNum(archN)}</button>` : ''}${can('stockEdit') ? `<button type="button" class="cat-unc ${catSelMode ? 'on' : ''}" onclick="catSelToggleMode()" title="تحديد عدة مواد لإلغاء اعتمادها أو أرشفتها دفعة واحدة">☑️ تحديد</button>` : ''}${catSelMode ? catBulkBar(arr) : ''}`;
     const sb = document.getElementById('catSetup');
     if (sb) {
         const own = userRole === 'owner', sw = `<label class="setup-sw ${own ? '' : 'ro'}" title="${own ? 'تشغيل / إيقاف وضع التأسيس' : 'للمالك فقط'}"><input type="checkbox" ${setupMode ? 'checked' : ''} ${own ? '' : 'disabled'} onchange="toggleSetupMode(this.checked)"><i></i></label>`;
