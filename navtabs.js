@@ -40,6 +40,6 @@
     // تصفير عند تغيير الشاشة (لا يمس الرجوع نفسه)
     if (typeof window.showView === 'function') {
         const sv = window.showView;
-        window.showView = function (v) { if (typeof currentView !== 'undefined' && v !== currentView && !window.__navBack) { stack.length = 0; fresh = true; setTimeout(() => { fresh = false; }, 0); } return sv.apply(this, arguments); };
+        window.showView = function (v) { if (typeof currentView !== 'undefined' && v !== currentView && !window.__navBack) { try { if (window.__shStale) window.__shStale(); } catch (e) { /* تجاهل */ } stack.length = 0; fresh = true; setTimeout(() => { fresh = false; }, 0); } return sv.apply(this, arguments); };
     }
 })();

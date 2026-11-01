@@ -17,6 +17,8 @@ const SH_PAGES = [
 // في الصفحة التي كنت فيها، لا أن نتركك في الرئيسية. kind: 'layer' نافذة (تُراقَب) أو 'view' شاشة (تُعاد بزر الرجوع).
 let shRet = null;
 function shLeave(kind) {
+    const m = document.getElementById('catModal');
+    if (!m || !m.style.display || m.style.display === 'none') { shRet = null; return; }   // لم نأتِ من الإعدادات (مثلاً من الرئيسية): لا نعيدك إليها
     shRet = { page: typeof shCur !== 'undefined' ? shCur : null, kind, seen: false, t: Date.now() };
     try { closeCategoryManager(); } catch (e) { /* تجاهل */ }
 }
@@ -30,6 +32,7 @@ function shReturn(src) {
     try { openCategoryManager(); if (r.page) shOpen(r.page); } catch (e) { /* تجاهل */ }
 }
 window.__shRetClear = () => { shRet = null; };
+window.__shStale = () => { if (shRet && shRet.kind === 'view' && shRet.seen) shRet = null; };   // انتقلتَ لشاشة أخرى بنفسك بعد مغادرة الإعدادات: لا تُعاد الإعدادات لاحقاً
 window.__shReturn = shReturn;
 setInterval(() => { if (shRet) shReturn(); }, 350);
 function shGoInvSettings() { shLeave('view'); showView('bill'); billTab('settings'); }
