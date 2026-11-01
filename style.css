@@ -3405,3 +3405,11 @@ body.pv-on { padding-bottom: 76px; }
 /* v392: سعر خاص لكل دفعة */
 .qp-bt .qb-p { flex: 1.1; min-width: 0; }
 .sp-row .sp-pr { grid-column: 1 / -1; font-size: .72rem; font-weight: 800; color: #0f766e; }
+
+/* v395: بطاقة الدفعة (تاريخ + عدد، وتحتها السعر الخاص) */
+.qp-bt { display: grid; gap: 6px; margin-top: 8px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; }
+.qp-bt .qb-r1 { display: flex; gap: 6px; align-items: center; } .qp-bt .qb-r1 .qb-e { flex: 1.4; min-width: 0; } .qp-bt .qb-r1 .qb-q { flex: 1; min-width: 0; }
+.qp-bt .qb-r2 { display: grid; gap: 3px; font-size: .74rem; font-weight: 800; color: #475569; } .qp-bt .qb-r2 input { width: 100%; box-sizing: border-box; }
+.qp-bt-hint { display: block; margin-top: 4px; font-size: .74rem; font-weight: 600; line-height: 1.7; color: #64748b; }
+.fbt-pr { grid-column: 1 / -1; display: grid; gap: 3px; font-size: .74rem; font-weight: 800; color: #475569; } .fbt-pr input { width: 100%; box-sizing: border-box; }
+.fbt-hint { display: block; margin-bottom: 6px; font-size: .74rem; font-weight: 600; line-height: 1.7; color: #64748b; }

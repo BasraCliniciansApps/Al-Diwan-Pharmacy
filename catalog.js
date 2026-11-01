@@ -353,7 +353,6 @@ function catPriceHtml(p, isNew, pre) {
             <div class="qf"><span>العدد (عبوات)</span><div class="qstep"><button type="button" id="qpMinus">−</button><input id="qpQty" type="number" inputmode="numeric" min="0" value="${p ? (parseInt(p.qty) || 0) : 0}" onfocus="this.select()"><button type="button" id="qpPlus">+</button></div></div>
             <div class="qf"><span>الباركود</span><div class="qbc"><input id="qpBc" class="qin ltr" dir="ltr" inputmode="numeric" value="${escapeHtml(p ? (barcodesOf(p)[0] || '') : preBc)}" placeholder="اكتب أو امسح"><button type="button" id="qpScan" aria-label="مسح">▦</button></div></div>
         </div>
-        ${true ? '<div class="qf qrow" id="qpBtW"><span>الدفعات (تاريخ النفاذ + العدد) — اختياري، يُحسب العدد الكلي منها</span><div id="qpBt"></div><button type="button" class="qp-addbt" id="qpBtAdd">＋ إضافة دفعة</button></div>' : ''}
         <div class="qsep"></div>
         <div class="qf qrow"><span>طريقة التسعير</span><select id="qpMode" class="qin"><option value="manual">تسعيرة وزارة الصحة (الملصق)</option><option value="free">يدوي</option><option value="syndicate">حسب كتاب النقابة (سعر المذخر + نسبة)</option><option value="percent">بنسبة مئوية أدخلها أنا</option></select></div>
         <div class="qg2 qrow">
@@ -370,6 +369,7 @@ function catPriceHtml(p, isNew, pre) {
             </div>
             <div class="qf qrow"><span>أجزاء مفتوحة من عبوة (تتحول لعلب إذا زادت عن عدد الأجزاء)</span><input id="qpLoose" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${p ? (parseInt(p.loose) || 0) : 0}"></div>
         </div>
+        <div class="qf qrow" id="qpBtW"><span>الدفعات (تاريخ النفاذ + العدد) — اختياري، يُحسب العدد الكلي منها</span><small class="qp-bt-hint">اترك «سعر هذه الدفعة» فارغاً لتُباع بسعر المادة أعلاه. اكتبه فقط إذا كان سعر ملصق هذه الدفعة مختلفاً.</small><div id="qpBt"></div><button type="button" class="qp-addbt" id="qpBtAdd">＋ إضافة دفعة</button></div>
     </div>`;
 }
 function catPriceWire(p) {
@@ -396,7 +396,7 @@ function catPriceWire(p) {
         const add = (e0, q0, p0) => {
             if (typeof e0 !== 'string') e0 = '';
             const r = document.createElement('div'); r.className = 'qp-bt';
-            r.innerHTML = '<input type="month" class="qin ltr qb-e" dir="ltr" aria-label="تاريخ النفاذ"><input type="number" inputmode="numeric" min="0" class="qin ltr qb-q" dir="ltr" placeholder="العدد" aria-label="عدد الدفعة"><input type="number" inputmode="numeric" min="0" class="qin ltr qb-p" dir="ltr" placeholder="سعر العبوة" aria-label="سعر بيع هذه الدفعة (اختياري)"><button type="button" class="qb-x" aria-label="حذف الدفعة">✕</button>';
+            r.innerHTML = '<div class="qb-r1"><input type="month" class="qin ltr qb-e" dir="ltr" aria-label="تاريخ النفاذ"><input type="number" inputmode="numeric" min="0" class="qin ltr qb-q" dir="ltr" placeholder="العدد" aria-label="عدد الدفعة"><button type="button" class="qb-x" aria-label="حذف الدفعة">✕</button></div><label class="qb-r2"><span>سعر هذه الدفعة (اختياري)</span><input type="number" inputmode="numeric" min="0" class="qin ltr qb-p" dir="ltr" placeholder="مثال: 13750" aria-label="سعر بيع هذه الدفعة (اختياري)"></label>';
             r.querySelector('.qb-q').addEventListener('input', sum);
             const x = r.querySelector('.qb-x'); let armed = 0;
             x.addEventListener('click', () => { if (armed) { r.remove(); sum(); } else { armed = 1; x.classList.add('sure'); x.textContent = 'تأكيد'; setTimeout(() => { armed = 0; x.classList.remove('sure'); x.textContent = '✕'; }, 3000); } });

@@ -2164,14 +2164,15 @@ function fbtSync() {
 function fbtRender() {
     const wrap = document.getElementById('expiryDatesWrap'); if (!wrap) return;
     const sc = fbtSc();
-    wrap.innerHTML = formBt.map((b, i) => `<div class="expiry-row fbt-row">
+    wrap.innerHTML = '<small class="fbt-hint">اترك «سعر هذه الدفعة» فارغاً لتُباع بسعر المادة. اكتبه فقط إذا كان سعر ملصق الدفعة مختلفاً.</small>' + formBt.map((b, i) => `<div class="expiry-row fbt-row">
         <input type="month" dir="ltr" class="expiry-input" value="${escapeHtml(b.e || '')}" onchange="fbtSet(${i}, 'e', this.value)" aria-label="تاريخ النفاذ">
         <label><span>علب</span><input type="number" inputmode="numeric" min="0" value="${parseInt(b.q) || 0}" onchange="fbtSet(${i}, 'q', this.value)"></label>
         ${sc > 1 ? `<label><span>أجزاء</span><input type="number" inputmode="numeric" min="0" value="${parseInt(b.l) || 0}" onchange="fbtSet(${i}, 'l', this.value)"></label>` : ''}
-        <button type="button" class="icon-btn expiry-remove" onclick="fbtDel(${i})" title="حذف هذه الدفعة">✕</button></div>`).join('') + '<div id="fbtTot" class="fbt-tot"></div>';
+        <button type="button" class="icon-btn expiry-remove" onclick="fbtDel(${i})" title="حذف هذه الدفعة">✕</button>
+        <label class="fbt-pr"><span>سعر هذه الدفعة (اختياري)</span><input type="number" inputmode="numeric" min="0" value="${b.pr > 0 ? b.pr : ''}" placeholder="مثال: 13750" onchange="fbtSet(${i}, 'pr', this.value)"></label></div>`).join('') + '<div id="fbtTot" class="fbt-tot"></div>';
     fbtSync();
 }
-function fbtSet(i, f, v) { if (!formBt[i]) return; formBt[i][f] = f === 'e' ? v : Math.max(0, parseInt(v) || 0); fbtSync(); }
+function fbtSet(i, f, v) { if (!formBt[i]) return; formBt[i][f] = f === 'e' ? v : Math.max(0, parseInt(v) || 0); if (f === 'pr') return; fbtSync(); }
 function fbtDel(i) { formBt.splice(i, 1); fbtRender(); }
 function addExpiryRow(value = '') { formBt.push({ e: value || '', q: 0, l: 0 }); fbtRender(); }
 function fbtAddDate(d) {   // تاريخ مقروء (من الذكاء الاصطناعي): يأخذ الكمية غير الموزّعة إن وُجدت
