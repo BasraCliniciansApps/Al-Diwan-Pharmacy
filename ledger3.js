@@ -41,6 +41,13 @@ function lgBonusRows() {
     lgAll.filter(e => e.kind === 'bimp' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.rep ? 'مندوب ' + e.rep : (e.supplier || 'بدون مذخر'), no: e.linkNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: puNum(e.sale), createdTs: e.createdTs, xid: e.id, bi: true }));
     return { rg, rows: rows.sort(lgSortD) };
 }
+// قيمة بونص سطر بسعر البيع بعد طرح ما أُرجع إلى المذخر (نفس حساب سجل البونص)
+function lgBonusSaleNet(r, l, pool) {
+    const q0 = parseInt(l.bonus) || 0; if (q0 <= 0) return puNum(l.bonusSale);
+    const k = r.id + '|' + l.pid; if (!(k in pool)) pool[k] = lgReturnedBonus(r.id, l.pid);
+    const take = Math.min(pool[k], q0); pool[k] -= take;
+    return puNum(l.bonusSale) * (q0 - take) / q0;
+}
 function lgRenderBonus() {
     if (!$b('lgb-list')) return;
     const { rg, rows } = lgBonusRows(), t = k => rows.reduce((s, x) => s + x[k], 0);
