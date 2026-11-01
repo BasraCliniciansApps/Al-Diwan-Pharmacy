@@ -177,7 +177,7 @@ function lblRefresh() {
     $('lbCust').hidden = c.sheet !== 'custom'; $('lbShopW').style.display = c.shop ? '' : 'none';
     const ok = lblSt.items.filter(i => i.bc), no = lblSt.items.filter(i => !i.bc && i.id !== undefined);
     $('lbSum').innerHTML = `المواد: <b>${ok.length}</b> بباركود${no.length ? ` · <b style="color:#b91c1c">${no.length}</b> بلا باركود (لن تُطبع)` : ''}`;
-    $('lbGenW').innerHTML = no.length && lblCan() ? `<button type="button" class="lbl-gen" id="lbGen">⚙ توليد باركود وحفظه لـ ${no.length} مادة</button>` : '';
+    $('lbGenW').innerHTML = no.length && lblCan() ? `<button type="button" class="lbl-gen" id="lbGen">⚙ توليد الباركود<b class="lbl-bdg">${no.length}</b></button><small class="lbl-gen-n">يُنشأ باركود داخلي ويُحفظ لـ ${no.length} مادة بلا باركود.</small>` : '';
     const g = $('lbGen'); if (g) g.onclick = lblGenAll;
     const r = lblPagesHtml(c, ok.length ? ok : [{ name: 'اسم المادة', price: 5000, bc: '2000000000015' }], true), full = lblPagesHtml(c, ok, false), geo = lblGeom(c);
     const pv = $('lbPv'), s = Math.max(.2, (pv.clientWidth || 300) / (210 * 3.7795));

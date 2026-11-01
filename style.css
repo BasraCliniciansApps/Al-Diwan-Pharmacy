@@ -3462,3 +3462,16 @@ body.pv-on { padding-bottom: 76px; }
 .fs-scan .scan-chev { color: #94a3b8; transition: transform .15s; } .fs-scan.fs-open .scan-chev { transform: rotate(180deg); }
 [data-theme="dark"] .fs-bcTop { background: #1e293b; border-color: #334155; }
 .fs-scan:not(.fs-open) .scan-engine { display: none; }
+
+/* v400: أزرار موحّدة — عنوان قصير بسطر واحد + سطر شرح صغير */
+.tools-grid > .icon-btn { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 72px; padding: 10px 28px; }
+.tools-grid > .icon-btn .tl-ico { font-size: 1.15rem; line-height: 1; }
+.tools-grid > .icon-btn .tl-t { font-weight: 800; font-size: .88rem; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tools-grid > .icon-btn .tl-sub { font-size: .68rem; font-weight: 600; color: var(--text-sub, #64748b); line-height: 1.3; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#catModal .tools-grid > button.inf-has { min-height: 72px; padding-left: 28px !important; padding-right: 28px !important; }
+.lbl-gen { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 48px; padding: 0 16px; white-space: nowrap; box-sizing: border-box; }
+.lbl-bdg { min-width: 24px; height: 22px; padding: 0 7px; border-radius: 11px; background: #f5a524; color: #0f1c38; font-size: .74rem; display: inline-flex; align-items: center; justify-content: center; }
+.lbl-gen-n { display: block; margin-top: 4px; font-size: .72rem; color: #64748b; text-align: center; }
+.lbl-pop .swal2-actions { gap: 10px; width: 100%; padding: 0 12px; box-sizing: border-box; flex-direction: row-reverse; }
+.lbl-pop .swal2-actions button { flex: 1; height: 48px; margin: 0; border-radius: 12px; font-weight: 800; box-sizing: border-box; }
+.lbl-pop .swal2-cancel { background: #fff !important; color: #0f1c38 !important; border: 1.5px solid #cbd5e1 !important; }
