@@ -277,7 +277,7 @@ let startupPending = false;     // كتابات من جلسة سابقة ما ز
 let syncErrMsg = '';
 let lastSyncAt = (() => { try { return localStorage.getItem('diwanLastSync') || ''; } catch (e) { return ''; } })();
 function fv() { try { return (window.firebase && firebase.firestore && firebase.firestore.FieldValue) || null; } catch (e) { return null; } }
-function writesAllowed() { if (navigator.onLine || persistenceOn) return true; return requireOnline(); }
+function writesAllowed() { if (window.__pvOn) { try { Swal.fire({ icon: 'info', title: 'وضع المعاينة', text: 'العمليات معطّلة أثناء معاينة صفحة المستخدم.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); } catch (e) { /* تجاهل */ } return false; } if (navigator.onLine || persistenceOn) return true; return requireOnline(); }
 function markSynced() { lastSyncAt = new Date().toISOString(); try { localStorage.setItem('diwanLastSync', lastSyncAt); } catch (e) { /* تجاهل */ } }
 function syncRefresh() {
     let state, txt;

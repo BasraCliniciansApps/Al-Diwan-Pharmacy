@@ -155,8 +155,9 @@ async function userCreate(name, pin, perms, replaceUid) {
 async function userEdit(uid) {
     const u = usersCache.find(x => x.uid === uid); if (!u) return;
     const r = await Swal.fire({ title: 'تعديل ' + escapeHtml(u.name), showCancelButton: true, showDenyButton: true, confirmButtonText: 'حفظ', denyButtonText: '🗑 حذف', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
-        html: `<div class="sw-form"><small>الصلاحيات:</small>${permBoxes(u.perms)}<label class="pu-chk"><input type="checkbox" id="uActive" ${u.active === false ? '' : 'checked'}><span>الحساب فعّال</span></label><label>رمز سري جديد (اتركه فارغاً بلا تغيير)<input id="uPin" class="swal2-input" dir="ltr" autocomplete="off"></label></div>`,
+        footer: `<button type="button" class="bill-tb-btn" onclick="window.__pvGo='${uid}';Swal.close()">👁 معاينة صفحة هذا المستخدم</button>`, html: `<div class="sw-form"><small>الصلاحيات:</small>${permBoxes(u.perms)}<label class="pu-chk"><input type="checkbox" id="uActive" ${u.active === false ? '' : 'checked'}><span>الحساب فعّال</span></label><label>رمز سري جديد (اتركه فارغاً بلا تغيير)<input id="uPin" class="swal2-input" dir="ltr" autocomplete="off"></label></div>`,
         preConfirm: () => { const pin = document.getElementById('uPin').value.trim(); if (pin && pin.length < 6) { Swal.showValidationMessage('الرمز 6 خانات على الأقل'); return false; } return { pin, perms: readPerms(), active: document.getElementById('uActive').checked }; } });
+    if (window.__pvGo) { const g = window.__pvGo; window.__pvGo = null; return userPreview(g); }
     if (r.isDenied) {
         const c = await Swal.fire({ icon: 'warning', title: 'حذف ' + escapeHtml(u.name) + '؟', text: 'لن يستطيع الدخول بعد الآن.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
         if (c.isConfirmed) { try { await db.collection('pharmacy_users').doc(uid).delete(); if (u.login) await db.collection('pharmacy_logins').doc(u.login).delete(); } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message, confirmButtonColor: '#0f1c38' }); } }
@@ -168,5 +169,40 @@ async function userEdit(uid) {
         await db.collection('pharmacy_users').doc(uid).update({ perms: r.value.perms, active: r.value.active });
         if (u.login) { if (r.value.active) await db.collection('pharmacy_logins').doc(u.login).set({ email: u.email }); else await db.collection('pharmacy_logins').doc(u.login).delete(); }
     } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحفظ', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
+    openUsers();
+}
+
+// ---------- معاينة صفحة مستخدم (للمالك): عرض فقط، تُمنع كل عمليات الكتابة ----------
+let pvSaved = null;
+const PV_MSG = 'وضع المعاينة: العمليات معطّلة';
+const pvOrig = {};
+function pvBlock(on) {
+    try {
+        const F = firebase.firestore, targets = [['DocumentReference', ['set', 'update', 'delete']], ['WriteBatch', ['commit']], ['Firestore', ['runTransaction']]];
+        targets.forEach(([cn, names]) => names.forEach(n => { const proto = F[cn] && F[cn].prototype; if (!proto || !proto[n]) return;
+            const k = cn + '.' + n;
+            if (on) { if (!pvOrig[k]) { pvOrig[k] = proto[n]; proto[n] = function () { return Promise.reject(new Error(PV_MSG)); }; } }
+            else if (pvOrig[k]) { proto[n] = pvOrig[k]; delete pvOrig[k]; }
+        }));
+    } catch (e) { /* تجاهل */ }
+}
+function userPreview(uid) {
+    const u = usersCache.find(x => x.uid === uid); if (!u || pvSaved) return;
+    pvSaved = { role: userRole, perms: userPerms, name: userName };
+    userRole = 'staff'; userPerms = Object.assign({}, u.perms || {}); userName = u.name || '';
+    pvBlock(true); window.__pvOn = true;
+    const d = document.createElement('div'); d.id = 'pvBar'; d.className = 'pv-bar'; d.dir = 'rtl';
+    d.innerHTML = `<span>👁 معاينة: <b>${escapeHtml(u.name || '')}</b> — عرض فقط</span><button type="button" onclick="userPreviewExit()">خروج من المعاينة</button>`;
+    document.body.appendChild(d);
+    try { applyRoleUI(); } catch (e) { /* تجاهل */ }
+    showView('home'); try { renderAll(); } catch (e) { /* تجاهل */ }
+}
+function userPreviewExit() {
+    if (!pvSaved) return;
+    userRole = pvSaved.role; userPerms = pvSaved.perms; userName = pvSaved.name; pvSaved = null; window.__pvOn = false;
+    pvBlock(false);
+    const d = document.getElementById('pvBar'); if (d) d.remove();
+    try { applyRoleUI(); } catch (e) { /* تجاهل */ }
+    showView('home'); try { renderAll(); } catch (e) { /* تجاهل */ }
     openUsers();
 }
