@@ -3382,3 +3382,7 @@ button.cat-pick.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
 .help-count { font-size: .78rem; font-weight: 800; color: var(--text-sub); }
 .help-empty { padding: 30px 10px; text-align: center; color: var(--text-sub); font-size: .88rem; line-height: 1.8; }
 @media (max-width: 340px) { .help-grid { grid-template-columns: 1fr; } }
+
+/* v381: إرجاع البونص ضمن مردود الوارد */
+.lg-line .lg-bon { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 110px; gap: 6px; align-items: center; padding-top: 6px; border-top: 1px dashed #e2e8f0; }
+.lg-line .lg-bon .pu-chk input { width: 20px; }

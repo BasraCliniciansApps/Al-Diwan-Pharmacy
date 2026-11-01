@@ -49,6 +49,7 @@ async function lgSyncLocal() {
 const lgRets = () => lgAll.filter(e => e.kind === 'ret' && !e.del);
 function lgLinkedRet(pid, mode) { return lgRets().filter(e => e.listId === pid && (mode === 'all' || e.mode === mode)).reduce((s, e) => s + puNum(e.amount), 0); }
 function lgReturnedQty(pid, productId) { let n = 0; lgRets().filter(e => e.listId === pid).forEach(e => (e.items || []).forEach(l => { if (l.pid === productId) n += puNum(l.qty); })); return n; }
+function lgReturnedBonus(pid, productId) { let n = 0; lgRets().filter(e => e.listId === pid).forEach(e => (e.items || []).forEach(l => { if (l.pid === productId) n += puNum(l.bq); })); return n; }   // البونص المُرجَع سابقاً لمادة ضمن قائمة
 function lgClosedSet() { return new Set(lgAll.filter(e => e.kind === 'close' && !e.del).map(e => e.month)); }
 function puMonthOf(r) {   // شهر القائمة: تاريخ القائمة، أو تاريخ الإدخال إن اختار الصيدلي ذلك
     if (r && r.useEntry) { const d = r.createdTs ? new Date(r.createdTs) : new Date(); return d.getFullYear() + '-' + lgPad(d.getMonth() + 1); }
@@ -301,7 +302,7 @@ function lgLinkedHtml(pid) {
 function lgRetOpen(id) {
     const e = lgAll.find(x => x.id === id); if (!e) return;
     const btn = (label, fn, cls) => `<button type="button" class="bill-tb-btn ${cls || ''}" onclick="Swal.close();${fn}">${label}</button>`;
-    const rows = (e.items || []).map(l => `<tr><td dir="ltr">${escapeHtml(l.name)}</td><td>${fmtNum(l.qty)}</td><td>${fmtNum(l.cost)}</td><td>${fmtNum(puNum(l.qty) * puNum(l.cost))}</td></tr>`).join('');
+    const rows = (e.items || []).map(l => `<tr><td dir="ltr">${escapeHtml(l.name)}</td><td>${fmtNum(l.qty)}${puNum(l.bq) > 0 ? ` <em class="tg">+ بونص ${fmtNum(l.bq)}</em>` : ''}</td><td>${fmtNum(l.cost)}</td><td>${fmtNum(puNum(l.qty) * puNum(l.cost))}</td></tr>`).join('');
     Swal.fire({
         title: escapeHtml(e.supplier) + ' — ' + fmtNum(e.amount) + ' د.ع', showConfirmButton: false, showCloseButton: true, width: 620,
         html: `<div class="pu-detail"><div class="pu-d-meta">${escapeHtml(fmtDateDMY(e.date))} • ${e.listNo ? 'قائمة ' + escapeHtml(e.listNo) : 'مردود عام'}${e.reason ? ' • ' + escapeHtml(e.reason) : ''}</div>
@@ -352,7 +353,7 @@ async function lgDelRet(id) {
     if (hasStock && r.value) {
         if (!writesAllowed()) return;
         const snaps = new Map(), touched = [];
-        e.items.forEach(l => { const p = products.find(x => x.id === l.pid); if (!p || setupSkip(p)) return; if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); p.qty = (parseInt(p.qty) || 0) + puNum(l.qty); touched.push(p); });
+        e.items.forEach(l => { const p = products.find(x => x.id === l.pid); if (!p || setupSkip(p)) return; if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); p.qty = (parseInt(p.qty) || 0) + puNum(l.qty) + puNum(l.bq); touched.push(p); });
         if (touched.length && !(await saveProductsDelta([...new Set(touched)].map(p => deltaFromSnap(p, snaps.get(p.id)))))) { touched.forEach(p => { p.qty = snaps.get(p.id).qty; }); return; }
         renderAll();
     }
@@ -417,7 +418,7 @@ function lgrFillLists(sel) {
 }
 function lgrLoadListLines(r) {
     lgr.lines = lgr.lines.filter(l => !l.fromList);
-    const add = (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: 0, cost: l.cost, max: Math.max(puNum(l.qty) - lgReturnedQty(r.id, l.pid), 0), fromList: true }));
+    const add = (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: 0, cost: l.cost, max: Math.max(puNum(l.qty) - lgReturnedQty(r.id, l.pid), 0), bmax: Math.max(puNum(l.bonus) - lgReturnedBonus(r.id, l.pid), 0), bon: false, bq: 0, fromList: true }));
     lgr.lines = add.concat(lgr.lines);
 }
 function lgrSupChanged() { lgrFillLists(''); lgr.lines = lgr.lines.filter(l => !l.fromList); lgrRender(); lgrAutoMode(); }
@@ -444,9 +445,11 @@ function lgrRender() {
     box.innerHTML = lgr.lines.length ? `<div class="lg-lines">${lgr.lines.map((l, i) => `<div class="lg-line"><div class="lg-ln"><b dir="ltr">${escapeHtml(l.name)}</b>${l.fromList ? `<small>المتاح للإرجاع من القائمة: ${fmtNum(l.max)}</small>` : '<small>من المخزن</small>'}</div>
         <input type="number" min="0" ${l.fromList ? 'max="' + l.max + '"' : ''} inputmode="numeric" placeholder="العدد" value="${l.qty || ''}" oninput="lgr.lines[${i}].qty=parseInt(this.value)||0;lgrRecalc()">
         <input type="number" min="0" inputmode="decimal" placeholder="السعر" value="${l.cost || ''}" oninput="lgr.lines[${i}].cost=parseFloat(this.value)||0;lgrRecalc()">
-        ${l.fromList ? '' : `<button type="button" class="pu-x" onclick="lgr.lines.splice(${i},1);lgrRender()" aria-label="حذف">✕</button>`}</div>`).join('')}</div>` : '<div class="bill-none">اختر قائمة شراء لإظهار موادها، أو ابحث عن مادة لإضافتها.</div>';
+        ${l.fromList ? '' : `<button type="button" class="pu-x" onclick="lgr.lines.splice(${i},1);lgrRender()" aria-label="حذف">✕</button>`}
+        ${l.bmax > 0 ? `<div class="lg-bon"><label class="pu-chk"><input type="checkbox" ${l.bon ? 'checked' : ''} onchange="lgrBonTog(${i},this.checked)"><span>إرجاع البونص أيضاً (المتاح ${fmtNum(l.bmax)})</span></label>${l.bon ? `<input type="number" min="1" max="${l.bmax}" inputmode="numeric" placeholder="كمية البونص" value="${l.bq || ''}" oninput="lgr.lines[${i}].bq=Math.min(parseInt(this.value)||0,${l.bmax})">` : ''}</div>` : ''}</div>`).join('')}</div>` : '<div class="bill-none">اختر قائمة شراء لإظهار موادها، أو ابحث عن مادة لإضافتها.</div>';
     lgrRecalc();
 }
+function lgrBonTog(i, on) { const l = lgr.lines[i]; l.bon = !!on; l.bq = on ? l.bmax : 0; lgrRender(); }   // الافتراضي: كل البونص المتاح
 const lgrAuto = () => lgr.lines.filter(l => l.qty > 0).reduce((s, l) => s + l.qty * (l.cost || 0), 0);
 function lgrRecalc() { if (!lgr) return; const a = lgrAuto(); $b('lgrAmount').placeholder = a ? String(a) : '0'; $b('lgrTotal').innerHTML = 'مجموع المواد: <b>' + fmtNum(a) + '</b>'; }
 function lgrSearchInput() {
@@ -464,25 +467,26 @@ function lgrAddProd(id) {
 }
 async function lgrSave() {
     if (!lgr) return;
-    const sup = $b('lgrSup').value.trim(), date = $b('lgrDate').value || todayLocalISO(), lines = lgr.lines.filter(l => l.qty > 0);
+    const sup = $b('lgrSup').value.trim(), date = $b('lgrDate').value || todayLocalISO(), lines = lgr.lines.filter(l => l.qty > 0 || (l.bon && l.bq > 0)); lines.forEach(l => { l.bq = l.bon ? (l.bq || 0) : 0; });
+    const hasBq = lines.some(l => l.bq > 0);
     const amt = parseFloat($b('lgrAmount').value) > 0 ? parseFloat($b('lgrAmount').value) : lgrAuto();
     const warn = t => Swal.fire({ icon: 'warning', title: t, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
     if (!sup) return warn('اكتب اسم المذخر');
-    if (!(amt > 0)) return warn('أدخل مواداً بأسعارها أو اكتب المبلغ الكلي');
+    if (!(amt > 0) && !hasBq) return warn('أدخل مواداً بأسعارها أو اكتب المبلغ الكلي');
     const list = lgr.listId ? puAll.find(x => x.id === lgr.listId) : null;
-    if (list) { const over = lines.find(l => l.fromList && l.qty > l.max); if (over) return warn('الكمية أكبر من المتاح للإرجاع في «' + over.name + '»'); }
+    if (list) { const over = lines.find(l => l.fromList && l.qty > l.max); if (over) return warn('الكمية أكبر من المتاح للإرجاع في «' + over.name + '»'); const ob = lines.find(l => l.bq > (l.bmax || 0)); if (ob) return warn('كمية البونص أكبر من المتاح في «' + ob.name + '»'); }
     const deduct = $b('lgrDeduct').checked && lines.length > 0;
     if (deduct) {
         if (!writesAllowed()) return;
-        const short = lines.filter(l => { const p = products.find(x => x.id === l.pid); return p && !setupSkip(p) && l.qty > (parseInt(p.qty) || 0); });
+        const short = lines.filter(l => { const p = products.find(x => x.id === l.pid); return p && !setupSkip(p) && (l.qty + (l.bq || 0)) > (parseInt(p.qty) || 0); });
         if (short.length) { const r = await Swal.fire({ icon: 'question', title: 'الكمية أكبر من الموجود في المخزن', text: short.map(l => l.name).join('، ') + ' — سيصبح رصيدها صفراً. متابعة؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'متابعة', cancelButtonText: 'رجوع' }); if (!r.isConfirmed) return; }
         const snaps = new Map(), touched = [];
-        lines.forEach(l => { const p = products.find(x => x.id === l.pid); if (!p || setupSkip(p)) return; if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); p.qty = Math.max((parseInt(p.qty) || 0) - l.qty, 0); touched.push(p); });
+        lines.forEach(l => { const p = products.find(x => x.id === l.pid); if (!p || setupSkip(p)) return; if (!snaps.has(p.id)) snaps.set(p.id, { qty: p.qty, loose: p.loose, costPrice: p.costPrice, expiryDates: p.expiryDates, expiryDate: p.expiryDate, lastPurchase: p.lastPurchase }); p.qty = Math.max((parseInt(p.qty) || 0) - l.qty - (l.bq || 0), 0); touched.push(p); });
         if (touched.length && !(await saveProductsDelta([...new Set(touched)].map(p => deltaFromSnap(p, snaps.get(p.id)))))) { touched.forEach(p => { p.qty = snaps.get(p.id).qty; }); renderAll(); return; }
         lines.forEach(l => { const p = products.find(x => x.id === l.pid); const o = snaps.get(l.pid); if (p && o) logAction('qty', p, [{ f: 'الكمية (مردود إلى ' + sup + ')', from: String(o.qty), to: String(p.qty) }]); });
         renderAll();
     }
-    const ev = { id: lgId(), kind: 'ret', date, supplier: sup, listId: list ? list.id : '', listNo: list ? list.no : '', items: lines.map(l => ({ pid: l.pid, name: l.name, qty: l.qty, cost: l.cost || 0 })), amount: amt, reason: $b('lgrReason').value, note: $b('lgrNote').value.trim(), mode: $b('lgrMode').value, cnNo: $b('lgrCn').value.trim(), cnDate: $b('lgrCn').value.trim() ? ($b('lgrCnDate').value || date) : '', stmt: $b('lgrStmt').checked, stockOut: deduct, deductMonth: '', createdTs: new Date().toISOString() };
+    const ev = { id: lgId(), kind: 'ret', date, supplier: sup, listId: list ? list.id : '', listNo: list ? list.no : '', items: lines.map(l => ({ pid: l.pid, name: l.name, qty: l.qty, cost: l.cost || 0, bq: l.bq || 0 })), amount: amt, reason: $b('lgrReason').value, note: $b('lgrNote').value.trim(), mode: $b('lgrMode').value, cnNo: $b('lgrCn').value.trim(), cnDate: $b('lgrCn').value.trim() ? ($b('lgrCnDate').value || date) : '', stmt: $b('lgrStmt').checked, stockOut: deduct, deductMonth: '', createdTs: new Date().toISOString() };
     await lgSave(ev);
     await puUpsertSupplier(sup);
     lgrClose();

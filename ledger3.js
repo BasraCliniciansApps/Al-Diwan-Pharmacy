@@ -30,10 +30,12 @@ const lgItemsTxt = e => (e.items || []).map(l => l.name + ' ×' + l.qty).join('�
 // =====================================================================
 function lgInitBonus() { lgRgInit('lgb'); lgFillSupSelect('lgbSup'); lgRenderBonus(); }
 function lgBonusRows() {
-    const rg = lgRg('lgb'), sup = $b('lgbSup').value, rows = [];
+    const rg = lgRg('lgb'), sup = $b('lgbSup').value, rows = [], bpool = {};
     puAll.filter(r => !r.cancelled && lgInR(rg, r.useEntry ? puMonthOf(r) + '-01' : r.date) && (!sup || puKey(r.supplier) === puKey(sup))).forEach(r => (r.items || []).forEach((l, li) => { if (!(parseInt(l.bonus) > 0)) return;
-        const q = parseInt(l.bonus) || 0, cost = puNum(l.cost);
-        rows.push({ date: r.date, sup: r.supplier, no: r.no, name: l.name, qty: q, cost, vCost: q * cost, rid: r.id, li, bo: puIsBonusOnly(r) && !r.gift, vSale: puNum(l.bonusSale) || (q * (Number((products.find(x => x.id === l.pid) || products.find(x => puKey(x.name) === puKey(l.name)) || {}).price) || 0)), createdTs: r.createdTs });
+        const q0 = parseInt(l.bonus) || 0, cost = puNum(l.cost);
+        const bk = r.id + '|' + l.pid; if (!(bk in bpool)) bpool[bk] = lgReturnedBonus(r.id, l.pid);
+        const take = Math.min(bpool[bk], q0); bpool[bk] -= take; const q = q0 - take; if (q <= 0) return;   // يُنقص البونص المُرجَع إلى المذخر
+        rows.push({ date: r.date, sup: r.supplier, no: r.no, name: l.name, qty: q, cost, vCost: q * cost, rid: r.id, li, bo: puIsBonusOnly(r) && !r.gift, vSale: puNum(l.bonusSale) ? puNum(l.bonusSale) * q / q0 : (q * (Number((products.find(x => x.id === l.pid) || products.find(x => puKey(x.name) === puKey(l.name)) || {}).price) || 0)), createdTs: r.createdTs });
     }));
     lgAll.filter(e => e.kind === 'breq' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.supplier || (e.rep ? 'مندوب ' + e.rep : 'بدون مذخر'), no: e.listNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: 0, createdTs: e.createdTs, xid: e.id, rep: e.rep }));
     lgAll.filter(e => e.kind === 'bimp' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.rep ? 'مندوب ' + e.rep : (e.supplier || 'بدون مذخر'), no: e.linkNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: puNum(e.sale), createdTs: e.createdTs, xid: e.id, bi: true }));
