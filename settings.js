@@ -103,8 +103,7 @@ function shQuickHtml() {
 }
 function shTaxExtraHtml() {   // مجموعتان أسفل صفحة «التصنيف والبيانات»: التعلّم والإدخال السريع، ثم تجهيز البيانات (مدخل واحد بلا تكرار)
     return `<h4 style="margin:0 0 8px">🧩 الإدخال السريع والتعلّم</h4>${shQuickHtml()}
-    <h4 style="margin:18px 0 8px">🧰 تجهيز البيانات</h4>
-    <div class="qk-row"><div><b>مركز تجهيز البيانات</b><small>المواد الفعالة · مراجعة التصنيف · المكررة · النواقص · قواعد التصنيف الخاصة</small></div><button type="button" class="ln-btn" onclick="dhOpen()">فتح</button></div>
+    <h4 style="margin:18px 0 8px">🔎 البحث</h4>
     <div class="qk-row"><div><b>سجل البحث الفاشل</b><small>كلمات بحث لم تُعطِ نتيجة، لتعرف ما ينقص فهرسك</small></div><button type="button" class="ln-btn" onclick="openMissModal()">فتح</button></div>`;
 }
 function shInit() {

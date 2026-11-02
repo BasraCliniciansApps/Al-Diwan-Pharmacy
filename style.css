@@ -3487,3 +3487,11 @@ body.pv-on { padding-bottom: 76px; }
 #shGrid .sh-badge { padding: 2px 8px; }
 #shGrid .sh-star { width: 32px; height: 32px; }
 #shGrid { grid-template-columns: minmax(0, 1fr); } #shGrid .sh-card { min-width: 0; width: 100%; box-sizing: border-box; overflow: hidden; }
+
+/* v403: مركز تجهيز البيانات صف قابل للضغط مكان «الأقسام الجاهزة محمّلة» */
+#taxSeedBox.tx-hubonly { background: transparent; border: 0; padding: 0; box-shadow: none; }
+.tx-hub { width: 100%; box-sizing: border-box; min-height: 64px; margin-top: 10px; }
+#taxSeedBox.tx-hubonly .tx-hub { margin-top: 0; }
+.tx-hub .sh-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: right; }
+.tx-hub .sh-tx b { font-size: .95rem; } .tx-hub .sh-tx small { font-size: .74rem; color: var(--text-sub, #64748b); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tx-chev { color: #94a3b8; font-size: 1.4rem; line-height: 1; flex: none; }
