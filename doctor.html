@@ -416,7 +416,7 @@ html.lk, html.lk body { overflow: hidden; overscroll-behavior: none; }
     <div class="top-row">
         <img src="icon.jpg" alt="">
         <div class="brand"><b>صيدلية الديوان</b><small><svg viewBox="0 0 24 24"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg>دليل توفر الأدوية للأطباء</small></div>
-        <button type="button" class="hbtn" id="ntBtn" aria-label="إشعارات الوصفات" title="إشعارات الوصفات"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><i id="ntN"></i></button>
+        <button type="button" class="hbtn" id="ntBtn" aria-label="الإشعارات" title="الإشعارات"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><i id="ntN"></i></button>
         <button type="button" class="hbtn" id="favBtn" aria-label="المفضلة" title="المفضلة"><svg viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01z"/></svg><i id="favN"></i></button>
         <button type="button" class="hbtn" id="theme" aria-label="تبديل الوضع" title="الوضع الليلي/النهاري"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></button>
     </div>
@@ -994,7 +994,7 @@ function ntRender() {
         ${ms.length ? `<div class="ms">${ms.map(m => `<div class="${m.k || ''} ${m.at > seen ? 'nw' : ''}">${esc(m.t)}<small>${hm(m.at)}</small></div>`).join('')}</div>` : ''}
         <div class="addrow"><button type="button" class="addb" style="border-style:solid" data-rx="reprint" data-rid="${r.rid}">طباعة نسخة</button><button type="button" class="addb ex" style="border-style:solid" data-rx="forget" data-rid="${r.rid}">إزالة من القائمة</button></div></div>`;
     }).join('');
-    sh.innerHTML = `<div class="grab"></div><div class="rxt"><h3>إشعارات الوصفات</h3></div><p>تصلك هنا ردود الصيدلية وتنبيهات توفر الأدوية.</p>${html || '<div class="empty"><b>لا توجد تنبيهات</b></div>'}`;
+    sh.innerHTML = `<div class="grab"></div><div class="rxt"><h3>الإشعارات</h3></div><p>تصلك هنا ردود الصيدلية وتنبيهات توفر الأدوية.</p>${html || '<div class="empty"><b>لا توجد تنبيهات</b></div>'}`;
     sh.scrollTop = top;
     MY.forEach(r => { const d = NT[r.rid]; if (d && d.msgs && d.msgs.length) SEEN[r.rid] = Math.max(SEEN[r.rid] || 0, ...d.msgs.map(m => m.at)); }); lsSet('diwanRxSeen', SEEN); AV.forEach(a => { a.seen = true; }); lsSet('diwanAvail', AV); ntBadge();
 }
