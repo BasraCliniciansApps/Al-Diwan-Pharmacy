@@ -92,9 +92,10 @@ function lgRenderBalances() {
 // ---------- إضافة / تعديل ----------
 function lgPayAdd() { lgPayForm(lgPaySeg === 'recv' ? 'recv' : 'pay', null); }
 function lgPayCalc() {
-    const g = parseFloat((document.getElementById('swPG') || {}).value) || 0, pct = parseFloat((document.getElementById('swPP') || {}).value), d = document.getElementById('swPD');
-    if (d && !d.dataset.manual && pct >= 0) d.value = Math.round(g * pct / 100);
-    const n = document.getElementById('swPN'); if (n) n.textContent = fmtNum(g - (parseFloat(d && d.value) || 0));
+    // المُدخل هو المبلغ المسدَّد فعلاً (الصافي). الخصم = الصافي × النسبة ÷ (100 − النسبة) بحذف الكسر (كما تحسبه كشوف المذاخر)، ويمكن تجاوزه يدوياً.
+    const n0 = parseFloat((document.getElementById('swPG') || {}).value) || 0, pct = parseFloat((document.getElementById('swPP') || {}).value), d = document.getElementById('swPD');
+    if (d && !d.dataset.manual) d.value = pct > 0 && pct < 100 && n0 > 0 ? Math.floor(n0 * pct / (100 - pct) + 1e-6) : '';
+    const g = document.getElementById('swPN'); if (g) g.textContent = fmtNum(n0 + (parseFloat(d && d.value) || 0));
 }
 async function lgPayForm(kind, ev) {
     const e = ev || {}, isRecv = kind === 'recv';
@@ -102,9 +103,9 @@ async function lgPayForm(kind, ev) {
     const html = isRecv
         ? inp('swPDt', 'التاريخ', `type="date" value="${escapeHtml(e.date || todayLocalISO())}"`) + inp('swPNo', 'رقم الوصل', `dir="ltr" value="${escapeHtml(e.no || '')}"`) + inp('swPA', 'مبلغ الوصل (د.ع)', `type="number" inputmode="decimal" value="${e.amount || ''}"`) + inp('swPNote', 'ملاحظات', `value="${escapeHtml(e.note || '')}"`)
         : inp('swPS', 'المذخر', `list="puSupList" value="${escapeHtml(e.supplier || '')}"`) + inp('swPDt', 'التاريخ', `type="date" value="${escapeHtml(e.date || todayLocalISO())}"`) +
-          inp('swPG', 'المبلغ المسدَّد (قبل الخصم)', `type="number" inputmode="decimal" value="${e.gross || ''}" oninput="lgPayCalc()"`) +
-          `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${inp('swPP', 'نسبة الخصم %', `type="number" step="any" inputmode="decimal" value="${e.pct != null && e.pct !== '' ? e.pct : ''}" oninput="document.getElementById('swPD').dataset.manual='';lgPayCalc()"`)}${inp('swPD', 'مبلغ الخصم', `type="number" inputmode="decimal" value="${e.disc || ''}" oninput="this.dataset.manual='1';lgPayCalc()"`)}</div>` +
-          `<div style="text-align:right;margin-top:6px;font-weight:800">الصافي المدفوع: <span id="swPN">${fmtNum(puNum(e.gross) - puNum(e.disc))}</span> د.ع</div>` +
+          inp('swPG', 'المبلغ المسدَّد (الصافي بعد الخصم)', `type="number" inputmode="decimal" value="${e.gross ? puNum(e.gross) - puNum(e.disc) : ''}" oninput="lgPayCalc()"`) +
+          `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${inp('swPP', 'نسبة الخصم %', `type="number" step="any" inputmode="decimal" value="${e.pct != null && e.pct !== '' ? e.pct : ''}" oninput="document.getElementById('swPD').dataset.manual='';lgPayCalc()"`)}${inp('swPD', 'مبلغ الخصم (يدوي يلغي النسبة)', `type="number" inputmode="decimal" value="${e.disc || ''}" oninput="this.dataset.manual='1';lgPayCalc()"`)}</div>` +
+          `<div style="text-align:right;margin-top:6px;font-weight:800">المبلغ قبل الخصم: <span id="swPN">${fmtNum(puNum(e.gross))}</span> د.ع</div>` +
           `<label style="display:block;text-align:right;font-size:.8rem;font-weight:800;margin-top:6px">من سدّد<select id="swPBy" class="swal2-input" style="margin:4px 0 0;width:100%"><option value="accounts" ${e.by !== 'me' ? 'selected' : ''}>الحسابات</option><option value="me" ${e.by === 'me' ? 'selected' : ''}>أنا</option></select></label>` +
           inp('swPNo', 'رقم الوصل / القيد (اختياري)', `dir="ltr" value="${escapeHtml(e.no || '')}"`) + inp('swPNote', 'ملاحظات', `value="${escapeHtml(e.note || '')}"`) +
           `<label class="pu-chk" style="margin-top:8px"><input type="checkbox" id="swPSt" ${e.stmt ? 'checked' : ''}><span>✓ استلمتُ كشف المذخر</span></label>`;
@@ -112,8 +113,9 @@ async function lgPayForm(kind, ev) {
         didOpen: () => { const d = document.getElementById('swPD'); if (d && e.disc) d.dataset.manual = '1'; },
         preConfirm: () => { const g = id => (document.getElementById(id) || {}).value;
             if (isRecv) { const a = parseFloat(g('swPA')); if (!(a > 0)) { Swal.showValidationMessage('أدخل مبلغ الوصل'); return false; } return { date: g('swPDt'), no: (g('swPNo') || '').trim(), amount: a, note: (g('swPNote') || '').trim() }; }
-            const s = (g('swPS') || '').trim(), gr = parseFloat(g('swPG')); if (!s) { Swal.showValidationMessage('اكتب اسم المذخر'); return false; } if (!(gr > 0)) { Swal.showValidationMessage('أدخل المبلغ المسدَّد'); return false; }
-            const pct = parseFloat(g('swPP')), disc = parseFloat(g('swPD')) || 0; if (disc > gr) { Swal.showValidationMessage('الخصم أكبر من المبلغ'); return false; }
+            const s = (g('swPS') || '').trim(), net = parseFloat(g('swPG')); if (!s) { Swal.showValidationMessage('اكتب اسم المذخر'); return false; } if (!(net > 0)) { Swal.showValidationMessage('أدخل المبلغ المسدَّد'); return false; }
+            const disc = Math.max(0, parseFloat(g('swPD')) || 0), gr = net + disc, dEl = document.getElementById('swPD'), pIn = parseFloat(g('swPP'));
+            const pct = dEl && dEl.dataset.manual && disc > 0 ? Math.round(disc / gr * 10000) / 100 : pIn;   // خصم يدوي: تُسجَّل نسبته الفعلية
             return { supplier: s, date: g('swPDt'), gross: gr, pct: pct >= 0 ? pct : '', disc, by: g('swPBy'), no: (g('swPNo') || '').trim(), note: (g('swPNote') || '').trim(), stmt: !!document.getElementById('swPSt').checked }; } });
     if (!r.isConfirmed || !r.value) return;
     const v = r.value, rec = ev ? { ...ev } : { id: lgId(), kind, createdTs: new Date().toISOString() };
