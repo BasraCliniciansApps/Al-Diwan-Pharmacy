@@ -26,3 +26,24 @@
         w.__ps = 1; window[name] = w;
     });
 })();
+
+// شريط التقدّم لكل كتابة سحابية (تسديد، حذف، إلغاء، تعديل سجل...): كل العمليات تمرّ عبر fsWrite،
+// فإذا طوّلت الكتابة أكثر من 0.3 ثانية يظهر الشريط ذاته، ويُغلق عند انتهائها.
+(function () {
+    const orig = window.fsWrite; if (typeof orig !== 'function' || orig.__ps) return;
+    const w = async function () {
+        let x = null, done = false;
+        const t = setTimeout(() => { if (!done && typeof Prog !== 'undefined') x = Prog.open('جاري الحفظ', { text: 'جاري الحفظ في السحابة...' }); }, 300);
+        try {
+            const r = await orig.apply(this, arguments);
+            done = true; clearTimeout(t);
+            if (x) Prog.end(x, 'ok', r === 'ok' ? 'تم الحفظ' : 'حُفظ وسيُزامَن مع السحابة');
+            return r;
+        } catch (e) {
+            done = true; clearTimeout(t);
+            if (x) Prog.end(x, 'err', 'فشل الحفظ');
+            throw e;
+        }
+    };
+    w.__ps = 1; window.fsWrite = w;
+})();
