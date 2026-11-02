@@ -101,10 +101,9 @@ function shQuickHtml() {
     <div class="qk-row"><div><b>ما تعلّمه التطبيق</b><small>${fmtNum(lr)} قاعدة متعلَّمة من اختياراتك · اعرضها واحذف ما لا تريده</small></div><button type="button" class="ln-btn" onclick="learnOpen()">فتح</button></div>
     <div class="sh-danger"><h5>⚠️ منطقة الخطر</h5><p>يمسح كل ما تعلّمه التطبيق من اختياراتك (المواد لا تتأثر).</p><button type="button" class="sh-dbtn" onclick="learnClear()">🗑️ مسح كل التعلّم</button></div>`;
 }
-function shTaxExtraHtml() {   // مجموعتان أسفل صفحة «التصنيف والبيانات»: التعلّم والإدخال السريع، ثم تجهيز البيانات (مدخل واحد بلا تكرار)
-    return `<h4 style="margin:0 0 8px">🧩 الإدخال السريع والتعلّم</h4>${shQuickHtml()}
-    <h4 style="margin:18px 0 8px">🔎 البحث</h4>
-    <div class="qk-row"><div><b>سجل البحث الفاشل</b><small>كلمات بحث لم تُعطِ نتيجة، لتعرف ما ينقص فهرسك</small></div><button type="button" class="ln-btn" onclick="openMissModal()">فتح</button></div>`;
+function shTaxExtraHtml() {   // أسفل صفحة «التصنيف والبيانات»: الإدخال السريع والتعلّم (مطوي)، ثم سجل البحث الفاشل بخانة مستقلة
+    return `<div class="cat-manager-box sh-show" id="shQkBox"><h4>🧩 الإدخال السريع والتعلّم</h4>${shQuickHtml()}</div>
+    <div class="cat-manager-box sh-show tx-hubonly" id="shMissBox" role="button" tabindex="0" onclick="openMissModal()" style="margin-top:12px"><div class="cmb-head"><span>🔎 سجل البحث الفاشل</span><i class="cmb-chev">‹</i></div><small class="tx-sub">كلمات بحث لم تُعطِ نتيجة، لتعرف ما ينقص فهرسك</small></div>`;
 }
 function shInit() {
     const card = shCard(); if (!card || card.dataset.sh) return; card.dataset.sh = '1';
@@ -141,7 +140,7 @@ function shOpen(id, boxIdx) {
     all.forEach(b => { b.classList.remove('sh-show', 'sh-single'); });
     if (id === 'scanner') { document.getElementById('shHub').after(q); q.innerHTML = shScanHtml(); q.hidden = false; q.classList.add('sh-show'); q.classList.remove('sh-pg'); void q.offsetWidth; q.classList.add('sh-pg'); }
     {
-        if (id === 'tax') { q.innerHTML = shTaxExtraHtml(); q.hidden = false; q.classList.add('sh-show', 'sh-pg'); const lb = all[p.boxes[p.boxes.length - 1]]; if (lb) lb.after(q); } else if (id !== 'scanner') { q.hidden = true; document.getElementById('shHub').after(q); }
+        if (id === 'tax') { q.innerHTML = shTaxExtraHtml(); if (typeof setupSettingsAccordion === 'function') { const qb = document.getElementById('shQkBox'); if (qb) delete qb.dataset.acc; setupSettingsAccordion(); } q.hidden = false; q.classList.add('sh-show', 'sh-pg'); const lb = all[p.boxes[p.boxes.length - 1]]; if (lb) lb.after(q); } else if (id !== 'scanner') { q.hidden = true; document.getElementById('shHub').after(q); }
         p.boxes.forEach((i, k) => { const b = all[i]; if (!b) return; b.classList.add('sh-show'); if (p.boxes.length === 1) b.classList.add('sh-single'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (p.boxes.length === 1 || (boxIdx != null ? i === boxIdx : k === (id === 'tax' ? 99 : 0))) b.classList.add('open'); });
         if (boxIdx != null && all[boxIdx]) { const b = all[boxIdx]; b.classList.add('open'); setTimeout(() => { b.scrollIntoView({ behavior: 'smooth', block: 'start' }); b.classList.add('sh-flash'); setTimeout(() => b.classList.remove('sh-flash'), 1600); }, 120); }
         else card.scrollTop = 0;
