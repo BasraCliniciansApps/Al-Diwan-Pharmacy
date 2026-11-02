@@ -498,4 +498,4 @@ async function taxRvApply() {
     taxRvSave(); renderAll(); taxRvRender();
 }
 // زر الدخول لمراجعة التصنيف داخل مربع «الأقسام الجاهزة»
-{ const _rts = renderTaxSeedBox; renderTaxSeedBox = function () { _rts(); const box = document.getElementById('taxSeedBox'); if (!box || !taxSeeded()) return; const n = taxRvList().length; box.insertAdjacentHTML('beforeend', `<button type="button" class="icon-btn primary-btn" style="margin-top:10px" onclick="taxRvOpen()">🧭 مراجعة التصنيف (صح / خطأ) — ${fmtNum(n)} مادة</button>`); }; }
+{ const _rts = renderTaxSeedBox; renderTaxSeedBox = function () { _rts(); const box = document.getElementById('taxSeedBox'); if (!box || !taxSeeded()) return; const n = taxRvList().length; box.insertAdjacentHTML('beforeend', `<button type="button" class="icon-btn primary-btn" style="margin-top:10px" onclick="dhOpen()">🧰 مركز تجهيز البيانات${n ? ' — ' + fmtNum(n) + ' مادة للمراجعة' : ''}</button>`); }; }

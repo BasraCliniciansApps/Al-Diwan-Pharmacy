@@ -156,7 +156,7 @@ if (typeof qkInit === 'function') {
 function learnToggle(v) { learnData.off = !v; learnSave(); learnPush(); const sw = document.getElementById('lnSw'); if (sw) sw.checked = !!v; }
 if (typeof renderTaxSeedBox === 'function') {
     const _rb = renderTaxSeedBox;
-    renderTaxSeedBox = function () { _rb(); const box = document.getElementById('taxSeedBox'); if (box && !box.querySelector('.ln-btn2')) box.insertAdjacentHTML('beforeend', '<button type="button" class="ln-btn2" onclick="learnOpen()">🧠 قواعدي — ما تعلّمه التطبيق من اختياراتك</button>'); };
+    renderTaxSeedBox = function () { _rb(); const box = document.getElementById('taxSeedBox'); /* زر «قواعدي» أُزيل من هنا منعاً للتكرار؛ المدخل عبر مركز تجهيز البيانات وصف «ما تعلّمه التطبيق» */ void box; };
 }
 
 // =====================================================================
