@@ -1217,11 +1217,15 @@ function packLine(p) {
     return m ? m + ' | ' + f : f;
 }
 function dispParts(p, part) {
+    // ثلاث مجموعات: «الاسم والتركيز | حجم العبوة (أو نوع الجزء عند البيع بالجزء) والشكل الدوائي | الشركة»
     const asPart = !!part && hasRetail(p);
-    return { main: [String(p.name || '').trim(), asPart ? '' : fixMetaOrder(p.meta || '').trim(), dispForm(p), asPart ? subTypeOf(p) : ''].filter(Boolean), brand: String(p.brand || '').trim() };
+    return { name: String(p.name || '').trim(), mid: [asPart ? subTypeOf(p) : fixMetaOrder(p.meta || '').trim(), dispForm(p)].filter(Boolean), brand: String(p.brand || '').trim() };
 }
-function dispName(p, part) { const d = dispParts(p, part); return d.main.join(' ') + (d.brand ? ' | ' + d.brand : ''); }
-function dispNameHtml(p, part) { const d = dispParts(p, part); return d.main.map(s => '<bdi>' + escapeHtml(s) + '</bdi>').join(' ') + (d.brand ? ' <span class="dn-sep">|</span> <bdi>' + escapeHtml(d.brand) + '</bdi>' : ''); }
+function dispName(p, part) { const d = dispParts(p, part); return [d.name, d.mid.join(' '), d.brand].filter(Boolean).join(' | '); }
+function dispNameHtml(p, part) {
+    const d = dispParts(p, part), sep = ' <span class="dn-sep">|</span> ';
+    return [d.name ? '<bdi>' + escapeHtml(d.name) + '</bdi>' : '', d.mid.length ? d.mid.map(x => '<bdi>' + escapeHtml(x) + '</bdi>').join(' ') : '', d.brand ? '<bdi>' + escapeHtml(d.brand) + '</bdi>' : ''].filter(Boolean).join(sep);
+}
 function activeFilterCount() { return filCats.size + filDepts.size + filBrands.size + filForms.size + (filInStock ? 1 : 0); }
 
 // الأصناف بعد تطبيق القسم/التبويب والفلاتر والبحث (مرتبة بالأقرب أولاً عند البحث)
