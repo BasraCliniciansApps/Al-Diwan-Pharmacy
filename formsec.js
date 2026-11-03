@@ -4,8 +4,8 @@
 // ما يغيّر أي حقل أو id؛ فقط ينقل الحقول داخل أقسام.
 // ============================================================================
 const FS_DEF = [
-    { id: 'basic', ico: '🏷️', t: 'الأساسي', open: true, f: ['fName', 'fBrand', 'fMeta'] },
-    { id: 'cls', ico: '🗂️', t: 'التصنيف', open: true, f: ['fDepartment', 'fCategory', 'fType', 'fForm', 'fFormOtherWrap'] },
+    { id: 'basic', ico: '🏷️', t: 'الأساسي', open: true, f: ['fName', 'fBrand', 'fMeta', 'fForm', 'fFormOtherWrap'] },
+    { id: 'cls', ico: '🗂️', t: 'التصنيف', open: true, f: ['fDepartment', 'fCategory', 'fType'] },
     {
         id: 'ps', ico: '💰', t: 'التسعير والمخزون', open: true, subs: [
             { id: 'price', ico: '💰', t: 'السعر', open: true, rows: [['fPriceMode'], ['fPrice', 'fCost']], strip: true },
@@ -49,9 +49,9 @@ const FS_SUBS = ['price', 'stock', 'retail', 'exp'];
 function fsSelTxt(id) { const e = fsEl(id); if (!e) return ''; const o = e.options && e.options[e.selectedIndex]; return o ? o.textContent.trim() : (e.value || ''); }
 function fsRefresh() {
     if (!fsBuilt) return; const v = id => ((fsEl(id) || {}).value || '').trim(), set = (id, t, bad) => { const s = fsEl('fsSum-' + id), d = fsEl('fsDot-' + id); if (s) s.textContent = t; if (d) d.className = 'fs-dot' + (bad ? ' bad' : ''); };
-    set('basic', [v('fName'), v('fBrand'), v('fMeta')].filter(Boolean).join(' · ') || 'لم يُملأ بعد', !v('fName'));
-    const dep = fsSelTxt('fDepartment'), cat = fsSelTxt('fCategory'), form = fsSelTxt('fForm');
-    set('cls', [dep && cat ? dep + ' › ' + cat : (dep || cat), form].filter(Boolean).join(' · ') || 'غير محدد', !dep);
+    set('basic', [v('fName'), v('fBrand'), [v('fMeta'), v('fForm') ? fsSelTxt('fForm') : ''].filter(Boolean).join(' | ')].filter(Boolean).join(' · ') || 'لم يُملأ بعد', !v('fName'));
+    const dep = fsSelTxt('fDepartment'), cat = fsSelTxt('fCategory');
+    set('cls', [dep && cat ? dep + ' › ' + cat : (dep || cat)].filter(Boolean).join(' · ') || 'غير محدد', !dep);
     const pr = parseFloat(v('fPrice')) || 0, co = parseFloat(v('fCost')) || 0;
     let mg = ''; if (pr > 0 && co > 0) mg = ' · هامش ' + ((pr - co) / pr * 100).toFixed(1) + '٪';
     set('price', pr > 0 ? fmtNum(pr) + ' د.ع' : 'غير مسعّر', !(pr > 0));

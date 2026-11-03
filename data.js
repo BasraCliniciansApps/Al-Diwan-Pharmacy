@@ -1145,9 +1145,21 @@ function getFormBadge(item) {
     return f ? { txt: f.txt, cls: f.cls } : { txt: 'كريم (Cream)', cls: 'badge-cream' };   // الافتراضي القديم
 }
 function onFormChange() { const w = document.getElementById('fFormOtherWrap'), v = document.getElementById('fForm'); if (w && v) w.style.display = v.value === 'other' ? '' : 'none'; }
+function customFormNames() { const s = new Set(); (typeof products !== 'undefined' ? products : []).forEach(p => { if (p.form === 'other' && p.formOther && String(p.formOther).trim()) s.add(String(p.formOther).trim()); }); return [...s].sort((a, b) => a.localeCompare(b)); }
 function fillFormSelect() {
     const el = document.getElementById('fForm');
-    if (el && !el.options.length) el.innerHTML = '<option value="">تلقائي (حسب الاسم والعبوة)</option>' + FORM_GROUPS.map(g => `<optgroup label="${g}">${FORMS.filter(f => f.g === g && !f.hidden).map(f => `<option value="${f.id}">${f.txt}</option>`).join('')}</optgroup>`).join('') + FORMS.filter(f => !f.g).map(f => `<option value="${f.id}">${f.txt}</option>`).join('');
+    if (el && !el.options.length) el.innerHTML = '<option value="">تلقائي (حسب الاسم والعبوة)</option>' + FORM_GROUPS.map(g => `<optgroup label="${g}">${FORMS.filter(f => f.g === g && !f.hidden).map(f => `<option value="${f.id}">${f.txt}</option>`).join('')}</optgroup>`).join('') + FORMS.filter(f => !f.g).map(f => `<option value="${f.id}">${f.id === 'other' ? 'Other — إضافة شكل جديد' : f.txt}</option>`).join('');
+    if (el) {   // الأشكال التي أضفتها سابقاً (تُستخرج تلقائياً من المواد) تظهر في مجموعة مستقلة قبل «Other»
+        const old = el.querySelector('#fFormCustom'); if (old) old.remove();
+        const names = customFormNames();
+        if (names.length) { const og = document.createElement('optgroup'); og.id = 'fFormCustom'; og.label = 'أشكال مضافة'; og.innerHTML = names.map(n => `<option value="cf:${escapeHtml(n)}">${escapeHtml(n)}</option>`).join(''); const oth = [...el.options].find(o => o.value === 'other'); el.insertBefore(og, oth || null); }
+    }
+}
+function formSelRead() {   // قيمة القائمة -> الحقول المحفوظة (شكل مضاف سابقاً أو «Other» مع نص جديد)
+    const v = (document.getElementById('fForm') || {}).value || '';
+    if (v.indexOf('cf:') === 0) return { form: 'other', formOther: v.slice(3) };
+    if (v === 'other') return { form: 'other', formOther: ((document.getElementById('fFormOther') || {}).value || '').trim() };
+    return { form: v, formOther: '' };
 }
 
 function renderDepartmentsBar() {
@@ -1197,6 +1209,12 @@ function dispForm(p) {
     if (!p || !p.form) return '';
     if (p.form === 'other') return String(p.formOther || '').trim();
     const f = FORMS.find(x => x.id === p.form); return f ? String(f.txt || '').replace(/\s*\(.*$/, '').trim() : '';
+}
+// سطر «حجم العبوة | الشكل الدوائي» (مثل: 30 | Film-coated Tablet). إن كان حقل العبوة القديم يحوي «|» أو الشكل نفسه نعرضه كما هو دون تكرار.
+function packLine(p) {
+    const m = fixMetaOrder(p.meta || '').trim(), f = dispForm(p);
+    if (!f || m.includes('|') || m.toLowerCase().includes(f.toLowerCase())) return m;
+    return m ? m + ' | ' + f : f;
 }
 function dispParts(p, part) {
     const asPart = !!part && hasRetail(p);
@@ -1350,7 +1368,7 @@ function clearSearch() {
 function productCardHtml(p, tagHtml) {
     const badge = getFormBadge(p);
         const dotCls = isInStock(p) ? ((IS_ADMIN_PAGE && isLowStock(p)) ? 'status-dot low' : 'status-dot') : 'status-dot out';
-        const cleanMeta = fixMetaOrder(p.meta);
+ const cleanMeta = escapeHtml(packLine(p));
         return `
             <div class="bento-card" onclick="openSheet(${p.id})">
                 <div class="bento-img-wrap">
@@ -1408,7 +1426,7 @@ function openSheet(id) {
     if (!p) return;
     currentOpenId = id;
     const badge = getFormBadge(p);
-    const cleanMeta = fixMetaOrder(p.meta);
+    const cleanMeta = escapeHtml(packLine(p));
     const formattedPrice = p.price ? Number(p.price).toLocaleString() : 0;
     const priceTxt = p.price ? ' | ' + formattedPrice + ' د.ع' : (IS_ADMIN_PAGE ? ' | 0 د.ع' : '');
     const stockTag = isInStock(p)
@@ -1776,7 +1794,7 @@ function openFormModal(id = null) {
         refreshCatSelect(p.category);
         document.getElementById('fCategory').value = p.category;
         if (document.getElementById('fType')) document.getElementById('fType').value = p.type || (isRxItem(p) ? 'rx' : 'cosmetic');
-        fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = p.form || ''; if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = p.formOther || ''; onFormChange();
+        fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = (p.form === 'other' && p.formOther && [...document.getElementById('fForm').options].some(o => o.value === 'cf:' + p.formOther)) ? 'cf:' + p.formOther : (p.form || ''); if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = p.formOther || ''; onFormChange();
         if (document.getElementById('fActive')) document.getElementById('fActive').value = p.activeIngredient || '';
         if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = (p.minQty === null || p.minQty === undefined) ? '' : p.minQty;
         document.getElementById('fBrand').value = p.brand;
@@ -2015,8 +2033,8 @@ async function saveFormProduct() {
         extraDepartments: getExtraSelection('dept').filter(x => x !== document.getElementById('fDepartment').value),
         extraCategories: getExtraSelection('cat').filter(x => x !== document.getElementById('fCategory').value),
         extraTypes: getExtraSelection('type').filter(x => x !== (document.getElementById('fType').value || '')),
-        form: document.getElementById('fForm') ? document.getElementById('fForm').value : '',
-        formOther: (document.getElementById('fForm') && document.getElementById('fForm').value === 'other' && document.getElementById('fFormOther')) ? document.getElementById('fFormOther').value.trim() : '',
+        form: document.getElementById('fForm') ? formSelRead().form : '',
+        formOther: document.getElementById('fForm') ? formSelRead().formOther : '',
         activeIngredient: document.getElementById('fActive') ? document.getElementById('fActive').value.trim() : '',
         minQty: (document.getElementById('fMinQty') && document.getElementById('fMinQty').value !== '') ? (parseInt(document.getElementById('fMinQty').value) || 0) : null,
         brand: document.getElementById('fBrand').value.trim() || 'GENERIC',
