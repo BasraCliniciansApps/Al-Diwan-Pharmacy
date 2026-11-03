@@ -117,7 +117,7 @@ function spRender() {
     }).join('');
     const expiredHave = (sp.sim || []).filter(b => billExpired(b.e) && b.u > 0);
     card.innerHTML = `
-        <div class="sp-head">${img}<div class="sp-ti"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml([p.brand, fixMetaOrder(p.meta || '')].filter(Boolean).join(' · '))}</small><span class="sp-stock">المتوفر: ${escapeHtml(stockLabel(p))}</span></div>
+        <div class="sp-head">${img}<div class="sp-ti"><b dir="ltr">${dispNameHtml(p)}</b><span class="sp-stock">المتوفر: ${escapeHtml(stockLabel(p))}</span></div>
             <button type="button" class="sp-close" onclick="spClose()" aria-label="إغلاق">✕</button></div>
         ${retail ? `<div class="sp-unit"><button type="button" class="${sp.unit === 'pack' ? 'on' : ''}" onclick="spUnitSwitch('pack')">علب</button><button type="button" class="${sp.unit === 'part' ? 'on' : ''}" onclick="spUnitSwitch('part')">${escapeHtml(subTypeOf(p))} (${sc} بالعبوة)</button></div>` : ''}
         <div class="sp-line"><span>العدد (${escapeHtml(unitName)})</span><div class="sp-st big"><button type="button" onclick="spQty(-1)" aria-label="إنقاص">−</button><input type="number" inputmode="numeric" min="1" value="${total}" onchange="spQtySet(this.value)"><button type="button" onclick="spQty(1)" aria-label="زيادة">+</button></div></div>
@@ -151,7 +151,7 @@ function spCommit(next) {
         const ex = bill.items.find(it => it.pid === p.id && (it.unit === 'part' ? 'part' : 'pack') === unit && (it.exp || '') === l.e && (it.bpr || 0) === (l.pr || 0));
         const price = spRowPrice(p, l, unit) || (sp.price === '' ? '' : 0);   // سعر الدفعة، أو السعر المكتوب
         if (ex) { ex.qty = (parseFloat(ex.qty) || 0) + l.n; ex.price = price; }
-        else bill.items.push({ pid: p.id, name: p.name, qty: l.n, price, unit, partType: unit === 'part' ? subTypeOf(p) : '', ...(l.e ? { exp: l.e } : {}), ...(l.pr ? { bpr: l.pr } : {}) });
+        else bill.items.push({ pid: p.id, name: dispName(p, unit === 'part'), qty: l.n, price, unit, partType: unit === 'part' ? subTypeOf(p) : '', ...(l.e ? { exp: l.e } : {}), ...(l.pr ? { bpr: l.pr } : {}) });
     });
     const name = p.name, edit = sp.edit;
     spClose();

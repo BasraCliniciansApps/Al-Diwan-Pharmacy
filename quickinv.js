@@ -117,7 +117,7 @@ function qiSearch(v) {
     const b = document.getElementById('qiRes'); if (!b) return;
     const qn = normSearch(v || ''), qt = qn ? qn.split(' ') : [];
     const res = qn ? products.map(p => ({ p, s: searchScore(p, qn, qt) })).filter(x => x.s > 0).sort((a, c) => c.s - a.s).slice(0, 6).map(x => x.p) : [];
-    b.innerHTML = res.map(p => `<button type="button" class="sc-res" onclick="qiPick(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')}</small><span>${fmtNum(p.price || 0)}</span></button>`).join('');
+    b.innerHTML = res.map(p => `<button type="button" class="sc-res" onclick="qiPick(${p.id})"><b dir="ltr">${dispNameHtml(p)}</b><span>${fmtNum(p.price || 0)}</span></button>`).join('');
 }
 function qiPick(id) {
     const q = document.getElementById('qiQ'); if (q) q.value = ''; const b = document.getElementById('qiRes'); if (b) b.innerHTML = '';

@@ -54,13 +54,13 @@ function scSearch(v) {
     scList(res);
     if (/^\d{6,}$/.test(String(v).trim())) { const p = findByBarcode(v.trim()); if (p) scPick(p.id); }
 }
-function scList(arr) { const b = scE('scRes'); if (!b) return; b.innerHTML = arr.map(p => `<button type="button" class="sc-res" onclick="scPick(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')}</small><span>${fmtNum(p.price || 0)}</span></button>`).join(''); }
+function scList(arr) { const b = scE('scRes'); if (!b) return; b.innerHTML = arr.map(p => `<button type="button" class="sc-res" onclick="scPick(${p.id})"><b dir="ltr">${dispNameHtml(p)}</b><span>${fmtNum(p.price || 0)}</span></button>`).join(''); }
 function scPick(id) { scShowOv(); scCur = id; scList([]); const q = scE('scQ'); if (q) q.value = ''; scRender(); const b = document.querySelector('#scanView .sc-ovb'); if (b) b.scrollTop = 0; }
 const scFmtD = ym => { const [y, m] = String(ym).split('-'); return m ? m + '/' + y : ym; };
 function scRender() {
     const box = scE('scCard'), p = products.find(x => x.id === scCur); if (!box || !p) return;
     const cfg = scCfg(), sh = cfg.show, own = userRole === 'owner', price = Number(p.price) || 0;
-    let h = `<div class="sc-head">${p.img ? `<img src="${escapeHtml(p.img)}" alt="" onerror="this.style.display='none'">` : '<span class="sc-noimg">💊</span>'}<div><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml([p.brand, fixMetaOrder(p.meta || '')].filter(Boolean).join(' · '))}</small><small>بالمخزن: ${escapeHtml(stockLabel(p))}</small></div></div>`;
+    let h = `<div class="sc-head">${p.img ? `<img src="${escapeHtml(p.img)}" alt="" onerror="this.style.display='none'">` : '<span class="sc-noimg">💊</span>'}<div><b dir="ltr">${dispNameHtml(p)}</b><small>بالمخزن: ${escapeHtml(stockLabel(p))}</small></div></div>`;
     if (sh.price) h += `<div class="sc-sec sc-price"><span>سعر البيع</span><b>${price > 0 ? fmtNum(price) + ' د.ع' : '— غير مسعّرة'}</b>${hasRetail(p) ? `<small>سعر <bdi>${escapeHtml(subTypeOf(p))}</bdi>: <bdi>${fmtNum(subPriceOf(p))} د.ع</bdi></small>` : ''}</div>`;
     let refCost = Number(p.costPrice) || 0;
     if (own && sh.cost) {
@@ -167,7 +167,7 @@ function scModalSearch(v) {
     const qn = normSearch(v || ''), qt = qn ? qn.split(' ') : [], b = scE('bcRes'); if (!b) return;
     if (/^\d{6,}$/.test(String(v).trim())) { const p = findByBarcode(v.trim()); if (p) { scModalPick(p.id); return; } }
     const res = qn ? products.map(p => ({ p, s: searchScore(p, qn, qt) })).filter(x => x.s > 0).sort((a, c) => c.s - a.s).slice(0, 6).map(x => x.p) : [];
-    b.innerHTML = res.map(p => `<button type="button" class="sc-res" onclick="scModalPick(${p.id})"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')}</small><span>${fmtNum(p.price || 0)}</span></button>`).join('');
+    b.innerHTML = res.map(p => `<button type="button" class="sc-res" onclick="scModalPick(${p.id})"><b dir="ltr">${dispNameHtml(p)}</b><span>${fmtNum(p.price || 0)}</span></button>`).join('');
 }
 function scModalPick(id) { clearTimeout(scTimer); closeBarcodeScanner(); scPick(id); }
 function scScanTimed() {

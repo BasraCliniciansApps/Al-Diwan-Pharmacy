@@ -3503,3 +3503,4 @@ body.pv-on { padding-bottom: 76px; }
 #shQkBox { margin-top: 12px; }
 
 #shQuick:has(#shQkBox) { background: transparent !important; border: 0 !important; padding: 0 !important; box-shadow: none !important; }
+.dn-sep { color: #94a3b8; font-weight: 700; margin: 0 2px; }

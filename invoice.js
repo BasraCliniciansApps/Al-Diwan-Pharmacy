@@ -167,7 +167,9 @@ function billStep(i, d) {
 }
 function billSetUnit(i, unit) {
     const it = bill.items[i], p = itemProduct(it); if (!it || !p) return;
+    const oldAuto = [dispName(p, it.unit === 'part'), p.name].includes(String(it.name || '').trim());   // الاسم لم يُعدَّل يدوياً
     it.unit = unit; it.partType = unit === 'part' ? subTypeOf(p) : '';
+    if (oldAuto) it.name = dispName(p, unit === 'part');
     it.price = unit === 'part' ? subPriceOf(p) : (p.price || '');
     renderInvoiceRows(); billChanged();
 }
@@ -179,14 +181,14 @@ function billAddProduct(id) {
     if (typeof spOpen === 'function') { $b('billSearch').value = ''; $b('billResults').style.display = 'none'; spOpen(id, { scan: true }); return; }   // نافذة البيع تفرض كتابة السعر
     const existing = bill.items.find(it => it.pid === id && it.unit !== 'part' && !it.exp);
     if (existing) existing.qty = (parseFloat(existing.qty) || 0) + 1;
-    else bill.items.push({ pid: id, name: p.name, qty: 1, price: p.price || '', unit: 'pack' });
+    else bill.items.push({ pid: id, name: dispName(p), qty: 1, price: p.price || '', unit: 'pack' });
     $b('billSearch').value = ''; $b('billResults').style.display = 'none';
     renderInvoiceRows(); billChanged();
 }
 function productPickHtml(p, fn, extra) {   // سطر نتيجة بحث: صورة + اسم + شركة + عبوة
     const img = p.img ? `<img class="pk-img" src="${escapeHtml(p.img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<span class="pk-img pk-noimg">💊</span>';
     const meta = fixMetaOrder(p.meta || '');
-    return `<button type="button" class="pk-row" onclick="${fn}(${p.id})">${img}<span class="pk-info"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml([p.brand, meta].filter(Boolean).join(' · '))}</small>${extra ? `<em>${extra}</em>` : ''}</span></button>`;
+    return `<button type="button" class="pk-row" onclick="${fn}(${p.id})">${img}<span class="pk-info"><b dir="ltr">${dispNameHtml(p)}</b>${extra ? `<em>${extra}</em>` : ''}</span></button>`;
 }
 let billFound = [];
 function billSearchInput() {

@@ -211,6 +211,7 @@ function dhRenderMiss(el) {
     el.innerHTML = `${dhHead('📋 بيانات ناقصة', true)}<div class="dh-body">
         ${row('بلا باركود', st.n - st.bc, '<button type="button" onclick="dhClose();openCatalog()">افتح سجل الأدوية</button>')}
         ${row('بلا شكل دوائي', st.n - st.form, '<button type="button" onclick="dhClose();openCatalog()">افتح سجل الأدوية</button>')}
+        ${row('تُباع بالتجزئة بلا نوع جزء', products.filter(p => !p.arch && subCountOf(p) > 1 && !p.subType).length, '<button type="button" onclick="dhClose();openCatalog()">افتح سجل الأدوية</button>')}
         ${row('بلا سعر بيع (ولها سعر شراء)', nop, '<button type="button" onclick="pzOpen()">تسعيرها</button>')}
         ${row('تُباع بخسارة (السعر ≤ الكلفة)', loss, '<button type="button" onclick="pzOpen(true)">تصحيحها</button>')}
         ${row('بلا مادة فعالة', st.n - st.ing, "<button type=\"button\" onclick=\"dhGo('ing')\">أكملها</button>")}

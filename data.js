@@ -1191,6 +1191,19 @@ function getBaseFilteredByTab() {
 // ---------------- نافذة التصفية الموحدة ----------------
 function brandOf(p) { return (p.brand || 'GENERIC').trim(); }
 function formOf(p) { return getFormBadge(p).txt; }
+// الاسم المعروض الموحّد: «الاسم التجاري والتركيز  العبوة  الشكل الدوائي | الشركة»؛ وعند البيع بالجزء: «الاسم  الشكل الدوائي  نوع الجزء | الشركة».
+// الشكل الدوائي يُؤخذ فقط إن حُدِّد صراحةً في المادة (لا نخمّنه). الحقول الفارغة تُتخطّى.
+function dispForm(p) {
+    if (!p || !p.form) return '';
+    if (p.form === 'other') return String(p.formOther || '').trim();
+    const f = FORMS.find(x => x.id === p.form); return f ? String(f.txt || '').replace(/\s*\(.*$/, '').trim() : '';
+}
+function dispParts(p, part) {
+    const asPart = !!part && hasRetail(p);
+    return { main: [String(p.name || '').trim(), asPart ? '' : fixMetaOrder(p.meta || '').trim(), dispForm(p), asPart ? subTypeOf(p) : ''].filter(Boolean), brand: String(p.brand || '').trim() };
+}
+function dispName(p, part) { const d = dispParts(p, part); return d.main.join(' ') + (d.brand ? ' | ' + d.brand : ''); }
+function dispNameHtml(p, part) { const d = dispParts(p, part); return d.main.map(s => '<bdi>' + escapeHtml(s) + '</bdi>').join(' ') + (d.brand ? ' <span class="dn-sep">|</span> <bdi>' + escapeHtml(d.brand) + '</bdi>' : ''); }
 function activeFilterCount() { return filCats.size + filDepts.size + filBrands.size + filForms.size + (filInStock ? 1 : 0); }
 
 // الأصناف بعد تطبيق القسم/التبويب والفلاتر والبحث (مرتبة بالأقرب أولاً عند البحث)
@@ -1953,6 +1966,13 @@ async function uploadImgBase64(event) {
 // 3. دالة زر "حفظ" داخل نافذة إضافة/تعديل الصنف
 async function saveFormProduct() {
     if (!writesAllowed()) return;
+    {   // المادة التي تُباع بالتجزئة (عدد الأجزاء > 1) لا تُحفظ دون تحديد نوع الجزء
+        const sc = parseInt((document.getElementById('fSubCount') || {}).value) || 0, st = document.getElementById('fSubType');
+        if (sc > 1 && st && !st.value) {
+            if (typeof fsMark === 'function') fsMark('fSubType');
+            return Swal.fire({ icon: 'warning', title: 'حدّد نوع الجزء', text: 'هذه المادة تُباع بالتجزئة، فيلزم اختيار نوع الجزء (شريط، كيس...) قبل الحفظ.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        }
+    }
     const imgVal = document.getElementById('fImg').value.trim();
     if (imgVal.includes("⏳")) {
         return Swal.fire({
@@ -4551,7 +4571,7 @@ function invRowHtml(p) {
     const types = subTypes.slice(); if (e.type && !types.includes(e.type)) types.push(e.type);
     const sum = on ? `${e.cnt} ${escapeHtml(e.type)}` : 'غير مفعّلة';
     return `<div class="inv-row ${changed ? 'changed' : ''}" id="inv_${p.id}">
-            <div class="inv-info"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')} • المسجّل: ${escapeHtml(stockLabel(p))}</small></div>
+            <div class="inv-info"><b dir="ltr">${dispNameHtml(p)}</b><small>المسجّل: ${escapeHtml(stockLabel(p))}</small></div>
             <div class="inv-step">
                 <button type="button" onclick="invStep(${p.id}, -1)" ${invBt[p.id] ? 'disabled' : ''}>−</button>
                 <input type="number" inputmode="numeric" min="0" value="${val}" onchange="invSet(${p.id}, this.value)" id="invIn_${p.id}" ${invBt[p.id] ? 'readonly' : ''}>
@@ -5126,8 +5146,8 @@ function renderSubTypeSelect(selected) {
     if (!sel) return;
     const list = subTypes.slice();
     if (selected && !list.includes(selected)) list.push(selected);
-    sel.innerHTML = list.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
-    sel.value = selected || list[0];
+    sel.innerHTML = '<option value="">— اختر نوع الجزء —</option>' + list.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+    sel.value = selected || '';
 }
 async function addSubType() {
     const r = await Swal.fire({ title: 'نوع جزء جديد', input: 'text', inputPlaceholder: 'مثال: Sachet أو Pen', showCancelButton: true, confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
@@ -5164,7 +5184,7 @@ function readRetailForm() {
     const sp = parseFloat(document.getElementById('fSubPrice').value);
     return {
         subCount: cnt,
-        subType: document.getElementById('fSubType').value || 'جزء',
+        subType: document.getElementById('fSubType').value || '',
         subPrice: sp > 0 ? sp : subPriceCalc(price, cnt),
         loose: Math.min(Math.max(parseInt(document.getElementById('fLoose').value) || 0, 0), cnt - 1)
     };

@@ -46,7 +46,7 @@ function unMode(m) { window.__unMode = m; $b('unP1').style.display = m === 1 ? '
 function unFind() {
     const qn = normSearch($b('unS').value), box = $b('unSR'); if (!qn) { box.innerHTML = ''; return; }
     const toks = qn.split(' ');
-    box.innerHTML = products.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([p]) => `<label style="display:flex;gap:8px;align-items:center;padding:7px 4px;border-bottom:1px solid #e5eaf2;text-align:right"><input type="radio" name="unPick" value="${p.id}" style="width:auto"><span style="flex:1"><b dir="ltr">${escapeHtml(p.name)}</b><br><small style="color:#64748b" dir="ltr">${escapeHtml(p.brand || '')}</small></span></label>`).join('') || '<div style="padding:8px;color:#64748b;font-size:.82rem">لا توجد نتائج</div>';
+    box.innerHTML = products.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(([p]) => `<label style="display:flex;gap:8px;align-items:center;padding:7px 4px;border-bottom:1px solid #e5eaf2;text-align:right"><input type="radio" name="unPick" value="${p.id}" style="width:auto"><span style="flex:1"><b dir="ltr">${dispNameHtml(p)}</b></span></label>`).join('') || '<div style="padding:8px;color:#64748b;font-size:.82rem">لا توجد نتائج</div>';
 }
 async function unApply() {
     const sel = unRows().filter(g => unSel.has(g.key)); if (!sel.length) return;
