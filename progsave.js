@@ -31,9 +31,13 @@
 // فإذا طوّلت الكتابة أكثر من 0.3 ثانية يظهر الشريط ذاته، ويُغلق عند انتهائها.
 (function () {
     const orig = window.fsWrite; if (typeof orig !== 'function' || orig.__ps) return;
+    // الشريط فقط لما تكون الكتابة نتيجة ضغطة زر/لمسة حديثة؛ كتابات المزامنة الخلفية (تلقائية) ما تُظهر شريطاً
+    let lastAct = 0; const mark = () => { lastAct = Date.now(); };
+    ['pointerup', 'click', 'touchend', 'keydown'].forEach(ev => document.addEventListener(ev, mark, true));
     const w = async function () {
         let x = null, done = false;
-        const t = setTimeout(() => { if (!done && typeof Prog !== 'undefined') x = Prog.open('جاري الحفظ', { text: 'جاري الحفظ في السحابة...' }); }, 300);
+        const byUser = Date.now() - lastAct < 4000;
+        const t = byUser ? setTimeout(() => { if (!done && typeof Prog !== 'undefined') x = Prog.open('جاري الحفظ', { text: 'جاري الحفظ في السحابة...' }); }, 300) : 0;
         try {
             const r = await orig.apply(this, arguments);
             done = true; clearTimeout(t);
