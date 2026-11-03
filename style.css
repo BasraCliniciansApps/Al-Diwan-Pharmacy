@@ -3504,3 +3504,7 @@ body.pv-on { padding-bottom: 76px; }
 
 #shQuick:has(#shQkBox) { background: transparent !important; border: 0 !important; padding: 0 !important; box-shadow: none !important; }
 .dn-sep { color: #94a3b8; font-weight: 700; margin: 0 2px; }
+
+/* v413 زر تعديل بطاقة المنتهي */
+.bill-card .bill-card-edit{flex:0 0 auto;width:40px;height:40px;align-self:center;margin-inline-start:8px;border:1.5px solid #cbd5e1;border-radius:10px;background:#fff;cursor:pointer;font-size:1rem;line-height:1}
+.bill-card .bill-card-edit:active{background:#f1f5f9}

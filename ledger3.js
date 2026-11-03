@@ -121,7 +121,7 @@ function lgxClose() { const m = $b('lgX'); if (m) m.style.display = 'none'; lgx 
 function lgxFillPh(sel) { const arr = lgPharmacies(); $b('lgxPh').innerHTML = (arr.length ? '' : '<option value="">— أضف صيدلية أولاً —</option>') + arr.map(n => `<option>${escapeHtml(n)}</option>`).join(''); if (sel) $b('lgxPh').value = sel; }
 function lgxOpen(kind, opts) {
     opts = opts || {}; lgxEnsure();
-    lgx = { kind, lines: [] };
+    lgx = { kind, lines: [], editId: '' };
     const isX = kind === 'xfer';
     $b('lgxTitle').textContent = isX ? '🔁 مناقلة بين الصيدليات' : '🗑️ تسجيل مادة منتهية / تالفة';
     $b('lgxPhW').style.display = $b('lgxDirW').style.display = $b('lgxModeW').style.display = isX ? '' : 'none';
@@ -131,6 +131,19 @@ function lgxOpen(kind, opts) {
     if (isX) { lgxFillPh(opts.pharmacy || ''); $b('lgxDir').value = 'out'; $b('lgxMode').value = 'credit'; }
     else $b('lgxReason').selectedIndex = 0;
     if (opts.pid) lgxAddProd(opts.pid, true);
+    const stockRow = $b('lgxStock').closest('label'); stockRow.style.display = '';
+    if (opts.edit) {
+        const e = lgAll.find(x => x.id === opts.edit);
+        if (e) {
+            lgx.editId = e.id;
+            lgx.lines = (e.items || []).map(l => ({ pid: l.pid, name: l.name, qty: puNum(l.qty), cost: puNum(l.cost), expiry: l.expiry || '' }));
+            $b('lgxTitle').textContent = '✏️ تعديل سجل منتهي / تالف';
+            $b('lgxDate').value = e.date || todayLocalISO(); $b('lgxNote').value = e.note || '';
+            if (e.reason && !LG_EXP_REASONS.includes(e.reason)) $b('lgxReason').insertAdjacentHTML('beforeend', `<option>${escapeHtml(e.reason)}</option>`);
+            $b('lgxReason').value = e.reason || LG_EXP_REASONS[0];
+            $b('lgxStock').checked = false; stockRow.style.display = 'none';
+        }
+    }
     lgxRender();
     $b('lgX').style.display = 'flex';
     if (typeof Swal !== 'undefined' && Swal.close) Swal.close();
@@ -166,7 +179,7 @@ async function lgxSave() {
     const ph = isX ? $b('lgxPh').value : '', dir = isX ? $b('lgxDir').value : 'out';
     if (isX && !ph) return warn('اختر الصيدلية، أو أضف صيدلية جديدة من تبويب المناقلة');
     if (!lines.length) return warn('أضف مادة واحدة على الأقل بعدد صحيح');
-    const touch = $b('lgxStock').checked, dec = isX ? dir === 'out' : true;
+    const touch = !lgx.editId && $b('lgxStock').checked, dec = isX ? dir === 'out' : true;
     if (touch) {
         if (!writesAllowed()) return;
         if (dec) {
@@ -187,7 +200,9 @@ async function lgxSave() {
         lines.forEach(l => { const p = products.find(x => x.id === l.pid), o = snaps.get(l.pid); if (p && o) logAction('qty', p, [{ f: 'الكمية (' + (isX ? (dir === 'out' ? 'مناقلة إلى ' : 'مناقلة من ') + ph : $b('lgxReason').value) + ')', from: String(o.qty), to: String(p.qty) }]); });
         renderAll();
     }
-    const ev = { id: lgId(), kind: lgx.kind, date, items: lines.map(l => ({ pid: l.pid, name: l.name, qty: l.qty, cost: l.cost || 0, expiry: l.expiry || '' })), amount: lgxSum(), note: $b('lgxNote').value.trim(), stockApplied: touch, createdTs: new Date().toISOString() };
+    const old = lgx.editId ? lgAll.find(x => x.id === lgx.editId) : null;
+    const ev = { id: old ? old.id : lgId(), kind: lgx.kind, date, items: lines.map(l => ({ pid: l.pid, name: l.name, qty: l.qty, cost: l.cost || 0, expiry: l.expiry || '' })), amount: lgxSum(), note: $b('lgxNote').value.trim(), stockApplied: old ? !!old.stockApplied : touch, createdTs: old ? (old.createdTs || new Date().toISOString()) : new Date().toISOString() };
+    if (old && old.oldAmount !== undefined) ev.oldAmount = old.oldAmount;
     if (isX) Object.assign(ev, { pharmacy: ph, dir, mode: $b('lgxMode').value }); else ev.reason = $b('lgxReason').value;
     await lgSave(ev); const kind = lgx.kind; lgxClose();
     Swal.fire({ icon: 'success', title: 'تم الحفظ', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
@@ -273,7 +288,7 @@ function lgRenderExp() {
     if (!$b('lge-list')) return;
     const { rg, arr } = lgExpData(), tot = arr.reduce((s, e) => s + puNum(e.amount), 0), qty = arr.reduce((s, e) => s + (e.items || []).reduce((a, l) => a + puNum(l.qty), 0), 0);
     $b('lge-sum').innerHTML = `<span>خسارة المنتهي والتالف — ${escapeHtml(rg.label)}</span><b>${fmtNum(tot)} د.ع</b><small>${fmtNum(qty)} عبوة • ${arr.length} سجل (بسعر الشراء)</small>`;
-    $b('lge-list').innerHTML = arr.map(e => `<div class="bill-card"><div class="bill-card-main" onclick="lgExpOpen('${e.id}')"><b dir="ltr">${escapeHtml((e.items || []).map(l => l.name).slice(0, 2).join('، '))}${(e.items || []).length > 2 ? '…' : ''}</b> <em class="tg warn">${escapeHtml(e.reason || '')}</em><small>${escapeHtml(fmtDateDMY(e.date))} • ${(e.items || []).length} مادة${e.note ? ' • ' + escapeHtml(e.note) : ''}</small></div><div class="bill-card-amt">${fmtNum(e.amount)}<small>د.ع</small></div></div>`).join('') || '<div class="bill-none">لا توجد مواد منتهية مسجّلة في هذه الفترة.</div>';
+    $b('lge-list').innerHTML = arr.map(e => `<div class="bill-card"><div class="bill-card-main" onclick="lgExpOpen('${e.id}')"><b dir="ltr">${escapeHtml((e.items || []).map(l => l.name).slice(0, 2).join('، '))}${(e.items || []).length > 2 ? '…' : ''}</b> <em class="tg warn">${escapeHtml(e.reason || '')}</em><small>${escapeHtml(fmtDateDMY(e.date))} • ${(e.items || []).length} مادة${e.note ? ' • ' + escapeHtml(e.note) : ''}</small></div><div class="bill-card-amt">${fmtNum(e.amount)}<small>د.ع</small></div><button type="button" class="bill-card-edit" onclick="lgxOpen('exp',{edit:'${e.id}'})" aria-label="تعديل">✏️</button></div>`).join('') || '<div class="bill-none">لا توجد مواد منتهية مسجّلة في هذه الفترة.</div>';
     const flat = []; arr.forEach(e => (e.items || []).forEach(l => flat.push({ e, l })));
     const mb = (rg.year || rg.all) ? `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th>الشهر</th><th>العدد</th><th>الخسارة</th></tr></thead><tbody>${[...new Set(arr.map(e => lgMonthOfDate(e.date)))].sort().map(m => { const l = arr.filter(e => lgMonthOfDate(e.date) === m); return `<tr><td>${lgMonthLabel(m)}</td><td>${fmtNum(l.reduce((s, e) => s + (e.items || []).reduce((a, x) => a + puNum(x.qty), 0), 0))}</td><td>${fmtNum(l.reduce((s, e) => s + puNum(e.amount), 0))}</td></tr>`; }).join('')}</tbody></table></div>` : '';
     $b('lge-sheet').innerHTML = lgLetterhead('سجل الأدوية المنتهية والتالفة', escapeHtml(rg.label)) + mb + `<div class="pu-tw"><table class="bill-table pu-mtable"><thead><tr><th class="pu-n">#</th><th>التاريخ</th><th>المادة</th><th>السبب</th><th>العدد</th><th>النفاذ</th><th>سعر المفرد</th><th>المجموع</th></tr></thead><tbody>${flat.map((x, i) => `<tr><td class="pu-n">${i + 1}</td><td>${escapeHtml(fmtDateDMY(x.e.date))}</td><td dir="ltr">${escapeHtml(x.l.name)}</td><td>${escapeHtml(x.e.reason || '')}</td><td>${fmtNum(x.l.qty)}</td><td dir="ltr">${escapeHtml(x.l.expiry || '')}</td><td>${fmtNum(x.l.cost)}</td><td>${fmtNum(puNum(x.l.qty) * puNum(x.l.cost))}</td></tr>`).join('') || '<tr><td colspan="8">لا توجد سجلات.</td></tr>'}</tbody>${flat.length ? `<tfoot><tr><td colspan="4">المجموع</td><td>${fmtNum(qty)}</td><td colspan="2"></td><td>${fmtNum(tot)}</td></tr></tfoot>` : ''}</table></div>`;
@@ -282,7 +297,7 @@ function lgExpOpen(id) {
     const e = lgAll.find(x => x.id === id); if (!e) return;
     const rows = (e.items || []).map(l => `<tr><td dir="ltr">${escapeHtml(l.name)}</td><td>${fmtNum(l.qty)}</td><td>${fmtNum(l.cost)}</td><td dir="ltr">${escapeHtml(l.expiry || '—')}</td></tr>`).join('');
     Swal.fire({ title: fmtNum(e.amount) + ' د.ع — ' + escapeHtml(e.reason || ''), showConfirmButton: false, showCloseButton: true, width: 560,
-        html: `<div class="pu-detail"><div class="pu-d-meta">${escapeHtml(fmtDateDMY(e.date))}</div><div class="pu-d-scroll"><table class="bill-table"><thead><tr><th>المادة</th><th>العدد</th><th>السعر</th><th>النفاذ</th></tr></thead><tbody>${rows}</tbody></table></div>${e.note ? `<div class="pu-d-pays">${escapeHtml(e.note)}</div>` : ''}<div class="pu-d-btns"><button type="button" class="bill-tb-btn bill-danger" onclick="Swal.close();lgDelEvent('${e.id}')">🗑️ حذف</button></div></div>` });
+        html: `<div class="pu-detail"><div class="pu-d-meta">${escapeHtml(fmtDateDMY(e.date))}</div><div class="pu-d-scroll"><table class="bill-table"><thead><tr><th>المادة</th><th>العدد</th><th>السعر</th><th>النفاذ</th></tr></thead><tbody>${rows}</tbody></table></div>${e.note ? `<div class="pu-d-pays">${escapeHtml(e.note)}</div>` : ''}<div class="pu-d-btns"><button type="button" class="bill-tb-btn" onclick="Swal.close();lgxOpen('exp',{edit:'${e.id}'})">✏️ تعديل</button><button type="button" class="bill-tb-btn bill-danger" onclick="Swal.close();lgDelEvent('${e.id}')">🗑️ حذف</button></div></div>` });
 }
 function lgExpCsv() {
     const { rg, arr } = lgExpData(), L = [['التاريخ', 'المادة', 'السبب', 'العدد', 'النفاذ', 'سعر المفرد', 'المجموع', 'ملاحظات']];
