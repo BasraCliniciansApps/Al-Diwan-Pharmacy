@@ -41,9 +41,14 @@ function plRow(p, owner) {
     const profit = price > 0 && cost > 0 ? price - cost : null;
     let ret = '';
     if (hasRetail(p)) { const sp = Number(p.subPrice) || subPriceCalc(price, subCountOf(p)); ret = `<div class="pl-ret">تجزئة: ${fmtNum(subCountOf(p))} ${escapeHtml(subTypeOf(p) || 'جزء')} بالعبوة · سعر الجزء <b>${sp > 0 ? fmtNum(sp) : '—'}</b></div>`; }
-    return `<div class="pl-row"><div class="pl-name" dir="ltr">${dispNameHtml(p)}</div>
+    const can_ = typeof can === 'function' && can('stockEdit');
+    return `<div class="pl-row${can_ ? ' pl-ed' : ''}"${can_ ? ` onclick="plEdit(${p.id})"` : ''}><div class="pl-head"><div class="pl-name" dir="ltr">${dispNameHtml(p)}</div>${can_ ? '<span class="pl-pen" aria-hidden="true">✏️</span>' : ''}</div>
         <div class="pl-meth"><span class="pl-chip m-${k}">${plMethodName(k)}</span>${formula}</div>
         <div class="pl-nums">${owner ? `<div><small>الشراء</small><b class="${cost > 0 ? '' : 'bad'}">${cost > 0 ? fmtNum(cost) : '—'}</b></div>` : ''}<div><small>البيع</small><b class="${price > 0 ? '' : 'bad'}">${price > 0 ? fmtNum(price) : 'غير مسعّر'}</b></div>${owner ? `<div><small>الربح</small><b class="${profit === null ? '' : profit < 0 ? 'bad' : 'good'}">${profit === null ? '—' : fmtNum(profit)}</b></div>` : ''}</div>${ret}</div>`;
+}
+// التعديل بنفس نافذة «تسعير وتعديل سريع» في سجل الأدوية: يُحفظ بنفس مسار الحفظ فينتقل السعر وطريقة التسعير والتجزئة لكل أجزاء التطبيق
+async function plEdit(id) {
+    try { await catPrice(id); } finally { plRender(); }
 }
 function plRender() {
     if (!document.getElementById('plList')) return;
