@@ -108,6 +108,7 @@ async function lgSeqMove(ctx, from) {
     const f = 'ord_' + ctx, changed = [];
     order.forEach((x, i) => { const rec = lgSeqRec(x.kind, x.id); if (rec && rec[f] !== i + 1) { rec[f] = i + 1; changed.push([x.kind, rec]); } });
     for (const [k, rec] of changed) await lgSeqSave(k, rec);
+    if (ctx === 'stmt' && $b('puOrd') && $b('puOrd').value !== 'manual') { $b('puOrd').value = 'manual'; if (typeof puOrdSave === 'function') puOrdSave(); }   // التحريك اليدوي يعني الترتيب اليدوي
     Swal.fire({ icon: 'success', title: 'تم تغيير التسلسل', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 });
     lgSeqRefresh();
 }

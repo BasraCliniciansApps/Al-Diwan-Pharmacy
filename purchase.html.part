@@ -90,6 +90,7 @@
                 <label class="pu-mfield" id="puMonthWrap"><span>الشهر</span><input type="month" id="puMonth" oninput="renderPuMonth()"></label>
                 <label class="pu-mfield" id="puYearWrap" style="display:none"><span>السنة</span><input type="number" id="puYear" min="2000" max="2100" oninput="renderPuMonth()"></label>
                 <label class="pu-mfield"><span>المذخر</span><select id="puMonthSup" onchange="renderPuMonth()"></select></label>
+                <label class="pu-mfield"><span>ترتيب القوائم</span><select id="puOrd" onchange="puOrdSave();renderPuMonth()"><option value="manual">ترتيبي اليدوي (الحالي)</option><option value="date">حسب التاريخ</option><option value="seq">حسب تسلسل سجل الوارد</option></select></label>
                 <label class="pu-chk"><input type="checkbox" id="puDetail" checked onchange="renderPuMonth()"><span>تفصيل القوائم</span></label>
                 <label class="pu-chk"><input type="checkbox" id="puGroup" onchange="renderPuMonth()"><span>تجميع حسب المذخر</span></label>
             </div>

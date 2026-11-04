@@ -77,7 +77,12 @@ async function lgToggleStmt(kind, id) {
 // سجل الطلبيات (شهري / سنوي)
 // =====================================================================
 function puMonthNow() { return lgNowMonth(); }
+// ترتيب كشف الطلبيات: يدوي (الحالي) / حسب التاريخ / حسب تسلسل سجل الوارد (رقم القائمة بالشهر)
+function puOrdSave() { try { localStorage.setItem('diwanPuOrd', $b('puOrd').value); } catch (e) { /* تجاهل */ } }
+function puOrdMode() { const el = $b('puOrd'); return el ? el.value : 'manual'; }
+function puOrdInit() { const el = $b('puOrd'); if (!el || el.dataset.init) return; el.dataset.init = '1'; try { const v = localStorage.getItem('diwanPuOrd'); if (v && ['manual', 'date', 'seq'].includes(v)) el.value = v; } catch (e) { /* تجاهل */ } }
 function puInitMonth(typeChanged) {
+    puOrdInit();
     if (!$b('puMonth').value) $b('puMonth').value = puMonthNow();
     if (!$b('puYear').value) $b('puYear').value = new Date().getFullYear();
     const isY = $b('puPType').value === 'year';
@@ -101,7 +106,10 @@ function lgStmtData(from, to, sup, group) {
     });
     rets.filter(e => !e.listId && e.mode === 'net' && inR(lgMonthOfDate(e.date)) && okSup(e.supplier)).forEach(e => rows.push({ t: 'ret', m: lgMonthOfDate(e.date), date: e.date, ts: e.createdTs || '', sup: e.supplier, no: e.cnNo || '', total: 0, ret: puNum(e.amount), net: -puNum(e.amount), ev: e }));
     rets.filter(e => e.mode === 'unrec' && e.deductMonth && inR(e.deductMonth) && okSup(e.supplier)).forEach(e => rows.push({ t: 'ded', m: e.deductMonth, date: e.date, ts: e.createdTs || '', sup: e.supplier, no: e.cnNo || '', total: 0, ret: puNum(e.amount), net: -puNum(e.amount), ev: e }));
-    rows.sort((a, b) => (group ? puKey(a.sup).localeCompare(puKey(b.sup), 'ar') : 0) || lgOrdCmp('stmt', x => x.r || x.ev)(a, b) || String(a.date).localeCompare(String(b.date)) || String(a.ts).localeCompare(String(b.ts)));
+    const om = puOrdMode(), dcmp = (a, b) => String(a.date).localeCompare(String(b.date)) || String(a.ts).localeCompare(String(b.ts));
+    const seqOf = x => x.t === 'inv' ? (parseInt(x.r.seq) || 1e9) : 2e9;   // التعديلات (مردود/اقتطاع) بلا رقم قائمة: تأتي بعد قوائم شهرها
+    const ocmp = om === 'date' ? dcmp : om === 'seq' ? ((a, b) => String(a.m).localeCompare(String(b.m)) || (seqOf(a) - seqOf(b)) || dcmp(a, b)) : ((a, b) => lgOrdCmp('stmt', x => x.r || x.ev)(a, b) || dcmp(a, b));
+    rows.sort((a, b) => (group ? puKey(a.sup).localeCompare(puKey(b.sup), 'ar') : 0) || ocmp(a, b));
     const sum = list => ({ total: list.reduce((s, x) => s + x.total, 0), ret: list.reduce((s, x) => s + x.ret, 0), net: list.reduce((s, x) => s + x.net, 0), n: list.filter(x => x.t === 'inv').length });
     return { rows, sum: sum(rows), sumOf: sum };
 }
