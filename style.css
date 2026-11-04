@@ -3543,3 +3543,6 @@ input.pl-in{direction:ltr;text-align:center}
 .pl-in[readonly]{background:#f1f5f9;color:#475569}
 .pl-prof{height:46px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#f8fafc;font-size:.95rem}.pl-prof.bad{color:#b91c1c}.pl-prof.good{color:#047857}
 [data-theme="dark"] .pl-in{background:#0f172a;color:#e2e8f0;border-color:#334155}
+
+/* v418 الطباعة: صف المجموع (tfoot) مرة واحدة بنهاية الجدول، وليس بنهاية كل ورقة */
+@media print { body.printing-rv tfoot, body.printing-purch tfoot, body.printing-purch .pu-pane tfoot { display: table-row-group !important; } }

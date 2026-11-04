@@ -709,7 +709,19 @@ function puPrint(paneId) {   // معاينة داخل التطبيق لمحتو�
     c.querySelectorAll('[onclick]').forEach(e => e.removeAttribute('onclick'));
     c.removeAttribute('id'); c.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));
     c.classList.remove('pu-pane', 'active', 'print-active'); c.style.display = 'block';
-    openReport({ title: PU_PANE_TITLES[paneId.replace('puPane-', '')] || 'تقرير', html: c.innerHTML });
+    const key = paneId.replace('puPane-', '');
+    openReport({ title: PU_PANE_TITLES[key] || 'تقرير', html: c.innerHTML, fileName: puPdfName(key) });
+}
+
+// اسم ملف PDF بالإنكليزية: Al-Diwan-Pharmacy_Purchase-Invoices_Monthly_2026-10 / ..._Yearly_2026
+function puPdfName(key) {
+    const base = 'Al-Diwan-Pharmacy_', day = (typeof todayLocalISO === 'function' ? todayLocalISO() : '');
+    if (key === 'month' && typeof puStmtRange === 'function') {
+        const rg = puStmtRange(), sup = ($b('puMonthSup') || {}).value || '';
+        return base + 'Purchase-Invoices_' + (rg.year ? 'Yearly_' : 'Monthly_') + rg.file + (sup ? '_' + (String(sup).replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'Supplier') : '');
+    }
+    const N = { ret: 'Supplier-Returns', unrec: 'Unrecognized-Returns', pay: 'Supplier-Payments', bonus: 'Bonus', xfer: 'Pharmacy-Transfers', exp: 'Expired-and-Damaged', sum: 'Financial-Summary' };
+    return base + (N[key] || 'Report') + (day ? '_' + day : '');
 }
 
 // ---------- المذاخر والأسعار ----------
