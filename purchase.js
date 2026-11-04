@@ -221,12 +221,12 @@ function puRenderItems() {
         <div class="pu-item ${it.open ? 'open' : 'closed'}" id="puItem-${i}">
             <div class="pu-bar" onclick="puToggle(${i})">
                 <span class="pu-chev">${it.open ? '▾' : '▸'}</span>
-                <span class="pu-bar-name" dir="ltr">${escapeHtml(it.name)}</span>
+                <span class="pu-bar-name" dir="ltr">${puNameHtml(it)}</span>
                 ${pu.gift ? `<span class="pu-bar-sum">🎁 <b>${fmtNum(puNum(it.bonus))}</b> مجاناً</span>` : `<span class="pu-bar-sum"><span id="puBq-${i}"></span> × <span id="puBc-${i}"></span> = <b id="puBs-${i}"></b></span>`}
                 <button type="button" class="pt-ret ${puNum(it.ret) > 0 ? 'on' : ''}" onclick="event.stopPropagation();ptRet(${i})" title="مردود لهذه المادة">↩️${puNum(it.ret) > 0 ? ' ' + puNum(it.ret) : ''}</button><button type="button" class="pu-x" onclick="event.stopPropagation();puRemoveItem(${i})" aria-label="حذف">✕</button>
             </div>
             <div class="pu-body" style="display:${it.open ? 'block' : 'none'}">
-                <div class="pu-item-h">${puThumb(it.pid)}<span class="pu-item-t"><b dir="ltr">${escapeHtml(it.name)}</b><span>${escapeHtml(puSub(it.pid))}</span></span></div>
+                <div class="pu-item-h">${puThumb(it.pid)}<span class="pu-item-t"><b dir="ltr">${puNameHtml(it)}</b><span>${escapeHtml(puSub(it.pid))}</span></span></div>
                 <div class="pu-grid">
                     ${pu.gift ? '' : `<label><span>العدد (عبوة)</span><input type="number" min="1" inputmode="numeric" value="${escapeHtml(String(puMainQty(it)))}" oninput="puItemEdit(${i},'qty',this.value)"></label>`}
                     <label><span>${pu.gift ? 'عدد البونص (مجاني)' : 'بونص (مجاني)'}</span><input type="number" min="0" inputmode="numeric" placeholder="0" value="${escapeHtml(it.bonus || '')}" oninput="puItemEdit(${i},'bonus',this.value)"></label>
@@ -320,6 +320,9 @@ async function puXbDel(i, j) { const it = pu.items[i]; if (!it || !it.xb) return
 const puXbHtml = (it, i) => (it.xb || []).map((b, j) => `<div class="pu-xb"><div class="pu-xb-h"><b>دفعة ${j + 2}</b><button type="button" class="pu-x" onclick="puXbDel(${i},${j})" aria-label="حذف الدفعة">✕</button></div><div class="pu-grid"><label><span>العدد (عبوة)</span><input type="number" min="0" inputmode="numeric" value="${escapeHtml(String(b.q))}" oninput="puXbEdit(${i},${j},'q',this.value)"></label><label><span>تاريخ الانتهاء</span><input type="month" dir="ltr" value="${escapeHtml(b.expiry || '')}" oninput="puXbEdit(${i},${j},'expiry',this.value)"></label><label class="pu-xb-b"><span>رقم الدفعة (اختياري)</span><input dir="ltr" value="${escapeHtml(b.batch || '')}" oninput="puXbEdit(${i},${j},'batch',this.value)"></label></div></div>`).join('');
 
 async function puRemoveItem(i) { const it = pu.items[i]; if (!it) return; if (!(await askSure('حذف هذه المادة من الفاتورة؟', it.name, 'حذف'))) return; pu.items.splice(i, 1); puRenderItems(); puChanged(); }
+// اسم المادة بسطر الوارد بنفس صيغة فاتورة البيع: الاسم التجاري والتركيز | العبوة الشكل الدوائي | الشركة
+function puNameAuto(it, p) { const n = String(it.name || '').trim(); return !n || n === p.name || n === dispName(p) || n === dispName(p, true); }
+function puNameHtml(it) { const p = it.pid ? products.find(x => x.id === it.pid) : null; return p && puNameAuto(it, p) ? dispNameHtml(p) : escapeHtml(it.name); }
 function puAddProduct(id) {
     const p = products.find(x => x.id === id); if (!p) return;
     if (p.arch) {   // دخول مادة مؤرشفة بفاتورة وارد جديدة يفك أرشفتها تلقائيًا
@@ -334,10 +337,10 @@ function puAddProduct(id) {
     const ex = pu.items.find(it => it.pid === id);
     pu.items.forEach(it => { it.open = false; });   // القديمة تنطوي والجديدة تُفتح
     if (pu.gift) {
-        if (ex) ex.bonus = (parseInt(ex.bonus) || 0) + 1; else pu.items.push({ pid: id, name: p.name, qty: 0, bonus: 1, cost: '', expiry: '', batch: '', open: true, ropen: hasRetail(p) });
+        if (ex) ex.bonus = (parseInt(ex.bonus) || 0) + 1; else pu.items.push({ pid: id, name: dispName(p), qty: 0, bonus: 1, cost: '', expiry: '', batch: '', open: true, ropen: hasRetail(p) });
         if (ex) ex.open = true;
     } else if (ex) { if (puHasX(ex)) { ex.q0 = (parseInt(ex.q0) || 0) + 1; puSyncQty(ex); } else ex.qty = (parseInt(ex.qty) || 0) + 1; ex.open = true; }
-    else pu.items.push({ pid: id, name: p.name, qty: 1, bonus: '', cost: p.costPrice || '', expiry: '', batch: '', open: true, ropen: hasRetail(p) });
+    else pu.items.push({ pid: id, name: dispName(p), qty: 1, bonus: '', cost: p.costPrice || '', expiry: '', batch: '', open: true, ropen: hasRetail(p) });
     $b('puSearch').value = ''; $b('puResults').style.display = 'none';
     puRenderItems(); puChanged();
     const cards = document.querySelectorAll('#puItems .pu-item');   //    // التمرير للصنف المضاف وتمييزه
@@ -456,7 +459,7 @@ async function puSave() {
         const n = parseInt(it.qty) || 0, bn = parseInt(it.bonus) || 0, cost = puNum(it.cost), old = oldBy.get(it.pid);
         const wasMan = puSubManual(p);
         const xb = (it.xb || []).map(b => ({ q: parseInt(b.q) || 0, expiry: b.expiry || '', batch: (b.batch || '').trim() })).filter(b => b.q > 0);
-        const line = { pid: p.id, name: p.name, qty: n, bonus: bn, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: (old && old.applied !== false) ? old.prevQty : (parseInt(p.qty) || 0), prevCost: (old && old.applied !== false) ? old.prevCost : (p.costPrice || 0), expAdded: (old && old.applied !== false) ? !!old.expAdded : false };
+        const line = { pid: p.id, name: puNameAuto(it, p) ? dispName(p) : it.name, qty: n, bonus: bn, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: (old && old.applied !== false) ? old.prevQty : (parseInt(p.qty) || 0), prevCost: (old && old.applied !== false) ? old.prevCost : (p.costPrice || 0), expAdded: (old && old.applied !== false) ? !!old.expAdded : false };
         const applied = old ? old.applied !== false : (upd && !setupSkip(p));   // السطر القديم يبقى على حاله؛ الجديد لا يحدّث مادة غير مجرودة (وضع التأسيس)
         if (!applied && !old) line.setupSkip = !!(upd && setupSkip(p));
         line.applied = applied;
@@ -604,7 +607,7 @@ async function puSeqEdit(id, ev) {
 }
 function puOpen(id) {
     const r = puAll.find(x => x.id === id); if (!r) return;
-    const rows = (r.items || []).map(it => `<tr><td dir="ltr">${escapeHtml(it.name)}${it.applied === false ? ' <em class="tg warn">' + puLineTag(it) + '</em>' : ''}</td><td>${fmtNum(it.qty)}${it.bonus ? ' <small>+' + fmtNum(it.bonus) + ' بونص</small>' : ''}</td><td>${fmtNum(it.cost)}</td><td dir="ltr">${escapeHtml(it.expiry || '—')}${(it.xb || []).map(b => '<br><small><bdi>' + fmtNum(b.q) + ' × ' + escapeHtml(b.expiry || '—') + '</bdi></small>').join('')}</td><td dir="ltr">${escapeHtml(it.batch || '—')}</td><td>${fmtNum(it.qty * it.cost)}</td></tr>`).join('');
+    const rows = (r.items || []).map(it => `<tr><td dir="ltr">${puNameHtml(it)}${it.applied === false ? ' <em class="tg warn">' + puLineTag(it) + '</em>' : ''}</td><td>${fmtNum(it.qty)}${it.bonus ? ' <small>+' + fmtNum(it.bonus) + ' بونص</small>' : ''}</td><td>${fmtNum(it.cost)}</td><td dir="ltr">${escapeHtml(it.expiry || '—')}${(it.xb || []).map(b => '<br><small><bdi>' + fmtNum(b.q) + ' × ' + escapeHtml(b.expiry || '—') + '</bdi></small>').join('')}</td><td dir="ltr">${escapeHtml(it.batch || '—')}</td><td>${fmtNum(it.qty * it.cost)}</td></tr>`).join('');
     const pays = (r.payments || []).map(p => `<div>${escapeHtml(fmtDateDMY(p.at))} — ${fmtNum(p.amount)} د.ع</div>`).join('') || '<div>لا دفعات</div>';
     const btn = (label, fn, cls) => `<button type="button" class="bill-tb-btn ${cls || ''}" onclick="Swal.close();${fn}">${label}</button>`;
     Swal.fire({
