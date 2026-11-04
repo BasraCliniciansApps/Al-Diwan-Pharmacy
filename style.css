@@ -3508,3 +3508,21 @@ body.pv-on { padding-bottom: 76px; }
 /* v413 زر تعديل بطاقة المنتهي */
 .bill-card .bill-card-edit{flex:0 0 auto;width:40px;height:40px;align-self:center;margin-inline-start:8px;border:1.5px solid #cbd5e1;border-radius:10px;background:#fff;cursor:pointer;font-size:1rem;line-height:1}
 .bill-card .bill-card-edit:active{background:#f1f5f9}
+
+/* v414 قائمة التسعير */
+.pl-card{max-height:96vh;height:96vh}
+.pl-top{padding:10px 14px 0;display:flex;flex-direction:column;gap:8px}
+.pl-body{overflow-y:auto;padding:10px 14px;display:flex;flex-direction:column;gap:8px;flex:1 1 auto}
+.pl-row{border:1.5px solid #e2e8f0;border-radius:12px;padding:9px 11px;display:flex;flex-direction:column;gap:6px;background:#fff}
+.pl-name{font-weight:800;font-size:.9rem;color:#0f1c38;overflow-wrap:anywhere;text-align:left}
+.pl-meth{font-size:.74rem;color:#64748b;font-weight:700}
+.pl-chip{display:inline-block;padding:2px 8px;border-radius:99px;background:#e0e7ff;color:#3730a3;font-weight:800}
+.pl-chip.m-syndicate{background:#fef3c7;color:#92400e}.pl-chip.m-percent{background:#dcfce7;color:#166534}.pl-chip.m-free{background:#f1f5f9;color:#475569}
+.pl-nums{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;text-align:center}
+.pl-nums div{background:#f8fafc;border-radius:8px;padding:5px 4px;display:flex;flex-direction:column;gap:1px}
+.pl-nums small{font-size:.66rem;color:#64748b;font-weight:700}.pl-nums b{font-size:.88rem;color:#0f1c38}
+.pl-nums b.bad{color:#b91c1c}.pl-nums b.good{color:#047857}
+.pl-ret{font-size:.74rem;color:#475569;font-weight:700}
+.pl-fh{grid-column:1/-1;font-size:.72rem;font-weight:800;color:#64748b;padding:6px 4px 2px}
+.pl-more{align-self:center;min-height:44px}
+[data-theme="dark"] .pl-row{background:#1e293b;border-color:#334155}[data-theme="dark"] .pl-name,[data-theme="dark"] .pl-nums b{color:#e2e8f0}[data-theme="dark"] .pl-nums div{background:#0f172a}

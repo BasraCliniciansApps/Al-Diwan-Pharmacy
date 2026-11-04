@@ -241,6 +241,17 @@ function writeProductBatch(batch, p) {
     batch.set(db.collection('pharmacy_stock').doc(String(p.id)), stock);
     if (cost) batch.set(db.collection('pharmacy_cost').doc(String(p.id)), cost);
 }
+// دمج إعادة البناء: المراقبات الثلاثة (مواد/مخزون/كلفة) كانت كلٌّ منها تعيد دمج وترتيب وحفظ ورسم كل المواد؛ الآن تُنفَّذ مرة واحدة بعد 150 ملّي ثانية
+let _rbTimer = 0, _rbShare = false;
+function scheduleRebuild(share) {
+    if (share) _rbShare = true;
+    if (_rbTimer) return;
+    _rbTimer = setTimeout(() => {
+        _rbTimer = 0; const sh = _rbShare; _rbShare = false;
+        rebuildProducts(); saveLocal(); renderAll();
+        if (sh) checkSharedProductUrl();
+    }, 150);
+}
 function startStockListener() {
     if (!IS_ADMIN_PAGE || unsubStock || !db) return;
     unsubStock = db.collection('pharmacy_stock').onSnapshot(snap => {
@@ -248,7 +259,7 @@ function startStockListener() {
         let sm = false;
         snap.forEach(doc => { if (doc.id === '_setup') sm = !!(doc.data() || {}).on; else m[doc.id] = doc.data(); });
         stockMap = m; setupMode = sm;
-        if (cloudPub.length) { rebuildProducts(); saveLocal(); renderAll(); }
+        if (cloudPub.length) scheduleRebuild();
     }, err => { console.warn('Stock listener:', err.message); if (unsubStock) { try { unsubStock(); } catch (e) { /* تجاهل */ } } unsubStock = null; setTimeout(() => { if (currentUser) startStockListener(); }, 4000); });   // إعادة التشغيل إن انقطع
 }
 function startCostListener() {
@@ -257,7 +268,7 @@ function startCostListener() {
         const m = {}; let on = false;
         snap.forEach(doc => { if (doc.id === '_meta') on = !!(doc.data() || {}).on; else m[doc.id] = doc.data(); });
         costMap = m; costSplitOn = on;
-        if (cloudPub.length) { rebuildProducts(); saveLocal(); renderAll(); }
+        if (cloudPub.length) scheduleRebuild();
     }, err => { console.warn('Cost listener:', err.message); if (unsubCost) { try { unsubCost(); } catch (e) { /* تجاهل */ } } unsubCost = null; costSplitOn = false; });
 }
 function syncStockLocal(list) {   // بعد نجاح الحفظ نحدّث نسخة المخزون محلياً فوراً (لا ننتظر المراقب)
@@ -311,7 +322,7 @@ async function fsWrite(promise) {
     const settle = ok => { pendingOps = Math.max(0, pendingOps - 1); if (ok) { syncErrMsg = ''; markSynced(); } syncRefresh(); };
     promise.then(() => settle(true), () => settle(false));
     if (!navigator.onLine) { promise.catch(asyncWriteFailed); return 'queued'; }
-    const r = await Promise.race([promise.then(() => 'ok'), new Promise(res => setTimeout(() => res('slow'), 7000))]);
+    const r = await Promise.race([promise.then(() => 'ok'), new Promise(res => setTimeout(() => res('slow'), 2500))]);
     if (r === 'slow') promise.catch(asyncWriteFailed);
     return r;
 }
@@ -432,10 +443,7 @@ async function initFirebase() {
             if (!snapshot.empty) {
                 cloudPub = [];
                 snapshot.forEach(doc => { cloudPub.push(doc.data()); });
-                rebuildProducts();
-                saveLocal();
-                renderAll();
-                checkSharedProductUrl(); // ✅ يفتح المنتج المشارك فور وصوله من السحابة
+                scheduleRebuild(true);   // ✅ إعادة البناء مرة واحدة، ثم يُفتح المنتج المشارك إن وُجد
                 setSyncText("☁️ متزامن");
             }
         }, err => {
@@ -447,6 +455,16 @@ async function initFirebase() {
     }
 }
 
+// نسخة المواد الكاملة على الجهاز: تُكتب بعد ثانية من آخر تغيير (بدل كل حفظ)، وفوراً عند إغلاق الصفحة أو إخفائها حتى لا يضيع شيء
+let _plTimer = 0;
+function flushProductsLocal() {
+    if (_plTimer) { clearTimeout(_plTimer); _plTimer = 0; }
+    try { localStorage.setItem('diwanProducts', JSON.stringify(products)); }
+    catch (e) { localStorage.removeItem('diwanProducts'); }   // ذاكرة ممتلئة: نقرأ من السحابة
+}
+function saveProductsLocalSoon() { if (_plTimer) clearTimeout(_plTimer); _plTimer = setTimeout(flushProductsLocal, 1000); }
+['pagehide', 'beforeunload'].forEach(ev => window.addEventListener(ev, () => { if (_plTimer) flushProductsLocal(); }));
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && _plTimer) flushProductsLocal(); });
 function saveLocal() {
     try {
         localStorage.setItem('diwanDepts', JSON.stringify(departments));
@@ -460,7 +478,7 @@ function saveLocal() {
         localStorage.setItem('diwanPricing', JSON.stringify(pricingCfg));
         localStorage.setItem('diwanSubTypes', JSON.stringify(subTypes));
         if (typeof formCfg !== 'undefined') localStorage.setItem('diwanFormCfg', JSON.stringify(formCfg));
-        localStorage.setItem('diwanProducts', JSON.stringify(products));
+        saveProductsLocalSoon();
     } catch (e) {
         // إذا امتلأت ذاكرة المتصفح، نمسح النسخة المحلية القديمة لكي يقرأ المتصفح من السحابة المحدثة دائماً!
         localStorage.removeItem('diwanProducts');
