@@ -249,6 +249,7 @@ function scheduleRebuild(share) {
     _rbTimer = setTimeout(() => {
         _rbTimer = 0; const sh = _rbShare; _rbShare = false;
         rebuildProducts(); saveLocal(); renderAll();
+        try { if (typeof formsAdoptOthers === 'function') formsAdoptOthers(); } catch (e) { /* تجاهل */ }
         if (sh) checkSharedProductUrl();
     }, 150);
 }
@@ -1162,21 +1163,35 @@ function getFormBadge(item) {
     const f = FORMS.find(x => x.re && x.re.test(str));
     return f ? { txt: f.txt, cls: f.cls } : { txt: 'كريم (Cream)', cls: 'badge-cream' };   // الافتراضي القديم
 }
-function onFormChange() { const w = document.getElementById('fFormOtherWrap'), v = document.getElementById('fForm'); if (w && v) w.style.display = v.value === 'other' ? '' : 'none'; }
+function onFormChange() {
+    const w = document.getElementById('fFormOtherWrap'), v = document.getElementById('fForm'); if (w && v) w.style.display = v.value === 'other' ? '' : 'none';
+    const gs = document.getElementById('fFormOtherGroup');   // قسم الشكل الجديد: يُختار من أقسام الأشكال الدوائية
+    if (gs && v && v.value === 'other') { const keep = gs.value || 'Other'; gs.innerHTML = FORM_GROUPS.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join(''); gs.value = FORM_GROUPS.includes(keep) ? keep : 'Other'; }
+}
+// قيمة القائمة لمادة محفوظة: شكل «Other» بنص يطابق شكلاً مضافاً يُختار من قائمة الأقسام
+function formSelValueFor(p) {
+    if (p.form === 'other' && p.formOther) { const k = String(p.formOther).trim().toLowerCase(), f = FORMS.find(x => x.custom && x.oth && String(x.txt).trim().toLowerCase() === k); if (f) return f.id; }
+    return p.form || '';
+}
 function customFormNames() { const s = new Set(); (typeof products !== 'undefined' ? products : []).forEach(p => { if (p.form === 'other' && p.formOther && String(p.formOther).trim()) s.add(String(p.formOther).trim()); }); return [...s].sort((a, b) => a.localeCompare(b)); }
 function fillFormSelect() {
     const el = document.getElementById('fForm');
     if (el && !el.options.length) el.innerHTML = '<option value="">تلقائي (حسب الاسم والعبوة)</option>' + FORM_GROUPS.map(g => `<optgroup label="${g}">${FORMS.filter(f => f.g === g && !f.hidden).map(f => `<option value="${f.id}">${f.txt}</option>`).join('')}</optgroup>`).join('') + FORMS.filter(f => !f.g).map(f => `<option value="${f.id}">${f.id === 'other' ? 'Other — إضافة شكل جديد' : f.txt}</option>`).join('');
     if (el) {   // الأشكال التي أضفتها سابقاً (تُستخرج تلقائياً من المواد) تظهر في مجموعة مستقلة قبل «Other»
         const old = el.querySelector('#fFormCustom'); if (old) old.remove();
-        const names = customFormNames();
+        const names = customFormNames().filter(n => !FORMS.some(f => String(f.txt).trim().toLowerCase() === n.toLowerCase()));
         if (names.length) { const og = document.createElement('optgroup'); og.id = 'fFormCustom'; og.label = 'أشكال مضافة'; og.innerHTML = names.map(n => `<option value="cf:${escapeHtml(n)}">${escapeHtml(n)}</option>`).join(''); const oth = [...el.options].find(o => o.value === 'other'); el.insertBefore(og, oth || null); }
     }
 }
 function formSelRead() {   // قيمة القائمة -> الحقول المحفوظة (شكل مضاف سابقاً أو «Other» مع نص جديد)
     const v = (document.getElementById('fForm') || {}).value || '';
     if (v.indexOf('cf:') === 0) return { form: 'other', formOther: v.slice(3) };
-    if (v === 'other') return { form: 'other', formOther: ((document.getElementById('fFormOther') || {}).value || '').trim() };
+    if (v === 'other') {
+        const t = ((document.getElementById('fFormOther') || {}).value || '').trim(), gs = document.getElementById('fFormOtherGroup');
+        if (t && gs) { (window._pendingFormGroup = window._pendingFormGroup || {})[t.toLowerCase()] = gs.value || 'Other'; setTimeout(() => { try { formsAdoptOthers(); } catch (e) { /* تجاهل */ } }, 800); }
+        return { form: 'other', formOther: t };
+    }
+    const fe = FORMS.find(x => x.id === v); if (fe && fe.oth) return { form: 'other', formOther: fe.txt };   // شكل مضاف بـ Other: تبقى المادة بنفس صيغتها القديمة
     return { form: v, formOther: '' };
 }
 
@@ -1816,7 +1831,7 @@ function openFormModal(id = null) {
         refreshCatSelect(p.category);
         document.getElementById('fCategory').value = p.category;
         if (document.getElementById('fType')) document.getElementById('fType').value = p.type || (isRxItem(p) ? 'rx' : 'cosmetic');
-        fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = (p.form === 'other' && p.formOther && [...document.getElementById('fForm').options].some(o => o.value === 'cf:' + p.formOther)) ? 'cf:' + p.formOther : (p.form || ''); if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = p.formOther || ''; onFormChange();
+        fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = (p.form === 'other' && p.formOther && [...document.getElementById('fForm').options].some(o => o.value === 'cf:' + p.formOther)) ? 'cf:' + p.formOther : formSelValueFor(p); if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = p.formOther || ''; onFormChange();
         if (document.getElementById('fActive')) document.getElementById('fActive').value = p.activeIngredient || '';
         if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = (p.minQty === null || p.minQty === undefined) ? '' : p.minQty;
         document.getElementById('fBrand').value = p.brand;

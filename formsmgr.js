@@ -4,7 +4,7 @@ let fmQ = '';
 function formCfgApply() {
     (formCfg.groups || []).forEach(g => { if (!FORM_GROUPS.includes(g)) FORM_GROUPS.splice(Math.max(FORM_GROUPS.indexOf('Other'), 0), 0, g); });
     FORMS.forEach(f => { if (f._t0 === undefined) { f._t0 = f.txt; f._g0 = f.g; } });
-    (formCfg.added || []).forEach(a => { if (!FORMS.some(f => f.id === a.id)) { const i = FORMS.findIndex(f => f.id === 'other'); FORMS.splice(i < 0 ? FORMS.length : i, 0, { id: a.id, txt: a.txt, cls: 'badge-other', g: a.g, re: null, custom: true, _t0: a.txt, _g0: a.g }); } });
+    (formCfg.added || []).forEach(a => { if (!FORMS.some(f => f.id === a.id)) { const i = FORMS.findIndex(f => f.id === 'other'); FORMS.splice(i < 0 ? FORMS.length : i, 0, { id: a.id, txt: a.txt, cls: 'badge-other', g: a.g, re: null, custom: true, oth: !!a.oth, _t0: a.txt, _g0: a.g }); } });
     FORMS.forEach(f => {
         if (f.custom) { const a = (formCfg.added || []).find(x => x.id === f.id); if (a) { f.txt = a.txt; f.g = a.g; } }
         else { f.txt = (formCfg.ren || {})[f.id] || f._t0; f.g = (formCfg.mov || {})[f.id] !== undefined ? formCfg.mov[f.id] : f._g0; }
@@ -20,7 +20,27 @@ async function formCfgSave(touched) {
     if (touched && touched.length) await saveProductsDelta(touched.map(p => ({ p, dq: 0, dl: 0 })));
     renderFormManager();
 }
-function fmCount(id) { return products.filter(p => p.form === id).length; }
+const fmLow = s => String(s || '').trim().toLowerCase();
+// مواد شكلها «Other» بنص حر تُعدّ تابعة للشكل المضاف المقابل (تطابق الاسم)
+const fmOwns = (p, f) => p.form === f.id || (f.oth && p.form === 'other' && fmLow(p.formOther) === fmLow(f.txt));
+function fmCount(id) { const f = FORMS.find(x => x.id === id); return f ? products.filter(p => fmOwns(p, f)).length : 0; }
+// الأشكال المكتوبة بـ Other (نصاً حراً) تتحول تلقائياً إلى أشكال حقيقية بالقائمة (مجموعتها الافتراضية Other) لتستطيع نقلها لأي قسم؛ المواد تبقى كما هي دون تعديل
+function formsAdoptOthers() {
+    if (typeof products === 'undefined' || !products.length || typeof customFormNames !== 'function') return;
+    const have = new Set(FORMS.map(f => fmLow(f.txt))), pend = window._pendingFormGroup || {};
+    let add = 0;
+    customFormNames().forEach(n => {
+        const k = fmLow(n); if (!k || have.has(k)) return;
+        let h = 5381; for (let i = 0; i < k.length; i++) h = ((h << 5) + h + k.charCodeAt(i)) | 0;
+        const g = FORM_GROUPS.includes(pend[k]) ? pend[k] : 'Other';
+        formCfg.added.push({ id: 'cfo' + Math.abs(h).toString(36), txt: n, g, oth: 1 }); have.add(k); add++;
+    });
+    if (!add) return;
+    try { localStorage.setItem('diwanFormCfg', JSON.stringify(formCfg)); } catch (e) { /* تجاهل */ }
+    formCfgApply();
+    if (typeof userRole !== 'undefined' && userRole === 'owner') { try { pushToCloud(true); } catch (e) { /* تجاهل */ } }
+    if (typeof renderFormManager === 'function') renderFormManager();
+}
 function renderFormManager() {
     const box = document.getElementById('formListManager'); if (!box) return;
     const gs = document.getElementById('newFormGroup');
@@ -58,8 +78,12 @@ async function fmRename(id) {
     const f = FORMS.find(x => x.id === id); if (!f) return;
     const n = await askText('تعديل اسم الشكل الدوائي', 'الاسم الجديد', f.txt);
     if (!n || n === f.txt) return;
-    if (f.custom) { const a = formCfg.added.find(x => x.id === id); if (a) a.txt = n; } else formCfg.ren[id] = n;
-    await formCfgSave();
+    let touched = [];
+    if (f.custom) {
+        if (f.oth) { touched = products.filter(p => fmOwns(p, f)); touched.forEach(p => { p.formOther = n; }); }
+        const a = formCfg.added.find(x => x.id === id); if (a) a.txt = n;
+    } else formCfg.ren[id] = n;
+    await formCfgSave(touched);
 }
 async function fmMove(id) {
     const f = FORMS.find(x => x.id === id); if (!f) return;
@@ -78,7 +102,7 @@ async function fmDelete(id) {
     let touched = [];
     if (f.custom) {
         formCfg.added = formCfg.added.filter(x => x.id !== id);
-        touched = products.filter(p => p.form === id); touched.forEach(p => { p.form = ''; });
+        touched = products.filter(p => fmOwns(p, f)); touched.forEach(p => { p.form = ''; p.formOther = ''; });
         const i = FORMS.findIndex(x => x.id === id); if (i >= 0) FORMS.splice(i, 1);
     } else if (!formCfg.hid.includes(id)) formCfg.hid.push(id);
     await formCfgSave(touched);
