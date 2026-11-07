@@ -3592,3 +3592,8 @@ input.pl-in{direction:ltr;text-align:center}
     .pu-detail .pu-d-btns { display: flex !important; flex-wrap: wrap; justify-content: center; gap: 10px; }
     .pu-detail .pu-d-btns .bill-tb-btn { width: auto; min-width: 150px; }
 }
+
+/* ===== v431: اسم المادة الطويل في نافذة التفاصيل ينكسر بدل أن يتجاوز حافة الشاشة ===== */
+.sheet-title-area { min-width: 0; }
+.sheet-name { overflow-wrap: anywhere; word-break: break-word; }
+.sheet-brand { overflow-wrap: anywhere; }
