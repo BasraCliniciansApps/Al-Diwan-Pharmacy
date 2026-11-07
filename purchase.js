@@ -147,9 +147,19 @@ function puTab(name) {
     if (name === 'month') $b('puPane-month').classList.add('print-active');
     if (typeof lgTabBadge === 'function') lgTabBadge();
     if (name === 'new') puInitNew();
-    (typeof lgLoad === 'function' ? Promise.all([puLoad(), lgLoad()]) : puLoad()).then(() => {
+    // عرض فوري من المخزن المحلي ثم تحديث من السحابة بالخلفية (يُعاد الرسم فقط إن تغيّرت البيانات)
+    const render = () => {
         puFillSupplierList();
         if (name === 'log') renderPuLog(); else if (name === 'debt') renderPuDebt(); else if (name === 'month') puInitMonth(); else if (name === 'ret') lgInitRet('ret'); else if (name === 'unrec') lgInitRet('unrec'); else if (name === 'pay') lgInitPay(); else if (name === 'bonus') lgInitBonus(); else if (name === 'blink') lgInitBlink(); else if (name === 'unify') lgInitUnify(); else if (name === 'xfer') lgInitXfer(); else if (name === 'exp') lgInitExp(); else if (name === 'hub') lgRenderHub(); else if (name === 'sum') lgInitSum(); else if (name === 'sup') renderPuSuppliers();
+    };
+    const sig = () => (puAll || []).map(r => r.id + '|' + (r.editedAt || r.createdTs || '') + '|' + (r.paid || 0) + '|' + (r.cancelled ? 1 : 0) + '|' + (r.returnAmt || 0)).join(',') + '#' + ((typeof lgAll !== 'undefined' && lgAll) || []).map(e => e.id + (e.upd || '')).join(',') + '#' + (puSuppliers || []).length;
+    let warm = Array.isArray(puAll) && puAll.length > 0;
+    if (!warm) { const loc = puLocalList(); if (loc.length) { puAll = loc.filter(x => x && x.id).sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdTs).localeCompare(String(a.createdTs))); try { puSuppliers = puSuppliers && puSuppliers.length ? puSuppliers : (JSON.parse(lsGet(PU_LS.sup)) || []); } catch (e) { /* تجاهل */ } if (typeof lgLocal === 'function' && typeof lgAll !== 'undefined' && !lgAll.length) lgAll = lgLocal(); warm = true; } }
+    const before = warm ? sig() : '';
+    if (warm) render();
+    (typeof lgLoad === 'function' ? Promise.all([puLoad(), lgLoad()]) : puLoad()).then(() => {
+        if (puTabName !== name) return;   // غادر المستخدم التبويب
+        if (!warm || sig() !== before) render();
     });
 }
 function onShowPurch() { puTab(puTabName || 'new'); }
