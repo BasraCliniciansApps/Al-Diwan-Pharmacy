@@ -35,6 +35,7 @@ function puRenderTable() {
             <label><span>بونص</span><input type="number" min="0" inputmode="numeric" placeholder="0" value="${ptEsc(it.bonus || '')}" oninput="puItemEdit(${i},'bonus',this.value)" onfocus="this.select()"></label>
             <label><span>سعر الشراء</span><input type="number" min="0" inputmode="decimal" value="${ptEsc(it.cost)}" oninput="puItemEdit(${i},'cost',this.value)" onfocus="this.select()"></label>
             <label><span>انتهاء</span><input id="ptx-${i}" type="text" inputmode="numeric" dir="ltr" placeholder="MMYY" value="${ptEsc(ptExpShow(it.expiry))}" onchange="ptExpEdit(${i},this.value)" onfocus="this.select()"></label>
+            <label class="pu-chk pu-bcrow" style="grid-column:1/-1"><input type="checkbox" ${it.bc ? 'checked' : ''} onchange="puBcSet(${i},this.checked)"><span>احتساب البونص من الكلفة (لا يُسجَّل في سجل البونص)</span></label><div class="pu-syn" id="puBcH-${i}" style="display:none;grid-column:1/-1"></div>
         </div></div>`).join('') || '<div class="bill-none">اكتب اسم المادة فوق، وبعدها العدد والسعر، واضغط Enter.</div>';
     puRecalc();
 }

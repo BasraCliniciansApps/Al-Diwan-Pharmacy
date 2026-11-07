@@ -24,6 +24,8 @@ function puBatchHint(p, newL, oldL) {   // الفرق بين السطر الجد
     new Set([...Object.keys(a), ...Object.keys(b)]).forEach(e => { const d = (a[e] || 0) - (b[e] || 0); if (d) out.push({ e, q: d }); });
     if (out.length) p._badd = (p._badd || []).concat(out);
 }
+// البونص المحتسب من الكلفة: السعر الفعلي للقطعة = (العدد × سعر الشراء) ÷ (العدد + البونص). الفاتورة والمبلغ المستحق لا يتغيران.
+const puEffCost = it => { const q = parseInt(it.qty) || 0, b = parseInt(it.bonus) || 0, c = puNum(it.cost); return (it.bc && b > 0 && q > 0 && c > 0) ? Math.round(c * q / (q + b) * 100) / 100 : c; };
 const puLQ = l => l.applied === false ? 0 : (parseInt(l.qty) || 0) + (parseInt(l.bonus) || 0);   // الكمية الداخلة للمخزن = المشتراة + البونص
 function puTotalOf(r) { return (r.items || []).reduce((s, it) => s + puNum(it.qty) * puNum(it.cost), 0); }
 function puNetOf(r) { return Math.max(puTotalOf(r) - puNum(r.returnAmt) - (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0), 0); }
@@ -206,6 +208,7 @@ function puRecalc() {
     pu.items.forEach((it, i) => {
         const sum = fmtNum(puNum(it.qty) * puNum(it.cost)), set = (id, v) => { const el = $b(id + i); if (el) el.innerText = v; };
         { const el = $b('puPs-' + i); if (el) el.innerHTML = puPM(it) === 'syndicate' ? syndHintHtml(it.cost) : puPM(it) === 'percent' ? markupHintHtml(it.cost, it.pmarkup) : ''; }
+        { const el = $b('puBcH-' + i); if (el) { const on = it.bc && (parseInt(it.bonus) || 0) > 0 && puNum(it.cost) > 0; el.style.display = on ? 'block' : 'none'; if (on) el.innerHTML = 'الكلفة الفعلية للقطعة: <b>' + fmtNum(Math.round(puEffCost(it))) + '</b> (' + fmtNum(puNum(it.qty)) + ' + ' + fmtNum(puNum(it.bonus)) + ' مجاناً) — يُسعَّر البيع وتُقيَّد كلفة المخزن على هذا الأساس'; } }
         puRetailRefresh(i); set('puLine-', sum); set('puBq-', fmtNum(puNum(it.qty))); set('puBc-', puNum(it.cost) > 0 ? fmtNum(it.cost) : '⚠ بلا سعر'); set('puBs-', sum);
     });
 }
@@ -235,6 +238,7 @@ function puRenderItems() {
                     <label><span>رقم الدفعة (اختياري)</span><input dir="ltr" value="${escapeHtml(it.batch || '')}" oninput="puItemEdit(${i},'batch',this.value)"></label>
                 </div>
                 ${pu.gift ? '' : puXbHtml(it, i) + `<button type="button" class="pu-xb-add" onclick="puXbAdd(${i})">＋ دفعة بانتهاء آخر لنفس المادة</button>`}
+                ${pu.gift ? '' : `<label class="pu-chk pu-bcrow"><input type="checkbox" ${it.bc ? 'checked' : ''} onchange="puBcSet(${i},this.checked)"><span>احتساب البونص من الكلفة (يخفّض سعر القطعة ولا يُسجَّل في سجل البونص)</span></label><div class="pu-syn" id="puBcH-${i}" style="display:none"></div>`}
                 <div class="pu-price">
                     <label class="pu-nogift"><span>طريقة تسعير البيع</span><select onchange="puPriceMode(${i},this.value)">
                         <option value="manual" ${puPM(it) === 'manual' ? 'selected' : ''}>تسعيرة وزارة الصحة (الملصق)</option>
@@ -309,6 +313,7 @@ function puSyncQty(it) {
     if (!puHasX(it)) { if (it.q0 != null) { it.qty = it.q0; delete it.q0; } delete it.xb; return; }
     it.qty = (parseInt(it.q0) || 0) + it.xb.reduce((s, b) => s + (parseInt(b.q) || 0), 0);
 }
+function puBcSet(i, on) { const it = pu.items[i]; if (!it) return; it.bc = !!on; puRecalc(); puChanged(); }
 function puItemEdit(i, f, v) {
     const it = pu.items[i]; if (!it) return;
     if (f === 'qty' && puHasX(it)) { it.q0 = v; puSyncQty(it); } else it[f] = v;
@@ -456,10 +461,11 @@ async function puSave() {
     // 2) الأصناف الحالية: الفرق بين الكمية الجديدة والقديمة
     items.forEach(it => {
         const p = products.find(x => x.id === it.pid); if (!p) return; snap(p);
-        const n = parseInt(it.qty) || 0, bn = parseInt(it.bonus) || 0, cost = puNum(it.cost), old = oldBy.get(it.pid);
+        const n = parseInt(it.qty) || 0, bn = parseInt(it.bonus) || 0, cost = puNum(it.cost), ecost = gift ? cost : puEffCost(it), isBc = !gift && !!it.bc && bn > 0 && ecost !== cost, old = oldBy.get(it.pid);
         const wasMan = puSubManual(p);
         const xb = (it.xb || []).map(b => ({ q: parseInt(b.q) || 0, expiry: b.expiry || '', batch: (b.batch || '').trim() })).filter(b => b.q > 0);
         const line = { pid: p.id, name: puNameAuto(it, p) ? dispName(p) : it.name, qty: n, bonus: bn, cost, expiry: it.expiry || '', batch: (it.batch || '').trim(), prevQty: (old && old.applied !== false) ? old.prevQty : (parseInt(p.qty) || 0), prevCost: (old && old.applied !== false) ? old.prevCost : (p.costPrice || 0), expAdded: (old && old.applied !== false) ? !!old.expAdded : false };
+        if (isBc) { line.bc = true; line.ecost = ecost; }   // بونص محتسب من الكلفة: لا يدخل سجل البونص ولا أرباحه
         const applied = old ? old.applied !== false : (upd && !setupSkip(p));   // السطر القديم يبقى على حاله؛ الجديد لا يحدّث مادة غير مجرودة (وضع التأسيس)
         if (!applied && !old) line.setupSkip = !!(upd && setupSkip(p));
         line.applied = applied;
@@ -467,12 +473,12 @@ async function puSave() {
         if (old && old.setupSkip && !applied) line.setupSkip = true;   // لا تضيع علامة «مؤجَّل» عند تعديل الفاتورة
         if (xb.length) line.xb = xb;
         // السعر والكلفة يُحفظان دائماً (وضع التأسيس يحمي الكمية فقط)
-        if (cost > 0) p.costPrice = cost;
+        if (ecost > 0) p.costPrice = ecost;
         if (gift) { if (puNum(it.pprice) > 0) { p.markupPct = null; p.pricing = 'manual'; p.price = puNum(it.pprice); } }   // البونص بلا كلفة: السعر الجديد فقط إن كتبته، وإلا يبقى سعر المادة الحالي
-        else { const pm = puPM(it); if (pm === 'percent') { const mk = puNum(puMk(it)); p.pricing = 'percent'; p.markupPct = mk; if (cost > 0) p.price = markupCalc(cost, mk); } else if (pm === 'syndicate') { p.markupPct = null; p.pricing = 'syndicate'; if (cost > 0) p.price = syndPrice(cost); } else { p.markupPct = null; p.pricing = pm === 'free' ? 'free' : 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
+        else { const pm = puPM(it); if (pm === 'percent') { const mk = puNum(puMk(it)); p.pricing = 'percent'; p.markupPct = mk; if (ecost > 0) p.price = markupCalc(ecost, mk); } else if (pm === 'syndicate') { p.markupPct = null; p.pricing = 'syndicate'; if (ecost > 0) p.price = syndPrice(ecost); } else { p.markupPct = null; p.pricing = pm === 'free' ? 'free' : 'manual'; if (puNum(it.pprice) > 0) p.price = puNum(it.pprice); } }
         line.salePrice = Number(p.price) || 0;   // سعر البيع وقت الوارد (للرجوع إليه)
         if (!applied) {   // مادة غير مجرودة / «لا تحدّث المخزن»: الكمية ما تتغير لكن قيمة البونص تنحسب
-            line.bonusSale = bn * (Number(p.price) || 0);
+            line.bonusSale = isBc ? 0 : bn * (Number(p.price) || 0);
             if (line.setupSkip) {   // التأسيس يؤجّل الكمية فقط؛ تاريخ الانتهاء حقيقي فيُضاف للمادة دائماً (ويُتتبَّع ليُزال عند التعديل أو الإلغاء)
                 if (old && old.expOnly && old.expAdded && old.expiry && old.expiry !== line.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; }
                 if (line.expiry) { if (puExpiryPush(p, line.expiry) || (old && old.expOnly && old.expAdded && old.expiry === line.expiry)) line.expAdded = true; }
@@ -486,13 +492,13 @@ async function puSave() {
         p.qty = Math.max((parseInt(p.qty) || 0) + n + bn - (old ? puLQ(old) : 0), 0);
         puBatchHint(p, line, old);
         if (old && old.expiry !== line.expiry && old.expAdded && old.expiry) { p.expiryDates = getProductExpiryDates(p).filter(e => e !== old.expiry); p.expiryDate = p.expiryDates[0] || ''; line.expAdded = false; }
-        if (cost > 0) p.costPrice = cost;
+        if (ecost > 0) p.costPrice = ecost;
         if (it.rsc != null || it.rst != null || it.rsp != null) {   // تعديل التجزئة من بطاقة الوارد
             const rc = Math.round(puNum(puRC(it)));
             if (rc > 1) { p.subCount = rc; p.subType = puRT(it); const man = puNum(puRP(it)); p.subManual = man > 0; p.subPrice = man > 0 ? man : subPriceCalc(p.price, rc); }
             else { p.subCount = ''; p.subPrice = ''; p.subManual = false; p.loose = 0; }
         } else if (hasRetail(p) && !wasMan && subCountOf(p) > 1) p.subPrice = subPriceCalc(p.price, subCountOf(p));   // التجزئة تتبع سعر البيع الجديد
-        line.bonusSale = bn * (Number(p.price) || 0);
+        line.bonusSale = isBc ? 0 : bn * (Number(p.price) || 0);
         if (line.expiry && puExpiryPush(p, line.expiry)) line.expAdded = true;
         if (xb.length) {   // الدفعات الإضافية: تواريخ انتهائها تُضاف للمادة، وتُتتبَّع لتُزال عند التعديل أو الإلغاء
             line.xb = xb; const oldX = (old && old.expAddedX) || [], want = [...new Set(xb.map(b => b.expiry).filter(Boolean))];
@@ -540,7 +546,7 @@ async function puCancelEdit() { if (!(await askSure('إلغاء التعديل؟
 function puEdit(id) {
     const r = puAll.find(x => x.id === id); if (!r || r.cancelled) return;
     if (pu && pu.items.length && !pu.editId) { /* المسودة الحالية ستُستبدل */ }
-    pu = { editId: r.id, gift: !!r.gift, stmt: !!r.stmt, useEntry: !!r.useEntry, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, bonus: l.bonus || '', cost: l.cost, expiry: l.expiry || '', batch: l.batch || '', xb: l.xb && l.xb.length ? l.xb.map(b => ({ ...b })) : undefined, q0: l.xb && l.xb.length ? (parseInt(l.qty) || 0) - l.xb.reduce((t, b) => t + (parseInt(b.q) || 0), 0) : undefined })) };
+    pu = { editId: r.id, gift: !!r.gift, stmt: !!r.stmt, useEntry: !!r.useEntry, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, bonus: l.bonus || '', bc: !!l.bc, cost: l.cost, expiry: l.expiry || '', batch: l.batch || '', xb: l.xb && l.xb.length ? l.xb.map(b => ({ ...b })) : undefined, q0: l.xb && l.xb.length ? (parseInt(l.qty) || 0) - l.xb.reduce((t, b) => t + (parseInt(b.q) || 0), 0) : undefined })) };
     puTab('new'); window.scrollTo(0, 0);
 }
 

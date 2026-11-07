@@ -31,7 +31,7 @@ const lgItemsTxt = e => (e.items || []).map(l => l.name + ' ×' + l.qty).join('�
 function lgInitBonus() { lgRgInit('lgb'); lgFillSupSelect('lgbSup'); lgRenderBonus(); }
 function lgBonusRows() {
     const rg = lgRg('lgb'), sup = $b('lgbSup').value, rows = [], bpool = {};
-    puAll.filter(r => !r.cancelled && lgInR(rg, r.useEntry ? puMonthOf(r) + '-01' : r.date) && (!sup || puKey(r.supplier) === puKey(sup))).forEach(r => (r.items || []).forEach((l, li) => { if (!(parseInt(l.bonus) > 0)) return;
+    puAll.filter(r => !r.cancelled && lgInR(rg, r.useEntry ? puMonthOf(r) + '-01' : r.date) && (!sup || puKey(r.supplier) === puKey(sup))).forEach(r => (r.items || []).forEach((l, li) => { if (!(parseInt(l.bonus) > 0) || l.bc) return;
         const q0 = parseInt(l.bonus) || 0, cost = puNum(l.cost);
         const bk = r.id + '|' + l.pid; if (!(bk in bpool)) bpool[bk] = lgReturnedBonus(r.id, l.pid);
         const take = Math.min(bpool[bk], q0); bpool[bk] -= take; const q = q0 - take; if (q <= 0) return;   // يُنقص البونص المُرجَع إلى المذخر
@@ -43,7 +43,7 @@ function lgBonusRows() {
 }
 // قيمة بونص سطر بسعر البيع بعد طرح ما أُرجع إلى المذخر (نفس حساب سجل البونص)
 function lgBonusSaleNet(r, l, pool) {
-    const q0 = parseInt(l.bonus) || 0; if (q0 <= 0) return puNum(l.bonusSale);
+    const q0 = parseInt(l.bonus) || 0; if (l.bc) return 0; if (q0 <= 0) return puNum(l.bonusSale);
     const k = r.id + '|' + l.pid; if (!(k in pool)) pool[k] = lgReturnedBonus(r.id, l.pid);
     const take = Math.min(pool[k], q0); pool[k] -= take;
     return puNum(l.bonusSale) * (q0 - take) / q0;
