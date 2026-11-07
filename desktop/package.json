@@ -1,0 +1,35 @@
+{
+  "name": "diwan-pharmacy-desktop",
+  "productName": "صيدلية الديوان",
+  "version": "1.0.0",
+  "description": "برنامج سطح المكتب لصيدلية الديوان",
+  "main": "main.js",
+  "author": "Al-Diwan Pharmacy",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "iq.aldiwan.pharmacy",
+    "productName": "Al-Diwan Pharmacy",
+    "artifactName": "Al-Diwan-Pharmacy-Setup-${version}.${ext}",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "offline.html", "package.json", "build/icon.png"],
+    "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "icon": "build/icon.png" },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "صيدلية الديوان",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}

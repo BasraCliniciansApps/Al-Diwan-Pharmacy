@@ -1,0 +1,32 @@
+name: Build Windows desktop app
+on:
+  workflow_dispatch:
+  push:
+    tags: ['desktop-v*']
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --no-audit --no-fund
+      - run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Al-Diwan-Pharmacy-Setup
+          path: desktop/dist/*.exe
+      - name: Publish release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="desktop-latest"
+          gh release delete "$TAG" --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
+          gh release create "$TAG" dist/*.exe --repo "$GITHUB_REPOSITORY" --title "Al-Diwan Pharmacy — Windows" --notes "ملف تثبيت برنامج صيدلية الديوان لنظام ويندوز."

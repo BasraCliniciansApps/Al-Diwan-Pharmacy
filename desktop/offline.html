@@ -1,0 +1,6 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>صيدلية الديوان</title>
+<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#0f1c38;color:#fff;font-family:Tahoma,Arial,sans-serif;text-align:center}
+.b{max-width:420px;padding:24px}h1{font-size:1.3rem;margin:0 0 10px}p{margin:0 0 18px;color:#cbd5e1;line-height:1.8}
+button{height:46px;padding:0 24px;border:0;border-radius:10px;background:#fff;color:#0f1c38;font-size:1rem;font-weight:700;cursor:pointer}</style></head>
+<body><div class="b"><h1>تعذر الاتصال بالخادم</h1><p>تحقق من اتصال الإنترنت ثم أعد المحاولة.<br>إن سبق لك فتح البرنامج بوجود الإنترنت فسيعمل بدونه تلقائياً من النسخة المحفوظة.</p><button onclick="go()">إعادة المحاولة</button></div>
+<script>function go(){var u=new URLSearchParams(location.search).get('u');if(u)location.href=u;}window.addEventListener('online',go);</script></body></html>
