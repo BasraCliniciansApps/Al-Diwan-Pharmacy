@@ -4,8 +4,9 @@ const { app, BrowserWindow, ipcMain, Menu, shell, dialog } = require('electron')
 const path = require('path');
 const fs = require('fs');
 
-const APP_URL = 'https://basracliniciansapps.github.io/al-diwan-pharmacy/admin.html';
-const APP_ORIGIN = new URL(APP_URL).origin;
+const DEFAULT_URL = 'https://basracliniciansapps.github.io/Al-Diwan-Pharmacy/admin.html';   // الحروف الكبيرة مهمة في مسار GitHub Pages
+let APP_URL = DEFAULT_URL;
+let APP_ORIGIN = new URL(APP_URL).origin;
 const KEEP_DAILY = 30;                       // عدد النسخ اليومية المحفوظة
 const AUTH_HOSTS = ['accounts.google.com', 'firebaseapp.com', 'googleapis.com', 'gstatic.com'];
 
@@ -60,7 +61,11 @@ ipcMain.handle('diwan:openBackupDir', async () => { try { await shell.openPath(b
 function sameApp(u) { try { return new URL(u).origin === APP_ORIGIN; } catch (e) { return false; } }
 function authHost(u) { try { const h = new URL(u).hostname; return AUTH_HOSTS.some(x => h === x || h.endsWith('.' + x)); } catch (e) { return false; } }
 
+function loadAppUrl() {   // يمكن تغيير العنوان من desktop-config.json (المفتاح appUrl) دون إعادة بناء البرنامج
+    try { const u = readCfg().appUrl; if (typeof u === 'string' && /^https:\/\//i.test(u)) { APP_URL = u; APP_ORIGIN = new URL(u).origin; } } catch (e) { /* تجاهل */ }
+}
 function createWindow() {
+    loadAppUrl();
     win = new BrowserWindow({
         width: 1366, height: 860, minWidth: 900, minHeight: 600,
         title: 'صيدلية الديوان', backgroundColor: '#0f1c38', show: false, autoHideMenuBar: true,
@@ -84,6 +89,9 @@ function createWindow() {
     win.webContents.on('did-fail-load', (_e, code, desc, url, isMain) => {
         if (!isMain || code === -3) return;   // -3 = إلغاء التحميل
         win.loadFile(path.join(__dirname, 'offline.html'), { query: { u: APP_URL } });
+    });
+    win.webContents.on('did-navigate', (_e, url, code) => {   // صفحة 404 من الموقع: عرض صفحة الخطأ بدل صفحة GitHub
+        if (code === 404 && sameApp(url)) win.loadFile(path.join(__dirname, 'offline.html'), { query: { u: APP_URL } });
     });
     win.loadURL(APP_URL);
     win.on('closed', () => { win = null; });
