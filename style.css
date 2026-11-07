@@ -3553,3 +3553,28 @@ input.pl-in{direction:ltr;text-align:center}
 .ds-bk-p{font-size:.72rem;color:#64748b;overflow-wrap:anywhere;text-align:left}
 .ds-bk-b{display:flex;gap:8px;flex-wrap:wrap}.ds-bk-b button{min-height:46px;padding:0 14px;border:1.5px solid #cbd5e1;border-radius:10px;background:#fff;font-family:inherit;font-size:.85rem;font-weight:700;color:#0f1c38;cursor:pointer}
 [data-theme="dark"] .ds-bk{background:#1e293b;border-color:#334155}[data-theme="dark"] .ds-bk-t{color:#e2e8f0}[data-theme="dark"] .ds-bk-b button{background:#0f172a;color:#e2e8f0;border-color:#334155}
+
+/* ===== v422: تصميم الحاسوب — يعمل فقط مع شاشة عريضة ومؤشر دقيق (ماوس)، ولا يؤثر على الهاتف أو اللوحي اللمسي ===== */
+@media screen and (min-width: 900px) and (hover: hover) and (pointer: fine) {
+    /* معاينة التقارير والفواتير: ورقة مركزية بعرض مريح بدل التمدد على كامل الشاشة */
+    #reportViewer { background: #dfe5ee; }
+    #reportViewer .rv-top { padding: 14px max(24px, calc((100% - 1000px) / 2)); }
+    #reportViewer .rv-body { padding: 26px 24px 34px; }
+    #reportViewer .rv-sheet { width: min(1000px, 100%); margin: 0 auto; box-sizing: border-box; padding: 34px 44px 38px; border-radius: 8px; box-shadow: 0 6px 26px rgba(15, 28, 56, .18); }
+    #reportViewer .rv-h, #reportViewer .rv-d { position: static; width: auto; }
+    #reportViewer .rv-h { font-size: 1.45rem; margin-bottom: 4px; }
+    #reportViewer .rv-d { font-size: .88rem; margin-bottom: 20px; }
+    #reportViewer .rv-tb { font-size: .9rem; }
+    #reportViewer .rv-tb th, #reportViewer .rv-tb td { padding: 8px 10px; }
+    #reportViewer .rv-tb tbody tr:nth-child(even) td { background: #f8fafc; }
+    #reportViewer .rv-tb tbody tr:hover td { background: #eef3fb; }
+    #reportViewer .rv-tb tr.tot td { background: #eef2f8; }
+    #reportViewer .rv-bar { display: flex; justify-content: center; gap: 12px; padding: 12px 24px; }
+    #reportViewer .rv-b { flex: 0 0 190px; height: 44px; transition: filter .15s; }
+    #reportViewer .rv-b:hover { filter: brightness(.94); }
+    /* معاينة فواتير البيع والوارد: ورقة A4 مظللة */
+    .bill-sheet { box-shadow: 0 6px 26px rgba(15, 28, 56, .18); border-radius: 8px; }
+    /* مؤشر اليد وتمييز العناصر عند المرور */
+    .bill-card, .home-tile, .stmt-ck, .bill-tb-btn, .rv-b { cursor: pointer; }
+    .bill-card:hover { box-shadow: 0 3px 12px rgba(15, 28, 56, .14); }
+}
