@@ -3597,3 +3597,6 @@ input.pl-in{direction:ltr;text-align:center}
 .sheet-title-area { min-width: 0; }
 .sheet-name { overflow-wrap: anywhere; word-break: break-word; }
 .sheet-brand { overflow-wrap: anywhere; }
+
+/* ===== v432: مقبض النوافذ السفلية يلتقط السحب دائماً (لا يتحول إلى تمرير) ===== */
+.sheet-handle { touch-action: none; }
