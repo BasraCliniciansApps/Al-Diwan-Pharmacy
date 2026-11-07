@@ -207,7 +207,7 @@ function puRecalc() {
     $b('puTotal').innerText = fmtNum(tot); $b('puNet').innerText = fmtNum(net); $b('puRem').innerText = fmtNum(rem);
     pu.items.forEach((it, i) => {
         const sum = fmtNum(puNum(it.qty) * puNum(it.cost)), set = (id, v) => { const el = $b(id + i); if (el) el.innerText = v; };
-        { const el = $b('puPs-' + i); if (el) el.innerHTML = puPM(it) === 'syndicate' ? syndHintHtml(it.cost) : puPM(it) === 'percent' ? markupHintHtml(it.cost, it.pmarkup) : ''; }
+        { const el = $b('puPs-' + i); if (el) el.innerHTML = puPM(it) === 'syndicate' ? syndHintHtml(puEffCost(it)) : puPM(it) === 'percent' ? markupHintHtml(puEffCost(it), it.pmarkup) : ''; }
         { const el = $b('puBcH-' + i); if (el) { const on = it.bc && (parseInt(it.bonus) || 0) > 0 && puNum(it.cost) > 0; el.style.display = on ? 'block' : 'none'; if (on) el.innerHTML = 'الكلفة الفعلية للقطعة: <b>' + fmtNum(Math.round(puEffCost(it))) + '</b> (' + fmtNum(puNum(it.qty)) + ' + ' + fmtNum(puNum(it.bonus)) + ' مجاناً) — يُسعَّر البيع وتُقيَّد كلفة المخزن على هذا الأساس'; } }
         puRetailRefresh(i); set('puLine-', sum); set('puBq-', fmtNum(puNum(it.qty))); set('puBc-', puNum(it.cost) > 0 ? fmtNum(it.cost) : '⚠ بلا سعر'); set('puBs-', sum);
     });
@@ -271,14 +271,14 @@ function puRetailWarn(it) {   // تنبيه: سعر جزء يدوي محفوظ �
     const auto = puRetailPriceAuto(it); return auto > 0 && Math.round(auto) !== Math.round(puNum(p.subPrice)) ? `<br><span style="color:#c0392b">⚠ سعر الجزء اليدوي المحفوظ (<bdi>${fmtNum(p.subPrice)}</bdi> د.ع) يختلف عن المحسوب من السعر الجديد (<bdi>${fmtNum(auto)}</bdi> د.ع). امسح الخانة ليُحسب تلقائياً.</span>` : '';
 }
 function puRetailPriceAuto(it) {
-    const p = products.find(x => x.id === it.pid); const pm = puPM(it), cost = puNum(it.cost);
+    const p = products.find(x => x.id === it.pid); const pm = puPM(it), cost = puEffCost(it);
     let price = p ? Number(p.price) || 0 : 0;
     if (pm === 'percent' && cost > 0) price = markupCalc(cost, puNum(puMk(it))); else if (pm === 'syndicate' && cost > 0) price = syndPrice(cost); else if (puNum(it.pprice) > 0) price = puNum(it.pprice);
     return subPriceCalc(price, puNum(puRC(it)));
 }
 function puRetailPrice(it) {   // سعر الجزء المتوقع: اليدوي أو من سعر البيع الجديد
     if (puNum(puRP(it)) > 0) return puNum(puRP(it));
-    const p = products.find(x => x.id === it.pid); const pm = puPM(it), cost = puNum(it.cost);
+    const p = products.find(x => x.id === it.pid); const pm = puPM(it), cost = puEffCost(it);
     let price = p ? Number(p.price) || 0 : 0;
     if (pm === 'percent' && cost > 0) price = markupCalc(cost, puNum(puMk(it))); else if (pm === 'syndicate' && cost > 0) price = syndPrice(cost); else if (puNum(it.pprice) > 0) price = puNum(it.pprice);
     return subPriceCalc(price, puNum(puRC(it)));
