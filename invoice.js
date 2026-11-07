@@ -289,7 +289,14 @@ function billTab(name) {
     if (name === 'new') initBillEditor();
     else if (name === 'settings') initBillSettings();
     else if (name === 'po') renderPO();
-    else loadInvoices().then(() => { if (name === 'issued') renderIssuedList(); else if (name === 'debt') renderDebt(); else if (name === 'reports') renderReport(); });
+    else {   // عرض فوري من المخزن المحلي ثم تحديث من السحابة بالخلفية (يُعاد الرسم فقط إن تغيّرت البيانات)
+        const draw = () => { if (name === 'issued') renderIssuedList(); else if (name === 'debt') renderDebt(); else if (name === 'reports') renderReport(); };
+        const sig = () => (billAll || []).map(b => b.id + '|' + (b.editedAt || b.cancelledAt || b.issuedTs || '') + '|' + (b.paid || 0) + '|' + (b.cancelled ? 1 : 0)).join(',');
+        if (!billAll.length) { try { billAll = (JSON.parse(lsGet(BILL_LS.list)) || []).filter(x => x && x.id).sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt))); } catch (e) { /* تجاهل */ } }
+        const warm = billAll.length > 0, before = warm ? sig() : '';
+        if (warm) draw();
+        loadInvoices().then(() => { if (!warm || sig() !== before) draw(); });
+    }
 }
 function initBillEditor() {
     if (!bill) { try { bill = JSON.parse(lsGet(BILL_LS.draft)); } catch (e) { bill = null; } if (!bill || !Array.isArray(bill.items)) bill = emptyInvoice(); }

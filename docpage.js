@@ -249,6 +249,7 @@ function docSetStQuiet(id, v) { const it = docData.items[id]; it.s = v; if (v ==
 // ---------- طلبات الأطباء (من «أحتاج هذه المادة» و«اطلب هذه المادة») ----------
 async function docLoadReq() {
     const box = document.getElementById('docReq'); if (!box) return;
+    if (docReqList && docReqList.length) docRenderReq();   // عرض ما حُمّل سابقاً فوراً ثم التحديث من السحابة
     try {
         if (!(typeof cloudReady === 'function' && cloudReady())) { box.innerHTML = '<div class="dh-note">طلبات الأطباء تحتاج اتصالاً بالسحابة.</div>'; return; }
         const snap = await db.collection('pharmacy_search_misses').where('dr', '==', 1).get();
