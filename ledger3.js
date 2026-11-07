@@ -37,7 +37,7 @@ function lgBonusRows() {
         const take = Math.min(bpool[bk], q0); bpool[bk] -= take; const q = q0 - take; if (q <= 0) return;   // يُنقص البونص المُرجَع إلى المذخر
         rows.push({ date: r.date, sup: r.supplier, no: r.no, name: l.name, qty: q, cost, vCost: q * cost, rid: r.id, li, bo: puIsBonusOnly(r) && !r.gift, vSale: puNum(l.bonusSale) ? puNum(l.bonusSale) * q / q0 : (q * (Number((products.find(x => x.id === l.pid) || products.find(x => puKey(x.name) === puKey(l.name)) || {}).price) || 0)), createdTs: r.createdTs });
     }));
-    lgAll.filter(e => e.kind === 'breq' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.supplier || (e.rep ? 'مندوب ' + e.rep : 'بدون مذخر'), no: e.listNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: 0, createdTs: e.createdTs, xid: e.id, rep: e.rep }));
+    lgAll.filter(e => e.kind === 'breq' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.supplier || (e.rep ? 'مندوب ' + e.rep : 'بدون مذخر'), no: e.listNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: puNum(e.sale), createdTs: e.createdTs, xid: e.id, rep: e.rep }));
     lgAll.filter(e => e.kind === 'bimp' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.rep ? 'مندوب ' + e.rep : (e.supplier || 'بدون مذخر'), no: e.linkNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: puNum(e.sale), createdTs: e.createdTs, xid: e.id, bi: true }));
     return { rg, rows: rows.sort(lgSortD) };
 }
