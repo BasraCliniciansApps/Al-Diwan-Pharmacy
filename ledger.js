@@ -303,6 +303,7 @@ function lgRetCsv(kind) {
     });
     X.push(['المجموع', tq, ta, '', '', '', '', '', '']);
     lgCsvDownload((kind === 'unrec' ? 'unrecovered-returns-' : 'returns-') + todayLocalISO() + '.csv', L, '', X);
+    if (typeof lgRetXlsxBuild === 'function' && rvState) { const nm = (kind === 'unrec' ? 'Al-Diwan-Pharmacy_Unrecovered-Returns_' : 'Al-Diwan-Pharmacy_Supplier-Returns_') + todayLocalISO() + '.xlsx'; rvState.xlsx = () => { const b = lgRetXlsxBuild(arr); return downloadFile(nm, b, b.type); }; }
 }
 function lgLinkedHtml(pid) {
     const arr = lgRets().filter(e => e.listId === pid);

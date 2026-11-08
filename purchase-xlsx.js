@@ -102,6 +102,23 @@ function puXlsxBuild(recs, mode) {
     const w = [11.73, 7.13, 48.6, 30.66, 14.93, 8.33, 6.46, 11.73, 20.5, 16.7, 13.1, 14.7, 41.3];
     return xlBuild({ name: 'قوائم المواد مفصلة', tab: 'FFFFC000', zoom: 95, freeze: false, defH: 14.25, cols: w.map((x, i) => ({ w: x, hide: i === 0 })), head, hdr: {}, hdrAl: { 2: '' }, rows, table: 'Table_Items' });
 }
+// تصدير سجل المردود: ورقة «مسترجع الى المذاخر» (سطر لكل مادة) بنفس تنسيق ملف الصيدلية، مع الأعمدة الموجودة بيانتها في التطبيق فقط
+function lgRetXlsxBuild(arr) {
+    const C = { al: 'center', fill: true }, n = v => parseFloat(v) || 0, F = f => Object.assign({ fmt: f }, C);
+    const head = ['ت', 'المادة', 'العدد', 'المبلغ الكلي بالعراقي', 'الكشف', 'المذخر', 'رقم القائمة', 'تاريخ القائمة', 'قائمة الاسترجاع', 'تاريخ قائمة الاسترجاع', 'ملاحظات'];
+    const rows = []; let k = 0;
+    const num = v => /^\d+$/.test(String(v || '')) ? parseInt(v) : String(v || '');
+    arr.forEach(e => {
+        const inv = e.listId ? puAll.find(x => x.id === e.listId) : null;
+        const tail = [{ v: e.stmt ? '*' : '', s: C }, { v: e.supplier || '', s: C }, { v: num(e.listNo || (inv && inv.no) || ''), s: F(XL_F.int) }, { v: xlDate((inv && inv.date) || ''), s: F(XL_F.date) }, { v: num(e.cnNo), s: F(XL_F.int) }, { v: xlDate(e.cnDate), s: F(XL_F.date) }, { v: e.reason || '', s: { al: 'left', fill: true } }];
+        const its = e.items || [];
+        if (!its.length) { k++; rows.push([{ v: k, s: { al: 'center', fill: true } }, { v: '(مردود عام)', s: { al: 'left', fill: true } }, { v: '', s: F(XL_F.int) }, { v: n(e.amount), s: F(XL_F.iqd0) }, ...tail]); return; }
+        its.forEach(l => { const q = parseInt(l.qty) || 0; k++; rows.push([{ v: k, s: { al: 'center', fill: true } }, { v: l.name || '', s: { al: 'left', fill: true } }, { v: q, s: F(XL_F.int) }, { v: q * n(l.cost), s: F(XL_F.iqd0) }, ...tail]); });
+    });
+    const w = [4.9, 63.9, 9.7, 21, 10.1, 22.2, 17.7, 19.8, 23.5, 17.1, 68.5];
+    return xlBuild({ name: 'مسترجع الى المذاخر', tab: 'FF92D050', zoom: 70, freeze: false, defH: 14.25, cols: w.map(x => ({ w: x })), head, hdr: {}, rows, table: 'Table_Returns' });
+}
+
 async function puXlsxSave(recs, mode, fileBase) {
     const blob = puXlsxBuild(recs, mode), name = fileBase + '.xlsx';
     return downloadFile(name, blob, blob.type);
