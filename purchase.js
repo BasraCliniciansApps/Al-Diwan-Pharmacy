@@ -907,6 +907,8 @@ async function puSelOut(kind) {
 function puOutRender(kind, recs, mode, title) {
     const tbl = puSelTable(recs, mode); if (title) tbl.title = title;
     lgCsvDownload('orders-' + (title ? 'invoice' : 'selected-' + mode) + '-' + todayLocalISO() + '.csv', [[tbl.title], [], tbl.head, ...tbl.rows, tbl.foot], tbl.title);
+    // زر Excel في المعاينة يُنزّل ملف xlsx بتنسيق ملف الصيدلية (من اليمين لليسار، نفس تسلسل الأعمدة والتنسيقات) بدل CSV
+    if (typeof puXlsxSave === 'function' && typeof rvState !== 'undefined' && rvState) rvState.xlsx = () => puXlsxSave(recs, mode, 'Al-Diwan-Pharmacy_Purchase-' + (mode === 'lists' ? 'Orders' : 'Items') + '_' + todayLocalISO());
 }
 // طباعة / Excel لقائمة وارد واحدة من نافذة تفاصيلها (تفصيل المواد)
 function puOneOut(id, kind) {

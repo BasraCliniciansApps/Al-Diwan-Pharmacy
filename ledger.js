@@ -212,7 +212,7 @@ function closeReport(silent) {
     const d = document.getElementById('reportViewer'); if (d) d.remove();
     document.body.classList.remove('rv-open', 'printing-rv'); rvState = null;
 }
-function rvExcel() { if (rvState && rvState.csvName) lgCsvSave(rvState.csvName, rvState.csvLines || rvState.lines); }
+function rvExcel() { if (rvState && rvState.xlsx) return rvState.xlsx(); if (rvState && rvState.csvName) lgCsvSave(rvState.csvName, rvState.csvLines || rvState.lines); }
 function rvPrint() {
     document.body.classList.add('printing-rv');
     let fin = false;
