@@ -73,35 +73,33 @@ function xlBuild(sheet) {
         { name: 'xl/theme/theme1.xml', data: XL_THEME }
     ]);
 }
-const XL_F = { iqd: '#,##0.00\\ [$IQD]', iqd0: '[$IQD]\\ #,##0', usd: '[$$-409]#,##0.00', date: 'dd/mm/yyyy;@', mon: 'mmm-yy', int: '0', pct: '0%' };
+const XL_F = { iqd: '#,##0.00\\ [$IQD]', iqd0: '[$IQD]\\ #,##0', date: 'dd/mm/yyyy;@', mon: 'mmm-yy', int: '0' };
 const xlDate = s => { const m = /^(\d{4})-(\d{2})(?:-(\d{2}))?/.exec(String(s || '')); return m ? xlSerial(new Date(+m[1], +m[2] - 1, +(m[3] || 1))) : ''; };
 // بناء ملف Excel لقوائم وارد: mode='lists' (سطر لكل قائمة: ورقة «الطلبيات») أو 'items' (سطر لكل مادة: ورقة «قوائم المواد مفصلة»)
 function puXlsxBuild(recs, mode) {
-    const C = { al: 'center', fill: true }, n = v => parseFloat(v) || 0;
+    const C = { al: 'center', fill: true }, n = v => parseFloat(v) || 0, F = f => Object.assign({ fmt: f }, C);
+    // تُصدَّر فقط الأعمدة الموجودة بيانتها في التطبيق (بنفس ترتيب ملف الصيدلية وتنسيقه)
     if (mode === 'lists') {
-        const head = ['تسلسل', 'ت', 'الكشف', 'المذخر', 'رقم القائمة', 'التاريخ', 'المبلغ بالعراقي', 'المبلغ بالدولار', 'استرجاع بالعراقي', 'الاسترجاع بالدولار', 'المبلغ الصافي بالعراقي', 'المبلغ الصافي بالدولار'];
+        const head = ['تسلسل', 'ت', 'الكشف', 'المذخر', 'رقم القائمة', 'التاريخ', 'المبلغ بالعراقي', 'استرجاع بالعراقي', 'المبلغ الصافي بالعراقي'];
         const rows = recs.map((r, i) => {
             const t = r.cancelled ? 0 : puTotalOf(r), nt = r.cancelled ? 0 : puNetOf(r), rt = t - nt, rr = i + 2;
             const no = /^\d+$/.test(String(r.no || '')) ? parseInt(r.no) : String(r.no || '');
-            return [{ v: n(r.seq) || i + 1, s: { al: 'center' } }, { v: i + 1, s: C }, { v: r.stmt ? '*' : '', s: C }, { v: r.supplier || '', s: C }, { v: no, s: Object.assign({ fmt: XL_F.int }, C) }, { v: xlDate(r.date), s: Object.assign({ fmt: XL_F.date }, C) },
-                { v: t, s: Object.assign({ fmt: XL_F.iqd }, C) }, { v: '', s: Object.assign({ fmt: XL_F.usd }, C) }, { v: rt, s: Object.assign({ fmt: XL_F.iqd }, C) }, { v: '', s: Object.assign({ fmt: XL_F.usd }, C) },
-                { f: 'G' + rr + '-I' + rr, v: nt, s: Object.assign({ fmt: XL_F.iqd }, C) }, { v: '', s: Object.assign({ fmt: XL_F.usd }, C) }];
+            return [{ v: n(r.seq) || i + 1, s: { al: 'center' } }, { v: i + 1, s: C }, { v: r.stmt ? '*' : '', s: C }, { v: r.supplier || '', s: C }, { v: no, s: F(XL_F.int) }, { v: xlDate(r.date), s: F(XL_F.date) },
+                { v: t, s: F(XL_F.iqd) }, { v: rt, s: F(XL_F.iqd) }, { f: 'G' + rr + '-H' + rr, v: nt, s: F(XL_F.iqd) }];
         });
-        const w = [5.27, 7.4, 7.13, 26.07, 16.66, 14.8, 20.86, 21.4, 21.4, 20.86, 21.4, 22.7];
+        const w = [5.27, 7.4, 7.13, 26.07, 16.66, 14.8, 20.86, 21.4, 21.4];
         return xlBuild({ name: 'الطلبيات', tab: 'FFFF0000', zoom: 70, freeze: true, defH: 18, cols: w.map((x, i) => ({ w: x, hide: i === 0 })), head, hdr: { sz: 14, bold: true }, rows, table: 'Table_Orders' });
     }
-    const head = ['تسلسل', 'ت', 'المادة', 'الشركة', 'السعر بالدولار', 'السعر بالعراقي', 'العدد', 'البونص', 'تاريخ النفاذ', 'المذخر', 'رقم القائمة', 'تاريخ القائمة', 'نسبة البيع', 'سعر البيع', 'المجموع', 'سعر الصرف', 'مبلغ الربح', 'التسعير', 'ملاحظات'];
+    const head = ['تسلسل', 'ت', 'المادة', 'الشركة', 'السعر بالعراقي', 'العدد', 'البونص', 'تاريخ النفاذ', 'المذخر', 'رقم القائمة', 'تاريخ القائمة', 'المجموع', 'ملاحظات'];
     const rows = []; let k = 0;
     recs.forEach(r => (r.items || []).forEach((it, j) => {
         k++; const rr = k + 1, p = products.find(x => x.id === it.pid), no = /^\d+$/.test(String(r.no || '')) ? parseInt(r.no) : String(r.no || '');
         const notes = [r.cancelled ? 'ملغاة' : '', it.batch ? 'دفعة ' + it.batch : ''].filter(Boolean).join(' | ');
-        const L = { al: 'center', fill: true };
-        rows.push([{ v: k, s: { al: 'center' } }, { v: j + 1, s: { al: 'center' } }, { v: it.name || '', s: { fill: true } }, { v: (p && p.brand) || '', s: L }, { v: '', s: Object.assign({ fmt: XL_F.usd }, L) }, { v: n(it.cost), s: Object.assign({ fmt: XL_F.iqd }, L) },
-            { v: n(it.qty), s: L }, { v: it.bonus ? n(it.bonus) : '', s: L }, { v: xlDate(it.expiry), s: Object.assign({ fmt: XL_F.mon }, L) }, { v: r.supplier || '', s: L }, { v: no, s: Object.assign({ fmt: XL_F.int }, L) }, { v: xlDate(r.date), s: Object.assign({ fmt: XL_F.date }, L) },
-            { v: '', s: Object.assign({ fmt: XL_F.pct }, L) }, { f: 'IF(M' + rr + '="","",F' + rr + '+Q' + rr + ')', v: '', s: Object.assign({ fmt: XL_F.iqd0 }, L) }, { f: 'G' + rr + '*F' + rr, v: n(it.qty) * n(it.cost), s: Object.assign({ fmt: XL_F.iqd0 }, L) }, { v: '', s: L },
-            { f: 'IF(M' + rr + '="","",F' + rr + '*M' + rr + ')', v: '', s: Object.assign({ fmt: XL_F.iqd0 }, L) }, { v: '', s: Object.assign({ fmt: XL_F.iqd0 }, L) }, { v: notes, s: L }]);
+        rows.push([{ v: k, s: { al: 'center' } }, { v: j + 1, s: { al: 'center' } }, { v: it.name || '', s: { fill: true } }, { v: (p && p.brand) || '', s: C }, { v: n(it.cost), s: F(XL_F.iqd) },
+            { v: n(it.qty), s: C }, { v: it.bonus ? n(it.bonus) : '', s: C }, { v: xlDate(it.expiry), s: F(XL_F.mon) }, { v: r.supplier || '', s: C }, { v: no, s: F(XL_F.int) }, { v: xlDate(r.date), s: F(XL_F.date) },
+            { f: 'F' + rr + '*E' + rr, v: n(it.qty) * n(it.cost), s: F(XL_F.iqd0) }, { v: notes, s: C }]);
     }));
-    const w = [11.73, 7.13, 48.6, 30.66, 14.53, 14.93, 8.33, 6.46, 11.73, 20.5, 16.7, 13.1, 13.6, 14.7, 14.7, 14.4, 41.3, 14, 41.3];
+    const w = [11.73, 7.13, 48.6, 30.66, 14.93, 8.33, 6.46, 11.73, 20.5, 16.7, 13.1, 14.7, 41.3];
     return xlBuild({ name: 'قوائم المواد مفصلة', tab: 'FFFFC000', zoom: 95, freeze: false, defH: 14.25, cols: w.map((x, i) => ({ w: x, hide: i === 0 })), head, hdr: {}, hdrAl: { 2: '' }, rows, table: 'Table_Items' });
 }
 async function puXlsxSave(recs, mode, fileBase) {
