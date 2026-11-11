@@ -178,7 +178,7 @@ function cnRowHtml(r) {
         <label class="cn-f"><span>العدد</span><input class="cn-cnt" type="number" inputmode="numeric" min="0" value="${cnEsc(r.cnt)}" oninput="cnSetCnt('${r.id}',this.value)" onchange="cnCommit('${r.id}','cnt')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();var q=document.getElementById('cnQ');if(q)q.focus();}"></label>
         <label class="cn-f"><span>السعر</span><input class="cn-pr" type="number" inputmode="numeric" min="0" value="${cnEsc(r.price)}" oninput="cnSetPrice('${r.id}',this.value)" onchange="cnCommit('${r.id}','price')"></label>
         <div class="cn-f cn-tt"><span>المجموع</span><b id="cnt-${r.id}">${t === null ? '' : fmtNum(t)}</b></div>
-        <button type="button" class="cn-x" onclick="cnDelRow('${r.id}')" aria-label="حذف">✕</button></div>`;
+        <div class="cn-sd"><button type="button" class="cn-mg" onclick="cnMergeOpen(${r.pid})" aria-label="ضم" title="ضم مواد">⇄</button><button type="button" class="cn-x" onclick="cnDelRow('${r.id}')" aria-label="حذف">✕</button></div></div>`;
 }
 function cnListRender(focusId) {
     const l = cnCur; if (!l) return;
@@ -243,6 +243,52 @@ async function cnApplyRow(r, what) {
     if (priceChanged && !part) { const sib = cnCur.rows.find(x => x.pid === r.pid && x.unit === 'part'); if (sib && !p.subManual) { sib.price = String(subPriceOf(p)); const i = document.querySelector('#cnr-' + sib.id + ' .cn-pr'); if (i) i.value = sib.price; cnRefreshTotals(sib); } }
     r.applied = new Date().toISOString(); cnTouch();
     const row = document.getElementById('cnr-' + r.id); if (row) { const s = row.querySelector('.cn-nm small'); if (s) s.textContent = (part ? subTypeOf(p) : 'قطعة كاملة') + ' • بالنظام: ' + (part ? to.loose : to.qty) + ' ✓'; }
+}
+
+
+// ---------- ضم مادتين أو أكثر تحت اسم واحد ----------
+let cnMg = null;
+function cnMgDraw() {
+    const box = document.getElementById('cnMgSel'); if (!box) return;
+    box.innerHTML = cnMg.ids.map(id => { const p = products.find(x => x.id === id); if (!p) return '';
+        return `<div class="cn-mgr"><label><input type="radio" name="cnKeep" value="${id}" ${cnMg.keep === id ? 'checked' : ''} onchange="cnMg.keep=${id}"><span dir="ltr">${cnEsc(p.name)}<small>${cnEsc(stockLabel(p))}</small></span></label>${id !== cnMg.first ? `<button type="button" onclick="cnMgRemove(${id})" aria-label="إزالة">✕</button>` : ''}</div>`; }).join('');
+}
+function cnMgRemove(id) { cnMg.ids = cnMg.ids.filter(x => x !== id); if (cnMg.keep === id) cnMg.keep = cnMg.first; cnMgDraw(); }
+function cnMgAdd(id) {
+    if (!cnMg.ids.includes(id)) cnMg.ids.push(id);
+    const q = document.getElementById('cnMgQ'); if (q) { q.value = ''; q.focus(); }
+    document.getElementById('cnMgRes').innerHTML = ''; cnMgDraw();
+}
+async function cnMergeOpen(pid) {
+    if (!can('stockEdit') && userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'الضم يحتاج صلاحية تعديل المواد.', confirmButtonColor: '#0f1c38' }); return; }
+    cnMg = { ids: [pid], keep: pid, first: pid };
+    const r = await Swal.fire({ title: 'ضم مواد', showCancelButton: true, confirmButtonText: 'ضمّ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 520px)',
+        html: `<div class="sw-form" style="text-align:right"><div class="bcp-search"><span>🔍</span><input id="cnMgQ" placeholder="ابحث عن مادة لإضافتها إلى الضم" autocomplete="off"></div><div id="cnMgRes" class="bcp-res"></div>
+            <small>اختر الاسم الذي يبقى في المخزن (تنتقل إليه الكميات والباركودات والسجلات، وتُحذف البقية إلى سلة المحذوفات).</small><div id="cnMgSel"></div></div>`,
+        didOpen: () => {
+            cnMgDraw(); const inp = document.getElementById('cnMgQ'), res = document.getElementById('cnMgRes');
+            inp.addEventListener('input', () => { const qn = normSearch(inp.value); if (!qn) { res.innerHTML = ''; return; } const toks = qn.split(' ');
+                const list = products.filter(x => !cnMg.ids.includes(x.id)).map(x => [x, searchScore(x, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 6).map(x => x[0]);
+                res.innerHTML = list.map(x => `<button type="button" class="cn-res" onclick="cnMgAdd(${x.id})"><span dir="ltr">${dispNameHtml(x)}</span><em>＋</em></button>`).join('') || '<div class="cn-none">لا توجد نتائج</div>'; }); },
+        preConfirm: () => { if (cnMg.ids.length < 2) { Swal.showValidationMessage('أضف مادة واحدة على الأقل للضم'); return false; } return { ids: cnMg.ids.slice(), keep: cnMg.keep }; } });
+    if (!r.isConfirmed || !r.value) return;
+    const keep = products.find(x => x.id === r.value.keep), srcs = r.value.ids.filter(id => id !== r.value.keep).map(id => products.find(x => x.id === id)).filter(Boolean);
+    if (!keep || !srcs.length) return;
+    if (!(await askSure('تأكيد الضم', 'سيبقى «' + keep.name + '» وتُحذف ' + srcs.length + ' مادة بعد نقل كمياتها وسجلاتها إليه.', 'نعم، ضمّ'))) return;
+    let ok = 0;
+    for (const s of srcs) { if (await catMerge(s, keep, true)) { ok++; cnRepoint(s.id, keep.id); } else break; }
+    cnTouch(); cnListRender();
+    Swal.fire({ icon: ok === srcs.length ? 'success' : 'warning', title: ok === srcs.length ? 'تم الضم' : 'تم ضم ' + ok + ' من ' + srcs.length, toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+}
+function cnRepoint(from, to) {
+    cnLists.forEach(l => {
+        let ch = false; l.rows.forEach(r => { if (r.pid === from) { r.pid = to; ch = true; } });
+        if (!ch) return;
+        const seen = new Map();
+        l.rows = l.rows.filter(r => { if (r.pid !== to) return true; const k = r.unit; const prev = seen.get(k); if (!prev) { seen.set(k, r); return true; } if (prev.cnt === '' && r.cnt !== '') { prev.cnt = r.cnt; prev.price = r.price || prev.price; } return false; });
+        l.upd = new Date().toISOString(); if (l !== cnCur) cnPush(l);
+    });
+    cnStoreLocal();
 }
 
 // ---------- إعدادات القائمة ----------

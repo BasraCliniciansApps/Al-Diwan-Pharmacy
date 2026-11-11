@@ -5,16 +5,16 @@
 // ============================================================================
 const FS_DEF = [
     { id: 'basic', ico: '🏷️', t: 'الأساسي', open: true, f: ['fName', 'fBrand', 'fMeta', 'fForm', 'fFormOtherWrap'] },
-    { id: 'cls', ico: '🗂️', t: 'التصنيف', open: true, f: ['fDepartment', 'fCategory', 'fType'] },
     {
-        id: 'ps', ico: '💰', t: 'التسعير والمخزون', open: true, subs: [
-            { id: 'price', ico: '💰', t: 'السعر', open: true, rows: [['fPriceMode'], ['fPrice', 'fCost']], strip: true },
-            { id: 'stock', ico: '📦', t: 'المخزون', open: false, rows: [['fQty', 'fMinQty']] },
-            { id: 'retail', ico: '🧩', t: 'البيع بالتجزئة', open: false, rows: [['.retail-box']] },
-            { id: 'exp', ico: '📅', t: 'الدفعات وتواريخ النفاذ', open: false, rows: [['expiryDatesWrap']] }
+        id: 'ps', ico: '💰', t: 'الدفعات والتسعير والمخزون', open: true, subs: [
+            { id: 'exp', ico: '📅', t: 'الدفعات وتواريخ النفاذ', open: true, rows: [['expiryDatesWrap']] },
+            { id: 'price', ico: '💰', t: 'طريقة التسعير', open: true, rows: [['fPriceMode'], ['fPrice', 'fCost']], strip: true },
+            { id: 'retail', ico: '🧩', t: 'البيع بالتجزئة', open: true, rows: [['.retail-box']] },
+            { id: 'stock', ico: '📦', t: 'المخزون', open: false, rows: [['fQty', 'fMinQty']] }
         ]
     },
-    { id: 'more', ico: '📝', t: 'تفاصيل إضافية', open: false, f: ['fActive', 'fDetails', 'fKeywords', 'fImg'] }
+    { id: 'cls', ico: '🗂️', t: 'التصنيف', open: true, f: ['fDepartment', 'fCategory', 'fType'] },
+    { id: 'more', ico: '🔬', t: 'الاسم العلمي والكلمات المفتاحية والاستخدام', open: false, f: ['fActive', 'fKeywords', 'fDetails'] }
 ];
 let fsBuilt = false, fsTimer = null, fsQuick = false;
 const fsEl = id => document.getElementById(id);
@@ -41,6 +41,7 @@ function fsBuild() {
     const sh = scan.querySelector('.scan-head'); if (sh) { sh.style.cursor = 'pointer'; sh.addEventListener('click', e => { if (e.target.closest('select,button')) return; scan.classList.toggle('fs-open'); }); const ch = document.createElement('span'); ch.className = 'fs-chev scan-chev'; ch.textContent = '▾'; sh.insertBefore(ch, sh.firstChild); }
     scan.classList.add('fs-scan');
     scan.insertAdjacentElement('afterend', wrap); wrap.insertAdjacentElement('afterend', scan); scan.style.marginTop = '12px';
+    { const qk = fsEl('qkBox'); if (qk) { scan.insertAdjacentElement('afterend', qk); const h = fsEl('qkHint'); if (h) qk.insertAdjacentElement('afterend', h); } }
     card.addEventListener('input', fsRefresh); card.addEventListener('change', fsRefresh);
     fsBuilt = true;
 }
@@ -61,13 +62,13 @@ function fsRefresh() {
     set('retail', sc > 1 ? sc + ' ' + fsSelTxt('fSubType') + (parseFloat(v('fSubPrice')) > 0 ? ' · ' + fmtNum(parseFloat(v('fSubPrice'))) + ' د.ع' : '') : 'بدون تجزئة');
     const ex = [...document.querySelectorAll('#expiryDatesWrap .expiry-input')].filter(i => i.value).length; set('exp', ex ? ex + (ex === 1 ? ' دفعة' : ' دفعات') : 'لا يوجد');
     set('ps', [pr > 0 ? fmtNum(pr) + ' د.ع' : 'غير مسعّر', mg ? mg.replace(' · ', '') : '', q + ' علبة', ex ? ex + (ex === 1 ? ' دفعة' : ' دفعات') : ''].filter(Boolean).join(' · '), !(pr > 0));
-    set('more', [v('fActive'), v('fKeywords')].filter(Boolean).join(' · ') || (v('fImg') ? 'صورة مضافة' : 'اختياري'));
+    set('more', [v('fActive'), v('fKeywords')].filter(Boolean).join(' · ') || 'اختياري');
 }
 function fsApply(id) {
     fsBuild(); if (!fsBuilt) return;
     const sb = document.querySelector('#formModal .scan-box'); if (sb) sb.classList.remove('fs-open');
     const isNew = !id; fsQuick = !!(isNew && typeof puAwaiting !== 'undefined' && puAwaiting);
-    FS_DEF.forEach(s => { const e = fsEl('fs-' + s.id); if (!e) return; e.classList.toggle('open', s.open); (s.subs || []).forEach(u => { const x = fsEl('fs-' + u.id); if (!x) return; let o = u.open; if (u.id === 'stock' && isNew && !fsQuick) o = true; x.classList.toggle('open', o); x.classList.toggle('fs-hide', fsQuick && u.id !== 'price'); }); });
+    FS_DEF.forEach(s => { const e = fsEl('fs-' + s.id); if (!e) return; e.classList.toggle('open', s.open); (s.subs || []).forEach(u => { const x = fsEl('fs-' + u.id); if (!x) return; let o = u.open; x.classList.toggle('open', o); x.classList.toggle('fs-hide', fsQuick && u.id !== 'price'); }); });
     let n = fsEl('fsQuickNote'); if (fsQuick) { if (!n) { n = document.createElement('div'); n.id = 'fsQuickNote'; n.className = 'fs-note'; n.innerHTML = '⚡ <b>إضافة سريعة من الوارد</b> — الكمية والنفاذ وسعر الشراء تُسجَّل من الوارد نفسه. أكمل الاسم والتصنيف والسعر فقط.'; fsEl('fsSections').insertAdjacentElement('beforebegin', n); } n.style.display = 'block'; } else if (n) n.style.display = 'none';
     fsRefresh(); clearInterval(fsTimer); fsTimer = setInterval(() => { const m = fsEl('formModal'); if (!m || m.style.display === 'none') { clearInterval(fsTimer); return; } fsRefresh(); }, 700);
     const card = document.querySelector('#formModal .modal-card'); if (card) card.scrollTop = 0;

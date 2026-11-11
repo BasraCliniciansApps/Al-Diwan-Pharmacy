@@ -356,6 +356,9 @@
         <div class="modal-card">
             <h3 id="formModalTitle" style="margin-bottom:14px; color:var(--primary-dark);">إضافة / تعديل صنف</h3>
             <input type="hidden" id="editId">
+            <div class="fm-tabs"><button type="button" onclick="fmGoQuick()">سريع</button><button type="button" class="on">مفصل</button></div>
+            <div class="fm-imgrow"><div class="fm-img" onclick="document.getElementById('fImgFile').click()" role="button" aria-label="صورة الصنف"><img id="fImgPrev" alt="" style="display:none"><span id="fImgPh">📷<small>صورة</small></span></div>
+                <input type="file" id="fImgFile" accept="image/*" hidden onchange="uploadImgBase64(event)"><input type="text" id="fImg" dir="ltr" hidden></div>
             <div class="scan-box">
                 <div class="scan-head">
                     <span class="scan-title">✨ تعبئة سريعة</span>
@@ -452,11 +455,6 @@
             </div>
             <div class="form-group"><label>تنبيه عند (علب)</label><input type="number" id="fMinQty" min="0" placeholder="الحد العام"></div>
             <div class="form-group"><label>كلمات مفتاحية لتسهيل البحث (اختياري):</label><input type="text" id="fKeywords" placeholder="مثال: مسكن، ألم رأس، بديل كذا..."></div>
-            <div class="form-group">
-                <label>صورة الصنف:</label>
-                <input type="file" accept="image/*" onchange="uploadImgBase64(event)" style="margin-bottom:6px;">
-                <input type="text" id="fImg" dir="ltr">
-            </div>
             <!-- ... أزرار الإلغاء والحفظ ... -->
             <div class="modal-actions-row">
                 <button class="icon-btn" onclick="requestCloseForm()">إلغاء</button>

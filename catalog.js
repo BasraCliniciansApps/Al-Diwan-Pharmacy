@@ -222,11 +222,15 @@ async function catMergeConfirm(dstId) {
     if (!writesAllowed()) return;
     const refs = (puAll || []).filter(r => (r.items || []).some(l => l.pid === s.id)).length + (lgAll || []).filter(e => (e.items || []).some(l => l.pid === s.id)).length + (billAll || []).filter(b => (b.items || []).some(l => l.pid === s.id)).length;
     const c = await Swal.fire({ icon: 'warning', title: 'تأكيد الضم', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم، ضمّ', cancelButtonText: 'إلغاء',
-        html: `<div class="sw-form"><div class="sw-info" dir="ltr"><small>تُحذف:</small><br><b>${escapeHtml(s.name)}</b><br>الكمية ${stockLabel(s)}</div><div class="sw-info" dir="ltr"><small>وتبقى (تستلم الكمية والباركودات):</small><br><b>${escapeHtml(d.name)}</b><br>الكمية ${stockLabel(d)}</div><small>ينتقل إلى المادة الباقية: الكمية، الباركودات، تواريخ الانتهاء، وسجلاتها (${refs} سجل وارد/مردود/فاتورة). تُحفظ المادة المحذوفة في سلة المحذوفات 30 يوماً.</small></div>` });
+        html: `<div class="sw-form"><div class="sw-info" dir="ltr"><small>تُحذف:</small><br><b>${escapeHtml(s.name)}</b><br>الكمية ${stockLabel(s)}</div><div class="sw-info" dir="ltr"><small>وتبقى (تستلم الكمية والباركودات):</small><br><b>${escapeHtml(d.name)}</b><br>الكمية ${stockLabel(d)}</div><div class="sw-info"><small>الاسم الذي يُحفظ في المخزن:</small>
+            <label class="cn-sw"><input type="radio" name="catKeep" value="dst" checked><span dir="ltr">${escapeHtml(d.name)}</span></label>
+            <label class="cn-sw"><input type="radio" name="catKeep" value="src"><span dir="ltr">${escapeHtml(s.name)}</span></label></div>
+            <small>ينتقل إلى المادة الباقية: الكمية، الباركودات، تواريخ الانتهاء، وسجلاتها (${refs} سجل وارد/مردود/فاتورة). تُحفظ المادة المحذوفة في سلة المحذوفات 30 يوماً.</small></div>`,
+        preConfirm: () => { const r = document.querySelector('input[name=catKeep]:checked'); return r ? r.value : 'dst'; } });
     if (!c.isConfirmed) return;
-    await catMerge(s, d);
+    if (c.value === 'src') await catMerge(d, s); else await catMerge(s, d);
 }
-async function catMerge(s, d) {
+async function catMerge(s, d, quiet) {
     const snap = JSON.stringify(d), dq = parseInt(s.qty) || 0, dl = parseInt(s.loose) || 0;
     const exp0 = getProductExpiryDates(d), expAdd = getProductExpiryDates(s).filter(e => !exp0.includes(e));
     try {
@@ -252,10 +256,13 @@ async function catMerge(s, d) {
         if (isFirebaseReady && currentUser) { const delB = db.batch(); delB.delete(db.collection('pharmacy_products').doc(String(s.id))); delB.delete(db.collection('pharmacy_stock').doc(String(s.id))); if (costSplitOn) delB.delete(db.collection('pharmacy_cost').doc(String(s.id))); await fsCommit(delB); }
         logAction('edit', d, [{ f: 'ضم مادة', from: s.name, to: d.name }]);
         renderAll(); renderCatalog();
+        if (quiet) return true;
         Swal.fire({ icon: 'success', title: 'تم الضم', text: 'صارت الكمية في «' + d.name + '»: ' + stockLabel(d), confirmButtonColor: '#0f1c38' });
     } catch (e) {
         Swal.fire({ icon: 'error', title: 'تعذر إكمال الضم', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' });
+        return false;
     }
+    return true;
 }
 function openCatalog() { shLeave('view'); showView('catalog'); }
 
@@ -342,12 +349,12 @@ async function catQtyFlush(id) {
 
 // ---------- نافذة التسعير السريع / إضافة مادة جديدة ----------
 function catPriceHtml(p, isNew, pre) {
-    const preBc = pre && typeof pre === 'object' ? String(pre.bc || '') : (pre && /^\d{6,}$/.test(pre) ? pre : ''), preName = pre && typeof pre !== 'object' && !preBc ? pre : '';
+    const preBc = pre && typeof pre === 'object' ? String(pre.bc || '') : (pre && /^\d{6,}$/.test(pre) ? pre : ''), preName = pre && typeof pre === 'object' ? String(pre.name || '') : (pre && !preBc ? pre : '');
     const q = id => document.getElementById(id);
     const sub = (!isNew && p && subCountOf(p)) ? p : null;
     const types = subTypes.slice(); if (sub && sub.subType && !types.includes(sub.subType)) types.push(sub.subType);
     const pm = (p && p.pricing) || 'manual';
-    return `<div class="qp">
+    return `<div class="qp"><div class="fm-tabs"><button type="button" class="on">سريع</button><button type="button" onclick="catGoDetailed()">مفصل</button></div>
         <div class="qf"><span>اسم الدواء</span><input id="qpName" class="qin ltr" dir="ltr" value="${escapeHtml((p && p.name) || preName)}" placeholder="مثال: Panadol 500mg tablet"></div>
         <div class="qg2 qrow">
             <div class="qf"><span>العدد (عبوات)</span><div class="qstep"><button type="button" id="qpMinus">−</button><input id="qpQty" type="number" inputmode="numeric" min="0" value="${p ? (parseInt(p.qty) || 0) : 0}" onfocus="this.select()"><button type="button" id="qpPlus">+</button></div></div>
@@ -432,7 +439,7 @@ function catPriceRead() {
 async function catPrice(id, pre, cb) {
     const p = id ? products.find(x => x.id === id) : null; if (id && !p) return;
     if (!writesAllowed()) return;
-    const isNew = !p;
+    const isNew = !p; window.__qpId = id || 0; window.__qpCb = cb;
     const r = await Swal.fire({ title: isNew ? '➕ مادة جديدة' : 'تسعير وتعديل سريع', html: catPriceHtml(p, isNew, pre), showCancelButton: true, confirmButtonText: isNew ? 'إضافة' : 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', width: 'min(94vw, 520px)', customClass: { popup: 'dw-pop qp-pop' },
         didOpen: () => { catPriceWire(p); if (isNew) document.getElementById('qpName').focus(); }, preConfirm: catPriceRead });
     if (!r.isConfirmed || !r.value) return;

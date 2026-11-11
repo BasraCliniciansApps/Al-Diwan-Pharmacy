@@ -3720,3 +3720,26 @@ input.pl-in{direction:ltr;text-align:center}
 .cn-ph { margin: 14px 0 6px; font-size: 1.05rem; }
 @media print { .cn-pg { page-break-before: always; } }
 @media (max-width: 560px) { .cn-row { grid-template-columns: 1fr 64px 84px 34px; } .cn-tt { grid-column: 1 / 4; grid-row: 2; display: flex; justify-content: space-between; align-items: center; } .cn-tt span { font-size: .75rem; } .cn-tt b { height: auto; } .cn-nm { grid-column: 1; } }
+
+.pos-stk { font-size: .72rem; color: #64748b; margin: 2px 0 4px; } .pos-stk.on { cursor: pointer; } .pos-stk b { color: #0f1c38; } .pos-stk em { font-style: normal; color: #b45309; }
+.ps-bt { border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; display: grid; gap: 6px; }
+.ps-bh { display: flex; justify-content: space-between; align-items: center; } .ps-bh button { min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; background: #0f766e; color: #fff; font: 700 .85rem inherit; font-family: inherit; cursor: pointer; }
+.ps-br { display: grid; grid-template-columns: 1.5fr 1fr 1fr 34px; gap: 6px; align-items: center; } .ps-br input { height: 42px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 6px; font: inherit; width: 100%; text-align: center; }
+.ps-br button { width: 34px; height: 34px; border: 0; border-radius: 8px; background: #fee2e2; color: #b91c1c; cursor: pointer; }
+
+.cn-sd { display: grid; gap: 4px; } .cn-mg { width: 34px; height: 30px; border: 0; border-radius: 8px; background: #e0f2fe; color: #0369a1; cursor: pointer; font-size: 1rem; }
+.cn-sd .cn-x { height: 30px; }
+.cn-mgr { display: flex; justify-content: space-between; align-items: center; gap: 6px; padding: 6px 0; border-bottom: 1px solid #f1f5f9; } .cn-mgr label { display: flex; gap: 8px; align-items: center; flex: 1; } .cn-mgr small { display: block; color: #64748b; }
+.cn-mgr button { border: 0; background: #fee2e2; color: #b91c1c; border-radius: 8px; width: 30px; height: 30px; cursor: pointer; }
+
+/* ===== تبويب سريع/مفصل + النموذج المفصل ===== */
+.fm-tabs { display: flex; gap: 0; margin: 0 0 12px; border: 1px solid #cbd5e1; border-radius: 12px; overflow: hidden; background: #f1f5f9; }
+.fm-tabs button { flex: 1; min-height: 40px; border: 0; background: none; font: 800 .92rem inherit; font-family: inherit; color: #475569; cursor: pointer; }
+.fm-tabs button.on { background: #0f1c38; color: #fff; }
+.fm-imgrow { display: flex; justify-content: center; margin-bottom: 12px; }
+.fm-img { width: 92px; height: 92px; border: 2px dashed #94a3b8; border-radius: 16px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f8fafc; cursor: pointer; }
+.fm-img img { width: 100%; height: 100%; object-fit: cover; } .fm-img span { display: grid; text-align: center; font-size: 1.6rem; } .fm-img small { font-size: .7rem; color: #64748b; }
+.fm-sec { border: 1px solid #e2e8f0; border-radius: 12px; margin: 10px 0; padding: 0 12px; background: #fff; }
+.fm-sec > summary { min-height: 46px; display: flex; align-items: center; font-weight: 800; cursor: pointer; list-style: none; }
+.fm-sec > summary::-webkit-details-marker { display: none; } .fm-sec > summary::after { content: '▾'; margin-inline-start: auto; color: #64748b; } .fm-sec[open] > summary::after { content: '▴'; }
+.fm-sec[open] { padding-bottom: 8px; }

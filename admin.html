@@ -358,6 +358,9 @@
         <div class="modal-card">
             <h3 id="formModalTitle" style="margin-bottom:14px; color:var(--primary-dark);">إضافة / تعديل صنف</h3>
             <input type="hidden" id="editId">
+            <div class="fm-tabs"><button type="button" onclick="fmGoQuick()">سريع</button><button type="button" class="on">مفصل</button></div>
+            <div class="fm-imgrow"><div class="fm-img" onclick="document.getElementById('fImgFile').click()" role="button" aria-label="صورة الصنف"><img id="fImgPrev" alt="" style="display:none"><span id="fImgPh">📷<small>صورة</small></span></div>
+                <input type="file" id="fImgFile" accept="image/*" hidden onchange="uploadImgBase64(event)"><input type="text" id="fImg" dir="ltr" hidden></div>
             <div class="scan-box">
                 <div class="scan-head">
                     <span class="scan-title">✨ تعبئة سريعة</span>
@@ -454,11 +457,6 @@
             </div>
             <div class="form-group"><label>تنبيه عند (علب)</label><input type="number" id="fMinQty" min="0" placeholder="الحد العام"></div>
             <div class="form-group"><label>كلمات مفتاحية لتسهيل البحث (اختياري):</label><input type="text" id="fKeywords" placeholder="مثال: مسكن، ألم رأس، بديل كذا..."></div>
-            <div class="form-group">
-                <label>صورة الصنف:</label>
-                <input type="file" accept="image/*" onchange="uploadImgBase64(event)" style="margin-bottom:6px;">
-                <input type="text" id="fImg" dir="ltr">
-            </div>
             <!-- ... أزرار الإلغاء والحفظ ... -->
             <div class="modal-actions-row">
                 <button class="icon-btn" onclick="requestCloseForm()">إلغاء</button>
@@ -1122,7 +1120,7 @@
     <script src="seed.js"></script>
     <script src="prog.js"></script>
     <script src="data.js"></script>
-<script src="invoice.js"></script><script src="sellpop.js"></script><script src="quickinv.js"></script><script src="pos.js"></script><script src="formsmgr.js"></script><script src="pricelist.js"></script><script src="purchase-xlsx.js"></script><script src="desktop.js"></script><script src="info.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="datahub.js"></script><script src="taxfilter.js"></script><script src="docpage.js"></script><script src="rxprint.js"></script><script src="rx.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><script src="labels.js"></script><script src="help.js"></script><script src="navtabs.js"></script><script src="count.js"></script>
+<script src="invoice.js"></script><script src="sellpop.js"></script><script src="quickinv.js"></script><script src="pos.js"></script><script src="formsmgr.js"></script><script src="pricelist.js"></script><script src="purchase-xlsx.js"></script><script src="desktop.js"></script><script src="info.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="datahub.js"></script><script src="taxfilter.js"></script><script src="docpage.js"></script><script src="rxprint.js"></script><script src="rx.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><script src="labels.js"></script><script src="help.js"></script><script src="navtabs.js"></script><script src="count.js"></script><script src="formtabs.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             const hadCtl = !!navigator.serviceWorker.controller;

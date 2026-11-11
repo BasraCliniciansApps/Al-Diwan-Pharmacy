@@ -147,38 +147,73 @@ function posScan() {   // كاميرا: تستمر بعد كل قراءة لحي
 
 // ---------- جرد المادة عند أول بيع (خيار في الإعدادات، متوقف افتراضياً) ----------
 function posCountSet(v) { try { const c = scCfg(); c.posCount = !!v; scSave(c); } catch (e) { /* تجاهل */ } }
-function posNeedsCount(p) { try { return !!p && scCfg().posCount && setupSkip(p) && can('stockEdit'); } catch (e) { return false; } }
-async function posCountOpen(pid) {
-    const p = products.find(x => x.id === pid); if (!p) return;
+function posNeedsCount(p) { try { return !!p && scCfg().posCount && setupSkip(p) && posStockCan(); } catch (e) { return false; } }
+// ---------- مخزن المادة: عرض صغير على البطاقة + نافذة تعديل (علب/أجزاء/دفعات) ----------
+function posStockCan() { return userRole === 'owner' || can('stockEdit') || can('invList'); }
+function posStockShow() { return userRole === 'owner' || can('stockView') || can('stockEdit') || can('invList'); }
+function posStockLine(p) {
+    if (!p || !posStockShow()) return '';
+    const cls = posStockCan() ? ' on' : '';
+    return `<div class="pos-stk${cls}"${posStockCan() ? ` onclick="posStockOpen(${p.id})"` : ''}>📦 بالمخزن: <b>${posEsc(stockLabel(p))}</b>${setupSkip(p) ? ' <em>(غير مجرودة)</em>' : ''}${posStockCan() ? ' ✎' : ''}</div>`;
+}
+let posStk = null;
+function posStkTotals() {
+    const p = posStk.p, sc = btSc(p), retail = hasRetail(p);
+    if (!posStk.rows.length) return { q: Math.max(0, parseInt(posStk.q) || 0), l: retail ? Math.max(0, parseInt(posStk.l) || 0) : 0 };
+    const u = posStk.rows.reduce((a, b) => a + (parseInt(b.q) || 0) * sc + (retail ? (parseInt(b.l) || 0) : 0), 0);
+    return { q: Math.floor(u / sc), l: retail && sc > 1 ? u % sc : 0 };
+}
+function posStkHtml() {
+    const p = posStk.p, retail = hasRetail(p), sc = btSc(p), has = posStk.rows.length > 0, t = posStkTotals();
+    return `<div class="px"><div class="px-sum"><b dir="ltr" style="font-size:1rem">${posEsc(p.name)}</b></div>
+        <div class="px-row"><label><span>عدد العلب${has ? ' (من الدفعات)' : ''}</span><input id="psQ" type="number" inputmode="numeric" min="0" value="${t.q}" ${has ? 'readonly' : ''} oninput="posStk.q=this.value"></label>
+        ${retail ? `<label><span>عدد الأجزاء (${posEsc(subTypeOf(p))})</span><input id="psL" type="number" inputmode="numeric" min="0" max="${sc - 1}" value="${t.l}" ${has ? 'readonly' : ''} oninput="posStk.l=this.value"></label>` : ''}</div>
+        <div class="ps-bt"><div class="ps-bh"><b>📅 الدفعات وتواريخ الانتهاء</b><button type="button" onclick="posStkAdd()">＋ دفعة</button></div>
+        ${posStk.rows.map((b, i) => `<div class="ps-br"><input type="month" dir="ltr" value="${posEsc(b.e || '')}" onchange="posStkSet(${i},'e',this.value)" aria-label="تاريخ الانتهاء">
+            <input type="number" inputmode="numeric" min="0" value="${b.q || 0}" onchange="posStkSet(${i},'q',this.value)" aria-label="علب">
+            ${retail ? `<input type="number" inputmode="numeric" min="0" max="${sc - 1}" value="${b.l || 0}" onchange="posStkSet(${i},'l',this.value)" aria-label="أجزاء">` : ''}
+            <button type="button" onclick="posStkDel(${i})" aria-label="حذف الدفعة">✕</button></div>`).join('') || '<div class="px-msg">لا دفعات. أضف دفعة لتسجيل تاريخ الانتهاء.</div>'}</div>
+        <div class="px-row"><label><span>سعر العلبة (د.ع)</span><input id="psP" type="number" inputmode="numeric" min="0" value="${parseFloat(p.price) || ''}"></label></div>
+        <div class="px-msg">بعد الحفظ تُعدّ المادة مجرودة، ويُسجَّل التعديل في سجل العمليات.</div></div>`;
+}
+function posStkRefresh() {
+    const t = posStkTotals(), q = document.getElementById('psQ'), l = document.getElementById('psL'), has = posStk.rows.length > 0;
+    if (q) { q.value = t.q; q.readOnly = has; } if (l) { l.value = t.l; l.readOnly = has; }
+}
+function posStkRedraw() { const h = document.querySelector('.swal2-html-container'); if (h) h.innerHTML = posStkHtml(); }
+function posStkAdd() { posStk.rows.push({ e: '', q: 0, l: 0 }); posStkRedraw(); }
+function posStkDel(i) { posStk.rows.splice(i, 1); posStkRedraw(); }
+function posStkSet(i, f, v) { posStk.rows[i][f] = f === 'e' ? v : Math.max(0, parseInt(v) || 0); posStkRefresh(); }
+async function posStockOpen(pid) {
+    const p = products.find(x => x.id === pid); if (!p || !posStockCan()) return;
+    posStk = { p, rows: getBatches(p).map(b => ({ e: b.e, q: b.q, l: b.l, pr: b.pr })), q: parseInt(p.qty) || 0, l: parseInt(p.loose) || 0 };
     const retail = hasRetail(p), sc = btSc(p);
     const r = await Swal.fire({
-        title: 'جرد المادة', confirmButtonText: 'حفظ وتأكيد الجرد', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
-        html: `<div class="px"><div class="px-sum"><b dir="ltr" style="font-size:1rem">${posEsc(p.name)}</b></div>
-            <div class="px-row"><label><span>عدد العلب</span><input id="pcQ" type="number" inputmode="numeric" min="0" value="${parseInt(p.qty) || 0}"></label>
-            ${retail ? `<label><span>عدد الأجزاء (${posEsc(subTypeOf(p))})</span><input id="pcL" type="number" inputmode="numeric" min="0" max="${sc - 1}" value="${parseInt(p.loose) || 0}"></label>` : ''}</div>
-            <div class="px-row"><label><span>سعر العلبة (د.ع)</span><input id="pcP" type="number" inputmode="numeric" min="0" value="${parseFloat(p.price) || ''}"></label></div>
-            <div class="px-msg">بعد الحفظ تُعدّ المادة مجرودة، وتتأثر كميتها بالوارد والبيع والمردود.</div></div>`,
+        title: 'مخزن المادة', confirmButtonText: 'حفظ', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', html: posStkHtml(),
         preConfirm: () => {
-            const q = parseInt(document.getElementById('pcQ').value), l = retail ? (parseInt(document.getElementById('pcL').value) || 0) : 0, pr = parseFloat(document.getElementById('pcP').value);
-            if (!(q >= 0)) { Swal.showValidationMessage('أدخل عدد العلب'); return false; }
-            if (retail && (l < 0 || l >= sc)) { Swal.showValidationMessage('عدد الأجزاء يجب أن يكون أقل من ' + sc); return false; }
+            const t = posStkTotals(), pr = parseFloat(document.getElementById('psP').value);
+            if (retail && t.l >= sc) { Swal.showValidationMessage('عدد الأجزاء يجب أن يكون أقل من ' + sc); return false; }
             if (!(pr > 0)) { Swal.showValidationMessage('أدخل سعر المادة'); return false; }
-            return { q, l, pr };
+            if (posStk.rows.some(b => !(b.q > 0 || b.l > 0) && !b.e)) { Swal.showValidationMessage('دفعة بلا تاريخ ولا عدد: احذفها أو عبّئها'); return false; }
+            return { ...t, pr, rows: posStk.rows.map(b => ({ ...b })), hasRows: posStk.rows.length > 0 };
         } });
     if (!r.isConfirmed || !r.value) return;
-    const from = { qty: parseInt(p.qty) || 0, loose: parseInt(p.loose) || 0 }, v = r.value;
+    const v = r.value, from = { qty: parseInt(p.qty) || 0, loose: parseInt(p.loose) || 0 };
+    const snap = { qty: p.qty, loose: p.loose, bt: p.bt ? JSON.parse(JSON.stringify(p.bt)) : p.bt, ed: p.expiryDates, e1: p.expiryDate, price: p.price, pricing: p.pricing, mk: p.markupPct, sp: p.subPrice };
+    let priceChanged = false;
     p.qty = v.q; p.loose = retail ? v.l : 0;
-    if (v.pr !== (parseFloat(p.price) || 0)) { p.price = v.pr; p.pricing = 'manual'; p.markupPct = null; if (retail && !p.subManual) p.subPrice = subPriceCalc(v.pr, subCountOf(p)); }
-    const dates = typeof btDateOnly === 'function' ? btDateOnly(p).sort() : [];
-    const ok = await saveProductsDelta([{ p, dq: v.q - from.qty, dl: p.loose - from.loose, mark: true, ...(dates.length ? { expAdd: [dates[0]] } : {}) }]);
-    if (!ok) { p.qty = from.qty; p.loose = from.loose; return; }
+    if (v.hasRows || p.bt) { const dk = btDateOnly(p); p.bt = btFromArr(v.rows); const cur = getBatches(p); btApply(p, cur.concat(btDateRows(dk).filter(x => !cur.some(a => a.e === x.e)))); }
+    if (v.pr !== (parseFloat(p.price) || 0)) { p.price = v.pr; p.pricing = 'manual'; p.markupPct = null; if (retail && !p.subManual) p.subPrice = subPriceCalc(v.pr, subCountOf(p)); priceChanged = true; }
+    const ok = await saveProductsDelta([{ p, dq: v.q - from.qty, dl: p.loose - from.loose, mark: true, priceFields: priceChanged }]);
+    if (!ok) { p.qty = snap.qty; p.loose = snap.loose; p.bt = snap.bt; p.expiryDates = snap.ed; p.expiryDate = snap.e1; p.price = snap.price; p.pricing = snap.pricing; p.markupPct = snap.mk; p.subPrice = snap.sp; saveLocal(); return; }
     p.counted = true;
-    try { logAction('qty', p, [{ f: 'الكمية (جرد عند البيع)', from: stockTxt(p, from), to: stockTxt(p, { qty: p.qty, loose: p.loose }) }]); } catch (e) { /* تجاهل */ }
-    // إعادة توزيع سطور هذه المادة على دفعاتها بعد الجرد (الأقرب انتهاءً أولاً)
+    try { logAction('qty', p, [{ f: 'الكمية (شاشة البيع)', from: stockTxt(p, from), to: stockTxt(p, { qty: p.qty, loose: p.loose }) }]); } catch (e) { /* تجاهل */ }
+    // إعادة توزيع سطور هذه المادة على دفعاتها بعد التعديل (الأقرب انتهاءً أولاً)
     posGroups().filter(g => g.pid === pid).forEach(g => { const t = posTotalQty(g); bill.items = bill.items.filter(it => !g.lines.includes(it)); posAdd(pid, g.unit, t); });
     billChanged(); try { renderAll(); } catch (e) { /* تجاهل */ } posRender();
-    Swal.fire({ icon: 'success', title: 'تم جرد المادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1400 });
+    Swal.fire({ icon: 'success', title: 'تم تحديث المخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 1400 });
 }
+function posCountOpen(pid) { return posStockOpen(pid); }
 
 // ---------- الخيارات الإضافية ----------
 function posField(k, v) {
@@ -277,7 +312,7 @@ function posCardHtml(g) {
     const prices = [...new Set(g.lines.map(it => parseFloat(it.price) || 0))];
     const cnt = g.pid && posNeedsCount(p) ? `<button type="button" class="pos-cnt" onclick="posCountOpen(${g.pid})">⚠️ المادة لم تُجرد بعد — اضغط لإدخال العدد والسعر</button>` : '';
     return `<div class="pos-card"><div class="pos-top"><b dir="ltr">${posEsc(first.name)}</b><button type="button" class="pos-x" onclick="posDel('${g.key}')" aria-label="حذف">✕</button></div>
-        ${cnt}
+        ${p ? posStockLine(p) : ''}${cnt}
         ${chips ? `<div class="pos-batches" onclick="posBatch('${g.key}')" title="تغيير الدفعة أو السعر">${chips}<span class="pos-edit">تغيير الدفعة ✎</span></div>` : ''}
         <div class="pos-mid">${unit}<div class="pos-st"><button type="button" onclick="posQtyStep('${g.key}',-1)" aria-label="إنقاص">−</button><input type="number" inputmode="numeric" min="1" value="${posEsc(qty)}" onchange="posQtySet('${g.key}',this.value)" aria-label="العدد"><button type="button" onclick="posQtyStep('${g.key}',1)" aria-label="زيادة">+</button></div>
         <div class="pos-sum">${prices.length === 1 && prices[0] ? `<small>${fmtNum(prices[0])} ×</small>` : ''}<b>${fmtNum(tot)}</b></div></div></div>`;

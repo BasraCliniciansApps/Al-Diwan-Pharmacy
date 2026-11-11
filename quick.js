@@ -59,7 +59,9 @@ function qkInit() {
     const grp = brand.closest('.form-group'); if (!grp) return;
     const c = qkCfg();
     const rows = Object.keys(QK_LABELS).map(k => `<div class="qk-row"><div><b>${QK_LABELS[k][0]}</b><small>${QK_LABELS[k][1]}</small></div><label class="setup-sw"><input type="checkbox" ${c[k] ? 'checked' : ''} onchange="qkSet('${k}', this.checked)" aria-label="${QK_LABELS[k][0]}"><i></i></label></div>`).join('');
-    grp.insertAdjacentHTML('beforebegin', `<details class="qk-box" id="qkBox"><summary>⚡ الإدخال السريع <em>إعدادات هذا الجهاز</em></summary>${rows}</details><div class="qk-hint" id="qkHint" aria-live="polite"></div>`);
+    const qkHtml = `<details class="qk-box" id="qkBox"><summary>⚡ الإدخال السريع <em>إعدادات هذا الجهاز</em></summary>${rows}</details><div class="qk-hint" id="qkHint" aria-live="polite"></div>`;
+    const scanBox = document.querySelector('#formModal .scan-box');   // الإدخال السريع بعد «تعبئة سريعة» في آخر النموذج
+    if (scanBox) scanBox.insertAdjacentHTML('afterend', qkHtml); else grp.insertAdjacentHTML('beforebegin', qkHtml);
     ['fName', 'fMeta', 'fBrand'].forEach(id => { const e = qkEl(id); if (e) { e.addEventListener('input', () => { if (id === 'fBrand') qkUser.brand = true; clearTimeout(qkTimer); qkTimer = setTimeout(qkApply, 250); }); e.addEventListener('blur', qkApply); } });
     const a = qkEl('fActive'); if (a) a.addEventListener('input', () => { qkUser.active = true; });
     const f = qkEl('fForm'); if (f) f.addEventListener('change', () => { qkUser.form = true; f.dataset.qk = ''; });
