@@ -106,6 +106,22 @@ function cnOpenList(id) {
     setTimeout(() => { const q = document.getElementById('cnQ'); if (q && !(window.matchMedia && matchMedia('(pointer: coarse)').matches)) q.focus(); }, 60);
 }
 
+// ---------- نقل مواد بين المجموعات ----------
+async function cnMovePick(what) {
+    const l = cnCur; if (!l) return;
+    const pids = typeof what === 'string' ? [...new Set(l.rows.filter(r => r.gid === what.slice(2)).map(r => r.pid))] : what;
+    if (!pids.length) return;
+    const cur = typeof what === 'string' ? what.slice(2) : (l.rows.find(r => r.pid === pids[0]) || {}).gid;
+    const opts = { '': 'بدون مجموعة' }; l.groups.forEach(g => { opts[g.id] = g.name; });
+    const r = await Swal.fire({ title: pids.length > 1 ? 'نقل ' + pids.length + ' مادة إلى مجموعة' : 'نقل المادة إلى مجموعة', input: 'select', inputOptions: opts, inputValue: cur || '', showCancelButton: true, confirmButtonText: 'نقل', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+    if (!r.isConfirmed) return;
+    const to = r.value || '', n = l.rows.filter(x => pids.includes(x.pid) && x.gid !== to).length;
+    if (!n) return;
+    l.rows.forEach(x => { if (pids.includes(x.pid)) x.gid = to; });
+    cnTouch(); cnListRender();
+    Swal.fire({ icon: 'success', title: 'تم النقل إلى «' + cnGroupName(l, to) + '»', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 });
+}
+
 // ---------- المجموعات ----------
 async function cnGroupAdd() {
     const r = await Swal.fire({ title: 'مجموعة جديدة', input: 'text', inputPlaceholder: 'مثال: رف الجلدية', showCancelButton: true, confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', inputValidator: v => !String(v || '').trim() ? 'اكتب اسم المجموعة' : null });
@@ -229,7 +245,7 @@ function cnScan() {
 function cnRowHtml(r, n) {
     const p = products.find(x => x.id === r.pid); if (!p) return '';
     const part = r.unit === 'part', t = cnRowTotal(r), sys = part ? cnInt(p.loose) : cnInt(p.qty);
-    return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-n">${n || ''}</div><div class="cn-nm"><b dir="ltr" class="cn-nmb"><span onclick="cnEditProduct(${r.pid})">${cnEsc(dispName(p, part))}</span></b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small></div>
+    return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-n">${n || ''}</div><div class="cn-nm"><b dir="ltr" class="cn-nmb"><span onclick="cnEditProduct(${r.pid})">${cnEsc(dispName(p, part))}</span></b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small><button type="button" class="cn-gm" onclick="cnMovePick([${r.pid}])">📁 ${cnEsc(cnGroupName(cnCur, r.gid))} ▾</button></div>
         <label class="cn-f"><span>العدد</span><input class="cn-cnt" type="number" inputmode="numeric" min="0" value="${cnEsc(r.cnt)}" oninput="cnSetCnt('${r.id}',this.value)" onchange="cnCommit('${r.id}','cnt')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();var q=document.getElementById('cnQ');if(q)q.focus();}"></label>
         <label class="cn-f"><span>السعر</span><input class="cn-pr" type="number" inputmode="numeric" min="0" value="${cnEsc(r.price)}" oninput="cnSetPrice('${r.id}',this.value)" onchange="cnCommit('${r.id}','price')"></label>
         <div class="cn-f cn-tt"><span>المجموع</span><b id="cnt-${r.id}">${t === null ? '' : fmtNum(t)}</b></div>
@@ -240,7 +256,7 @@ function cnListRender(focusId) {
     cnScr = 'list'; cnSyncParts(l); cnNormalize(l);
     const rows = l.rows.filter(r => cnInView(r.gid));
     const gids = [...l.groups.map(g => g.id), ''];
-    const sections = gids.map(gid => { const rr = rows.filter(r => r.gid === gid); if (!rr.length) return ''; return `<div class="cn-gh"><b>${cnEsc(cnGroupName(l, gid))}</b><small>${rr.length} سطر • ${fmtNum(cnSum(rr))} د.ع</small></div>${rr.map(r => cnRowHtml(r, l.rows.indexOf(r) + 1)).join('')}`; }).join('');
+    const sections = gids.map(gid => { const rr = rows.filter(r => r.gid === gid); if (!rr.length) return ''; return `<div class="cn-gh"><b>${cnEsc(cnGroupName(l, gid))}</b><small>${rr.length} سطر • ${fmtNum(cnSum(rr))} د.ع</small><button type="button" class="cn-gm" onclick="cnMovePick('g:${gid}')">نقل الكل ▾</button></div>${rr.map(r => cnRowHtml(r, l.rows.indexOf(r) + 1)).join('')}`; }).join('');
     const chip = (v, label, on) => `<button type="button" class="cn-chip ${on ? 'on' : ''}" onclick="cnPickGroup('${v}')">${cnEsc(label)}</button>`;
     const has0 = l.rows.some(r => r.gid === '');
     document.getElementById('cnBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cnIndex()" aria-label="رجوع">→</button><b>${cnEsc(l.name)}</b><span>${cnEsc(fmtDateDMY(l.date))}</span></div>
@@ -251,7 +267,10 @@ function cnListRender(focusId) {
         <div class="cn-body" id="cnList">${sections || '<div class="cn-empty">امسح باركود أو ابحث عن مادة لإضافتها.</div>'}</div>
         <div class="cn-foot"><div class="cn-tot"><span>المجموع</span><b id="cnTotal">${fmtNum(cnSum(l.rows))}</b><i>د.ع</i></div>
         <div class="cn-acts"><button type="button" onclick="cnPrintDialog()">🖨️ طباعة</button><button type="button" onclick="cnExcel()">⬇️ Excel</button><button type="button" onclick="cnSettings()">⚙️</button></div></div>`;
-    if (focusId) { const row = document.getElementById('cnr-' + focusId); if (row) { row.classList.add('flash'); row.scrollIntoView({ block: 'center' }); const i = row.querySelector('.cn-cnt'); if (i) { i.focus(); i.select(); } } }
+    if (focusId) {
+        const go = (focus) => { const row = document.getElementById('cnr-' + focusId); if (!row) return; row.classList.add('flash'); row.scrollIntoView({ block: 'center' }); if (focus) { const i = row.querySelector('.cn-cnt'); if (i) { i.focus({ preventScroll: true }); i.select(); } } };
+        go(true); requestAnimationFrame(() => go(false)); setTimeout(() => go(false), 350);   // بعد ظهور لوحة المفاتيح
+    }
 }
 function cnRefreshTotals(r) {
     const e = document.getElementById('cnt-' + r.id), t = cnRowTotal(r); if (e) e.textContent = t === null ? '' : fmtNum(t);

@@ -3768,3 +3768,5 @@ body.ov-open #formModal { z-index: 9200; } body.ov-open #expiryModal, body.ov-op
 
 .cn-n { align-self: center; text-align: center; font-weight: 800; font-size: .85rem; color: #64748b; }
 @media (max-width: 560px) { .cn-row { grid-template-columns: 22px 1fr 64px 84px 34px; } .cn-n { grid-row: 1 / 3; } .cn-tt { grid-column: 2 / 5; } .cn-sd { grid-column: 5; } .cn-nm { grid-column: 2; } }
+.cn-gm { align-self: start; justify-self: start; margin-top: 2px; min-height: 26px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 13px; background: #f8fafc; font: 600 .74rem inherit; font-family: inherit; color: #0f1c38; cursor: pointer; }
+.cn-gh .cn-gm { margin: 0; }
