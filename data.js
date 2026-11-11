@@ -5320,6 +5320,8 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         ['expiryModal', () => vis('expiryModal'), () => closeExpiryModal()],
         ['formModal', () => vis('formModal'), () => requestCloseForm()],
         ['rxHub', () => vis('rxHub'), () => { if (typeof rxCurId !== 'undefined' && rxCurId) rxBack(); else rxClose(); }],
+        ['cnOv', () => vis('cnOv'), () => { if (typeof cnBack === 'function') cnBack(); else cnClose(); }],
+        ['posOv', () => vis('posOv'), () => { if (typeof posClose === 'function') posClose(); }],
         ['docHub', () => vis('docHub'), () => docClose()],
         ['drHub', () => vis('drHub'), () => drClose()],
         ['qiPanel', () => vis('qiPanel') && typeof qiAbandon === 'function', () => qiAbandon()],

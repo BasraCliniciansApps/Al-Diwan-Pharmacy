@@ -3,7 +3,7 @@
 // الأعداد المدخلة تُحدّث المخزن مباشرة (يمكن إيقافه لكل قائمة) وتجعل المادة «مجرودة»، طباعة (مع الأعداد أو فارغة) وتصدير Excel.
 // =====================================================================
 const CN_LS = 'diwanCountLists';
-let cnLists = [], cnCur = null, cnSel = new Set(), cnDd = false, cnTarget = '', cnQueue = Promise.resolve(), cnSaveT = null, cnOpenFlag = false, cnFound = [];
+let cnScr = 'hub', cnLists = [], cnCur = null, cnSel = new Set(), cnDd = false, cnTarget = '', cnQueue = Promise.resolve(), cnSaveT = null, cnOpenFlag = false, cnFound = [];
 const cnEsc = s => escapeHtml(String(s == null ? '' : s));
 const cnId = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 const cnInt = v => parseInt(v) || 0;
@@ -46,7 +46,7 @@ function cnHub() {
     cnHubRender();
 }
 function cnHubRender() {
-    cnCur = null;
+    cnCur = null; cnScr = 'hub'; cnPendOpen = false;
     const own = userRole === 'owner', c = typeof scCfg === 'function' ? scCfg() : {};
     document.getElementById('cnBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cnClose()" aria-label="رجوع">→</button><b>الجرد</b><span></span></div>
         <div class="cn-body"><div class="cn-hub">
@@ -61,6 +61,14 @@ function cnHubRender() {
 }
 function cnLegacy() { cnClose(); if (typeof cnOrigInventory === 'function') cnOrigInventory(); }
 async function cnToggleSetup(el) { const on = el.checked; el.checked = !on; await toggleSetupMode(on); if (cnOpenFlag && !cnCur) cnHubRender(); }
+// زر الرجوع (النظام): خطوة واحدة للخلف داخل شاشات الجرد
+function cnBack() {
+    if (cnDd && cnCur) { cnDd = false; cnDdRender(); return; }
+    if (cnScr === 'list') { cnIndex(); return; }
+    if (cnScr === 'index') { cnHubRender(); return; }
+    if (cnScr === 'pend') { cnPendClose(); return; }
+    cnClose();
+}
 function cnClose() {
     const ov = document.getElementById('cnOv'); if (ov) ov.style.display = 'none';
     document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); cnOpenFlag = false; cnCur = null;
@@ -79,7 +87,7 @@ async function cnIndex() {
     await cnLoad(); if (cnOpenFlag && !cnCur && JSON.stringify(cnLists.map(x => x.id + (x.upd || ''))) !== before) cnIndexRender();
 }
 function cnIndexRender() {
-    cnCur = null;
+    cnCur = null; cnScr = 'index'; cnPendOpen = false;
     document.getElementById('cnBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cnHubRender()" aria-label="رجوع">→</button><b>قوائم الجرد</b><span></span></div>
         <div class="cn-body"><button type="button" class="cn-new" onclick="cnNewList()">➕ قائمة جرد جديدة</button>
         ${cnLists.map(l => `<div class="cn-li" onclick="cnOpenList('${l.id}')"><div><b>${cnEsc(l.name)}</b><small>${cnEsc(fmtDateDMY(l.date))} • ${(l.rows || []).length} سطر • ${(l.groups || []).length} مجموعة</small></div><div class="cn-lt">${fmtNum(cnSum(l.rows || []))}<small>د.ع</small></div></div>`).join('') || '<div class="cn-empty">لا توجد قوائم بعد.</div>'}</div>`;
@@ -220,7 +228,7 @@ function cnScan() {
 function cnRowHtml(r, n) {
     const p = products.find(x => x.id === r.pid); if (!p) return '';
     const part = r.unit === 'part', t = cnRowTotal(r), sys = part ? cnInt(p.loose) : cnInt(p.qty);
-    return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-nm"><b dir="ltr" class="cn-nmb"><i class="cn-no">${n || ''}</i><span onclick="cnEditProduct(${r.pid})">${cnEsc(dispName(p, part))}</span></b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small></div>
+    return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-n">${n || ''}</div><div class="cn-nm"><b dir="ltr" class="cn-nmb"><span onclick="cnEditProduct(${r.pid})">${cnEsc(dispName(p, part))}</span></b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small></div>
         <label class="cn-f"><span>العدد</span><input class="cn-cnt" type="number" inputmode="numeric" min="0" value="${cnEsc(r.cnt)}" oninput="cnSetCnt('${r.id}',this.value)" onchange="cnCommit('${r.id}','cnt')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();var q=document.getElementById('cnQ');if(q)q.focus();}"></label>
         <label class="cn-f"><span>السعر</span><input class="cn-pr" type="number" inputmode="numeric" min="0" value="${cnEsc(r.price)}" oninput="cnSetPrice('${r.id}',this.value)" onchange="cnCommit('${r.id}','price')"></label>
         <div class="cn-f cn-tt"><span>المجموع</span><b id="cnt-${r.id}">${t === null ? '' : fmtNum(t)}</b></div>
@@ -228,7 +236,7 @@ function cnRowHtml(r, n) {
 }
 function cnListRender(focusId) {
     const l = cnCur; if (!l) return;
-    cnSyncParts(l); cnNormalize(l);
+    cnScr = 'list'; cnSyncParts(l); cnNormalize(l);
     const rows = l.rows.filter(r => cnInView(r.gid));
     const gids = [...l.groups.map(g => g.id), ''];
     const sections = gids.map(gid => { const rr = rows.filter(r => r.gid === gid); if (!rr.length) return ''; return `<div class="cn-gh"><b>${cnEsc(cnGroupName(l, gid))}</b><small>${rr.length} سطر • ${fmtNum(cnSum(rr))} د.ع</small></div>${rr.map(r => cnRowHtml(r, l.rows.indexOf(r) + 1)).join('')}`; }).join('');
@@ -394,6 +402,7 @@ function cnPendItems() {
     return arr;
 }
 function cnPendRender() {
+    cnScr = 'pend';
     const arr = cnPendItems(), SHOW = 100, canE = cnCanEdit();
     const prevQ = document.getElementById('cnPQ'), keep = prevQ && document.activeElement === prevQ;
     document.getElementById('cnBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cnPendClose()" aria-label="رجوع">→</button><b>مواد لم تدخل قوائم الجرد</b><span>${fmtNum(arr.length)}</span></div>
