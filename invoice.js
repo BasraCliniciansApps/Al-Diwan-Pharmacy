@@ -324,6 +324,7 @@ function initBillEditor() {
 }
 function initBillSettings() {
     const m = getInvMeta();
+    try { const c = $b('setPosCount'); if (c) c.checked = !!scCfg().posCount; } catch (e) { /* تجاهل */ }
     $b('setAddr').value = m.addr; $b('setPhone').value = m.phone; $b('setLic').value = m.lic; $b('setRet').value = m.ret; $b('setFoot').value = m.foot;
 }
 function onShowBill() { billTab(currentBillTab || 'new'); }

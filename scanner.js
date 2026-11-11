@@ -3,7 +3,7 @@
 // حد الخصم للبائعين: «محمي» (هامش أمان + تقريب، لا يكشف الكلفة) أو «كامل» (أعلى خصم بدون خسارة). يُخزَّن مع المادة (dlim) بدون سعر الشراء.
 // ============================================================================
 const SC_LS = 'diwanScan';
-const SC_DEF = { on: true, mode: 'safe', margin: 5, step: 5, show: { price: true, cost: true, margin: true, expiry: true, del: true, calc: true, limit: true } };
+const SC_DEF = { on: true, posCount: false, mode: 'safe', margin: 5, step: 5, show: { price: true, cost: true, margin: true, expiry: true, del: true, calc: true, limit: true } };
 function scCfg() { let c = {}; try { c = JSON.parse(localStorage.getItem(SC_LS)) || {}; } catch (e) { c = {}; } return { ...SC_DEF, ...c, show: { ...SC_DEF.show, ...(c.show || {}) } }; }
 let scPushT = null, scPend = false;
 function scPending() { return scPend; }

@@ -3671,3 +3671,4 @@ input.pl-in{direction:ltr;text-align:center}
 .px-rb { display: flex; gap: 6px; } .px-rb button { flex: 1; height: 44px; border: 0; border-radius: 10px; background: #0f1c38; color: #fff; font: 800 .95rem inherit; font-family: inherit; cursor: pointer; }
 .px-cr { display: flex; align-items: center; gap: 10px; font-weight: 800; margin-top: 4px; }
 .px-warn { color: #b45309; font-weight: 700; font-size: .85rem; }
+.pos-cnt { width: 100%; min-height: 44px; border: 0; border-radius: 12px; background: #fef3c7; color: #92400e; font: 800 .9rem inherit; font-family: inherit; cursor: pointer; padding: 8px 10px; text-align: right; }

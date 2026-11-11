@@ -145,6 +145,41 @@ function posScan() {   // كاميرا: تستمر بعد كل قراءة لحي
     openBarcodeScanner(cb);
 }
 
+// ---------- جرد المادة عند أول بيع (خيار في الإعدادات، متوقف افتراضياً) ----------
+function posCountSet(v) { try { const c = scCfg(); c.posCount = !!v; scSave(c); } catch (e) { /* تجاهل */ } }
+function posNeedsCount(p) { try { return !!p && scCfg().posCount && setupSkip(p) && can('stockEdit'); } catch (e) { return false; } }
+async function posCountOpen(pid) {
+    const p = products.find(x => x.id === pid); if (!p) return;
+    const retail = hasRetail(p), sc = btSc(p);
+    const r = await Swal.fire({
+        title: 'جرد المادة', confirmButtonText: 'حفظ وتأكيد الجرد', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
+        html: `<div class="px"><div class="px-sum"><b dir="ltr" style="font-size:1rem">${posEsc(p.name)}</b></div>
+            <div class="px-row"><label><span>عدد العلب</span><input id="pcQ" type="number" inputmode="numeric" min="0" value="${parseInt(p.qty) || 0}"></label>
+            ${retail ? `<label><span>عدد الأجزاء (${posEsc(subTypeOf(p))})</span><input id="pcL" type="number" inputmode="numeric" min="0" max="${sc - 1}" value="${parseInt(p.loose) || 0}"></label>` : ''}</div>
+            <div class="px-row"><label><span>سعر العلبة (د.ع)</span><input id="pcP" type="number" inputmode="numeric" min="0" value="${parseFloat(p.price) || ''}"></label></div>
+            <div class="px-msg">بعد الحفظ تُعدّ المادة مجرودة، وتتأثر كميتها بالوارد والبيع والمردود.</div></div>`,
+        preConfirm: () => {
+            const q = parseInt(document.getElementById('pcQ').value), l = retail ? (parseInt(document.getElementById('pcL').value) || 0) : 0, pr = parseFloat(document.getElementById('pcP').value);
+            if (!(q >= 0)) { Swal.showValidationMessage('أدخل عدد العلب'); return false; }
+            if (retail && (l < 0 || l >= sc)) { Swal.showValidationMessage('عدد الأجزاء يجب أن يكون أقل من ' + sc); return false; }
+            if (!(pr > 0)) { Swal.showValidationMessage('أدخل سعر المادة'); return false; }
+            return { q, l, pr };
+        } });
+    if (!r.isConfirmed || !r.value) return;
+    const from = { qty: parseInt(p.qty) || 0, loose: parseInt(p.loose) || 0 }, v = r.value;
+    p.qty = v.q; p.loose = retail ? v.l : 0;
+    if (v.pr !== (parseFloat(p.price) || 0)) { p.price = v.pr; p.pricing = 'manual'; p.markupPct = null; if (retail && !p.subManual) p.subPrice = subPriceCalc(v.pr, subCountOf(p)); }
+    const dates = typeof btDateOnly === 'function' ? btDateOnly(p).sort() : [];
+    const ok = await saveProductsDelta([{ p, dq: v.q - from.qty, dl: p.loose - from.loose, mark: true, ...(dates.length ? { expAdd: [dates[0]] } : {}) }]);
+    if (!ok) { p.qty = from.qty; p.loose = from.loose; return; }
+    p.counted = true;
+    try { logAction('qty', p, [{ f: 'الكمية (جرد عند البيع)', from: stockTxt(p, from), to: stockTxt(p, { qty: p.qty, loose: p.loose }) }]); } catch (e) { /* تجاهل */ }
+    // إعادة توزيع سطور هذه المادة على دفعاتها بعد الجرد (الأقرب انتهاءً أولاً)
+    posGroups().filter(g => g.pid === pid).forEach(g => { const t = posTotalQty(g); bill.items = bill.items.filter(it => !g.lines.includes(it)); posAdd(pid, g.unit, t); });
+    billChanged(); try { renderAll(); } catch (e) { /* تجاهل */ } posRender();
+    Swal.fire({ icon: 'success', title: 'تم جرد المادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1400 });
+}
+
 // ---------- الخيارات الإضافية ----------
 function posField(k, v) {
     bill[k] = v; writeInvoiceFields(); recalcInvoice(); billChanged(); posFoot();
@@ -240,7 +275,9 @@ function posCardHtml(g) {
     const chips = g.pid ? g.lines.map(it => { const t = posExpTag(it.exp); return `<span class="pos-chip ${t.c}">${posEsc(t.t)} × ${posEsc(it.qty)}</span>`; }).join('') : '';
     const unit = p && hasRetail(p) ? `<div class="pos-unit"><button type="button" class="${g.unit === 'pack' ? 'on' : ''}" onclick="posSetUnit('${g.key}','pack')">علبة</button><button type="button" class="${g.unit === 'part' ? 'on' : ''}" onclick="posSetUnit('${g.key}','part')">${posEsc(subTypeOf(p))}</button></div>` : '';
     const prices = [...new Set(g.lines.map(it => parseFloat(it.price) || 0))];
+    const cnt = g.pid && posNeedsCount(p) ? `<button type="button" class="pos-cnt" onclick="posCountOpen(${g.pid})">⚠️ المادة لم تُجرد بعد — اضغط لإدخال العدد والسعر</button>` : '';
     return `<div class="pos-card"><div class="pos-top"><b dir="ltr">${posEsc(first.name)}</b><button type="button" class="pos-x" onclick="posDel('${g.key}')" aria-label="حذف">✕</button></div>
+        ${cnt}
         ${chips ? `<div class="pos-batches" onclick="posBatch('${g.key}')" title="تغيير الدفعة أو السعر">${chips}<span class="pos-edit">تغيير الدفعة ✎</span></div>` : ''}
         <div class="pos-mid">${unit}<div class="pos-st"><button type="button" onclick="posQtyStep('${g.key}',-1)" aria-label="إنقاص">−</button><input type="number" inputmode="numeric" min="1" value="${posEsc(qty)}" onchange="posQtySet('${g.key}',this.value)" aria-label="العدد"><button type="button" onclick="posQtyStep('${g.key}',1)" aria-label="زيادة">+</button></div>
         <div class="pos-sum">${prices.length === 1 && prices[0] ? `<small>${fmtNum(prices[0])} ×</small>` : ''}<b>${fmtNum(tot)}</b></div></div></div>`;
