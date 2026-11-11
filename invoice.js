@@ -21,7 +21,24 @@ function fmtDateDMY(iso) {
     return m ? `${m[3]}/${m[2]}/${m[1]}` : '';
 }
 function fmtNum(n) { n = Number(n) || 0; return n.toLocaleString('en-US', { maximumFractionDigits: 2 }); }
-function nextInvoiceNumber() { return 'INV-' + String((parseInt(lsGet(BILL_LS.seq)) || 0) + 1).padStart(4, '0'); }
+// ترقيم الفواتير: بادئة فريدة لكل (مستخدم + جهاز) فلا يتكرر الرقم حتى عند البيع دون إنترنت من جهازين
+function billDevTag() {
+    let t = ''; try { t = localStorage.getItem('diwanDevTag') || ''; } catch (e) { /* تجاهل */ }
+    if (!/^[A-Z2-9]{2}$/.test(t)) {
+        const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; t = A[Math.floor(Math.random() * A.length)] + A[Math.floor(Math.random() * A.length)];
+        try { localStorage.setItem('diwanDevTag', t); } catch (e) { /* تجاهل */ }
+    }
+    return t;
+}
+function billUserCode() {
+    if (typeof userRole !== 'undefined' && userRole === 'owner') return 'M';
+    const u = (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) || '';
+    return u ? u.slice(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, 'X') : 'X';
+}
+function billPrefix() { return 'INV-' + billUserCode() + billDevTag() + '-'; }
+function billSplitNo(no) { const m = /^(.*?)(\d+)$/.exec(String(no || '')); return m ? { pre: m[1], n: parseInt(m[2]) || 0 } : { pre: String(no || ''), n: 0 }; }
+function billSeqKey(pre) { return pre === 'INV-' ? BILL_LS.seq : BILL_LS.seq + ':' + pre; }
+function nextInvoiceNumber() { const pre = billPrefix(); return pre + String((parseInt(lsGet(billSeqKey(pre))) || 0) + 1).padStart(4, '0'); }
 function emptyInvoice() {
     return { id: '', no: nextInvoiceNumber(), to: '', date: todayLocalISO(), items: [], discount: '', paid: '', customer: '', doctor: '', notes: '', issued: false, cancelled: false, deduct: true };
 }
@@ -487,8 +504,8 @@ async function saveInvoiceEdit(doPrintAfter) {
     else Swal.fire({ icon: 'success', title: 'حُفظ تعديل الفاتورة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
 }
 function billSeqBump(no) {
-    const n = parseInt(String(no).replace(/\D/g, '')) || 0;
-    if (n > (parseInt(lsGet(BILL_LS.seq)) || 0)) lsSet(BILL_LS.seq, String(n));
+    const x = billSplitNo(no), k = billSeqKey(x.pre);
+    if (x.n > (parseInt(lsGet(k)) || 0)) lsSet(k, String(x.n));
 }
 
 // ---------- إلغاء فاتورة وإرجاع الكميات ----------
@@ -567,11 +584,12 @@ async function saveInvoiceRecord(b) {
 // ---------- إعادة إرسال ما حُفظ محلياً فقط + ترقيم فريد ----------
 function billKnownNos(exceptId) { const m = new Map(); (billAll || []).concat((() => { try { return JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { return []; } })()).forEach(x => { if (x && x.issued && x.id !== exceptId && x.no) m.set(String(x.no), x.id); }); return m; }
 function billEnsureUniqueNo() {
+    if (!bill.issued && !String(bill.no || '').startsWith(billPrefix())) bill.no = nextInvoiceNumber();   // مسودة برقم قديم أو من مستخدم/جهاز آخر
     const known = billKnownNos(bill.id);
     let guard = 0;
     while (known.has(String(bill.no)) && guard++ < 500) {
-        const n = (parseInt(String(bill.no).replace(/\D/g, '')) || 0) + 1;
-        bill.no = 'INV-' + String(n).padStart(4, '0');
+        const x = billSplitNo(bill.no);
+        bill.no = x.pre + String(x.n + 1).padStart(4, '0');
     }
     if ($b('billNo')) $b('billNo').value = bill.no;
 }
