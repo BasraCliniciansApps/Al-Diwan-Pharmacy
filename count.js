@@ -51,6 +51,7 @@ function cnHubRender() {
     document.getElementById('cnBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cnClose()" aria-label="رجوع">→</button><b>الجرد</b><span></span></div>
         <div class="cn-body"><div class="cn-hub">
         ${cnAllowed() ? `<button type="button" class="cn-card" onclick="cnIndex()"><i>📋</i><span><b>قوائم الجرد</b><small>قوائم بمجموعات (رفوف)، إدخال سريع، طباعة وExcel. الأعداد تحدّث المخزن.</small></span></button>` : ''}
+        ${cnAllowed() ? `<button type="button" class="cn-card" onclick="cnPending()"><i>🗃️</i><span><b>مواد لم تدخل قوائم الجرد</b><small>مواد المخزن غير الموجودة في أي قائمة: حذف، ضم، أو إضافة إلى قائمة جرد.</small></span></button>` : ''}
         ${can('stockEdit') ? `<button type="button" class="cn-card" onclick="cnLegacy()"><i>🧮</i><span><b>الجرد الشامل</b><small>جرد كل المواد دفعة واحدة (الطريقة السابقة).</small></span></button>` : ''}
         ${own ? `<div class="cn-card cn-set"><i>⚙️</i><span><b>الإعدادات</b>
             <label class="cn-sw"><input type="checkbox" ${setupMode ? 'checked' : ''} onchange="cnToggleSetup(this)"><span>وضع التأسيس (المواد غير المجرودة لا تتأثر بالحركة)</span></label>
@@ -174,11 +175,11 @@ function cnScan() {
 function cnRowHtml(r) {
     const p = products.find(x => x.id === r.pid); if (!p) return '';
     const part = r.unit === 'part', t = cnRowTotal(r), sys = part ? cnInt(p.loose) : cnInt(p.qty);
-    return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-nm"><b dir="ltr">${cnEsc(dispName(p, part))}</b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small></div>
+    return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-nm"><b dir="ltr" class="cn-nmb" onclick="cnEditProduct(${r.pid})">${cnEsc(dispName(p, part))}</b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small></div>
         <label class="cn-f"><span>العدد</span><input class="cn-cnt" type="number" inputmode="numeric" min="0" value="${cnEsc(r.cnt)}" oninput="cnSetCnt('${r.id}',this.value)" onchange="cnCommit('${r.id}','cnt')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();var q=document.getElementById('cnQ');if(q)q.focus();}"></label>
         <label class="cn-f"><span>السعر</span><input class="cn-pr" type="number" inputmode="numeric" min="0" value="${cnEsc(r.price)}" oninput="cnSetPrice('${r.id}',this.value)" onchange="cnCommit('${r.id}','price')"></label>
         <div class="cn-f cn-tt"><span>المجموع</span><b id="cnt-${r.id}">${t === null ? '' : fmtNum(t)}</b></div>
-        <div class="cn-sd"><button type="button" class="cn-mg" onclick="cnMergeOpen(${r.pid})" aria-label="ضم" title="ضم مواد">⇄</button><button type="button" class="cn-x" onclick="cnDelRow('${r.id}')" aria-label="حذف">✕</button></div></div>`;
+        <div class="cn-sd"><button type="button" class="cn-bc ${barcodesOf(p).length ? 'has' : 'none'}" onclick="cnBarcode(${r.pid})" aria-label="باركود" title="${barcodesOf(p).length ? 'للمادة باركود' : 'بلا باركود'}">▦</button><button type="button" class="cn-mg" onclick="cnMergeOpen(${r.pid})" aria-label="ضم" title="ضم مواد">⇄</button><button type="button" class="cn-x" onclick="cnDelRow('${r.id}')" aria-label="حذف">✕</button></div></div>`;
 }
 function cnListRender(focusId) {
     const l = cnCur; if (!l) return;
@@ -277,7 +278,7 @@ async function cnMergeOpen(pid) {
     if (!(await askSure('تأكيد الضم', 'سيبقى «' + keep.name + '» وتُحذف ' + srcs.length + ' مادة بعد نقل كمياتها وسجلاتها إليه.', 'نعم، ضمّ'))) return;
     let ok = 0;
     for (const s of srcs) { if (await catMerge(s, keep, true)) { ok++; cnRepoint(s.id, keep.id); } else break; }
-    cnTouch(); cnListRender();
+    cnTouch(); if (cnCur) cnListRender(); else if (cnPendOpen) cnPendRender();
     Swal.fire({ icon: ok === srcs.length ? 'success' : 'warning', title: ok === srcs.length ? 'تم الضم' : 'تم ضم ' + ok + ' من ' + srcs.length, toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
 }
 function cnRepoint(from, to) {
@@ -289,6 +290,101 @@ function cnRepoint(from, to) {
         l.upd = new Date().toISOString(); if (l !== cnCur) cnPush(l);
     });
     cnStoreLocal();
+}
+
+
+// ---------- تعديل المادة وباركودها من سطر الجرد ----------
+function cnCanEdit() { return userRole === 'owner' || can('stockEdit'); }
+async function cnEditProduct(pid) {
+    if (!cnCanEdit()) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'تعديل المادة يحتاج صلاحية تعديل المواد.', confirmButtonColor: '#0f1c38' }); return; }
+    await catPrice(pid);
+    if (cnCur) cnListRender(); else if (cnPendOpen) cnPendRender();
+}
+function cnRedraw() { if (cnCur) cnListRender(); else if (cnPendOpen) cnPendRender(); }
+async function cnBarcode(pid) {
+    const p = products.find(x => x.id === pid); if (!p) return;
+    if (!cnCanEdit()) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'ربط الباركود يحتاج صلاحية تعديل المواد.', confirmButtonColor: '#0f1c38' }); return; }
+    const add = () => openBarcodeScanner(async code => { await catAddCode(p, code); cnRedraw(); });
+    const list = barcodesOf(p);
+    if (!list.length) { add(); return; }
+    const r = await Swal.fire({ title: 'باركودات المادة', showCancelButton: true, showDenyButton: true, confirmButtonText: '📷 إضافة باركود', denyButtonText: '🗑 حذف الباركودات', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38',
+        html: `<div class="sw-form"><div class="sw-info" dir="ltr"><b>${cnEsc(p.name)}</b></div>${list.map(b => `<div class="sw-info" dir="ltr">▦ ${cnEsc(b)}</div>`).join('')}</div>` });
+    if (r.isConfirmed) add();
+    else if (r.isDenied) {
+        if (!(await askSure('حذف باركودات المادة؟', p.name, 'حذف'))) return;
+        const old = { barcodes: p.barcodes, barcode: p.barcode }; p.barcodes = []; p.barcode = '';
+        if (!(await saveProductsDelta([{ p, dq: 0, dl: 0 }]))) { p.barcodes = old.barcodes; p.barcode = old.barcode; return; }
+        logAction('edit', p, [{ f: 'باركود', from: list.join(' | '), to: '' }]); cnRedraw();
+    }
+}
+async function cnDelProduct(pid) {
+    const p = products.find(x => x.id === pid); if (!p) return;
+    if (!cnCanEdit()) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'حذف المادة يحتاج صلاحية تعديل المواد.', confirmButtonColor: '#0f1c38' }); return; }
+    if (!writesAllowed()) return;
+    if (!(await askSure('حذف المادة من المخزن؟', p.name + ' — تنتقل إلى سلة المحذوفات ويمكن استعادتها خلال 30 يوماً.', 'نعم، احذف'))) return;
+    try {
+        await moveToTrash(p); logAction('delete', p, []);
+        products = products.filter(x => x.id !== pid); saveLocal();
+        if (isFirebaseReady && currentUser) { const b = db.batch(); b.delete(db.collection('pharmacy_products').doc(String(pid))); b.delete(db.collection('pharmacy_stock').doc(String(pid))); if (costSplitOn) b.delete(db.collection('pharmacy_cost').doc(String(pid))); await fsCommit(b); }
+        try { renderAll(); } catch (e) { /* تجاهل */ }
+        Swal.fire({ icon: 'success', title: 'حُذفت المادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 });
+    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
+    cnRedraw();
+}
+
+// ---------- مواد المخزن التي لم تدخل قوائم الجرد ----------
+let cnPendOpen = false, cnPendQ = '';
+async function cnPending() {
+    cnLists = cnLocal(); cnPendOpen = true; cnPendQ = ''; cnCur = null; cnPendRender();
+    const before = cnLists.length; await cnLoad(); if (cnPendOpen && cnLists.length !== before) cnPendRender();
+}
+function cnPendItems() {
+    const used = new Set(); cnLists.forEach(l => (l.rows || []).forEach(r => used.add(r.pid)));
+    let arr = products.filter(p => !p.arch && !used.has(p.id));
+    const qn = normSearch(cnPendQ);
+    if (qn) { const toks = qn.split(' '); arr = arr.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).map(x => x[0]); }
+    else arr.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+    return arr;
+}
+function cnPendRender() {
+    const arr = cnPendItems(), SHOW = 100, canE = cnCanEdit();
+    const prevQ = document.getElementById('cnPQ'), keep = prevQ && document.activeElement === prevQ;
+    document.getElementById('cnBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cnPendClose()" aria-label="رجوع">→</button><b>مواد لم تدخل قوائم الجرد</b><span>${fmtNum(arr.length)}</span></div>
+        <div class="cn-bar"><input id="cnPQ" type="search" autocomplete="off" placeholder="ابحث عن مادة" value="${cnEsc(cnPendQ)}" oninput="cnPendQ=this.value;cnPendRender()"></div>
+        <div class="cn-body">${arr.slice(0, SHOW).map(p => `<div class="cn-prow">
+            <div class="cn-nm"><b dir="ltr">${dispNameHtml(p)}</b><small>بالمخزن: ${cnEsc(stockLabel(p))}${p.counted === true ? ' • <em class="cn-ok">مجرودة</em>' : ' • غير مجرودة'}</small></div>
+            <div class="cn-pb"><button type="button" class="cn-pa" onclick="cnPendAdd(${p.id})">➕ للجرد</button><button type="button" class="cn-pm" ${canE ? '' : 'disabled'} onclick="cnMergeOpen(${p.id})">⇄ ضم</button><button type="button" class="cn-pd" ${canE ? '' : 'disabled'} onclick="cnDelProduct(${p.id})">🗑 حذف</button></div></div>`).join('') || '<div class="cn-empty">كل المواد دخلت قوائم الجرد.</div>'}
+            ${arr.length > SHOW ? `<div class="cn-empty">يظهر أول ${SHOW} من ${fmtNum(arr.length)} — استعمل البحث.</div>` : ''}</div>`;
+    if (keep) { const q = document.getElementById('cnPQ'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+}
+function cnPendClose() { cnPendOpen = false; cnHubRender(); }
+async function cnPendAdd(pid) {
+    const p = products.find(x => x.id === pid); if (!p) return;
+    if (!cnLists.length) { Swal.fire({ icon: 'info', title: 'أنشئ قائمة جرد أولاً', text: 'ادخل «قوائم الجرد» وأنشئ قائمة ثم عد هنا.', confirmButtonColor: '#0f1c38' }); return; }
+    if (p.counted === true && !(await askSure('المادة مجرودة سابقاً', 'هل تريد إضافتها إلى قائمة جرد رغم ذلك؟', 'نعم، أضفها'))) return;
+    const retail = hasRetail(p);
+    const r = await Swal.fire({ title: 'إضافة إلى قائمة جرد', showCancelButton: true, confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
+        html: `<div class="sw-form" style="text-align:right"><div class="sw-info" dir="ltr"><b>${cnEsc(p.name)}</b></div>
+            <label>القائمة<select id="cnAl" class="swal2-input" onchange="cnAlGroups()">${cnLists.map(l => `<option value="${l.id}">${cnEsc(l.name)}</option>`).join('')}</select></label>
+            <label>المجموعة<select id="cnAg" class="swal2-input"></select></label>
+            <label>عدد العلب<input id="cnAq" type="number" inputmode="numeric" min="0" class="swal2-input" value="${parseInt(p.qty) || 0}"></label>
+            ${retail ? `<label>عدد الأجزاء (${cnEsc(subTypeOf(p))})<input id="cnAp" type="number" inputmode="numeric" min="0" class="swal2-input" value="${parseInt(p.loose) || 0}"></label>` : ''}</div>`,
+        didOpen: () => cnAlGroups(),
+        preConfirm: () => { const q = document.getElementById('cnAq').value, pp = retail ? document.getElementById('cnAp').value : ''; if (q === '') { Swal.showValidationMessage('أدخل عدد العلب'); return false; } return { lid: document.getElementById('cnAl').value, gid: document.getElementById('cnAg').value, q, pp }; } });
+    if (!r.isConfirmed || !r.value) return;
+    const l = cnLists.find(x => x.id === r.value.lid); if (!l) return;
+    const prev = cnCur; cnCur = l;
+    const rows = [{ id: cnId(), gid: r.value.gid, pid, unit: 'pack', cnt: String(Math.max(0, cnInt(r.value.q))), price: cnDefPrice(p, 'pack') || '', ts: Date.now() }];
+    if (retail) rows.push({ id: cnId(), gid: r.value.gid, pid, unit: 'part', cnt: String(Math.max(0, cnInt(r.value.pp))), price: cnDefPrice(p, 'part') || '', ts: Date.now() });
+    l.rows.unshift(...rows); cnTouch();
+    if (l.apply !== false) for (const row of rows) { await cnApplyRow(row, 'cnt'); }
+    await cnPush(l); cnCur = prev;
+    Swal.fire({ icon: 'success', title: 'أُضيفت إلى «' + l.name + '»', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
+    cnPendRender();
+}
+function cnAlGroups() {
+    const l = cnLists.find(x => x.id === document.getElementById('cnAl').value), g = document.getElementById('cnAg'); if (!l || !g) return;
+    g.innerHTML = '<option value="">بدون مجموعة</option>' + (l.groups || []).map(x => `<option value="${x.id}">${cnEsc(x.name)}</option>`).join('');
 }
 
 // ---------- إعدادات القائمة ----------
