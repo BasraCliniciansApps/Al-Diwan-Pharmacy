@@ -3,7 +3,7 @@
 // الأعداد المدخلة تُحدّث المخزن مباشرة (يمكن إيقافه لكل قائمة) وتجعل المادة «مجرودة»، طباعة (مع الأعداد أو فارغة) وتصدير Excel.
 // =====================================================================
 const CN_LS = 'diwanCountLists';
-let cnLists = [], cnCur = null, cnView = 'all', cnTarget = '', cnQueue = Promise.resolve(), cnSaveT = null, cnOpenFlag = false, cnFound = [];
+let cnLists = [], cnCur = null, cnSel = new Set(), cnDd = false, cnTarget = '', cnQueue = Promise.resolve(), cnSaveT = null, cnOpenFlag = false, cnFound = [];
 const cnEsc = s => escapeHtml(String(s == null ? '' : s));
 const cnId = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 const cnInt = v => parseInt(v) || 0;
@@ -94,7 +94,7 @@ async function cnNewList() {
 }
 function cnOpenList(id) {
     const l = cnLists.find(x => x.id === id); if (!l) return;
-    cnCur = l; cnView = 'all'; cnTarget = ''; cnFound = []; cnListRender();
+    cnCur = l; cnSel = new Set(); cnDd = false; cnTarget = ''; cnFound = []; cnListRender();
     setTimeout(() => { const q = document.getElementById('cnQ'); if (q && !(window.matchMedia && matchMedia('(pointer: coarse)').matches)) q.focus(); }, 60);
 }
 
@@ -102,7 +102,7 @@ function cnOpenList(id) {
 async function cnGroupAdd() {
     const r = await Swal.fire({ title: 'مجموعة جديدة', input: 'text', inputPlaceholder: 'مثال: رف الجلدية', showCancelButton: true, confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', inputValidator: v => !String(v || '').trim() ? 'اكتب اسم المجموعة' : null });
     if (!r.isConfirmed) return;
-    const g = { id: cnId(), name: String(r.value).trim() }; cnCur.groups.push(g); cnView = g.id; cnTarget = g.id; cnTouch(); cnListRender();
+    const g = { id: cnId(), name: String(r.value).trim() }; cnCur.groups.push(g); cnSel = new Set([g.id]); cnTarget = g.id; cnTouch(); cnListRender();
 }
 async function cnGroupEdit(gid) {
     const g = cnCur.groups.find(x => x.id === gid); if (!g) return;
@@ -112,23 +112,53 @@ async function cnGroupEdit(gid) {
         const n = cnCur.rows.filter(x => x.gid === gid).length;
         if (!(await askSure('حذف المجموعة «' + g.name + '»؟', n ? 'ستنتقل مواد المجموعة (' + n + ') إلى «بدون مجموعة» ولا تُحذف.' : '', 'حذف'))) return;
         cnCur.rows.forEach(x => { if (x.gid === gid) x.gid = ''; }); cnCur.groups = cnCur.groups.filter(x => x.id !== gid);
-        if (cnView === gid) cnView = 'all'; if (cnTarget === gid) cnTarget = ''; cnTouch(); cnListRender();
+        cnSel.delete(gid); if (cnTarget === gid) cnTarget = ''; cnTouch(); cnListRender();
     }
 }
-function cnPickGroup(v) { cnView = v; cnTarget = v === 'all' ? cnTarget : (v === '_' ? '' : v); cnListRender(); }
+function cnInView(gid) { return cnSel.size === 0 || cnSel.has(gid === '' ? '_' : gid); }
+function cnDdToggle() { cnDd = !cnDd; cnDdRender(); }
+function cnDdPick(v, on) {
+    if (v === 'all') cnSel = new Set(); else if (on) cnSel.add(v); else cnSel.delete(v);
+    if (cnSel.size === 1) { const k = [...cnSel][0]; cnTarget = k === '_' ? '' : k; }
+    cnListRender(); cnDd = true; cnDdRender();
+}
+function cnDdLabel() { const l = cnCur; if (!cnSel.size) return 'كل المجموعات'; const n = [...cnSel].map(k => k === '_' ? 'بدون مجموعة' : cnGroupName(l, k)); return n.length > 2 ? n.length + ' مجموعات' : n.join('، '); }
+function cnDdRender() {
+    const box = document.getElementById('cnDd'); if (!box) return; const l = cnCur; if (!l) return;
+    box.style.display = cnDd ? 'block' : 'none'; if (!cnDd) return;
+    const q = (document.getElementById('cnDdQ') || {}).value || '', has0 = l.rows.some(r => r.gid === '');
+    const cnt = gid => l.rows.filter(r => r.gid === gid).length;
+    const items = [...l.groups.map(g => ({ k: g.id, n: g.name, c: cnt(g.id) })), ...(has0 ? [{ k: '_', n: 'بدون مجموعة', c: cnt('') }] : [])].filter(x => !q || normSearch(x.n).includes(normSearch(q)));
+    box.innerHTML = `${l.groups.length > 6 ? `<input id="cnDdQ" type="search" placeholder="ابحث عن مجموعة" value="${cnEsc(q)}" oninput="cnDdRender()">` : ''}
+        <label class="cn-dd-i"><input type="checkbox" ${cnSel.size === 0 ? 'checked' : ''} onchange="cnDdPick('all',true)"><span>كل المجموعات</span></label>
+        ${items.map(x => `<label class="cn-dd-i"><input type="checkbox" ${cnSel.has(x.k) ? 'checked' : ''} onchange="cnDdPick('${x.k}',this.checked)"><span>${cnEsc(x.n)}</span><small>${x.c}</small></label>`).join('') || '<div class="cn-none">لا توجد مجموعات</div>'}
+        <button type="button" class="cn-dd-ok" onclick="cnDd=false;cnDdRender()">تم</button>`;
+    const i = document.getElementById('cnDdQ'); if (i && q) { i.focus(); i.setSelectionRange(q.length, q.length); }
+}
+// مزامنة: كل مادة فيها أجزاء يجب أن يكون لها سطر جزء بجانب سطر العلبة
+function cnSyncParts(l) {
+    let ch = false;
+    l.rows.filter(r => r.unit === 'pack').forEach(r => {
+        const p = products.find(x => x.id === r.pid); if (!p || !hasRetail(p)) return;
+        if (l.rows.some(x => x.pid === r.pid && x.unit === 'part')) return;
+        l.rows.splice(l.rows.indexOf(r) + 1, 0, { id: cnId(), gid: r.gid, pid: r.pid, unit: 'part', cnt: '', price: cnDefPrice(p, 'part') || '', ts: Date.now() }); ch = true;
+    });
+    l.rows = l.rows.filter(r => { if (r.unit !== 'part') return true; const p = products.find(x => x.id === r.pid); if (!p || hasRetail(p) || r.cnt !== '') return true; ch = true; return false; });
+    if (ch) cnTouch();
+}
 
 // ---------- الإضافة والبحث ----------
 function cnDefPrice(p, unit) { return unit === 'part' ? subPriceOf(p) : (parseFloat(p.price) || 0); }
 function cnAddProduct(pid) {
     const p = products.find(x => x.id === pid); if (!p || !cnCur) return;
     if (cnCur.rows.length >= 5000) { Swal.fire({ icon: 'warning', title: 'بلغت القائمة الحد الأقصى (5000 سطر)', text: 'أنشئ قائمة جديدة للمتابعة.', confirmButtonColor: '#0f1c38' }); return; }
-    const units = hasRetail(p) ? ['pack', 'part'] : ['pack'], tgt = cnView !== 'all' && cnView !== '_' ? cnView : (cnView === '_' ? '' : cnTarget);
+    const units = hasRetail(p) ? ['pack', 'part'] : ['pack'], tgt = cnSel.size === 1 ? ([...cnSel][0] === '_' ? '' : [...cnSel][0]) : cnTarget;
     const have = cnCur.rows.filter(r => r.pid === pid);
     let focusId = '';
     if (have.length) {
         const gn = cnGroupName(cnCur, have[0].gid);
         Swal.fire({ icon: 'info', title: 'المادة موجودة في القائمة', text: 'ضمن: ' + gn, toast: true, position: 'top', showConfirmButton: false, timer: 1800 });
-        focusId = (have.find(r => r.unit === 'pack') || have[0]).id; cnView = cnView === 'all' ? 'all' : have[0].gid === '' ? '_' : have[0].gid;
+        focusId = (have.find(r => r.unit === 'pack') || have[0]).id; if (!cnInView(have[0].gid)) cnSel = new Set();
     } else {
         const rows = units.map(u => ({ id: cnId(), gid: tgt, pid, unit: u, cnt: '', price: cnDefPrice(p, u) || '', ts: Date.now() }));
         cnCur.rows.unshift(...rows); focusId = rows[0].id; cnTouch();
@@ -183,7 +213,8 @@ function cnRowHtml(r) {
 }
 function cnListRender(focusId) {
     const l = cnCur; if (!l) return;
-    const rows = l.rows.filter(r => cnView === 'all' || (cnView === '_' ? r.gid === '' : r.gid === cnView));
+    cnSyncParts(l);
+    const rows = l.rows.filter(r => cnInView(r.gid));
     const gids = [...l.groups.map(g => g.id), ''];
     const sections = gids.map(gid => { const rr = rows.filter(r => r.gid === gid); if (!rr.length) return ''; return `<div class="cn-gh"><b>${cnEsc(cnGroupName(l, gid))}</b><small>${rr.length} سطر • ${fmtNum(cnSum(rr))} د.ع</small></div>${rr.map(cnRowHtml).join('')}`; }).join('');
     const chip = (v, label, on) => `<button type="button" class="cn-chip ${on ? 'on' : ''}" onclick="cnPickGroup('${v}')">${cnEsc(label)}</button>`;
@@ -191,7 +222,8 @@ function cnListRender(focusId) {
     document.getElementById('cnBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cnIndex()" aria-label="رجوع">→</button><b>${cnEsc(l.name)}</b><span>${cnEsc(fmtDateDMY(l.date))}</span></div>
         <div class="cn-bar"><input id="cnQ" type="search" autocomplete="off" placeholder="امسح الباركود أو اكتب اسم المادة" oninput="cnSearchInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();cnEnter();}"><button type="button" class="cn-cam" onclick="cnScan()" aria-label="كاميرا">📷</button></div>
         <div id="cnRes" class="cn-resbox" style="display:none"></div>
-        <div class="cn-chips">${chip('all', 'الكل', cnView === 'all')}${l.groups.map(g => chip(g.id, g.name, cnView === g.id)).join('')}${has0 ? chip('_', 'بدون مجموعة', cnView === '_') : ''}<button type="button" class="cn-chip add" onclick="cnGroupAdd()">＋ مجموعة</button>${cnView !== 'all' && cnView !== '_' ? `<button type="button" class="cn-chip add" onclick="cnGroupEdit('${cnView}')">✎ المجموعة</button>` : ''}</div>
+        <div class="cn-chips"><button type="button" class="cn-dd-b" onclick="cnDdToggle()">🗂️ <span>${cnEsc(cnDdLabel())}</span> ▾</button><button type="button" class="cn-chip add" onclick="cnGroupAdd()">＋ مجموعة</button>${cnSel.size === 1 && [...cnSel][0] !== '_' ? `<button type="button" class="cn-chip add" onclick="cnGroupEdit('${[...cnSel][0]}')">✎ المجموعة</button>` : ''}</div>
+        <div id="cnDd" class="cn-dd" style="display:none"></div>
         <div class="cn-body" id="cnList">${sections || '<div class="cn-empty">امسح باركود أو ابحث عن مادة لإضافتها.</div>'}</div>
         <div class="cn-foot"><div class="cn-tot"><span>المجموع</span><b id="cnTotal">${fmtNum(cnSum(l.rows))}</b><i>د.ع</i></div>
         <div class="cn-acts"><button type="button" onclick="cnPrintDialog()">🖨️ طباعة</button><button type="button" onclick="cnExcel()">⬇️ Excel</button><button type="button" onclick="cnSettings()">⚙️</button></div></div>`;
