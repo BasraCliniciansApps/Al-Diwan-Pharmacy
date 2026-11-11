@@ -72,19 +72,19 @@ const PERM_PRESETS = { seller: { sell: true, stockView: true }, manager: { sell:
 function loginKey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/[\/#?\[\]\.]/g, ''); }
 
 async function resolveRole(user) {
-    userRole = 'staff'; userPerms = {}; userName = '';
-    if (user.uid === OWNER_UID) { userRole = 'owner'; userName = 'المالك'; return true; }
+    userRole = 'staff'; userPerms = {}; userName = ''; window.userOrd = 0;
+    if (user.uid === OWNER_UID) { userRole = 'owner'; userName = 'المالك'; window.userOrd = 1; setTimeout(() => { userEnsureOrds().catch(() => { }); }, 4000); return true; }
     let doc = null, failed = false;
     const RK = 'diwanRoleCache';
     try { const s = await db.collection('pharmacy_users').doc(user.uid).get(); doc = s.exists ? s.data() : null; } catch (e) { failed = true; }
     if (failed) {   // لا اتصال: نعتمد آخر صلاحيات حُفظت على هذا الجهاز لنفس الحساب (تتحدّث وتُتحقق من السحابة عند توفر الإنترنت)
-        try { const c = JSON.parse(localStorage.getItem(RK)); if (c && c.uid === user.uid && c.doc && c.doc.active !== false) { userPerms = c.doc.perms || {}; userName = c.doc.name || ''; return true; } } catch (e) { /* تجاهل */ }
+        try { const c = JSON.parse(localStorage.getItem(RK)); if (c && c.uid === user.uid && c.doc && c.doc.active !== false) { userPerms = c.doc.perms || {}; userName = c.doc.name || ''; window.userOrd = parseInt(c.doc.ord) || 0; return true; } } catch (e) { /* تجاهل */ }
         currentUser = null; document.body.classList.remove('admin-mode', 'role-staff');
         showView('login');
         const er = document.getElementById('gateError'); if (er) { er.innerText = 'تعذّر التحقق من صلاحيات الحساب بدون إنترنت. سجّل الدخول مرة واحدة مع اتصال.'; er.style.display = 'block'; }
         return false;
     }
-    if (doc && doc.active !== false) { try { localStorage.setItem(RK, JSON.stringify({ uid: user.uid, doc: { name: doc.name || '', perms: doc.perms || {}, active: true } })); } catch (e) { /* تجاهل */ } }
+    if (doc && doc.active !== false) { try { localStorage.setItem(RK, JSON.stringify({ uid: user.uid, doc: { name: doc.name || '', perms: doc.perms || {}, ord: doc.ord || 0, active: true } })); } catch (e) { /* تجاهل */ } }
     else { try { localStorage.removeItem(RK); } catch (e) { /* تجاهل */ } }
     if (!doc || doc.active === false) {
         try { await auth.signOut(); } catch (e) { /* تجاهل */ }
@@ -93,8 +93,17 @@ async function resolveRole(user) {
         const err = document.getElementById('gateError'); if (err) { err.innerText = doc ? 'هذا الحساب معطّل. راجع المالك.' : 'هذا الحساب غير مفعّل في النظام. راجع المالك.'; err.style.display = 'block'; }
         return false;
     }
-    userPerms = doc.perms || {}; userName = doc.name || '';
+    userPerms = doc.perms || {}; userName = doc.name || ''; window.userOrd = parseInt(doc.ord) || 0;
     return true;
+}
+// يمنح كل مستخدم قديم بلا رقم تسلسلي رقماً بحسب تاريخ إنشاء حسابه (يعمل عند دخول المالك)
+async function userEnsureOrds() {
+    if (!cloudReady() || !navigator.onLine || userRole !== 'owner') return;
+    const snap = await db.collection('pharmacy_users').get(); const all = [];
+    snap.forEach(d => all.push({ id: d.id, ...d.data() }));
+    let mx = Math.max(1, ...all.map(u => parseInt(u.ord) || 0));
+    const todo = all.filter(u => !(parseInt(u.ord) > 0)).sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')));
+    for (const u of todo) { mx++; await db.collection('pharmacy_users').doc(u.id).update({ ord: mx }); }
 }
 function applyRoleUI() {
     const b = document.body;
@@ -142,7 +151,10 @@ async function userCreate(name, pin, perms, replaceUid) {
         const sa = secAuth();
         const cred = await sa.createUserWithEmailAndPassword(email, pin);
         const uid = cred.user.uid; await sa.signOut();
-        await db.collection('pharmacy_users').doc(uid).set({ name, login: key, email, perms, active: true, createdAt: new Date().toISOString() });
+        let ord = 0;
+        if (replaceUid) { try { const o = await db.collection('pharmacy_users').doc(replaceUid).get(); if (o.exists) ord = parseInt(o.data().ord) || 0; } catch (e) { /* تجاهل */ } }
+        if (!ord) { const all = await db.collection('pharmacy_users').get(); all.forEach(d => { ord = Math.max(ord, parseInt(d.data().ord) || 0); }); ord = Math.max(ord, 1) + 1; }   // المالك = 1، ثم المستخدمون بحسب أقدمية الإنشاء
+        await db.collection('pharmacy_users').doc(uid).set({ name, login: key, email, perms, active: true, ord, createdAt: new Date().toISOString() });
         await db.collection('pharmacy_logins').doc(key).set({ email });
         if (replaceUid) { try { await db.collection('pharmacy_users').doc(replaceUid).delete(); } catch (e) { /* تجاهل */ } }
         h.ok('تم إنشاء ' + name + ' — يدخل من صفحة الدخول باسمه ورمزه');

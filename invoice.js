@@ -24,16 +24,17 @@ function fmtNum(n) { n = Number(n) || 0; return n.toLocaleString('en-US', { maxi
 // ترقيم الفواتير: بادئة فريدة لكل (مستخدم + جهاز) فلا يتكرر الرقم حتى عند البيع دون إنترنت من جهازين
 function billDevTag() {
     let t = ''; try { t = localStorage.getItem('diwanDevTag') || ''; } catch (e) { /* تجاهل */ }
-    if (!/^[A-Z2-9]{2}$/.test(t)) {
-        const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; t = A[Math.floor(Math.random() * A.length)] + A[Math.floor(Math.random() * A.length)];
+    if (!/^[A-Z2-9]{3}$/.test(t)) {
+        const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; t = ''; for (let i = 0; i < 3; i++) t += A[Math.floor(Math.random() * A.length)];
         try { localStorage.setItem('diwanDevTag', t); } catch (e) { /* تجاهل */ }
     }
     return t;
 }
-function billUserCode() {
-    if (typeof userRole !== 'undefined' && userRole === 'owner') return 'M';
+function billUserCode() {   // المالك = 1، والمستخدمون بحسب أقدمية إنشاء حسابهم (2، 3، ...)
+    if (typeof userRole !== 'undefined' && userRole === 'owner') return '1';
+    const o = parseInt(window.userOrd) || 0; if (o > 0) return String(o);
     const u = (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) || '';
-    return u ? u.slice(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, 'X') : 'X';
+    return u ? 'X' + u.slice(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, 'X') : 'X';
 }
 function billPrefix() { return 'INV-' + billUserCode() + billDevTag() + '-'; }
 function billSplitNo(no) { const m = /^(.*?)(\d+)$/.exec(String(no || '')); return m ? { pre: m[1], n: parseInt(m[2]) || 0 } : { pre: String(no || ''), n: 0 }; }
@@ -423,7 +424,7 @@ async function issueInvoice(doPrintAfter) {   // true/undefined: إصدار وط
         renderAll();
     }
     bill.issued = true; bill.issuedAt = todayLocalISO(); bill.issuedTs = new Date().toISOString(); bill.deducted = lines.length > 0; bill.deductedLines = lines;
-    bill.id = bill.id || String(Date.now());
+    bill.id = bill.id || (String(Date.now()) + Math.random().toString(36).slice(2, 6));
     billEnsureUniqueNo();
     billSeqBump(bill.no);
     lsSet(BILL_LS.draft, JSON.stringify(bill));
