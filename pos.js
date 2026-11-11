@@ -151,12 +151,76 @@ function posField(k, v) {
 }
 function posToggleExtra() { posExtraOpen = !posExtraOpen; posRender(); }
 
-// ---------- الإصدار ----------
-async function posIssue(withPrint) {
+// ---------- الإصدار: نافذة واحدة (خصم محسوب بلا خسارة + تسوية الألف + بيع آجل) ----------
+function posLimits() {   // أعلى خصم مسموح بالمبلغ، بنفس منطق فاحص المادة (حد البائعين dlim، أو الحد الكامل للمالك)
+    const own = userRole === 'owner'; let allow = 0, unknown = false;
+    bill.items.forEach(it => {
+        const lt = (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), p = it.pid && products.find(x => x.id === it.pid); let lim = null;
+        if (p) { if (own) { const ex = typeof scExact === 'function' ? scExact(p) : null; lim = ex === null ? null : Math.floor(ex * 10) / 10; } else if (p.dlim !== undefined && p.dlim !== null && p.dlim !== '') lim = Number(p.dlim); }
+        if (lim === null) { if (own) unknown = true; } else allow += lt * lim / 100;
+    });
+    return { allow: Math.floor(allow), unknown, own };
+}
+async function posIssue() {
     if (!bill.items.length) { Swal.fire({ icon: 'info', title: 'أضف مادة أولاً', toast: true, position: 'top', showConfirmButton: false, timer: 1500 }); return; }
+    if (typeof billHasExpired === 'function' && billHasExpired()) return;
     writeInvoiceFields();
-    await issueInvoice(withPrint ? true : false);
-    if (bill.issued) { posDone = true; posRender(); }
+    const snap = { disc: bill.discount, paid: bill.paid, prices: bill.items.map(i => i.price) };
+    const restore = () => { bill.discount = snap.disc; bill.paid = snap.paid; bill.items.forEach((i, k) => { if (k < snap.prices.length) i.price = snap.prices[k]; }); writeInvoiceFields(); billChanged(); posRender(); };
+    const el = typeof qiEligible === 'function' ? qiEligible() : [];
+    const short = (typeof billPlan === 'function' && bill.deduct !== false) ? billPlan().filter(e => e.short) : [];
+    const showLim = userRole === 'owner' || (typeof can === 'function' && can('scanDisc'));
+    const val = () => {
+        const L = posLimits(), d = parseFloat(bill.discount) || 0;
+        if (userRole !== 'owner' && d > L.allow) { Swal.showValidationMessage(L.allow > 0 ? 'الخصم يتجاوز الحد المسموح' : 'لا يُسمح بخصم على هذه المواد'); return false; }
+        const cr = document.getElementById('pxCr').checked;
+        return { credit: cr, paid: cr ? (parseFloat(document.getElementById('pxPaid').value) || 0) : null };
+    };
+    const r = await Swal.fire({
+        title: 'إتمام البيع', showCancelButton: true, showDenyButton: true, confirmButtonText: 'إصدار', denyButtonText: 'إصدار وطباعة', cancelButtonText: 'رجوع',
+        confirmButtonColor: '#15803d', denyButtonColor: '#0f1c38', preConfirm: val, preDeny: val,
+        html: `<div class="px">
+            <div class="px-sum"><span>المجموع</span><b id="pxSub"></b></div>
+            <div class="px-sec">الخصم</div>
+            <div class="px-row"><label><span>النسبة ٪</span><input id="pxP" type="number" inputmode="decimal" min="0" step="any"></label><label><span>المبلغ</span><input id="pxA" type="number" inputmode="numeric" min="0"></label></div>
+            ${showLim ? '<button type="button" class="px-max" id="pxMax"></button>' : ''}
+            <div id="pxMsg" class="px-msg"></div>
+            ${el.length ? `<div id="pxRound"><div class="px-sec">تسوية المجموع إلى ألف كاملة</div>
+                <div class="px-rl">${el.map((i, k) => `<label class="px-rr"><input type="radio" name="pxRI" value="${i}" ${k === 0 ? 'checked' : ''}><span dir="ltr">${posEsc(bill.items[i].name)}</span><b id="pxRP${i}"></b></label>`).join('')}</div>
+                <div class="px-rb"><button type="button" data-d="-750">− 750</button><button type="button" data-d="-500">− 500</button><button type="button" data-d="-250">− 250</button></div>
+                <div class="px-rb"><button type="button" data-d="250">+ 250</button><button type="button" data-d="500">+ 500</button><button type="button" data-d="750">+ 750</button></div></div>` : ''}
+            <label class="px-cr"><input type="checkbox" id="pxCr"><span>بيع آجل (دفع جزء من المبلغ)</span></label>
+            <div id="pxPaidBox" style="display:none"><input id="pxPaid" type="number" inputmode="numeric" min="0" class="swal2-input" placeholder="المبلغ المدفوع (0 إن لم يُدفع شيء)"></div>
+            <div class="px-net">الصافي: <b id="pxNet"></b></div>
+            ${short.length ? `<div class="px-warn">⚠️ كميات غير كافية بالمخزن:<br>${short.map(e => posEsc(e.p.name)).join('<br>')}</div>` : ''}</div>`,
+        didOpen: () => {
+            const $ = id => document.getElementById(id), sub = () => billTotals().sub;
+            const upd = (from) => {
+                const S = sub(); let d = Math.min(Math.max(parseFloat(bill.discount) || 0, 0), S); bill.discount = d ? String(d) : '';
+                $('pxSub').textContent = fmtNum(S) + ' د.ع'; if (from !== 'p') $('pxP').value = S > 0 && d > 0 ? Math.round(d / S * 1000) / 10 : ''; if (from !== 'a') $('pxA').value = d || '';
+                $('pxNet').textContent = fmtNum(S - d) + ' د.ع';
+                const L = posLimits(), mx = S > 0 ? Math.floor(L.allow / S * 1000) / 10 : 0, m = $('pxMsg');
+                if ($('pxMax')) $('pxMax').textContent = L.unknown && L.own ? 'أعلى خصم غير محسوب لبعض المواد (لا كلفة)' : 'أعلى خصم بدون خسارة: ' + mx + '٪ (' + fmtNum(L.allow) + ' د.ع)';
+                if (d > 0) { if (d > L.allow && !(L.own && L.unknown)) { m.className = 'px-msg bad'; m.textContent = L.own ? '🔴 خسارة: الخصم أعلى من الحد الآمن' : '🔴 يتجاوز الحد المسموح'; } else { m.className = 'px-msg ok'; m.textContent = '🟢 خصم آمن'; } } else { m.className = 'px-msg'; m.textContent = ''; }
+                el.forEach(i => { const e = $('pxRP' + i); if (e) e.textContent = fmtNum(bill.items[i].price); });
+                const rd = $('pxRound'); if (rd) rd.style.display = Math.round(S - d) % 1000 === 0 ? 'none' : '';
+            };
+            $('pxP').oninput = () => { const S = sub(), pc = parseFloat($('pxP').value) || 0; bill.discount = String(Math.round(S * pc / 100)); upd('p'); $('pxA').value = bill.discount === '0' ? '' : bill.discount; };
+            $('pxA').oninput = () => { bill.discount = String(parseFloat($('pxA').value) || 0); upd('a'); };
+            if ($('pxMax')) $('pxMax').onclick = () => { bill.discount = String(posLimits().allow); upd(); };
+            $('pxCr').onchange = () => { $('pxPaidBox').style.display = $('pxCr').checked ? '' : 'none'; };
+            let cur = el[0];
+            document.querySelectorAll('input[name=pxRI]').forEach(x => { x.onchange = () => { cur = +x.value; }; });
+            document.querySelectorAll('.px-rb button').forEach(b => { b.onclick = () => { const it = bill.items[cur]; if (!it) return; const np = (parseFloat(it.price) || 0) + (+b.dataset.d) / (parseFloat(it.qty) || 1); if (np <= 0) return; it.price = np; upd(); }; });
+            upd();
+        }
+    });
+    if (r.isDismissed) { restore(); return; }
+    const t = billTotals();
+    bill.paid = r.value && r.value.credit ? String(Math.min(r.value.paid, t.total)) : '';
+    writeInvoiceFields(); billChanged(); try { qiRemember(); } catch (e) { /* تجاهل */ }
+    await issueInvoice(!!r.isDenied, true);
+    if (bill.issued) { posDone = true; posRender(); } else { posRender(); }
 }
 function posNew() {
     bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); posDone = false; posExtraOpen = false;
@@ -187,16 +251,19 @@ function posRender() {
     ov.classList.toggle('is-done', posDone);
     if (posDone) {
         done.innerHTML = `<div class="pos-ok">✓</div><h2>صدرت الفاتورة</h2><div class="pos-okno" dir="ltr">${posEsc(bill.no)}</div><div class="pos-oktot">${fmtNum(billTotals().total)} د.ع</div>
-            <button type="button" class="pos-big go" onclick="posNew()">فاتورة جديدة</button><button type="button" class="pos-big alt" onclick="printInvoice()">🖨️ طباعة</button>`;
+            <button type="button" class="pos-big go" onclick="posNew()">فاتورة جديدة</button><button type="button" class="pos-big alt" onclick="printInvoice()">🖨️ طباعة</button><button type="button" class="pos-big alt" onclick="billSharePdf()">📤 مشاركة PDF</button>`;
         return;
     }
     const gs = posGroups();
     list.innerHTML = gs.map(posCardHtml).join('') || '<div class="pos-empty"><div>🛒</div>امسح باركود أو اكتب اسم المادة للبدء</div>';
     const ex = document.getElementById('posExtra');
-    ex.innerHTML = `<button type="button" class="pos-more" onclick="posToggleExtra()">${posExtraOpen ? '▲ إخفاء الخيارات' : '▼ خيارات إضافية (اسم الزبون، خصم، مدفوع)'}</button>` + (posExtraOpen ? `<div class="pos-fields">
-        <label>اسم الزبون<input value="${posEsc(bill.to || '')}" onchange="posField('to', this.value)"></label>
-        <label>الخصم<input type="number" inputmode="decimal" min="0" value="${posEsc(bill.discount)}" onchange="posField('discount', this.value)"></label>
-        <label>المبلغ المدفوع (اتركه فارغاً إن دُفع كاملاً)<input type="number" inputmode="decimal" min="0" value="${posEsc(bill.paid)}" onchange="posField('paid', this.value)"></label></div>` : '');
+    ex.innerHTML = `<button type="button" class="pos-more" onclick="posToggleExtra()">${posExtraOpen ? '▲ إخفاء بيانات الفاتورة' : '▼ بيانات الفاتورة (الشركة، الزبون، الطبيب، التاريخ، ملاحظات)'}</button>` + (posExtraOpen ? `<div class="pos-fields">
+        <label>إلى السيد / الشركة<input list="qiDl_to" autocomplete="off" placeholder="اختياري" value="${posEsc(bill.to || '')}" onchange="posField('to', this.value)"></label>
+        <label>اسم الزبون<input list="qiDl_customer" autocomplete="off" placeholder="اختياري" value="${posEsc(bill.customer || '')}" onchange="posField('customer', this.value)"></label>
+        <label>اسم الطبيب المعالج<input list="qiDl_doctor" autocomplete="off" placeholder="اختياري" value="${posEsc(bill.doctor || '')}" onchange="posField('doctor', this.value)"></label>
+        <label>التاريخ<input type="date" value="${posEsc(bill.date || todayLocalISO())}" onchange="posField('date', this.value || todayLocalISO())"></label>
+        <label>ملاحظات<textarea rows="2" onchange="posField('notes', this.value)">${posEsc(bill.notes || '')}</textarea></label>
+        ${['to', 'customer', 'doctor'].map(k => qiDl(k)).join('')}</div>` : '');
     posFoot();
 }
 function posEnsureDom() {
@@ -207,7 +274,7 @@ function posEnsureDom() {
         <div id="posRes" class="pos-resbox" style="display:none"></div>
         <div class="pos-body"><div id="posList" class="pos-list"></div><div id="posExtra" class="pos-extra"></div><div id="posDone" class="pos-donebox"></div></div>
         <div class="pos-foot"><div class="pos-tot"><small id="posCnt"></small><span>المجموع</span><b><span id="posTotal">0</span> <i>د.ع</i></b></div>
-        <div class="pos-btns"><button type="button" class="pos-big go" onclick="posIssue(false)">إصدار</button><button type="button" class="pos-big alt" onclick="posIssue(true)">إصدار وطباعة</button></div></div>`;
+        <div class="pos-btns"><button type="button" class="pos-big go" onclick="posIssue()">إصدار</button></div></div>`;
     document.body.appendChild(d);
 }
 function posOpen() {

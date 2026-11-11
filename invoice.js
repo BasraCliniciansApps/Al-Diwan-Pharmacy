@@ -395,7 +395,7 @@ function billAllocate(en, p, unit, n, prefer, preferPr) {   // يرجع [{e, n}]
 function stockTxt(p, s) { return hasRetail(p) && s.loose ? `${s.qty}+${s.loose}` : String(s.qty); }
 
 // ---------- إصدار الفاتورة ----------
-async function issueInvoice(doPrintAfter) {   // true/undefined: إصدار وطباعة، false: إصدار فقط
+async function issueInvoice(doPrintAfter, skipConfirm) {   // true/undefined: إصدار وطباعة، false: إصدار فقط
     readInvoiceFields();
     if (bill.issued) { printInvoice(); return; }
     if (!bill.items.length) { printInvoice(); return; }
@@ -405,7 +405,7 @@ async function issueInvoice(doPrintAfter) {   // true/undefined: إصدار وط
     const plan = deduct ? billPlan() : [];
     const short = plan.filter(e => e.short);
     const manual = bill.items.filter(it => !it.pid).length;
-    const r = await Swal.fire({
+    const r = skipConfirm ? { isConfirmed: true } : await Swal.fire({
         icon: 'question', title: 'إصدار الفاتورة ' + escapeHtml(bill.no),
         html: `المبلغ الكلي: <b>${fmtNum(t.total)} د.ع</b><br>` +
             (deduct ? `سيتم خصم الكميات من المخزن (${plan.length} مادة).` : 'بدون خصم من المخزن.') +

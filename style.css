@@ -3658,3 +3658,16 @@ input.pl-in{direction:ltr;text-align:center}
 .pos-donebox .pos-big { width: 100%; max-width: 360px; flex: none; }
 @media print { .pos-ov, .pos-fab { display: none !important; } }
 @media screen and (min-width: 900px) and (hover: hover) and (pointer: fine) { .pos-ov { inset: 0 auto 0 50%; transform: translateX(-50%); width: min(760px, 100vw); box-shadow: 0 0 40px rgba(0,0,0,.25); } }
+.pos-fields textarea { border: 2px solid #cbd5e1; border-radius: 12px; padding: 10px 12px; font: 600 1rem inherit; font-family: inherit; resize: none; box-sizing: border-box; }
+/* نافذة إتمام البيع */
+.px { text-align: right; display: flex; flex-direction: column; gap: 8px; font-family: inherit; }
+.px-sum, .px-net { display: flex; justify-content: space-between; align-items: baseline; font-weight: 800; } .px-sum b, .px-net b { font-size: 1.25rem; color: #0f1c38; }
+.px-sec { font-size: .85rem; font-weight: 800; color: #475569; margin-top: 4px; }
+.px-row { display: flex; gap: 8px; } .px-row label { flex: 1; display: flex; flex-direction: column; gap: 3px; font-size: .78rem; font-weight: 800; color: #334155; }
+.px-row input { height: 48px; box-sizing: border-box; border: 2px solid #cbd5e1; border-radius: 12px; padding: 0 10px; font: 700 1.1rem inherit; font-family: inherit; width: 100%; }
+.px-max { height: 42px; border: 0; border-radius: 10px; background: #e0f2fe; color: #075985; font: 800 .85rem inherit; font-family: inherit; cursor: pointer; }
+.px-msg { min-height: 1.2em; font-weight: 800; font-size: .88rem; } .px-msg.ok { color: #15803d; } .px-msg.bad { color: #b91c1c; }
+.px-rl { display: flex; flex-direction: column; gap: 6px; } .px-rr { display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid #e2e8f0; border-radius: 10px; } .px-rr span { flex: 1; font-size: .85rem; overflow-wrap: anywhere; text-align: left; } .px-rr b { font-size: .9rem; }
+.px-rb { display: flex; gap: 6px; } .px-rb button { flex: 1; height: 44px; border: 0; border-radius: 10px; background: #0f1c38; color: #fff; font: 800 .95rem inherit; font-family: inherit; cursor: pointer; }
+.px-cr { display: flex; align-items: center; gap: 10px; font-weight: 800; margin-top: 4px; }
+.px-warn { color: #b45309; font-weight: 700; font-size: .85rem; }
