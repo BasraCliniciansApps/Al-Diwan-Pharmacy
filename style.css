@@ -3759,3 +3759,7 @@ body.ov-open #formModal { z-index: 9200; } body.ov-open #expiryModal, body.ov-op
 .cn-dd input[type=search] { width: 100%; height: 38px; box-sizing: border-box; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0 10px; margin-bottom: 4px; font: inherit; }
 .cn-dd-i { display: flex; align-items: center; gap: 10px; min-height: 44px; border-bottom: 1px solid #f1f5f9; cursor: pointer; } .cn-dd-i input { width: 20px; height: 20px; flex: none; } .cn-dd-i span { flex: 1; } .cn-dd-i small { color: #64748b; }
 .cn-dd-ok { width: 100%; min-height: 42px; margin-top: 6px; border: 0; border-radius: 10px; background: #0f1c38; color: #fff; font: 700 .9rem inherit; font-family: inherit; cursor: pointer; }
+
+.cn-dd .cn-dd-i input[type=checkbox]:not(#a):not(#b) { -webkit-appearance: checkbox; appearance: auto; width: 22px; height: 22px; min-width: 22px; border-radius: 4px; background: #fff; border: revert; box-shadow: none; position: static; accent-color: #0f1c38; cursor: pointer; }
+.cn-dd .cn-dd-i input[type=checkbox]:not(#a):not(#b)::after, .cn-dd .cn-dd-i input[type=checkbox]:not(#a):not(#b)::before { content: none; display: none; }
+.cn-dd-x { border: 0; background: #fee2e2; color: #b91c1c; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; flex: none; }

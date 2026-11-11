@@ -122,6 +122,13 @@ function cnDdPick(v, on) {
     if (cnSel.size === 1) { const k = [...cnSel][0]; cnTarget = k === '_' ? '' : k; }
     cnListRender(); cnDd = true; cnDdRender();
 }
+async function cnGroupDel(gid) {
+    const g = cnCur.groups.find(x => x.id === gid); if (!g) return;
+    const n = cnCur.rows.filter(x => x.gid === gid).length;
+    if (!(await askSure('حذف المجموعة «' + g.name + '»؟', n ? 'ستنتقل مواد المجموعة (' + n + ') إلى «بدون مجموعة» ولا تُحذف.' : '', 'حذف'))) return;
+    cnCur.rows.forEach(x => { if (x.gid === gid) x.gid = ''; }); cnCur.groups = cnCur.groups.filter(x => x.id !== gid);
+    cnSel.delete(gid); if (cnTarget === gid) cnTarget = ''; cnTouch(); cnListRender(); cnDd = true; cnDdRender();
+}
 function cnDdLabel() { const l = cnCur; if (!cnSel.size) return 'كل المجموعات'; const n = [...cnSel].map(k => k === '_' ? 'بدون مجموعة' : cnGroupName(l, k)); return n.length > 2 ? n.length + ' مجموعات' : n.join('، '); }
 function cnDdRender() {
     const box = document.getElementById('cnDd'); if (!box) return; const l = cnCur; if (!l) return;
@@ -131,7 +138,7 @@ function cnDdRender() {
     const items = [...l.groups.map(g => ({ k: g.id, n: g.name, c: cnt(g.id) })), ...(has0 ? [{ k: '_', n: 'بدون مجموعة', c: cnt('') }] : [])].filter(x => !q || normSearch(x.n).includes(normSearch(q)));
     box.innerHTML = `${l.groups.length > 6 ? `<input id="cnDdQ" type="search" placeholder="ابحث عن مجموعة" value="${cnEsc(q)}" oninput="cnDdRender()">` : ''}
         <label class="cn-dd-i"><input type="checkbox" ${cnSel.size === 0 ? 'checked' : ''} onchange="cnDdPick('all',true)"><span>كل المجموعات</span></label>
-        ${items.map(x => `<label class="cn-dd-i"><input type="checkbox" ${cnSel.has(x.k) ? 'checked' : ''} onchange="cnDdPick('${x.k}',this.checked)"><span>${cnEsc(x.n)}</span><small>${x.c}</small></label>`).join('') || '<div class="cn-none">لا توجد مجموعات</div>'}
+        ${items.map(x => `<label class="cn-dd-i"><input type="checkbox" ${cnSel.has(x.k) ? 'checked' : ''} onchange="cnDdPick('${x.k}',this.checked)"><span>${cnEsc(x.n)}</span><small>${x.c}</small>${x.k !== '_' ? `<button type="button" class="cn-dd-x" onclick="event.preventDefault();event.stopPropagation();cnGroupDel('${x.k}')" aria-label="حذف المجموعة"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14M10 11v6M14 11v6"/></svg></button>` : ''}</label>`).join('') || '<div class="cn-none">لا توجد مجموعات</div>'}
         <button type="button" class="cn-dd-ok" onclick="cnDd=false;cnDdRender()">تم</button>`;
     const i = document.getElementById('cnDdQ'); if (i && q) { i.focus(); i.setSelectionRange(q.length, q.length); }
 }
