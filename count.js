@@ -161,6 +161,7 @@ function cnNormalize(l) {
 }
 function cnSyncParts(l) {
     let ch = false;
+    l.rows.forEach(r => { if (r.pe) return; const p = products.find(x => x.id === r.pid); if (!p) return; const v = cnDefPrice(p, r.unit) || ''; if (String(r.price) !== String(v)) { r.price = v === '' ? '' : String(v); ch = true; } });   // السعر يُسحب من المادة ما لم يُعدَّل يدوياً
     l.rows.filter(r => r.unit === 'pack').forEach(r => {
         const p = products.find(x => x.id === r.pid); if (!p || !hasRetail(p)) return;
         if (l.rows.some(x => x.pid === r.pid && x.unit === 'part')) return;
@@ -258,7 +259,7 @@ function cnRefreshTotals(r) {
 }
 function cnRow(id) { return cnCur && cnCur.rows.find(r => r.id === id); }
 function cnSetCnt(id, v) { const r = cnRow(id); if (!r) return; r.cnt = v === '' ? '' : String(Math.max(0, cnInt(v))); cnRefreshTotals(r); cnTouch(); }
-function cnSetPrice(id, v) { const r = cnRow(id); if (!r) return; r.price = v === '' ? '' : String(cnNum(v)); cnRefreshTotals(r); cnTouch(); }
+function cnSetPrice(id, v) { const r = cnRow(id); if (!r) return; r.pe = true; r.price = v === '' ? '' : String(cnNum(v)); cnRefreshTotals(r); cnTouch(); }
 async function cnDelRow(id) {
     const r = cnRow(id); if (!r) return; const p = products.find(x => x.id === r.pid);
     if (!(await askSure('حذف هذا السطر من القائمة؟', (p ? p.name : '') + ' (لا يتأثر المخزن)', 'حذف'))) return;
