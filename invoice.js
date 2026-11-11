@@ -318,6 +318,7 @@ function billTab(name) {
 }
 function initBillEditor() {
     if (!bill) { try { bill = JSON.parse(lsGet(BILL_LS.draft)); } catch (e) { bill = null; } if (!bill || !Array.isArray(bill.items)) bill = emptyInvoice(); }
+    if (bill && !bill.issued && !bill.id && !String(bill.no || '').startsWith(billPrefix())) bill.no = nextInvoiceNumber();   // مسودة قديمة: رقم جديد بالبادئة الحالية
     if (bill.editing && !billEditBase) bill.editing = false;
     writeInvoiceFields(); renderInvoiceRows(); renderInvMeta(); renderInvImages();
 }
