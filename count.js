@@ -143,6 +143,14 @@ function cnDdRender() {
     const i = document.getElementById('cnDdQ'); if (i && q) { i.focus(); i.setSelectionRange(q.length, q.length); }
 }
 // مزامنة: كل مادة فيها أجزاء يجب أن يكون لها سطر جزء بجانب سطر العلبة
+// الترتيب: الأقدم إدخالاً أولاً (رقم 1)، وسطر الجزء يلي سطر علبته مباشرة
+function cnNormalize(l) {
+    const pk = new Map(); l.rows.forEach(r => { if (r.unit === 'pack' && !pk.has(r.pid)) pk.set(r.pid, r.ts || 0); });
+    const key = r => r.unit === 'part' && pk.has(r.pid) ? pk.get(r.pid) : (r.ts || 0);
+    const arr = l.rows.map((r, i) => [r, i]);
+    arr.sort((a, b) => key(a[0]) - key(b[0]) || a[0].pid - b[0].pid || (a[0].unit === 'pack' ? -1 : 1) - (b[0].unit === 'pack' ? -1 : 1) || a[1] - b[1]);
+    l.rows = arr.map(x => x[0]);
+}
 function cnSyncParts(l) {
     let ch = false;
     l.rows.filter(r => r.unit === 'pack').forEach(r => {
@@ -168,7 +176,7 @@ function cnAddProduct(pid) {
         focusId = (have.find(r => r.unit === 'pack') || have[0]).id; if (!cnInView(have[0].gid)) cnSel = new Set();
     } else {
         const rows = units.map(u => ({ id: cnId(), gid: tgt, pid, unit: u, cnt: '', price: cnDefPrice(p, u) || '', ts: Date.now() }));
-        cnCur.rows.unshift(...rows); focusId = rows[0].id; cnTouch();
+        cnCur.rows.push(...rows); focusId = rows[0].id; cnTouch();
     }
     const q = document.getElementById('cnQ'); if (q) q.value = ''; cnFound = [];
     cnListRender(focusId);
@@ -209,10 +217,10 @@ function cnScan() {
 }
 
 // ---------- العرض ----------
-function cnRowHtml(r) {
+function cnRowHtml(r, n) {
     const p = products.find(x => x.id === r.pid); if (!p) return '';
     const part = r.unit === 'part', t = cnRowTotal(r), sys = part ? cnInt(p.loose) : cnInt(p.qty);
-    return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-nm"><b dir="ltr" class="cn-nmb" onclick="cnEditProduct(${r.pid})">${cnEsc(dispName(p, part))}</b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small></div>
+    return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-nm"><b dir="ltr" class="cn-nmb"><i class="cn-no">${n || ''}</i><span onclick="cnEditProduct(${r.pid})">${cnEsc(dispName(p, part))}</span></b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small></div>
         <label class="cn-f"><span>العدد</span><input class="cn-cnt" type="number" inputmode="numeric" min="0" value="${cnEsc(r.cnt)}" oninput="cnSetCnt('${r.id}',this.value)" onchange="cnCommit('${r.id}','cnt')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();var q=document.getElementById('cnQ');if(q)q.focus();}"></label>
         <label class="cn-f"><span>السعر</span><input class="cn-pr" type="number" inputmode="numeric" min="0" value="${cnEsc(r.price)}" oninput="cnSetPrice('${r.id}',this.value)" onchange="cnCommit('${r.id}','price')"></label>
         <div class="cn-f cn-tt"><span>المجموع</span><b id="cnt-${r.id}">${t === null ? '' : fmtNum(t)}</b></div>
@@ -220,10 +228,10 @@ function cnRowHtml(r) {
 }
 function cnListRender(focusId) {
     const l = cnCur; if (!l) return;
-    cnSyncParts(l);
+    cnSyncParts(l); cnNormalize(l);
     const rows = l.rows.filter(r => cnInView(r.gid));
     const gids = [...l.groups.map(g => g.id), ''];
-    const sections = gids.map(gid => { const rr = rows.filter(r => r.gid === gid); if (!rr.length) return ''; return `<div class="cn-gh"><b>${cnEsc(cnGroupName(l, gid))}</b><small>${rr.length} سطر • ${fmtNum(cnSum(rr))} د.ع</small></div>${rr.map(cnRowHtml).join('')}`; }).join('');
+    const sections = gids.map(gid => { const rr = rows.filter(r => r.gid === gid); if (!rr.length) return ''; return `<div class="cn-gh"><b>${cnEsc(cnGroupName(l, gid))}</b><small>${rr.length} سطر • ${fmtNum(cnSum(rr))} د.ع</small></div>${rr.map(r => cnRowHtml(r, l.rows.indexOf(r) + 1)).join('')}`; }).join('');
     const chip = (v, label, on) => `<button type="button" class="cn-chip ${on ? 'on' : ''}" onclick="cnPickGroup('${v}')">${cnEsc(label)}</button>`;
     const has0 = l.rows.some(r => r.gid === '');
     document.getElementById('cnBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cnIndex()" aria-label="رجوع">→</button><b>${cnEsc(l.name)}</b><span>${cnEsc(fmtDateDMY(l.date))}</span></div>
@@ -415,7 +423,7 @@ async function cnPendAdd(pid) {
     const prev = cnCur; cnCur = l;
     const rows = [{ id: cnId(), gid: r.value.gid, pid, unit: 'pack', cnt: String(Math.max(0, cnInt(r.value.q))), price: cnDefPrice(p, 'pack') || '', ts: Date.now() }];
     if (retail) rows.push({ id: cnId(), gid: r.value.gid, pid, unit: 'part', cnt: String(Math.max(0, cnInt(r.value.pp))), price: cnDefPrice(p, 'part') || '', ts: Date.now() });
-    l.rows.unshift(...rows); cnTouch();
+    l.rows.push(...rows); cnTouch();
     if (l.apply !== false) for (const row of rows) { await cnApplyRow(row, 'cnt'); }
     await cnPush(l); cnCur = prev;
     Swal.fire({ icon: 'success', title: 'أُضيفت إلى «' + l.name + '»', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
@@ -456,6 +464,7 @@ async function cnPrintDialog() {
     cnPrint(r.value);
 }
 function cnSections(l, gsel) {
+    cnNormalize(l);
     const gids = [...l.groups.map(g => g.id), ''];
     return gids.filter(g => gsel === 'all' || (gsel === '_' ? g === '' : g === gsel)).map(g => ({ gid: g, name: cnGroupName(l, g), rows: l.rows.filter(r => r.gid === g && products.some(p => p.id === r.pid)) })).filter(s => s.rows.length);
 }

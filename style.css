@@ -3763,3 +3763,5 @@ body.ov-open #formModal { z-index: 9200; } body.ov-open #expiryModal, body.ov-op
 .cn-dd .cn-dd-i input[type=checkbox]:not(#a):not(#b) { -webkit-appearance: checkbox; appearance: auto; width: 22px; height: 22px; min-width: 22px; border-radius: 4px; background: #fff; border: revert; box-shadow: none; position: static; accent-color: #0f1c38; cursor: pointer; }
 .cn-dd .cn-dd-i input[type=checkbox]:not(#a):not(#b)::after, .cn-dd .cn-dd-i input[type=checkbox]:not(#a):not(#b)::before { content: none; display: none; }
 .cn-dd-x { border: 0; background: #fee2e2; color: #b91c1c; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; flex: none; }
+.cn-no { font-style: normal; display: inline-block; min-width: 22px; margin-inline-end: 6px; padding: 0 5px; border-radius: 6px; background: #e2e8f0; color: #334155; font-size: .75rem; text-align: center; }
+.cn-nmb span { cursor: pointer; }
