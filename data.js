@@ -5010,10 +5010,16 @@ function openAttachBarcodePicker(code, after) {
                 if (!qn) { box.innerHTML = '<div class="bcp-hint">ابحث عن المادة التي يعود لها هذا الباركود.</div>'; return; }
                 const toks = qn.split(' ');
                 const list = products.map(p => [p, searchScore(p, qn, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 8).map(x => x[0]);
-                box.innerHTML = list.length ? list.map(bcpRowHtml).join('') : '<div class="bcp-hint">لا توجد نتائج مطابقة</div>';
+                box.innerHTML = list.length ? list.map(bcpRowHtml).join('') : '<div class="bcp-hint">لا توجد نتائج مطابقة</div><button type="button" class="cat-add big" onclick="bcpNewItem()">➕ صنف جديد بهذا الباركود</button>';
             });
         }
     });
+}
+function bcpNewItem() {   // لا توجد مادة مطابقة: صنف جديد بالباركود (والاسم المكتوب إن وُجد)
+    const inp = document.getElementById('bcAttSearch'), name = inp ? inp.value.trim() : '', code = bcAttach.code, after = bcAttach.after;
+    try { Swal.close(); } catch (e) { /* تجاهل */ }
+    if (typeof catPrice === 'function') catPrice(0, { bc: cleanBarcode(code), name }, p2 => { if (after) after(p2); });
+    else { openFormModal(); formBarcodes = [cleanBarcode(code)]; renderBarcodeChips(); }
 }
 async function attachBarcodePick(id) {
     const p = products.find(x => x.id === id); if (!p) return;
