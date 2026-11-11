@@ -42,7 +42,7 @@ function cnSum(rows) { return rows.reduce((s, r) => s + (cnRowTotal(r) || 0), 0)
 function cnHub() {
     if (!cnAllowed() && !can('stockEdit')) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'لا تملك صلاحية الجرد.', confirmButtonColor: '#0f1c38' }); return; }
     cnEnsureDom();
-    const ov = document.getElementById('cnOv'); ov.style.display = 'flex'; document.documentElement.classList.add('lk'); cnOpenFlag = true;
+    const ov = document.getElementById('cnOv'); ov.style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open'); cnOpenFlag = true;
     cnHubRender();
 }
 function cnHubRender() {
@@ -63,7 +63,7 @@ function cnLegacy() { cnClose(); if (typeof cnOrigInventory === 'function') cnOr
 async function cnToggleSetup(el) { const on = el.checked; el.checked = !on; await toggleSetupMode(on); if (cnOpenFlag && !cnCur) cnHubRender(); }
 function cnClose() {
     const ov = document.getElementById('cnOv'); if (ov) ov.style.display = 'none';
-    document.documentElement.classList.remove('lk'); cnOpenFlag = false; cnCur = null;
+    document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); cnOpenFlag = false; cnCur = null;
 }
 function cnEnsureDom() {
     if (document.getElementById('cnOv')) return;

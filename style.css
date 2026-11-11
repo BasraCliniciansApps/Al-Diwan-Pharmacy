@@ -3752,3 +3752,4 @@ input.pl-in{direction:ltr;text-align:center}
 .cn-pa { background: #0f766e; color: #fff; } .cn-pm { background: #e0f2fe; color: #0369a1; } .cn-pd { background: #fee2e2; color: #b91c1c; } .cn-pb button:disabled { opacity: .4; }
 .cn-ok { font-style: normal; color: #15803d; font-weight: 700; }
 @media (max-width: 560px) { .cn-sd { grid-column: 4; grid-row: 1 / 3; } }
+body.ov-open #formModal { z-index: 9200; } body.ov-open #expiryModal, body.ov-open #inventoryModal { z-index: 9200; }

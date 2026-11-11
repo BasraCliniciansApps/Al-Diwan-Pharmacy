@@ -355,12 +355,12 @@ function posOpen() {
     if (bill && bill.issued && !bill.editing) { bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); try { initBillEditor(); } catch (e) { /* تجاهل */ } }
     posEnsureDom(); posDone = false; posOpenFlag = true; posFound = [];
     document.getElementById('posNo').textContent = bill.no || '';
-    document.getElementById('posOv').style.display = 'flex'; document.documentElement.classList.add('lk');
+    document.getElementById('posOv').style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open');
     const q = document.getElementById('posQ'); q.value = ''; posResults(); posRender(); posFocus();
 }
 function posClose() {
     const ov = document.getElementById('posOv'); if (ov) ov.style.display = 'none';
-    document.documentElement.classList.remove('lk'); posOpenFlag = false;
+    document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); posOpenFlag = false;
     try { writeInvoiceFields(); renderInvoiceRows(); recalcInvoice(); updateIssuedUI(); } catch (e) { /* تجاهل */ }
 }
 
