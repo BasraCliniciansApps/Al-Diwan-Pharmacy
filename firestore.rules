@@ -15,7 +15,9 @@ service cloud.firestore {
       allow create, delete: if isOwner() || perm('stockEdit');
       // البائع يحدّث حالة التوفر فقط (inStock) عند البيع
       allow update: if isOwner() || perm('stockEdit')
-                    || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock']));
+                    || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock']))
+                    // قوائم الجرد: الأسعار فقط
+                    || (perm('invList') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock', 'price', 'pricing', 'markupPct', 'subPrice', 'subManual']));
     }
     match /pharmacy/{id} {
       allow read: if true;
@@ -24,12 +26,17 @@ service cloud.firestore {
 
     // ---- المخزون الخاص: الكميات وتواريخ الانتهاء ----
     match /pharmacy_stock/{id} {
-      allow read: if isOwner() || perm('stockView') || perm('sell');
+      allow read: if isOwner() || perm('stockView') || perm('sell') || perm('invList');
       allow create, delete: if isOwner() || perm('stockEdit');
       // البائع يغيّر الكمية فقط
       allow update: if isOwner() || perm('stockEdit')
-                    || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty', 'loose']));
+                    || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty', 'loose']))
+                    // قوائم الجرد: الكميات وعلامة «مجرودة» والدفعات
+                    || (perm('invList') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty', 'loose', 'counted', 'bt', 'expiryDates', 'expiryDate']));
     }
+
+    // ---- قوائم الجرد ----
+    match /pharmacy_counts/{id} { allow read, write: if isOwner() || perm('invList'); }
 
     // ---- سعر الشراء وآخر وارد: للمالك فقط ----
     match /pharmacy_cost/{id} {

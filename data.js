@@ -2895,10 +2895,11 @@ async function saveProductsDelta(entries) {
         for (let i = 0; i < entries.length; i += 15) {
             const batch = db.batch();
             entries.slice(i, i + 15).forEach(e => {
-                if (e.mark && can('stockEdit')) e.p.counted = true;   // ضبط العدد يدوياً = المادة صارت مجرودة
+                if (e.mark && (can('stockEdit') || can('invList'))) e.p.counted = true;   // ضبط العدد يدوياً = المادة صارت مجرودة
                 if (e.unmark && can('stockEdit')) e.p.counted = false;   // التراجع عن اعتماد الرصيد
                 const { pub, stock, cost } = splitProduct(e.p);
                 if (can('stockEdit')) batch.set(db.collection('pharmacy_products').doc(String(e.p.id)), pub);
+                else if (can('invList') && e.priceFields) { const pu = { inStock: pub.inStock }; ['price', 'pricing', 'markupPct', 'subPrice', 'subManual'].forEach(k => { if (pub[k] !== undefined) pu[k] = pub[k]; }); batch.update(db.collection('pharmacy_products').doc(String(e.p.id)), pu); }   // قوائم الجرد: الأسعار فقط
                 else batch.update(db.collection('pharmacy_products').doc(String(e.p.id)), { inStock: pub.inStock });   // البائع يحدّث حالة التوفر فقط
                 const ref = db.collection('pharmacy_stock').doc(String(e.p.id));
                 const cur = stockMap[String(e.p.id)];
@@ -2907,7 +2908,7 @@ async function saveProductsDelta(entries) {
                 const u = { id: e.p.id };
                 if (e.dq) u.qty = F.increment(e.dq);
                 if (e.dl) u.loose = F.increment(e.dl);
-                if (e.mark && can('stockEdit')) u.counted = true;
+                if (e.mark && (can('stockEdit') || can('invList'))) u.counted = true;
                 if (e.unmark && can('stockEdit')) u.counted = false;
                 if (!costSplitOn) { if (e.cost !== undefined) u.costPrice = e.cost; if (e.lastSet) u.lastPurchase = e.last; }
                 if (e.btOut) {
@@ -2928,7 +2929,7 @@ async function saveProductsDelta(entries) {
         syncStockLocal(entries.map(e => e.p));
         setSyncText('☁️ تم الحفظ');
         Prog.end(PO, 'ok', 'تم حفظ ' + fmtNum(entries.length) + ' مادة');
-        if (typeof puCoverLines === 'function' && can('stockEdit')) puCoverLines(entries.filter(e => e.mark).map(e => e.p.id));
+        if (typeof puCoverLines === 'function' && (can('stockEdit') || can('invList'))) puCoverLines(entries.filter(e => e.mark).map(e => e.p.id));
         return true;
     } catch (err) {
         Prog.end(PO, 'quiet');
