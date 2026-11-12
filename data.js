@@ -1252,7 +1252,9 @@ function packLine(p) {
 function dispParts(p, part) {
     // ثلاث مجموعات: «الاسم والتركيز | حجم العبوة (أو نوع الجزء عند البيع بالجزء) والشكل الدوائي | الشركة»
     const asPart = !!part && hasRetail(p);
-    return { name: String(p.name || '').trim(), mid: [asPart ? subTypeOf(p) : fixMetaOrder(p.meta || '').trim(), dispForm(p)].filter(Boolean), brand: String(p.brand || '').trim() };
+    // الأنواع العامة (PCS / Pieces / قطعة...) لا تُدمج مع الشكل الدوائي لأن «PCS Medication Box» عبارة غير سليمة
+    const generic = asPart && /^(pcs?|pieces?|piece|units?|items?|قطعة|قطع|جزء|حبة)$/i.test(subTypeOf(p).trim());
+    return { name: String(p.name || '').trim(), mid: [asPart ? subTypeOf(p) : fixMetaOrder(p.meta || '').trim(), generic ? '' : dispForm(p)].filter(Boolean), brand: String(p.brand || '').trim() };
 }
 function dispName(p, part) { const d = dispParts(p, part); return [d.name, d.mid.join(' '), d.brand].filter(Boolean).join(' | '); }
 function dispNameHtml(p, part) {
@@ -5222,6 +5224,41 @@ async function addSubType() {
     if (!v) return;
     if (!subTypes.some(t => t.toLowerCase() === v.toLowerCase())) { subTypes.push(v); saveLocal(); pushToCloud(true); }
     renderSubTypeSelect(v);
+}
+// إدارة أنواع الجزء: تغيير الاسم (يشمل كل المواد) أو الحذف (إن لم يُستخدم)
+async function manageSubTypes() {
+    const used = t => products.filter(p => p.subType === t).length;
+    const html = () => '<div class="stm-list">' + (subTypes.length ? subTypes.map((t, i) => `<div class="stm-row"><b dir="ltr">${escapeHtml(t)}</b><small>${used(t)} مادة</small><button type="button" class="xc-mini" data-a="ren" data-i="${i}" aria-label="تغيير الاسم">✎</button><button type="button" class="xc-mini" data-a="del" data-i="${i}" aria-label="حذف">🗑</button></div>`).join('') : '<p>لا توجد أنواع.</p>') + '</div>';
+    const draw = () => { const el = Swal.getHtmlContainer(); if (el) el.innerHTML = html(); };
+    Swal.fire({
+        title: 'أنواع الجزء', html: html(), showConfirmButton: true, confirmButtonText: 'تم', confirmButtonColor: '#0f1c38',
+        didOpen: () => {
+            Swal.getHtmlContainer().addEventListener('click', async ev => {
+                const b = ev.target.closest('button[data-a]'); if (!b) return;
+                const i = +b.dataset.i, old = subTypes[i], n = used(old);
+                if (b.dataset.a === 'del') {
+                    if (n) { Swal.showValidationMessage('لا يمكن حذف نوع مستخدم في ' + n + ' مادة. غيّر اسمه أو غيّر نوع تلك المواد أولاً.'); return; }
+                    const c = await Swal.fire({ icon: 'warning', title: 'حذف نوع الجزء؟', text: old, showCancelButton: true, confirmButtonText: 'نعم، احذف', cancelButtonText: 'رجوع', confirmButtonColor: '#b91c1c' });
+                    if (c.isConfirmed) { subTypes.splice(i, 1); saveLocal(); pushToCloud(true); }
+                } else {
+                    const r = await Swal.fire({ title: 'تغيير اسم نوع الجزء', input: 'text', inputValue: old, showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', text: n ? 'سيتغيّر الاسم في ' + n + ' مادة.' : '' });
+                    const v = r && r.value ? String(r.value).trim() : '';
+                    if (!v || v === old) { manageSubTypes(); return; }
+                    const dup = subTypes.findIndex((t, k) => k !== i && t.toLowerCase() === v.toLowerCase());
+                    const hit = products.filter(p => p.subType === old);
+                    if (dup >= 0) subTypes.splice(i, 1); else subTypes[i] = v;
+                    const target = dup >= 0 ? subTypes[dup > i ? dup - 1 : dup] : v;
+                    hit.forEach(p => { p.subType = target; });
+                    saveLocal();
+                    if (hit.length && typeof saveProductsBatch === 'function') await saveProductsBatch(hit); else pushToCloud(true);
+                    renderSubTypeSelect(target); renderAll();
+                    Swal.fire({ icon: 'success', title: 'تم تغيير الاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
+                    manageSubTypes(); return;
+                }
+                manageSubTypes();
+            });
+        }
+    });
 }
 // سعر الجزء التلقائي = سعر العبوة ÷ عدد الأجزاء مقرّباً للأعلى لأقرب 250 دينار
 const SUB_ROUND = 250;

@@ -3919,3 +3919,8 @@ body.role-staff #homeView .home-grid .home-tiles3 .home-tile.tile-sm { aspect-ra
 /* v475: اتجاه الكتابة داخل الحقول فقط */
 .bd-ltr { direction: ltr !important; text-align: left !important; }
 .bd-rtl { direction: rtl !important; text-align: right !important; }
+
+/* v476 إدارة أنواع الجزء */
+.stm-list{display:flex;flex-direction:column;gap:8px;text-align:right}
+.stm-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:10px}
+.stm-row b{flex:1;text-align:left}.stm-row small{color:var(--text-sub)}

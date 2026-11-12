@@ -447,7 +447,7 @@
                 <div class="retail-grid">
                     <div><small>عدد الأجزاء في العبوة</small><input type="number" id="fSubCount" min="0" placeholder="مثال: 10" oninput="retailAutoPrice()"></div>
                     <div><small>نوع الجزء</small>
-                        <div class="retail-type"><select id="fSubType"></select><button type="button" class="xc-mini" onclick="addSubType()" aria-label="إضافة نوع">＋</button></div>
+                        <div class="retail-type"><select id="fSubType"></select><button type="button" class="xc-mini" onclick="addSubType()" aria-label="إضافة نوع">＋</button><button type="button" class="xc-mini" onclick="manageSubTypes()" aria-label="إدارة الأنواع">✎</button></div>
                     </div>
                     <div><small>سعر الجزء (يُحسب تلقائياً)</small><input type="number" id="fSubPrice" min="0" oninput="this.dataset.manual='1'"></div>
                     <div><small>أجزاء مفتوحة من عبوة</small><input type="number" id="fLoose" min="0" value="0" onchange="formNormLoose()"></div>
