@@ -1,0 +1,206 @@
+/* =====================================================
+   صيدلية الديوان — جسر تطبيق الأندرويد (Capacitor)
+   يعمل فقط داخل تطبيق APK؛ في المتصفح لا يفعل أي شيء.
+   الميزات: حفظ الملفات في فولدر Al-Diwan-Pharmacy، قفل البصمة،
+   الطباعة الحرارية بالبلوتوث، تذكيرات الصلاحية، ماسح الباركود الأصلي.
+   ===================================================== */
+(function () {
+    'use strict';
+    const C = window.Capacitor;
+    const IS = !!(C && C.isNativePlatform && C.isNativePlatform());
+    const NAT = window.NAT = { is: IS };
+    if (!IS) return;
+    document.documentElement.classList.add('is-app');
+
+    const P = n => { try { return C.registerPlugin(n); } catch (e) { return null; } };
+    const FS = P('Filesystem'), LN = P('LocalNotifications'), BS = P('BarcodeScanner'),
+        BIO = P('BiometricAuthNative'), TP = P('CapacitorThermalPrinter');
+    const KEY = 'diwanNative';
+    const cfg = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
+    const setCfg = o => { try { localStorage.setItem(KEY, JSON.stringify(Object.assign(cfg(), o))); } catch (e) { /* تجاهل */ } };
+    const ROOT = 'Al-Diwan-Pharmacy';
+    NAT.root = ROOT;
+
+    // ---------- 1) حفظ الملفات تلقائياً ----------
+    function subFor(name) {
+        const n = String(name).toLowerCase();
+        if (/backup|before-/.test(n)) return 'Backups';
+        if (/inventory|count|stocktake/.test(n)) return 'Inventory';
+        if (/\.pdf$/.test(n) || /invoice/.test(n)) return 'Invoices';
+        if (/\.(xlsx|csv)$/.test(n)) return 'Reports';
+        return 'Other';
+    }
+    function blobB64(blob) {
+        return new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1] || ''); r.onerror = () => no(r.error); r.readAsDataURL(blob); });
+    }
+    // يرجع المسار النسبي عند النجاح، وإلا null (فيعود التطبيق للمشاركة المعتادة)
+    NAT.saveBlob = async function (blob, filename) {
+        if (!FS) return null;
+        try {
+            const path = ROOT + '/' + subFor(filename) + '/' + filename;
+            await FS.writeFile({ path, data: await blobB64(blob), directory: 'DOCUMENTS', recursive: true });
+            return 'Documents/' + path;
+        } catch (e) { console.warn('NAT.saveBlob', e); return null; }
+    };
+
+    // ---------- 2) قفل البصمة ----------
+    let locked = false, hiddenAt = 0;
+    function lockEl() {
+        let el = document.getElementById('natLock');
+        if (el) return el;
+        el = document.createElement('div'); el.id = 'natLock'; el.setAttribute('dir', 'rtl');
+        el.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:#0f1c38;color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-family:inherit;text-align:center;padding:24px';
+        el.innerHTML = '<div style="font-size:3rem">🔒</div><b style="font-size:1.25rem">صيدلية الديوان</b><div style="opacity:.8">التطبيق مقفل. تحقق من هويتك للمتابعة.</div><button type="button" id="natUnlock" style="background:#fff;color:#0f1c38;border:0;border-radius:14px;padding:12px 28px;font-weight:800;font-size:1rem;font-family:inherit">فتح القفل</button>';
+        document.body.appendChild(el);
+        el.querySelector('#natUnlock').onclick = () => NAT.unlock();
+        return el;
+    }
+    NAT.unlock = async function () {
+        if (!BIO) { locked = false; lockEl().style.display = 'none'; return; }
+        try {
+            await BIO.internalAuthenticate({ reason: 'فتح تطبيق صيدلية الديوان', cancelTitle: 'إلغاء', allowDeviceCredential: true, deviceCredential: true });
+            locked = false; lockEl().style.display = 'none';
+        } catch (e) { /* يبقى مقفلاً ويمكنه المحاولة من الزر */ }
+    };
+    NAT.lockNow = function () {
+        if (!cfg().bio) return;
+        locked = true; lockEl().style.display = 'flex'; NAT.unlock();
+    };
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') { hiddenAt = Date.now(); return; }
+        if (cfg().bio && hiddenAt && Date.now() - hiddenAt > 30000) NAT.lockNow();
+    });
+    NAT.setBio = async function (on) {
+        if (on) {
+            try {
+                const r = await BIO.checkBiometry();
+                if (!r.isAvailable && !r.deviceIsSecure) { Swal.fire({ icon: 'info', title: 'غير متاح', text: 'فعّل بصمة الإصبع أو قفل الشاشة في إعدادات الهاتف أولاً.', confirmButtonText: 'حسناً' }); return false; }
+                await BIO.internalAuthenticate({ reason: 'تأكيد تفعيل القفل', cancelTitle: 'إلغاء', allowDeviceCredential: true, deviceCredential: true });
+            } catch (e) { return false; }
+        }
+        setCfg({ bio: !!on }); return true;
+    };
+
+    // ---------- 3) الطباعة الحرارية (بلوتوث) ----------
+    NAT.printerScan = function () {
+        return new Promise(async (ok, no) => {
+            if (!TP) return no(new Error('الطابعة غير متاحة'));
+            const found = {};
+            try {
+                const h1 = await TP.addListener('discoverDevices', d => (d.devices || []).forEach(x => { found[x.address] = x; }));
+                const h2 = await TP.addListener('discoveryFinish', () => { try { h1.remove(); h2.remove(); } catch (e) { /* */ } ok(Object.values(found)); });
+                await TP.startScan();
+                setTimeout(() => { try { h1.remove(); h2.remove(); } catch (e) { /* */ } ok(Object.values(found)); }, 12000);
+            } catch (e) { no(e); }
+        });
+    };
+    NAT.printerChoose = async function () {
+        const h = Prog.start('البحث عن الطابعات', { text: 'جاري البحث عبر البلوتوث...' });
+        let list = [];
+        try { list = await NAT.printerScan(); h.ok('انتهى البحث'); } catch (e) { h.fail('تعذر البحث', String(e && e.message || e)); return; }
+        if (!list.length) { Swal.fire({ icon: 'info', title: 'لم يُعثر على طابعة', text: 'شغّل الطابعة وأقرنها من إعدادات بلوتوث الهاتف، ثم أعد المحاولة.', confirmButtonText: 'حسناً' }); return; }
+        const opts = {}; list.forEach(d => { opts[d.address] = (d.name || 'طابعة') + ' — ' + d.address; });
+        const r = await Swal.fire({ title: 'اختر الطابعة', input: 'select', inputOptions: opts, showCancelButton: true, confirmButtonText: 'اعتماد', cancelButtonText: 'إلغاء' });
+        if (!r.isConfirmed || !r.value) return;
+        setCfg({ printer: r.value, printerName: opts[r.value] });
+        return r.value;
+    };
+    async function captureBill() {
+        await new Promise((ok, no) => { if (window.htmlToImage) return ok(); const s = document.createElement('script'); s.src = 'vendor/html-to-image.js'; s.onload = ok; s.onerror = () => no(new Error('تعذر تحميل أداة التصوير')); document.head.appendChild(s); });
+        const sheet = document.getElementById('billSheet');
+        if (!sheet) throw new Error('الفاتورة غير جاهزة');
+        const bv = document.getElementById('billView'), pane = document.getElementById('billPane-new'), keep = [bv, pane].map(e => e ? e.style.cssText : '');
+        if (!sheet.offsetWidth) {
+            if (bv) bv.style.cssText += ';display:block !important;position:fixed !important;left:-12000px !important;top:0 !important;width:820px !important;height:auto !important;overflow:visible !important;';
+            if (pane) pane.style.cssText += ';display:block !important;';
+        }
+        document.body.classList.add('capturing-bill'); await new Promise(r => setTimeout(r, 120));
+        try {
+            if (!sheet.offsetWidth) throw new Error('تعذر تجهيز صفحة الفاتورة للتصوير');
+            return await htmlToImage.toPng(sheet, { pixelRatio: 1.2, backgroundColor: '#ffffff', cacheBust: true, filter: n => !(n.classList && n.classList.contains('no-print')) });
+        } finally { document.body.classList.remove('capturing-bill'); if (bv) bv.style.cssText = keep[0]; if (pane) pane.style.cssText = keep[1]; }
+    }
+    NAT.printBill = async function () {
+        if (!TP) return;
+        let addr = cfg().printer;
+        if (!addr) addr = await NAT.printerChoose();
+        if (!addr) return;
+        const h = Prog.start('الطباعة الحرارية', { text: 'تصوير الفاتورة...' });
+        try {
+            const png = await captureBill();
+            h.set(45, 'الاتصال بالطابعة...');
+            try { if (!(await TP.isConnected()).state) await TP.connect({ address: addr }); } catch (e) { await TP.connect({ address: addr }); }
+            h.set(70, 'إرسال الفاتورة...');
+            await TP.begin();
+            await TP.limitWidth({ width: cfg().paper === 80 ? 576 : 384 });
+            await TP.align({ alignment: 'center' });
+            await TP.image({ image: png });
+            await TP.feedCutPaper({ half: false });
+            await TP.write();
+            h.ok('تمت الطباعة');
+        } catch (e) { h.fail('تعذرت الطباعة', String(e && e.message || e)); }
+    };
+
+    // ---------- 4) تذكيرات الصلاحية اليومية ----------
+    NAT.refreshReminders = async function () {
+        if (!LN) return;
+        try {
+            await LN.cancel({ notifications: [{ id: 7001 }] });
+            if (!cfg().remind) return;
+            const perm = await LN.checkPermissions();
+            if (perm.display !== 'granted') { const q = await LN.requestPermissions(); if (q.display !== 'granted') return; }
+            let ex = 0, soon = 0;
+            if (typeof products !== 'undefined' && typeof alertKinds === 'function') products.forEach(p => { const k = alertKinds(p); if (k.expired) ex++; else if (k.m1) soon++; });
+            const body = ex || soon ? `منتهية: ${ex} — تنتهي خلال شهر: ${soon}` : 'راجع تنبيهات الصلاحية والمخزون.';
+            await LN.schedule({ notifications: [{ id: 7001, title: 'صيدلية الديوان — تنبيه الصلاحية', body, schedule: { on: { hour: 9, minute: 0 }, allowWhileIdle: true } }] });
+        } catch (e) { console.warn('reminders', e); }
+    };
+    NAT.setRemind = async function (on) { setCfg({ remind: !!on }); await NAT.refreshReminders(); return true; };
+
+    // ---------- 5) ماسح الباركود الأصلي ----------
+    if (BS && typeof window.openBarcodeScanner === 'function') {
+        const orig = window.openBarcodeScanner;
+        window.openBarcodeScanner = async function (cb) {
+            try {
+                const perm = await BS.requestPermissions();
+                if (perm.camera !== 'granted' && perm.camera !== 'limited') return orig(cb);
+                const r = await BS.scan();
+                const code = r && r.barcodes && r.barcodes[0] && (r.barcodes[0].rawValue || r.barcodes[0].displayValue);
+                if (code) { cb(code); return; }
+            } catch (e) {
+                const m = String(e && e.message || e);
+                if (/cancel/i.test(m)) return;
+            }
+            return orig(cb);
+        };
+    }
+
+    // ---------- 6) إعدادات التطبيق داخل شاشة الجرد (للمالك) ----------
+    function sw(id, on, label) {
+        return `<label class="cn-sw"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span>${label}</span></label>`;
+    }
+    function injectSettings() {
+        const hub = document.querySelector('#cnBox .cn-hub');
+        if (!hub || hub.querySelector('#natSet') || (typeof userRole !== 'undefined' && userRole !== 'owner')) return;
+        const c = cfg();
+        const d = document.createElement('div'); d.className = 'cn-card cn-set'; d.id = 'natSet';
+        d.innerHTML = `<i>📱</i><span><b>إعدادات تطبيق الأندرويد</b>
+            ${sw('natBio', c.bio, 'قفل التطبيق بالبصمة أو قفل الشاشة')}
+            ${sw('natRem', c.remind, 'تذكير يومي الساعة 9 صباحاً بالمواد المنتهية والقريبة من الانتهاء')}
+            ${sw('natP80', c.paper === 80, 'عرض ورق الطابعة 80 ملم (الافتراضي 58 ملم)')}
+            <button type="button" class="pos-big alt" id="natPrn" style="margin-top:8px">🖨️ اختيار الطابعة الحرارية${c.printerName ? ' — ' + escapeHtml(c.printerName) : ''}</button>
+            <small>تُحفظ الملفات تلقائياً في: Documents/${ROOT}</small></span>`;
+        hub.appendChild(d);
+        d.querySelector('#natBio').onchange = async e => { const ok = await NAT.setBio(e.target.checked); if (!ok) e.target.checked = !e.target.checked; };
+        d.querySelector('#natRem').onchange = e => NAT.setRemind(e.target.checked);
+        d.querySelector('#natP80').onchange = e => setCfg({ paper: e.target.checked ? 80 : 58 });
+        d.querySelector('#natPrn').onclick = async () => { await NAT.printerChoose(); const b = d.querySelector('#natPrn'); if (b && cfg().printerName) b.textContent = '🖨️ اختيار الطابعة الحرارية — ' + cfg().printerName; };
+    }
+    const hubOrig = window.cnHubRender;
+    if (typeof hubOrig === 'function') window.cnHubRender = function () { const r = hubOrig.apply(this, arguments); try { injectSettings(); } catch (e) { /* */ } return r; };
+
+    // عند الفتح: قفل ثم تحديث التذكير بعد تحميل البيانات
+    document.addEventListener('DOMContentLoaded', () => { if (cfg().bio) NAT.lockNow(); });
+    if (document.readyState !== 'loading' && cfg().bio) NAT.lockNow();
+    setTimeout(() => NAT.refreshReminders(), 15000);
+})();

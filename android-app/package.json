@@ -1,0 +1,19 @@
+{
+  "name": "al-diwan-pharmacy-android",
+  "version": "1.0.0",
+  "private": true,
+  "description": "\u062a\u063a\u0644\u064a\u0641 \u0623\u0646\u062f\u0631\u0648\u064a\u062f \u0644\u062a\u0637\u0628\u064a\u0642 \u0635\u064a\u062f\u0644\u064a\u0629 \u0627\u0644\u062f\u064a\u0648\u0627\u0646",
+  "dependencies": {
+    "@capacitor/android": "~7.6.10",
+    "@capacitor/core": "~7.6.10",
+    "@capacitor/filesystem": "~7.1.9",
+    "@capacitor/local-notifications": "~7.0.7",
+    "@capacitor-mlkit/barcode-scanning": "~7.5.0",
+    "@aparajita/capacitor-biometric-auth": "~9.1.2",
+    "capacitor-thermal-printer": "0.2.5",
+    "onesignal-cordova-plugin": "~5.6.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "~7.6.10"
+  }
+}

@@ -1,0 +1,48 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    paths: ['android-app/**', '.github/workflows/android.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: android-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm install --no-audit --no-fund
+      - run: npx cap sync android
+      - name: Prepare signing key
+        id: sign
+        env:
+          BUNDLE: ${{ secrets.SIGNING_BUNDLE }}
+        run: |
+          if [ -n "$BUNDLE" ]; then
+            printf '%s' "$BUNDLE" | sed -n '1p' > "$RUNNER_TEMP/pass.txt"
+            printf '%s' "$BUNDLE" | sed -n '2p' | base64 -d > "$RUNNER_TEMP/diwan.jks"
+            echo "DIWAN_STORE_PASS=$(cat $RUNNER_TEMP/pass.txt)" >> "$GITHUB_ENV"
+            echo "DIWAN_KEYSTORE=$RUNNER_TEMP/diwan.jks" >> "$GITHUB_ENV"
+            echo "DIWAN_KEY_ALIAS=diwan" >> "$GITHUB_ENV"
+            echo "task=assembleRelease" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::SIGNING_BUNDLE غير موجود: سيُبنى ملف تجريبي (debug) فقط"
+            echo "task=assembleDebug" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build APK
+        working-directory: android-app/android
+        run: ./gradlew ${{ steps.sign.outputs.task }} --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Al-Diwan-Pharmacy-APK
+          path: android-app/android/app/build/outputs/apk/**/*.apk
+          retention-days: 30

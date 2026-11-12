@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">صيدلية الديوان</string>
+    <string name="title_activity_main">صيدلية الديوان</string>
+    <string name="package_name">iq.aldiwan.pharmacy</string>
+    <string name="custom_url_scheme">iq.aldiwan.pharmacy</string>
+</resources>

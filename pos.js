@@ -358,7 +358,7 @@ function posRender() {
     ov.classList.toggle('is-done', posDone);
     if (posDone) {
         done.innerHTML = `<div class="pos-ok">✓</div><h2>صدرت الفاتورة</h2><div class="pos-okno" dir="ltr">${posEsc(bill.no)}</div><div class="pos-oktot">${fmtNum(billTotals().total)} د.ع</div>
-            <button type="button" class="pos-big go" onclick="posNew()">فاتورة جديدة</button><button type="button" class="pos-big alt" onclick="printInvoice()">🖨️ طباعة</button><button type="button" class="pos-big alt" onclick="billSharePdf()">📤 مشاركة PDF</button>`;
+            <button type="button" class="pos-big go" onclick="posNew()">فاتورة جديدة</button><button type="button" class="pos-big alt" onclick="printInvoice()">🖨️ طباعة</button><button type="button" class="pos-big alt" onclick="billSharePdf()">📤 مشاركة PDF</button>${window.NAT && NAT.is ? '<button type="button" class="pos-big alt" onclick="NAT.printBill()">🧾 طباعة حرارية</button>' : ''}`;
         return;
     }
     const gs = posGroups();

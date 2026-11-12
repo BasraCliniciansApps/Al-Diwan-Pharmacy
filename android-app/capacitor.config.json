@@ -1,0 +1,11 @@
+{
+  "appId": "iq.aldiwan.pharmacy",
+  "appName": "صيدلية الديوان",
+  "webDir": "www",
+  "server": {
+    "url": "https://basracliniciansapps.github.io/Al-Diwan-Pharmacy/admin.html",
+    "cleartext": false,
+    "allowNavigation": ["basracliniciansapps.github.io", "*.googleapis.com", "*.firebaseapp.com", "*.gstatic.com", "cdn.jsdelivr.net", "raw.githubusercontent.com"]
+  },
+  "android": { "allowMixedContent": false }
+}

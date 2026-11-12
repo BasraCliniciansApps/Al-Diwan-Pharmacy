@@ -3169,6 +3169,7 @@ function todayStamp() {
 function fmtBytes(n) { return n < 1024 ? n + ' بايت' : n < 1048576 ? (n / 1024).toFixed(0) + ' ك.ب' : (n / 1048576).toFixed(1) + ' م.ب'; }
 // يحاول الحفظ/المشاركة؛ يرجع 'shared' | 'downloaded' | 'cancelled' | 'blocked' (المتصفح منع لأن الضغطة انتهت صلاحيتها بعد الانتظار)
 async function dlTry(blob, filename, mime) {
+    if (window.NAT && NAT.is) { const sp = await NAT.saveBlob(blob, filename); if (sp) { window._natSavedPath = sp; return 'saved'; } }
     const isMobile = /iPhone|iPad|Android/i.test(navigator.userAgent);
     if (isMobile && navigator.canShare && navigator.share) {
         try {
@@ -3201,7 +3202,7 @@ async function downloadFile(filename, content, mime) {
             return;
         }
         if (r === 'cancelled') { Prog.end(PO, 'quiet'); return; }
-        Prog.end(PO, 'ok', (r === 'shared' ? 'تمت المشاركة' : 'تم التنزيل') + ' — ' + filename + ' (' + size + ')');
+        Prog.end(PO, 'ok', (r === 'saved' ? 'تم الحفظ في ' + window._natSavedPath : r === 'shared' ? 'تمت المشاركة' : 'تم التنزيل') + ' — ' + filename + ' (' + size + ')');
     } catch (e) { Prog.end(PO, 'fail', 'تعذر تجهيز الملف', e && e.message); throw e; }
 }
 
