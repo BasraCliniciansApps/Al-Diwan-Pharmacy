@@ -29,14 +29,15 @@ const Prog = {
         if (Prog.el) return;
         const el = document.createElement('div'); el.id = 'progBox'; el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); el.hidden = true;
         document.body.appendChild(el); Prog.el = el;
-        const ln = document.createElement('div'); ln.id = 'progLine'; ln.hidden = true; ln.innerHTML = '<i></i>'; document.body.appendChild(ln); Prog.ln = ln;
+        const ln = document.createElement('div'); ln.id = 'progLine'; ln.hidden = true; ln.innerHTML = '<b class="pl-track"></b><b class="pl-fill"></b>'; document.body.appendChild(ln); Prog.ln = ln;
     },
     // موضع الخط: الحد الفاصل بين ترويسة التطبيق الكحلية والمحتوى تحتها (وإلا أعلى الشاشة)
     lineY() {
+        let last = null;
         const dark = e => {
             for (let n = e; n && n.nodeType === 1; n = n.parentElement) {
-                const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/.exec(getComputedStyle(n).backgroundColor || '');
-                if (m && (m[4] === undefined || parseFloat(m[4]) > 0.6)) return (0.299 * m[1] + 0.587 * m[2] + 0.114 * m[3]) < 70;
+                const cs = getComputedStyle(n), m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/.exec(cs.backgroundColor || '');
+                if (m && (m[4] === undefined || parseFloat(m[4]) > 0.6)) { const d = (0.299 * m[1] + 0.587 * m[2] + 0.114 * m[3]) < 70; if (d) last = n; return d; }
             }
             return false;
         };
@@ -44,8 +45,11 @@ const Prog = {
         try {
             const x = Math.round(window.innerWidth / 2);
             for (let yy = 2; yy <= 160; yy += 3) { const e = document.elementFromPoint(x, yy); if (e && dark(e)) y = yy; else { hit = true; break; } }
-        } catch (e) { return 0; }
-        return hit ? y : 0;
+        } catch (e) { return { y: 0, r: 0 }; }
+        if (!hit || !last) return { y: 0, r: 0 };
+        let r = 0; try { r = Math.min(40, parseFloat(getComputedStyle(last).borderBottomLeftRadius) || 0); } catch (e) { r = 0; }
+        const bottom = last.getBoundingClientRect().bottom;
+        return { y: bottom > 0 && bottom < 200 ? bottom : y, r };
     },
     hide() { if (Prog.el) Prog.el.hidden = true; if (Prog.ln) Prog.ln.hidden = true; clearInterval(Prog.timer); Prog.cur = null; },
     fmtT(s) { s = Math.max(0, Math.round(s)); return s < 60 ? s + ' ث' : Math.floor(s / 60) + ' د ' + (s % 60) + ' ث'; },
@@ -54,10 +58,12 @@ const Prog = {
         el.hidden = false;
         {   // الخط الرفيع: يتحرك أثناء العمل ولا يعترض اللمس
             const ln = Prog.ln; if (ln) {
-                const y = Prog.lineY(); ln.style.top = Math.max(0, y - 2) + 'px'; ln.hidden = false;
+                const g = Prog.lineY(), r = Math.round(g.r), H = r + 4;
+                ln.style.top = Math.max(0, g.y - H) + 'px'; ln.style.height = H + 'px'; ln.style.setProperty('--r', r + 'px'); ln.hidden = false;
                 const det = h.pct !== null;
                 ln.className = 'pl-' + (h.state === 'ok' ? 'ok' : h.state === 'err' ? 'err' : (!navigator.onLine || (Date.now() - h.last) / 1000 > 12) ? 'warn' : 'run') + (det || h.state !== 'run' ? '' : ' ind');
-                ln.firstChild.style.width = (h.state === 'ok' ? 100 : det ? Math.max(3, Math.round(h.pct)) : 100) + '%';
+                const pc = h.state === 'ok' ? 100 : det ? Math.max(3, Math.round(h.pct)) : 100;
+                ln.style.setProperty('--cut', (100 - pc) + '%');
             }
         }
         const now = Date.now(), el_s = (now - h.t0) / 1000, idle = (now - h.last) / 1000, det = h.pct !== null;

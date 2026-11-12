@@ -3906,3 +3906,13 @@ body.role-staff #homeView .home-grid .home-tiles3 .home-tile.tile-sm { aspect-ra
 #progLine i { background: linear-gradient(270deg, #fbbf24, #f9a825 55%, #d98a1f); }
 #progLine.pl-warn i { background: #ea580c; }
 #progBox.pg-run, #progBox.pg-ok, #progBox.pg-warn { display: none !important; }
+
+/* v474: خط التقدم يتبع انحناء حافة الترويسة */
+#progLine { height: 4px; background: none !important; overflow: visible; }
+#progLine i { display: none; }
+#progLine b { position: absolute; left: 0; right: 0; top: 0; bottom: 0; border-radius: 0 0 var(--r, 0px) var(--r, 0px); border-bottom: 4px solid transparent; pointer-events: none; }
+#progLine .pl-track { border-bottom-color: rgba(148,163,184,.28); }
+#progLine .pl-fill { border-bottom-color: #f9a825; clip-path: inset(0 0 0 var(--cut, 100%)); transition: clip-path .35s ease, border-color .3s; }
+#progLine.pl-ok .pl-fill { border-bottom-color: #16a34a; } #progLine.pl-err .pl-fill { border-bottom-color: #dc2626; } #progLine.pl-warn .pl-fill { border-bottom-color: #ea580c; }
+#progLine.ind .pl-fill { clip-path: inset(0 0 0 70%); animation: plSlide 1.2s ease-in-out infinite; }
+@keyframes plSlide { 0%, 100% { clip-path: inset(0 0 0 70%); } 50% { clip-path: inset(0 70% 0 0); } }
