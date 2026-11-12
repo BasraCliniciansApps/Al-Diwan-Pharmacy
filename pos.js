@@ -233,18 +233,26 @@ function posLimits() {   // أعلى خصم مسموح بالمبلغ، بنفس
     return { allow: Math.floor(allow), unknown, own };
 }
 // خصم يجعل الصافي مبلغاً بلا كسور (أقرب 250 د.ع)، وخيار «سعر الكلفة» (الكلفة مقرّبة إلى أقرب ألف فوقها)
-const POS_NET_STEP = 250;
-function posDiscForPct(S, pc) { if (!(pc > 0)) return 0; const net = Math.round(S * (1 - pc / 100) / POS_NET_STEP) * POS_NET_STEP; return Math.max(0, Math.min(Math.floor(S), Math.floor(S - net))); }
-function posDiscForMax(S, allow) { const net = Math.ceil((S - allow) / POS_NET_STEP - 1e-9) * POS_NET_STEP; return Math.max(0, Math.min(Math.floor(allow), Math.floor(S - net))); }
-function posCostNet() {
+const POS_STEP_BIG = 1000, POS_STEP_SMALL = 250;
+function posStepFor(S) { return S >= 5000 ? POS_STEP_BIG : POS_STEP_SMALL; }   // الفواتير الصغيرة: 250 حتى لا يصير التقريب خصماً كبيراً
+function posCostRaw() {   // كلفة الفاتورة (للمالك من سعر الشراء، وللمستخدم من حد الخصم المخزن مع المادة)
     const own = userRole === 'owner'; let cost = 0;
     bill.items.forEach(it => {
         const lt = (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), p = it.pid && products.find(x => x.id === it.pid); let lim = null;
         if (p) { if (own) { const ex = typeof scExact === 'function' ? scExact(p) : null; lim = ex; } else if (p.dlim !== undefined && p.dlim !== null && p.dlim !== '') lim = Number(p.dlim); }
         cost += lim === null ? lt : lt * (1 - lim / 100);
     });
-    return Math.ceil(cost / 1000 - 1e-9) * 1000;
+    return cost;
 }
+// خصم بنسبة: الصافي يُقرَّب لأقرب ألف، بشرط أن يبقى ربحاً (إن نزل عن الكلفة يُرفع لأقرب ألف فوقها)
+function posDiscForPct(S, pc) {
+    if (!(pc > 0)) return 0;
+    const st = posStepFor(S), cost = posCostRaw(); let net = Math.round(S * (1 - pc / 100) / st) * st;
+    if (cost < S && net < cost) net = Math.ceil(cost / st - 1e-9) * st;
+    return Math.max(0, Math.min(Math.floor(S), Math.floor(S - net)));
+}
+function posDiscForMax(S, allow) { const st = posStepFor(S), net = Math.ceil((S - allow) / st - 1e-9) * st; return Math.max(0, Math.min(Math.floor(allow), Math.floor(S - net))); }
+function posCostNet() { return Math.ceil(posCostRaw() / 1000 - 1e-9) * 1000; }
 function posDiscForCost(S) { return Math.max(0, Math.floor(S - posCostNet())); }
 function posCostChipOn() { try { return userRole === 'owner' || !!scCfg().posCostChip; } catch (e) { return false; } }
 function posCostChipSet(v) { try { const c = scCfg(); c.posCostChip = !!v; scSave(c); } catch (e) { /* تجاهل */ } }
