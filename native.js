@@ -12,7 +12,20 @@
     if (!IS) return;
     document.documentElement.classList.add('is-app');
 
-    const P = n => { try { return C.registerPlugin(n); } catch (e) { return null; } };
+    // في وضع الموقع البعيد (server.url) قد لا تتوفر registerPlugin، فنجرّب عدة طرق للوصول للإضافات الأصلية
+    const P = n => {
+        try { if (C.Plugins && C.Plugins[n]) return C.Plugins[n]; } catch (e) { /* تجاهل */ }
+        try { if (typeof C.registerPlugin === 'function') { const r = C.registerPlugin(n); if (r) return r; } } catch (e) { /* تجاهل */ }
+        if (typeof C.nativePromise === 'function') {
+            return new Proxy({}, { get: (_, m) => {
+                if (m === 'then') return undefined;
+                if (m === 'addListener') return (ev, cb) => { let h = null; try { h = C.addListener ? C.addListener(n, ev, cb) : null; } catch (e) { /* تجاهل */ } return Promise.resolve({ remove: () => { try { h && h.remove && h.remove(); } catch (e) { /* تجاهل */ } } }); };
+                return o => C.nativePromise(n, m, o || {});
+            } });
+        }
+        return null;
+    };
+    NAT.plugins = () => ({ FS: !!FS, LN: !!LN, BS: !!BS, BIO: !!BIO, TP: !!TP, APP: !!APP });
     const FS = P('Filesystem'), LN = P('LocalNotifications'), BS = P('BarcodeScanner'),
         BIO = P('BiometricAuthNative'), TP = P('CapacitorThermalPrinter'), APP = P('App');
     const KEY = 'diwanNative';
@@ -82,6 +95,7 @@
         if (cfg().bio && hiddenAt && Date.now() - hiddenAt > 30000) NAT.lockNow();
     });
     NAT.setBio = async function (on) {
+        if (on && !BIO) { Swal.fire({ icon: 'error', title: 'تعذر تفعيل القفل', text: 'إضافة البصمة غير متوفرة في هذه النسخة.', confirmButtonText: 'حسناً' }); return false; }
         if (on) {
             try {
                 const r = await BIO.checkBiometry();
@@ -194,25 +208,31 @@
     function sw(id, on, label) {
         return `<label class="cn-sw"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span>${label}</span></label>`;
     }
-    function injectSettings() {
-        const box = [...document.querySelectorAll('#catModal .cat-manager-box')].find(b => { const h = b.querySelector('h4'); return h && h.textContent.trim().startsWith('التطبيق'); });
-        if (!box || box.querySelector('#natSet') || box.dataset.acc) return;
+    // صفحة مستقلة ضمن الإعدادات: بطاقة «إعدادات التطبيق» تفتح نافذة بالخيارات
+    NAT.openSettings = function (again) {
+        if (again !== true && typeof shLeave === 'function') shLeave('layer');
         const c = cfg();
-        const d = document.createElement('div'); d.id = 'natSet'; d.style.cssText = 'margin-top:10px;text-align:right';
-        d.innerHTML = `<b style="display:block;margin-bottom:6px">📱 إعدادات تطبيق الأندرويد</b>
-            ${sw('natBio', c.bio, 'قفل التطبيق بالبصمة أو قفل الشاشة')}
-            ${sw('natRem', c.remind, 'تذكير يومي الساعة 9 صباحاً بالمواد المنتهية والقريبة من الانتهاء')}
-            ${sw('natP80', c.paper === 80, 'عرض ورق الطابعة 80 ملم (الافتراضي 58 ملم)')}
-            <button type="button" class="icon-btn" id="natPrn" style="margin-top:8px;width:100%">🖨️ اختيار الطابعة الحرارية${c.printerName ? ' — ' + escapeHtml(c.printerName) : ''}</button>
-            <p style="font-size:.74rem;color:var(--text-sub);margin-top:8px">تُحفظ الملفات تلقائياً في: Documents/${ROOT}</p>`;
-        box.appendChild(d);
-        d.querySelector('#natBio').onchange = async e => { const ok = await NAT.setBio(e.target.checked); if (!ok) e.target.checked = !e.target.checked; };
-        d.querySelector('#natRem').onchange = e => NAT.setRemind(e.target.checked);
-        d.querySelector('#natP80').onchange = e => setCfg({ paper: e.target.checked ? 80 : 58 });
-        d.querySelector('#natPrn').onclick = async () => { await NAT.printerChoose(); const bt = d.querySelector('#natPrn'); if (bt && cfg().printerName) bt.textContent = '🖨️ اختيار الطابعة الحرارية — ' + cfg().printerName; };
+        Swal.fire({
+            title: '📱 إعدادات التطبيق', showConfirmButton: false, showCloseButton: true,
+            html: `<div class="sw-form" style="text-align:right">
+                ${sw('natBio', c.bio, 'قفل التطبيق بالبصمة أو قفل الشاشة')}
+                ${sw('natRem', c.remind, 'تذكير يومي الساعة 9 صباحاً بالمواد المنتهية والقريبة من الانتهاء')}
+                ${sw('natP80', c.paper === 80, 'عرض ورق الطابعة 80 ملم (الافتراضي 58 ملم)')}
+                <button type="button" class="icon-btn" id="natPrn" style="margin-top:10px;width:100%">🖨️ اختيار الطابعة الحرارية${c.printerName ? ' — ' + escapeHtml(c.printerName) : ''}</button>
+                <p style="font-size:.74rem;color:var(--text-sub);margin-top:10px">تُحفظ الملفات تلقائياً في: Documents/${ROOT}</p></div>`,
+            didOpen: () => {
+                const g = id => document.getElementById(id);
+                g('natBio').onchange = async e => { const ok = await NAT.setBio(e.target.checked); if (!ok) e.target.checked = !e.target.checked; };
+                g('natRem').onchange = e => NAT.setRemind(e.target.checked);
+                g('natP80').onchange = e => setCfg({ paper: e.target.checked ? 80 : 58 });
+                g('natPrn').onclick = async () => { await NAT.printerChoose(); NAT.openSettings(true); };
+            }
+        });
+    };
+    window.natOpenSettings = () => NAT.openSettings();
+    if (typeof SH_PAGES !== 'undefined' && !SH_PAGES.some(p => p.id === 'natapp')) {
+        SH_PAGES.push({ id: 'natapp', ico: '📱', t: 'إعدادات التطبيق', boxes: [], act: 'natOpenSettings', kw: 'تطبيق اندرويد بصمة قفل طابعة حرارية تذكير صلاحية ورق' });
     }
-    const mgrOrig = window.openCategoryManager;
-    if (typeof mgrOrig === 'function') window.openCategoryManager = function () { try { injectSettings(); } catch (e) { console.warn(e); } return mgrOrig.apply(this, arguments); };
 
     // عند الفتح: قفل ثم تحديث التذكير بعد تحميل البيانات
     document.addEventListener('DOMContentLoaded', () => { if (cfg().bio) NAT.lockNow(); });
