@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""يولّد index.html (الزبائن) و admin.html (الصيدلي) من app.template.html + invoice.html.part"""
+"""يولّد admin.html (الصيدلي) من app.template.html + invoice.html.part، وindex.html مجرد تحويل إليه"""
 import re, os
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 t = open(os.path.join(root, 'app.template.html'), encoding='utf-8').read()
@@ -18,6 +18,6 @@ def build(mode):
         s = re.sub(r'<!--/?C-->', '', s)
         title, cls = 'صيدلية الديوان | الدليل الدوائي', 'customer'
     return s.replace('__TITLE__', title).replace('__BODYCLASS__', cls).replace('__MODE__', mode)
-open(os.path.join(root, 'index.html'), 'w', encoding='utf-8').write(build('customer'))
+open(os.path.join(root, 'index.html'), 'w', encoding='utf-8').write('<!doctype html><html lang="ar"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=admin.html"><title>صيدلية الديوان</title><script>location.replace("admin.html"+location.search+location.hash)</script>')
 open(os.path.join(root, 'admin.html'), 'w', encoding='utf-8').write(build('admin'))
-print('built index.html + admin.html')
+print('built admin.html (+ index.html redirect)')

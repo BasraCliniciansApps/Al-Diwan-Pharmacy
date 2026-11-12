@@ -70,7 +70,7 @@ function exEnsureDom() {
 }
 async function exOpen(tab) {
     if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'هذه الصفحة للمالك فقط.', confirmButtonColor: '#0f1c38' }); return; }
-    exEnsureDom(); exTab = tab || 'rep'; exAll = exLocal(); try { cuLoadLocal(); } catch (e) { /* تجاهل */ }
+    exEnsureDom(); exTab = tab || 'rep'; exAll = exLocal();
     document.getElementById('exOv').style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open'); exOpenFlag = true;
     exRender();
     await exRefresh();
