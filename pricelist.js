@@ -7,16 +7,27 @@ const plMethodOf = p => p.pricing === 'syndicate' ? 'syndicate' : p.pricing === 
 const plMethodName = k => (PL_METHODS.find(m => m[0] === 'm:' + k) || [0, ''])[1];
 const plOwner = () => typeof userRole !== 'undefined' && userRole === 'owner';
 function plEnsure() {
-    if (document.getElementById('plOv')) return;
-    const d = document.createElement('div'); d.id = 'plOv'; d.className = 'lg-ov'; d.style.display = 'none';
-    d.innerHTML = `<div class="lg-card pl-card" dir="rtl"><div class="lg-h"><b>💲 قائمة التسعير</b><button type="button" onclick="plClose()" aria-label="إغلاق">✕</button></div>
-        <div class="pl-top"><div class="bill-search-wrap"><input type="search" id="plSearch" autocomplete="off" placeholder="🔍 ابحث عن مادة..." oninput="plQ=this.value;plAll=false;plRender()"></div><div id="plFilter"></div></div>
-        <div class="lg-body pl-body" id="plList"></div>
-        <div class="lg-f"><span id="plCount"></span><button type="button" class="bill-tb-btn" onclick="plCsv()">⬇️ Excel</button></div></div>`;
-    document.body.appendChild(d);
+    const host = document.getElementById('plPane'); if (!host || document.getElementById('plSearch')) return;
+    host.innerHTML = `<div class="pl-top"><div class="bill-search-wrap"><input type="search" id="plSearch" autocomplete="off" placeholder="🔍 ابحث عن مادة..." oninput="plQ=this.value;plAll=false;plRender()"></div><div id="plFilter"></div></div>
+        <div class="pl-body" id="plList"></div>
+        <div class="pl-foot"><span id="plCount"></span><button type="button" class="bill-tb-btn" onclick="plCsv()">⬇️ Excel</button></div>`;
 }
-function plShow() { plEnsure(); document.getElementById('plSearch').value = plQ; document.getElementById('plOv').style.display = 'flex'; plRender(); }
-function plClose() { const m = document.getElementById('plOv'); if (m) m.style.display = 'none'; }
+// قائمة التسعير تبويب داخل شاشة سجل الأدوية (لا نافذة منبثقة)
+function plShow() {
+    const v = document.getElementById('catalogView');
+    if (!v || getComputedStyle(v).display === 'none') { try { openCatalog(); } catch (e) { /* تجاهل */ } }
+    plEnsure();
+    const lp = document.querySelector('#catalogView .bill-scroll > .bill-panel:not(.pl-inline)'), pp = document.getElementById('plPane');
+    if (lp) lp.style.display = 'none'; if (pp) pp.style.display = '';
+    const tl = document.getElementById('catTabList'), tp = document.getElementById('catTabPrice'); if (tl) tl.classList.remove('on'); if (tp) tp.classList.add('on');
+    const s = document.getElementById('plSearch'); if (s) s.value = plQ;
+    plRender();
+}
+function plClose() {
+    const lp = document.querySelector('#catalogView .bill-scroll > .bill-panel:not(.pl-inline)'), pp = document.getElementById('plPane');
+    if (lp) lp.style.display = ''; if (pp) pp.style.display = 'none';
+    const tl = document.getElementById('catTabList'), tp = document.getElementById('catTabPrice'); if (tl) tl.classList.add('on'); if (tp) tp.classList.remove('on');
+}
 function plToggle(k) { if (plSet.has(k)) plSet.delete(k); else plSet.add(k); plAll = false; plRender(); }
 function plClear() { plSet.clear(); plAll = false; plRender(); }
 function plData() {

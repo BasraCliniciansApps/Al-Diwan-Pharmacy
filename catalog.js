@@ -264,7 +264,7 @@ async function catMerge(s, d, quiet) {
     }
     return true;
 }
-function openCatalog() { shLeave('view'); showView('catalog'); }
+function openCatalog() { shLeave('view'); showView('catalog'); try { plClose(); } catch (e) { /* تجاهل */ } }
 
 // ---------- صورة المادة من نافذة التفاصيل: لا صورة = إضافة، وجود صورة = عرض مع تبديل ----------
 function sheetImgTap(id) {

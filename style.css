@@ -3884,3 +3884,8 @@ body.role-staff #homeView .home-grid .home-tiles3 .home-tile.tile-sm { aspect-ra
 /* v467: شريط الرئيسية العلوي (الاسم والأزرار وعنوان الصفحة) ثابت؛ المربعات تتحرك تحته */
 .home-view > .brand-bar { position: sticky; top: 0; z-index: 40; }
 .home-view > .page-title { position: sticky; top: var(--bb-h, 62px); z-index: 39; box-shadow: 0 8px 14px -10px rgba(15,28,56,.55); }
+
+/* v469: قائمة التسعير كتبويب داخل سجل الأدوية */
+.pl-inline .pl-top { padding: 0 0 8px; } .pl-inline .pl-body { padding: 4px 0 10px; overflow: visible; }
+.pl-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 2px 18px; font-size: .82rem; color: var(--text-sub); }
+.cat-tabs { padding: 4px 12px 8px; }

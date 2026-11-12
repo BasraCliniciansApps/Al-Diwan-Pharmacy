@@ -186,23 +186,7 @@
     };
     NAT.setRemind = async function (on) { setCfg({ remind: !!on }); await NAT.refreshReminders(); return true; };
 
-    // ---------- 5) ماسح الباركود الأصلي ----------
-    if (BS && typeof window.openBarcodeScanner === 'function') {
-        const orig = window.openBarcodeScanner;
-        window.openBarcodeScanner = async function (cb) {
-            try {
-                const perm = await BS.requestPermissions();
-                if (perm.camera !== 'granted' && perm.camera !== 'limited') return orig(cb);
-                const r = await BS.scan();
-                const code = r && r.barcodes && r.barcodes[0] && (r.barcodes[0].rawValue || r.barcodes[0].displayValue);
-                if (code) { cb(code); return; }
-            } catch (e) {
-                const m = String(e && e.message || e);
-                if (/cancel/i.test(m)) return;
-            }
-            return orig(cb);
-        };
-    }
+    // ---------- 5) ماسح الباركود: يبقى ماسح التطبيق المعتاد (فيه مربع اسم المادة ومربع رقم الباركود) ----------
 
     // ---------- 6) إعدادات التطبيق داخل شاشة الجرد (للمالك) ----------
     function sw(id, on, label) {
