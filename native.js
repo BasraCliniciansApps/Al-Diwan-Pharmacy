@@ -218,6 +218,12 @@
         SH_PAGES.push({ id: 'natapp', ico: '📱', t: 'إعدادات التطبيق', boxes: [], act: 'natOpenSettings', kw: 'تطبيق اندرويد بصمة قفل طابعة حرارية تذكير صلاحية ورق' });
     }
 
+    // إظهار الحقل الذي يُكتب فيه فوق لوحة المفاتيح
+    document.addEventListener('focusin', e => {
+        const t = e.target; if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+        setTimeout(() => { try { t.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (er) { /* تجاهل */ } }, 350);
+    });
+
     // عند الفتح: قفل ثم تحديث التذكير بعد تحميل البيانات
     document.addEventListener('DOMContentLoaded', () => { if (cfg().bio) NAT.lockNow(); });
     if (document.readyState !== 'loading' && cfg().bio) NAT.lockNow();
