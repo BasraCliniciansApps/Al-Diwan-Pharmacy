@@ -22,3 +22,11 @@ function pcOpen() {
         }
     });
 }
+
+// ارتفاع الشريط العلوي للرئيسية يُقاس ليثبت عنوان الصفحة تحته مباشرة
+(function () {
+    const set = () => { const b = document.querySelector('.home-view > .brand-bar'); if (b && b.offsetHeight > 0) document.documentElement.style.setProperty('--bb-h', b.offsetHeight + 'px'); };
+    window.addEventListener('resize', set); window.addEventListener('load', set);
+    try { const b = document.querySelector('.home-view > .brand-bar'); if (b && window.ResizeObserver) new ResizeObserver(set).observe(b); } catch (e) { /* تجاهل */ }
+    setInterval(set, 1500); set();
+})();
