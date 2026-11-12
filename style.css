@@ -3927,3 +3927,8 @@ body.role-staff #homeView .home-grid .home-tiles3 .home-tile.tile-sm { aspect-ra
 
 /* v482 تثبيت حجم الخط: لا يتبع إعداد خط الجهاز */
 html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%}
+
+/* v483 توحيد أحجام خط الأزرار: الصفان الكبيران 1.35rem، والأزرار الصغيرة كلها .9rem */
+#homeView .home-tiles .home-tile b, #homeView .home-sq .home-tile b { font-size: 1.35rem !important; }
+#homeView .home-tile small { font-size: .72rem !important; }
+#homeView .home-tiles3 .home-tile b, #homeView .tile-exp b, body.role-staff #homeView .home-grid .home-tile.tile-sm b { font-size: .9rem !important; line-height: 1.25; text-align: center; }
