@@ -3963,3 +3963,9 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 #homeView .home-tile.tile-scan > svg, #homeView .home-tile.tile-cus > svg, #homeView .home-tile.tile-rxh > svg, #homeView .home-tile.tile-inv > svg,
 #homeView .home-tile.tile-gear > svg, #homeView .home-tile.tile-calc > svg, #homeView .home-tile.tile-cat > svg, #homeView .home-tile.tile-exp > svg { color: #f9c14a; }
 #homeView .home-tile.tile-alert { background: linear-gradient(155deg, #c4504b 0%, #8f2a27 100%) !important; box-shadow: 0 2px 3px rgba(143,42,39,.3), 0 14px 24px -14px rgba(143,42,39,.75) !important; }
+
+/* v487 خط الرقعة لعناوين كل أزرار الواجهة (الصغيرة أيضاً) */
+#homeView .home-tiles3 .home-tile b, #homeView .tile-exp b, body.role-staff #homeView .home-grid .home-tile.tile-sm b { font-family: 'Aref Ruqaa', 'Tajawal', serif !important; font-weight: 700 !important; font-size: 1.12rem !important; line-height: 1.3 !important; }
+#homeView .home-tiles3 .home-tile.tile-sm { aspect-ratio: 1.15 / 1 !important; gap: 4px; }
+#homeView .home-tiles3 .home-tile b { font-size: 1.2rem !important; }
+#homeView .home-tiles3 .home-tile.tile-exp b { font-size: 1.05rem !important; line-height: 1.15 !important; }
