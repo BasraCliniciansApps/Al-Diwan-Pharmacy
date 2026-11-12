@@ -592,29 +592,41 @@
 <div class="page-title">🏠 الرئيسية</div>
     <div id="bkReminder"></div>
     <div class="home-kpis" id="homeKpis"></div>
+    <div class="home-search" id="homeSearch"><input type="search" id="homeQ" placeholder="ابحث عن مادة أو الباركود" autocomplete="off" enterkeyhint="search" onkeydown="if(event.key==='Enter'){event.preventDefault();hmSearch(this.value);}"><button type="button" onclick="hmSearch(document.getElementById('homeQ').value)" aria-label="بحث"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg></button></div>
     <div class="home-tiles">
+        <button type="button" class="home-tile tile-pos" onclick="posOpen()">
+            <svg viewBox="0 0 24 24" width="54" height="54" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><path d="M5 10v9a2 2 0 002 2h10a2 2 0 002-2v-9"/><path d="M8 14h2M12 14h2M8 17.5h2M12 17.5h2M16 14v3.5"/></svg>
+            <b>شاشة البيع</b><small>بيع سريع</small>
+        </button>
         <button type="button" class="home-tile tile-bill" onclick="showView('bill')">
             <svg viewBox="0 0 24 24" width="54" height="54" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
             <b>فاتورة</b><small>إصدار وإدارة الفواتير</small>
         </button>
-        <button type="button" class="home-tile tile-stock" onclick="showView('stock')">
-            <svg viewBox="0 0 24 24" width="54" height="54" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+    </div>
+    <div class="home-sq">
+        <button type="button" class="home-tile tile-sq tile-stock" onclick="showView('stock')">
+            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
             <b>مخزن</b><small>الأصناف والكميات</small>
         </button>
-    </div>
-    <button type="button" class="home-tile tile-purch" onclick="showView('purch')">
-        <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/><path d="M8 5.5l8 3.8"/></svg>
-        <span class="tile-txt"><b>الوارد</b><small id="homePuOwed">فواتير المذاخر والدفعات</small></span>
-    </button>
-    <div class="home-sq">
-        <button type="button" class="home-tile tile-sq tile-scan" onclick="scGo()">
-            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><circle cx="12" cy="12" r="3"/></svg>
-            <b>فاحص المادة</b><small>امسح الباركود</small>
+    <button type="button" class="home-tile tile-sq tile-purch" onclick="showView('purch')">
+            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/><path d="M8 5.5l8 3.8"/></svg>
+            <span class="tile-txt"><b>الوارد</b><small id="homePuOwed">فواتير المذاخر والدفعات</small></span>
         </button>
-        <button type="button" class="home-tile tile-sq tile-rxh" onclick="drOpen()">
+    </div>
+    <div class="home-tiles3">
+        <button type="button" class="home-tile tile-sm tile-scan" onclick="scGo()">
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><circle cx="12" cy="12" r="3"/></svg>
+            <b>فاحص المادة</b>
+        </button>
+        <button type="button" class="home-tile tile-sm tile-cus" onclick="cuOpen()">
+            <span class="tile-badge" id="homeCusCount" style="display:none;">0</span>
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2 .8 3.5 2.6 3.5 5.7"/></svg>
+            <b>الزبائن</b>
+        </button>
+        <button type="button" class="home-tile tile-sm tile-rxh" onclick="drOpen()">
             <span class="tile-badge rx-badge" style="display:none;">0</span>
-            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
-            <b>ركن الأطباء</b><small>وصفات وصفحة الأطباء</small>
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+            <b>ركن الأطباء</b>
         </button>
     </div>
     <div class="home-tiles3">
@@ -1121,7 +1133,7 @@
     <script src="seed.js"></script>
     <script src="prog.js"></script>
     <script src="data.js"></script>
-<script src="invoice.js"></script><script src="sellpop.js"></script><script src="quickinv.js"></script><script src="pos.js"></script><script src="formsmgr.js"></script><script src="pricelist.js"></script><script src="purchase-xlsx.js"></script><script src="desktop.js"></script><script src="info.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="datahub.js"></script><script src="taxfilter.js"></script><script src="docpage.js"></script><script src="rxprint.js"></script><script src="rx.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><script src="labels.js"></script><script src="help.js"></script><script src="navtabs.js"></script><script src="count.js"></script><script src="formtabs.js"></script>
+<script src="invoice.js"></script><script src="sellpop.js"></script><script src="quickinv.js"></script><script src="pos.js"></script><script src="formsmgr.js"></script><script src="pricelist.js"></script><script src="purchase-xlsx.js"></script><script src="desktop.js"></script><script src="info.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="datahub.js"></script><script src="taxfilter.js"></script><script src="docpage.js"></script><script src="rxprint.js"></script><script src="rx.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><script src="labels.js"></script><script src="help.js"></script><script src="navtabs.js"></script><script src="count.js"></script><script src="formtabs.js"></script><script src="customers.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             const hadCtl = !!navigator.serviceWorker.controller;

@@ -3770,3 +3770,50 @@ body.ov-open #formModal { z-index: 9200; } body.ov-open #expiryModal, body.ov-op
 @media (max-width: 560px) { .cn-row { grid-template-columns: 22px 1fr 64px 84px 34px; } .cn-n { grid-row: 1 / 3; } .cn-tt { grid-column: 2 / 5; } .cn-sd { grid-column: 5; } .cn-nm { grid-column: 2; } }
 .cn-gm { align-self: start; justify-self: start; margin-top: 2px; min-height: 26px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 13px; background: #f8fafc; font: 600 .74rem inherit; font-family: inherit; color: #0f1c38; cursor: pointer; }
 .cn-gh .cn-gm { margin: 0; }
+
+/* ===== v454: إعادة ترتيب الرئيسية (شاشة البيع + فاتورة، مخزن + وارد مربعان، صف ثالث ورابع بحجم موحّد) + البحث السريع + الزبائن ===== */
+.home-search { display: flex; gap: 8px; margin: 12px 0 0; }
+.home-search input { flex: 1; min-width: 0; height: 46px; border: 1px solid #cbd5e1; border-radius: 14px; padding: 0 14px; font: inherit; font-size: .95rem; background: #fff; color: #0f1c38; }
+.home-search button { width: 46px; height: 46px; flex: none; border: 0; border-radius: 14px; background: #0f1c38; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+[data-theme="dark"] .home-search input { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+body.role-staff:not(.can-scan) .home-search, body.sc-off .home-search { display: none !important; }
+#homeView .home-tiles { margin-top: 12px; }
+#homeView .home-tile.tile-pos { background: linear-gradient(155deg, #0ea5e9 0%, #0369a1 100%); box-shadow: 0 2px 3px rgba(3,105,161,.3), 0 18px 30px -14px rgba(3,105,161,.75); }
+#homeView .home-tile.tile-cus { background: linear-gradient(155deg, #ec4899 0%, #9d174d 100%); box-shadow: 0 2px 3px rgba(157,23,77,.3), 0 18px 30px -14px rgba(157,23,77,.7); }
+body.role-staff:not(.can-sell) .tile-pos, body.role-staff .tile-cus { display: none !important; }
+/* مخزن + وارد مربعان */
+#homeView .home-sq { grid-template-columns: 1fr 1fr !important; }
+#homeView .home-sq .home-tile { aspect-ratio: 1 / 1; min-height: 0; margin: 0; width: auto; flex-direction: column; gap: 6px; justify-content: center; }
+#homeView .home-sq .home-tile.tile-purch .tile-txt { display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+#homeView .home-sq .home-tile b { font-size: 1.15rem; }
+#homeView .home-sq .home-tile small { font-size: .72rem; max-width: 92%; }
+/* الصفان الثالث والرابع: ثلاث مربعات بحجم واحد */
+#homeView .home-tiles3 .home-tile.tile-sm { aspect-ratio: 1 / 1; min-height: 0; padding: 4px; }
+#homeView .home-tiles3 .home-tile.tile-sm b { font-size: .9rem; text-align: center; line-height: 1.25; }
+body.role-staff .home-sq .tile-scan { grid-column: auto; }
+/* شاشة الزبائن */
+.cu-sum { display: grid; gap: 4px; padding: 14px; border-radius: 16px; background: linear-gradient(145deg, #12204d, #2b3f7a); color: #fff; text-align: center; margin-bottom: 10px; }
+.cu-sum b { font-size: 1.5rem; } .cu-sum span, .cu-sum small { font-size: .8rem; opacity: .85; }
+.cu-seg { display: flex; gap: 6px; margin: 0 0 8px; }
+.cu-seg button { flex: 1; min-height: 40px; border: 1.5px solid #cbd5e1; border-radius: 12px; background: #fff; font: inherit; font-weight: 800; font-size: .85rem; color: #0f1c38; cursor: pointer; }
+.cu-seg button.on { background: #0f1c38; color: #fff; border-color: #0f1c38; }
+.cu-row { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; margin-bottom: 8px; cursor: pointer; }
+.cu-av { width: 42px; height: 42px; flex: none; border-radius: 50%; background: #fce7f3; color: #9d174d; font-weight: 900; display: flex; align-items: center; justify-content: center; }
+.cu-row > div:nth-child(2) { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.cu-row b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cu-row small { color: #64748b; font-size: .76rem; }
+.cu-amt { font-weight: 900; text-align: left; white-space: nowrap; } .cu-amt.owe { color: #b45309; } .cu-amt.ok { color: #0f9a6a; }
+.cu-amt small { display: block; font-weight: 600; }
+.cu-hd { display: grid; gap: 4px; padding: 14px; border-radius: 16px; background: #fff; border: 1px solid #e2e8f0; margin-bottom: 10px; text-align: center; }
+.cu-hd b { font-size: 1.1rem; } .cu-hd .big { font-size: 1.6rem; font-weight: 900; color: #b45309; } .cu-hd .big.ok { color: #0f9a6a; }
+.cu-acts { display: flex; gap: 8px; margin-bottom: 10px; }
+.cu-acts button { flex: 1; min-height: 46px; border: 0; border-radius: 12px; font: 800 .95rem inherit; font-family: inherit; color: #fff; cursor: pointer; }
+.cu-acts .pay { background: #0f766e; } .cu-acts .prt { background: #0f1c38; }
+.cu-acts button:disabled { opacity: .45; }
+.cu-h { font-weight: 800; color: #475569; margin: 12px 2px 6px; font-size: .88rem; }
+.cu-inv { display: flex; justify-content: space-between; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 10px 12px; margin-bottom: 6px; cursor: pointer; }
+.cu-inv > div:first-child { display: grid; gap: 2px; min-width: 0; } .cu-inv small { color: #64748b; font-size: .74rem; }
+.cu-pay { display: flex; justify-content: space-between; gap: 8px; font-size: .84rem; padding: 6px 4px; border-bottom: 1px dashed #e2e8f0; color: #0f766e; }
+.cu-none { text-align: center; color: #94a3b8; padding: 26px 10px; }
+[data-theme="dark"] .cu-row, [data-theme="dark"] .cu-inv, [data-theme="dark"] .cu-hd, [data-theme="dark"] .cu-seg button:not(.on) { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+#homeView .home-sq .home-tile > svg { width: 40px; height: 40px; padding: 13px; box-sizing: content-box; }
