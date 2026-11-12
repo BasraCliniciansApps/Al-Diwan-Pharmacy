@@ -1252,9 +1252,7 @@ function packLine(p) {
 function dispParts(p, part) {
     // ثلاث مجموعات: «الاسم والتركيز | حجم العبوة (أو نوع الجزء عند البيع بالجزء) والشكل الدوائي | الشركة»
     const asPart = !!part && hasRetail(p);
-    // الأنواع العامة (PCS / Pieces / قطعة...) لا تُدمج مع الشكل الدوائي لأن «PCS Medication Box» عبارة غير سليمة
-    const generic = asPart && /^(pcs?|pieces?|piece|units?|items?|قطعة|قطع|جزء|حبة)$/i.test(subTypeOf(p).trim());
-    return { name: String(p.name || '').trim(), mid: [asPart ? subTypeOf(p) : fixMetaOrder(p.meta || '').trim(), generic ? '' : dispForm(p)].filter(Boolean), brand: String(p.brand || '').trim() };
+    return { name: String(p.name || '').trim(), mid: [asPart ? subTypeOf(p) : fixMetaOrder(p.meta || '').trim(), dispForm(p)].filter(Boolean), brand: String(p.brand || '').trim() };
 }
 function dispName(p, part) { const d = dispParts(p, part); return [d.name, d.mid.join(' '), d.brand].filter(Boolean).join(' | '); }
 function dispNameHtml(p, part) {
