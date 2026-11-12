@@ -43,6 +43,10 @@ service cloud.firestore {
       allow read, write: if isOwner();
     }
 
+    // ---- المصروفات (للمالك فقط) ----
+    match /pharmacy_expenses/{id} {
+      allow read, write: if isOwner();
+    }
     // ---- الفواتير ----
     match /pharmacy_invoices/{id} {
       allow read: if isOwner() || perm('sell');
