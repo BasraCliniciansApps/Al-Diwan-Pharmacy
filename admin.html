@@ -617,17 +617,22 @@
             <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><circle cx="12" cy="12" r="3"/></svg>
             <b>فاحص المادة</b>
         </button>
+        <button type="button" class="home-tile tile-sm tile-cus" onclick="cuOpen()">
+            <span class="tile-badge" id="homeCusCount" style="display:none;">0</span>
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2 .8 3.5 2.6 3.5 5.7"/></svg>
+            <b>الزبائن</b>
+        </button>
         <button type="button" class="home-tile tile-sm tile-rxh" onclick="drOpen()">
             <span class="tile-badge rx-badge" style="display:none;">0</span>
             <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
             <b>ركن الأطباء</b>
         </button>
+    </div>
+    <div class="home-tiles3">
         <button type="button" class="home-tile tile-sm tile-inv" onclick="openInventory()">
             <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9z"/><path d="M9 13l2 2 4-4"/></svg>
             <b>الجرد</b>
         </button>
-    </div>
-    <div class="home-tiles3">
         <button type="button" class="home-tile tile-sm tile-alert" onclick="goAlerts('all')">
             <span class="tile-badge" id="homeAlertCount" style="display:none;">0</span>
             <span class="tile-badge doc-badge" style="display:none;">0</span>
@@ -639,12 +644,12 @@
             <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
             <b>الإعدادات</b>
         </button>
+    </div>
+    <div class="home-tiles3 home-row5">
         <button type="button" class="home-tile tile-sm tile-calc" onclick="pcOpen()">
             <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><rect x="8" y="5.5" width="8" height="3.5" rx=".8"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 17h.01M12 17h.01M15.5 17h.01"/></svg>
             <b>حاسبة الأسعار</b>
         </button>
-    </div>
-    <div class="home-tiles3 home-row5 home-row2c">
         <button type="button" class="home-tile tile-sm tile-cat" onclick="openCatalog()">
             <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 015.5 3H19v15H5.5A1.5 1.5 0 004 19.5z"/><path d="M4 19.5A1.5 1.5 0 005.5 21H19v-3"/><path d="M9 8h6M9 11.5h4"/></svg>
             <b>سجل الأدوية</b>
@@ -1136,7 +1141,7 @@
     <script src="seed.js"></script>
     <script src="prog.js"></script>
     <script src="data.js"></script>
-<script src="invoice.js"></script><script src="sellpop.js"></script><script src="quickinv.js"></script><script src="pos.js"></script><script src="formsmgr.js"></script><script src="pricelist.js"></script><script src="purchase-xlsx.js"></script><script src="desktop.js"></script><script src="info.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="datahub.js"></script><script src="taxfilter.js"></script><script src="docpage.js"></script><script src="rxprint.js"></script><script src="rx.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><script src="labels.js"></script><script src="help.js"></script><script src="navtabs.js"></script><script src="count.js"></script><script src="formtabs.js"></script><script src="expenses.js"></script><script src="smartpo.js"></script><script src="homeplus.js"></script>
+<script src="invoice.js"></script><script src="sellpop.js"></script><script src="quickinv.js"></script><script src="pos.js"></script><script src="formsmgr.js"></script><script src="pricelist.js"></script><script src="purchase-xlsx.js"></script><script src="desktop.js"></script><script src="info.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="datahub.js"></script><script src="taxfilter.js"></script><script src="docpage.js"></script><script src="rxprint.js"></script><script src="rx.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><script src="labels.js"></script><script src="help.js"></script><script src="navtabs.js"></script><script src="count.js"></script><script src="formtabs.js"></script><script src="expenses.js"></script><script src="smartpo.js"></script><script src="customers.js"></script><script src="homeplus.js"></script>
 <script src="bidi.js"></script>
 <script src="native.js"></script>
     <script>
