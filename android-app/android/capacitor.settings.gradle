@@ -16,3 +16,6 @@ project(':aparajita-capacitor-biometric-auth').projectDir = new File('../node_mo
 
 include ':capacitor-thermal-printer'
 project(':capacitor-thermal-printer').projectDir = new File('../node_modules/capacitor-thermal-printer/android')
+
+include ':capacitor-app'
+project(':capacitor-app').projectDir = new File('../node_modules/@capacitor/app/android')

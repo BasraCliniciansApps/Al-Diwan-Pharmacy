@@ -14,7 +14,7 @@
 
     const P = n => { try { return C.registerPlugin(n); } catch (e) { return null; } };
     const FS = P('Filesystem'), LN = P('LocalNotifications'), BS = P('BarcodeScanner'),
-        BIO = P('BiometricAuthNative'), TP = P('CapacitorThermalPrinter');
+        BIO = P('BiometricAuthNative'), TP = P('CapacitorThermalPrinter'), APP = P('App');
     const KEY = 'diwanNative';
     const cfg = () => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } };
     const setCfg = o => { try { localStorage.setItem(KEY, JSON.stringify(Object.assign(cfg(), o))); } catch (e) { /* تجاهل */ } };
@@ -43,6 +43,14 @@
         } catch (e) { console.warn('NAT.saveBlob', e); return null; }
     };
 
+    // ---------- زر الرجوع في الهاتف: نعالجه داخل التطبيق بدل الاعتماد على سجل المتصفح ----------
+    if (APP && APP.addListener) {
+        APP.addListener('backButton', () => {
+            try { if (locked) return; if (window.__handleBack && window.__handleBack()) return; } catch (e) { /* تجاهل */ }
+            try { APP.exitApp(); } catch (e) { /* تجاهل */ }
+        });
+    }
+
     // ---------- 2) قفل البصمة ----------
     let locked = false, hiddenAt = 0;
     function lockEl() {
@@ -50,7 +58,7 @@
         if (el) return el;
         el = document.createElement('div'); el.id = 'natLock'; el.setAttribute('dir', 'rtl');
         el.style.cssText = 'position:fixed;inset:0;z-index:2147483000;background:#0f1c38;color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-family:inherit;text-align:center;padding:24px';
-        el.innerHTML = '<div style="font-size:3rem">🔒</div><b style="font-size:1.25rem">صيدلية الديوان</b><div style="opacity:.8">التطبيق مقفل. تحقق من هويتك للمتابعة.</div><button type="button" id="natUnlock" style="background:#fff;color:#0f1c38;border:0;border-radius:14px;padding:12px 28px;font-weight:800;font-size:1rem;font-family:inherit">فتح القفل</button>';
+        el.innerHTML = '<div style="font-size:3rem">🔒</div><b style="font-size:1.25rem">صيدلية الديوان</b><div style="opacity:.8">التطبيق مقفل. تحقق من هويتك للمتابعة.</div><div id="natErr" style="color:#fecaca;font-size:.8rem;max-width:300px"></div><button type="button" id="natUnlock" style="background:#fff;color:#0f1c38;border:0;border-radius:14px;padding:12px 28px;font-weight:800;font-size:1rem;font-family:inherit">فتح القفل</button>';
         document.body.appendChild(el);
         el.querySelector('#natUnlock').onclick = () => NAT.unlock();
         return el;
@@ -60,7 +68,10 @@
         try {
             await BIO.internalAuthenticate({ reason: 'فتح تطبيق صيدلية الديوان', cancelTitle: 'إلغاء', allowDeviceCredential: true, deviceCredential: true });
             locked = false; lockEl().style.display = 'none';
-        } catch (e) { /* يبقى مقفلاً ويمكنه المحاولة من الزر */ }
+        } catch (e) {
+            const m = String(e && (e.message || e.code) || e), el = lockEl().querySelector('#natErr');
+            if (el) el.textContent = /cancel|user_cancel|negative/i.test(m) ? '' : 'تعذر التحقق: ' + m;
+        }
     };
     NAT.lockNow = function () {
         if (!cfg().bio) return;
@@ -76,7 +87,11 @@
                 const r = await BIO.checkBiometry();
                 if (!r.isAvailable && !r.deviceIsSecure) { Swal.fire({ icon: 'info', title: 'غير متاح', text: 'فعّل بصمة الإصبع أو قفل الشاشة في إعدادات الهاتف أولاً.', confirmButtonText: 'حسناً' }); return false; }
                 await BIO.internalAuthenticate({ reason: 'تأكيد تفعيل القفل', cancelTitle: 'إلغاء', allowDeviceCredential: true, deviceCredential: true });
-            } catch (e) { return false; }
+            } catch (e) {
+                const m = String(e && (e.message || e.code) || e);
+                if (!/cancel|negative/i.test(m)) Swal.fire({ icon: 'error', title: 'تعذر تفعيل القفل', text: m, confirmButtonText: 'حسناً' });
+                return false;
+            }
         }
         setCfg({ bio: !!on }); return true;
     };
@@ -180,24 +195,24 @@
         return `<label class="cn-sw"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span>${label}</span></label>`;
     }
     function injectSettings() {
-        const hub = document.querySelector('#cnBox .cn-hub');
-        if (!hub || hub.querySelector('#natSet') || (typeof userRole !== 'undefined' && userRole !== 'owner')) return;
+        const box = [...document.querySelectorAll('#catModal .cat-manager-box')].find(b => { const h = b.querySelector('h4'); return h && h.textContent.trim().startsWith('التطبيق'); });
+        if (!box || box.querySelector('#natSet') || box.dataset.acc) return;
         const c = cfg();
-        const d = document.createElement('div'); d.className = 'cn-card cn-set'; d.id = 'natSet';
-        d.innerHTML = `<i>📱</i><span><b>إعدادات تطبيق الأندرويد</b>
+        const d = document.createElement('div'); d.id = 'natSet'; d.style.cssText = 'margin-top:10px;text-align:right';
+        d.innerHTML = `<b style="display:block;margin-bottom:6px">📱 إعدادات تطبيق الأندرويد</b>
             ${sw('natBio', c.bio, 'قفل التطبيق بالبصمة أو قفل الشاشة')}
             ${sw('natRem', c.remind, 'تذكير يومي الساعة 9 صباحاً بالمواد المنتهية والقريبة من الانتهاء')}
             ${sw('natP80', c.paper === 80, 'عرض ورق الطابعة 80 ملم (الافتراضي 58 ملم)')}
-            <button type="button" class="pos-big alt" id="natPrn" style="margin-top:8px">🖨️ اختيار الطابعة الحرارية${c.printerName ? ' — ' + escapeHtml(c.printerName) : ''}</button>
-            <small>تُحفظ الملفات تلقائياً في: Documents/${ROOT}</small></span>`;
-        hub.appendChild(d);
+            <button type="button" class="icon-btn" id="natPrn" style="margin-top:8px;width:100%">🖨️ اختيار الطابعة الحرارية${c.printerName ? ' — ' + escapeHtml(c.printerName) : ''}</button>
+            <p style="font-size:.74rem;color:var(--text-sub);margin-top:8px">تُحفظ الملفات تلقائياً في: Documents/${ROOT}</p>`;
+        box.appendChild(d);
         d.querySelector('#natBio').onchange = async e => { const ok = await NAT.setBio(e.target.checked); if (!ok) e.target.checked = !e.target.checked; };
         d.querySelector('#natRem').onchange = e => NAT.setRemind(e.target.checked);
         d.querySelector('#natP80').onchange = e => setCfg({ paper: e.target.checked ? 80 : 58 });
-        d.querySelector('#natPrn').onclick = async () => { await NAT.printerChoose(); const b = d.querySelector('#natPrn'); if (b && cfg().printerName) b.textContent = '🖨️ اختيار الطابعة الحرارية — ' + cfg().printerName; };
+        d.querySelector('#natPrn').onclick = async () => { await NAT.printerChoose(); const bt = d.querySelector('#natPrn'); if (bt && cfg().printerName) bt.textContent = '🖨️ اختيار الطابعة الحرارية — ' + cfg().printerName; };
     }
-    const hubOrig = window.cnHubRender;
-    if (typeof hubOrig === 'function') window.cnHubRender = function () { const r = hubOrig.apply(this, arguments); try { injectSettings(); } catch (e) { /* */ } return r; };
+    const mgrOrig = window.openCategoryManager;
+    if (typeof mgrOrig === 'function') window.openCategoryManager = function () { try { injectSettings(); } catch (e) { console.warn(e); } return mgrOrig.apply(this, arguments); };
 
     // عند الفتح: قفل ثم تحديث التذكير بعد تحميل البيانات
     document.addEventListener('DOMContentLoaded', () => { if (cfg().bio) NAT.lockNow(); });

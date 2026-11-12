@@ -3859,3 +3859,29 @@ body.role-staff .home-quick .ex-q { display: none !important; }
 .spo-row select { height: 44px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0 8px; font: inherit; background: #fff; }
 .spo-i { display: block; margin-top: 3px; color: #0f766e; font-size: .72rem; font-weight: 700; } .spo-i.hot { color: #b91c1c; }
 [data-theme="dark"] .spo-bar { background: #1e293b; border-color: #334155; } [data-theme="dark"] .spo-row select { background: #0f172a; color: #e2e8f0; border-color: #334155; }
+
+/* v465: حاسبة الأسعار + بلاطات الصف الخامس + تبويب سجل الأدوية */
+#homeView .tile-calc { background: linear-gradient(155deg, #8b5cf6 0%, #5b21b6 100%); box-shadow: 0 2px 3px rgba(91,33,182,.3), 0 14px 24px -14px rgba(91,33,182,.75); }
+#homeView .tile-cat  { background: linear-gradient(155deg, #3b82f6 0%, #1d4ed8 100%); box-shadow: 0 2px 3px rgba(29,78,216,.3), 0 14px 24px -14px rgba(29,78,216,.75); }
+#homeView .tile-exp  { background: linear-gradient(155deg, #f59e0b 0%, #b45309 100%); box-shadow: 0 2px 3px rgba(180,83,9,.3), 0 14px 24px -14px rgba(180,83,9,.75); }
+body.role-staff .home-tile.ex-q { display: none !important; }
+body.role-staff:not(.can-stockedit) .home-tile.tile-calc, body.role-staff:not(.can-catalog) .home-tile.tile-cat { display: none !important; }
+.cat-tabs { display: flex; gap: 8px; margin: 8px 0 2px; }
+.cat-tabs button { flex: 1; min-height: 42px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--text); font: inherit; font-weight: 800; }
+.cat-tabs button.on { background: #0f1c38; color: #fff; border-color: #0f1c38; }
+.pc-box { text-align: right; } .pc-l { display: block; font-weight: 800; margin-bottom: 4px; }
+.pc-in { width: 100% !important; margin: 0 !important; text-align: center; font-size: 1.2rem; font-weight: 800; }
+.pc-out { margin-top: 12px; min-height: 120px; border: 1px solid var(--border); border-radius: 16px; padding: 12px; background: var(--surface-2, rgba(127,127,127,.08)); display: flex; flex-direction: column; justify-content: center; }
+.pc-hint { color: var(--text-sub); text-align: center; font-size: .9rem; }
+.pc-price { text-align: center; } .pc-price b { display: block; font-size: 2rem; color: #0f766e; line-height: 1.2; }
+.pc-rows { margin-top: 8px; } .pc-rows > div { display: flex; justify-content: space-between; padding: 5px 2px; border-top: 1px dashed var(--border); font-size: .92rem; }
+.pc-src { margin-top: 8px; text-align: center; font-size: .75rem; color: var(--text-sub); }
+/* v465: ضغط الارتفاعات ليظهر الصف الخامس كاملاً */
+#homeView .home-tile > svg { flex-shrink: 0; }
+#homeView .home-tiles .home-tile.tile-pos, #homeView .home-tiles .home-tile.tile-bill { aspect-ratio: 1.5 / 1; padding: 8px 6px; }
+#homeView .home-tiles .home-tile > svg { width: 30px; height: 30px; padding: 10px; }
+#homeView .home-sq .home-tile > svg { width: 28px; height: 28px; padding: 9px; }
+#homeView .home-sq .home-tile { aspect-ratio: 1.45 / 1; padding-top: 8px; }
+#homeView .home-tiles3 .home-tile.tile-sm { aspect-ratio: 1.2 / 1; padding: 4px; }
+body.role-staff #homeView .home-grid .home-tiles3 .home-tile.tile-sm { aspect-ratio: 1.2 / 1 !important; }
+#homeView .home-tiles3 .home-tile.tile-sm > svg { width: 24px; height: 24px; padding: 8px; }

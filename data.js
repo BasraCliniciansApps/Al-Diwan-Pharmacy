@@ -5382,6 +5382,12 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     const syncSoon = () => { [0, 120, 450].forEach(ms => setTimeout(syncGuards, ms)); };
     ['touchend', 'pointerup', 'click', 'keydown'].forEach(t => window.addEventListener(t, syncSoon, { passive: true, capture: true }));
     window.__syncBackGuards = syncGuards; window.__backDepth = depthNow;
+    // معالجة الرجوع من زر الهاتف في تطبيق الأندرويد (لا تعتمد على سجل المتصفح): ترجع true إن أُغلقت طبقة أو رُجع خطوة
+    window.__handleBack = () => {
+        let r = false; try { r = !!(closeTopLayer() || (window.__tabBack && window.__tabBack()) || backView()); } catch (e) { r = false; }
+        if (r) { setTimeout(() => syncGuards(true), 0); setTimeout(() => { try { if (window.__shReturn) window.__shReturn('back'); } catch (e) { /* تجاهل */ } }, 60); }
+        return r;
+    };
     window.addEventListener('popstate', () => {
         if (exiting || syncing) return;
         if (closeTopLayer() || (window.__tabBack && window.__tabBack()) || backView()) { setTimeout(() => syncGuards(true), 0); setTimeout(() => { try { if (window.__shReturn) window.__shReturn('back'); } catch (e) { /* تجاهل */ } }, 60); return; }
