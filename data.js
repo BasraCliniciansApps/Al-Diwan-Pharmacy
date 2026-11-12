@@ -2912,11 +2912,12 @@ async function saveProductsDelta(entries) {
                 if (e.mark && (can('stockEdit') || can('invList'))) u.counted = true;
                 if (e.unmark && can('stockEdit')) u.counted = false;
                 if (!costSplitOn) { if (e.cost !== undefined) u.costPrice = e.cost; if (e.lastSet) u.lastPurchase = e.last; }
-                if (e.btOut) {
+                const _canBt = userRole === 'owner' || can('stockEdit') || can('invList');   // البائع تسمح له القواعد بتغيير qty/loose فقط، فلا نكتب الدفعات والتواريخ
+                if (e.btOut && _canBt) {
                     const dts = getProductExpiryDates(e.p); u.expiryDates = dts; u.expiryDate = dts[0] || '';
                     const bm = {}; Object.keys(e.p.bt || {}).forEach(k => { const x = e.p.bt[k]; bm[k] = { q: x.q, l: x.l, d: x.d ? 1 : F.delete(), pr: x.pr > 0 ? x.pr : F.delete() }; }); Object.keys(cur.bt || {}).forEach(k => { if (!bm[k]) bm[k] = F.delete(); });
                     u.bt = bm;
-                } else if (e.expChanged) {
+                } else if (e.expChanged && _canBt) {
                     if (e.expAdd.length && !e.expRemove.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayUnion(...e.expAdd);
                     else if (e.expRemove.length && !e.expAdd.length && Array.isArray(cur.expiryDates)) u.expiryDates = F.arrayRemove(...e.expRemove);
                     else u.expiryDates = getProductExpiryDates(e.p);
