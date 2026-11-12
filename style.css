@@ -3832,3 +3832,12 @@ body.role-staff #homeView .home-grid .home-tile b { font-size: .9rem; text-align
 body.role-staff #homeView .home-grid .home-tile small { display: none; }
 body.role-staff #homeView .home-grid .home-tile > svg { width: 28px; height: 28px; padding: 10px; }
 body.role-staff #homeView .home-grid .tile-purch .tile-txt { display: flex; flex-direction: column; align-items: center; }
+/* v460: مخزن/وارد أقل ارتفاعاً حتى تظهر كل الأيقونات الملونة بالشاشة */
+#homeView .home-sq .home-tile { aspect-ratio: 1.3 / 1; gap: 4px; }
+#homeView .home-sq .home-tile > svg { width: 38px; height: 38px; padding: 11px; }
+#homeView .home-tile.tile-pos, #homeView .home-tile.tile-bill { min-height: 0; aspect-ratio: 1.25 / 1; }
+body.role-staff #homeView .home-grid .home-tile { aspect-ratio: 1 / 1 !important; }
+#homeView .home-sq { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+#homeView .home-sq .home-tile { aspect-ratio: 1.22 / 1; justify-content: flex-start; padding: 12px 6px 4px; min-width: 0; }
+#homeView .home-sq .home-tile small { line-height: 1.35; }
+#homeView .home-sq .tile-purch .tile-txt { gap: 2px; }
