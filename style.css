@@ -3916,3 +3916,6 @@ body.role-staff #homeView .home-grid .home-tiles3 .home-tile.tile-sm { aspect-ra
 #progLine.pl-ok .pl-fill { border-bottom-color: #16a34a; } #progLine.pl-err .pl-fill { border-bottom-color: #dc2626; } #progLine.pl-warn .pl-fill { border-bottom-color: #ea580c; }
 #progLine.ind .pl-fill { clip-path: inset(0 0 0 70%); animation: plSlide 1.2s ease-in-out infinite; }
 @keyframes plSlide { 0%, 100% { clip-path: inset(0 0 0 70%); } 50% { clip-path: inset(0 70% 0 0); } }
+/* v475: اتجاه الكتابة داخل الحقول فقط */
+.bd-ltr { direction: ltr !important; text-align: left !important; }
+.bd-rtl { direction: rtl !important; text-align: right !important; }

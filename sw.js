@@ -6,7 +6,7 @@
    - طلبات Firebase وGitHub API لا يتدخل فيها أبداً
    لإجبار كل الأجهزة على تحديث الكاش: غيّر رقم VERSION
    ===================================================== */
-const VERSION = 'diwan-v474';
+const VERSION = 'diwan-v475';
 const SHELL_CACHE = VERSION + '-shell';
 const LIB_CACHE = VERSION + '-lib';
 const IMG_CACHE = VERSION + '-img';
@@ -14,7 +14,7 @@ const MAX_IMAGES = 600;
 const NETWORK_TIMEOUT_MS = 1500;      // يوجد نسخة بالكاش: لا ننتظر الشبكة أكثر من هذا
 const NETWORK_TIMEOUT_NOCACHE_MS = 12000; // لا توجد نسخة: ننتظر أطول
 
-const SHELL_FILES = ['./', './index.html', './style.css', './prog.js', './data.js', './icons.js', './swal-skin.js', './seed.js', './admin.html', './invoice.js', './sellpop.js', './quickinv.js', './pos.js', './info.js', './formsmgr.js', './pricelist.js', './purchase-xlsx.js', './desktop.js', './vendor/html-to-image.js', './vendor/pdf-lib.min.js', './purchase.js', './purchase2.js', './ledger.js', './ledger2.js', './ledger3.js', './ledger4.js', './ledger5.js', './blink.js', './unify.js', './catalog.js', './taxmap.js', './taxonomy.js', './datahub.js', './docpage.js', './rxprint.js', './fonts/ArefRuqaa-Bold.ttf', './taxfilter.js', './rx.js', './doctor.html', './navtabs.js', './count.js', './formtabs.js', './customers.js', './expenses.js', './smartpo.js', './native.js', './homeplus.js', './quick.js', './learn.js', './settings.js', './sselect.js', './scanner.js', './formsec.js', './security.js', './backup.js', './admin.js', './progsave.js', './pricefix.js', './labels.js', './help.js', './manifest-admin.json', './manifest.json', './icon.jpg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
+const SHELL_FILES = ['./', './index.html', './style.css', './prog.js', './data.js', './icons.js', './swal-skin.js', './seed.js', './admin.html', './invoice.js', './sellpop.js', './quickinv.js', './pos.js', './info.js', './formsmgr.js', './pricelist.js', './purchase-xlsx.js', './desktop.js', './vendor/html-to-image.js', './vendor/pdf-lib.min.js', './purchase.js', './purchase2.js', './ledger.js', './ledger2.js', './ledger3.js', './ledger4.js', './ledger5.js', './blink.js', './unify.js', './catalog.js', './taxmap.js', './taxonomy.js', './datahub.js', './docpage.js', './rxprint.js', './fonts/ArefRuqaa-Bold.ttf', './taxfilter.js', './rx.js', './doctor.html', './navtabs.js', './count.js', './formtabs.js', './customers.js', './expenses.js', './smartpo.js', './native.js', './homeplus.js', './bidi.js', './quick.js', './learn.js', './settings.js', './sselect.js', './scanner.js', './formsec.js', './security.js', './backup.js', './admin.js', './progsave.js', './pricefix.js', './labels.js', './help.js', './manifest-admin.json', './manifest.json', './icon.jpg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 const CDN_FILES = [
     'https://cdn.jsdelivr.net/npm/sweetalert2@11',
