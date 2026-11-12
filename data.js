@@ -249,6 +249,7 @@ function scheduleRebuild(share) {
     _rbTimer = setTimeout(() => {
         _rbTimer = 0; const sh = _rbShare; _rbShare = false;
         rebuildProducts(); saveLocal(); renderAll();
+        try { if (typeof cnLiveSync === 'function') cnLiveSync(); } catch (e) { /* تجاهل */ }
         try { if (typeof formsAdoptOthers === 'function') formsAdoptOthers(); } catch (e) { /* تجاهل */ }
         if (sh) checkSharedProductUrl();
     }, 150);

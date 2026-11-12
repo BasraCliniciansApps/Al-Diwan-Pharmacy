@@ -253,11 +253,37 @@ function cnRowHtml(r, n) {
         <div class="cn-f cn-tt"><span>المجموع</span><b id="cnt-${r.id}">${t === null ? '' : fmtNum(t)}</b></div>
         <div class="cn-sd"><button type="button" class="cn-bc ${barcodesOf(p).length ? 'has' : 'none'}" onclick="cnBarcode(${r.pid})" aria-label="باركود" title="${barcodesOf(p).length ? 'للمادة باركود' : 'بلا باركود'}">▦</button><button type="button" class="cn-mg" onclick="cnMergeOpen(${r.pid})" aria-label="ضم" title="ضم مواد">⇄</button><button type="button" class="cn-x" onclick="cnDelRow('${r.id}')" aria-label="حذف">✕</button></div></div>`;
 }
+// العدد المجرود يتبع المخزن: إن كان مطابقاً له وقت الجرد فإنه ينقص تلقائياً مع أي بيع (حتى من جهاز آخر)
+function cnSysOf(r) { const p = products.find(x => x.id === r.pid); return p ? (r.unit === 'part' ? cnInt(p.loose) : cnInt(p.qty)) : null; }
+function cnFollow(l) {
+    const out = [];
+    if (!l || !l.apply) return out;
+    l.rows.forEach(r => {
+        if (r.cnt === '') return; const cur = cnSysOf(r); if (cur === null) return;
+        if (r.sq === undefined) r.sq = r.applied ? cnInt(r.cnt) : (cnInt(r.cnt) === cur ? cur : undefined);   // سطر معتمد سابقاً: كان المخزن مطابقاً للعدد وقتها
+        if (r.sq === undefined) return;
+        if (cur === r.sq) return;
+        if (cnInt(r.cnt) === r.sq) { r.cnt = String(cur); out.push(r); }
+        r.sq = cur;
+    });
+    if (out.length) cnTouch();
+    return out;
+}
+function cnLiveSync() {
+    if (!cnCur || !cnOpenFlag || cnScr !== 'list') return;
+    const ch = cnFollow(cnCur); if (!ch.length) return;
+    ch.forEach(r => {
+        const row = document.getElementById('cnr-' + r.id); if (!row) return;
+        const i = row.querySelector('.cn-cnt'); if (i && document.activeElement !== i) i.value = r.cnt;
+        const p = products.find(x => x.id === r.pid), sm = row.querySelector('.cn-nm small'); if (sm && p) sm.textContent = (r.unit === 'part' ? subTypeOf(p) : 'قطعة كاملة') + ' • بالنظام: ' + cnSysOf(r) + ' ✓';
+        cnRefreshTotals(r);
+    });
+}
 function cnListRender(focusId) {
     const l = cnCur; if (!l) return;
     // نحفظ موضع التمرير الحالي حتى لا تقفز القائمة للأعلى عند أي إعادة رسم (حذف، نقل، ضم، تغيير مجموعة...)
     const _old = document.getElementById('cnList'), _top = _old && document.getElementById('cnBox') && cnScr === 'list' && !focusId ? _old.scrollTop : null;
-    cnScr = 'list'; cnSyncParts(l); cnNormalize(l);
+    cnScr = 'list'; cnSyncParts(l); cnNormalize(l); cnFollow(l);
     const rows = l.rows.filter(r => cnInView(r.gid));
     const gids = [...l.groups.map(g => g.id), ''];
     const sections = gids.map(gid => { const rr = rows.filter(r => r.gid === gid); if (!rr.length) return ''; return `<div class="cn-gh"><b>${cnEsc(cnGroupName(l, gid))}</b><small>${rr.length} سطر • ${fmtNum(cnSum(rr))} د.ع</small><button type="button" class="cn-gm" onclick="cnMovePick('g:${gid}')">نقل الكل ▾</button></div>${rr.map(r => cnRowHtml(r, l.rows.indexOf(r) + 1)).join('')}`; }).join('');
@@ -322,6 +348,7 @@ async function cnApplyRow(r, what) {
     if (what === 'cnt') p.counted = true;
     if (qtyChanged) { try { logAction('qty', p, [{ f: 'الكمية (قائمة جرد: ' + cnCur.name + ')', from: stockTxt(p, from), to: stockTxt(p, to) }]); } catch (e) { /* تجاهل */ } }
     if (priceChanged && !part) { const sib = cnCur.rows.find(x => x.pid === r.pid && x.unit === 'part'); if (sib && !p.subManual) { sib.price = String(subPriceOf(p)); const i = document.querySelector('#cnr-' + sib.id + ' .cn-pr'); if (i) i.value = sib.price; cnRefreshTotals(sib); } }
+    if (what === 'cnt') r.sq = part ? to.loose : to.qty;
     r.applied = new Date().toISOString(); cnTouch();
     const row = document.getElementById('cnr-' + r.id); if (row) { const s = row.querySelector('.cn-nm small'); if (s) s.textContent = (part ? subTypeOf(p) : 'قطعة كاملة') + ' • بالنظام: ' + (part ? to.loose : to.qty) + ' ✓'; }
 }
