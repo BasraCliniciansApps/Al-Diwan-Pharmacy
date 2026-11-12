@@ -3935,3 +3935,31 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 
 /* v484 صف أخير بزرين */
 #homeView .home-tiles3.home-row2c{grid-template-columns:1fr 1fr}
+/* v485 خطوط محلية مضمّنة (لا تعتمد على الإنترنت) */
+@font-face{font-family:'Tajawal';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/tajawal-arabic-400-normal.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0898-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC}
+@font-face{font-family:'Tajawal';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/tajawal-latin-400-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Tajawal';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/tajawal-arabic-500-normal.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0898-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC}
+@font-face{font-family:'Tajawal';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/tajawal-latin-500-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Tajawal';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/tajawal-arabic-700-normal.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0898-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC}
+@font-face{font-family:'Tajawal';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/tajawal-latin-700-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Tajawal';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/tajawal-arabic-800-normal.woff2) format('woff2');unicode-range:U+0600-06FF,U+0750-077F,U+0870-088E,U+0890-0891,U+0898-08E1,U+08E3-08FF,U+200C-200E,U+2010-2011,U+204F,U+2E41,U+FB50-FDFF,U+FE70-FE74,U+FE76-FEFC}
+@font-face{font-family:'Tajawal';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/tajawal-latin-800-normal.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+2000-206F,U+2074,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Aref Ruqaa';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/ArefRuqaa-Bold.ttf) format('truetype')}
+
+/* خط الرقعة للعناوين الكبيرة فقط (اسم الصفحة وأزرار الواجهة الكبيرة)، وباقي التطبيق Tajawal للوضوح */
+.page-title, #homeView .home-tiles .home-tile b, #homeView .home-sq .home-tile b { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; }
+.page-title { font-size: 1.05rem; letter-spacing: 0; }
+#homeView .home-tiles .home-tile b, #homeView .home-sq .home-tile b { font-size: 1.5rem !important; line-height: 1.35; }
+
+/* ألوان أهدأ بهوية الشعار: ذهبي للبيع، كحلي للأساسيات، أخضر مزرق للوارد، وأزرار الأدوات بكحلي موحّد */
+#homeView .home-tile.tile-pos   { background: linear-gradient(155deg, #fbbf3c 0%, #c9780f 100%) !important; color: #1a1200 !important; box-shadow: 0 2px 3px rgba(150,90,10,.3), 0 18px 30px -14px rgba(150,90,10,.7) !important; }
+#homeView .home-tile.tile-pos > svg { border-color: rgba(26,18,0,.35) !important; background: rgba(255,255,255,.28) !important; }
+#homeView .home-tile.tile-bill  { background: linear-gradient(155deg, #26407a 0%, #0e1b3c 100%) !important; box-shadow: 0 2px 3px rgba(14,27,60,.3), 0 18px 30px -14px rgba(14,27,60,.7) !important; }
+#homeView .home-tile.tile-stock { background: linear-gradient(155deg, #34508f 0%, #1b2c52 100%) !important; color: #fff !important; box-shadow: 0 2px 3px rgba(27,44,82,.3), 0 18px 30px -14px rgba(27,44,82,.7) !important; }
+#homeView .home-tile.tile-stock > svg { border-color: rgba(255,255,255,.35) !important; background: rgba(255,255,255,.2) !important; }
+#homeView .home-tile.tile-purch { background: linear-gradient(155deg, #12968a 0%, #0b5f58 100%) !important; box-shadow: 0 2px 3px rgba(11,95,88,.3), 0 18px 30px -14px rgba(11,95,88,.7) !important; }
+#homeView .home-tile.tile-scan, #homeView .home-tile.tile-cus, #homeView .home-tile.tile-rxh, #homeView .home-tile.tile-inv,
+#homeView .home-tile.tile-gear, #homeView .home-tile.tile-calc, #homeView .home-tile.tile-cat, #homeView .home-tile.tile-exp { background: linear-gradient(155deg, #2c437a 0%, #172647 100%) !important; box-shadow: 0 2px 3px rgba(23,38,71,.3), 0 14px 24px -14px rgba(23,38,71,.75) !important; }
+#homeView .home-tile.tile-scan > svg, #homeView .home-tile.tile-cus > svg, #homeView .home-tile.tile-rxh > svg, #homeView .home-tile.tile-inv > svg,
+#homeView .home-tile.tile-gear > svg, #homeView .home-tile.tile-calc > svg, #homeView .home-tile.tile-cat > svg, #homeView .home-tile.tile-exp > svg { color: #f9c14a; }
+#homeView .home-tile.tile-alert { background: linear-gradient(155deg, #c4504b 0%, #8f2a27 100%) !important; box-shadow: 0 2px 3px rgba(143,42,39,.3), 0 14px 24px -14px rgba(143,42,39,.75) !important; }
