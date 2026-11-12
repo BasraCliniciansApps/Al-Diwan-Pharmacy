@@ -6,12 +6,13 @@
    - طلبات Firebase وGitHub API لا يتدخل فيها أبداً
    لإجبار كل الأجهزة على تحديث الكاش: غيّر رقم VERSION
    ===================================================== */
-const VERSION = 'diwan-v462';
+const VERSION = 'diwan-v463';
 const SHELL_CACHE = VERSION + '-shell';
 const LIB_CACHE = VERSION + '-lib';
 const IMG_CACHE = VERSION + '-img';
 const MAX_IMAGES = 600;
-const NETWORK_TIMEOUT_MS = 4000;
+const NETWORK_TIMEOUT_MS = 1500;      // يوجد نسخة بالكاش: لا ننتظر الشبكة أكثر من هذا
+const NETWORK_TIMEOUT_NOCACHE_MS = 12000; // لا توجد نسخة: ننتظر أطول
 
 const SHELL_FILES = ['./', './index.html', './style.css', './prog.js', './data.js', './icons.js', './swal-skin.js', './seed.js', './admin.html', './invoice.js', './sellpop.js', './quickinv.js', './pos.js', './info.js', './formsmgr.js', './pricelist.js', './purchase-xlsx.js', './desktop.js', './vendor/html-to-image.js', './vendor/pdf-lib.min.js', './purchase.js', './purchase2.js', './ledger.js', './ledger2.js', './ledger3.js', './ledger4.js', './ledger5.js', './blink.js', './unify.js', './catalog.js', './taxmap.js', './taxonomy.js', './datahub.js', './docpage.js', './rxprint.js', './fonts/ArefRuqaa-Bold.ttf', './taxfilter.js', './rx.js', './doctor.html', './navtabs.js', './count.js', './formtabs.js', './customers.js', './expenses.js', './smartpo.js', './quick.js', './learn.js', './settings.js', './sselect.js', './scanner.js', './formsec.js', './security.js', './backup.js', './admin.js', './progsave.js', './pricefix.js', './labels.js', './help.js', './manifest-admin.json', './manifest.json', './icon.jpg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
@@ -93,11 +94,14 @@ self.addEventListener('activate', (event) => {
 async function networkFirst(request, cacheName, cacheKey) {
     const key = cacheKey || request;
     try {
+        const had = await caches.match(key, { ignoreSearch: request.mode === 'navigate' });
+        const ms = had ? NETWORK_TIMEOUT_MS : NETWORK_TIMEOUT_NOCACHE_MS;
+        const net = fetch(request);
+        net.then(r => putIfOk(cacheName, key, r)).catch(() => {});   // يكمل التحديث بالخلفية حتى لو تجاوز المهلة
         const res = await Promise.race([
-            fetch(request),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), NETWORK_TIMEOUT_MS))
+            net,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms))
         ]);
-        await putIfOk(cacheName, key, res);
         return res;
     } catch (err) {
         const cached = await caches.match(key, { ignoreSearch: request.mode === 'navigate' });
