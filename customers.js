@@ -150,12 +150,6 @@ function cuPrint() {
     openReport({ title: 'كشف حساب — ' + g.name, html, fileName: 'customer-statement-' + todayLocalISO() });
 }
 
-// ---------- بحث الرئيسية: يفتح فاحص المادة بنتائج البحث ----------
-function hmSearch(v) {
-    v = cuNorm(v); if (!v) return;
-    try { scApplyHome(); scInit(); scShowOv(); const q = document.getElementById('scQ'); if (q) { q.value = v; scSearch(v); } } catch (e) { /* تجاهل */ }
-    const hq = document.getElementById('homeQ'); if (hq) hq.value = '';
-}
 (function () {
     if (typeof refreshHome === 'function') { const o = refreshHome; refreshHome = async function () { const r = await o.apply(this, arguments); try { cuBadge(); } catch (e) { /* تجاهل */ } return r; }; }
 })();
