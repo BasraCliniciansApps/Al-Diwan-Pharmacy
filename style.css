@@ -3924,3 +3924,6 @@ body.role-staff #homeView .home-grid .home-tiles3 .home-tile.tile-sm { aspect-ra
 .stm-list{display:flex;flex-direction:column;gap:8px;text-align:right}
 .stm-row{display:flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:10px}
 .stm-row b{flex:1;text-align:left}.stm-row small{color:var(--text-sub)}
+
+/* v482 تثبيت حجم الخط: لا يتبع إعداد خط الجهاز */
+html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:100%}
