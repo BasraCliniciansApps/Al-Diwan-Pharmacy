@@ -307,7 +307,7 @@ async function cnApplyRow(r, what) {
     if (what === 'price' && r.price !== '') {
         const pr = cnNum(r.price);
         if (part) { if (pr > 0 && pr !== (parseFloat(p.subPrice) || subPriceOf(p))) { p.subPrice = pr; p.subManual = true; priceChanged = true; } }
-        else if (pr > 0 && pr !== (parseFloat(p.price) || 0)) { p.price = pr; p.pricing = 'manual'; p.markupPct = null; if (retail && !p.subManual) p.subPrice = subPriceCalc(pr, subCountOf(p)); priceChanged = true; }
+        else if (pr > 0 && pr !== (parseFloat(p.price) || 0)) { p.price = pr; p.pricing = 'free'; p.markupPct = null; if (retail && !p.subManual) p.subPrice = subPriceCalc(pr, subCountOf(p)); priceChanged = true; }
     }
     const qtyChanged = to.qty !== from.qty || to.loose !== from.loose, markNeeded = what === 'cnt' && r.cnt !== '' && p.counted !== true;
     if (!qtyChanged && !priceChanged && !markNeeded) return;
