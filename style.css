@@ -3902,3 +3902,7 @@ body.role-staff #homeView .home-grid .home-tiles3 .home-tile.tile-sm { aspect-ra
 #progBox.pg-run { display: none; }
 #progBox.pg-err, #progBox.pg-stuck { pointer-events: auto; }
 @keyframes pgUp { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+/* v472: الخط بلون ذهبي التطبيق، ولا رسائل نصية للتقدم/النجاح؛ تبقى رسالة الفشل والتعليق الطويل فقط */
+#progLine i { background: linear-gradient(270deg, #fbbf24, #f9a825 55%, #d98a1f); }
+#progLine.pl-warn i { background: #ea580c; }
+#progBox.pg-run, #progBox.pg-ok, #progBox.pg-warn { display: none !important; }
