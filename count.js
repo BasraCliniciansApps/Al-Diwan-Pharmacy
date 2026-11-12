@@ -255,6 +255,8 @@ function cnRowHtml(r, n) {
 }
 function cnListRender(focusId) {
     const l = cnCur; if (!l) return;
+    // نحفظ موضع التمرير الحالي حتى لا تقفز القائمة للأعلى عند أي إعادة رسم (حذف، نقل، ضم، تغيير مجموعة...)
+    const _old = document.getElementById('cnList'), _top = _old && document.getElementById('cnBox') && cnScr === 'list' && !focusId ? _old.scrollTop : null;
     cnScr = 'list'; cnSyncParts(l); cnNormalize(l);
     const rows = l.rows.filter(r => cnInView(r.gid));
     const gids = [...l.groups.map(g => g.id), ''];
@@ -269,6 +271,7 @@ function cnListRender(focusId) {
         <div class="cn-body" id="cnList">${sections || '<div class="cn-empty">امسح باركود أو ابحث عن مادة لإضافتها.</div>'}</div>
         <div class="cn-foot"><div class="cn-tot"><span>المجموع</span><b id="cnTotal">${fmtNum(cnSum(l.rows))}</b><i>د.ع</i></div>
         <div class="cn-acts"><button type="button" onclick="cnPrintDialog()">🖨️ طباعة</button><button type="button" onclick="cnExcel()">⬇️ Excel</button><button type="button" onclick="cnSettings()">⚙️</button></div></div>`;
+    if (_top !== null) { const rs = () => { const b = document.getElementById('cnList'); if (b) b.scrollTop = _top; }; rs(); requestAnimationFrame(rs); setTimeout(rs, 120); }
     if (focusId) {
         const go = (focus) => { const row = document.getElementById('cnr-' + focusId); if (!row) return; row.classList.add('flash'); row.scrollIntoView({ block: 'center' }); if (focus) { const i = row.querySelector('.cn-cnt'); if (i) { i.focus({ preventScroll: true }); i.select(); } } };
         go(true); requestAnimationFrame(() => go(false)); setTimeout(() => go(false), 350);   // بعد ظهور لوحة المفاتيح
