@@ -56,6 +56,7 @@ function cnHubRender() {
         ${own ? `<div class="cn-card cn-set"><i>⚙️</i><span><b>الإعدادات</b>
             <label class="cn-sw"><input type="checkbox" ${setupMode ? 'checked' : ''} onchange="cnToggleSetup(this)"><span>وضع التأسيس (المواد غير المجرودة لا تتأثر بالحركة)</span></label>
             <label class="cn-sw"><input type="checkbox" ${c.posCount ? 'checked' : ''} onchange="posCountSet(this.checked)"><span>طلب جرد المادة عند أول بيع (شاشة البيع)</span></label>
+            <label class="cn-sw"><input type="checkbox" ${c.posCostChip ? 'checked' : ''} onchange="posCostChipSet(this.checked)"><span>إظهار خيار الخصم «سعر الكلفة» لمستخدمي شاشة البيع (يكشف سعر الشراء تقريباً)</span></label>
             <small>يُحدَّد من صفحة المستخدمين من يحق له الدخول إلى قوائم الجرد وتعديلها (الافتراضي: ممنوع).</small></span></div>` : ''}
         </div></div>`;
 }

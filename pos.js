@@ -232,6 +232,22 @@ function posLimits() {   // أعلى خصم مسموح بالمبلغ، بنفس
     });
     return { allow: Math.floor(allow), unknown, own };
 }
+// خصم يجعل الصافي مبلغاً بلا كسور (أقرب 250 د.ع)، وخيار «سعر الكلفة» (الكلفة مقرّبة إلى أقرب ألف فوقها)
+const POS_NET_STEP = 250;
+function posDiscForPct(S, pc) { if (!(pc > 0)) return 0; const net = Math.round(S * (1 - pc / 100) / POS_NET_STEP) * POS_NET_STEP; return Math.max(0, Math.min(Math.floor(S), Math.floor(S - net))); }
+function posDiscForMax(S, allow) { const net = Math.ceil((S - allow) / POS_NET_STEP - 1e-9) * POS_NET_STEP; return Math.max(0, Math.min(Math.floor(allow), Math.floor(S - net))); }
+function posCostNet() {
+    const own = userRole === 'owner'; let cost = 0;
+    bill.items.forEach(it => {
+        const lt = (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), p = it.pid && products.find(x => x.id === it.pid); let lim = null;
+        if (p) { if (own) { const ex = typeof scExact === 'function' ? scExact(p) : null; lim = ex; } else if (p.dlim !== undefined && p.dlim !== null && p.dlim !== '') lim = Number(p.dlim); }
+        cost += lim === null ? lt : lt * (1 - lim / 100);
+    });
+    return Math.ceil(cost / 1000 - 1e-9) * 1000;
+}
+function posDiscForCost(S) { return Math.max(0, Math.floor(S - posCostNet())); }
+function posCostChipOn() { try { return userRole === 'owner' || !!scCfg().posCostChip; } catch (e) { return false; } }
+function posCostChipSet(v) { try { const c = scCfg(); c.posCostChip = !!v; scSave(c); } catch (e) { /* تجاهل */ } }
 async function posIssue() {
     if (!bill.items.length) { Swal.fire({ icon: 'info', title: 'أضف مادة أولاً', toast: true, position: 'top', showConfirmButton: false, timer: 1500 }); return; }
     if (typeof billHasExpired === 'function' && billHasExpired()) return;
@@ -254,7 +270,7 @@ async function posIssue() {
             <div class="px-sum"><span>المجموع</span><b id="pxSub"></b></div>
             <div class="px-sec">الخصم</div>
             <div class="px-row"><label><span>نسبة الخصم ٪</span><input id="pxP" type="number" inputmode="decimal" min="0" step="any"></label><label><span>مبلغ الخصم (د.ع)</span><input id="pxA" type="number" inputmode="numeric" min="0"></label></div>
-            <div class="px-chips" id="pxChips">${[5, 10, 15, 20].map(n => `<button type="button" data-p="${n}">${n}٪</button>`).join('')}<button type="button" data-p="0" class="clr">بدون خصم</button></div>
+            <div class="px-chips" id="pxChips">${[5, 10, 15, 20].map(n => `<button type="button" data-p="${n}">${n}٪</button>`).join('')}${posCostChipOn() ? '<button type="button" data-p="cost" class="cost">سعر الكلفة</button>' : ''}<button type="button" data-p="0" class="clr">بدون خصم</button></div>
             ${showLim ? '<button type="button" class="px-max" id="pxMax"></button>' : ''}
             <div id="pxMsg" class="px-msg"></div>
             ${el.length ? `<div id="pxRound"><div class="px-sec">تسوية المجموع إلى ألف كاملة</div>
@@ -274,14 +290,14 @@ async function posIssue() {
                 const L = posLimits(), mx = S > 0 ? Math.floor(L.allow / S * 1000) / 10 : 0, m = $('pxMsg');
                 if ($('pxMax')) $('pxMax').textContent = L.unknown && L.own ? 'أعلى خصم غير محسوب لبعض المواد (لا كلفة)' : 'أعلى خصم بدون خسارة: ' + mx + '٪ (' + fmtNum(L.allow) + ' د.ع)';
                 if (d > 0) { if (d > L.allow && !(L.own && L.unknown)) { m.className = 'px-msg bad'; m.textContent = L.own ? '🔴 خسارة: الخصم أعلى من الحد الآمن' : '🔴 يتجاوز الحد المسموح'; } else { m.className = 'px-msg ok'; m.textContent = '🟢 خصم آمن'; } } else { m.className = 'px-msg'; m.textContent = ''; }
-                document.querySelectorAll('#pxChips button').forEach(b => { const pc = +b.dataset.p; b.disabled = !L.own && pc > 0 && Math.round(S * pc / 100) > L.allow; b.classList.toggle('on', pc > 0 ? d > 0 && Math.abs(d - Math.round(S * pc / 100)) < 1 : d === 0); });
+                document.querySelectorAll('#pxChips button').forEach(b => { const k = b.dataset.p, cd = k === 'cost' ? posDiscForCost(S) : k === '0' ? 0 : posDiscForPct(S, +k); b.disabled = k !== '0' && (cd <= 0 || (!L.own && cd > L.allow)); b.classList.toggle('on', k === '0' ? d === 0 : cd > 0 && d === cd); });
                 el.forEach(i => { const e = $('pxRP' + i); if (e) e.textContent = fmtNum(bill.items[i].price); });
                 const rd = $('pxRound'); if (rd) rd.style.display = Math.round(S - d) % 1000 === 0 ? 'none' : '';
             };
-            $('pxP').oninput = () => { const S = sub(), pc = parseFloat($('pxP').value) || 0; bill.discount = String(Math.round(S * pc / 100)); upd('p'); $('pxA').value = bill.discount === '0' ? '' : bill.discount; };
+            $('pxP').oninput = () => { const S = sub(), pc = parseFloat($('pxP').value) || 0; bill.discount = String(posDiscForPct(S, pc)); upd('p'); $('pxA').value = bill.discount === '0' ? '' : bill.discount; };
             $('pxA').oninput = () => { bill.discount = String(parseFloat($('pxA').value) || 0); upd('a'); };
-            document.querySelectorAll('#pxChips button').forEach(b => { b.onclick = () => { const S = sub(), pc = +b.dataset.p; bill.discount = pc ? String(Math.round(S * pc / 100)) : ''; upd(); }; });
-            if ($('pxMax')) $('pxMax').onclick = () => { bill.discount = String(posLimits().allow); upd(); };
+            document.querySelectorAll('#pxChips button').forEach(b => { b.onclick = () => { const S = sub(), k = b.dataset.p, d = k === 'cost' ? posDiscForCost(S) : posDiscForPct(S, +k); bill.discount = d ? String(d) : ''; upd(); }; });
+            if ($('pxMax')) $('pxMax').onclick = () => { bill.discount = String(posDiscForMax(sub(), posLimits().allow)); upd(); };
             $('pxCr').onchange = () => { $('pxPaidBox').style.display = $('pxCr').checked ? '' : 'none'; };
             let cur = el[0];
             document.querySelectorAll('input[name=pxRI]').forEach(x => { x.onchange = () => { cur = +x.value; }; });

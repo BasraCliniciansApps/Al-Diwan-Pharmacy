@@ -3823,3 +3823,12 @@ body.role-staff .home-sq .tile-scan { grid-column: auto; }
 .px-chips button.on { background: #0f1c38; color: #fff; border-color: #0f1c38; }
 .px-chips button.clr { background: #fee2e2; border-color: #fecaca; color: #991b1b; } .px-chips button.clr.on { background: #991b1b; color: #fff; }
 .px-chips button:disabled { opacity: .35; }
+.px-chips button.cost { background: #fef3c7; border-color: #fde68a; color: #92400e; } .px-chips button.cost.on { background: #92400e; color: #fff; }
+/* v457: واجهة المستخدمين: أزرار بحجم ثابت مصفوفة جنب بعض (3 بكل صف) مهما اختلفت الصلاحيات */
+body.role-staff #homeView .home-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+body.role-staff #homeView .home-grid > div { display: contents; }
+body.role-staff #homeView .home-grid .home-tile { aspect-ratio: 1 / 1; min-height: 0; width: auto; margin: 0; padding: 4px; flex-direction: column; justify-content: center; gap: 6px; border-radius: 24px; }
+body.role-staff #homeView .home-grid .home-tile b { font-size: .9rem; text-align: center; line-height: 1.25; }
+body.role-staff #homeView .home-grid .home-tile small { display: none; }
+body.role-staff #homeView .home-grid .home-tile > svg { width: 28px; height: 28px; padding: 10px; }
+body.role-staff #homeView .home-grid .tile-purch .tile-txt { display: flex; flex-direction: column; align-items: center; }
