@@ -4317,7 +4317,7 @@ async function openTrashModal() {
 }
 
 // ---------------- سجل التعديلات ----------------
-const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', form: 'الشكل الدوائي', formOther: 'الشكل (أخرى)', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'نوع الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة', costPrice: 'سعر الشراء' };
+const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', form: 'الشكل الدوائي', formOther: 'الشكل (أخرى)', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'نوع الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة', sellPri: 'أولوية البيع', costPrice: 'سعر الشراء' };
 
 function diffProduct(a, b) {
     const out = [];
@@ -5198,6 +5198,10 @@ function stockAfterSale(p, n, unit) {
     }
     return { qty: Math.max(0, qty - n), loose };
 }
+// أولوية البيع للمواد المتجزئة: pack (علبة أولاً) | part (جزء أولاً) | packOnly | partOnly
+function sellMode(p) { const m = p && hasRetail(p) ? (p.sellPri || 'pack') : 'pack'; return ['pack', 'part', 'packOnly', 'partOnly'].includes(m) ? m : 'pack'; }
+function sellDefUnit(p) { const m = sellMode(p); return m === 'part' || m === 'partOnly' ? 'part' : 'pack'; }
+function sellLocked(p) { const m = sellMode(p); return m === 'packOnly' || m === 'partOnly'; }
 function stockLabel(p) {
     const q = parseInt(p.qty) || 0, l = parseInt(p.loose) || 0;
     if (hasRetail(p) && l > 0) return `${q} عبوة + ${l} ${subTypeOf(p)}`;
@@ -5231,6 +5235,7 @@ function fillRetailForm(p) {
     const cnt = document.getElementById('fSubCount'); if (!cnt) return;
     cnt.value = p && subCountOf(p) ? subCountOf(p) : '';
     renderSubTypeSelect(p && p.subType);
+    { const sv = document.getElementById('fSellPri'); if (sv) sv.value = (p && p.sellPri) || 'pack'; }
     const sp = document.getElementById('fSubPrice');
     const auto = p && hasRetail(p) && (Math.round((parseFloat(p.price) || 0) / subCountOf(p)) === (parseFloat(p.subPrice) || 0) || subPriceCalc(p.price, subCountOf(p)) === (parseFloat(p.subPrice) || 0));
     sp.dataset.manual = (p && p.subPrice && !auto) ? '1' : '';
@@ -5241,12 +5246,13 @@ function fillRetailForm(p) {
 }
 function readRetailForm() {
     const cnt = parseInt(document.getElementById('fSubCount').value) || 0;
-    if (cnt < 2) return { subCount: 0, subType: '', subPrice: 0, loose: 0 };
+    if (cnt < 2) return { subCount: 0, subType: '', subPrice: 0, loose: 0, sellPri: '' };
     const price = parseFloat(document.getElementById('fPrice').value) || 0;
     const sp = parseFloat(document.getElementById('fSubPrice').value);
     return {
         subCount: cnt,
         subType: document.getElementById('fSubType').value || '',
+        sellPri: (document.getElementById('fSellPri') || {}).value || 'pack',
         subPrice: sp > 0 ? sp : subPriceCalc(price, cnt),
         loose: Math.min(Math.max(parseInt(document.getElementById('fLoose').value) || 0, 0), cnt - 1)
     };

@@ -160,7 +160,7 @@ function renderInvoiceRows() {
     } else {
         body.innerHTML = bill.items.map((it, i) => {
             const p = itemProduct(it);
-            const unitSel = p && hasRetail(p)
+            const unitSel = p && hasRetail(p) && !sellLocked(p)
                 ? `<select class="bill-unit no-print" onchange="billSetUnit(${i}, this.value)"><option value="pack" ${it.unit !== 'part' ? 'selected' : ''}>عبوة</option><option value="part" ${it.unit === 'part' ? 'selected' : ''}>${escapeHtml(subTypeOf(p))} (جزء)</option></select>` : '';
             return `
             <tr>

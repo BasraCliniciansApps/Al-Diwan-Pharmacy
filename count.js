@@ -169,30 +169,32 @@ function cnDdRender() {
 // مزامنة: كل مادة فيها أجزاء يجب أن يكون لها سطر جزء بجانب سطر العلبة
 // الترتيب: الأقدم إدخالاً أولاً (رقم 1)، وسطر الجزء يلي سطر علبته مباشرة
 function cnNormalize(l) {
-    const pk = new Map(); l.rows.forEach(r => { if (r.unit === 'pack' && !pk.has(r.pid)) pk.set(r.pid, r.ts || 0); });
-    const key = r => r.unit === 'part' && pk.has(r.pid) ? pk.get(r.pid) : (r.ts || 0);
+    const pk = new Map(); l.rows.forEach(r => { const t = r.ts || 0; if (!pk.has(r.pid) || t < pk.get(r.pid)) pk.set(r.pid, t); });
+    const key = r => pk.has(r.pid) ? pk.get(r.pid) : (r.ts || 0);
+    const first = r => { const p = products.find(x => x.id === r.pid); return p ? cnUnits(p)[0] : 'pack'; };
     const arr = l.rows.map((r, i) => [r, i]);
-    arr.sort((a, b) => key(a[0]) - key(b[0]) || a[0].pid - b[0].pid || (a[0].unit === 'pack' ? -1 : 1) - (b[0].unit === 'pack' ? -1 : 1) || a[1] - b[1]);
+    arr.sort((a, b) => key(a[0]) - key(b[0]) || a[0].pid - b[0].pid || (a[0].unit === first(a[0]) ? -1 : 1) - (b[0].unit === first(b[0]) ? -1 : 1) || a[1] - b[1]);
     l.rows = arr.map(x => x[0]);
 }
 function cnSyncParts(l) {
     let ch = false;
     l.rows.forEach(r => { if (r.pe) return; const p = products.find(x => x.id === r.pid); if (!p) return; const v = cnDefPrice(p, r.unit) || ''; if (String(r.price) !== String(v)) { r.price = v === '' ? '' : String(v); ch = true; } });   // السعر يُسحب من المادة ما لم يُعدَّل يدوياً
-    l.rows.filter(r => r.unit === 'pack').forEach(r => {
-        const p = products.find(x => x.id === r.pid); if (!p || !hasRetail(p)) return;
-        if (l.rows.some(x => x.pid === r.pid && x.unit === 'part')) return;
-        l.rows.splice(l.rows.indexOf(r) + 1, 0, { id: cnId(), gid: r.gid, pid: r.pid, unit: 'part', cnt: '', price: cnDefPrice(p, 'part') || '', ts: Date.now() }); ch = true;
+    [...new Set(l.rows.map(r => r.pid))].forEach(pid => {
+        const p = products.find(x => x.id === pid); if (!p) return;
+        const want = cnUnits(p), mine = l.rows.filter(r => r.pid === pid), base = mine[0], ts = Math.min(...mine.map(r => r.ts || Date.now()));
+        want.forEach(u => { if (!mine.some(r => r.unit === u)) { l.rows.splice(l.rows.indexOf(mine[mine.length - 1]) + 1, 0, { id: cnId(), gid: base.gid, pid, unit: u, cnt: '', price: cnDefPrice(p, u) || '', ts }); ch = true; } });
+        l.rows = l.rows.filter(r => r.pid !== pid || want.includes(r.unit) || r.cnt !== '' || (ch = true, false));
     });
-    l.rows = l.rows.filter(r => { if (r.unit !== 'part') return true; const p = products.find(x => x.id === r.pid); if (!p || hasRetail(p) || r.cnt !== '') return true; ch = true; return false; });
     if (ch) cnTouch();
 }
 
 // ---------- الإضافة والبحث ----------
+function cnUnits(p) { const m = sellMode(p); return m === 'partOnly' ? ['part'] : m === 'packOnly' || !hasRetail(p) ? ['pack'] : m === 'part' ? ['part', 'pack'] : ['pack', 'part']; }
 function cnDefPrice(p, unit) { return unit === 'part' ? subPriceOf(p) : (parseFloat(p.price) || 0); }
 function cnAddProduct(pid) {
     const p = products.find(x => x.id === pid); if (!p || !cnCur) return;
     if (cnCur.rows.length >= 5000) { Swal.fire({ icon: 'warning', title: 'بلغت القائمة الحد الأقصى (5000 سطر)', text: 'أنشئ قائمة جديدة للمتابعة.', confirmButtonColor: '#0f1c38' }); return; }
-    const units = hasRetail(p) ? ['pack', 'part'] : ['pack'], tgt = cnSel.size === 1 ? ([...cnSel][0] === '_' ? '' : [...cnSel][0]) : cnTarget;
+    const units = cnUnits(p), tgt = cnSel.size === 1 ? ([...cnSel][0] === '_' ? '' : [...cnSel][0]) : cnTarget;
     const have = cnCur.rows.filter(r => r.pid === pid);
     let focusId = '';
     if (have.length) {
@@ -450,8 +452,7 @@ async function cnPendAdd(pid) {
     if (!r.isConfirmed || !r.value) return;
     const l = cnLists.find(x => x.id === r.value.lid); if (!l) return;
     const prev = cnCur; cnCur = l;
-    const rows = [{ id: cnId(), gid: r.value.gid, pid, unit: 'pack', cnt: String(Math.max(0, cnInt(r.value.q))), price: cnDefPrice(p, 'pack') || '', ts: Date.now() }];
-    if (retail) rows.push({ id: cnId(), gid: r.value.gid, pid, unit: 'part', cnt: String(Math.max(0, cnInt(r.value.pp))), price: cnDefPrice(p, 'part') || '', ts: Date.now() });
+    const rows = cnUnits(p).map(u => ({ id: cnId(), gid: r.value.gid, pid, unit: u, cnt: String(Math.max(0, cnInt(u === 'part' ? r.value.pp : r.value.q))), price: cnDefPrice(p, u) || '', ts: Date.now() }));
     l.rows.push(...rows); cnTouch();
     if (l.apply !== false) for (const row of rows) { await cnApplyRow(row, 'cnt'); }
     await cnPush(l); cnCur = prev;

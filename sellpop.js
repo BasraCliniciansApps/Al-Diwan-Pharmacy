@@ -30,7 +30,7 @@ function spOpen(pid, opts) {
     if (!bill) { try { initBillEditor(); } catch (e) { /* تجاهل */ } }
     if (bill && bill.issued && !bill.editing) { Swal.fire({ icon: 'info', title: 'الفاتورة صادرة', text: 'اضغط «تعديل» أولاً ثم أضف المواد.', confirmButtonColor: '#0f1c38' }); return; }
     const own = bill.items.filter(it => it.pid === pid);
-    let unit = 'pack';
+    let unit = sellDefUnit(p);
     if (opts.edit && own.length) unit = own[0].unit === 'part' && hasRetail(p) ? 'part' : 'pack';
     sp = { pid, unit, qty: 1, rows: [], price: '', edit: !!(opts.edit && own.length), scan: !!opts.scan, short: 0 };
     if (sp.edit) {
@@ -119,7 +119,7 @@ function spRender() {
     card.innerHTML = `
         <div class="sp-head">${img}<div class="sp-ti"><b dir="ltr">${dispNameHtml(p)}</b><span class="sp-stock">المتوفر: ${escapeHtml(stockLabel(p))}</span></div>
             <button type="button" class="sp-close" onclick="spClose()" aria-label="إغلاق">✕</button></div>
-        ${retail ? `<div class="sp-unit"><button type="button" class="${sp.unit === 'pack' ? 'on' : ''}" onclick="spUnitSwitch('pack')">علب</button><button type="button" class="${sp.unit === 'part' ? 'on' : ''}" onclick="spUnitSwitch('part')">${escapeHtml(subTypeOf(p))} (${sc} بالعبوة)</button></div>` : ''}
+        ${retail && !sellLocked(p) ? `<div class="sp-unit"><button type="button" class="${sp.unit === 'pack' ? 'on' : ''}" onclick="spUnitSwitch('pack')">علب</button><button type="button" class="${sp.unit === 'part' ? 'on' : ''}" onclick="spUnitSwitch('part')">${escapeHtml(subTypeOf(p))} (${sc} بالعبوة)</button></div>` : ''}
         <div class="sp-line"><span>العدد (${escapeHtml(unitName)})</span><div class="sp-st big"><button type="button" onclick="spQty(-1)" aria-label="إنقاص">−</button><input type="number" inputmode="numeric" min="1" value="${total}" onchange="spQtySet(this.value)"><button type="button" onclick="spQty(1)" aria-label="زيادة">+</button></div></div>
         <div class="sp-sec">الدفعات (تاريخ النفاذ)</div>
         ${rowsHtml || '<div class="sp-empty">لا توجد دفعات متاحة</div>'}

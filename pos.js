@@ -39,7 +39,7 @@ function posNearestExp(p) {
 // ---------- إضافة وتعديل الكمية ----------
 function posAdd(pid, unit, n) {
     const p = products.find(x => x.id === pid); if (!p) return false;
-    unit = unit === 'part' && hasRetail(p) ? 'part' : 'pack'; n = n || 1;
+    unit = sellLocked(p) ? sellDefUnit(p) : (unit === 'part' && hasRetail(p) ? 'part' : 'pack'); n = n || 1;
     const defPrice = unit === 'part' ? subPriceOf(p) : (parseFloat(p.price) || 0);
     const mine = bill.items.filter(it => it.pid === pid && posUnitOf(it) === unit), last = mine[mine.length - 1];
     const sim = spSim(p, unit, false);
@@ -89,6 +89,7 @@ async function posDel(key) {
 }
 function posSetUnit(key, to) {
     const g = posGroup(key); if (!g || !g.pid || g.unit === to) return;
+    { const pp = products.find(x => x.id === g.pid); if (pp && sellLocked(pp)) return; }
     bill.items = bill.items.filter(it => !g.lines.includes(it));
     if (!posAdd(g.pid, to, 1)) { bill.items.push(...g.lines); }   // فشلت الإضافة (بلا سعر): نُبقي كما كانت
     posDone_();
@@ -97,7 +98,7 @@ function posBatch(key) { const g = posGroup(key); if (g && g.pid) spOpen(g.pid, 
 
 // ---------- البحث والمسح ----------
 function posAddProduct(pid) {
-    const ok = posAdd(pid, 'pack', 1);
+    const ok = posAdd(pid, sellDefUnit(products.find(x => x.id === pid)), 1);
     const q = document.getElementById('posQ'); if (q) { q.value = ''; }
     posFound = []; posResults();
     if (ok) { posBeep(true); posDone_(); }
@@ -308,7 +309,7 @@ function posCardHtml(g) {
     const p = g.pid ? products.find(x => x.id === g.pid) : null, first = g.lines[0], qty = posTotalQty(g);
     const tot = g.lines.reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), 0);
     const chips = g.pid ? g.lines.map(it => { const t = posExpTag(it.exp); return `<span class="pos-chip ${t.c}">${posEsc(t.t)} × ${posEsc(it.qty)}</span>`; }).join('') : '';
-    const unit = p && hasRetail(p) ? `<div class="pos-unit"><button type="button" class="${g.unit === 'pack' ? 'on' : ''}" onclick="posSetUnit('${g.key}','pack')">علبة</button><button type="button" class="${g.unit === 'part' ? 'on' : ''}" onclick="posSetUnit('${g.key}','part')">${posEsc(subTypeOf(p))}</button></div>` : '';
+    const unit = p && hasRetail(p) && !sellLocked(p) ? `<div class="pos-unit"><button type="button" class="${g.unit === 'pack' ? 'on' : ''}" onclick="posSetUnit('${g.key}','pack')">علبة</button><button type="button" class="${g.unit === 'part' ? 'on' : ''}" onclick="posSetUnit('${g.key}','part')">${posEsc(subTypeOf(p))}</button></div>` : '';
     const prices = [...new Set(g.lines.map(it => parseFloat(it.price) || 0))];
     const cnt = g.pid && posNeedsCount(p) ? `<button type="button" class="pos-cnt" onclick="posCountOpen(${g.pid})">⚠️ المادة لم تُجرد بعد — اضغط لإدخال العدد والسعر</button>` : '';
     return `<div class="pos-card"><div class="pos-top"><b dir="ltr">${posEsc(first.name)}</b><button type="button" class="pos-x" onclick="posDel('${g.key}')" aria-label="حذف">✕</button></div>

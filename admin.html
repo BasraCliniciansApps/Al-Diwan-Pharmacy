@@ -453,6 +453,7 @@
                     </div>
                     <div><small>سعر الجزء (يُحسب تلقائياً)</small><input type="number" id="fSubPrice" min="0" oninput="this.dataset.manual='1'"></div>
                     <div><small>أجزاء مفتوحة من عبوة</small><input type="number" id="fLoose" min="0" value="0" onchange="formNormLoose()"></div>
+                    <div><small>أولوية البيع</small><select id="fSellPri"><option value="pack">العلبة أولاً</option><option value="part">الجزء أولاً</option><option value="packOnly">العلبة فقط</option><option value="partOnly">الجزء فقط</option></select></div>
                 </div>
             </div>
             <div class="form-group"><label>تنبيه عند (علب)</label><input type="number" id="fMinQty" min="0" placeholder="الحد العام"></div>
