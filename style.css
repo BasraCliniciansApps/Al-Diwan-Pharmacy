@@ -3817,3 +3817,9 @@ body.role-staff .home-sq .tile-scan { grid-column: auto; }
 .cu-none { text-align: center; color: #94a3b8; padding: 26px 10px; }
 [data-theme="dark"] .cu-row, [data-theme="dark"] .cu-inv, [data-theme="dark"] .cu-hd, [data-theme="dark"] .cu-seg button:not(.on) { background: #1e293b; border-color: #334155; color: #e2e8f0; }
 #homeView .home-sq .home-tile > svg { width: 40px; height: 40px; padding: 13px; box-sizing: content-box; }
+/* v455: نسب خصم سريعة في إتمام البيع */
+.px-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 6px; }
+.px-chips button { min-height: 40px; padding: 0 14px; border: 1px solid #cbd5e1; border-radius: 99px; background: #f8fafc; font: 800 .9rem inherit; font-family: inherit; cursor: pointer; color: #0f1c38; }
+.px-chips button.on { background: #0f1c38; color: #fff; border-color: #0f1c38; }
+.px-chips button.clr { background: #fee2e2; border-color: #fecaca; color: #991b1b; } .px-chips button.clr.on { background: #991b1b; color: #fff; }
+.px-chips button:disabled { opacity: .35; }

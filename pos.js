@@ -253,7 +253,8 @@ async function posIssue() {
         html: `<div class="px">
             <div class="px-sum"><span>المجموع</span><b id="pxSub"></b></div>
             <div class="px-sec">الخصم</div>
-            <div class="px-row"><label><span>النسبة ٪</span><input id="pxP" type="number" inputmode="decimal" min="0" step="any"></label><label><span>المبلغ</span><input id="pxA" type="number" inputmode="numeric" min="0"></label></div>
+            <div class="px-row"><label><span>نسبة الخصم ٪</span><input id="pxP" type="number" inputmode="decimal" min="0" step="any"></label><label><span>مبلغ الخصم (د.ع)</span><input id="pxA" type="number" inputmode="numeric" min="0"></label></div>
+            <div class="px-chips" id="pxChips">${[5, 10, 15, 20].map(n => `<button type="button" data-p="${n}">${n}٪</button>`).join('')}<button type="button" data-p="0" class="clr">بدون خصم</button></div>
             ${showLim ? '<button type="button" class="px-max" id="pxMax"></button>' : ''}
             <div id="pxMsg" class="px-msg"></div>
             ${el.length ? `<div id="pxRound"><div class="px-sec">تسوية المجموع إلى ألف كاملة</div>
@@ -273,11 +274,13 @@ async function posIssue() {
                 const L = posLimits(), mx = S > 0 ? Math.floor(L.allow / S * 1000) / 10 : 0, m = $('pxMsg');
                 if ($('pxMax')) $('pxMax').textContent = L.unknown && L.own ? 'أعلى خصم غير محسوب لبعض المواد (لا كلفة)' : 'أعلى خصم بدون خسارة: ' + mx + '٪ (' + fmtNum(L.allow) + ' د.ع)';
                 if (d > 0) { if (d > L.allow && !(L.own && L.unknown)) { m.className = 'px-msg bad'; m.textContent = L.own ? '🔴 خسارة: الخصم أعلى من الحد الآمن' : '🔴 يتجاوز الحد المسموح'; } else { m.className = 'px-msg ok'; m.textContent = '🟢 خصم آمن'; } } else { m.className = 'px-msg'; m.textContent = ''; }
+                document.querySelectorAll('#pxChips button').forEach(b => { const pc = +b.dataset.p; b.disabled = !L.own && pc > 0 && Math.round(S * pc / 100) > L.allow; b.classList.toggle('on', pc > 0 ? d > 0 && Math.abs(d - Math.round(S * pc / 100)) < 1 : d === 0); });
                 el.forEach(i => { const e = $('pxRP' + i); if (e) e.textContent = fmtNum(bill.items[i].price); });
                 const rd = $('pxRound'); if (rd) rd.style.display = Math.round(S - d) % 1000 === 0 ? 'none' : '';
             };
             $('pxP').oninput = () => { const S = sub(), pc = parseFloat($('pxP').value) || 0; bill.discount = String(Math.round(S * pc / 100)); upd('p'); $('pxA').value = bill.discount === '0' ? '' : bill.discount; };
             $('pxA').oninput = () => { bill.discount = String(parseFloat($('pxA').value) || 0); upd('a'); };
+            document.querySelectorAll('#pxChips button').forEach(b => { b.onclick = () => { const S = sub(), pc = +b.dataset.p; bill.discount = pc ? String(Math.round(S * pc / 100)) : ''; upd(); }; });
             if ($('pxMax')) $('pxMax').onclick = () => { bill.discount = String(posLimits().allow); upd(); };
             $('pxCr').onchange = () => { $('pxPaidBox').style.display = $('pxCr').checked ? '' : 'none'; };
             let cur = el[0];
@@ -287,6 +290,13 @@ async function posIssue() {
         }
     });
     if (r.isDismissed) { restore(); return; }
+    {   // تحذير: خصم يتجاوز الحد الآمن = بيع بخسارة (يحتاج تأكيداً)
+        const L = posLimits(), d = parseFloat(bill.discount) || 0;
+        if (d > 0 && L.own && !L.unknown && d > L.allow) {
+            const w = await Swal.fire({ icon: 'warning', title: 'تحذير: بيع بخسارة', html: `الخصم <b>${fmtNum(d)} د.ع</b> أعلى من الحد الآمن <b>${fmtNum(L.allow)} د.ع</b>.<br>هذه الفاتورة ستُباع <b style="color:#b91c1c">بخسارة تقارب ${fmtNum(d - L.allow)} د.ع</b>.<br>هل تريد إصدارها رغم ذلك؟`, showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، إصدار بخسارة', cancelButtonText: 'رجوع لتعديل الخصم', reverseButtons: true });
+            if (!w.isConfirmed) { return posIssue(); }
+        }
+    }
     const t = billTotals();
     bill.paid = r.value && r.value.credit ? String(Math.min(r.value.paid, t.total)) : '';
     writeInvoiceFields(); billChanged(); try { qiRemember(); } catch (e) { /* تجاهل */ }
