@@ -171,7 +171,9 @@ function renderAlerts() {
 
 // الشاشة الأولى: انتظر حالة الدخول، وإلا اذهب لشاشة الدخول
 document.body.dataset.view = 'splash';
-splashTimer = setTimeout(() => { if (currentView === 'splash') showView('login'); }, 3500);
+// إن كان هناك مستخدم مسجَّل سابقاً ننتظر استعادة جلسته أطول قبل عرض شاشة الدخول (لا نُظهرها ثم نخفيها)
+let _hadSess = false; try { for (let i = 0; i < localStorage.length; i++) if ((localStorage.key(i) || '').startsWith('firebase:authUser:')) { _hadSess = true; break; } } catch (e) { /* تجاهل */ }
+splashTimer = setTimeout(() => { if (currentView === 'splash') showView('login'); }, _hadSess ? 15000 : 3500);
 
 // ============================================================================
 // سحب للأسفل للتحديث (بدون إعادة تحميل التطبيق): يجلب أحدث البيانات ويبقى بنفس الشاشة والتبويب

@@ -12,6 +12,7 @@ def build(mode):
         s = re.sub(r'<!--C-->.*?<!--/C-->', '', s, flags=re.S)
         title, cls = 'لوحة الصيدلي | صيدلية الديوان', 'admin-page'
         s = s.replace('href="manifest.json"', 'href="manifest-admin.json"')
+        s = s.replace('data-view="stock"', 'data-view="splash"', 1)   # يبدأ بشاشة البداية لا بقائمة الأصناف
     else:
         s = re.sub(r'<!--A-->.*?<!--/A-->', '', s, flags=re.S)
         s = re.sub(r'<!--/?C-->', '', s)
