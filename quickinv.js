@@ -197,8 +197,17 @@ async function billSharePdf() {
         await qiLoadScript('vendor/html-to-image.js'); await qiLoadScript('vendor/pdf-lib.min.js');
         h.set(25, 'تصوير الفاتورة...');
         const sheet = document.getElementById('billSheet');
-        document.body.classList.add('capturing-bill'); document.querySelectorAll('#billPane-new textarea').forEach(autoGrow); await new Promise(r => setTimeout(r, 60));
-        let png; try { png = await htmlToImage.toPng(sheet, { pixelRatio: 2.5, backgroundColor: '#ffffff', cacheBust: true, filter: n => !(n.classList && n.classList.contains('no-print')) }); } finally { document.body.classList.remove('capturing-bill'); }
+        // من شاشة البيع تكون صفحة الفاتورة مخفية (عرضها صفر) فيفشل التصوير: نُظهرها مؤقتاً خارج الشاشة
+        const bv = document.getElementById('billView'), pane = document.getElementById('billPane-new'), keep = [bv, pane].map(e => e ? e.style.cssText : '');
+        if (!sheet.offsetWidth) {
+            if (bv) bv.style.cssText += ';display:block !important;position:fixed !important;left:-12000px !important;top:0 !important;width:820px !important;height:auto !important;overflow:visible !important;';
+            if (pane) pane.style.cssText += ';display:block !important;';
+        }
+        document.body.classList.add('capturing-bill'); document.querySelectorAll('#billPane-new textarea').forEach(autoGrow); await new Promise(r => setTimeout(r, 120));
+        let png; try {
+            if (!sheet.offsetWidth) throw new Error('تعذر تجهيز صفحة الفاتورة للتصوير');
+            png = await htmlToImage.toPng(sheet, { pixelRatio: 2.5, backgroundColor: '#ffffff', cacheBust: true, filter: n => !(n.classList && n.classList.contains('no-print')) });
+        } finally { document.body.classList.remove('capturing-bill'); if (bv) bv.style.cssText = keep[0]; if (pane) pane.style.cssText = keep[1]; }
         h.set(65, 'إنشاء ملف PDF...');
         const { PDFDocument } = PDFLib, doc = await PDFDocument.create(), img = await doc.embedPng(png);
         const W = 595.28, H = 841.89, M = 24, usable = H - 2 * M; let iw = W - 2 * M, ih = img.height * iw / img.width;
