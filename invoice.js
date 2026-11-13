@@ -421,7 +421,8 @@ async function issueInvoice(doPrintAfter, skipConfirm) {   // true/undefined: إ
     if (deduct && plan.length) {
         if (!writesAllowed()) return;
         plan.forEach(e => { e.p.qty = e.to.qty; e.p.loose = e.to.loose; e.p._badd = (e.p._badd || []).concat(e.hints); });
-        const ok = await saveProductsDelta(plan.map(e => ({ p: e.p, dq: e.to.qty - e.from.qty, dl: e.to.loose - e.from.loose })));
+        bill.id = bill.id || (String(Date.now()) + Math.random().toString(36).slice(2, 6));   // المعرّف قبل الخصم ليكون مفتاح العملية ثابتاً
+        const ok = await saveProductsDelta(plan.map(e => ({ p: e.p, dq: e.to.qty - e.from.qty, dl: e.to.loose - e.from.loose })), { key: bill.id + ':sale', kind: 'sale', inv: bill.id, no: bill.no });
         if (!ok) { plan.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; delete e.p._badd; }); renderAll(); return; }
         plan.forEach(e => { logAction('qty', e.p, [{ f: 'الكمية (فاتورة ' + bill.no + ')', from: stockTxt(e.p, e.from), to: stockTxt(e.p, e.to) }]); lines = lines.concat(e.lines); });
         renderAll();
@@ -500,7 +501,7 @@ async function saveInvoiceEdit(doPrintAfter) {
     if (hadDeduct) {
         if (!writesAllowed()) { rollback(); return; }
         plan.forEach(e => { e.p.qty = e.to.qty; e.p.loose = e.to.loose; lines = lines.concat(e.lines); e.p._badd = (e.p._badd || []).concat(e.hints); });
-        const ok = await saveProductsDelta([...snaps.values()].map(s => ({ p: s.p, dq: (parseInt(s.p.qty) || 0) - (parseInt(s.qty) || 0), dl: (parseInt(s.p.loose) || 0) - (parseInt(s.loose) || 0) })));
+        const ok = await saveProductsDelta([...snaps.values()].map(s => ({ p: s.p, dq: (parseInt(s.p.qty) || 0) - (parseInt(s.qty) || 0), dl: (parseInt(s.p.loose) || 0) - (parseInt(s.loose) || 0) })), { key: bill.id + ':edit:' + Date.now(), kind: 'edit', inv: bill.id, no: bill.no });
         if (!ok) { rollback(); renderAll(); return; }
         snaps.forEach(s => { const from = { qty: parseInt(s.qty) || 0, loose: parseInt(s.loose) || 0 }, to = { qty: parseInt(s.p.qty) || 0, loose: parseInt(s.p.loose) || 0 }; if (from.qty !== to.qty || from.loose !== to.loose) logAction('qty', s.p, [{ f: 'الكمية (تعديل فاتورة ' + bill.no + ')', from: stockTxt(s.p, from), to: stockTxt(s.p, to) }]); });
         renderAll();
@@ -566,9 +567,10 @@ async function cancelInvoice(target) {
             } else p.qty = (parseInt(p.qty) || 0) + l.n;
             if (l.exp !== undefined && !l.over && (p.bt || !getBatches(p).some(x => x.legacy))) p._badd = (p._badd || []).concat([{ e: l.exp, pr: l.pr, q: l.unit === 'part' ? 0 : l.n, l: l.unit === 'part' ? l.n : 0 }]);
         });
-        const ok = await saveProductsDelta([...touched.values()].map(e => ({ p: e.p, dq: (parseInt(e.p.qty) || 0) - e.from.qty, dl: (parseInt(e.p.loose) || 0) - e.from.loose })));
+        const ok = await saveProductsDelta([...touched.values()].map(e => ({ p: e.p, dq: (parseInt(e.p.qty) || 0) - e.from.qty, dl: (parseInt(e.p.loose) || 0) - e.from.loose })), { key: b.id + ':cancel', kind: 'cancel', inv: b.id, no: b.no });
         if (!ok) { touched.forEach(e => { e.p.qty = e.from.qty; e.p.loose = e.from.loose; delete e.p._badd; }); renderAll(); return; }
-        touched.forEach(e => logAction('qty', e.p, [{ f: 'الكمية (إلغاء فاتورة ' + b.no + ')', from: stockTxt(e.p, e.from), to: stockTxt(e.p, { qty: parseInt(e.p.qty) || 0, loose: parseInt(e.p.loose) || 0 }) }]));
+        if (window.__opAlready) { touched.forEach(e => { delete e.p._badd; }); renderAll(); Swal.fire({ icon: 'info', title: 'أُرجعت كميات هذه الفاتورة مسبقاً', text: 'لن تتكرر الكميات في المخزن.', confirmButtonColor: '#0f1c38' }); }
+        else touched.forEach(e => logAction('qty', e.p, [{ f: 'الكمية (إلغاء فاتورة ' + b.no + ')', from: stockTxt(e.p, e.from), to: stockTxt(e.p, { qty: parseInt(e.p.qty) || 0, loose: parseInt(e.p.loose) || 0 }) }]));
         renderAll();
     }
     b.cancelled = true; b.cancelledAt = todayLocalISO();

@@ -2880,7 +2880,9 @@ function deltaFromSnap(p, s) {
     if (JSON.stringify(s.lastPurchase || null) !== JSON.stringify(p.lastPurchase || null)) { d.lastSet = true; d.last = p.lastPurchase || null; }
     return d;
 }
-async function saveProductsDelta(entries) {
+// op (اختياري): { key, kind, inv, no } يسجّل «حركة» بمعرّف ثابت داخل نفس الدفعة؛ إن كانت مسجّلة مسبقاً (من جهاز آخر أو محاولة سابقة) تُرفض الدفعة كلها فلا تتكرر الكمية
+async function saveProductsDelta(entries, op) {
+    window.__opAlready = false;
     entries = (entries || []).filter(Boolean);
     entries.forEach(btPrepare);
     saveLocal();
@@ -2893,9 +2895,14 @@ async function saveProductsDelta(entries) {
     setSyncText('⏳ جاري الحفظ...');
     const PO = entries.length > 30 ? Prog.open('جاري الحفظ في السحابة') : null;
     try {
+        let useMoves = !!(op && op.key && F);
+        try { const off = +localStorage.getItem('diwanMovesOff') || 0; if (off && Date.now() - off < 3600000) useMoves = false; } catch (e) { /* تجاهل */ }
+        const nChunks = Math.ceil(entries.length / 15);
         for (let i = 0; i < entries.length; i += 15) {
+            const slice = entries.slice(i, i + 15);
+            const build = (withMove) => {
             const batch = db.batch();
-            entries.slice(i, i + 15).forEach(e => {
+            slice.forEach(e => {
                 if (e.mark && (can('stockEdit') || can('invList'))) e.p.counted = true;   // ضبط العدد يدوياً = المادة صارت مجرودة
                 if (e.unmark && can('stockEdit')) e.p.counted = false;   // التراجع عن اعتماد الرصيد
                 const { pub, stock, cost } = splitProduct(e.p);
@@ -2934,7 +2941,14 @@ async function saveProductsDelta(entries) {
                 }
                 batch.set(ref, u, { merge: true });
             });
-            await fsCommit(batch);
+            if (withMove) batch.create(db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#' + (i / 15) : '')), { key: op.key, kind: op.kind || '', inv: op.inv || '', no: op.no || '', by: userName || (userRole === 'owner' ? 'المالك' : ''), uid: currentUser.uid, ts: new Date().toISOString(), lines: slice.map(e => ({ p: e.p.id, dq: e.dq || 0, dl: e.dl || 0, q: parseInt(e.p.qty) || 0, l: parseInt(e.p.loose) || 0 })) });
+            return batch;
+            };
+            try { await fsCommit(build(useMoves)); }
+            catch (e1) {
+                if (useMoves && e1 && e1.code === 'permission-denied') { useMoves = false; try { localStorage.setItem('diwanMovesOff', String(Date.now())); } catch (x) { /* تجاهل */ } await fsCommit(build(false)); }   // قواعد حركات المخزون لم تُنشر بعد: نكمل بدونها
+                else throw e1;
+            }
             progTick(Math.min(i + 15, entries.length), entries.length, 'حُفظ ' + fmtNum(Math.min(i + 15, entries.length)) + ' من ' + fmtNum(entries.length));
         }
         syncStockLocal(entries.map(e => e.p));
@@ -2945,6 +2959,10 @@ async function saveProductsDelta(entries) {
     } catch (err) {
         Prog.end(PO, 'quiet');
         setSyncText('❌ فشل الحفظ');
+        if (op && err && err.code === 'already-exists') {   // هذه العملية سُجّلت سابقاً: لا نكررها، ونلغي أثرها المحلي ليتطابق مع السحابة
+            entries.forEach(e => { e.p.qty = (parseInt(e.p.qty) || 0) - (e.dq || 0); e.p.loose = (parseInt(e.p.loose) || 0) - (e.dl || 0); });
+            saveLocal(); setSyncText('☁️ تم الحفظ'); Prog.end(PO, 'quiet'); window.__opAlready = true; return true;
+        }
         const code = err && err.code || '';
         const why = code === 'permission-denied' ? 'لا تملك صلاحية هذه العملية على هذه المادة. راجع المالك لتفعيل صلاحية البيع، أو حدّث التطبيق.' : code === 'not-found' ? 'المادة غير موجودة في مخزون السحابة. يجب أن يضيفها المالك أولاً.' : err.message;
         const names = entries.slice(0, 4).map(e => e.p && e.p.name).filter(Boolean).join('، ');

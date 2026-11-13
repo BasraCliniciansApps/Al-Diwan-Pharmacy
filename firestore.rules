@@ -57,6 +57,13 @@ service cloud.firestore {
       allow delete: if isOwner() || (perm('deleteOwn') && resource.data.byUid == request.auth.uid);
     }
 
+    // ---- حركات المخزون (سجل ثابت يمنع تكرار العملية الواحدة) ----
+    match /pharmacy_moves/{id} {
+      allow read: if isOwner();
+      allow create: if isOwner() || isStaff();
+      allow update, delete: if isOwner();
+    }
+
     // ---- الوارد والمذاخر والسجلات المالية ----
     match /pharmacy_purchases/{id}  { allow read, write: if isOwner() || perm('purchases'); }
     match /pharmacy_suppliers/{id}  { allow read, write: if isOwner() || perm('purchases'); }
