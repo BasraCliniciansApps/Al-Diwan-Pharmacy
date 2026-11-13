@@ -3988,3 +3988,4 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 .dw-inline .dw-actions .dw-btn { width: 100%; margin: 0 !important; }
 /* v503: إعدادات الفواتير داخل الإعدادات */
 #catModal .bill-settings { max-width: none; margin: 0; background: transparent; padding: 0; color: var(--text-main, #0f1c38); }
+#catModal .im-main-title { display: none; }

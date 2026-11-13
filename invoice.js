@@ -325,7 +325,25 @@ function initBillEditor() {
     if (bill.editing && !billEditBase) bill.editing = false;
     writeInvoiceFields(); renderInvoiceRows(); renderInvMeta(); renderInvImages();
 }
+// مصدر واحد لإعدادات الفواتير: يُرسم في صفحة الفواتير وفي الإعدادات معاً، فأي حقل يُضاف هنا يظهر في الاثنين ويتزامن تلقائياً (data-k للنصوص، im-pc للخيارات)
+const INV_SET_HTML = `<div class="bill-set-title im-main-title">⚙️ بيانات الصيدلية على الفاتورة <small>(تُحفظ على هذا الجهاز)</small></div>
+<label class="bill-field"><span>العنوان:</span><input class="im-f" data-k="addr" oninput="billSaveMeta(this)" placeholder="مثال: البصرة - ..."></label>
+<label class="bill-field"><span>الهاتف:</span><input class="im-f" data-k="phone" dir="ltr" oninput="billSaveMeta(this)"></label>
+<label class="bill-field"><span>الصيدلاني / رقم الإجازة:</span><input class="im-f" data-k="lic" oninput="billSaveMeta(this)" placeholder="اختياري"></label>
+<label class="bill-field"><span>سياسة الإرجاع:</span><input class="im-f" data-k="ret" oninput="billSaveMeta(this)" placeholder="مثال: الأدوية المباعة لا تُرد ولا تُستبدل بعد الاستلام"></label>
+<label class="bill-field"><span>سطر أسفل الفاتورة:</span><input class="im-f" data-k="foot" oninput="billSaveMeta(this)" placeholder="مثال: شكراً لثقتكم"></label>
+<div class="bill-set-imgs">
+<label class="bill-tb-btn">🖋️ صورة التوقيع<input type="file" accept="image/*" hidden onchange="billPickImage('sig', this)"></label>
+<label class="bill-tb-btn">🔵 صورة الختم<input type="file" accept="image/*" hidden onchange="billPickImage('stamp', this)"></label>
+<button type="button" class="bill-tb-btn" onclick="billClearImages()">إزالة الصورتين</button>
+</div>
+<div class="bill-set-hint">إن تركت الصورتين فارغتين يبقى مكان التوقيع والختم فارغاً لتوقّع وتختم بيدك بعد الطباعة.</div>
+<div class="bill-set-title" style="margin-top:18px">🧮 شاشة البيع الجديدة</div>
+<label class="bill-field" style="flex-direction:row;align-items:center;gap:12px"><input type="checkbox" class="im-pc" onchange="posCountSet(this.checked)"><span>طلب جرد المادة عند أول بيع (للمواد غير المجرودة في وضع التأسيس)</span></label>
+<div class="bill-set-hint">عند التفعيل يظهر تنبيه على المادة غير المجرودة داخل شاشة البيع؛ بالضغط عليه تُدخل عدد العلب وعدد الأجزاء والسعر فتصبح المادة مجرودة. الخيار متوقف افتراضياً، ويتطلب صلاحية تعديل المواد.</div>`;
+function invSettingsRender() { document.querySelectorAll('[data-inv-set]').forEach(c => { if (!c.dataset.r) { c.innerHTML = INV_SET_HTML; c.dataset.r = '1'; } }); }
 function initBillSettings() {
+    invSettingsRender();
     const m = getInvMeta();
     try { const on = !!scCfg().posCount; document.querySelectorAll('.im-pc').forEach(c => { c.checked = on; }); } catch (e) { /* تجاهل */ }
     ['addr', 'phone', 'lic', 'ret', 'foot'].forEach(k => document.querySelectorAll('.im-f[data-k="' + k + '"]').forEach(e => { e.value = m[k] || ''; }));
