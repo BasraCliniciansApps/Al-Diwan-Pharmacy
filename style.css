@@ -4095,3 +4095,14 @@ body.can-stockedit .lbl-open-btn{display:inline-flex}
 /* عناوين الأقسام الداخلية موحّدة: رمادية صغيرة ثقيلة، والتسميات فوق الحقول أغمق منها */
 #catModal .set-sec,#catModal h5.set-sec{display:block;margin:18px 0 10px;padding:0;font-size:.76rem;font-weight:800;color:var(--text-sub);line-height:1.5}
 #catModal .set-sec:first-of-type{margin-top:6px}
+
+/* ===== v528: تجميع بطاقات الإعدادات، وصف مختصر، إخفاء الإغلاق بالصفحات الفرعية ===== */
+.sh-gh{margin:16px 4px 8px;font-size:.74rem;font-weight:800;color:var(--text-sub);letter-spacing:0}
+.sh-gh:first-child{margin-top:4px}
+.sh-grid .sh-card+.sh-gh{margin-top:18px}
+#catModal .modal-card.sh-on .modal-actions-row{display:none}
+#catModal .set-desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;cursor:pointer}
+#catModal .set-desc.open{display:block;-webkit-line-clamp:unset;overflow:visible}
+#catModal .set-scope.sh-hid{display:none}
+.sh-scope-top{margin:0 4px 10px;font-size:.76rem;color:var(--text-sub);display:flex;align-items:center;gap:8px}
+.sh-gh{grid-column:1/-1}

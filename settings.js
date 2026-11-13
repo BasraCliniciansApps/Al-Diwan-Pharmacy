@@ -3,21 +3,21 @@
 // ما تغيّر محتوى الإعدادات القديمة، بس ترتّبه (تعرض صناديق كل صفحة وتخفي الباقي).
 // =====================================================================
 const SH_PAGES = [
-    { id: 'invset', ico: '🧾', t: 'الفواتير والبيع', boxes: ['invoice'], kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع شاشة البيع جرد عند أول بيع طباعة invoice print' },
-    { id: 'inv', ico: '📦', t: 'المخزون والتنبيهات', boxes: ['alerts'], kw: 'مخزون تنبيه تنبيهات نقص كمية قليلة صلاحية انتهاء مدة نفاذ تواريخ الوارد inventory alerts' },
-    { id: 'price', ico: '💰', t: 'التسعير', boxes: ['pricing'], kw: 'سعر تسعير نقابة كتاب صرف دولار دينار نسبة شرائح تقريب إعادة تسعير pricing' },
-    { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيف', boxes: ['depts', 'cats', 'forms', 'parts'], quick: true, kw: 'قسم اقسام تصنيف تصنيفات فرعية اشكال الاشكال الدوائية مجموعة نوع الجزء اجزاء الإدخال السريع تعلم تلقائي ما تعلمه التطبيق forms categories departments' },
-    { id: 'maint', ico: '🧰', t: 'مركز تجهيز البيانات', act: 'shGoDataHub', boxes: [], kw: 'مركز تجهيز البيانات مواد فعالة مراجعة التصنيف مكررة ناقصة تعبئة الشركات قواعد تصنيف صيانة' },
-    { id: 'exp', ico: '📅', t: 'استيراد تواريخ الانتهاء', act: 'puExpBackfill', boxes: [], kw: 'استيراد تواريخ الانتهاء فواتير وارد مؤجلة مخزن' },
-    { id: 'scanner', ico: '🔎', t: 'فاحص المادة', boxes: [], scan: true, kw: 'فاحص المادة مسح باركود حد الخصم الخصم المحمي الكامل هامش الامان اكسباير حاسبة الخصم scanner discount' },
-    { id: 'ai', ico: '✨', t: 'الذكاء الصناعي', boxes: ['ai'], kw: 'ذكاء صناعي مسح عبوة gemini firebase groq openrouter مفتاح نموذج بحث بالاسم قراءة العبوة ocr' },
-    { id: 'docset', ico: '🩺', t: 'صفحة الأطباء', boxes: ['docs'], kw: 'طبيب اطباء صفحة الاطباء رابط الصفحة اظهار الاسعار العدد تحديث تلقائي طلبات الأطباء doctor' },
-    { id: 'device', ico: '📱', t: 'هذا الجهاز', boxes: ['install', 'device'], kw: 'تثبيت التطبيق بصمة قفل تذكير طباعة ورق طابعة اسماء الاطباء المحفوظة الجهاز install' },
-    { id: 'users', ico: '👥', t: 'المستخدمون والصلاحيات', act: 'openUsers', boxes: [], kw: 'مستخدم مستخدمين صلاحيات حساب بائع اضافة مستخدم users' },
-    { id: 'sec', ico: '🔐', t: 'الأمان والخصوصية', boxes: ['protect'], kw: 'مستخدم مستخدمين صلاحيات حساب بائع حماية بيانات المخزون فصل سعر الشراء كلفة اخفاء أمان خصوصية users permissions security' },
-    { id: 'sys', ico: '💾', t: 'النسخ الاحتياطي والاسترجاع', boxes: ['backup', 'restore'], kw: 'نسخ احتياطي استرجاع تصدير اكسل csv backup restore export' },
-    { id: 'cloud', ico: '☁️', t: 'النسخ السحابية', act: 'openCloudBackupsModal', boxes: [], kw: 'نسخ سحابية سحابة cloud backups' },
-    { id: 'trash', ico: '🗑️', t: 'سلة المحذوفات', act: 'openTrashModal', boxes: [], kw: 'سلة محذوفات حذف استرجاع المحذوف trash' },
+    { id: 'invset', g: 'g1', ico: '🧾', t: 'الفواتير والبيع', boxes: ['invoice'], kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع شاشة البيع جرد عند أول بيع طباعة invoice print' },
+    { id: 'inv', g: 'g1', ico: '📦', t: 'المخزون والتنبيهات', boxes: ['alerts'], kw: 'مخزون تنبيه تنبيهات نقص كمية قليلة صلاحية انتهاء مدة نفاذ تواريخ الوارد inventory alerts' },
+    { id: 'price', g: 'g1', ico: '💰', t: 'التسعير', boxes: ['pricing'], kw: 'سعر تسعير نقابة كتاب صرف دولار دينار نسبة شرائح تقريب إعادة تسعير pricing' },
+    { id: 'tax', g: 'g1', ico: '🗂️', t: 'الأقسام والتصنيف', boxes: ['depts', 'cats', 'forms', 'parts'], quick: true, kw: 'قسم اقسام تصنيف تصنيفات فرعية اشكال الاشكال الدوائية مجموعة نوع الجزء اجزاء الإدخال السريع تعلم تلقائي ما تعلمه التطبيق forms categories departments' },
+    { id: 'maint', g: 'g2', ico: '🧰', t: 'مركز تجهيز البيانات', act: 'shGoDataHub', boxes: [], kw: 'مركز تجهيز البيانات مواد فعالة مراجعة التصنيف مكررة ناقصة تعبئة الشركات قواعد تصنيف صيانة' },
+    { id: 'exp', g: 'g2', ico: '📅', t: 'استيراد تواريخ الانتهاء', act: 'puExpBackfill', boxes: [], kw: 'استيراد تواريخ الانتهاء فواتير وارد مؤجلة مخزن' },
+    { id: 'scanner', g: 'g2', ico: '🔎', t: 'فاحص المادة', boxes: [], scan: true, kw: 'فاحص المادة مسح باركود حد الخصم الخصم المحمي الكامل هامش الامان اكسباير حاسبة الخصم scanner discount' },
+    { id: 'ai', g: 'g2', ico: '✨', t: 'الذكاء الصناعي', boxes: ['ai'], kw: 'ذكاء صناعي مسح عبوة gemini firebase groq openrouter مفتاح نموذج بحث بالاسم قراءة العبوة ocr' },
+    { id: 'docset', g: 'g2', ico: '🩺', t: 'صفحة الأطباء', boxes: ['docs'], kw: 'طبيب اطباء صفحة الاطباء رابط الصفحة اظهار الاسعار العدد تحديث تلقائي طلبات الأطباء doctor' },
+    { id: 'device', g: 'g4', ico: '📱', t: 'هذا الجهاز', boxes: ['install', 'device'], kw: 'تثبيت التطبيق بصمة قفل تذكير طباعة ورق طابعة اسماء الاطباء المحفوظة الجهاز install' },
+    { id: 'users', g: 'g3', ico: '👥', t: 'المستخدمون والصلاحيات', act: 'openUsers', boxes: [], kw: 'مستخدم مستخدمين صلاحيات حساب بائع اضافة مستخدم users' },
+    { id: 'sec', g: 'g3', ico: '🔐', t: 'الأمان والخصوصية', boxes: ['protect'], kw: 'مستخدم مستخدمين صلاحيات حساب بائع حماية بيانات المخزون فصل سعر الشراء كلفة اخفاء أمان خصوصية users permissions security' },
+    { id: 'sys', g: 'g3', ico: '💾', t: 'النسخ الاحتياطي والاسترجاع', boxes: ['backup', 'restore'], kw: 'نسخ احتياطي استرجاع تصدير اكسل csv backup restore export' },
+    { id: 'cloud', g: 'g3', ico: '☁️', t: 'النسخ السحابية', act: 'openCloudBackupsModal', boxes: [], kw: 'نسخ سحابية سحابة cloud backups' },
+    { id: 'trash', g: 'g3', ico: '🗑️', t: 'سلة المحذوفات', act: 'openTrashModal', boxes: [], kw: 'سلة محذوفات حذف استرجاع المحذوف trash' },
 ];
 // الرجوع الصحيح: النافذة التي تُفتح من الإعدادات (اختصار/أداة) تغلق الإعدادات مؤقتًا؛ عند الرجوع منها نعيد الإعدادات
 // في الصفحة التي كنت فيها، لا أن نتركك في الرئيسية. kind: 'layer' نافذة (تُراقَب) أو 'view' شاشة (تُعاد بزر الرجوع).
@@ -70,9 +70,12 @@ function shSummary(p) {
     } catch (e) { /* تجاهل */ }
     return { s: '' };
 }
+const SH_GROUPS = { g1: 'المتجر', g2: 'الأدوات', g3: 'الحسابات والبيانات', g4: 'هذا الجهاز' };
 function shHubHtml() {
+    const card = p => { const m = shSummary(p); return `<button type="button" class="sh-card" data-p="${p.id}"><span class="sh-ico">${p.ico}</span><span class="sh-tx"><b>${p.t}</b><small>${m.s}</small></span>${m.badge ? `<em class="sh-badge">${m.badge}</em>` : ''}</button>`; };
+    const grid = Object.keys(SH_GROUPS).map(g => `<h5 class="sh-gh">${SH_GROUPS[g]}</h5>` + SH_PAGES.filter(p => p.g === g).map(card).join('')).join('');
     return `<div class="sh-search"><input type="search" id="shQ" placeholder="ابحث في الإعدادات…" autocomplete="off" aria-label="بحث في الإعدادات"></div>
-    <div class="sh-grid" id="shGrid">${SH_PAGES.map(p => { const m = shSummary(p); return `<button type="button" class="sh-card" data-p="${p.id}"><span class="sh-ico">${p.ico}</span><span class="sh-tx"><b>${p.t}</b><small>${m.s}</small></span>${m.badge ? `<em class="sh-badge">${m.badge}</em>` : ''}</button>`; }).join('')}</div>
+    <div class="sh-grid" id="shGrid">${grid}</div>
     <div class="sh-res" id="shRes" hidden></div>`;
 }
 function shQuickHtml() {
@@ -98,6 +101,7 @@ function shInit() {
 }
 function shHome(anim) {
     const card = shCard(); if (!card) return; shCur = null;
+    { const o = document.getElementById('shScopeTop'); if (o) o.remove(); }
     card.classList.remove('sh-on');
     shBoxes().forEach(b => b.classList.remove('sh-show'));
     const q = document.getElementById('shQuick'); if (q) q.hidden = true;
@@ -132,6 +136,15 @@ function shDeviceRows() {
     g('devP80').onchange = e => { NAT.setCfg({ paper: e.target.checked ? 80 : 58 }); shToast('تم الحفظ ✓'); };
     g('devPrn').onclick = async () => { await NAT.printerChoose(); const n = NAT.cfg().printerName; g('devPrnN').textContent = n || 'لم تُحدَّد طابعة بعد.'; };
 }
+function shScopeOnce(els) {
+    const old = document.getElementById('shScopeTop'); if (old) old.remove();
+    document.querySelectorAll('#catModal .set-scope.sh-hid').forEach(c => c.classList.remove('sh-hid'));
+    const chips = els.flatMap(b => [...b.querySelectorAll('.set-desc > .set-scope')]);
+    if (chips.length < 2) return;
+    const txt = chips[0].textContent.trim(); if (!chips.every(c => c.textContent.trim() === txt && c.className === chips[0].className)) return;
+    const cls = chips[0].className; chips.forEach(c => c.classList.add('sh-hid'));
+    const bar = document.getElementById('shBar'); if (bar) bar.insertAdjacentHTML('afterend', `<div id="shScopeTop" class="sh-scope-top"><i class="${cls}">${txt}</i> ينطبق على كل خيارات هذه الصفحة.</div>`);
+}
 function shOpen(id, boxKey) {
     if (id === 'invset') { try { initBillSettings(); } catch (e) { /* تجاهل */ } }
     if (id === 'docset') { try { docSetMount(); } catch (e) { /* تجاهل */ } }
@@ -150,6 +163,7 @@ function shOpen(id, boxKey) {
     const els = p.boxes.map(shBox).filter(Boolean);
     let anchor = q; els.forEach(b => { anchor.after(b); anchor = b; });   // ترتيب الصناديق كما هو معرَّف للصفحة
     if (p.quick) { q.innerHTML = shTaxExtraHtml(); if (typeof setupSettingsAccordion === 'function') { const qb = document.getElementById('shQkBox'); if (qb) delete qb.dataset.acc; setupSettingsAccordion(); } q.hidden = false; q.classList.add('sh-show', 'sh-pg'); anchor.after(q); }
+    try { shScopeOnce(els); } catch (e) { /* تجاهل */ }
     const firstVis = els.find(b => !b.hidden);
     els.forEach(b => { b.classList.add('sh-show'); if (els.length === 1) b.classList.add('sh-single'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (els.length === 1 || (boxKey ? b.dataset.k === boxKey : b === firstVis)) b.classList.add('open'); });
     const tb = boxKey && shBox(boxKey);
@@ -263,3 +277,5 @@ function shHubHead(el, back, label) {
 
 // صلاحيات تظهر/تخفي أزرار حسب الدور: زر الملصقات في المخزن، وتقارير النظام للمالك فقط
 setInterval(() => { try { document.body.classList.toggle('can-stockedit', can('stockEdit')); const r = document.getElementById('repSys'); if (r) r.hidden = userRole !== 'owner'; } catch (e) { /* تجاهل */ } }, 1000);
+
+document.addEventListener('click', e => { const d = e.target.closest && e.target.closest('#catModal .set-desc'); if (d && !e.target.closest('a,button')) d.classList.toggle('open'); });
