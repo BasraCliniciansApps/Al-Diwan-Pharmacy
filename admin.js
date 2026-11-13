@@ -25,7 +25,7 @@ function showView(v) {
 // يُستدعى من data.js عند تغيّر حالة الدخول
 function onAdminAuth(user) {
     clearTimeout(splashTimer);
-    try { if (user) localStorage.setItem('diwanHadSess', '1'); else localStorage.removeItem('diwanHadSess'); } catch (e) { /* تجاهل */ }
+    try { if (user) localStorage.setItem('diwanHadSess', userRole === 'owner' ? 'owner' : 'staff'); else localStorage.removeItem('diwanHadSess'); } catch (e) { /* تجاهل */ }
     if (user) { if (currentView === 'splash' || currentView === 'login') showView('home'); }
     else showView('login');
 }
@@ -186,8 +186,17 @@ function renderAlerts() {
 // الشاشة الأولى: انتظر حالة الدخول، وإلا اذهب لشاشة الدخول
 document.body.dataset.view = 'splash';
 // إن كان هناك مستخدم مسجَّل سابقاً ننتظر استعادة جلسته أطول قبل عرض شاشة الدخول (لا نُظهرها ثم نخفيها)
-let _hadSess = false; try { _hadSess = localStorage.getItem('diwanHadSess') === '1'; } catch (e) { /* تجاهل */ }   // الجلسة عند Firebase تُحفظ في IndexedDB لا localStorage، فنحفظ علامة خاصة بنا
+let _hadSess = false; try { _hadSess = !!localStorage.getItem('diwanHadSess'); } catch (e) { /* تجاهل */ }   // الجلسة عند Firebase تُحفظ في IndexedDB لا localStorage، فنحفظ علامة خاصة بنا
 splashTimer = setTimeout(() => { if (currentView === 'splash') showView('login'); }, _hadSess ? 15000 : 3500);
+
+// فتح سريع: إن كانت هناك جلسة سابقة نعرض الرئيسية فوراً من البيانات المحلية بالصلاحيات المحفوظة، ويكتمل التحقق من الحساب في الخلفية
+// (إن تبيّن أن الجلسة انتهت أو عُطّل الحساب تعود شاشة الدخول تلقائياً)
+try {
+    const sr = localStorage.getItem('diwanHadSess'); let ok = false;
+    if (sr === 'owner') { userRole = 'owner'; userName = 'المالك'; ok = true; }
+    else if (sr === 'staff') { const rc = JSON.parse(localStorage.getItem('diwanRoleCache') || 'null'); if (rc && rc.doc && rc.doc.active !== false) { userRole = 'staff'; userPerms = rc.doc.perms || {}; userName = rc.doc.name || ''; window.userOrd = parseInt(rc.doc.ord) || 0; ok = true; } }
+    if (ok) { document.body.classList.add('admin-mode'); if (typeof applyRoleUI === 'function') applyRoleUI(); clearTimeout(splashTimer); showView('home'); }
+} catch (e) { /* تجاهل: نكمل بالمسار العادي */ }
 
 // ============================================================================
 // سحب للأسفل للتحديث (بدون إعادة تحميل التطبيق): يجلب أحدث البيانات ويبقى بنفس الشاشة والتبويب
