@@ -324,7 +324,7 @@ async function fsWrite(promise) {
     const settle = ok => { pendingOps = Math.max(0, pendingOps - 1); if (ok) { syncErrMsg = ''; markSynced(); } syncRefresh(); };
     promise.then(() => settle(true), () => settle(false));
     if (!navigator.onLine) { promise.catch(asyncWriteFailed); return 'queued'; }
-    const r = await Promise.race([promise.then(() => 'ok'), new Promise(res => setTimeout(() => res('slow'), 2500))]);
+    const r = await Promise.race([promise.then(() => 'ok'), new Promise(res => setTimeout(() => res('slow'), 1500))]);
     if (r === 'slow') promise.catch(asyncWriteFailed);
     return r;
 }
