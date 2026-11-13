@@ -231,17 +231,6 @@
                 <button type="button" class="icon-btn" onclick="fmAddGroup()" style="margin-top:8px;width:100%">＋ إضافة مجموعة أشكال</button>
             </div>
 
-            <div class="cat-manager-box" data-k="types">
-                <h4>أنواع المواد (التبويبات)</h4>
-                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> تصنيف المواد في شاشة المخزن إلى: كل القسم، الأدوية، كوزمتك، غير متوفر وما تضيفه أنت.</p>
-                <div id="tabListManager" class="manager-list"></div>
-                <div class="add-inline-row">
-                    <input type="text" id="newTabIcon" placeholder="🏷️" maxlength="4" style="width:56px; flex-grow:0; text-align:center;">
-                    <input type="text" id="newTabInput" placeholder="اسم تبويب جديد (مثل: مستلزمات)...">
-                    <button class="icon-btn primary-btn" onclick="addCustomTab()">+ إضافة</button>
-                </div>
-            </div>
-
             <div class="cat-manager-box" data-k="parts">
                 <h4>أنواع الجزء</h4>
                 <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> أسماء الأجزاء التي تُباع بها العبوة بالتجزئة (شريط، حبة، مل…). تعديل الاسم يشمل كل المواد.</p>
@@ -650,7 +639,7 @@
     <div class="home-sq">
         <button type="button" class="home-tile tile-sq tile-purch" onclick="showView('purch')">
             <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/><path d="M8 5.5l8 3.8"/></svg>
-            <span class="tile-txt"><b>الوارد</b><small id="homePuOwed">فواتير المذاخر والدفعات</small></span>
+            <span class="tile-txt"><b>الوارد</b><small id="homePuOwed">فواتير المذاخر</small></span>
         </button>
         <button type="button" class="home-tile tile-sq tile-stock" onclick="showView('stock')">
             <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>

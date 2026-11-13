@@ -6,7 +6,7 @@ const SH_PAGES = [
     { id: 'invset', ico: '🧾', t: 'الفواتير والبيع', boxes: ['invoice'], kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع شاشة البيع جرد عند أول بيع طباعة invoice print' },
     { id: 'inv', ico: '📦', t: 'المخزون والتنبيهات', boxes: ['alerts'], kw: 'مخزون تنبيه تنبيهات نقص كمية قليلة صلاحية انتهاء مدة نفاذ تواريخ الوارد inventory alerts' },
     { id: 'price', ico: '💰', t: 'التسعير', boxes: ['pricing'], kw: 'سعر تسعير نقابة كتاب صرف دولار دينار نسبة شرائح تقريب إعادة تسعير pricing' },
-    { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيف', boxes: ['depts', 'cats', 'forms', 'types', 'parts'], quick: true, kw: 'قسم اقسام تصنيف تصنيفات فرعية اشكال الاشكال الدوائية مجموعة تبويب تبويبات انواع المواد نوع الجزء اجزاء الإدخال السريع تعلم تلقائي ما تعلمه التطبيق forms categories departments' },
+    { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيف', boxes: ['depts', 'cats', 'forms', 'parts'], quick: true, kw: 'قسم اقسام تصنيف تصنيفات فرعية اشكال الاشكال الدوائية مجموعة نوع الجزء اجزاء الإدخال السريع تعلم تلقائي ما تعلمه التطبيق forms categories departments' },
     { id: 'maint', ico: '🧰', t: 'صيانة البيانات', boxes: ['maint-hub', 'seed', 'maint-exp'], kw: 'مركز تجهيز البيانات مواد فعالة مراجعة التصنيف مكررة ناقصة تعبئة الشركات قواعد تصنيفي الأقسام الجاهزة استيراد تواريخ الانتهاء الفواتير المؤجلة صيانة' },
     { id: 'scanner', ico: '🔎', t: 'فاحص المادة', boxes: [], scan: true, kw: 'فاحص المادة مسح باركود حد الخصم الخصم المحمي الكامل هامش الامان اكسباير حاسبة الخصم scanner discount' },
     { id: 'ai', ico: '✨', t: 'الذكاء الصناعي', boxes: ['ai'], kw: 'ذكاء صناعي مسح عبوة gemini firebase groq openrouter مفتاح نموذج بحث بالاسم قراءة العبوة ocr' },
@@ -48,7 +48,7 @@ function shCard() { return document.querySelector('#catModal .modal-card'); }
 function shBuzz() { try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { /* تجاهل */ } }
 function shSummary(p) {
     try {
-        if (p.id === 'tax') { const n = (typeof taxSeeded === 'function' && taxSeeded()) ? taxMissingSubs().length + taxPendingRenames().length + taxPendingMoves().length : 0; return { s: `${fmtNum(departments.length)} قسم · ${fmtNum(subCategories.length)} تصنيف · الأشكال والتبويبات`, badge: n ? fmtNum(n) + ' جديد' : '' }; }
+        if (p.id === 'tax') { const n = (typeof taxSeeded === 'function' && taxSeeded()) ? taxMissingSubs().length + taxPendingRenames().length + taxPendingMoves().length : 0; return { s: `${fmtNum(departments.length)} قسم · ${fmtNum(subCategories.length)} تصنيف · الأشكال الدوائية`, badge: n ? fmtNum(n) + ' جديد' : '' }; }
         if (p.id === 'inv') return { s: `حد الكمية ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر` };
         if (p.id === 'price') return { s: `سعر الصرف ${fmtNum(pricingCfg.rate)} · الشرائح والتقريب` };
         if (p.id === 'invset') return { s: 'هوية الفاتورة · الختم والتوقيع · شاشة البيع · الطباعة' };

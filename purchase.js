@@ -713,7 +713,7 @@ function renderPuDebt() {
 function puHomeBadge() {
     const el = $b('homePuOwed'); if (!el) return;
     const total = puAll.reduce((s, r) => s + puRemaining(r), 0);
-    el.innerText = total > 0 ? 'مستحق للمذاخر: ' + fmtNum(total) : 'فواتير المذاخر والدفعات';
+    el.innerText = total > 0 ? 'مستحق للمذاخر: ' + fmtNum(total) : 'فواتير المذاخر';
 }
 
 // ---------- الكشف الشهري ----------
