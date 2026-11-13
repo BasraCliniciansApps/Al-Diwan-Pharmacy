@@ -147,7 +147,7 @@ function posScan() {   // كاميرا: تستمر بعد كل قراءة لحي
 }
 
 // ---------- جرد المادة عند أول بيع (خيار في الإعدادات، متوقف افتراضياً) ----------
-function posCountSet(v) { try { const c = scCfg(); c.posCount = !!v; scSave(c); } catch (e) { /* تجاهل */ } }
+function posCountSet(v) { try { const c = scCfg(); c.posCount = !!v; scSave(c); } catch (e) { /* تجاهل */ } document.querySelectorAll('.im-pc').forEach(e => { e.checked = !!v; }); }
 function posNeedsCount(p) { try { return !!p && scCfg().posCount && setupSkip(p) && posStockCan(); } catch (e) { return false; } }
 // ---------- مخزن المادة: عرض صغير على البطاقة + نافذة تعديل (علب/أجزاء/دفعات) ----------
 function posStockCan() { return userRole === 'owner' || can('stockEdit') || can('invList'); }

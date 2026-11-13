@@ -10,7 +10,7 @@ const SH_PAGES = [
     { id: 'ui', ico: '🧩', t: 'الواجهة والتبويبات', boxes: [3, 11], kw: 'تبويب تبويبات الشريط السفلي واجهة تثبيت التطبيق tabs install' },
     { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8, 12], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة users permissions security log trash' },
     { id: 'sys', ico: '💾', t: 'النسخ والبيانات', boxes: [6], kw: 'نسخ احتياطي استرجاع تصدير نسخ سحابية backup restore export csv' },
-    { id: 'invset', ico: '🧾', t: 'إعدادات الفواتير', boxes: [], act: 'shGoInvSettings', kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع invoice' },
+    { id: 'invset', ico: '🧾', t: 'إعدادات الفواتير', boxes: [13], kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع invoice' },
     { id: 'docset', ico: '🩺', t: 'إعدادات صفحة الأطباء', boxes: [], act: 'shGoDocSettings', kw: 'طبيب اطباء صفحة الاطباء المواد المعروضة doctor' },
 ];
 // الرجوع الصحيح: النافذة التي تُفتح من الإعدادات (اختصار/أداة) تغلق الإعدادات مؤقتًا؛ عند الرجوع منها نعيد الإعدادات
@@ -129,6 +129,7 @@ function shHome(anim) {
     card.scrollTop = 0;
 }
 function shOpen(id, boxIdx) {
+    if (id === 'invset') { try { initBillSettings(); } catch (e) { /* تجاهل */ } }
     const card = shCard(), p = SH_PAGES.find(x => x.id === id); if (!card || !p) return;
     if (p.act) { if (typeof window[p.act] === 'function') window[p.act](); return; }   // بطاقات تفتح نافذتها مباشرة
     shInit(); shCur = id; card.classList.add('sh-on');

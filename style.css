@@ -3986,3 +3986,5 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 .dw-inline .dw-text { flex: 1 1 auto; min-height: 0; overflow-y: auto !important; margin: 0 !important; padding: 12px 0 !important; text-align: right; -webkit-overflow-scrolling: touch; }
 .dw-inline .dw-actions { flex: none; width: 100%; margin: 8px 0 0 !important; flex-direction: column-reverse; gap: 8px; }
 .dw-inline .dw-actions .dw-btn { width: 100%; margin: 0 !important; }
+/* v503: إعدادات الفواتير داخل الإعدادات */
+#catModal .bill-settings { max-width: none; margin: 0; background: transparent; padding: 0; color: var(--text-main, #0f1c38); }

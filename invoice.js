@@ -260,8 +260,11 @@ function defaultInvMeta() {
     return { addr: '', phone: w.length === 11 ? `${w.slice(0, 4)} ${w.slice(4, 7)} ${w.slice(7)}` : w, lic: '', ret: 'الأدوية المباعة لا تُرد ولا تُستبدل بعد الاستلام', foot: 'شكراً لثقتكم بصيدلية الديوان' };
 }
 function getInvMeta() { try { return { ...defaultInvMeta(), ...(JSON.parse(lsGet(BILL_LS.meta)) || {}) }; } catch (e) { return defaultInvMeta(); } }
-function billSaveMeta() {
-    lsSet(BILL_LS.meta, JSON.stringify({ addr: document.getElementById('setAddr').value, phone: document.getElementById('setPhone').value, lic: document.getElementById('setLic').value, ret: document.getElementById('setRet').value, foot: document.getElementById('setFoot').value }));
+const imField = k => document.querySelector('.im-f[data-k="' + k + '"]');
+function billSaveMeta(src) {
+    if (src && src.dataset && src.dataset.k) document.querySelectorAll('.im-f[data-k="' + src.dataset.k + '"]').forEach(e => { if (e !== src) e.value = src.value; });   // مزامنة النسختين فوراً
+    const v = k => (imField(k) || { value: '' }).value;
+    lsSet(BILL_LS.meta, JSON.stringify({ addr: v('addr'), phone: v('phone'), lic: v('lic'), ret: v('ret'), foot: v('foot') }));
     renderInvMeta();
 }
 function renderInvMeta() {
@@ -324,8 +327,8 @@ function initBillEditor() {
 }
 function initBillSettings() {
     const m = getInvMeta();
-    try { const c = $b('setPosCount'); if (c) c.checked = !!scCfg().posCount; } catch (e) { /* تجاهل */ }
-    $b('setAddr').value = m.addr; $b('setPhone').value = m.phone; $b('setLic').value = m.lic; $b('setRet').value = m.ret; $b('setFoot').value = m.foot;
+    try { const on = !!scCfg().posCount; document.querySelectorAll('.im-pc').forEach(c => { c.checked = on; }); } catch (e) { /* تجاهل */ }
+    ['addr', 'phone', 'lic', 'ret', 'foot'].forEach(k => document.querySelectorAll('.im-f[data-k="' + k + '"]').forEach(e => { e.value = m[k] || ''; }));
 }
 function onShowBill() { billTab(currentBillTab || 'new'); }
 function newInvoice() {
