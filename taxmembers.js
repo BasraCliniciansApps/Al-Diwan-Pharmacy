@@ -5,11 +5,9 @@
 const TM = {
     dept: { t: 'القسم', f: 'department', ex: 'extraDepartments', name: r => departments[r], list: () => departments.map(d => [d, d]), has: (p, k) => p.department === k || extrasOf(p.extraDepartments).includes(k) },
     cat: { t: 'التصنيف', f: 'category', ex: 'extraCategories', name: r => subCategories[r], list: () => subCategories.map(d => [d, d]), has: (p, k) => p.category === k || extrasOf(p.extraCategories).includes(k) },
-    tab: { t: 'التبويب', f: 'type', ex: 'extraTypes', name: r => tmTabName(r), list: () => [['rx', tabLabels.rx], ['cosmetic', tabLabels.cosmetic]].concat(customTabs.map(t => [t.id, t.name])), has: (p, k) => p.type === k || extrasOf(p.extraTypes).includes(k) },
     form: { t: 'الشكل الدوائي', name: r => { const f = FORMS.find(x => x.id === r); return f ? f.txt : ''; }, list: () => FORMS.filter(f => f.id !== 'other' && !f.hidden).map(f => [f.id, f.txt]), has: (p, k) => { const f = FORMS.find(x => x.id === k); return !!f && fmOwns(p, f); } },
     part: { t: 'نوع الجزء', f: 'subType', name: r => subTypes[r], list: () => subTypes.map(d => [d, d]), has: (p, k) => p.subType === k }
 };
-function tmTabName(id) { if (id === 'rx' || id === 'cosmetic') return tabLabels[id]; const t = customTabs.find(x => x.id === id); return t ? t.name : ''; }
 // المفتاح الداخلي للعنصر: الاسم للأقسام والتصنيفات وأنواع الجزء، والمعرّف للأشكال والتبويبات
 function tmKey(kind, ref) { return (kind === 'dept' || kind === 'cat') ? TM[kind].name(ref) : kind === 'part' ? TM.part.name(ref) : ref; }
 function tmApply(kind, p, key, to) {   // to = '' للإزالة، وإلا المفتاح الجديد

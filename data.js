@@ -707,36 +707,6 @@ function renderManagerLists() {
 
     { const sel = document.getElementById('newSubCatDept'); if (sel) { const v = sel.value; sel.innerHTML = '<option value="">بدون قسم</option>' + departments.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join(''); sel.value = departments.includes(v) ? v : ''; } }
     if (typeof renderFormManager === 'function') renderFormManager();
-    const tabContainer = document.getElementById('tabListManager');
-    if (tabContainer) {
-        const builtin = (key, note = '') => `
-            <div class="manager-item">
-                <span class="tm-go" onclick="taxMembers('tab','${key}')" role="button" tabindex="0">${escTab(tabLabels[key])}<small style="color:var(--text-sub); font-weight:500;">${note}</small></span>
-                <div style="display:flex; gap:6px;">
-                    <button class="icon-btn mi-edit" aria-label="تعديل الاسم" onclick="renameTab('${key}')">✏️<span class="mi-t"> تعديل الاسم</span></button>
-                </div>
-            </div>`;
-        const custom = customTabs.map(t => `
-            <div class="manager-item">
-                <span class="tm-go" onclick="taxMembers('tab','${t.id}')" role="button" tabindex="0">${escTab(t.icon || '🏷️')} ${escTab(t.name)}</span>
-                <div style="display:flex; gap:6px;">
-                    <button class="icon-btn" onclick="renameCustomTab('${t.id}')">✏️ تعديل</button>
-                    <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteCustomTab('${t.id}')">🗑️</button>
-                </div>
-            </div>`).join('');
-        tabContainer.innerHTML = builtin('all') + builtin('rx') + builtin('cosmetic') + custom + builtin('out', ' (تلقائي: الكمية = 0)');
-    }
-}
-
-async function renameTab(key) {
-    const oldName = tabLabels[key];
-    const newName = await askText('تعديل اسم التبويب', 'الاسم الجديد', oldName);
-    if (newName && newName.trim() && newName.trim() !== oldName) {
-        tabLabels[key] = newName.trim();
-        pushToCloud(true);
-        renderManagerLists();
-        renderAll();
-    }
 }
 
 function escTab(s) {
@@ -755,76 +725,11 @@ function getTabTitle() {
     return t ? t.name : 'جميع الأصناف';
 }
 
-// رسم الشريط السفلي: الثابتة + المخصصة (النواقص دائماً في الآخر)
+// الشريط السفلي (التبويبات) أُلغي: لا يُعرض ويبقى التبويب الحالي «الكل»
 function renderBottomNav() {
     const nav = document.querySelector('.bottom-nav');
-    if (!nav) return;
-    const tabs = [
-        { key: 'all', icon: '📦', name: tabLabels.all },
-        { key: 'rx', icon: '💊', name: tabLabels.rx },
-        { key: 'cosmetic', icon: '✨', name: tabLabels.cosmetic },
-        ...customTabs.map(t => ({ key: t.id, icon: t.icon || '🏷️', name: t.name })),
-        { key: 'out', icon: IS_ADMIN_PAGE ? '⚠️' : '🚫', name: outTabLabel() }
-    ];
-    nav.innerHTML = ''; nav.style.display = 'none'; document.body.classList.add('no-bnav'); mainTab = 'all'; return;   // الشريط السفلي محذوف في كل الصفحات (الأدوية/كوزمتك/النواقص...)
-    if (!tabs.some(t => t.key === mainTab)) mainTab = 'all';   // تبويب محذوف
-    nav.innerHTML = tabs.map(t => `
-        <button class="nav-tab ${mainTab === t.key ? 'active' : ''}" onclick="setMainTab('${t.key}')">
-            <span class="nav-ico">${t.icon}</span>
-            <span>${escTab(t.name)}</span>
-        </button>
-    `).join('');
-}
-
-function addCustomTab() {
-    const nameEl = document.getElementById('newTabInput');
-    const iconEl = document.getElementById('newTabIcon');
-    const name = nameEl.value.trim();
-    if (!name) return;
-    if (customTabs.length >= MAX_CUSTOM_TABS) {
-        askNotice('بلغت الحد الأقصى', 'الحد الأقصى ' + MAX_CUSTOM_TABS + ' تبويبات إضافية حتى يبقى الشريط واضحاً على الهاتف. احذف تبويباً لإضافة آخر.');
-        return;
-    }
-    const used = [...Object.values(tabLabels), ...customTabs.map(t => t.name)];
-    if (used.includes(name)) { askNotice('الاسم مستخدم', 'هذا الاسم مستخدم مسبقاً.'); return; }
-    const icon = Array.from(iconEl.value.trim())[0] || '🏷️';
-    customTabs.push({ id: 'c' + Date.now(), name, icon });
-    nameEl.value = '';
-    iconEl.value = '';
-    pushToCloud(true);
-    renderManagerLists();
-    renderAll();
-}
-
-async function renameCustomTab(id) {
-    const t = customTabs.find(x => x.id === id);
-    if (!t) return;
-    const newName = await askText('تعديل اسم التبويب', 'الاسم الجديد', t.name);
-    if (newName && newName.trim() && newName.trim() !== t.name) {
-        t.name = newName.trim();
-        pushToCloud(true);
-        renderManagerLists();
-        renderAll();
-    }
-}
-
-async function deleteCustomTab(id) {
-    const t = customTabs.find(x => x.id === id);
-    if (!t) return;
-    const count = products.filter(p => p.type === id || inExtraTab(p, id)).length;
-    const msg = count
-        ? `حذف تبويب "${t.name}"؟ سيتم إرجاع ${count} صنف إلى التصنيف التلقائي (أدوية/كوزمتك). لن يُحذف أي صنف.`
-        : `حذف تبويب "${t.name}"؟`;
-    if (!(await askSure('حذف التبويب؟', msg, 'نعم، احذف'))) return;
-    customTabs = customTabs.filter(x => x.id !== id);
-    products.forEach(p => {
-        if (p.type === id) p.type = '';
-        if (inExtraTab(p, id)) p.extraTypes = p.extraTypes.filter(x => x !== id);
-    });
-    if (mainTab === id) mainTab = 'all';
-    pushToCloud(count > 0 ? false : true);
-    renderManagerLists();
-    renderAll();
+    if (nav) { nav.innerHTML = ''; nav.style.display = 'none'; }
+    document.body.classList.add('no-bnav'); mainTab = 'all';
 }
 
 async function renameDepartment(index) {
@@ -5264,7 +5169,7 @@ async function addSubType() {
 // إدارة أنواع الجزء: تغيير الاسم (يشمل كل المواد) أو الحذف (إن لم يُستخدم)
 async function manageSubTypes() {
     const used = t => products.filter(p => p.subType === t).length;
-    const html = () => '<div class="stm-list">' + (subTypes.length ? subTypes.map((t, i) => `<div class="stm-row"><b dir="ltr" class="tm-go" onclick="taxMembers('part',${i})" role="button" tabindex="0">${escapeHtml(t)}</b><small>${used(t)} مادة</small><button type="button" class="xc-mini" data-a="ren" data-i="${i}" aria-label="تغيير الاسم">✎</button><button type="button" class="xc-mini" data-a="del" data-i="${i}" aria-label="حذف">🗑</button></div>`).join('') : '<p>لا توجد أنواع.</p>') + '</div>';
+    const html = () => '<div class="stm-list">' + (subTypes.length ? subTypes.map((t, i) => `<div class="stm-row"><b dir="ltr" class="tm-go" onclick="taxMembers('part',${i})" role="button" tabindex="0">${escapeHtml(t)}</b><small>${used(t)} مادة</small><button type="button" class="xc-mini" data-a="ren" data-i="${i}" aria-label="تغيير الاسم"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button type="button" class="xc-mini" data-a="del" data-i="${i}" aria-label="حذف" style="color:#b91c1c;background:#fee2e2;border-color:#fecaca"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`).join('') : '<p>لا توجد أنواع.</p>') + '</div>';
     const draw = () => { const el = Swal.getHtmlContainer(); if (el) el.innerHTML = html(); };
     Swal.fire({
         title: 'أنواع الجزء', html: html(), showConfirmButton: true, confirmButtonText: 'تم', confirmButtonColor: '#0f1c38',
