@@ -78,7 +78,7 @@ function ssOpen(sel) {
     const vv = window.visualViewport, sheet = el.querySelector('.ss-sheet');
     // عند الكتابة بالبحث: القائمة تلتصق بأعلى المساحة المرئية وارتفاعها لا يتجاوز نصف الشاشة، فتبقى النتائج فوق الكيبورد حتى لو لم يُبلغ المتصفح عن حجمه
     let kb = false;
-    const fit = () => {
+    const fit0 = () => {
         const H = vv ? vv.height : window.innerHeight;
         if (vv) { el.style.inset = 'auto'; el.style.left = '0'; el.style.right = '0'; el.style.top = vv.offsetTop + 'px'; el.style.height = vv.height + 'px'; }
         el.style.alignItems = kb ? 'flex-start' : 'flex-end';
@@ -87,11 +87,12 @@ function ssOpen(sel) {
         sheet.style.maxHeight = Math.round(kb && !reported ? Math.min(H * 0.94, window.innerHeight * 0.5) : H * 0.96) + 'px';
         sheet.style.marginTop = kb ? '6px' : '';
     };
-    q.addEventListener('focus', () => { kb = true; fit(); setTimeout(fit, 250); });
+    let fitRaf = 0; const fit = () => { cancelAnimationFrame(fitRaf); fitRaf = requestAnimationFrame(fit0); };
+    q.addEventListener('focus', () => { kb = true; fit(); });
     q.addEventListener('blur', () => { setTimeout(() => { kb = false; fit(); }, 150); });
-    fit();
+    fit0();
     if (vv) { vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); ssVvOff = () => { vv.removeEventListener('resize', fit); vv.removeEventListener('scroll', fit); }; }
-    requestAnimationFrame(() => el.classList.add('on')); setTimeout(() => { try { q.focus({ preventScroll: true }); } catch (e) { /* تجاهل */ } }, 220);
+    requestAnimationFrame(() => el.classList.add('on')); if (items.length > 15) setTimeout(() => { try { q.focus({ preventScroll: true }); } catch (e) { /* تجاهل */ } }, 380);   // القوائم القصيرة لا يظهر لها الكيبورد تلقائياً (يسبب وميضاً)
 }
 function ssPick(sel, v) {
     ssClose();
