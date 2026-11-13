@@ -80,7 +80,7 @@ function kpiPaint(c) {
 try { const c = JSON.parse(localStorage.getItem(KPI_KEY) || 'null'); if (c) { if (c.day !== new Date().toDateString()) c.sales = '0'; kpiPaint(c); } } catch (e) { /* تجاهل */ }
 
 async function refreshHome() {
-    if (!products.length && localStorage.getItem(KPI_KEY)) return;   // البيانات لم تصل بعد: نُبقي الأرقام المحفوظة بدل أصفار مؤقتة
+    if ((!products.length || !stockReady) && localStorage.getItem(KPI_KEY)) return;   // المخزون لم يصل بعد: نُبقي الأرقام المحفوظة بدل أرقام خاطئة مؤقتة
     const out = products.filter(p => !p.arch && !isInStock(p)).length;
     const low = products.filter(isLowStock).length;
     let exp = 0; try { exp = getExpiringProducts().length; } catch (e) { /* تجاهل */ }

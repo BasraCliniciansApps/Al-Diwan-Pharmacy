@@ -185,6 +185,7 @@ const STOCK_FIELDS = ['qty', 'loose', 'counted', 'bt', 'minQty', 'expiryDate', '
 let cloudPub = [];          // الأصناف العامة كما تصل من السحابة
 let setupMode = false;       // وضع التأسيس: المواد غير المجرودة لا تتأثر بالوارد والبيع والمردود (علامة في pharmacy_stock/_setup)
 function setupSkip(p) { return setupMode && !!p && p.counted !== true; }   // true = لا تغيّر كمية هذه المادة تلقائياً
+let stockReady = false;     // وصلت أول لقطة مخزون (من الكاش أو السحابة)
 let stockMap = {};          // بيانات المخزون الخاصة (للصيدلي فقط)
 let unsubStock = null;
 // التكلفة (سعر الشراء وآخر وارد ونسبة الربح) تُحفظ في مجموعة pharmacy_cost المقفلة على المالك بعد «فصل التكلفة»
@@ -260,9 +261,9 @@ function startStockListener() {
         const m = {};
         let sm = false;
         snap.forEach(doc => { if (doc.id === '_setup') sm = !!(doc.data() || {}).on; else m[doc.id] = doc.data(); });
-        stockMap = m; setupMode = sm;
+        stockMap = m; setupMode = sm; stockReady = true;
         if (cloudPub.length) scheduleRebuild();
-    }, err => { console.warn('Stock listener:', err.message); if (unsubStock) { try { unsubStock(); } catch (e) { /* تجاهل */ } } unsubStock = null; setTimeout(() => { if (currentUser) startStockListener(); }, 4000); });   // إعادة التشغيل إن انقطع
+    }, err => { stockReady = true; console.warn('Stock listener:', err.message); if (unsubStock) { try { unsubStock(); } catch (e) { /* تجاهل */ } } unsubStock = null; setTimeout(() => { if (currentUser) startStockListener(); }, 4000); });   // إعادة التشغيل إن انقطع
 }
 function startCostListener() {
     if (!IS_ADMIN_PAGE || unsubCost || !db) return;
@@ -279,7 +280,7 @@ function syncStockLocal(list) {   // بعد نجاح الحفظ نحدّث نس�
 function stopStockListener() {
     if (unsubStock) { unsubStock(); unsubStock = null; }
     if (unsubCost) { unsubCost(); unsubCost = null; }
-    stockMap = {}; costMap = {}; costSplitOn = false; setupMode = false;
+    stockMap = {}; costMap = {}; costSplitOn = false; setupMode = false; stockReady = false;
 }
 
 // مؤشر المزامنة: نقطة صغيرة بدون كلمات (أخضر متزامن، برتقالي جارٍ الحفظ، أحمر خطأ، رمادي بدون إنترنت/محلي)
