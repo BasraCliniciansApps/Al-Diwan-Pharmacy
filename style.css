@@ -3976,3 +3976,13 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 .pu-chk input[type=checkbox]::after, .cn-sw input[type=checkbox]::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: inset-inline-start .18s; }
 .pu-chk input[type=checkbox]:checked, .cn-sw input[type=checkbox]:checked { background: #0f1c38; }
 .pu-chk input[type=checkbox]:checked::after, .cn-sw input[type=checkbox]:checked::after { inset-inline-start: 21px; background: #f9a825; }
+
+/* v502: أدوات الإعدادات تُفتح كصفحة داخل الإعدادات (بدل نافذة منبثقة) */
+#catModal .modal-card { position: relative; }
+#catModal .modal-card.sh-subopen { overflow: hidden !important; }
+.swal2-container.dw-cont-inline { position: absolute !important; inset: 0 !important; z-index: 20 !important; padding: 0 !important; display: flex !important; align-items: stretch !important; justify-content: stretch !important; background: var(--surface, #fff) !important; border-radius: inherit; overflow: hidden; }
+.dw-pop.dw-inline { width: 100% !important; max-width: none !important; height: 100% !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: 18px 16px 16px !important; display: flex !important; flex-direction: column !important; overflow: hidden !important; text-align: right; }
+.dw-inline .dw-title { text-align: right !important; font-size: 1.1rem !important; padding: 0 0 12px !important; margin: 0 !important; border-bottom: 1px solid var(--border, #e2e8f0); }
+.dw-inline .dw-text { flex: 1 1 auto; min-height: 0; overflow-y: auto !important; margin: 0 !important; padding: 12px 0 !important; text-align: right; -webkit-overflow-scrolling: touch; }
+.dw-inline .dw-actions { flex: none; width: 100%; margin: 8px 0 0 !important; flex-direction: column-reverse; gap: 8px; }
+.dw-inline .dw-actions .dw-btn { width: 100%; margin: 0 !important; }
