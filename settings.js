@@ -101,6 +101,7 @@ function shHome(anim) {
 }
 // صفوف الجهاز: خيارات التطبيق الأصلي (أندرويد) فقط
 function shDeviceRows() {
+    try { const ib = shBox('install'); if (ib) ib.hidden = !!((window.NAT && NAT.is) || isStandalone()); } catch (e) { /* تجاهل */ }
     const host = document.getElementById('devNativeRows'); if (!host) return;
     if (!(window.NAT && NAT.is)) { host.innerHTML = ''; return; }
     const c = NAT.cfg(), ps = c.paperSize || 'A4', ori = c.orient || 'portrait';
