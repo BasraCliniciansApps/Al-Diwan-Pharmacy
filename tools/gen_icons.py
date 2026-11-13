@@ -11,6 +11,12 @@ MAP = {
  '🤖':'bot','🔐':'lock','🔒':'lock','♻️':'recycle','🌐':'globe','📷':'camera','📸':'camera','🧾':'receipt-text','🏭':'warehouse',
  '👤':'user','🚫':'ban','⛔':'ban','📁':'folder','📖':'book-open','💡':'lightbulb','★':'star','⬆️':'arrow-up','💰':'wallet',
  '🔵':'dot','🟢':'dot','🔴':'dot','🟡':'dot','⭐':'star','📌':'pin','🔙':'arrow-right','✔️':'check','✔':'check','❗':'circle-alert','❓':'circle-question-mark','ℹ️':'info','ℹ':'info','📝':'file-pen','📄':'file-text','🔧':'wrench','🛠️':'wrench','⏰':'alarm-clock','🕒':'clock','⬅️':'arrow-right','➡️':'arrow-left','▶️':'play','⏸️':'pause','📞':'phone','📱':'smartphone','✉️':'mail','💲':'banknote','🛑':'octagon-x','🆕':'sparkles','▦':'scan-barcode','⟳':'refresh-cw','⏻':'log-out','🚪':'log-out','☀️':'sun','🌙':'moon','🔽':'chevron-down','🔼':'chevron-up'}
+MAP.update({
+ '←':'arrow-left','→':'arrow-right','↓':'arrow-down','▾':'chevron-down','▴':'chevron-up','▲':'chevron-up','▼':'chevron-down','▸':'chevron-right','◀':'chevron-left',
+ '⇄':'arrow-left-right','☑':'square-check','✗':'x','➖':'minus','⚡':'zap','🧮':'calculator','🧭':'compass','⚪':'circle','■':'square',
+ '🤝':'handshake','🔬':'microscope','💽':'hard-drive','🗃':'archive','👆':'pointer','📤':'upload','🧹':'brush-cleaning','🔓':'lock-open',
+ '🏛':'landmark','⚖':'scale','💵':'banknote','✎':'pencil','☎':'phone'
+})
 icons = {}
 EXTRA = ['circle-question-mark','circle-x','info','circle-check','triangle-alert','x']
 for k, n in MAP.items():
@@ -34,6 +40,7 @@ js = '''// أيقونات Lucide (رخصة ISC) — خطية أحادية الل
     var MAP = %s;
     var RE = new RegExp('(' + Object.keys(MAP).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return k.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }).join('|') + ')\\\\uFE0F?', 'g');
     var ANY = new RegExp('[\\\\u{1F300}-\\\\u{1FAFF}\\\\u2600-\\\\u27BF\\\\u2B50\\\\u2B06\\\\u2B07\\\\u23FB\\u25A6\\u27F3\\u2B05\\\\u2705\\\\u23F3\\\\u23F0\\\\u2139\\\\u2764]\\\\uFE0F?', 'gu');
+    var ANY2 = new RegExp(ANY.source + '|[\\\\u2190\\\\u2192\\\\u2193\\\\u21A9\\\\u21C4\\\\u25BE\\\\u25B4\\\\u25B8\\\\u25C0\\\\u25B2\\\\u25BC\\\\u25A0]', 'gu');
     var SKIP = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, INPUT: 1, OPTION: 1, SELECT: 1, TITLE: 1, SVG: 1, svg: 1, NOSCRIPT: 1 };
     function svg(name) {
         return '<svg class="ic ic-' + name + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (name === 'dot' ? '<circle cx="12" cy="12" r="5" fill="currentColor" stroke="none"/>' : ICONS[name]) + '</svg>';
@@ -49,13 +56,13 @@ js = '''// أيقونات Lucide (رخصة ISC) — خطية أحادية الل
     function stripAny(s) { return s.replace(ANY, '').replace(/^\\s+/, ''); }
     function fixText(node) {
         var v = node.nodeValue;
-        if (!v || !ANY.test(v)) { ANY.lastIndex = 0; return; }
-        ANY.lastIndex = 0;
+        if (!v || !ANY2.test(v)) { ANY2.lastIndex = 0; return; }
+        ANY2.lastIndex = 0;
         var p = node.parentNode; if (!p) return;
-        if (SKIP[p.nodeName]) { if (p.nodeName === 'OPTION') node.nodeValue = stripAny(v); return; }
+        if (SKIP[p.nodeName]) { if (p.nodeName === 'OPTION') { var sv = stripAny(v); if (sv !== v) node.nodeValue = sv; } return; }
         var frag = document.createDocumentFragment(), last = 0, m;
-        ANY.lastIndex = 0;
-        while ((m = ANY.exec(v))) {
+        ANY2.lastIndex = 0;
+        while ((m = ANY2.exec(v))) {
             var ch = m[0], base = ch.replace(/\\uFE0F$/, '');
             if (m.index > last) frag.appendChild(document.createTextNode(v.slice(last, m.index)));
             if (MAP[ch] || MAP[base]) frag.appendChild(makeNode(ch));
