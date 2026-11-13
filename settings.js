@@ -293,3 +293,9 @@ function shScreen(id, title, html) {
     return true;
 }
 function shScreenClose(id) { const el = document.getElementById(id); if (el) shUnmountHub(el); }
+
+// إغلاق الإعدادات يغلق كل شاشاتها الداخلية أيضاً (لا تبقى معلّقة وتظهر عند الفتح التالي)
+if (typeof closeCategoryManager === 'function') {
+    const _cc = closeCategoryManager;
+    closeCategoryManager = function () { ['userFormScr', 'usersScr', 'trashScr', 'cloudScr'].forEach(i => { const e = document.getElementById(i); if (e) shScreenClose(i); }); return _cc.apply(this, arguments); };
+}
