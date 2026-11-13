@@ -36,11 +36,11 @@
 
     // ---------- 0) الطباعة (window.print لا تعمل داخل WebView الأندرويد) ----------
     const DP = P('DiwanPrint');
-    NAT.print = function (title) { if (!DP) return Promise.reject(new Error('إضافة الطباعة غير متوفرة. حدّث التطبيق من نسخة APK الجديدة.')); return DP.print({ title: title || document.title || 'Al-Diwan-Pharmacy' }); };
+    NAT.print = function (title) { if (!DP) return Promise.reject(new Error('إضافة الطباعة غير متوفرة. حدّث التطبيق من نسخة APK الجديدة.')); const c = cfg(); return DP.print({ title: title || document.title || 'Al-Diwan-Pharmacy', paper: c.paperSize || 'A4', orientation: c.orient || 'portrait' }); };
     NAT.printFrame = function (f) {
         if (!DP) return Promise.reject(new Error('إضافة الطباعة غير متوفرة. حدّث التطبيق من نسخة APK الجديدة.'));
         const d = f.contentDocument; const html = '<!doctype html>' + d.documentElement.outerHTML;
-        return DP.printHtml({ html, base: location.href, title: d.title || 'Al-Diwan-Pharmacy' });
+        const c = cfg(); return DP.printHtml({ html, base: location.href, title: d.title || 'Al-Diwan-Pharmacy', paper: c.paperSize || 'A4', orientation: c.orient || 'portrait' });
     };
     window.print = function () {
         NAT.print(document.title).catch(e => { try { Swal.fire({ icon: 'error', title: 'تعذرت الطباعة', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); } catch (x) { /* تجاهل */ } })
@@ -214,15 +214,37 @@
             html: `<div class="sw-form" style="text-align:right">
                 ${sw('natBio', c.bio, 'قفل التطبيق بالبصمة أو قفل الشاشة')}
                 ${sw('natRem', c.remind, 'تذكير يومي الساعة 9 صباحاً بالمواد المنتهية والقريبة من الانتهاء')}
-                ${sw('natP80', c.paper === 80, 'عرض ورق الطابعة 80 ملم (الافتراضي 58 ملم)')}
-                <button type="button" class="icon-btn" id="natPrn" style="margin-top:10px;width:100%">🖨️ اختيار الطابعة الحرارية${c.printerName ? ' — ' + escapeHtml(c.printerName) : ''}</button>
+                <button type="button" class="icon-btn" id="natPrnSet" style="margin-top:10px;width:100%">🖨️ إعدادات الطباعة</button>
                 <p style="font-size:.74rem;color:var(--text-sub);margin-top:10px">تُحفظ الملفات تلقائياً في: Documents/${ROOT}</p></div>`,
             didOpen: () => {
                 const g = id => document.getElementById(id);
                 g('natBio').onchange = async e => { const ok = await NAT.setBio(e.target.checked); if (!ok) e.target.checked = !e.target.checked; };
                 g('natRem').onchange = e => NAT.setRemind(e.target.checked);
+                g('natPrnSet').onclick = () => NAT.printSettings();
+            }
+        });
+    };
+    // كل ما يتعلق بالطباعة في مكان واحد: الورق الافتراضي للطباعة العادية + الطابعة الحرارية
+    NAT.printSettings = function () {
+        const c = cfg(), ps = c.paperSize || 'A4', ori = c.orient || 'portrait';
+        const opt = (v, t, cur) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${t}</option>`;
+        Swal.fire({
+            title: '🖨️ إعدادات الطباعة', showConfirmButton: false, showCloseButton: true,
+            html: `<div class="sw-form" style="text-align:right">
+                <b style="font-size:.84rem">الطباعة العادية (فواتير، تقارير، وصفات، ملصقات)</b>
+                <label>حجم الورق الافتراضي<select id="natPaper">${opt('A4', 'A4', ps)}${opt('A5', 'A5', ps)}${opt('LETTER', 'Letter', ps)}${opt('LEGAL', 'Legal', ps)}</select></label>
+                <label>اتجاه الورق<select id="natOri">${opt('portrait', 'عمودي', ori)}${opt('landscape', 'أفقي', ori)}</select></label>
+                <b style="font-size:.84rem;margin-top:8px;display:block">الطابعة الحرارية (إيصال البيع)</b>
+                ${sw('natP80', c.paper === 80, 'عرض ورق الطابعة 80 ملم (الافتراضي 58 ملم)')}
+                <button type="button" class="icon-btn" id="natPrn" style="margin-top:6px;width:100%">🖨️ اختيار الطابعة الحرارية${c.printerName ? ' — ' + escapeHtml(c.printerName) : ''}</button>
+                <button type="button" class="icon-btn" id="natBack" style="margin-top:10px;width:100%">← رجوع</button></div>`,
+            didOpen: () => {
+                const g = id => document.getElementById(id);
+                g('natPaper').onchange = e => setCfg({ paperSize: e.target.value });
+                g('natOri').onchange = e => setCfg({ orient: e.target.value });
                 g('natP80').onchange = e => setCfg({ paper: e.target.checked ? 80 : 58 });
-                g('natPrn').onclick = async () => { await NAT.printerChoose(); NAT.openSettings(true); };
+                g('natPrn').onclick = async () => { await NAT.printerChoose(); NAT.printSettings(); };
+                g('natBack').onclick = () => NAT.openSettings(true);
             }
         });
     };

@@ -29,7 +29,7 @@ public class DiwanPrintPlugin extends Plugin {
         getActivity().runOnUiThread(() -> {
             try {
                 WebView wv = getBridge().getWebView();
-                startJob(wv, title, call);
+                startJob(wv, title, call, attrs(call));
             } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); }
         });
     }
@@ -48,7 +48,7 @@ public class DiwanPrintPlugin extends Plugin {
                 w.setWebViewClient(new WebViewClient() {
                     @Override public void onPageFinished(final WebView v, String url) {
                         h.postDelayed(() -> {
-                            try { startJob(v, title, call); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); keep.remove(v); }
+                            try { startJob(v, title, call, attrs(call)); } catch (Exception e) { call.reject(String.valueOf(e.getMessage())); keep.remove(v); }
                         }, 500);
                     }
                 });
@@ -57,10 +57,21 @@ public class DiwanPrintPlugin extends Plugin {
         });
     }
 
-    private void startJob(final WebView wv, String title, final PluginCall call) {
+    /** حجم الورق والاتجاه الافتراضيان من إعدادات التطبيق (A4 افتراضياً). */
+    private PrintAttributes attrs(PluginCall call) {
+        String paper = call.getString("paper", "A4");
+        boolean land = "landscape".equals(call.getString("orientation", "portrait"));
+        PrintAttributes.MediaSize ms = PrintAttributes.MediaSize.ISO_A4;
+        if ("A5".equals(paper)) ms = PrintAttributes.MediaSize.ISO_A5;
+        else if ("LETTER".equals(paper)) ms = PrintAttributes.MediaSize.NA_LETTER;
+        else if ("LEGAL".equals(paper)) ms = PrintAttributes.MediaSize.NA_LEGAL;
+        return new PrintAttributes.Builder().setMediaSize(land ? ms.asLandscape() : ms.asPortrait()).build();
+    }
+
+    private void startJob(final WebView wv, String title, final PluginCall call, PrintAttributes pa) {
         PrintManager pm = (PrintManager) getActivity().getSystemService(Context.PRINT_SERVICE);
         PrintDocumentAdapter ad = wv.createPrintDocumentAdapter(title);
-        final PrintJob job = pm.print(title, ad, new PrintAttributes.Builder().build());
+        final PrintJob job = pm.print(title, ad, pa);
         final Runnable poll = new Runnable() {
             int n = 0;
             @Override public void run() {
