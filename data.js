@@ -5411,7 +5411,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     ];
     const LAYER_EL = { lgOv: () => document.querySelector('.lg-ov'), bottomSheet: () => document.getElementById('bottomSheet'), filterSheet: () => document.getElementById('filterSheet') };
     const layerEl = id => (LAYER_EL[id] ? LAYER_EL[id]() : document.getElementById(id));
-    function layerZ(id) { const e = layerEl(id); if (!e) return 0; const z = parseInt(getComputedStyle(e).zIndex, 10); return isNaN(z) ? 0 : z; }
+    function layerZ(id) { const e = layerEl(id); if (!e) return 0; let z = parseInt(getComputedStyle(e).zIndex, 10); z = isNaN(z) ? 0 : z; if (e.classList && e.classList.contains('in-settings')) z += 100000; return z; }   // الشاشة المفتوحة داخل الإعدادات تُغلق أولاً قبل الإعدادات نفسها
     const swalLive = () => { try { if (!(window.Swal && Swal.isVisible && Swal.isVisible())) return false; const p = Swal.getPopup(); return !(p && (p.classList.contains('swal2-toast') || p.classList.contains('swal2-hide'))); } catch (e) { return false; } };   // نافذة تُغلق (حركة الإخفاء) لا تُحسب طبقة
     function closeTopLayer() {
         if (swalLive()) { if (Swal.isLoading && Swal.isLoading()) return true; Swal.close(); return true; }   // أثناء تحميل داخل نافذة: نتجاهل الرجوع

@@ -42,7 +42,8 @@ const SH_ORDER = ['invset', 'inv', 'price', 'tax', 'dhub', 'scanner', 'docset', 
 function shSortPages() { SH_PAGES.sort((a, b) => { const x = SH_ORDER.indexOf(a.id), y = SH_ORDER.indexOf(b.id); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y); }); }
 let shCur = null;
 const shNorm = s => String(s || '').toLowerCase().replace(/[ً-ٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
-function shBoxes() { return [...document.querySelectorAll('#catModal .cat-manager-box:not(#shQuick)')]; }
+// الصناديق الأساسية فقط (ثابتة العدد والترتيب): صناديق صفحة «الأقسام» الإضافية داخل #shQuick لا تُحسب، وإلا انزاحت فهارس الصفحات بعد زيارتها وظهر محتوى خاطئ
+function shBoxes() { return [...document.querySelectorAll('#catModal .cat-manager-box')].filter(b => !b.closest('#shQuick')); }
 function shCard() { return document.querySelector('#catModal .modal-card'); }
 function shBuzz() { try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { /* تجاهل */ } }
 function shSummary(p) {
