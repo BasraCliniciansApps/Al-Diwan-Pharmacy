@@ -694,6 +694,7 @@ function renderManagerLists() {
 
     { const sel = document.getElementById('newSubCatDept'); if (sel) { const v = sel.value; sel.innerHTML = '<option value="">بدون قسم</option>' + departments.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join(''); sel.value = departments.includes(v) ? v : ''; } }
     if (typeof renderFormManager === 'function') renderFormManager();
+    if (typeof renderPartManager === 'function') renderPartManager();
 }
 
 function escTab(s) {
@@ -5104,41 +5105,47 @@ async function addSubType() {
     if (!subTypes.some(t => t.toLowerCase() === v.toLowerCase())) { subTypes.push(v); saveLocal(); pushToCloud(true); }
     renderSubTypeSelect(v);
 }
-// إدارة أنواع الجزء: تغيير الاسم (يشمل كل المواد) أو الحذف (إن لم يُستخدم)
-async function manageSubTypes() {
+// إدارة أنواع الجزء (داخل نافذة الأقسام والتصنيف): تغيير الاسم (يشمل كل المواد) أو الحذف (إن لم يُستخدم)
+function renderPartManager() {
+    const box = document.getElementById('partListManager'); if (!box) return;
     const used = t => products.filter(p => p.subType === t).length;
-    const html = () => '<div class="stm-list">' + (subTypes.length ? subTypes.map((t, i) => `<div class="stm-row"><b dir="ltr" class="tm-go" onclick="taxMembers('part',${i})" role="button" tabindex="0">${escapeHtml(t)}</b><small>${used(t)} مادة</small><button type="button" class="xc-mini" data-a="ren" data-i="${i}" aria-label="تغيير الاسم"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button type="button" class="xc-mini" data-a="del" data-i="${i}" aria-label="حذف" style="color:#b91c1c;background:#fee2e2;border-color:#fecaca"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>`).join('') : '<p>لا توجد أنواع.</p>') + '</div>';
-    const draw = () => { const el = Swal.getHtmlContainer(); if (el) el.innerHTML = html(); };
-    Swal.fire({
-        title: 'أنواع الجزء', html: html(), showConfirmButton: true, confirmButtonText: 'تم', confirmButtonColor: '#0f1c38',
-        didOpen: () => {
-            Swal.getHtmlContainer().addEventListener('click', async ev => {
-                const b = ev.target.closest('button[data-a]'); if (!b) return;
-                const i = +b.dataset.i, old = subTypes[i], n = used(old);
-                if (b.dataset.a === 'del') {
-                    if (n) { Swal.showValidationMessage('لا يمكن حذف نوع مستخدم في ' + n + ' مادة. غيّر اسمه أو غيّر نوع تلك المواد أولاً.'); return; }
-                    const c = await Swal.fire({ icon: 'warning', title: 'حذف نوع الجزء؟', text: old, showCancelButton: true, confirmButtonText: 'نعم، احذف', cancelButtonText: 'رجوع', confirmButtonColor: '#b91c1c' });
-                    if (c.isConfirmed) { subTypes.splice(i, 1); saveLocal(); pushToCloud(true); }
-                } else {
-                    const r = await Swal.fire({ title: 'تغيير اسم نوع الجزء', input: 'text', inputValue: old, showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', text: n ? 'سيتغيّر الاسم في ' + n + ' مادة.' : '' });
-                    const v = r && r.value ? String(r.value).trim() : '';
-                    if (!v || v === old) { manageSubTypes(); return; }
-                    const dup = subTypes.findIndex((t, k) => k !== i && t.toLowerCase() === v.toLowerCase());
-                    const hit = products.filter(p => p.subType === old);
-                    if (dup >= 0) subTypes.splice(i, 1); else subTypes[i] = v;
-                    const target = dup >= 0 ? subTypes[dup > i ? dup - 1 : dup] : v;
-                    hit.forEach(p => { p.subType = target; });
-                    saveLocal();
-                    if (hit.length && typeof saveProductsBatch === 'function') await saveProductsBatch(hit); else pushToCloud(true);
-                    renderSubTypeSelect(target); renderAll();
-                    Swal.fire({ icon: 'success', title: 'تم تغيير الاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
-                    manageSubTypes(); return;
-                }
-                manageSubTypes();
-            });
-        }
-    });
+    box.innerHTML = subTypes.length ? subTypes.map((t, i) => `
+        <div class="manager-item">
+            <span class="tm-go" onclick="taxMembers('part',${i})" role="button" tabindex="0"><span dir="ltr">${escapeHtml(t)}</span> <small style="color:var(--text-sub)">${used(t)} مادة</small></span>
+            <div style="display:flex; gap:6px;">
+                <button class="icon-btn mi-edit" aria-label="تعديل الاسم" onclick="renameSubType(${i})">✏️<span class="mi-t"> تعديل الاسم</span></button>
+                <button class="icon-btn mi-del" aria-label="حذف" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteSubType(${i})">🗑️</button>
+            </div>
+        </div>`).join('') : '<p class="set-hint">لا توجد أنواع.</p>';
 }
+async function addSubTypeInline() {
+    const inp = document.getElementById('newPartInput'); const v = inp ? inp.value.trim() : '';
+    if (!v) return;
+    if (subTypes.some(t => t.toLowerCase() === v.toLowerCase())) { Swal.fire({ icon: 'info', title: 'النوع موجود مسبقاً', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+    subTypes.push(v); inp.value = ''; saveLocal(); pushToCloud(true); renderSubTypeSelect(); renderPartManager();
+}
+async function deleteSubType(i) {
+    const old = subTypes[i], n = products.filter(p => p.subType === old).length;
+    if (n) { Swal.fire({ icon: 'warning', title: 'لا يمكن الحذف', text: 'النوع مستخدم في ' + n + ' مادة. غيّر اسمه أو غيّر نوع تلك المواد أولاً.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+    const c = await Swal.fire({ icon: 'warning', title: 'حذف نوع الجزء؟', text: old, showCancelButton: true, confirmButtonText: 'نعم، احذف', cancelButtonText: 'رجوع', confirmButtonColor: '#b91c1c' });
+    if (c.isConfirmed) { subTypes.splice(i, 1); saveLocal(); pushToCloud(true); renderSubTypeSelect(); renderPartManager(); }
+}
+async function renameSubType(i) {
+    const old = subTypes[i], n = products.filter(p => p.subType === old).length;
+    const r = await Swal.fire({ title: 'تغيير اسم نوع الجزء', input: 'text', inputValue: old, showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', text: n ? 'سيتغيّر الاسم في ' + n + ' مادة.' : '' });
+    const v = r && r.value ? String(r.value).trim() : '';
+    if (!v || v === old) return;
+    const dup = subTypes.findIndex((t, k) => k !== i && t.toLowerCase() === v.toLowerCase());
+    const hit = products.filter(p => p.subType === old);
+    if (dup >= 0) subTypes.splice(i, 1); else subTypes[i] = v;
+    const target = dup >= 0 ? subTypes[dup > i ? dup - 1 : dup] : v;
+    hit.forEach(p => { p.subType = target; });
+    saveLocal();
+    if (hit.length && typeof saveProductsBatch === 'function') await saveProductsBatch(hit); else pushToCloud(true);
+    renderSubTypeSelect(target); renderAll(); renderPartManager();
+    Swal.fire({ icon: 'success', title: 'تم تغيير الاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 1800 });
+}
+function manageSubTypes() { openCategoryManager(); setTimeout(() => { if (typeof shOpen === 'function') shOpen('tax', 'parts'); }, 50); }
 // سعر الجزء التلقائي = سعر العبوة ÷ عدد الأجزاء مقرّباً للأعلى لأقرب 250 دينار
 const SUB_ROUND = 250;
 function subPriceCalc(price, cnt) { price = parseFloat(price) || 0; cnt = parseInt(cnt) || 0; return cnt > 1 && price > 0 ? Math.ceil(price / cnt / SUB_ROUND) * SUB_ROUND : 0; }

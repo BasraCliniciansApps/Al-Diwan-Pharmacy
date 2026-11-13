@@ -4062,3 +4062,5 @@ body.can-stockedit .lbl-open-btn{display:inline-flex}
 .fx-pp span{display:block;margin-top:3px;padding:1px 8px;border-radius:99px;font-size:.68rem;font-weight:800}.fx-pp span.ok{background:#dcfce7;color:#166534}.fx-pp span.no{background:#fee2e2;color:#991b1b}
 :root[data-theme="dark"] .fx-prev{background:#1e293b;border-color:#334155}:root[data-theme="dark"] .fx-pp b{color:#e2e8f0}
 
+
+#partListManager.manager-list{padding:0}#partListManager .manager-item{flex:0 0 auto}

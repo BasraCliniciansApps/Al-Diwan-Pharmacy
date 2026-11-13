@@ -215,7 +215,11 @@
             <div class="cat-manager-box" data-k="parts">
                 <h4>أنواع الجزء</h4>
                 <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> أسماء الأجزاء التي تُباع بها العبوة بالتجزئة (شريط، حبة، مل…). تعديل الاسم يشمل كل المواد.</p>
-                <div class="tools-grid"><button type="button" class="icon-btn" onclick="manageSubTypes()" style="grid-column:1/-1;">✎ إدارة أنواع الجزء</button></div>
+                <div id="partListManager" class="manager-list" style="max-height:260px;"></div>
+                <div class="add-inline-row">
+                    <input type="text" id="newPartInput" placeholder="اسم نوع جزء جديد..." dir="ltr" onkeydown="if(event.key==='Enter'){event.preventDefault();addSubTypeInline();}">
+                    <button class="icon-btn primary-btn" onclick="addSubTypeInline()">+ إضافة</button>
+                </div>
             </div>
 
             <div class="cat-manager-box" data-k="maint-hub">
