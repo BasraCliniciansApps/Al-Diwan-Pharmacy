@@ -62,7 +62,8 @@ function dhGo(s) { dhScreen = s; dhQ = ''; dhShown = 40; if (s === 'ing') dhFilt
 function dhHead(title, back) {
     return `<div class="tr-head"><b>${title}</b><span>${back ? '<button type="button" class="tr-x" style="margin-inline-end:8px" onclick="dhBack()" aria-label="رجوع">↩</button>' : ''}<button type="button" class="tr-x" onclick="dhClose()" aria-label="إغلاق">✕</button></span></div>`;
 }
-function dhRender(keep) {
+function dhRender(keep) { dhRender0(keep); shHubHead(dhEl(), 'dhBack()', dhScreen === 'home' || dhDirect ? 'الإعدادات' : 'المركز'); }
+function dhRender0(keep) {
     const el = dhEl(); if (!el) return;
     if (dhScreen === 'ing') return dhRenderIng(el, keep);
     if (dhScreen === 'dup') return dhRenderDup(el);
@@ -208,11 +209,11 @@ function dhRenderMiss(el) {
     pzLoss = false; const nop = pzBuild().length;
     const row = (t, n, btn) => `<div class="dh-miss"><span><b>${t}</b><small>${fmtNum(n)} مادة</small></span>${btn || ''}</div>`;
     el.innerHTML = `${dhHead('📋 بيانات ناقصة', true)}<div class="dh-body">
-        ${row('بلا باركود', st.n - st.bc, '<button type="button" onclick="dhClose();openCatalog()">افتح سجل الأدوية</button>')}
-        ${row('بلا شكل دوائي', st.n - st.form, '<button type="button" onclick="dhClose();openCatalog()">افتح سجل الأدوية</button>')}
-        ${row('تُباع بالتجزئة بلا نوع جزء', products.filter(p => !p.arch && subCountOf(p) > 1 && !p.subType).length, '<button type="button" onclick="dhClose();openCatalog()">افتح سجل الأدوية</button>')}
-        ${row('بلا سعر بيع (ولها سعر شراء)', nop, '<button type="button" onclick="pzOpen()">تسعيرها</button>')}
-        ${row('تُباع بخسارة (السعر ≤ الكلفة)', loss, '<button type="button" onclick="pzOpen(true)">تصحيحها</button>')}
+        ${row('بلا باركود', st.n - st.bc)}
+        ${row('بلا شكل دوائي', st.n - st.form)}
+        ${row('تُباع بالتجزئة بلا نوع جزء', products.filter(p => !p.arch && subCountOf(p) > 1 && !p.subType).length)}
+        ${row('بلا سعر بيع (ولها سعر شراء)', nop)}
+        ${row('تُباع بخسارة (السعر ≤ الكلفة)', loss)}
         ${row('بلا مادة فعالة', st.n - st.ing, "<button type=\"button\" onclick=\"dhGo('ing')\">أكملها</button>")}
     </div>`;
 }

@@ -238,3 +238,12 @@ function shUnmountHub(el) {
     const card = shCard(); el.style.display = 'none';
     if (card && !card.querySelector('.tax-rv.in-settings[style*="flex"]')) card.classList.remove('sh-subopen');
 }
+
+// ترويسة الشاشات المفتوحة داخل الإعدادات: نفس شريط الإعدادات (زر رجوع + عنوان) بدل الشريط الداكن وزر الإغلاق
+function shHubHead(el, back, label) {
+    if (!el || !el.classList.contains('in-settings')) return;
+    const head = el.querySelector(':scope > .tr-head'); if (!head) return;
+    const b = head.querySelector('b'), title = b ? b.innerHTML : '';
+    head.className = 'sh-bar sh-bar-in';
+    head.innerHTML = `<button type="button" class="sh-back" onclick="${back}"><i>›</i> ${label}</button><b>${title}</b>`;
+}

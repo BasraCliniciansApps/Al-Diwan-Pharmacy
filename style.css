@@ -4001,3 +4001,8 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 #catModal .doc-set-host .dc-link2 .home-quick-link { width: 100%; min-height: 44px; }
 #catModal .doc-set-host .qk-row > div { min-width: 0; flex: 1; }
 #catModal .doc-set-host .dc-days, #catModal .doc-set-host .dc-mini { flex: none; width: auto; min-width: 84px; }
+
+/* v509: الشاشات داخل الإعدادات: خلفية وإطار وترويسة مطابقة للإعدادات */
+#catModal .modal-card > .tax-rv.in-settings { background: var(--surface, #fff); }
+.tax-rv.in-settings > .sh-bar { position: static; margin: 0; padding: 14px 16px; flex: none; }
+.tax-rv.in-settings .dh-body { background: transparent; }

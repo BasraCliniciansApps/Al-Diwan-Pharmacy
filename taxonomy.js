@@ -405,7 +405,8 @@ function taxRvRows() {
     });
     return out;
 }
-function taxRvRender(keepSearch) {
+function taxRvRender(keepSearch) { taxRvRender0(keepSearch); shHubHead(document.getElementById('taxRv'), 'taxRvClose()', 'الإعدادات'); }
+function taxRvRender0(keepSearch) {
     const el = document.getElementById('taxRv'); if (!el) return;
     const all = taxRvList(), cnt = { ok: 0, no: 0, nw: 0, none: 0 };
     all.forEach(p => { const e = taxRvEntry(p); if (e.st === 'ok' || e.st === 'edit') cnt.ok++; else if (e.st === 'no') cnt.no++; else { cnt.nw++; if (!e.d) cnt.none++; } });
