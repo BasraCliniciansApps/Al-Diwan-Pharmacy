@@ -20,6 +20,7 @@ public class MainActivity extends BridgeActivity {
         registerPlugin(DiwanPrintPlugin.class);
         super.onCreate(savedInstanceState);
         try { getBridge().getWebView().getSettings().setTextZoom(100); } catch (Exception e) { /* تثبيت حجم الخط: لا يتبع إعداد خط الجهاز */ }
+        try { if (android.os.Build.VERSION.SDK_INT >= 29) getBridge().getWebView().getSettings().setForceDark(android.webkit.WebSettings.FORCE_DARK_OFF); } catch (Exception e) { /* منع القلب التلقائي للألوان */ }
         Window window = getWindow();
         View content = findViewById(android.R.id.content);
         // خلفية خلف الهوامش: أعلى كحلي بلون ترويسة التطبيق (شريط الحالة)، وأسفل فاتح (شريط التنقل)

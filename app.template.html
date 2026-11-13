@@ -7,7 +7,9 @@
     
     <!-- إعدادات تثبيت التطبيق على الآيفون والأندرويد (PWA) -->
     <link rel="manifest" href="manifest-admin.json">
-    <meta name="theme-color" content="#0f1c38">
+    <meta name="color-scheme" content="light dark">
+<style>:root{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}</style>
+<meta name="theme-color" content="#0f1c38">
     <script>try{var t=localStorage.getItem("diwanTheme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
     <link rel="icon" type="image/jpeg" href="icon.jpg">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
