@@ -56,7 +56,7 @@ async function gateLogin() {
 async function gateLogout() {
     const r = await Swal.fire({ title: 'تسجيل الخروج؟', icon: 'question', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم، خروج', cancelButtonText: 'إلغاء' });
     if (!r || !r.isConfirmed) return;
-    try { localStorage.removeItem('diwanRoleCache'); } catch (e) { /* تجاهل */ }
+    try { localStorage.removeItem('diwanRoleCache'); localStorage.removeItem('diwanKpiCache'); } catch (e) { /* تجاهل */ }
     try { if (typeof stopStockListener === 'function') stopStockListener(); } catch (e) { /* تجاهل */ }
     try { if (auth) await Promise.race([auth.signOut(), new Promise(res => setTimeout(res, 4000))]); } catch (e) { console.warn('signOut:', e && e.message); }
     // نضمن الخروج من الواجهة حتى لو تأخر رد Firebase
@@ -67,7 +67,19 @@ async function gateLogout() {
 function goStock(tab) { showView('stock'); setMainTab(tab || 'all'); }
 function goAddProduct() { openFormModal(); }   // تُفتح فوق الشاشة الحالية، فيرجعك الإغلاق إلى مكانك لا إلى المخزن
 
+// آخر أرقام عُرضت تُحفظ محلياً لتظهر فور فتح التطبيق قبل اكتمال تحميل البيانات
+const KPI_KEY = 'diwanKpiCache';
+function kpiPaint(c) {
+    const el = document.getElementById('homeKpis'); if (!el || !c) return;
+    const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}" onclick="${onclick}"><b>${val}</b><span>${label}</span></button>`;
+    el.innerHTML = kpi('k-out', 'غير متوفر', c.out, "goStock('out')") + kpi('k-low', 'كمية قليلة', c.low, "goAlerts('low')") +
+        kpi('k-exp', 'قريب الانتهاء', c.exp, "goAlerts('m6')") + kpi('k-sales', 'مبيعات اليوم', c.sales, "showView('bill'); billTab('reports')");
+    ['homeAlertCount', 'stockAlertCount'].forEach(id => { const b = document.getElementById(id); if (b) { b.innerText = c.alerts; b.style.display = c.alerts ? 'flex' : 'none'; } });
+}
+try { const c = JSON.parse(localStorage.getItem(KPI_KEY) || 'null'); if (c) { if (c.day !== new Date().toDateString()) c.sales = '0'; kpiPaint(c); } } catch (e) { /* تجاهل */ }
+
 async function refreshHome() {
+    if (!products.length && localStorage.getItem(KPI_KEY)) return;   // البيانات لم تصل بعد: نُبقي الأرقام المحفوظة بدل أصفار مؤقتة
     const out = products.filter(p => !p.arch && !isInStock(p)).length;
     const low = products.filter(isLowStock).length;
     let exp = 0; try { exp = getExpiringProducts().length; } catch (e) { /* تجاهل */ }
@@ -85,8 +97,9 @@ async function refreshHome() {
             kpi('k-exp', 'قريب الانتهاء', exp, "goAlerts('m6')") +
             kpi('k-sales', 'مبيعات اليوم', fmtNum(sales), "showView('bill'); billTab('reports')");
     };
-    render(salesTodayTotal());
-    try { await loadInvoices(); render(salesTodayTotal()); } catch (e) { /* تجاهل */ }
+    const save = (sales) => { try { localStorage.setItem(KPI_KEY, JSON.stringify({ out, low, exp, alerts: alertsTotal, sales: fmtNum(sales), day: new Date().toDateString() })); } catch (e) { /* تجاهل */ } };
+    render(salesTodayTotal()); save(salesTodayTotal());
+    try { await loadInvoices(); render(salesTodayTotal()); save(salesTodayTotal()); } catch (e) { /* تجاهل */ }
 }
 
 // ---------------- شاشة التنبيهات ----------------
