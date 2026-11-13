@@ -4125,3 +4125,16 @@ body.can-stockedit .lbl-open-btn{display:inline-flex}
 .us-presets .icon-btn,.us-actions .icon-btn{height:var(--field-h);min-height:var(--field-h);display:flex;align-items:center;justify-content:center;gap:8px;font-size:.88rem;font-weight:800;width:100%;box-sizing:border-box}
 .us-actions{display:flex;flex-direction:column;gap:8px;margin:22px 0 4px}
 .us-actions .us-del{color:#b91c1c;background:#fee2e2;border-color:#fecaca}
+
+/* صفوف السلة والنسخ السحابية داخل الإعدادات: عنوان وبيانات يمين، وأزرار موحّدة الحجم يسار، بلا قصّ للقائمة */
+.sh-screen-body .sec-list{max-height:none !important;overflow:visible !important}
+.sh-screen-body .sec-row{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #eef2f7;flex-wrap:nowrap}
+.sh-screen-body .sec-main{flex:1;min-width:0;text-align:right}
+.sh-screen-body .sec-main b{display:block;font-size:.9rem;line-height:1.5;overflow-wrap:anywhere}
+.sh-screen-body .sec-main small{display:block;margin-top:2px;font-size:.74rem;color:var(--text-sub);line-height:1.6}
+.sec-acts{display:flex;gap:8px;flex:none}
+.sh-screen-body .sec-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:42px;padding:0 14px;border:1px solid var(--border,#e2e8f0);border-radius:12px;background:#fff;color:var(--navy);font-family:inherit;font-size:.82rem;font-weight:800;cursor:pointer;box-sizing:border-box}
+.sh-screen-body .sec-btn.sec-ic{width:42px;padding:0}
+.sh-screen-body .sec-btn.sec-del{background:#fee2e2;color:#b91c1c;border-color:#fecaca}
+.sh-screen-body .sec-wide{width:100%;margin-top:8px}
+.sh-screen-body .sec-empty{padding:24px 0;text-align:center;color:var(--text-sub)}

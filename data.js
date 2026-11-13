@@ -4188,8 +4188,8 @@ async function openTrashModal() {
         <div class="sec-row">
             <div class="sec-main"><b>${escapeHtml(x.product.name || '')}</b>
                 <small>${escapeHtml(x.product.brand || '')} • حُذف ${escapeHtml(fmtDateTime(x.deletedAt))}</small></div>
-            <button type="button" class="sec-btn" onclick="restoreFromTrash(${Number(x.id)})">↩️ استعادة</button>
-            <button type="button" class="sec-btn sec-del" onclick="deleteTrashForever(${Number(x.id)})">🗑️</button>
+            <div class="sec-acts"><button type="button" class="sec-btn" onclick="restoreFromTrash(${Number(x.id)})"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg> استعادة</button>
+            <button type="button" class="sec-btn sec-ic sec-del" aria-label="حذف نهائي" onclick="deleteTrashForever(${Number(x.id)})"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></div>
         </div>`).join('');
     const html = `<div class="sec-list">${rows || '<div class="sec-empty">السلة فارغة</div>'}</div>
                <p class="sec-note">تُحذف الأصناف نهائياً بعد ${TRASH_DAYS} يوماً.</p>`;
@@ -4318,11 +4318,11 @@ async function openCloudBackupsModal() {
     const rows = docs.map((b, i) => `
         <div class="sec-row">
             <div class="sec-main"><b>${escapeHtml(b.id || '')}</b><small>${Number(b.count) || 0} صنف • ${escapeHtml(fmtDateTime(b.at))}</small></div>
-            <button type="button" class="sec-btn" onclick="restoreCloudBackup(${i})">↩️ استرجاع</button>
-            <button type="button" class="sec-btn" onclick="downloadCloudBackup(${i})">⬇️</button>
+            <div class="sec-acts"><button type="button" class="sec-btn" onclick="restoreCloudBackup(${i})"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg> استرجاع</button>
+            <button type="button" class="sec-btn sec-ic" aria-label="تنزيل" onclick="downloadCloudBackup(${i})"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></button></div>
         </div>`).join('');
     const html = `<div class="sec-list">${rows || '<div class="sec-empty">لا توجد نسخ بعد. تُنشأ تلقائياً كل ${AUTO_BACKUP_DAYS} أيام عند دخولك.</div>'}</div>
-               <button type="button" class="sec-btn sec-wide" onclick="backupNowCloud()">➕ نسخة الآن</button>`;
+               <button type="button" class="icon-btn primary-btn sec-wide" onclick="backupNowCloud()">+ نسخة الآن</button>`;
     if (typeof shScreen === 'function' && shScreen('cloudScr', 'النسخ السحابية', html)) return;
     Swal.fire({ title: '☁️ النسخ السحابية', html, confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
 }
