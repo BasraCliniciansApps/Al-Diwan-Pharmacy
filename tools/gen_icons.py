@@ -12,6 +12,7 @@ MAP = {
  '👤':'user','🚫':'ban','⛔':'ban','📁':'folder','📖':'book-open','💡':'lightbulb','★':'star','⬆️':'arrow-up','💰':'wallet',
  '🔵':'dot','🟢':'dot','🔴':'dot','🟡':'dot','⭐':'star','📌':'pin','🔙':'arrow-right','✔️':'check','✔':'check','❗':'circle-alert','❓':'circle-question-mark','ℹ️':'info','ℹ':'info','📝':'file-pen','📄':'file-text','🔧':'wrench','🛠️':'wrench','⏰':'alarm-clock','🕒':'clock','⬅️':'arrow-right','➡️':'arrow-left','▶️':'play','⏸️':'pause','📞':'phone','📱':'smartphone','✉️':'mail','💲':'banknote','🛑':'octagon-x','🆕':'sparkles','▦':'scan-barcode','⟳':'refresh-cw','⏻':'log-out','🚪':'log-out','☀️':'sun','🌙':'moon','🔽':'chevron-down','🔼':'chevron-up'}
 MAP.update({
+ '🗄️':'archive','🗄':'archive','📂':'folder-input','🩺':'stethoscope','👥':'users','🧰':'toolbox',
  '←':'arrow-left','→':'arrow-right','↓':'arrow-down','▾':'chevron-down','▴':'chevron-up','▲':'chevron-up','▼':'chevron-down','▸':'chevron-right','◀':'chevron-left',
  '⇄':'arrow-left-right','☑':'square-check','✗':'x','➖':'minus','⚡':'zap','🧮':'calculator','🧭':'compass','⚪':'circle','■':'square',
  '🤝':'handshake','🔬':'microscope','💽':'hard-drive','🗃':'archive','👆':'pointer','📤':'upload','🧹':'brush-cleaning','🔓':'lock-open',
