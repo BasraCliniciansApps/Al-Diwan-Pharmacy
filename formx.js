@@ -81,3 +81,23 @@
     }
     if (typeof openFormModal === 'function') { const _o = openFormModal; openFormModal = function () { const r = _o.apply(this, arguments); try { setTimeout(fxStart, 0); } catch (e) { /* تجاهل */ } return r; }; window.openFormModal = openFormModal; }
 })();
+
+// =====================================================================
+// تحديث لحظي: أي تغيير على المواد (تعديل صنف، نقل، حذف...) يُعاد رسمه فوراً في كل شاشة مفتوحة تعرض أعداداً أو قوائم مبنية منها
+// (إدارة الأقسام والتصنيفات والأشكال، الإعدادات، مركز التجهيز، مراجعة التصنيف، بطاقات الرئيسية).
+// =====================================================================
+(function () {
+    const shown = id => { const e = document.getElementById(id); return !!e && !!e.style.display && e.style.display !== 'none'; };
+    let raf = 0;
+    function liveRefresh() {
+        raf = 0;
+        try { if (shown('catModal')) { renderManagerLists(); const g = document.getElementById('shGrid'); if (g && !g.hidden && typeof shHubHtml === 'function') { const h = document.getElementById('shHub'); if (h && !h.hidden) { const q = document.getElementById('shQ'), v = q ? q.value : ''; h.innerHTML = shHubHtml(); const q2 = document.getElementById('shQ'); if (q2 && v) { q2.value = v; shSearch(v); } } } } } catch (e) { /* تجاهل */ }
+        try { if (shown('dataHub') && typeof dhRender === 'function') dhRender(true); } catch (e) { /* تجاهل */ }
+        try { if (shown('taxRv') && typeof taxRvRender === 'function') taxRvRender(true); } catch (e) { /* تجاهل */ }
+        try { const cv = document.getElementById('catalogView'); if (cv && cv.offsetParent !== null && !document.querySelector('.swal2-container') && typeof renderCatalog === 'function') renderCatalog(); } catch (e) { /* تجاهل */ }
+        try { if (typeof currentView !== 'undefined' && currentView === 'home' && typeof refreshHome === 'function') refreshHome(); } catch (e) { /* تجاهل */ }
+    }
+    const sched = () => { if (!raf) raf = requestAnimationFrame(liveRefresh); };
+    if (typeof renderAll === 'function') { const _ra = renderAll; renderAll = function () { const r = _ra.apply(this, arguments); sched(); return r; }; }
+    document.addEventListener('diwan:product', sched);
+})();
