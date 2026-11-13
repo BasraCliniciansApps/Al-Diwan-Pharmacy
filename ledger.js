@@ -221,7 +221,7 @@ function rvPrint() {
     const done = () => { if (fin) return; fin = true; document.title = oldTitle; document.body.classList.remove('printing-rv'); window.removeEventListener('afterprint', done); document.removeEventListener('visibilitychange', onVis); };
     const onVis = () => { if (document.visibilityState === 'visible') setTimeout(done, 300); };
     window.addEventListener('afterprint', done); document.addEventListener('visibilitychange', onVis);
-    setTimeout(() => { try { window.print(); } catch (e) { done(); } setTimeout(done, 8000); }, 80);
+    setTimeout(() => { try { window.print(); } catch (e) { done(); } if (!(window.NAT && NAT.is)) setTimeout(done, 8000); }, 80);
 }
 function puMonthCsv() {
     const rg = puStmtRange(), sup = $b('puMonthSup').value, d = lgStmtData(rg.from, rg.to, sup, $b('puGroup').checked), s = d.sum;

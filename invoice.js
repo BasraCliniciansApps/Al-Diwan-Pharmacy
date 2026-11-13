@@ -355,7 +355,7 @@ function doPrint(paneId) {
     const sheet = document.querySelector('#' + paneId + ' .bill-sheet');
     const done = () => { document.body.classList.remove('printing-bill'); if (sheet) { sheet.style.zoom = ''; sheet.style.width = ''; } window.removeEventListener('afterprint', done); };
     window.addEventListener('afterprint', done);
-    setTimeout(() => { fitSheetToPage(sheet); window.print(); setTimeout(done, 1500); }, 50);
+    setTimeout(() => { fitSheetToPage(sheet); window.print(); if (!(window.NAT && NAT.is)) setTimeout(done, 1500); }, 50);   // في التطبيق ينتهي بحدث afterprint بعد إغلاق نافذة الطباعة
 }
 
 // ---------- خطة الخصم من المخزن (تدعم العبوة والتجزئة) ----------

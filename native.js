@@ -25,7 +25,7 @@
         }
         return null;
     };
-    NAT.plugins = () => ({ FS: !!FS, LN: !!LN, BS: !!BS, BIO: !!BIO, TP: !!TP, APP: !!APP });
+    NAT.plugins = () => ({ DP: !!DP, FS: !!FS, LN: !!LN, BS: !!BS, BIO: !!BIO, TP: !!TP, APP: !!APP });
     const FS = P('Filesystem'), LN = P('LocalNotifications'), BS = P('BarcodeScanner'),
         BIO = P('BiometricAuthNative'), TP = P('CapacitorThermalPrinter'), APP = P('App');
     const KEY = 'diwanNative';
@@ -33,6 +33,19 @@
     const setCfg = o => { try { localStorage.setItem(KEY, JSON.stringify(Object.assign(cfg(), o))); } catch (e) { /* تجاهل */ } };
     const ROOT = 'Al-Diwan-Pharmacy';
     NAT.root = ROOT;
+
+    // ---------- 0) الطباعة (window.print لا تعمل داخل WebView الأندرويد) ----------
+    const DP = P('DiwanPrint');
+    NAT.print = function (title) { if (!DP) return Promise.reject(new Error('إضافة الطباعة غير متوفرة. حدّث التطبيق من نسخة APK الجديدة.')); return DP.print({ title: title || document.title || 'Al-Diwan-Pharmacy' }); };
+    NAT.printFrame = function (f) {
+        if (!DP) return Promise.reject(new Error('إضافة الطباعة غير متوفرة. حدّث التطبيق من نسخة APK الجديدة.'));
+        const d = f.contentDocument; const html = '<!doctype html>' + d.documentElement.outerHTML;
+        return DP.printHtml({ html, base: location.href, title: d.title || 'Al-Diwan-Pharmacy' });
+    };
+    window.print = function () {
+        NAT.print(document.title).catch(e => { try { Swal.fire({ icon: 'error', title: 'تعذرت الطباعة', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); } catch (x) { /* تجاهل */ } })
+            .then(() => { try { window.dispatchEvent(new Event('afterprint')); } catch (x) { /* تجاهل */ } });
+    };
 
     // ---------- 1) حفظ الملفات تلقائياً ----------
     function subFor(name) {

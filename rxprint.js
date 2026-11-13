@@ -66,7 +66,7 @@ function rxPrintNow(rx) {
     document.body.appendChild(f);
     const d = f.contentWindow.document; d.open(); d.write(rxPrintDoc(rx)); d.close();
     let fired = false;
-    const go = () => { if (fired) return; fired = true; rxFit(d); try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { /* تجاهل */ } setTimeout(() => f.remove(), 60000); };
+    const go = () => { if (fired) return; fired = true; rxFit(d); try { f.contentWindow.focus(); if (window.NAT && NAT.is) { NAT.printFrame(f).catch(e => { try { Swal.fire({ icon: 'error', title: 'تعذرت الطباعة', text: e && e.message, confirmButtonColor: '#0f1c38' }); } catch (x) { /* تجاهل */ } }); } else f.contentWindow.print(); } catch (e) { /* تجاهل */ } setTimeout(() => f.remove(), 60000); };
     try { const fr = d.fonts && d.fonts.load ? d.fonts.load('700 30px "Aref Ruqaa"', 'الدكتور') : null; if (fr) { Promise.race([fr, new Promise(r => setTimeout(r, 2500))]).then(() => setTimeout(go, 150), () => setTimeout(go, 150)); setTimeout(go, 3200); } else setTimeout(go, 150); } catch (e) { setTimeout(go, 150); }
 }
 

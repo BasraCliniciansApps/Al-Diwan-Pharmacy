@@ -17,6 +17,7 @@ import com.getcapacitor.BridgeActivity;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(DiwanPrintPlugin.class);
         super.onCreate(savedInstanceState);
         try { getBridge().getWebView().getSettings().setTextZoom(100); } catch (Exception e) { /* تثبيت حجم الخط: لا يتبع إعداد خط الجهاز */ }
         Window window = getWindow();

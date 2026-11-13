@@ -119,7 +119,7 @@ function lblPrint(c, items) {
         const old = document.getElementById('lblFrame'); if (old) old.remove();
         const f = document.createElement('iframe'); f.id = 'lblFrame'; f.setAttribute('aria-hidden', 'true');
         f.style.cssText = 'position:fixed;left:-9999px;top:0;width:210mm;height:297mm;border:0;opacity:0;pointer-events:none';
-        f.onload = () => { try { f.contentWindow.focus(); f.contentWindow.print(); h.ok('تم تجهيز ' + r.pages + ' صفحة'); } catch (e) { h.fail('تعذر بدء الطباعة', e && e.message); } };
+        f.onload = () => { try { f.contentWindow.focus(); if (window.NAT && NAT.is) { NAT.printFrame(f).catch(e => h.fail('تعذر بدء الطباعة', e && e.message)); } else f.contentWindow.print(); h.ok('تم تجهيز ' + r.pages + ' صفحة'); } catch (e) { h.fail('تعذر بدء الطباعة', e && e.message); } };
         f.srcdoc = doc; document.body.appendChild(f);
     } catch (e) { h.fail('تعذر تجهيز الملصقات', e && e.message); }
 }
