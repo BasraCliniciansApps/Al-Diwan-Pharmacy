@@ -88,13 +88,20 @@
 // =====================================================================
 (function () {
     const shown = id => { const e = document.getElementById(id); return !!e && !!e.style.display && e.style.display !== 'none'; };
+    const vis = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
     let raf = 0;
     function liveRefresh() {
         raf = 0;
         try { if (shown('catModal')) { renderManagerLists(); const g = document.getElementById('shGrid'); if (g && !g.hidden && typeof shHubHtml === 'function') { const h = document.getElementById('shHub'); if (h && !h.hidden) { const q = document.getElementById('shQ'), v = q ? q.value : ''; h.innerHTML = shHubHtml(); const q2 = document.getElementById('shQ'); if (q2 && v) { q2.value = v; shSearch(v); } } } } } catch (e) { /* تجاهل */ }
         try { if (shown('dataHub') && typeof dhRender === 'function') dhRender(true); } catch (e) { /* تجاهل */ }
         try { if (shown('taxRv') && typeof taxRvRender === 'function') taxRvRender(true); } catch (e) { /* تجاهل */ }
-        try { const cv = document.getElementById('catalogView'); if (cv && cv.offsetParent !== null && !document.querySelector('.swal2-container') && typeof renderCatalog === 'function') renderCatalog(); } catch (e) { /* تجاهل */ }
+        const idle = () => { const a = document.activeElement; return !(a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); };
+        try { const m = document.getElementById('expiryModal'); if (m && m.style.display && m.style.display !== 'none' && typeof openExpiryModal === 'function') openExpiryModal(); } catch (e) { /* تجاهل */ }
+        try { const pp = document.getElementById('plPane'); if (pp && vis(pp) && typeof plRender === 'function') plRender(); } catch (e) { /* تجاهل */ }
+        try { const m = document.getElementById('inventoryModal'); if (m && m.style.display && m.style.display !== 'none' && idle() && typeof renderInventory === 'function') renderInventory(); } catch (e) { /* تجاهل */ }
+        try { const o = document.getElementById('posOv'); if (o && vis(o)) { if (typeof posSearchInput === 'function' && document.getElementById('posQ') && document.getElementById('posQ').value.trim()) posSearchInput(); if (typeof posRender === 'function') posRender(); } } catch (e) { /* تجاهل */ }
+        try { const av = document.getElementById('alertsView'); if (av && vis(av) && typeof renderAlerts === 'function' && idle()) renderAlerts(); } catch (e) { /* تجاهل */ }
+        try { const cv = document.getElementById('catalogView'); if (cv && vis(cv) && !document.querySelector('.swal2-container') && typeof renderCatalog === 'function') renderCatalog(); } catch (e) { /* تجاهل */ }
         try { if (typeof currentView !== 'undefined' && currentView === 'home' && typeof refreshHome === 'function') refreshHome(); } catch (e) { /* تجاهل */ }
     }
     const sched = () => { if (!raf) raf = requestAnimationFrame(liveRefresh); };
