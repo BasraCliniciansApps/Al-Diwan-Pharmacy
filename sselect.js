@@ -82,7 +82,9 @@ function ssOpen(sel) {
         const H = vv ? vv.height : window.innerHeight;
         if (vv) { el.style.inset = 'auto'; el.style.left = '0'; el.style.right = '0'; el.style.top = vv.offsetTop + 'px'; el.style.height = vv.height + 'px'; }
         el.style.alignItems = kb ? 'flex-start' : 'flex-end';
-        sheet.style.maxHeight = Math.round(kb ? Math.min(H * 0.94, window.innerHeight * 0.5) : H * 0.94) + 'px';
+        window.__ssFull = Math.max(window.__ssFull || 0, window.innerHeight, H);
+        const reported = H < window.__ssFull * 0.85;   // المتصفح أبلغ عن ظهور الكيبورد: نستغل كل المساحة المرئية فوقه
+        sheet.style.maxHeight = Math.round(kb && !reported ? Math.min(H * 0.94, window.innerHeight * 0.5) : H * 0.96) + 'px';
         sheet.style.marginTop = kb ? '6px' : '';
     };
     q.addEventListener('focus', () => { kb = true; fit(); setTimeout(fit, 250); });
