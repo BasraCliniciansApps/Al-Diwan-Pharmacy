@@ -2905,7 +2905,16 @@ async function saveProductsDelta(entries) {
                 const ref = db.collection('pharmacy_stock').doc(String(e.p.id));
                 const cur = stockMap[String(e.p.id)];
                 if (cost && userRole === 'owner') batch.set(db.collection('pharmacy_cost').doc(String(e.p.id)), cost, { merge: true });
-                if (!F || !cur) { batch.set(ref, stock); return; }
+                if (!F || !cur) {
+                    if (userRole !== 'owner' && !can('stockEdit') && !can('invList') && F) { const u3 = {}; if (e.dq) u3.qty = F.increment(e.dq); if (e.dl) u3.loose = F.increment(e.dl); if (Object.keys(u3).length) batch.update(ref, u3); return; }
+                    batch.set(ref, stock); return;
+                }
+                const _priv = userRole === 'owner' || can('stockEdit') || can('invList');
+                if (!_priv) {   // البائع: تعديل نسبي للكمية فقط (بلا id ولا كتابة مطلقة)، وهو ما تسمح به القواعد
+                    const u2 = {}; if (e.dq) u2.qty = F.increment(e.dq); if (e.dl) u2.loose = F.increment(e.dl);
+                    if (Object.keys(u2).length) batch.update(ref, u2);
+                    return;
+                }
                 const u = { id: e.p.id };
                 if (e.dq) u.qty = F.increment(e.dq);
                 if (e.dl) u.loose = F.increment(e.dl);
@@ -2936,7 +2945,11 @@ async function saveProductsDelta(entries) {
     } catch (err) {
         Prog.end(PO, 'quiet');
         setSyncText('❌ فشل الحفظ');
-        await Swal.fire({ icon: 'error', title: 'خطأ في السحابة', text: err.message, confirmButtonColor: '#0f1c38' });
+        const code = err && err.code || '';
+        const why = code === 'permission-denied' ? 'لا تملك صلاحية هذه العملية على هذه المادة. راجع المالك لتفعيل صلاحية البيع، أو حدّث التطبيق.' : code === 'not-found' ? 'المادة غير موجودة في مخزون السحابة. يجب أن يضيفها المالك أولاً.' : err.message;
+        const names = entries.slice(0, 4).map(e => e.p && e.p.name).filter(Boolean).join('، ');
+        try { console.warn('saveProductsDelta', code, err && err.message, entries.map(e => ({ id: e.p && e.p.id, hasStock: !!stockMap[String(e.p && e.p.id)], bt: !!e.btOut, dq: e.dq, dl: e.dl, role: userRole }))); } catch (x) { /* تجاهل */ }
+        await Swal.fire({ icon: 'error', title: 'خطأ في السحابة', html: escapeHtml(why) + (names ? '<br><small>المواد: ' + escapeHtml(names) + '</small>' : '') + '<br><small dir="ltr">' + escapeHtml(code || '') + '</small>', confirmButtonColor: '#0f1c38' });
         return false;
     }
 }

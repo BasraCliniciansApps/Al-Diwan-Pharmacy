@@ -472,6 +472,7 @@ function cancelInvoiceEditNow() {
 }
 async function saveInvoiceEdit(doPrintAfter) {
     if (!bill || !bill.issued || !bill.editing) return;
+    if (userRole !== 'owner' && bill.byUid && typeof currentUser !== 'undefined' && currentUser && bill.byUid !== currentUser.uid) { Swal.fire({ icon: 'info', title: 'لا يمكن تعديل هذه الفاتورة', text: 'هذه الفاتورة أصدرها مستخدم آخر. يعدّلها صاحبها أو المالك.', confirmButtonColor: '#0f1c38' }); return; }
     readInvoiceFields();
     if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'لا يمكن حفظ فاتورة بلا مواد. استعمل «إلغاء الفاتورة» بدلاً من ذلك.', confirmButtonColor: '#0f1c38' }); return; }
     if (billHasExpired()) return;
@@ -535,6 +536,7 @@ async function invAdoptFresh(b, fr) {   // يحدّث النسخة المحلي�
 async function cancelInvoice(target) {
     const b = target || bill;
     if (!b || !b.issued || b.cancelled) return;
+    if (userRole !== 'owner' && b.byUid && typeof currentUser !== 'undefined' && currentUser && b.byUid !== currentUser.uid) { Swal.fire({ icon: 'info', title: 'لا يمكن إلغاء هذه الفاتورة', text: 'هذه الفاتورة أصدرها مستخدم آخر. يلغيها صاحبها أو المالك.', confirmButtonColor: '#0f1c38' }); return; }
     const r = await Swal.fire({ icon: 'warning', title: 'إلغاء الفاتورة ' + escapeHtml(b.no) + '؟', text: b.deducted ? 'ستُرجَع الكميات المخصومة إلى المخزن.' : 'لم تُخصم كميات بهذه الفاتورة.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، ألغِ', cancelButtonText: 'رجوع' });
     if (!r.isConfirmed) return;
     const fr = await invFresh(b);
