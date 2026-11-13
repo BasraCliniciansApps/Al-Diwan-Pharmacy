@@ -286,7 +286,7 @@ function sheetImgPick(id) {
 // بحث صور Google باسم المادة والشركة؛ تُحفظ الصورة من المتصفح ثم تُختار من الجهاز
 function sheetImgWeb(id) {
     const p = products.find(x => x.id === id); if (!p) return;
-    const q = [p.brand, p.name].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+    const q = [p.brand, p.name, (typeof packLine === 'function' ? packLine(p) : p.meta)].filter(Boolean).join(' ').replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
     const url = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
     try { window.open(url, '_blank'); } catch (e) { location.href = url; }
     Swal.fire({ icon: 'info', title: 'بعد حفظ الصورة', html: 'اضغط مطولاً على الصورة في المتصفح واختر «تنزيل الصورة»، ثم ارجع هنا واضغط «اختيار الصورة».', confirmButtonText: 'اختيار الصورة', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' })
