@@ -120,7 +120,7 @@ function docSetHtml() {
     const c = docData.cfg;
     return `
         <div class="dc-card">
-            <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button></div>
+            <button type="button" class="set-nav set-act" onclick="docCopy()"><div><b>نسخ رابط الصفحة</b><small>الرابط الذي يفتحه الطبيب.</small></div><i class="set-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></i></button>
             <div class="qk-row"><div><b>أسماء الأطباء المحفوظة على هذا الجهاز</b><small>قائمة الإكمال التلقائي لاسم الطبيب في الوصفة. محفوظة على كل جهاز لوحده ولا تُرفع للسحابة.</small></div><button type="button" class="dc-mini" onclick="docClearNames()">مسح</button></div>
             ${docSw('تحديث تلقائي من المخزن', 'تُحسب الحالة من كمية المخزن (المواد غير المجرودة تبقى يدوية). إذا كان مطفياً تتحكم بالحالة يدوياً.', 'auto')}
             ${docSw('إظهار العدد للطبيب', 'يعرض عدد العلب المتوفرة بدل عبارة «متوفر» في صفحة الطبيب، ويتحدث تلقائياً مع المخزن.', 'qty')}

@@ -2576,7 +2576,7 @@ function fillPricingForm() {
     box.innerHTML = pricingCfg.brackets.map((b, i, a) => {
         const prev = i > 0 ? a[i - 1].max : null;
         const label = i === 0 ? 'أقل من' : (b.max === null ? 'أكثر من ' + prev : 'من ' + prev + ' إلى');
-        return `<div class="pc-row"><span class="pc-l">${label}</span>${b.max === null ? '<span class="pc-fix">$</span>' : `<input type="number" id="pcMax${i}" min="1" value="${b.max}"><span class="pc-fix">$</span>`}<span class="pc-l">نسبة</span><input type="number" id="pcPct${i}" min="0" value="${b.pct}"><span class="pc-fix">%</span></div>`;
+        return `<div class="pc-row"><span class="pc-l">${label}</span>${b.max === null ? '<span></span><span class="pc-fix">$</span>' : `<input type="number" id="pcMax${i}" min="1" value="${b.max}"><span class="pc-fix">$</span>`}<span class="pc-l">نسبة</span><input type="number" id="pcPct${i}" min="0" value="${b.pct}"><span class="pc-fix">%</span></div>`;
     }).join('');
 }
 async function savePricingSettings(quiet) {

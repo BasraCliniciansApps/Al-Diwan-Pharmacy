@@ -327,11 +327,11 @@ function initBillEditor() {
 }
 // مصدر واحد لإعدادات الفواتير: يُرسم في صفحة الفواتير وفي الإعدادات معاً، فأي حقل يُضاف هنا يظهر في الاثنين ويتزامن تلقائياً (data-k للنصوص، im-pc للخيارات)
 const INV_SET_HTML = `<div class="bill-set-title im-main-title">⚙️ بيانات الصيدلية على الفاتورة <small>(تُحفظ على هذا الجهاز)</small></div>
-<label class="bill-field"><span>العنوان:</span><input class="im-f" data-k="addr" oninput="billSaveMeta(this)" placeholder="مثال: البصرة - ..."></label>
-<label class="bill-field"><span>الهاتف:</span><input class="im-f" data-k="phone" dir="ltr" oninput="billSaveMeta(this)"></label>
-<label class="bill-field"><span>الصيدلاني / رقم الإجازة:</span><input class="im-f" data-k="lic" oninput="billSaveMeta(this)" placeholder="اختياري"></label>
-<label class="bill-field"><span>سياسة الإرجاع:</span><input class="im-f" data-k="ret" oninput="billSaveMeta(this)" placeholder="مثال: الأدوية المباعة لا تُرد ولا تُستبدل بعد الاستلام"></label>
-<label class="bill-field"><span>سطر أسفل الفاتورة:</span><input class="im-f" data-k="foot" oninput="billSaveMeta(this)" placeholder="مثال: شكراً لثقتكم"></label>
+<label class="bill-field"><span>العنوان</span><input class="im-f" data-k="addr" oninput="billSaveMeta(this)" placeholder="مثال: البصرة - ..."></label>
+<label class="bill-field"><span>الهاتف</span><input class="im-f" data-k="phone" dir="ltr" oninput="billSaveMeta(this)"></label>
+<label class="bill-field"><span>الصيدلاني / رقم الإجازة</span><input class="im-f" data-k="lic" oninput="billSaveMeta(this)" placeholder="اختياري"></label>
+<label class="bill-field"><span>سياسة الإرجاع</span><input class="im-f" data-k="ret" oninput="billSaveMeta(this)" placeholder="مثال: الأدوية المباعة لا تُرد ولا تُستبدل بعد الاستلام"></label>
+<label class="bill-field"><span>سطر أسفل الفاتورة</span><input class="im-f" data-k="foot" oninput="billSaveMeta(this)" placeholder="مثال: شكراً لثقتكم"></label>
 <div class="bill-set-imgs">
 <label class="bill-tb-btn">🖋️ صورة التوقيع<input type="file" accept="image/*" hidden onchange="billPickImage('sig', this)"></label>
 <label class="bill-tb-btn">🔵 صورة الختم<input type="file" accept="image/*" hidden onchange="billPickImage('stamp', this)"></label>
