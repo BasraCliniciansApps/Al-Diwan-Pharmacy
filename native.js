@@ -44,7 +44,7 @@
     };
     window.print = function () {
         NAT.print(document.title).catch(e => { try { Swal.fire({ icon: 'error', title: 'تعذرت الطباعة', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); } catch (x) { /* تجاهل */ } })
-            .then(() => { try { window.dispatchEvent(new Event('afterprint')); } catch (x) { /* تجاهل */ } });
+            .then(() => { try { window.dispatchEvent(new Event('diwan-afterprint')); } catch (x) { /* تجاهل */ } });
     };
 
     // ---------- 1) حفظ الملفات تلقائياً ----------

@@ -218,9 +218,10 @@ function rvPrint() {
     let fin = false;
     // اسم ملف الـ PDF = عنوان الصفحة وقت الطباعة: نغيّره مؤقتاً لاسم إنكليزي واضح
     const oldTitle = document.title; if (rvState && rvState.fileName) document.title = rvState.fileName;
-    const done = () => { if (fin) return; fin = true; document.title = oldTitle; document.body.classList.remove('printing-rv'); window.removeEventListener('afterprint', done); document.removeEventListener('visibilitychange', onVis); };
+    const PEV = (window.NAT && NAT.is) ? 'diwan-afterprint' : 'afterprint', IS_APP = !!(window.NAT && NAT.is);
+    const done = () => { if (fin) return; fin = true; document.title = oldTitle; document.body.classList.remove('printing-rv'); window.removeEventListener(PEV, done); document.removeEventListener('visibilitychange', onVis); };
     const onVis = () => { if (document.visibilityState === 'visible') setTimeout(done, 300); };
-    window.addEventListener('afterprint', done); document.addEventListener('visibilitychange', onVis);
+    window.addEventListener(PEV, done); if (!IS_APP) document.addEventListener('visibilitychange', onVis);
     setTimeout(() => { try { window.print(); } catch (e) { done(); } if (!(window.NAT && NAT.is)) setTimeout(done, 8000); }, 80);
 }
 function puMonthCsv() {

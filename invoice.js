@@ -353,8 +353,9 @@ function doPrint(paneId) {
     document.body.classList.add('printing-bill');
     document.querySelectorAll('#' + paneId + ' textarea').forEach(autoGrow);
     const sheet = document.querySelector('#' + paneId + ' .bill-sheet');
-    const done = () => { document.body.classList.remove('printing-bill'); if (sheet) { sheet.style.zoom = ''; sheet.style.width = ''; } window.removeEventListener('afterprint', done); };
-    window.addEventListener('afterprint', done);
+    const done = () => { document.body.classList.remove('printing-bill'); if (sheet) { sheet.style.zoom = ''; sheet.style.width = ''; } window.removeEventListener(PEV, done); };
+    const PEV = (window.NAT && NAT.is) ? 'diwan-afterprint' : 'afterprint';   // في التطبيق: حدث خاص يُطلق عند انتهاء مهمة الطباعة فقط
+    window.addEventListener(PEV, done);
     setTimeout(() => { fitSheetToPage(sheet); window.print(); if (!(window.NAT && NAT.is)) setTimeout(done, 1500); }, 50);   // في التطبيق ينتهي بحدث afterprint بعد إغلاق نافذة الطباعة
 }
 
