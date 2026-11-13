@@ -279,3 +279,16 @@ function shHubHead(el, back, label) {
 setInterval(() => { try { document.body.classList.toggle('can-stockedit', can('stockEdit')); const r = document.getElementById('repSys'); if (r) r.hidden = userRole !== 'owner'; } catch (e) { /* تجاهل */ } }, 1000);
 
 document.addEventListener('click', e => { const d = e.target.closest && e.target.closest('#catModal .set-desc'); if (d && !e.target.closest('a,button')) d.classList.toggle('open'); });
+
+// شاشة داخل الإعدادات (بدل نافذة منبثقة): شريط رجوع موحّد ومحتوى قابل للتمرير. تُرجع false إن لم تكن الإعدادات مفتوحة فيُستعمل الأسلوب القديم.
+function shScreen(id, title, html) {
+    const cm = document.getElementById('catModal'), card = shCard();
+    if (!card || !cm || !cm.style.display || cm.style.display === 'none') return false;
+    let el = document.getElementById(id);
+    if (!el) { el = document.createElement('div'); el.id = id; el.className = 'tax-rv in-settings sh-screen'; }
+    if (el.parentNode !== card) card.appendChild(el);
+    el.innerHTML = `<div class="sh-bar sh-bar-in"><button type="button" class="sh-back" onclick="shScreenClose('${id}')"><i>›</i> الإعدادات</button><b>${title}</b></div><div class="sh-screen-body">${html}</div>`;
+    el.style.display = 'flex'; card.classList.add('sh-subopen'); card.scrollTop = 0;
+    return true;
+}
+function shScreenClose(id) { const el = document.getElementById(id); if (el) shUnmountHub(el); }

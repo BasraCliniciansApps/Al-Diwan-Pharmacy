@@ -4191,12 +4191,10 @@ async function openTrashModal() {
             <button type="button" class="sec-btn" onclick="restoreFromTrash(${Number(x.id)})">↩️ استعادة</button>
             <button type="button" class="sec-btn sec-del" onclick="deleteTrashForever(${Number(x.id)})">🗑️</button>
         </div>`).join('');
-    Swal.fire({
-        title: '🗑️ سلة المحذوفات',
-        html: `<div class="sec-list">${rows || '<div class="sec-empty">السلة فارغة</div>'}</div>
-               <p class="sec-note">تُحذف الأصناف نهائياً بعد ${TRASH_DAYS} يوماً.</p>`,
-        showConfirmButton: true, confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38'
-    });
+    const html = `<div class="sec-list">${rows || '<div class="sec-empty">السلة فارغة</div>'}</div>
+               <p class="sec-note">تُحذف الأصناف نهائياً بعد ${TRASH_DAYS} يوماً.</p>`;
+    if (typeof shScreen === 'function' && shScreen('trashScr', 'سلة المحذوفات', html)) return;
+    Swal.fire({ title: '🗑️ سلة المحذوفات', html, showConfirmButton: true, confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
 }
 
 // ---------------- سجل التعديلات ----------------
@@ -4299,6 +4297,7 @@ async function backupNowCloud() {
     if (!cloudReady()) { Swal.fire({ icon: 'error', title: 'سجّل دخول الصيدلي أولاً', confirmButtonColor: '#0f1c38' }); return; }
     try {
         const ok = await createCloudBackup(true);
+        if (document.getElementById('cloudScr') && document.getElementById('cloudScr').style.display !== 'none') openCloudBackupsModal();
         Swal.fire({ icon: ok ? 'success' : 'warning', title: ok ? 'تم حفظ نسخة سحابية' : 'تعذر حفظ النسخة (حجمها كبير أو لا توجد أصناف)', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     } catch (e) {
         Swal.fire({ icon: 'error', title: 'تعذر حفظ النسخة', text: 'تأكد أن قواعد Firestore تسمح بمجموعة pharmacy_backups. ' + (e && e.message || ''), confirmButtonColor: '#0f1c38' });
@@ -4322,12 +4321,10 @@ async function openCloudBackupsModal() {
             <button type="button" class="sec-btn" onclick="restoreCloudBackup(${i})">↩️ استرجاع</button>
             <button type="button" class="sec-btn" onclick="downloadCloudBackup(${i})">⬇️</button>
         </div>`).join('');
-    Swal.fire({
-        title: '☁️ النسخ السحابية',
-        html: `<div class="sec-list">${rows || '<div class="sec-empty">لا توجد نسخ بعد. تُنشأ تلقائياً كل ${AUTO_BACKUP_DAYS} أيام عند دخولك.</div>'}</div>
-               <button type="button" class="sec-btn sec-wide" onclick="backupNowCloud()">➕ نسخة الآن</button>`,
-        confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38'
-    });
+    const html = `<div class="sec-list">${rows || '<div class="sec-empty">لا توجد نسخ بعد. تُنشأ تلقائياً كل ${AUTO_BACKUP_DAYS} أيام عند دخولك.</div>'}</div>
+               <button type="button" class="sec-btn sec-wide" onclick="backupNowCloud()">➕ نسخة الآن</button>`;
+    if (typeof shScreen === 'function' && shScreen('cloudScr', 'النسخ السحابية', html)) return;
+    Swal.fire({ title: '☁️ النسخ السحابية', html, confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
 }
 
 function parseCloudBackup(i) {
