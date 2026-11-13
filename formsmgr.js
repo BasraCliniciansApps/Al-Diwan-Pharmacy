@@ -49,7 +49,7 @@ function renderFormManager() {
     const list = FORMS.filter(f => f.id !== 'other' && (!qn || normSearch(f.txt + ' ' + f.g).includes(qn)));
     box.innerHTML = list.map(f => {
         const n = fmCount(f.id);
-        return `<div class="manager-item${f.hidden ? ' fm-off' : ''}"><span><span dir="ltr">${escapeHtml(f.txt)}</span><small>${escapeHtml(f.g || 'بدون مجموعة')}${n ? ' · ' + fmtNum(n) + ' مادة' : ''}${f.hidden ? ' · مخفي' : ''}${f.custom ? ' · مضاف' : ''}</small></span>
+        return `<div class="manager-item${f.hidden ? ' fm-off' : ''}"><span class="tm-go" onclick="taxMembers('form','${f.id}')" role="button" tabindex="0"><span dir="ltr">${escapeHtml(f.txt)}</span><small>${escapeHtml(f.g || 'بدون مجموعة')}${n ? ' · ' + fmtNum(n) + ' مادة' : ''}${f.hidden ? ' · مخفي' : ''}${f.custom ? ' · مضاف' : ''}</small></span>
             <div style="display:flex; gap:6px;">
                 ${f.hidden ? `<button class="icon-btn mi-edit" aria-label="إظهار" onclick="fmShow('${f.id}')">↩<span class="mi-t"> إظهار</span></button>` : `
                 <button class="icon-btn mi-edit" aria-label="نقل إلى مجموعة" onclick="fmMove('${f.id}')">📂<span class="mi-t"> نقل</span></button>

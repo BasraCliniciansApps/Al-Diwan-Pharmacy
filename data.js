@@ -684,7 +684,7 @@ function renderManagerLists() {
     const cnt = (f, ex, n) => products.filter(p => p[f] === n || extrasOf(p[ex]).includes(n)).length;
     deptContainer.innerHTML = departments.map((d, i) => `
         <div class="manager-item">
-            <span>${escapeHtml(d)}${taxLegacy.d.includes(d) ? ` <em class="tg warn">قديم${dUsed.has(d) ? ' — ' + cnt('department', 'extraDepartments', d) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
+            <span class="tm-go" onclick="taxMembers('dept',${i})" role="button" tabindex="0">${escapeHtml(d)}${taxLegacy.d.includes(d) ? ` <em class="tg warn">قديم${dUsed.has(d) ? ' — ' + cnt('department', 'extraDepartments', d) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
             <div style="display:flex; gap:6px;">
                 <button class="icon-btn mi-edit" aria-label="تعديل الاسم" onclick="renameDepartment(${i})">✏️<span class="mi-t"> تعديل الاسم</span></button>
                 <button class="icon-btn mi-del" aria-label="حذف" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteManagerItem('dept', ${i})">🗑️</button>
@@ -696,7 +696,7 @@ function renderManagerLists() {
     const ownerOf = c => Object.keys(deptSubs).find(d => (deptSubs[d] || []).includes(c)) || '';
     subContainer.innerHTML = subCategories.map((c, i) => `
         <div class="manager-item">
-            <span>${escapeHtml(c)}${ownerOf(c) ? ` <small style="color:var(--text-sub)">${escapeHtml(ownerOf(c))}</small>` : ''}${taxLegacy.c.includes(c) ? ` <em class="tg warn">قديم${cUsed.has(c) ? ' — ' + cnt('category', 'extraCategories', c) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
+            <span class="tm-go" onclick="taxMembers('cat',${i})" role="button" tabindex="0">${escapeHtml(c)}${ownerOf(c) ? ` <small style="color:var(--text-sub)">${escapeHtml(ownerOf(c))}</small>` : ''}${taxLegacy.c.includes(c) ? ` <em class="tg warn">قديم${cUsed.has(c) ? ' — ' + cnt('category', 'extraCategories', c) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>
             <div style="display:flex; gap:6px;">
                 <button class="icon-btn mi-edit" aria-label="نقل إلى قسم" onclick="moveSubCategory(${i})">📂<span class="mi-t"> نقل</span></button>
                 <button class="icon-btn mi-edit" aria-label="تعديل الاسم" onclick="renameSubCategory(${i})">✏️<span class="mi-t"> تعديل الاسم</span></button>
@@ -711,14 +711,14 @@ function renderManagerLists() {
     if (tabContainer) {
         const builtin = (key, note = '') => `
             <div class="manager-item">
-                <span>${escTab(tabLabels[key])}<small style="color:var(--text-sub); font-weight:500;">${note}</small></span>
+                <span class="tm-go" onclick="taxMembers('tab','${key}')" role="button" tabindex="0">${escTab(tabLabels[key])}<small style="color:var(--text-sub); font-weight:500;">${note}</small></span>
                 <div style="display:flex; gap:6px;">
                     <button class="icon-btn mi-edit" aria-label="تعديل الاسم" onclick="renameTab('${key}')">✏️<span class="mi-t"> تعديل الاسم</span></button>
                 </div>
             </div>`;
         const custom = customTabs.map(t => `
             <div class="manager-item">
-                <span>${escTab(t.icon || '🏷️')} ${escTab(t.name)}</span>
+                <span class="tm-go" onclick="taxMembers('tab','${t.id}')" role="button" tabindex="0">${escTab(t.icon || '🏷️')} ${escTab(t.name)}</span>
                 <div style="display:flex; gap:6px;">
                     <button class="icon-btn" onclick="renameCustomTab('${t.id}')">✏️ تعديل</button>
                     <button class="icon-btn" style="background:#fee2e2; color:#b91c1c; border-color:#fecaca;" onclick="deleteCustomTab('${t.id}')">🗑️</button>
@@ -5263,7 +5263,7 @@ async function addSubType() {
 // إدارة أنواع الجزء: تغيير الاسم (يشمل كل المواد) أو الحذف (إن لم يُستخدم)
 async function manageSubTypes() {
     const used = t => products.filter(p => p.subType === t).length;
-    const html = () => '<div class="stm-list">' + (subTypes.length ? subTypes.map((t, i) => `<div class="stm-row"><b dir="ltr">${escapeHtml(t)}</b><small>${used(t)} مادة</small><button type="button" class="xc-mini" data-a="ren" data-i="${i}" aria-label="تغيير الاسم">✎</button><button type="button" class="xc-mini" data-a="del" data-i="${i}" aria-label="حذف">🗑</button></div>`).join('') : '<p>لا توجد أنواع.</p>') + '</div>';
+    const html = () => '<div class="stm-list">' + (subTypes.length ? subTypes.map((t, i) => `<div class="stm-row"><b dir="ltr" class="tm-go" onclick="taxMembers('part',${i})" role="button" tabindex="0">${escapeHtml(t)}</b><small>${used(t)} مادة</small><button type="button" class="xc-mini" data-a="ren" data-i="${i}" aria-label="تغيير الاسم">✎</button><button type="button" class="xc-mini" data-a="del" data-i="${i}" aria-label="حذف">🗑</button></div>`).join('') : '<p>لا توجد أنواع.</p>') + '</div>';
     const draw = () => { const el = Swal.getHtmlContainer(); if (el) el.innerHTML = html(); };
     Swal.fire({
         title: 'أنواع الجزء', html: html(), showConfirmButton: true, confirmButtonText: 'تم', confirmButtonColor: '#0f1c38',

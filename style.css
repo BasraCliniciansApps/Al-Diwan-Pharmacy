@@ -4023,3 +4023,14 @@ body.can-stockedit .lbl-open-btn{display:inline-flex}
 
 /* v512: القوائم والفلاتر وجداول التحديد تعود إلى مربع اختيار حقيقي (المفتاح للإعدادات فقط) */
 .fs-dd-row input[type=checkbox],.cn-dd-i input[type=checkbox],.xc-check input[type=checkbox],.dh-chk input[type=checkbox],.un-row input[type=checkbox],.pa-row input[type=checkbox],td.c-n input[type=checkbox],.lg-bon input[type=checkbox],.chk-real input[type=checkbox]{width:18px;height:18px;flex:none;accent-color:#0f1c38;cursor:pointer;vertical-align:middle}
+
+/* v514: مواد كل تصنيف */
+.tm-go{cursor:pointer}.tm-go::after{content:' ›';color:#94a3b8;font-weight:700}
+.tm-box{text-align:right}.tm-sub{margin:0 0 8px;font-size:.84rem;color:#475569}
+.tm-q{width:100%;margin-bottom:8px}
+.tm-list{max-height:55vh;overflow:auto}
+.tm-row{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-top:1px solid #eef2f7}
+.tm-row>span{flex:1;min-width:0;font-weight:700;font-size:.86rem;text-align:left;overflow-wrap:anywhere}
+.tm-row small{display:block;color:#64748b;font-weight:500;font-size:.74rem}
+.tm-act{display:flex;gap:6px;flex:none}
+.tm-act .icon-btn{min-width:38px;height:38px;padding:0}
