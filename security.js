@@ -207,6 +207,7 @@ function userPreview(uid) {
     const u = usersCache.find(x => x.uid === uid); if (!u || pvSaved) return;
     pvSaved = { role: userRole, perms: userPerms, name: userName, sh: window.__shSnap ? window.__shSnap() : null };
     if (window.__shRetClear) window.__shRetClear();   // لا نعيد الإعدادات أثناء المعاينة
+    try { ['usersScr', 'trashScr', 'cloudScr'].forEach(i => { if (typeof shScreenClose === 'function') shScreenClose(i); }); closeCategoryManager(); } catch (e) { /* تجاهل */ }   // تُغلق الإعدادات كاملة: المعاينة تعرض التطبيق كما يراه المستخدم
     userRole = 'staff'; userPerms = Object.assign({}, u.perms || {}); userName = u.name || '';
     pvBlock(true); window.__pvOn = true;
     const d = document.createElement('div'); d.id = 'pvBar'; d.className = 'pv-bar'; d.dir = 'rtl';
@@ -222,5 +223,6 @@ function userPreviewExit() {
     const d = document.getElementById('pvBar'); if (d) d.remove(); document.body.classList.remove('pv-on');
     try { applyRoleUI(); } catch (e) { /* تجاهل */ }
     const sh = pvSaved0; showView('home'); try { renderAll(); } catch (e) { /* تجاهل */ }
-    if (sh) { try { openCategoryManager(); if (sh.page) shOpen(sh.page); } catch (e) { /* تجاهل */ } } else openUsers();
+    try { openCategoryManager(); if (sh && sh.page) shOpen(sh.page); } catch (e) { /* تجاهل */ }
+    openUsers();
 }
