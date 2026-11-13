@@ -48,13 +48,6 @@ function subsFor(dept, keep) {   // تصنيفات القسم المختار + �
     return l.length ? l : subCategories.slice();
 }
 
-// أسماء تبويبات الشريط السفلي (قابلة للتعديل من إعدادات ⚙️)
-const defaultTabLabels = { all: 'كل القسم', rx: 'الادوية', cosmetic: 'كوزمتك', out: 'النواقص' };
-let tabLabels = { ...defaultTabLabels, ...(JSON.parse(localStorage.getItem('diwanTabLabels')) || {}) };
-
-// تبويبات إضافية يضيفها الصيدلي: [{id, name, icon}]
-const MAX_CUSTOM_TABS = 2;
-let customTabs = JSON.parse(localStorage.getItem('diwanCustomTabs')) || [];
 
 // حد تنبيه الكمية القليلة العام (يمكن تخصيصه لكل صنف من نموذج الصنف)
 const DEFAULT_SUB_TYPES = ['Strip', 'Tablet', 'Vial', 'Ampoule'];
@@ -429,8 +422,6 @@ async function initFirebase() {
                 if (data.taxLegacy && Array.isArray(data.taxLegacy.d) && Array.isArray(data.taxLegacy.c)) taxLegacy = data.taxLegacy;
                 if (data.learn && typeof learnImport === 'function') learnImport(data.learn, learnPending());
                 if (data.scan && typeof scImport === 'function') scImport(data.scan);
-                if (data.tabLabels) tabLabels = { ...defaultTabLabels, ...data.tabLabels };
-                if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
                 if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
                 if (Array.isArray(data.alertMonths) && data.alertMonths.length === 3) alertMonths = data.alertMonths;
                 if (data.pricingCfg) pricingCfg = normPricingCfg(data.pricingCfg);
@@ -474,8 +465,6 @@ function saveLocal() {
         localStorage.setItem('diwanSubCats', JSON.stringify(subCategories));
         localStorage.setItem('diwanDeptSubs', JSON.stringify(deptSubs));
         localStorage.setItem('diwanTaxLegacy', JSON.stringify(taxLegacy));
-        localStorage.setItem('diwanTabLabels', JSON.stringify(tabLabels));
-        localStorage.setItem('diwanCustomTabs', JSON.stringify(customTabs));
         localStorage.setItem('diwanLowThreshold', String(lowStockThreshold));
         localStorage.setItem('diwanAlertMonths', JSON.stringify(alertMonths));
         localStorage.setItem('diwanPricing', JSON.stringify(pricingCfg));
@@ -536,8 +525,6 @@ async function pushToCloud(onlyMetadata = false) {
                 deptSubs,
                 taxLegacy,
                 learn: typeof learnExport === 'function' ? learnExport() : {},
-                tabLabels,
-                customTabs,
                 lowStockThreshold,
                 alertMonths,
                 pricingCfg,
@@ -713,17 +700,7 @@ function escTab(s) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-// تبويب غير المتوفر: «النواقص» للصيدلي، «غير متوفر» للزبون والطبيب
-function outTabLabel() { return IS_ADMIN_PAGE ? tabLabels.out : 'غير متوفر'; }
-
-function getTabTitle() {
-    if (mainTab === 'all') return 'جميع الأصناف';
-    if (mainTab === 'rx') return tabLabels.rx;
-    if (mainTab === 'cosmetic') return tabLabels.cosmetic;
-    if (mainTab === 'out') return outTabLabel();
-    const t = customTabs.find(x => x.id === mainTab);
-    return t ? t.name : 'جميع الأصناف';
-}
+function getTabTitle() { return 'جميع الأصناف'; }
 
 // الشريط السفلي (التبويبات) أُلغي: لا يُعرض ويبقى التبويب الحالي «الكل»
 function renderBottomNav() {
@@ -902,22 +879,6 @@ function searchScore(p, qNorm, qTokens) {
 function extrasOf(v) { return Array.isArray(v) ? v.filter(x => typeof x === 'string' && x) : []; }
 function deptsOf(p) { return [p.department || 'قسم الجلدية'].concat(extrasOf(p.extraDepartments)); }
 function catsOf(p) { return [p.category].concat(extrasOf(p.extraCategories)).filter(Boolean); }
-function typesOf(p) { return [p.type].concat(extrasOf(p.extraTypes)).filter(Boolean); }
-function inExtraTab(p, id) { return extrasOf(p.extraTypes).includes(id); }
-
-function isRxItem(item) {
-    // الاختيار اليدوي من نموذج الصنف له الأولوية، وإن لم يُحدَّد يُستخدم التخمين القديم
-    if (item.type === 'rx') return true;
-    if (item.type) return false;   // كوزمتك أو تبويب مخصص
-    const rxKeywords = ['مضادات', 'كورتيزون', 'فموية', 'شرابات', 'rx'];
-    if (rxKeywords.some(k => String(item.category || '').toLowerCase().includes(k))) return true;
-    const rxNames = ['acretin', 'azaderm', 'peroduo', 'ben-oxide', 'clinaderm', 'minoxidil', 'beta-salic', 'kenazole', 'naxoral', 'selerex', 'hiquin', 'benoquin'];
-    return rxNames.some(k => item.name.toLowerCase().includes(k));
-}
-
-function isCustomItem(item) {
-    return !!item.type && customTabs.some(t => t.id === item.type);
-}
 
 // الأشكال الدوائية: id / الاسم المعروض / لون الشارة / كلمات التعرّف التلقائي (بالترتيب: الأدق أولاً)
 const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye / Ear / Nose', 'Inhalation', 'Rectal & Vaginal', 'Oral Care', 'Dressings & Supplies', 'Antiseptics & Sanitizers', 'Pads & Diapers', 'Other'];
@@ -1133,9 +1094,6 @@ function getBaseFilteredByTab() {
         const matchDept = activeDept === ALL_DEPTS || deptsOf(p).includes(activeDept);
         if (!matchDept) return false;
         if (mainTab === 'out') return !isInStock(p);
-        if (mainTab === 'rx') return isRxItem(p) || inExtraTab(p, 'rx');
-        if (mainTab === 'cosmetic') return (!isRxItem(p) && !isCustomItem(p)) || inExtraTab(p, 'cosmetic');
-        if (customTabs.some(t => t.id === mainTab)) return p.type === mainTab || inExtraTab(p, mainTab);
         return true;
     });
 }
@@ -1480,14 +1438,6 @@ function updateItemQty(id, delta) {
 
 function populateModalSelects() {
     refreshActiveDatalist();
-    const typeSel = document.getElementById('fType');
-    if (typeSel) {
-        typeSel.innerHTML = `
-            <option value="">تلقائي (حسب الاسم والتصنيف)</option>
-            <option value="rx">${escTab(tabLabels.rx)}</option>
-            <option value="cosmetic">${escTab(tabLabels.cosmetic)}</option>` +
-            customTabs.map(t => `<option value="${t.id}">${escTab(t.name)}</option>`).join('');
-    }
     document.getElementById('fDepartment').innerHTML = deptList().map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
     refreshCatSelect();
 }
@@ -1504,8 +1454,7 @@ function onDeptChanged() { refreshCatSelect(); refreshExtraChips('dept'); refres
 // القسم والتصنيف: قائمة منسدلة واحدة (بحث + إضافة + تعديل + حذف). التبويبات: شرائح بسيطة.
 const EXTRA_KINDS = {
     dept: { box: 'fExtraDepts', primary: 'fDepartment', combo: true,  list: () => departments,   noun: 'قسم',    placeholder: 'اختر أقساماً إضافية...' },
-    cat:  { box: 'fExtraCats',  primary: 'fCategory',   combo: true,  list: () => subCategories, noun: 'تصنيف',  placeholder: 'اختر تصنيفات إضافية...' },
-    type: { box: 'fExtraTypes', primary: 'fType',       combo: false, options: () => [['rx', tabLabels.rx], ['cosmetic', tabLabels.cosmetic]].concat(customTabs.map(t => [t.id, t.name])) }
+    cat:  { box: 'fExtraCats',  primary: 'fCategory',   combo: true,  list: () => subCategories, noun: 'تصنيف',  placeholder: 'اختر تصنيفات إضافية...' }
 };
 const extraSel = { dept: new Set(), cat: new Set() };
 const xcState = { dept: { open: false, q: '' }, cat: { open: false, q: '' } };
@@ -1723,7 +1672,6 @@ function refreshExtraChips(kind) {
 function setExtraSelections(p) {
     renderExtraChips('dept', p ? extrasOf(p.extraDepartments) : []);
     renderExtraChips('cat', p ? extrasOf(p.extraCategories) : []);
-    renderExtraChips('type', p ? extrasOf(p.extraTypes) : []);
 }
 
 function openFormModal(id = null) {
@@ -1737,7 +1685,6 @@ function openFormModal(id = null) {
         if (document.getElementById('fDepartment').value !== (p.department || '')) { const o = document.createElement('option'); o.value = o.textContent = p.department || ''; document.getElementById('fDepartment').appendChild(o); document.getElementById('fDepartment').value = p.department || ''; }
         refreshCatSelect(p.category);
         document.getElementById('fCategory').value = p.category;
-        if (document.getElementById('fType')) document.getElementById('fType').value = p.type || (isRxItem(p) ? 'rx' : 'cosmetic');
         fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = (p.form === 'other' && p.formOther && [...document.getElementById('fForm').options].some(o => o.value === 'cf:' + p.formOther)) ? 'cf:' + p.formOther : formSelValueFor(p); if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = p.formOther || ''; onFormChange();
         if (document.getElementById('fActive')) document.getElementById('fActive').value = p.activeIngredient || '';
         if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = (p.minQty === null || p.minQty === undefined) ? '' : p.minQty;
@@ -1760,7 +1707,6 @@ function openFormModal(id = null) {
         document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
         document.getElementById('editId').value = '';
         document.getElementById('fDepartment').value = activeDept === ALL_DEPTS ? (deptList()[0] || '') : activeDept; refreshCatSelect('');
-        if (document.getElementById('fType')) document.getElementById('fType').value = '';
         fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = ''; if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = ''; onFormChange();
         if (document.getElementById('fActive')) document.getElementById('fActive').value = '';
         if (document.getElementById('fMinQty')) document.getElementById('fMinQty').value = '';
@@ -1973,10 +1919,8 @@ async function saveFormProduct() {
         id: editId ? parseInt(editId) : Date.now(),
         department: document.getElementById('fDepartment').value,
         category: document.getElementById('fCategory').value,
-        type: document.getElementById('fType') ? document.getElementById('fType').value : '',
         extraDepartments: getExtraSelection('dept').filter(x => x !== document.getElementById('fDepartment').value),
         extraCategories: getExtraSelection('cat').filter(x => x !== document.getElementById('fCategory').value),
-        extraTypes: getExtraSelection('type').filter(x => x !== (document.getElementById('fType').value || '')),
         form: document.getElementById('fForm') ? formSelRead().form : '',
         formOther: document.getElementById('fForm') ? formSelRead().formOther : '',
         activeIngredient: document.getElementById('fActive') ? document.getElementById('fActive').value.trim() : '',
@@ -3094,8 +3038,6 @@ function buildBackupObject() {
         taxLegacy,
         learn: typeof learnExport === 'function' ? learnExport() : {},
         scan: typeof scExport === 'function' ? scExport() : {},
-        tabLabels,
-        customTabs,
         lowStockThreshold,
         alertMonths,
         pricingCfg,
@@ -3262,8 +3204,6 @@ async function applyBackupData(data) {
         if (data.deptSubs && typeof data.deptSubs === 'object') deptSubs = { ...deptSubs, ...data.deptSubs };
         if (data.taxLegacy && Array.isArray(data.taxLegacy.d)) taxLegacy = { d: [...new Set([...taxLegacy.d, ...data.taxLegacy.d])], c: [...new Set([...taxLegacy.c, ...(data.taxLegacy.c || [])])] };
         if (data.learn && typeof learnImport === 'function') learnImport(data.learn, true);
-        if (data.tabLabels && typeof data.tabLabels === 'object') tabLabels = { ...defaultTabLabels, ...data.tabLabels };
-        if (Array.isArray(data.customTabs)) customTabs = data.customTabs;
         if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
                 if (Array.isArray(data.alertMonths) && data.alertMonths.length === 3) alertMonths = data.alertMonths;
         if (data.pricingCfg) pricingCfg = normPricingCfg(data.pricingCfg);
@@ -3770,7 +3710,6 @@ function normalizeAiResult(raw) {
 // ---------------------------------------------------------------------------
 function buildAiRows(res) {
     const fullName = [res.tradeName, res.strength].filter(Boolean).join(' ');
-    const tabLabel = res.tab === 'rx' ? tabLabels.rx : (res.tab === 'cosmetic' ? tabLabels.cosmetic : '');
     return [
         { key: 'name', label: 'الاسم التجاري والتركيز', value: fullName, raw: fullName, field: 'fName', src: 'printed', ltr: true },
         { key: 'brand', label: 'الشركة', value: res.brand, raw: res.brand, field: 'fBrand', src: 'printed', ltr: true },
@@ -3779,8 +3718,7 @@ function buildAiRows(res) {
         { key: 'active', label: 'المادة الفعالة', value: res.active, raw: res.active, field: 'fActive', src: res.activeFromPack ? 'printed' : 'suggested', ltr: true },
         { key: 'details', label: 'الوصف والاستخدام', value: res.detailsAr, raw: res.detailsAr, field: 'fDetails', src: 'suggested', ltr: false },
         { key: 'keywords', label: 'كلمات البحث', value: res.keywords.join('، '), raw: res.keywords.join('، '), field: 'fKeywords', src: 'suggested', ltr: false },
-        { key: 'category', label: 'التصنيف الفرعي', value: res.category, raw: res.category, field: 'fCategory', src: 'suggested', newOnly: true, ltr: false },
-        { key: 'tab', label: 'التبويب', value: tabLabel, raw: res.tab, field: 'fType', src: 'suggested', newOnly: true, ltr: false }
+        { key: 'category', label: 'التصنيف الفرعي', value: res.category, raw: res.category, field: 'fCategory', src: 'suggested', newOnly: true, ltr: false }
     ];
 }
 
@@ -4273,7 +4211,7 @@ function diffProduct(a, b) {
     const ea = (a.expiryDates || (a.expiryDate ? [a.expiryDate] : [])).join(', ');
     const eb = (b.expiryDates || (b.expiryDate ? [b.expiryDate] : [])).join(', ');
     if (ea !== eb) out.push({ f: 'النفاذ', from: ea, to: eb });
-    ['extraDepartments', 'extraCategories', 'extraTypes'].forEach(f => {
+    ['extraDepartments', 'extraCategories'].forEach(f => {
         const x = extrasOf(a[f]).join(', '), y = extrasOf(b[f]).join(', ');
         if (x !== y) out.push({ f: f === 'extraDepartments' ? 'أقسام إضافية' : f === 'extraCategories' ? 'تصنيفات إضافية' : 'تبويبات إضافية', from: x, to: y });
     });

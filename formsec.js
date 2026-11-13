@@ -13,7 +13,7 @@ const FS_DEF = [
             { id: 'stock', ico: '📦', t: 'المخزون', open: false, rows: [['fQty', 'fMinQty']] }
         ]
     },
-    { id: 'cls', ico: '🗂️', t: 'التصنيف', open: true, f: ['fDepartment', 'fCategory', 'fType'] },
+    { id: 'cls', ico: '🗂️', t: 'التصنيف', open: true, f: ['fDepartment', 'fCategory'] },
     { id: 'more', ico: '🔬', t: 'الاسم العلمي والكلمات المفتاحية والاستخدام', open: false, f: ['fActive', 'fKeywords', 'fDetails'] }
 ];
 let fsBuilt = false, fsTimer = null, fsQuick = false;
@@ -82,7 +82,7 @@ function fsApply(id) {
 // المرحلة 2: كشف التكرار، مسودة تلقائية للمادة الجديدة، تمييز الحقل الناقص قبل الحفظ
 // ============================================================================
 const FS_DRAFT_LS = 'diwanFormDraft';
-const FS_FIELDS = ['fDepartment', 'fCategory', 'fType', 'fForm', 'fFormOther', 'fName', 'fBrand', 'fMeta', 'fActive', 'fDetails', 'fKeywords', 'fImg', 'fPriceMode', 'fMarkup', 'fPrice', 'fCost', 'fQty', 'fMinQty', 'fSubCount', 'fSubType', 'fSubPrice', 'fLoose'];
+const FS_FIELDS = ['fDepartment', 'fCategory', 'fForm', 'fFormOther', 'fName', 'fBrand', 'fMeta', 'fActive', 'fDetails', 'fKeywords', 'fImg', 'fPriceMode', 'fMarkup', 'fPrice', 'fCost', 'fQty', 'fMinQty', 'fSubCount', 'fSubType', 'fSubPrice', 'fLoose'];
 const fsNz = s => String(s || '').toLowerCase().replace(/[^a-z0-9؀-ۿ]/g, '');
 function fsLev(a, b) {
     if (a === b) return 0; if (!a.length) return b.length; if (!b.length) return a.length; let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
