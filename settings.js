@@ -73,7 +73,7 @@ function shSummary(p) {
 const SH_GROUPS = { g1: 'المتجر', g2: 'الأدوات', g3: 'الحسابات والبيانات', g4: 'هذا الجهاز' };
 function shHubHtml() {
     const card = p => { const m = shSummary(p); return `<button type="button" class="sh-card" data-p="${p.id}"><span class="sh-ico">${p.ico}</span><span class="sh-tx"><b>${p.t}</b><small>${m.s}</small></span>${m.badge ? `<em class="sh-badge">${m.badge}</em>` : ''}</button>`; };
-    const grid = Object.keys(SH_GROUPS).map(g => `<h5 class="sh-gh">${SH_GROUPS[g]}</h5>` + SH_PAGES.filter(p => p.g === g).map(card).join('')).join('');
+    const grid = Object.keys(SH_GROUPS).map(g => `<h5 class="sh-gh">${SH_GROUPS[g]}</h5>` + SH_PAGES.filter(p => p.g === g && !(p.id === 'device' && !((window.NAT && NAT.is) || !isStandalone()))).map(card).join('')).join('');
     return `<div class="sh-search"><input type="search" id="shQ" placeholder="ابحث في الإعدادات…" autocomplete="off" aria-label="بحث في الإعدادات"></div>
     <div class="sh-grid" id="shGrid">${grid}</div>
     <div class="sh-res" id="shRes" hidden></div>`;
@@ -114,6 +114,7 @@ function shHome(anim) {
 // صفوف الجهاز: خيارات التطبيق الأصلي (أندرويد) فقط
 function shDeviceRows() {
     try { const ib = shBox('install'); if (ib) ib.hidden = !!((window.NAT && NAT.is) || isStandalone()); } catch (e) { /* تجاهل */ }
+    try { const db = shBox('device'); if (db) db.hidden = !(window.NAT && NAT.is); } catch (e) { /* تجاهل */ }
     const host = document.getElementById('devNativeRows'), ph = document.getElementById('devPrintRows');
     if (!(window.NAT && NAT.is)) { if (host) host.innerHTML = ''; if (ph) ph.innerHTML = ''; return; }
     const c = NAT.cfg(), ps = c.paperSize || 'A4', ori = c.orient || 'portrait';

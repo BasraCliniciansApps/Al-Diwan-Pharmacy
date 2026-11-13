@@ -321,13 +321,6 @@ function docRenderAlertBox0(markSeen) {
     if (markSeen) docMarkSeen();
 }
 
-async function docClearNames() {
-    let n = 0; try { n = (JSON.parse(localStorage.getItem('diwanDocNames')) || []).length; } catch (e) { /* تجاهل */ }
-    if (!n) { Swal.fire({ icon: 'info', title: 'لا توجد أسماء محفوظة على هذا الجهاز', confirmButtonColor: '#0f1c38' }); return; }
-    if (!(await askSure('مسح أسماء الأطباء المحفوظة؟', 'ستُحذف ' + fmtNum(n) + ' اسماً من هذا الجهاز فقط ولا يتأثر أي جهاز آخر.', 'مسح'))) return;
-    try { localStorage.removeItem('diwanDocNames'); } catch (e) { /* تجاهل */ }
-    Swal.fire({ icon: 'success', title: 'تم مسح الأسماء', timer: 1400, showConfirmButton: false });
-}
 
 
 // ---------- ركن الأطباء: شاشة واحدة تجمع كل ما يخص الأطباء ----------
