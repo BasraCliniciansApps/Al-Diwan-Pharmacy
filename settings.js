@@ -3,15 +3,16 @@
 // ما تغيّر محتوى الإعدادات القديمة، بس ترتّبه (تعرض صناديق كل صفحة وتخفي الباقي).
 // =====================================================================
 const SH_PAGES = [
-    { id: 'tax', ico: '🗂️', t: 'التصنيف والبيانات', boxes: [0, 1, 2, 10], kw: 'ادخال سريع تعلم ما تعلمه التطبيق قواعد تصنيفي الخاصة سجل البحث الفاشل مواد فعالة اكمال تصنيف تلقائي شكل دوائي تلقائي مركز تجهيز البيانات اشكال الاشكال الدوائية شكل دوائي مجموعة أشكال forms قسم اقسام تصنيف تصنيفات فرعية جاهزة مراجعة الأقسام الرئيسية departments categories إكمال المواد الفعالة سجل البحث الفاشل' },
-    { id: 'inv', ico: '📦', t: 'المخزون والتنبيهات', boxes: [4, 7], kw: 'مخزون تنبيه تنبيهات نقص كمية صلاحية انتهاء مدة نفاذ جرد وضع الجرد تحديث المواد من الوارد تواريخ الانتهاء الفواتير المؤجلة حماية بيانات المخزون اخفاء الكميات inventory alerts' },
+    { id: 'invset', ico: '🧾', t: 'الفواتير والبيع', boxes: [13], kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع شاشة البيع جرد عند أول بيع invoice' },
+    { id: 'inv', ico: '📦', t: 'المخزون والتنبيهات', boxes: [4, 7], kw: 'مخزون تنبيه تنبيهات نقص كمية صلاحية انتهاء مدة نفاذ جرد وضع الجرد تحديث المواد من الوارد تواريخ الانتهاء الفواتير المؤجلة ملصقات باركود inventory alerts' },
     { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح فصل سعر الشراء كلفة pricing' },
+    { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيف', boxes: [0, 1, 2, 10], kw: 'ادخال سريع تعلم ما تعلمه التطبيق قواعد سجل البحث الفاشل اكمال تصنيف تلقائي شكل دوائي تلقائي اشكال الاشكال الدوائية مجموعة أشكال forms قسم اقسام تصنيف تصنيفات فرعية جاهزة الأقسام الرئيسية departments categories' },
+    { id: 'dhub', ico: '🧰', t: 'مركز تجهيز البيانات', boxes: [], act: 'shGoDataHub', kw: 'مركز تجهيز البيانات مواد فعالة المادة الفعالة مراجعة التصنيف مكررة المكرر بيانات ناقصة غير مسعرة تعبئة الشركات قواعد تصنيفي الخاصة' },
     { id: 'scanner', ico: '🔎', t: 'المسح والذكاء الصناعي', boxes: [9], kw: 'فاحص المادة مسح باركود سعر خصم حد الخصم اكسباير نفاذ هامش ربح scanner discount ذكاء صناعي مسح عبوة gemini ocr قراءة العبوة' },
-    { id: 'ui', ico: '🧩', t: 'الواجهة والتبويبات', boxes: [3, 11], kw: 'تبويب تبويبات الشريط السفلي واجهة تثبيت التطبيق tabs install' },
-    { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8, 12], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة users permissions security log trash' },
+    { id: 'docset', ico: '🩺', t: 'صفحة الأطباء', boxes: [14], kw: 'طبيب اطباء صفحة الاطباء المواد المعروضة رابط الصفحة اظهار الاسعار العدد طلبات الأطباء doctor' },
+    { id: 'ui', ico: '🧩', t: 'الواجهة والتطبيق', boxes: [3, 11], kw: 'تبويب تبويبات الشريط السفلي واجهة تثبيت التطبيق tabs install' },
+    { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8, 12], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة حماية بيانات المخزون اخفاء الكميات فصل سعر الشراء تقرير تطابق users permissions security log trash' },
     { id: 'sys', ico: '💾', t: 'النسخ والبيانات', boxes: [6], kw: 'نسخ احتياطي استرجاع تصدير نسخ سحابية backup restore export csv' },
-    { id: 'invset', ico: '🧾', t: 'إعدادات الفواتير', boxes: [13], kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع invoice' },
-    { id: 'docset', ico: '🩺', t: 'إعدادات صفحة الأطباء', boxes: [], act: 'shGoDocSettings', kw: 'طبيب اطباء صفحة الاطباء المواد المعروضة doctor' },
 ];
 // الرجوع الصحيح: النافذة التي تُفتح من الإعدادات (اختصار/أداة) تغلق الإعدادات مؤقتًا؛ عند الرجوع منها نعيد الإعدادات
 // في الصفحة التي كنت فيها، لا أن نتركك في الرئيسية. kind: 'layer' نافذة (تُراقَب) أو 'view' شاشة (تُعاد بزر الرجوع).
@@ -36,8 +37,9 @@ window.__shStale = () => { if (shRet && shRet.kind === 'view' && shRet.seen) shR
 window.__shReturn = shReturn;
 window.__shSnap = () => (shRet ? { page: shRet.page } : null);   // لمعرفة صفحة الإعدادات التي جئنا منها
 setInterval(() => { if (shRet) shReturn(); }, 350);
-function shGoInvSettings() { shLeave('view'); showView('bill'); billTab('settings'); }
-function shGoDocSettings() { shLeave('layer'); docOpen('set'); }
+function shGoDataHub() { dhOpen(); }
+const SH_ORDER = ['invset', 'inv', 'price', 'tax', 'dhub', 'scanner', 'docset', 'ui', 'natapp', 'sec', 'sys'];
+function shSortPages() { SH_PAGES.sort((a, b) => { const x = SH_ORDER.indexOf(a.id), y = SH_ORDER.indexOf(b.id); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y); }); }
 let shCur = null;
 const shNorm = s => String(s || '').toLowerCase().replace(/[ً-ٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
 function shBoxes() { return [...document.querySelectorAll('#catModal .cat-manager-box:not(#shQuick)')]; }
@@ -53,8 +55,10 @@ function shSummary(p) {
         if (p.id === 'hub') return { s: 'المواد الفعالة والتصنيف والنواقص' };
         if (p.id === 'tabs' || p.id === 'ui') return { s: 'التبويبات السفلية · تثبيت التطبيق' };
         if (p.id === 'inv') return { s: `حد النقص ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر · الجرد` };
-        if (p.id === 'invset') return { s: 'بيانات الصيدلية والختم والتوقيع' };
-        if (p.id === 'docset') return { s: 'المواد المعروضة للأطباء' };
+        if (p.id === 'invset') return { s: 'بيانات الفاتورة · الختم والتوقيع · شاشة البيع' };
+        if (p.id === 'docset') return { s: 'الرابط · الأسعار والعدد · الطلبات' };
+        if (p.id === 'dhub') return { s: 'المواد الفعالة · التصنيف · المكرر · النواقص' };
+        if (p.id === 'tax') return { s: 'الأقسام · التصنيفات · الأشكال الدوائية · الإدخال السريع' };
         if (p.id === 'price') return { s: `سعر الصرف ${fmtNum(pricingCfg.rate)}` };
         if (p.id === 'quick') { const c = qkCfg(), on = ['form', 'dept', 'like'].filter(k => c[k]).length, r = typeof learnRules === 'function' ? learnRules().length : 0; return { s: `الإدخال ${on}/3 · التعلّم ${learnOn() ? 'مفعّل' : 'متوقف'}${r ? ' · ' + fmtNum(r) + ' قاعدة' : ''}` }; }
         if (p.id === 'scanner') { const c = typeof scCfg === 'function' ? scCfg() : null; return { s: c ? (c.on ? 'مشغّل · ' : 'متوقف · ') + (c.mode === 'safe' ? 'خصم محمي' : 'خصم كامل') : '' }; }
@@ -86,6 +90,7 @@ function shDecorate() {
 }
 const SH_STAR = on => `<svg viewBox="0 0 24 24" width="16" height="16" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>`;
 function shHubHtml() {
+    shSortPages();
     const fav = shFav();
     const chip = id => { if (id.startsWith('t:')) { const b = shToolByKey(id), lab = shToolLabel(b), m = lab.match(/^(\S+)\s+(.*)$/); return `<button type="button" class="sh-chip" data-t="${id.replace(/"/g, '&quot;')}"><span class="sh-ico">${m ? m[1] : '⭐'}</span>${m ? m[2] : lab}</button>`; } const p = SH_PAGES.find(x => x.id === id); return `<button type="button" class="sh-chip" data-p="${p.id}"><span class="sh-ico">${p.ico}</span>${p.t}</button>`; };
     const favRow = fav.length ? `<div class="sh-fav"><span class="sh-fav-t">${SH_STAR(true)} المفضلة</span>${fav.map(chip).join('')}</div>` : '';
@@ -130,6 +135,7 @@ function shHome(anim) {
 }
 function shOpen(id, boxIdx) {
     if (id === 'invset') { try { initBillSettings(); } catch (e) { /* تجاهل */ } }
+    if (id === 'docset') { try { docSetMount(); } catch (e) { /* تجاهل */ } }
     const card = shCard(), p = SH_PAGES.find(x => x.id === id); if (!card || !p) return;
     if (p.act) { if (typeof window[p.act] === 'function') window[p.act](); return; }   // بطاقات تفتح نافذتها مباشرة
     shInit(); shCur = id; card.classList.add('sh-on');
@@ -142,7 +148,8 @@ function shOpen(id, boxIdx) {
     if (id === 'scanner') { document.getElementById('shHub').after(q); q.innerHTML = shScanHtml(); q.hidden = false; q.classList.add('sh-show'); q.classList.remove('sh-pg'); void q.offsetWidth; q.classList.add('sh-pg'); }
     {
         if (id === 'tax') { q.innerHTML = shTaxExtraHtml(); if (typeof setupSettingsAccordion === 'function') { const qb = document.getElementById('shQkBox'); if (qb) delete qb.dataset.acc; setupSettingsAccordion(); } q.hidden = false; q.classList.add('sh-show', 'sh-pg'); const lb = all[p.boxes[p.boxes.length - 1]]; if (lb) lb.after(q); } else if (id !== 'scanner') { q.hidden = true; document.getElementById('shHub').after(q); }
-        p.boxes.forEach((i, k) => { const b = all[i]; if (!b) return; b.classList.add('sh-show'); if (p.boxes.length === 1) b.classList.add('sh-single'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (p.boxes.length === 1 || (boxIdx != null ? i === boxIdx : k === (id === 'tax' ? 99 : 0))) b.classList.add('open'); });
+        const firstVis = p.boxes.find(i => all[i] && !all[i].hidden);
+        p.boxes.forEach((i, k) => { const b = all[i]; if (!b) return; b.classList.add('sh-show'); if (p.boxes.length === 1) b.classList.add('sh-single'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (p.boxes.length === 1 || (boxIdx != null ? i === boxIdx : i === firstVis)) b.classList.add('open'); });
         if (boxIdx != null && all[boxIdx]) { const b = all[boxIdx]; b.classList.add('open'); setTimeout(() => { b.scrollIntoView({ behavior: 'smooth', block: 'start' }); b.classList.add('sh-flash'); setTimeout(() => b.classList.remove('sh-flash'), 1600); }, 120); }
         else card.scrollTop = 0;
     }

@@ -207,7 +207,6 @@
     }
     // صفحة مستقلة ضمن الإعدادات: بطاقة «إعدادات التطبيق» تفتح نافذة بالخيارات
     NAT.openSettings = function (again) {
-        if (again !== true && typeof shLeave === 'function') shLeave('layer');
         const c = cfg();
         Swal.fire({
             title: '📱 إعدادات التطبيق', showConfirmButton: false, showCloseButton: true,

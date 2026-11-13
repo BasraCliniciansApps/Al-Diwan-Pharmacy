@@ -89,7 +89,6 @@ function dhRenderHome(el) {
         ${dhCard('📋', 'بيانات ناقصة', `بلا باركود ${fmtNum(st.n - st.bc)} • بلا سعر ${fmtNum(st.n - st.price)} • بلا شكل دوائي ${fmtNum(st.n - st.form)}`, null, "dhGo('miss')")}
         ${dhCard('🏭', 'تعبئة الشركات تلقائياً', (n => n ? `${fmtNum(n)} مادة بلا شركة يمكن تعبئتها من مواد بنفس الاسم التجاري` : 'لا يوجد ما يمكن تعبئته الآن')(dhBrandPlan().fill.length + dhBrandPlan().ask.length), null, "dhGo('brand')")}
         ${dhCard('⚙️', 'قواعد تصنيفي الخاصة', dhRules.length ? `${fmtNum(dhRules.length)} قاعدة مضافة` : 'أضف قاعدة بنفسك: كلمة بالاسم ← تصنيف', null, "dhGo('rules')")}
-        <div class="dh-note">«سجل الأدوية» يبقى بمكانه بالإعدادات كما هو.</div>
     </div>`;
 }
 

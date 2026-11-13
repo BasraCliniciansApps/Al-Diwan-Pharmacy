@@ -497,15 +497,11 @@ async function taxRvApply() {
     list.forEach(p => { logAction('edit', p, [{ f: 'القسم/التصنيف (مراجعة التصنيف)', from: String(olds.get(p.id).department) + ' › ' + String(olds.get(p.id).category), to: p.department + ' › ' + p.category }]); delete taxRv[p.id]; });
     taxRvSave(); renderAll(); taxRvRender();
 }
-// زر الدخول لمراجعة التصنيف داخل مربع «الأقسام الجاهزة»
+// مربع «الأقسام الجاهزة»: يظهر فقط قبل التحميل أو عند توفر تصنيفات جديدة؛ ومركز تجهيز البيانات له مدخل واحد (بطاقته في رئيسية الإعدادات)
 { const _rts = renderTaxSeedBox; renderTaxSeedBox = function () {
     _rts(); const box = document.getElementById('taxSeedBox'); if (!box) return;
     box.classList.remove('tx-hubonly'); box.onclick = null; box.removeAttribute('role'); delete box.dataset.acc;
-    if (!taxSeeded()) { setupSettingsAccordion(); return; }
-    const nm = taxMissingSubs().length + taxPendingRenames().length + taxPendingMoves().length, n = taxRvList().length;
-    if (nm) { box.insertAdjacentHTML('beforeend', `<button type="button" class="icon-btn primary-btn" style="margin-top:10px" onclick="dhOpen()">🧰 مركز تجهيز البيانات${n ? ' — ' + fmtNum(n) + ' مادة للمراجعة' : ''}</button>`); setupSettingsAccordion(); return; }
-    // لا جديد: صف بنفس نمط بقية الأقسام ينقل لمركز تجهيز البيانات
-    box.classList.remove('open'); box.dataset.acc = '1'; box.classList.add('tx-hubonly'); box.setAttribute('role', 'button'); box.tabIndex = 0;
-    box.innerHTML = `<div class="cmb-head"><span>🧰 مركز تجهيز البيانات</span><i class="cmb-chev">‹</i></div><small class="tx-sub">${n ? fmtNum(n) + ' مادة بانتظار مراجعة التصنيف · ' : ''}المواد الفعالة · المكررة · النواقص · القواعد</small>`;
-    box.onclick = () => dhOpen();
+    const nm = taxSeeded() ? taxMissingSubs().length + taxPendingRenames().length + taxPendingMoves().length : 0;
+    box.hidden = taxSeeded() && !nm;
+    setupSettingsAccordion();
 }; }

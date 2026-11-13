@@ -115,13 +115,10 @@ function docLink() { try { return new URL('doctor.html', location.href).href; } 
 function docSw(label, sub, key) {
     return `<div class="qk-row"><div><b>${label}</b><small>${sub}</small></div><label class="setup-sw"><input type="checkbox" ${docData.cfg[key] ? 'checked' : ''} onchange="docCfg('${key}',this.checked)"><i></i></label></div>`;
 }
-function docRender() {
-    const el = docEl(); if (!el) return;
+// مصدر واحد لإعدادات صفحة الأطباء: يُرسم في صفحة الأطباء وفي الإعدادات معاً ويتزامن (أي تغيير بأحدهما يظهر بالآخر فوراً)
+function docSetHtml() {
     const c = docData.cfg;
-    el.innerHTML = `<div class="tr-head"><b>${docMode === 'set' ? '⚙ إعدادات صفحة الأطباء' : '💊 المواد المعروضة للأطباء'}</b><button type="button" class="tr-x" onclick="docClose()" aria-label="إغلاق">✕</button></div>
-    <div class="dh-body dc-fx ${docMode === 'set' || docSetOpen ? 'sopen' : ''}">
-      <div class="dc-fixed">
-        ${docMode === 'set' ? `<div class="dc-setpanel" id="docSet">
+    return `
         <div class="dc-card">
             <div class="dc-link2"><button type="button" class="home-quick-link" onclick="docCopy()">📋 نسخ رابط الصفحة</button></div>
             <div class="qk-row"><div><b>أسماء الأطباء المحفوظة على هذا الجهاز</b><small>قائمة الإكمال التلقائي لاسم الطبيب في الوصفة. محفوظة على كل جهاز لوحده ولا تُرفع للسحابة.</small></div><button type="button" class="dc-mini" onclick="docClearNames()">مسح</button></div>
@@ -132,8 +129,18 @@ function docRender() {
             <div class="qk-row"><div><b>مدة بقاء «عاد بعد انقطاع»</b><small>بعدها تعود المادة إلى «متوفر».</small></div>
                 <select class="dc-days" onchange="docCfg('days',+this.value)">${[3, 7, 14, 30].map(n => `<option value="${n}" ${c.days === n ? 'selected' : ''}>${n} أيام</option>`).join('')}</select></div>
         </div>
-        <div class="dc-card" id="docReq"><div class="dh-note">جارٍ تحميل طلبات الأطباء…</div></div>
-        </div>` : `<div class="dc-bar">
+        <div class="dc-card docReq"><div class="dh-note">جارٍ تحميل طلبات الأطباء…</div></div>
+    `;
+}
+function docSetSync() { if (!docData) return; document.querySelectorAll('[data-doc-set]').forEach(c => { c.innerHTML = docSetHtml(); }); docLoadReq(); }
+function docSetMount() { docLoad().then(docSetSync).catch(() => {}); }
+function docRender() {
+    const el = docEl(); if (!el) return;
+    const c = docData.cfg;
+    el.innerHTML = `<div class="tr-head"><b>${docMode === 'set' ? '⚙ إعدادات صفحة الأطباء' : '💊 المواد المعروضة للأطباء'}</b><button type="button" class="tr-x" onclick="docClose()" aria-label="إغلاق">✕</button></div>
+    <div class="dh-body dc-fx ${docMode === 'set' || docSetOpen ? 'sopen' : ''}">
+      <div class="dc-fixed">
+        ${docMode === 'set' ? `<div class="dc-setpanel" id="docSet" data-doc-set="1">${docSetHtml()}        </div>` : `<div class="dc-bar">
             <input id="docQ" type="search" placeholder="ابحث باسم المادة أو المادة الفعالة" value="${docEsc(docQ)}" oninput="docSearch(this.value)">
             <button type="button" class="dc-fbtn ${docFil !== 'all' || tfCount(docSel) ? 'on' : ''}" onclick="docToggleMenu()" aria-label="فلتر"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg></button>
         </div>
@@ -212,7 +219,7 @@ function docDetail(id) {
 }
 function docMore() { docShown += 80; docRenderList(); }
 function docCopy() { try { navigator.clipboard.writeText(docLink()); Swal.fire({ icon: 'success', title: 'تم نسخ الرابط', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 }); } catch (e) { /* تجاهل */ } }
-function docCfg(k, v) { docData.cfg[k] = v; docSaveSoon(); docRenderList(); }
+function docCfg(k, v) { docData.cfg[k] = v; docSaveSoon(); docRenderList(); docSetSync(); }
 function docToggle(id) {
     docKeep.add(String(id));
     if (docData.items[id]) delete docData.items[id]; else docData.items[id] = { s: 'ok', ad: Date.now() };
@@ -248,7 +255,8 @@ function docSetStQuiet(id, v) { const it = docData.items[id]; it.s = v; if (v ==
 
 // ---------- طلبات الأطباء (من «أحتاج هذه المادة» و«اطلب هذه المادة») ----------
 async function docLoadReq() {
-    const box = document.getElementById('docReq'); if (!box) return;
+    const boxes = [...document.querySelectorAll('.docReq')]; if (!boxes.length) return;
+    const box = { set innerHTML(h) { boxes.forEach(b => { b.innerHTML = h; }); } };
     if (docReqList && docReqList.length) docRenderReq();   // عرض ما حُمّل سابقاً فوراً ثم التحديث من السحابة
     try {
         if (!(typeof cloudReady === 'function' && cloudReady())) { box.innerHTML = '<div class="dh-note">طلبات الأطباء تحتاج اتصالاً بالسحابة.</div>'; return; }
@@ -258,7 +266,8 @@ async function docLoadReq() {
     } catch (e) { box.innerHTML = '<div class="dh-note">تعذر تحميل طلبات الأطباء.</div>'; }
 }
 function docRenderReq() {
-    const box = document.getElementById('docReq'); if (!box) return;
+    const boxes = [...document.querySelectorAll('.docReq')]; if (!boxes.length) return;
+    const box = { set innerHTML(h) { boxes.forEach(b => { b.innerHTML = h; }); } };
     if (!docReqList.length) { box.innerHTML = '<div class="qk-row"><div><b>طلبات الأطباء</b><small>لا توجد طلبات بعد. تظهر هنا المواد التي يحتاجها الأطباء، مرتبة بالأكثر طلباً.</small></div></div>'; return; }
     box.innerHTML = `<div class="qk-row"><div><b>طلبات الأطباء (${fmtNum(docReqList.length)})</b><small>مرتبة بالأكثر طلباً؛ استفد منها في قرارات الشراء.</small></div><button type="button" class="dc-mini" onclick="docReqClear()">مسح الكل</button></div>`
         + docReqList.slice(0, 40).map(r => `<div class="qk-row"><div><b dir="auto">${docEsc(r.name)}</b><small>${DOC_KIND[r.kind] || 'طلب'}${r.qty ? ' · الكمية: <b>' + fmtNum(r.qty) + '</b>' : ''}${r.note ? ' — ' + docEsc(r.note) : ''}${r.at ? ' · <bdi>' + docEsc(String(r.at).slice(0, 10)) + '</bdi>' : ''}</small></div><span class="dc-cnt">${fmtNum(r.count)}</span><button type="button" class="dc-mini" onclick="docReqDel('${docEsc(r.id)}')" aria-label="حذف">✕</button></div>`).join('');
@@ -298,7 +307,7 @@ function docStartWatch() {
         docReqUnsub = db.collection('pharmacy_search_misses').where('dr', '==', 1).onSnapshot(snap => {
             docReqList = docMapReq(snap); docBadges(); if (typeof rxChanged === 'function') rxChanged();
             const v = document.getElementById('alertsView'); if (v && v.classList.contains('active')) docRenderAlertBox(false);
-            if (document.getElementById('docReq')) docRenderReq();
+            if (document.querySelector('.docReq')) docRenderReq();
         }, () => { docReqUnsub = null; });
     } catch (e) { docReqUnsub = null; }
 }

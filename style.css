@@ -3994,3 +3994,10 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 #catModal .modal-card > .tax-rv.in-settings { position: absolute; inset: 0; z-index: 20; border-radius: inherit; overflow: hidden; }
 #catModal .modal-card > .tax-rv.in-settings > .dh-body, #catModal .modal-card > .tax-rv.in-settings .tr-list { overflow-y: auto; }
 #catModal .modal-card.sh-subopen { min-height: min(80vh, 640px); }
+.cat-manager-box[hidden] { display: none !important; }
+/* v506: توحيد شكل الصناديق داخل الإعدادات */
+#catModal .doc-set-host .dc-card { border: 0 !important; box-shadow: none !important; background: transparent !important; padding: 0 !important; margin: 0 0 8px !important; }
+#catModal .doc-set-host .dc-link2 { margin-bottom: 8px; }
+#catModal .doc-set-host .dc-link2 .home-quick-link { width: 100%; min-height: 44px; }
+#catModal .doc-set-host .qk-row > div { min-width: 0; flex: 1; }
+#catModal .doc-set-host .dc-days, #catModal .doc-set-host .dc-mini { flex: none; width: auto; min-width: 84px; }
