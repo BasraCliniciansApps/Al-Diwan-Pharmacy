@@ -209,7 +209,7 @@
     NAT.openSettings = function (again) {
         const c = cfg();
         Swal.fire({
-            title: '📱 إعدادات التطبيق', showConfirmButton: false, showCloseButton: true,
+            title: '📱 إعدادات التطبيق', showConfirmButton: false, showCloseButton: false,
             html: `<div class="sw-form" style="text-align:right">
                 ${sw('natBio', c.bio, 'قفل التطبيق بالبصمة أو قفل الشاشة')}
                 ${sw('natRem', c.remind, 'تذكير يومي الساعة 9 صباحاً بالمواد المنتهية والقريبة من الانتهاء')}
@@ -228,7 +228,7 @@
         const c = cfg(), ps = c.paperSize || 'A4', ori = c.orient || 'portrait';
         const opt = (v, t, cur) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${t}</option>`;
         Swal.fire({
-            title: '🖨️ إعدادات الطباعة', showConfirmButton: false, showCloseButton: true,
+            title: '🖨️ إعدادات الطباعة', showConfirmButton: false, showCloseButton: false,
             html: `<div class="sw-form" style="text-align:right">
                 <b style="font-size:.84rem">الطباعة العادية (فواتير، تقارير، وصفات، ملصقات)</b>
                 <label>حجم الورق الافتراضي<select id="natPaper">${opt('A4', 'A4', ps)}${opt('A5', 'A5', ps)}${opt('LETTER', 'Letter', ps)}${opt('LEGAL', 'Legal', ps)}</select></label>
@@ -243,10 +243,11 @@
                 g('natOri').onchange = e => setCfg({ orient: e.target.value });
                 g('natP80').onchange = e => setCfg({ paper: e.target.checked ? 80 : 58 });
                 g('natPrn').onclick = async () => { await NAT.printerChoose(); NAT.printSettings(); };
-                g('natBack').onclick = () => NAT.openSettings(true);
+                g('natBack').onclick = () => Swal.close();
             }
         });
     };
+    NAT.cfg = cfg; NAT.setCfg = setCfg;
     window.natOpenSettings = () => NAT.openSettings();
 
     // إظهار الحقل الذي يُكتب فيه فوق لوحة المفاتيح

@@ -2314,12 +2314,12 @@ body.rv-open { overflow: hidden; }
 .setup-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .setup-txt b { font-size: .92rem; }
 .setup-txt span { font-size: .76rem; line-height: 1.6; }
-.setup-sw { position: relative; flex: 0 0 auto; width: 58px; height: 32px; display: inline-block; cursor: pointer; }
+.setup-sw { position: relative; flex: 0 0 auto; width: 40px; height: 22px; display: inline-block; cursor: pointer; }
 .setup-sw input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; z-index: 2; }
 .setup-sw i { position: absolute; inset: 0; border-radius: 999px; background: #dc2626; transition: background .2s; }
-.setup-sw i::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: inset-inline-start .2s; }
+.setup-sw i::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.35); transition: inset-inline-start .2s; }
 .setup-sw input:checked + i { background: #16a34a; }
-.setup-sw input:checked + i::after { inset-inline-start: 29px; }
+.setup-sw input:checked + i::after { inset-inline-start: 21px; }
 .setup-sw.ro { opacity: .6; }
 
 .pt-top { cursor: pointer; }
@@ -2655,12 +2655,12 @@ body.ss-lock { overflow: hidden; }
 .inv-rtbody { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 2px 12px 12px; }
 .inv-rtbody label { display: flex; flex-direction: column; gap: 4px; font-size: .74rem; font-weight: 800; color: #475569; }
 .inv-rtbody input, .inv-rtbody select { width: 100%; border: 1.5px solid #cbd5e1; background: #fff; color: #111; }
-.inv-sw { position: relative; display: inline-block; width: 44px; height: 26px; flex: 0 0 44px; }
+.inv-sw { position: relative; display: inline-block; width: 38px; height: 22px; flex: 0 0 38px; }
 .inv-sw input { opacity: 0; width: 100%; height: 100%; position: absolute; inset: 0; margin: 0; cursor: pointer; z-index: 1; min-height: 0 !important; }
 .inv-sw i { position: absolute; inset: 0; border-radius: 99px; background: #cbd5e1; transition: background .15s; }
-.inv-sw i::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.inv-sw i::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
 .inv-sw input:checked + i { background: #7e22ce; }
-.inv-sw input:checked + i::after { transform: translateX(-18px); }
+.inv-sw input:checked + i::after { transform: translateX(-16px); }
 [dir="ltr"] .inv-sw input:checked + i::after { transform: translateX(18px); }
 [data-theme="dark"] .inv-rt { background: #1e293b; border-color: #334155; } [data-theme="dark"] .inv-rtbar { color: #e2e8f0; }
 [data-theme="dark"] .inv-rtbody input, [data-theme="dark"] .inv-rtbody select { background: #0f172a; color: #e2e8f0; border-color: #475569; }
@@ -2854,16 +2854,16 @@ body.pu-gift .pu-nogift, body.pu-gift #puFast { display: none !important; }
 
 /* ===== مفاتيح تبديل (toggle) بدل مربعات الصح في كل التطبيق ===== */
 input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input) {
-    -webkit-appearance: none; appearance: none; position: relative; flex: 0 0 44px;
-    width: 44px !important; height: 26px !important; min-height: 0 !important; margin: 0; padding: 0; border: 0 !important;
+    -webkit-appearance: none; appearance: none; position: relative; flex: 0 0 38px;
+    width: 38px !important; height: 22px !important; min-height: 0 !important; margin: 0; padding: 0; border: 0 !important;
     border-radius: 99px; background: #cbd5e1; cursor: pointer; transition: background .18s; vertical-align: middle; box-sizing: border-box;
 }
 input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input)::after {
-    content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 20px; height: 20px; border-radius: 50%;
+    content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 16px; height: 16px; border-radius: 50%;
     background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: inset-inline-start .18s;
 }
 input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input):checked { background: #16a34a; }
-input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input):checked::after { inset-inline-start: 21px; }
+input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input):checked::after { inset-inline-start: 19px; }
 input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input):disabled { opacity: .45; cursor: not-allowed; }
 input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input):focus-visible { outline: 2px solid var(--gold, #f4b73f); outline-offset: 2px; }
 :root[data-theme="dark"] input[type=checkbox]:not(.setup-sw input):not(.inv-sw input):not(.chip-opt input):not(.swal2-checkbox input) { background: #475569; }
@@ -3682,7 +3682,7 @@ input.pl-in{direction:ltr;text-align:center}
 .cn-card small, .cn-li small, .cn-gh small, .cn-nm small { color: #64748b; font-size: .78rem; }
 .cn-set { cursor: default; }
 .cn-sw { display: flex; align-items: center; gap: 8px; font-size: .88rem; margin-top: 4px; text-align: right; }
-.cn-sw input { width: 20px; height: 20px; flex: none; }
+.cn-sw input { flex: none; }
 .cn-new { width: 100%; min-height: 48px; border: 0; border-radius: 12px; background: #0f766e; color: #fff; font: 800 1rem inherit; font-family: inherit; margin-bottom: 10px; cursor: pointer; }
 .cn-li { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; margin-bottom: 8px; cursor: pointer; }
 .cn-li > div:first-child { display: grid; gap: 3px; min-width: 0; }
@@ -4012,3 +4012,11 @@ body.can-stockedit .lbl-open-btn{display:inline-flex}
 .rep-sys{margin-top:14px}.rep-sys h4{margin:0 0 8px;font-size:.95rem}
 .rep-sys .qk-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #eef2f7}
 .rep-sys .qk-row small{display:block;color:#64748b;font-size:.76rem}
+
+/* v511: صف تنقّل قابل للضغط بدل زر «فتح» */
+.set-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:12px 4px;border:0;border-top:1px solid #eef2f7;background:none;font-family:inherit;text-align:start;cursor:pointer;color:inherit}
+.set-nav>div{flex:1;min-width:0}.set-nav b{display:block;font-size:.88rem}
+.set-nav small{display:block;margin-top:2px;color:#64748b;font-size:.76rem;font-weight:500;line-height:1.6}
+.set-nav i{font-style:normal;font-size:1.4rem;color:#94a3b8;line-height:1}
+.set-nav:active{background:#f1f5f9}
+#catModal select.dev-sel{width:120px !important;flex:none;height:36px;min-height:0;padding:0 8px}

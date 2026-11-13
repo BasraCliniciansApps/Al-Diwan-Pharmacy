@@ -124,9 +124,9 @@
                 <div id="reportBody"></div>
                 <div class="rep-sys owner-only-rep" id="repSys" hidden>
                     <h4>سجلات وتقارير النظام</h4>
-                    <div class="qk-row"><div><b>تقرير تطابق المخزون</b><small>يقارن الكميات الحالية بحركات البيع والإدخال ويكشف الفروقات.</small></div><button type="button" class="dc-mini" onclick="openRecon()">فتح</button></div>
-                    <div class="qk-row"><div><b>سجل الإجراءات</b><small>من أضاف أو عدّل أو حذف، ومتى.</small></div><button type="button" class="dc-mini" onclick="openLogModal()">فتح</button></div>
-                    <div class="qk-row"><div><b>سجل البحث الفاشل</b><small>كلمات بحث لم تجد نتيجة، لتعرف المواد المطلوبة وغير المتوفرة.</small></div><button type="button" class="dc-mini" onclick="openMissModal()">فتح</button></div>
+                    <button type="button" class="set-nav" onclick="openRecon()"><div><b>تقرير تطابق المخزون</b><small>يقارن الكميات الحالية بحركات البيع والإدخال ويكشف الفروقات.</small></div><i>‹</i></button>
+                    <button type="button" class="set-nav" onclick="openLogModal()"><div><b>سجل الإجراءات</b><small>من أضاف أو عدّل أو حذف، ومتى.</small></div><i>‹</i></button>
+                    <button type="button" class="set-nav" onclick="openMissModal()"><div><b>سجل البحث الفاشل</b><small>كلمات بحث لم تجد نتيجة، لتعرف المواد المطلوبة وغير المتوفرة.</small></div><i>‹</i></button>
                 </div>
             </div>
         </section>
