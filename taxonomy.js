@@ -385,9 +385,9 @@ function taxRvOpen() {
     if (!taxSeeded()) { Swal.fire({ icon: 'info', title: 'حمّل الأقسام الجاهزة أولاً', text: 'من «إدارة الأقسام» اضغط «تحميل الأقسام الجاهزة».', confirmButtonColor: '#0f1c38' }); return; }
     let el = document.getElementById('taxRv');
     if (!el) { el = document.createElement('div'); el.id = 'taxRv'; el.className = 'tax-rv'; document.body.appendChild(el); }
-    taxRvFilter = 'new'; taxRvQ = ''; taxRvShown = 60; el.style.display = 'flex'; taxRvRender();
+    taxRvFilter = 'new'; taxRvQ = ''; taxRvShown = 60; shMountHub(el); el.style.display = 'flex'; taxRvRender();
 }
-function taxRvClose() { const el = document.getElementById('taxRv'); if (el) el.style.display = 'none'; try { renderManagerLists(); } catch (e) { /* تجاهل */ } }
+function taxRvClose() { shUnmountHub(document.getElementById('taxRv')); try { renderManagerLists(); } catch (e) { /* تجاهل */ } }
 function taxRvSet(f) { taxRvFilter = f; taxRvShown = 60; taxRvRender(); }
 function taxRvSearch(v) { taxRvQ = v; taxRvShown = 60; taxRvRender(true); }
 function taxRvMore() { taxRvShown += 60; taxRvRender(true); }

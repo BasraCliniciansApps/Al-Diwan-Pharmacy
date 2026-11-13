@@ -218,3 +218,15 @@ function shDangerInit() {
     host.insertAdjacentHTML('beforeend', '<div class="sh-danger" id="shDangerBk"><h5>⚠️ منطقة الخطر</h5><p>إجراءات تغيّر بياناتك الحالية وتحتاج إلى تأكيد.</p><button type="button" class="sh-dbtn" onclick="shRestore()">♻️ استرجاع من نسخة احتياطية</button></div>');
 }
 { const _si2 = shInit; shInit = function () { _si2(); shDangerInit(); shBoxes().forEach(b => { const sp = b.querySelector('.cmb-head span'); if (sp) sp.innerHTML = sp.innerHTML.replace(/^\s*\d+\.\s*/, ''); }); }; }
+
+// الشاشات الكاملة (مركز تجهيز البيانات، مراجعة التصنيف) تُفتح داخل نافذة الإعدادات إن فُتحت منها، وإلا تبقى فوق الصفحة
+function shMountHub(el) {
+    const cm = document.getElementById('catModal'), card = shCard();
+    if (card && cm && cm.style.display && cm.style.display !== 'none') { if (el.parentNode !== card) card.appendChild(el); el.classList.add('in-settings'); card.scrollTop = 0; card.classList.add('sh-subopen'); }
+    else { if (el.parentNode !== document.body) document.body.appendChild(el); el.classList.remove('in-settings'); }
+}
+function shUnmountHub(el) {
+    if (!el) return;
+    const card = shCard(); el.style.display = 'none';
+    if (card && !card.querySelector('.tax-rv.in-settings[style*="flex"]')) card.classList.remove('sh-subopen');
+}

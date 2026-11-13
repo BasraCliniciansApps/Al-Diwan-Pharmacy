@@ -3989,3 +3989,8 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 /* v503: إعدادات الفواتير داخل الإعدادات */
 #catModal .bill-settings { max-width: none; margin: 0; background: transparent; padding: 0; color: var(--text-main, #0f1c38); }
 #catModal .im-main-title { display: none; }
+
+/* v505: الشاشات الكاملة المفتوحة من الإعدادات تبقى داخل نافذة الإعدادات */
+#catModal .modal-card > .tax-rv.in-settings { position: absolute; inset: 0; z-index: 20; border-radius: inherit; overflow: hidden; }
+#catModal .modal-card > .tax-rv.in-settings > .dh-body, #catModal .modal-card > .tax-rv.in-settings .tr-list { overflow-y: auto; }
+#catModal .modal-card.sh-subopen { min-height: min(80vh, 640px); }

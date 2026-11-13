@@ -50,12 +50,12 @@ function dhLossCount() { const keep = pzLoss; pzLoss = true; const c = pzBuild()
 function dhOpen(screen) {
     let el = dhEl();
     if (!el) { el = document.createElement('div'); el.id = 'dataHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
-    el.style.display = 'flex'; dhDirect = !!screen && screen !== 'home'; dhGo(screen || 'home');
+    shMountHub(el); el.style.display = 'flex'; dhDirect = !!screen && screen !== 'home'; dhGo(screen || 'home');
 }
 let dhDirect = false;   // فُتح مباشرة على شاشة فرعية (من خارج المركز): الرجوع يغلقه بدل الذهاب لرئيسيته
 function dhBack() { if (dhDirect || dhScreen === 'home') dhClose(); else dhGo('home'); }
 function dhClose() {
-    const el = dhEl(); if (el) el.style.display = 'none';
+    shUnmountHub(dhEl());
     try { renderAll(); } catch (e) { /* تجاهل */ }
 }
 function dhGo(s) { dhScreen = s; dhQ = ''; dhShown = 40; if (s === 'ing') dhFilter = 'miss'; dhRender(); }
