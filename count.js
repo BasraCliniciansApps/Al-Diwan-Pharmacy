@@ -257,7 +257,7 @@ function cnRowHtml(r, n) {
 function cnSysOf(r) { const p = products.find(x => x.id === r.pid); return p ? (r.unit === 'part' ? cnInt(p.loose) : cnInt(p.qty)) : null; }
 function cnFollow(l) {
     const out = [];
-    if (!l || !l.apply) return out;
+    if (!l) return out;
     l.rows.forEach(r => {
         if (r.cnt === '') return; const cur = cnSysOf(r); if (cur === null) return;
         if (r.sq === undefined) r.sq = r.applied ? cnInt(r.cnt) : (cnInt(r.cnt) === cur ? cur : undefined);   // سطر معتمد سابقاً: كان المخزن مطابقاً للعدد وقتها

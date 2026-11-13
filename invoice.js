@@ -475,6 +475,13 @@ async function saveInvoiceEdit(doPrintAfter) {
     readInvoiceFields();
     if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'لا يمكن حفظ فاتورة بلا مواد. استعمل «إلغاء الفاتورة» بدلاً من ذلك.', confirmButtonColor: '#0f1c38' }); return; }
     if (billHasExpired()) return;
+    const fr = await invFresh(billEditBase || bill);
+    if (fr && (fr.cancelled || invStable(fr.deductedLines || []) !== invStable((billEditBase || bill).deductedLines || []))) {
+        billEditBase = null; bill.editing = false; await invAdoptFresh(bill, fr);
+        lsSet(BILL_LS.draft, JSON.stringify(bill)); try { writeInvoiceFields(); renderInvoiceRows(); recalcInvoice(); updateIssuedUI(); } catch (e) { /* تجاهل */ }
+        Swal.fire({ icon: 'warning', title: fr.cancelled ? 'الفاتورة ملغاة' : 'الفاتورة معدَّلة من جهاز آخر', text: 'لم يُحفظ تعديلك حتى لا تتكرر حركة المخزون. حُدّثت الفاتورة بآخر نسخة، أعد التعديل إن لزم.', confirmButtonColor: '#0f1c38' });
+        return;
+    }
     const old = billEditBase || bill;
     const hadDeduct = !!old.deducted;
     const snaps = new Map(), snap = p => { if (!snaps.has(p.id)) snaps.set(p.id, { p, qty: p.qty, loose: p.loose }); };
@@ -512,11 +519,33 @@ function billSeqBump(no) {
 }
 
 // ---------- إلغاء فاتورة وإرجاع الكميات ----------
+// آخر نسخة من الفاتورة في السحابة (إن توفر اتصال): تمنع إرجاع/خصم المخزون مرتين عند الإلغاء أو التعديل من جهاز آخر بنسخة قديمة
+async function invFresh(b) {
+    try {
+        if (!b || !b.id || typeof cloudReady !== 'function' || !cloudReady() || !navigator.onLine) return null;
+        const s = await Promise.race([db.collection('pharmacy_invoices').doc(b.id).get({ source: 'server' }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000))]);
+        return s.exists ? s.data() : null;
+    } catch (e) { return null; }
+}
+const invStable = v => JSON.stringify(v, (k, x) => (x && typeof x === 'object' && !Array.isArray(x)) ? Object.keys(x).sort().reduce((o, key) => (o[key] = x[key], o), {}) : x);   // مقارنة لا تتأثر بترتيب الحقول
+async function invAdoptFresh(b, fr) {   // يحدّث النسخة المحلية بما في السحابة
+    Object.assign(b, fr);
+    try { await saveInvoiceRecord(b); } catch (e) { /* تجاهل */ }
+}
 async function cancelInvoice(target) {
     const b = target || bill;
     if (!b || !b.issued || b.cancelled) return;
     const r = await Swal.fire({ icon: 'warning', title: 'إلغاء الفاتورة ' + escapeHtml(b.no) + '؟', text: b.deducted ? 'ستُرجَع الكميات المخصومة إلى المخزن.' : 'لم تُخصم كميات بهذه الفاتورة.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، ألغِ', cancelButtonText: 'رجوع' });
     if (!r.isConfirmed) return;
+    const fr = await invFresh(b);
+    if (fr && fr.cancelled) {
+        await invAdoptFresh(b, fr);
+        if (b === bill) { lsSet(BILL_LS.draft, JSON.stringify(bill)); updateIssuedUI(); }
+        if (currentBillTab !== 'new') billTab(currentBillTab);
+        Swal.fire({ icon: 'info', title: 'الفاتورة ملغاة مسبقاً', text: 'أُلغيت من جهاز آخر وأُرجعت كمياتها إلى المخزن، فلم تُرجَع مرة ثانية.', confirmButtonColor: '#0f1c38' });
+        return;
+    }
+    if (fr) { b.deducted = fr.deducted; b.deductedLines = fr.deductedLines; }   // نعتمد أحدث خصم مسجّل
     if (b.deducted && (b.deductedLines || []).length) {
         if (!writesAllowed()) return;
         const touched = new Map();
