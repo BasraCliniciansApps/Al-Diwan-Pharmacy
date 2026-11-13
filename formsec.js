@@ -4,7 +4,7 @@
 // ما يغيّر أي حقل أو id؛ فقط ينقل الحقول داخل أقسام.
 // ============================================================================
 const FS_DEF = [
-    { id: 'basic', ico: '🏷️', t: 'الأساسي', open: true, f: ['fName', 'fBrand', 'fMeta', 'fForm', 'fFormOtherWrap'] },
+    { id: 'basic', ico: '🏷️', t: 'الأساسي', open: true, rows: [['fName'], ['fBrand'], ['fMeta', 'fForm'], ['fFormOtherWrap']] },
     {
         id: 'ps', ico: '💰', t: 'الدفعات والتسعير والمخزون', open: true, subs: [
             { id: 'exp', ico: '📅', t: 'الدفعات وتواريخ النفاذ', open: true, rows: [['expiryDatesWrap']] },
@@ -34,6 +34,7 @@ function fsBuild() {
             if (u.strip) { const m = document.createElement('div'); m.id = 'fMarginLive'; m.className = 'fs-margin'; sb.appendChild(m); }
             body.appendChild(sub);
         });
+        else if (s.rows) s.rows.forEach(r => { const gs = r.map(fsGroup).filter(g => g && !seen.has(g)); gs.forEach(g => seen.add(g)); if (!gs.length) return; if (gs.length === 1) body.appendChild(gs[0]); else { const row = document.createElement('div'); row.className = 'fs-row2'; gs.forEach(g => row.appendChild(g)); body.appendChild(row); } });
         else s.f.forEach(f => { const g = fsGroup(f); if (g && !seen.has(g)) { seen.add(g); body.appendChild(g); } });
         wrap.appendChild(sec);
     });

@@ -351,7 +351,7 @@
     <!-- نافذة إضافة / تعديل منتج -->
     <div class="modal-overlay" id="formModal">
         <div class="modal-card">
-            <h3 id="formModalTitle" style="margin-bottom:14px; color:var(--primary-dark);">إضافة / تعديل صنف</h3>
+            <div class="fm-top"><button type="button" class="sh-back" onclick="requestCloseForm()"><i>›</i> رجوع</button><h3 id="formModalTitle">إضافة / تعديل صنف</h3></div>
             <input type="hidden" id="editId">
             <div class="fm-tabs"><button type="button" onclick="fmGoQuick()">سريع</button><button type="button" class="on">مفصل</button></div>
             <div class="fm-imgrow"><div class="fm-img" onclick="document.getElementById('fImgFile').click()" role="button" aria-label="صورة الصنف"><img id="fImgPrev" alt="" style="display:none"><span id="fImgPh">📷<small>صورة</small></span></div>
@@ -383,28 +383,28 @@
                 <small class="scan-hint" id="scanHint">صوّر واجهة العبوة بإضاءة جيدة. راجع القيم قبل الحفظ.</small>
             </div>
             <div class="form-group">
-                <label>القسم الرئيسي:</label>
+                <label>القسم الرئيسي</label>
                 <select id="fDepartment" onchange="onDeptChanged()"></select>
                 <div class="extra-group"><small>يظهر أيضاً في قسم:</small><div id="fExtraDepts" class="xc"></div></div>
             </div>
             <div class="form-group">
-                <label>التصنيف الفرعي:</label>
+                <label>التصنيف الفرعي</label>
                 <select id="fCategory" onchange="refreshExtraChips('cat')"></select>
                 <div class="extra-group"><small>ويظهر أيضاً في تصنيف:</small><div id="fExtraCats" class="xc"></div></div>
             </div>
-            <div class="form-group"><label>الشركة (Brand):</label><input type="text" id="fBrand"></div>
-            <div class="form-group"><label>الاسم التجاري والتركيز:</label><input type="text" id="fName"></div>
+            <div class="form-group"><label>الشركة</label><input type="text" id="fBrand"></div>
+            <div class="form-group"><label>الاسم التجاري والتركيز</label><input type="text" id="fName"></div>
             <div class="form-group">
-                <label>المادة الفعالة (تُستخدم لعرض البدائل):</label>
+                <label>المادة الفعالة</label>
                 <input type="text" id="fActive" dir="ltr" list="activeList" placeholder="مثال: Tretinoin  — للمركّب: Clindamycin + Benzoyl peroxide">
             </div>
-            <div class="form-group"><label>المادة الفعالة والاستخدام:</label><textarea id="fDetails" rows="3"></textarea></div>
+            <div class="form-group"><label>المادة الفعالة والاستخدام</label><textarea id="fDetails" rows="3"></textarea></div>
             <!-- ... الحقول السابقة ... -->
-            <div class="form-group"><label>حجم العبوة (الرقم فقط، مثال: 30 أو 50 ml):</label><input type="text" id="fMeta" dir="ltr"></div>
-            <div class="form-group"><label>الشكل الدوائي (اختر من القائمة، أو Other لإضافة شكل جديد):</label><select id="fForm" onchange="onFormChange()"></select></div>
-            <div class="form-group" id="fFormOtherWrap" style="display:none"><label>اكتب الشكل الدوائي الجديد (يُضاف للقائمة تلقائياً عند الحفظ):</label><input type="text" id="fFormOther" placeholder="مثال: لبخة، علكة، مسحوق للفم..."><label style="margin-top:10px">قسم هذا الشكل (يمكن تغييره لاحقاً من إدارة الأشكال):</label><select id="fFormOtherGroup"></select></div>
+            <div class="form-group"><label>حجم العبوة</label><input type="text" id="fMeta" dir="ltr" placeholder="30 أو 50 ml"></div>
+            <div class="form-group"><label>الشكل الدوائي</label><select id="fForm" onchange="onFormChange()"></select></div>
+            <div class="form-group" id="fFormOtherWrap" style="display:none"><label>الشكل الدوائي الجديد <small class="fld-hint">يُضاف للقائمة عند الحفظ</small></label><input type="text" id="fFormOther" placeholder="مثال: لبخة، علكة، مسحوق للفم..."><label style="margin-top:10px">قسم هذا الشكل (يمكن تغييره لاحقاً من إدارة الأشكال):</label><select id="fFormOtherGroup"></select></div>
             <div class="form-group">
-                <label>الباركودات (اختياري، يمكن أكثر من باركود للدواء الواحد):</label>
+                <label>الباركودات</label>
                 <div class="add-inline-row">
                     <input type="text" id="fBarcode" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="امسح أو اكتب الرقم" onkeydown="if(event.key==='Enter'){event.preventDefault();addFormBarcode();}">
                     <button type="button" class="icon-btn" onclick="addFormBarcode()">＋</button>
@@ -421,14 +421,14 @@
                 <div id="expiryDatesWrap"></div>
                 <button type="button" class="icon-btn" onclick="addExpiryRow()" style="margin-top:6px;">+ إضافة دفعة</button>
             </div>
-            <div class="form-group"><label>طريقة التسعير:</label>
+            <div class="form-group"><label>طريقة التسعير</label>
                 <select id="fPriceMode" onchange="onPriceModeChange()">
                     <option value="manual">تسعيرة وزارة الصحة (الملصق)</option>
                     <option value="free">يدوي</option>
                     <option value="syndicate">حسب كتاب نقابة الصيادلة (سعر المذخر + نسبة)</option>
                     <option value="percent">بنسبة مئوية أدخلها أنا (سعر الشراء + %)</option>
                 </select>
-                <div id="fMarkupWrap" style="display:none;margin-top:8px;"><label>نسبة الإضافة على سعر الشراء (%):</label><input type="number" id="fMarkup" min="0" step="any" inputmode="decimal" placeholder="مثال: 25" oninput="onPriceModeChange()"></div>
+                <div id="fMarkupWrap" style="display:none;margin-top:8px;"><label>نسبة الإضافة على سعر الشراء (%)</label><input type="number" id="fMarkup" min="0" step="any" inputmode="decimal" placeholder="مثال: 25" oninput="onPriceModeChange()"></div>
                 <small id="fPriceHint" style="display:block;margin-top:6px;color:#64748b;line-height:1.7;"></small>
             </div>
             <div class="form-group"><label>سعر البيع (د.ع)</label><input type="number" id="fPrice" min="0" value="0" oninput="retailAutoPrice()"></div>
@@ -447,7 +447,7 @@
                 </div>
             </div>
             <div class="form-group"><label>تنبيه عند (علب)</label><input type="number" id="fMinQty" min="0" placeholder="الحد العام"></div>
-            <div class="form-group"><label>كلمات مفتاحية لتسهيل البحث (اختياري):</label><input type="text" id="fKeywords" placeholder="مثال: مسكن، ألم رأس، بديل كذا..."></div>
+            <div class="form-group"><label>كلمات مفتاحية</label><input type="text" id="fKeywords" placeholder="مثال: مسكن، ألم رأس، بديل كذا..."></div>
             <!-- ... أزرار الإلغاء والحفظ ... -->
             <div class="modal-actions-row">
                 <button class="icon-btn" onclick="requestCloseForm()">إلغاء</button>

@@ -4202,3 +4202,59 @@ input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -
 :root[data-theme="dark"] .sheet-brand { color: var(--gold); }
 /* اسم الصنف يبقى قابلاً للتحديد (نسخ / بحث عن صورة في الإنترنت) */
 .bento-title, .bento-brand, .sheet-brand, .sheet-name { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+
+/* =====================================================
+   v551 — نافذة الصنف المفصّل: شاشة كاملة وأقسام مسطحة (بدون صناديق متداخلة)
+   ===================================================== */
+#formModal.modal-overlay { padding: 0; align-items: stretch; }
+#formModal .modal-card { width: 100%; max-width: 680px; height: 100dvh; max-height: 100dvh; margin: 0 auto; border-radius: 0; padding: 0 14px 0; display: block; }
+.fm-top { position: sticky; top: 0; z-index: 8; display: flex; align-items: center; gap: 10px; padding: calc(10px + env(safe-area-inset-top, 0px)) 0 10px; margin-bottom: 4px; background: var(--surface, #fff); border-bottom: 1px solid var(--border, #e5eaf2); }
+.fm-top h3 { margin: 0 !important; font-size: 1.02rem; color: var(--navy); }
+:root[data-theme="dark"] .fm-top { background: var(--surface); }
+#formModal .fm-tabs { margin: 12px 0 10px; }
+#formModal .fm-imgrow { margin-bottom: 8px; }
+#formModal .fm-img { width: 76px; height: 76px; }
+
+/* أقسام مسطحة */
+#fsSections { gap: 0; margin-top: 8px; }
+#formModal .fs-sec, :root[data-theme="dark"] #formModal .fs-sec { border: 0; border-bottom: 1px solid var(--border, #e5eaf2); border-radius: 0; background: transparent; overflow: visible; }
+#formModal .fs-bar { padding: 6px 0; min-height: 50px; }
+#formModal .fs-sec > .fs-body { padding: 2px 0 12px; }
+#formModal .fs-sub, :root[data-theme="dark"] #formModal .fs-sub { border: 0; border-top: 1px dashed var(--border, #e5eaf2); border-radius: 0; background: transparent; margin: 0; overflow: visible; }
+#formModal .fs-sub:first-child { border-top: 0; }
+#formModal .fs-subbar { padding: 4px 0; min-height: 44px; }
+#formModal .fs-subbody { padding: 2px 0 10px; }
+#formModal .fs-sum { text-align: start; }
+
+/* الحقول: عرض كامل للحقل، وأزواج بجانب بعضها */
+#formModal .form-group { margin-bottom: 12px; }
+#formModal .form-group > label { font-size: .82rem; font-weight: 800; color: var(--text-sub); margin-bottom: 6px; line-height: 1.5; }
+#formModal .fld-hint { font-size: .72rem; font-weight: 600; color: var(--text-sub); margin-inline-start: 6px; }
+#formModal .fs-row2 { gap: 10px; margin-bottom: 12px; }
+#formModal .fs-row2 > .form-group { margin-bottom: 0; }
+#formModal .fs-body > .form-group:last-child, #formModal .fs-subbody > .form-group:last-child { margin-bottom: 0; }
+
+/* الباركود والتعبئة السريعة: بدون إطار، وصف مضغوط */
+#formModal .fs-bcTop, :root[data-theme="dark"] #formModal .fs-bcTop { border: 0; border-bottom: 1px solid var(--border, #e5eaf2); border-radius: 0; background: transparent; padding: 4px 0 10px; margin-bottom: 4px; }
+#formModal .fs-bcTop .fx-bch { min-height: 44px; margin: 0; }
+#formModal .fs-bcTop .add-inline-row { display: flex; gap: 8px; flex-wrap: nowrap; }
+#formModal .fs-bcTop .add-inline-row input { flex: 1; min-width: 0; }
+#formModal .fs-bcTop .add-inline-row .icon-btn { flex: none; min-height: 46px; padding: 0 12px; }
+#formModal .scan-box { margin-top: 8px !important; padding: 8px 0 !important; border: 0; background: transparent; border-bottom: 1px solid var(--border, #e5eaf2); border-radius: 0; }
+
+/* شريط الحفظ */
+#formModal .modal-actions-row { position: sticky; bottom: 0; z-index: 8; margin: 12px -14px 0; padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--surface, #fff); border-top: 1px solid var(--border, #e5eaf2); gap: 10px; }
+#formModal .modal-actions-row .icon-btn { min-height: 50px; justify-content: center; font-weight: 800; }
+#formModal .modal-actions-row .icon-btn:not(.primary-btn) { flex: none; min-width: 92px; }
+#formModal .modal-actions-row .primary-btn { flex: 1; }
+:root[data-theme="dark"] #formModal .modal-actions-row { background: var(--surface); }
+#formModal #fsSections { grid-template-columns: minmax(0, 1fr); }
+#formModal .fs-sec, #formModal .fs-sub, #formModal .fs-body, #formModal .fs-subbody { min-width: 0; }
+#formModal .modal-card { overflow-x: hidden; }
+.fm-top h3 { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fm-top .sh-back { flex: none; }
+#formModal .fx-prev { margin: 10px 0 8px; padding: 8px 10px; }
+#formModal .fs-sec.open > .fs-bar .fs-sum, #formModal .fs-sub.open > .fs-subbar .fs-sum { visibility: hidden; }
+#formModal .fs-bcTop .fx-bch { min-height: 36px; }
+#formModal .fs-bcTop:not(.fx-closed) .fx-bch { margin-bottom: 2px; }
+#formModal #fs-price .fs-subbody > .form-group:first-child > label { display: none; }

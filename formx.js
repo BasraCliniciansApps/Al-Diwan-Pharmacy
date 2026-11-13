@@ -64,7 +64,7 @@
     function fxPrev() {
         const card = document.querySelector('#formModal .modal-card'); if (!card) return;
         let p = $('fxPrev');
-        if (!p) { p = document.createElement('div'); p.id = 'fxPrev'; p.className = 'fx-prev'; const t = $('formModalTitle'); t.insertAdjacentElement('afterend', p); }
+        if (!p) { p = document.createElement('div'); p.id = 'fxPrev'; p.className = 'fx-prev'; const t0 = $('formModalTitle'), t = t0.closest('.fm-top') || t0; t.insertAdjacentElement('afterend', p); }
         const v = id => ((($(id) || {}).value) || '').trim(), sel = id => { const e = $(id); const o = e && e.options && e.options[e.selectedIndex]; return o ? o.textContent.trim() : ''; };
         const price = parseFloat(v('fPrice')) || 0, qty = parseInt(v('fQty')) || 0;
         const form = v('fForm') === 'other' ? v('fFormOther') : (v('fForm') ? sel('fForm') : '');
