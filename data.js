@@ -1408,14 +1408,14 @@ function openSheet(id) {
         ${altHtml}
 
         <!-- أزرار مشاركة المنتج إلى واتساب أو دايركت انستغرام -->
-        <div class="share-row">
+        ${IS_ADMIN_PAGE ? '' : `<div class="share-row">
             <button class="share-btn share-wa" onclick="shareProduct(${p.id}, 'whatsapp')">
                 ${SHARE_WA_SVG} <span>مشاركة واتساب</span>
             </button>
             <button class="share-btn share-ig" onclick="shareProduct(${p.id}, 'instagram')">
                 ${SHARE_IG_SVG} <span>دايركت انستغرام</span>
             </button>
-        </div>
+        </div>`}
     `;
 
     document.getElementById('sheetBackdrop').classList.add('open');
