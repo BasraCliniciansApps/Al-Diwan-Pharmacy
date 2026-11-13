@@ -1345,12 +1345,12 @@ function openSheet(id) {
     const expiryInfo = expDates.length
         ? `<div class="sab-line"><span class="sab-k">📅 ${expDates.length > 1 ? 'تواريخ النفاذ' : 'تاريخ النفاذ'}</span><span class="sab-v">${expDates.map(dt => {
             const st = getExpiryStatus(dt);
-            return `<span dir="ltr" style="display:inline-block; margin:0 0 3px 4px; padding:1px 8px; border-radius:6px; background:${st ? st.bg : '#f1f5f9'}; color:${st ? st.color : '#334155'};">${dt}${btCnt[dt] ? ' × ' + btCnt[dt].join(' + ') : ''}</span>`;
+            return `<span style="display:inline-block; margin:0 0 3px 4px; padding:2px 9px; border-radius:6px; background:${st ? st.bg : '#f1f5f9'}; color:${st ? st.color : '#334155'};"><bdi dir="ltr">${dt}</bdi>${btCnt[dt] ? ' × <bdi>' + btCnt[dt].join(' + ') + '</bdi>' : ''}</span>`;
         }).join('')}</span></div>`
         : `<div class="sab-line sab-muted"><span class="sab-k">📅 تاريخ النفاذ</span><span class="sab-v">غير محدد</span></div>`;
 
     const lowInfo = isLowStock(p)
-        ? `<div class="sab-low">⚠️ كمية قليلة <span>حد التنبيه: <bdi>${getMinQty(p)}</bdi></span></div>`
+        ? `<div class="sab-low">⚠️ كمية قليلة</div>`
         : '';
     const retailInfo = hasRetail(p)
         ? `<div class="sheet-section" style="font-size:0.84rem; font-weight:700;">🧩 تُباع بالتجزئة: <b><bdi>${escapeHtml(subTypeOf(p))}</bdi></b> بسعر <b><bdi>${fmtMoney(subPriceOf(p))} د.ع</bdi></b> <span style="color:var(--text-sub); font-weight:600;">(العبوة = ${subCountOf(p)} ${escapeHtml(subTypeOf(p))})</span></div>` : '';
