@@ -3970,3 +3970,9 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 #homeView .home-tiles3 .home-tile.tile-sm { aspect-ratio: 1.15 / 1 !important; gap: 4px; }
 #homeView .home-tiles3 .home-tile b { font-size: 1.2rem !important; }
 #homeView .home-tiles3 .home-tile.tile-exp b { font-size: 1.05rem !important; line-height: 1.15 !important; }
+
+/* v494 مفاتيح تبديل (Toggle) بدل مربعات الاختيار في الصلاحيات والإعدادات */
+.pu-chk input[type=checkbox], .cn-sw input[type=checkbox] { -webkit-appearance: none; appearance: none; width: 42px !important; height: 24px !important; border-radius: 999px; background: #cbd5e1; position: relative; cursor: pointer; flex: none; transition: background .18s; border: 0; margin: 0; accent-color: initial; }
+.pu-chk input[type=checkbox]::after, .cn-sw input[type=checkbox]::after { content: ''; position: absolute; top: 3px; inset-inline-start: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: inset-inline-start .18s; }
+.pu-chk input[type=checkbox]:checked, .cn-sw input[type=checkbox]:checked { background: #0f1c38; }
+.pu-chk input[type=checkbox]:checked::after, .cn-sw input[type=checkbox]:checked::after { inset-inline-start: 21px; background: #f9a825; }

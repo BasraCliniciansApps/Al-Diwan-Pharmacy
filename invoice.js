@@ -111,7 +111,7 @@ function updateIssuedUI() {
     sheet.classList.toggle('cancelled', cancelled);
     show('billNewBtn', !editing);
     show('billPrintOnlyBtn', !issued); show('billIssueOnlyBtn', !issued); show('billIssueBtn', !issued);
-    show('billReprintBtn', issued && !editing && !cancelled); show('billEditBtn', issued && !editing && !cancelled); show('billCancelBtn', issued && !editing && !cancelled); show('billDeleteBtn', issued && cancelled);
+    show('billReprintBtn', issued && !editing && !cancelled); show('billEditBtn', issued && !editing && !cancelled); show('billCancelBtn', issued && !editing && !cancelled && invCanOwn(bill, 'cancelOwn')); show('billDeleteBtn', issued && cancelled && invCanOwn(bill, 'deleteOwn'));
     show('billEditBackBtn', editing); show('billSaveEditBtn', editing); show('billSaveEditPrintBtn', editing);
     if (issued) {
         note.style.display = 'block';
@@ -533,10 +533,15 @@ async function invAdoptFresh(b, fr) {   // يحدّث النسخة المحلي�
     Object.assign(b, fr);
     try { await saveInvoiceRecord(b); } catch (e) { /* تجاهل */ }
 }
+// صلاحية البائع على فاتورة: يلزم تفعيلها من المالك وأن تكون فاتورته هو
+function invCanOwn(b, perm) {
+    if (userRole === 'owner') return true;
+    return can(perm) && !!b && !!b.byUid && typeof currentUser !== 'undefined' && !!currentUser && b.byUid === currentUser.uid;
+}
 async function cancelInvoice(target) {
     const b = target || bill;
     if (!b || !b.issued || b.cancelled) return;
-    if (userRole !== 'owner' && b.byUid && typeof currentUser !== 'undefined' && currentUser && b.byUid !== currentUser.uid) { Swal.fire({ icon: 'info', title: 'لا يمكن إلغاء هذه الفاتورة', text: 'هذه الفاتورة أصدرها مستخدم آخر. يلغيها صاحبها أو المالك.', confirmButtonColor: '#0f1c38' }); return; }
+    if (!invCanOwn(b, 'cancelOwn')) { Swal.fire({ icon: 'info', title: 'لا يمكن إلغاء هذه الفاتورة', text: can('cancelOwn') ? 'هذه الفاتورة أصدرها مستخدم آخر. يلغيها صاحبها أو المالك.' : 'لا تملك صلاحية إلغاء الفواتير. راجع المالك.', confirmButtonColor: '#0f1c38' }); return; }
     const r = await Swal.fire({ icon: 'warning', title: 'إلغاء الفاتورة ' + escapeHtml(b.no) + '؟', text: b.deducted ? 'ستُرجَع الكميات المخصومة إلى المخزن.' : 'لم تُخصم كميات بهذه الفاتورة.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، ألغِ', cancelButtonText: 'رجوع' });
     if (!r.isConfirmed) return;
     const fr = await invFresh(b);
@@ -576,6 +581,7 @@ async function cancelInvoice(target) {
 async function deleteInvoicePermanently(id) {
     id = id || (bill && bill.id);
     const b = billAll.find(x => x.id === id) || (bill && bill.id === id ? bill : null);
+    if (b && !invCanOwn(b, 'deleteOwn')) { Swal.fire({ icon: 'info', title: 'لا يمكن حذف هذه الفاتورة', text: can('deleteOwn') ? 'هذه الفاتورة أصدرها مستخدم آخر.' : 'لا تملك صلاحية حذف الفواتير. راجع المالك.', confirmButtonColor: '#0f1c38' }); return; }
     if (!b || !b.cancelled) { Swal.fire({ icon: 'info', title: 'الحذف النهائي للفواتير الملغاة فقط', text: 'ألغِ الفاتورة أولاً ثم احذفها.', confirmButtonColor: '#0f1c38' }); return; }
     const r = await Swal.fire({ icon: 'warning', title: 'حذف الفاتورة ' + escapeHtml(b.no || '') + ' نهائياً؟', html: 'ستُحذف من هذا الجهاز ومن السحابة ولا يمكن استرجاعها.<br>لا يتأثر المخزون ولا حسابات المبيعات (فهي ملغاة أصلاً).', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'احذف نهائياً', cancelButtonText: 'تراجع' });
     if (!r.isConfirmed) return;
@@ -665,7 +671,7 @@ function billCardHtml(b, extra) {
             <small>${escapeHtml(fmtDateDMY(b.date))} • ${(b.items || []).length} مادة${b.by ? ' • ' + escapeHtml(b.by) : ''}</small>
         </div>
         <div class="bill-card-amt">${fmtNum(invTotalOf(b))}<small>د.ع</small></div>
-        ${extra || (b.cancelled ? `<button type="button" class="bill-tb-btn bill-danger" onclick="deleteInvoicePermanently('${b.id}')">🗑 حذف</button>` : '')}
+        ${extra || (b.cancelled && invCanOwn(b, 'deleteOwn') ? `<button type="button" class="bill-tb-btn bill-danger" onclick="deleteInvoicePermanently('${b.id}')">🗑 حذف</button>` : '')}
     </div>`;
 }
 function renderIssuedList() {

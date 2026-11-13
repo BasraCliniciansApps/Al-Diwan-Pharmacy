@@ -53,7 +53,8 @@ service cloud.firestore {
       allow create: if isOwner() || perm('sell');
       // البائع يعدّل فواتيره هو فقط، ولا يحذف
       allow update: if isOwner() || (perm('sell') && resource.data.byUid == request.auth.uid && request.resource.data.byUid == request.auth.uid);
-      allow delete: if isOwner();
+      // الحذف: للمالك، أو للبائع الذي فعّل المالك له «حذف فواتيره» على فواتيره هو
+      allow delete: if isOwner() || (perm('deleteOwn') && resource.data.byUid == request.auth.uid);
     }
 
     // ---- الوارد والمذاخر والسجلات المالية ----
