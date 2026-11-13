@@ -2220,21 +2220,25 @@ async function shareProduct(id, platform) {
 
     const msg = `🏥 *صيدلية الديوان*\n💊 *${p.name}*\n🔗 اضغط على الرابط لعرض المنتج:\n${productLink}`;
 
+    const go = (u) => { const w = window.open(u, '_blank'); if (!w) location.href = u; };
     if (platform === 'whatsapp') {
-        const waUrl = `https://wa.me/${PHARMACY_WHATSAPP}?text=${encodeURIComponent(msg)}`;
-        window.open(waUrl, '_blank');
+        // بدون رقم: يفتح واتساب قائمة جهات الاتصال لاختيار الزبون (الرقم السابق كان رقم الصيدلية نفسها)
+        go(`https://wa.me/?text=${encodeURIComponent(msg)}`);
     } else if (platform === 'instagram') {
-        try {
-            await navigator.clipboard.writeText(msg);
-            await Swal.fire({
-                icon: 'success',
-                title: 'تم نسخ رابط المنتج!',
-                text: 'سيتم الآن فتح محادثة إنستغرام الصيدلية، فقط اضغط (لصق / Paste) لإرسال الرابط.',
-                confirmButtonColor: '#0f1c38',
-                confirmButtonText: 'فتح إنستغرام'
-            });
-        } catch (e) {}
-        window.open(`https://ig.me/m/${PHARMACY_INSTAGRAM}`, '_blank');
+        // إنستغرام لا يدعم نصاً جاهزاً في الرابط: ننسخ الرسالة ثم نفتح صندوق الرسائل ليختار الصيدلاني الزبون ويلصق
+        let ok = false;
+        try { await navigator.clipboard.writeText(msg); ok = true; } catch (e) { /* نجرب الطريقة البديلة */ }
+        if (!ok) {
+            try { const ta = document.createElement('textarea'); ta.value = msg; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0'; document.body.appendChild(ta); ta.focus(); ta.select(); ok = document.execCommand('copy'); ta.remove(); } catch (e) { ok = false; }
+        }
+        const r = await Swal.fire({
+            icon: ok ? 'success' : 'warning',
+            title: ok ? 'تم نسخ رابط المنتج' : 'تعذر النسخ التلقائي',
+            text: ok ? 'سيُفتح صندوق رسائل إنستغرام: اختر الزبون ثم اضغط مطولاً في حقل الرسالة واختر «لصق».' : 'سيُفتح إنستغرام، وعليك نسخ رابط المنتج يدوياً: ' + productLink,
+            showCancelButton: true, cancelButtonText: 'إلغاء',
+            confirmButtonColor: '#0f1c38', confirmButtonText: 'فتح إنستغرام'
+        });
+        if (r.isConfirmed) go('https://www.instagram.com/direct/inbox/');
     }
 }
 
