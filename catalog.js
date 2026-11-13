@@ -272,6 +272,27 @@ function sheetImgTap(id) {
     if (p.img && String(p.img).trim()) zoomImage(p.img, id); else sheetImgPick(id);
 }
 function sheetImgPick(id) {
+    const p = products.find(x => x.id === id); if (!p) return;
+    Swal.fire({
+        title: 'صورة المادة', text: p.name,
+        showDenyButton: true, showCancelButton: true,
+        confirmButtonText: 'اختيار من الجهاز', denyButtonText: 'بحث عن صورة في الإنترنت', cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#0f1c38', denyButtonColor: '#a85d08', reverseButtons: true
+    }).then(r => {
+        if (r.isConfirmed) sheetImgFile(id);
+        else if (r.isDenied) sheetImgWeb(id);
+    });
+}
+// بحث صور Google باسم المادة والشركة؛ تُحفظ الصورة من المتصفح ثم تُختار من الجهاز
+function sheetImgWeb(id) {
+    const p = products.find(x => x.id === id); if (!p) return;
+    const q = [p.brand, p.name].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+    const url = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
+    try { window.open(url, '_blank'); } catch (e) { location.href = url; }
+    Swal.fire({ icon: 'info', title: 'بعد حفظ الصورة', html: 'اضغط مطولاً على الصورة في المتصفح واختر «تنزيل الصورة»، ثم ارجع هنا واضغط «اختيار الصورة».', confirmButtonText: 'اختيار الصورة', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' })
+        .then(r => { if (r.isConfirmed) sheetImgFile(id); });
+}
+function sheetImgFile(id) {
     const inp = document.getElementById('quickImgInput'); if (!inp) return;
     inp.value = ''; inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) quickImgUpload(id, f); };
     inp.click();
