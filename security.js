@@ -124,20 +124,24 @@ async function openUsers() {
     if (userRole !== 'owner') return;
     if (!requireOnline()) return;
     { const cm = document.getElementById('catModal'); if (cm && (!cm.style.display || cm.style.display === 'none') && typeof openCategoryManager === 'function') openCategoryManager(); }
-    let rows = '';
+    // تظهر الشاشة فوراً (بآخر قائمة محفوظة إن وُجدت) مع شريط التقدّم، ثم تُحدَّث بعد القراءة من السحابة
+    shScreen('usersScr', 'المستخدمون والصلاحيات', usersCache.length ? usersHtml() : '<div class="bill-none">جاري تحميل المستخدمين...</div>');
+    const h = Prog.start('تحميل المستخدمين', { text: 'جاري القراءة من السحابة...' });
     try {
         const snap = await db.collection('pharmacy_users').get(); usersCache = [];
         snap.forEach(d => usersCache.push({ uid: d.id, ...d.data() }));
-        rows = usersCache.map(u => `<div class="bill-card ${u.active === false ? 'is-closed' : ''}" style="text-align:right"><div class="bill-card-main" onclick="Swal.close();userEdit('${u.uid}')"><b>${escapeHtml(u.name)}</b>${u.active === false ? '<em class="tg bad">معطّل</em>' : ''}<small>${Object.keys(u.perms || {}).filter(p => PERM_LABELS[p] && p !== 'stockView').map(p => PERM_LABELS[p]).join(' • ') || 'عرض فقط'}</small></div><button type="button" class="bill-tb-btn" onclick="Swal.close();userEdit('${u.uid}')">تعديل</button></div>`).join('') || '<div class="bill-none">لا يوجد مستخدمون بعد.</div>';
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر قراءة المستخدمين', html: 'أضف قواعد المستخدمين في Firebase أولاً (ملف firestore.rules).<br><small>' + escapeHtml(e.message || '') + '</small>', confirmButtonColor: '#0f1c38' }); return; }
+        h.ok('تم التحميل');
+    } catch (e) { h.fail('تعذر القراءة'); shScreenClose('usersScr'); Swal.fire({ icon: 'error', title: 'تعذر قراءة المستخدمين', html: 'أضف قواعد المستخدمين في Firebase أولاً (ملف firestore.rules).<br><small>' + escapeHtml(e.message || '') + '</small>', confirmButtonColor: '#0f1c38' }); return; }
+    shScreen('usersScr', 'المستخدمون والصلاحيات', usersHtml());
+}
+function usersHtml() {
     const chev = '<i>‹</i>';
     const list = usersCache.map(u => `<button type="button" class="set-nav" onclick="userEdit('${u.uid}')"><div><b>${escapeHtml(u.name)}${u.active === false ? ' <em class="tg bad">معطّل</em>' : ''}</b><small>${Object.keys(u.perms || {}).filter(p => PERM_LABELS[p] && p !== 'stockView').map(p => PERM_LABELS[p]).join(' • ') || 'عرض فقط'}</small></div>${chev}</button>`).join('') || '<div class="bill-none">لا يوجد مستخدمون بعد.</div>';
     const chk = (typeof scCfg === 'function' && scCfg().posCostChip) ? 'checked' : '';
     const html = `<div class="qk-row"><div><b>إظهار خيار الخصم «سعر الكلفة»</b><small>لمستخدمي شاشة البيع، ويكشف لهم سعر الشراء مقرّباً.</small></div><label class="setup-sw"><input type="checkbox" ${chk} onchange="posCostChipSet(this.checked)"><i></i></label></div>
         <h5 class="set-sec">المستخدمون</h5><div class="us-list">${list}</div>
         <button type="button" class="icon-btn primary-btn us-add" onclick="userAdd()">+ إضافة مستخدم</button>`;
-    if (typeof shScreen === 'function' && shScreen('usersScr', 'المستخدمون والصلاحيات', html)) return;
-    Swal.fire({ title: 'المستخدمون والصلاحيات', showConfirmButton: true, confirmButtonText: '+ إضافة مستخدم', showCancelButton: true, cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', html: '<div class="sw-form">' + html.replace('onclick="userAdd()"', 'onclick="Swal.close();userAdd()"').replace(/onclick="userEdit/g, 'onclick="Swal.close();userEdit') + '</div>' }).then(r => { if (r.isConfirmed) userAdd(); });
+    return html;
 }
 // ---------- نموذج المستخدم (إضافة / تعديل) كشاشة داخل الإعدادات ----------
 const PERM_GROUPS = [
