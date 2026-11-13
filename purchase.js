@@ -127,13 +127,13 @@ async function puLastExpiry(pid) {
 }
 function lastPurchaseHtml(p) {
     const arr = puLinesOf(p.id);
-    const cur = p.costPrice ? `<div style="font-size:0.78rem;margin-bottom:6px;font-weight:700;">💰 سعر الشراء الحالي: ${fmtNum(p.costPrice)} د.ع</div>` : '';
+    const cur = p.costPrice ? `<div class="sab-line"><span class="sab-k">💰 سعر الشراء الحالي</span><span class="sab-v"><bdi>${fmtNum(p.costPrice)}</bdi> د.ع</span></div>` : '';
     const lp = p.lastPurchase;
     if (lp && (!arr.length || String(lp.date || '') >= String(arr[0].r.date || ''))) {
         const rows = arr.length ? arr.slice(0, 3).map(x => `<div style="font-size:0.74rem;color:#64748b;">• <b>${escapeHtml(x.r.supplier)}</b> — ${escapeHtml(fmtDateDMY(x.r.date))} — ${fmtNum(x.l.qty)} عبوة${x.l.cost ? ' × ' + fmtNum(x.l.cost) : ''}</div>`).join('') : '';
         return cur + `<div style="font-size:0.78rem; margin-bottom:8px; padding:6px 8px; border-radius:8px; background:#ecfdf5;"><div style="font-weight:800;color:#065f46;">📥 آخر وارد: <b>${escapeHtml(lp.supplier)}</b> — ${escapeHtml(fmtDateDMY(lp.date))} — ${fmtNum(lp.qty)} عبوة${lp.cost ? ' × ' + fmtNum(lp.cost) : ''} — فاتورة <span dir="ltr">${escapeHtml(lp.no)}</span>${lp.expiry ? ' — نفاذ <span dir="ltr">' + escapeHtml(lp.expiry) + '</span>' : ''} ${puLastExpBtn(p, arr)}</div>${rows}</div>`;
     }
-    if (!arr.length) return cur + '<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📥 لا يوجد وارد مسجّل لهذا الصنف</div>';
+    if (!arr.length) return cur + '<div class="sab-line sab-muted"><span class="sab-k">📥 آخر وارد</span><span class="sab-v">لا يوجد وارد مسجّل</span></div>';
     const row = (x, first) => `<div style="${first ? 'font-weight:800;color:#065f46;' : 'font-size:0.74rem;color:#64748b;'}">${first ? '📥 آخر وارد: ' : '• '}<b>${escapeHtml(x.r.supplier)}</b> — ${escapeHtml(fmtDateDMY(x.r.date))} — ${fmtNum(x.l.qty)} عبوة${x.l.cost ? ' × ' + fmtNum(x.l.cost) : ''} — فاتورة <span dir="ltr">${escapeHtml(x.r.no)}</span>${x.l.batch ? ' — دفعة <span dir="ltr">' + escapeHtml(x.l.batch) + '</span>' : ''}${first ? ' ' + puLastExpBtn(p, arr) : ''}</div>`;
     return cur + `<div style="font-size:0.78rem; margin-bottom:8px; padding:6px 8px; border-radius:8px; background:#ecfdf5;">${row(arr[0], true)}${arr.slice(1, 4).map(x => row(x, false)).join('')}</div>`;
 }

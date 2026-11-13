@@ -1331,7 +1331,9 @@ function openSheet(id) {
     const badge = getFormBadge(p);
     const cleanMeta = escapeHtml(packLine(p));
     const formattedPrice = p.price ? Number(p.price).toLocaleString() : 0;
-    const priceTxt = p.price ? ' | ' + formattedPrice + ' د.ع' : (IS_ADMIN_PAGE ? ' | 0 د.ع' : '');
+    const priceTxt = '';
+    const priceNum = p.price ? formattedPrice : (IS_ADMIN_PAGE ? '0' : '');
+    const priceHtml = priceNum !== '' ? `<div class="sheet-price"><bdi>${priceNum}</bdi> <small>د.ع</small></div>` : '';
     const stockTag = isInStock(p)
         ? `<span class="form-badge" style="background:#dcfce7; color:#15803d;">متوفر${IS_ADMIN_PAGE ? ' (' + p.qty + ')' : ''}${priceTxt}</span>`
         : `<span class="form-badge" style="background:#fee2e2; color:#b91c1c;">${IS_ADMIN_PAGE ? 'نافذ (0)' : 'غير متوفر'}${priceTxt}</span>`;
@@ -1341,30 +1343,32 @@ function openSheet(id) {
     const expDates = btList ? [...new Set(btList.map(b => b.e).concat(btDateOnly(p)))].sort() : getProductExpiryDates(p);
     const btCnt = {}; (btList || []).forEach(b => { (btCnt[b.e] = btCnt[b.e] || []).push(btFmt(b, p) + (b.pr ? ' (' + fmtNum(b.pr) + ' د.ع)' : '')); });
     const expiryInfo = expDates.length
-        ? `<div style="font-size:0.78rem; font-weight:700; color:#475569; margin-bottom:8px;">📅 ${expDates.length > 1 ? 'تواريخ النفاذ' : 'تاريخ النفاذ'}: ${expDates.map(dt => {
+        ? `<div class="sab-line"><span class="sab-k">📅 ${expDates.length > 1 ? 'تواريخ النفاذ' : 'تاريخ النفاذ'}</span><span class="sab-v">${expDates.map(dt => {
             const st = getExpiryStatus(dt);
             return `<span dir="ltr" style="display:inline-block; margin:0 0 3px 4px; padding:1px 8px; border-radius:6px; background:${st ? st.bg : '#f1f5f9'}; color:${st ? st.color : '#334155'};">${dt}${btCnt[dt] ? ' × ' + btCnt[dt].join(' + ') : ''}</span>`;
-        }).join('')}</div>`
-        : `<div style="font-size:0.75rem; color:#94a3b8; margin-bottom:8px;">📅 تاريخ النفاذ: غير محدد</div>`;
+        }).join('')}</span></div>`
+        : `<div class="sab-line sab-muted"><span class="sab-k">📅 تاريخ النفاذ</span><span class="sab-v">غير محدد</span></div>`;
 
     const lowInfo = isLowStock(p)
-        ? `<div style="font-size:0.78rem; font-weight:800; color:#c2410c; margin-bottom:6px;">⚠️ كمية قليلة (حد التنبيه: ${getMinQty(p)})</div>`
+        ? `<div class="sab-low">⚠️ كمية قليلة <span>حد التنبيه: <bdi>${getMinQty(p)}</bdi></span></div>`
         : '';
     const retailInfo = hasRetail(p)
         ? `<div class="sheet-section" style="font-size:0.84rem; font-weight:700;">🧩 تُباع بالتجزئة: <b><bdi>${escapeHtml(subTypeOf(p))}</bdi></b> بسعر <b><bdi>${fmtMoney(subPriceOf(p))} د.ع</bdi></b> <span style="color:var(--text-sub); font-weight:600;">(العبوة = ${subCountOf(p)} ${escapeHtml(subTypeOf(p))})</span></div>` : '';
     const altHtml = buildAlternativesHtml(p);
     const activeLine = p.activeIngredient
-        ? `<p dir="ltr" style="font-size:0.82rem; font-weight:800; color:var(--primary-dark); text-align:left; margin-bottom:6px;">${escapeHtml(p.activeIngredient)}</p>`
+        ? `<p dir="ltr" class="sheet-active">${escapeHtml(p.activeIngredient)}</p>`
         : '';
 
     document.getElementById('sheetContent').innerHTML = `
+        <div class="sheet-top"><button type="button" class="sh-back" onclick="closeSheet()"><i>›</i> رجوع</button></div>
         <div class="sheet-header">
-            <div class="sheet-img-box" onclick="${IS_ADMIN_PAGE ? `sheetImgTap(${p.id})` : `zoomImage('${p.img}')`}">${IS_ADMIN_PAGE ? `<span class="img-edit-tag">${p.img ? '🔍' : '📷'}</span>` : ''}
-                <img src="${p.img}" alt="" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2250%22 height=%2250%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%2394a3b8%22 stroke-width=%221.5%22><rect x=%223%22 y=%223%22 width=%2218%22 height=%2218%22 rx=%224%22/></svg>'">
+            <div class="sheet-img-box${p.img ? '' : ' noimg'}" onclick="${IS_ADMIN_PAGE ? `sheetImgTap(${p.id})` : `zoomImage('${p.img}')`}">${IS_ADMIN_PAGE ? `<span class="img-edit-tag">${p.img ? '🔍' : '📷'}</span>` : ''}
+                ${p.img ? `<img src="${p.img}" alt="" onerror="this.parentNode.classList.add('noimg');this.remove()">` : ''}
             </div>
             <div class="sheet-title-area">
                 <div class="sheet-brand">${p.brand}</div>
-                <div class="sheet-name" dir="ltr" style="text-align:right;">${p.name}</div>
+                <div class="sheet-name sel-ok" dir="ltr" style="text-align:right;">${p.name}</div>
+                ${priceHtml}
                 <div class="sheet-badges">
                     ${stockTag}
                     <span class="form-badge ${badge.cls}">${badge.txt}</span>
@@ -1377,17 +1381,20 @@ function openSheet(id) {
             ${activeLine}
             ${p.details ? `<p>${p.details}</p>` : ''}
             <h4 style="margin-top:10px;">العبوة | الشكل الدوائي</h4>
-            <p dir="ltr" style="font-size:0.92rem; font-weight:800; color:var(--primary-dark); text-align:left;">&lrm;${cleanMeta}</p>
+            <p dir="ltr" class="sheet-pack">&lrm;${cleanMeta}</p>
         </div>
 
         ${(!IS_ADMIN_PAGE || !can('stockEdit')) ? '' : `<div class="sheet-admin-box">
-            <div style="font-size:0.8rem; font-weight:800; color:#b45309; margin-bottom:4px;">⚙️ تحكم الصيدلي المباشر</div>
-            ${lowInfo}${expiryInfo}${pricingInfoHtml(p)}${typeof lastPurchaseHtml === 'function' ? lastPurchaseHtml(p) : ''}
-            <div class="admin-row"><div class="qty-control-lg">
-                    <button onclick="updateItemQty(${p.id}, -1)">-</button>
+            <div class="sab-head">⚙️ تحكم الصيدلي المباشر</div>
+            <div class="sab-qty">
+                <div class="sab-qk">الكمية${lowInfo}</div>
+                <div class="admin-row"><div class="qty-control-lg">
+                    <button type="button" aria-label="إنقاص الكمية" onclick="updateItemQty(${p.id}, -1)">&minus;</button>
                     <span style="font-weight:800; min-width:28px; text-align:center;${hasRetail(p) ? 'cursor:pointer;text-decoration:underline dotted;' : ''}" ${hasRetail(p) ? `onclick="openCountDialog(${p.id})" title="تعديل العلب والأجزاء"` : ''}>${stockLabel(p)}${hasRetail(p) ? ' ✎' : ''}</span>
-                    <button onclick="updateItemQty(${p.id}, 1)">+</button>
-            </div></div>
+                    <button type="button" aria-label="زيادة الكمية" onclick="updateItemQty(${p.id}, 1)">+</button>
+                </div></div>
+            </div>
+            ${expiryInfo}${pricingInfoHtml(p)}${typeof lastPurchaseHtml === 'function' ? lastPurchaseHtml(p) : ''}
             <div class="act-grid">
                 <button class="icon-btn" onclick="window.__sheetRet = ${p.id}; closeSheet(); openFormModal(${p.id});">✏️ تعديل الصنف</button>
                 ${typeof lgxOpen === 'function' ? `<button class="icon-btn" onclick="closeSheet(); showView('purch'); puTab('exp'); lgxOpen('exp',{pid:${p.id}});">🗑️ منتهي / تالف</button>

@@ -4140,3 +4140,63 @@ body.can-stockedit .lbl-open-btn{display:inline-flex}
 .sh-screen-body .sec-empty{padding:24px 0;text-align:center;color:var(--text-sub)}
 
 .ic-chevron-down,.ic-chevron-up,.ic-chevron-left,.ic-chevron-right,.ic-arrow-left,.ic-arrow-right,.ic-arrow-down,.ic-square{width:1em;height:1em;vertical-align:-.16em}
+
+/* =====================================================
+   v544 — إعادة تصميم شاشة الصنف (واجهة الصيدلي)
+   ===================================================== */
+/* التطبيق ليس صفحة ويب: لا تحديد نص على الأزرار والعناوين (يبقى للحقول وللنصوص المعلّمة) */
+body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
+
+.sheet-top { display: flex; margin: -2px 0 10px; }
+.sheet-img-box.noimg { width: 96px; height: 96px; border-style: dashed; flex-direction: column; gap: 4px; cursor: pointer; }
+.sheet-img-box.noimg::before { content: 'بدون صورة'; font-size: .7rem; font-weight: 700; color: var(--text-sub); }
+.sheet-img-box .img-edit-tag { width: 32px; height: 32px; font-size: .95rem; bottom: 6px; left: 6px; }
+.sheet-img-box .img-edit-tag .ic { width: 17px; height: 17px; }
+.sheet-price { font-size: 1.5rem; font-weight: 900; color: var(--navy); line-height: 1.2; margin: 0 0 8px; }
+.sheet-price small { font-size: .85rem; font-weight: 800; color: var(--text-sub); }
+:root[data-theme="dark"] .sheet-price { color: var(--gold); }
+.sheet-badges .form-badge { font-size: .8rem; }
+.sheet-active { font-size: .9rem; font-weight: 800; color: var(--navy); text-align: right; margin-bottom: 6px; }
+.sheet-pack { font-size: .95rem; font-weight: 800; color: var(--navy); text-align: right; }
+:root[data-theme="dark"] .sheet-active, :root[data-theme="dark"] .sheet-pack { color: var(--text-main); }
+
+/* لوحة التحكم: سطح التطبيق المعتاد، ولا لون تحذير إلا عند الحاجة */
+.sheet-admin-box { background: var(--surface); border: 1px solid var(--border); border-top: 3px solid var(--gold); padding: 14px 14px 16px; }
+.sab-head { font-size: .95rem; font-weight: 900; color: var(--navy); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+:root[data-theme="dark"] .sab-head { color: var(--text-main); }
+.sab-head .ic, .sab-line .ic, .sab-low .ic, .pcd > summary .ic { width: 19px; height: 19px; flex: none; vertical-align: -4px; margin-inline-end: 6px; }
+.sab-qty { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 12px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
+.sab-qk { font-size: .92rem; font-weight: 800; color: var(--text-main); display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.sab-low { display: inline-flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: .8rem; font-weight: 800; color: #9a3412; background: #ffedd5; border: 1px solid #fdba74; border-radius: 8px; padding: 4px 8px; line-height: 1.5; }
+.sab-low span { font-weight: 700; }
+:root[data-theme="dark"] .sab-low { color: #fdba74; background: #3b2412; border-color: #7c4a1d; }
+.sheet-admin-box .sab-qty .admin-row { margin: 0; justify-content: flex-end; }
+.qty-control-lg { gap: 4px; padding: 4px; border-radius: 14px; background: var(--surface-2, #f5f7fb); border: 1px solid var(--border); }
+.qty-control-lg button { width: 48px; height: 48px; border-radius: 11px; font-size: 1.5rem; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.qty-control-lg > span { min-width: 44px !important; font-size: 1.25rem; }
+.sab-line { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 2px; font-size: .9rem; line-height: 1.6; border-bottom: 1px dashed var(--border); }
+.sab-k { color: var(--text-sub); font-weight: 700; flex: none; }
+.sab-v { color: var(--text-main); font-weight: 800; text-align: end; min-width: 0; }
+.sab-muted .sab-v { color: var(--text-sub); font-weight: 700; }
+.sheet-admin-box .pcd { margin: 8px 0; background: var(--surface-2, #f5f7fb); border-color: var(--border); }
+.sheet-admin-box .pcd > summary { min-height: 48px; font-size: .92rem; padding: 10px 12px; }
+.sheet-admin-box .pcd > summary small { font-size: .82rem; color: var(--text-sub); }
+.sheet-admin-box .pcd-r { font-size: .86rem; }
+.sheet-admin-box .pcd-f, .sheet-admin-box .pcd-h { font-size: .82rem; }
+:root[data-theme="dark"] .sheet-admin-box .pcd { background: var(--surface-2); border-color: var(--border); }
+.sheet-admin-box .act-grid { margin-top: 12px; gap: 10px; }
+.sheet-admin-box .act-grid .icon-btn { min-height: 50px; font-size: .9rem; font-weight: 800; gap: 8px; }
+.sheet-admin-box .act-grid .icon-btn .ic { width: 19px; height: 19px; }
+.sheet-admin-box .act-grid .act-del { margin-top: 8px; }
+:root[data-theme="dark"] .act-grid .act-del { background: #3b1620; color: #fca5a5; border-color: #7f1d1d; }
+
+/* المشاركة: بهوية التطبيق، الأيقونة وحدها بلون المنصة */
+.share-row { margin-top: 16px; }
+.share-btn { height: 50px; background: var(--surface); color: var(--navy); border: 1.5px solid var(--border); font-size: .9rem; font-weight: 800; }
+:root[data-theme="dark"] .share-btn { color: var(--text-main); }
+.share-wa, .share-ig { background: var(--surface); }
+.share-wa svg { color: #16a34a; } .share-ig svg { color: #c13584; }
+:root[data-theme="dark"] .qty-control-lg button { background: var(--gold); color: #0f1c38; }
+:root[data-theme="dark"] .qty-control-lg > span { color: var(--text-main); }
+:root[data-theme="dark"] .sheet-brand { color: var(--gold); }
