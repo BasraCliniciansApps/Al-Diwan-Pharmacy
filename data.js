@@ -3941,7 +3941,7 @@ async function showAiScanResult(res, mode) {
 
     const rowHtml = r => r.value ? `
         <label style="display:flex; align-items:flex-start; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); cursor:pointer;">
-            <input type="checkbox" id="aiRow_${r.key}" ${r.checked ? 'checked' : ''} style="margin-top:4px; width:18px; height:18px; flex-shrink:0;">
+            <input type="checkbox" class="chk-real" id="aiRow_${r.key}" ${r.checked ? 'checked' : ''} style="margin-top:4px; width:18px; height:18px; flex-shrink:0;">
             <span style="flex:1; min-width:0;">
                 <b style="display:block; font-size:0.8rem; color:var(--text-sub);">${r.label}${r.empty ? '' : ' <small style="color:#b45309; font-weight:700;">(الحقل معبأ — علّم لاستبداله)</small>'}</b>
                 <span dir="${r.ltr ? 'ltr' : 'rtl'}" style="display:block; color:var(--text-main); word-break:break-word; text-align:${r.ltr ? 'left' : 'right'};">${escapeHtml(r.value)}</span>

@@ -781,7 +781,7 @@ function renderPO() {
     list.forEach(p => { if (!poState[p.id]) poState[p.id] = { on: true, qty: Math.max(getMinQty(p) * 2 - (parseInt(p.qty) || 0), 1) }; });
     $b('poRows').innerHTML = list.map(p => `
         <tr class="${poState[p.id].on ? '' : 'po-off'}">
-            <td class="c-n no-print"><input type="checkbox" ${poState[p.id].on ? 'checked' : ''} onchange="poToggle(${p.id}, this.checked)"></td>
+            <td class="c-n no-print"><input type="checkbox" class="chk-real" ${poState[p.id].on ? 'checked' : ''} onchange="poToggle(${p.id}, this.checked)"></td>
             <td class="c-name"><b dir="ltr">${escapeHtml(p.name)}</b><small>${escapeHtml(p.brand || '')}</small></td>
             <td class="c-qty">${escapeHtml(stockLabel(p))}</td>
             <td class="c-qty has-pv"><input type="number" min="1" value="${poState[p.id].qty}" oninput="poQty(${p.id}, this.value)"><span class="bill-pv">${poState[p.id].qty}</span></td>
