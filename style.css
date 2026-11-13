@@ -2474,9 +2474,6 @@ body.rv-open { overflow: hidden; }
 .sh-chip:active { transform: scale(.96); }
 .sh-chip .sh-ico { width: 26px; height: 26px; border-radius: 999px; font-size: .8rem; }
 .sh-chip .sh-ico svg { width: 15px; height: 15px; }
-.sh-star { position: absolute; bottom: 7px; left: 8px; color: #94a3b8; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; cursor: pointer; }
-.sh-star.on { color: var(--gold); }
-.sh-star:hover { background: rgba(15,28,56,.06); }
 .sh-bad { border-color: #dc2626 !important; box-shadow: 0 0 0 3px rgba(220,38,38,.12) !important; }
 .sh #lowThresholdInput + button, .sh #alertM3 + button, .sh #puWindowInput + button { display: none; }
 .sh-toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 24px); opacity: 0; pointer-events: none; z-index: 100001; display: flex; align-items: center; gap: 12px; background: #0f1c38; color: #fff; border-radius: 12px; padding: 10px 14px; font-size: .84rem; font-weight: 700; box-shadow: 0 10px 28px rgba(0,0,0,.35); transition: opacity .2s, transform .25s cubic-bezier(.16,1,.3,1); }
@@ -2545,14 +2542,12 @@ body.rv-open { overflow: hidden; }
 .sh-grid { grid-auto-rows: 1fr; }
 .sh-card { padding: 12px 12px 12px 34px; min-height: 92px; align-items: center; }
 .sh-tx { flex: 1; text-align: right; }
-.sh-star { top: 6px; bottom: auto; left: 6px; }
 .sh-badge { top: auto; bottom: 8px; left: 8px; }
 .sh-bar { margin: -18px -16px 14px; padding: 12px 16px; top: -18px; }
 .sh-search input { min-height: 44px; }
 
 /* v145b */
 .sh-card { padding: 12px 12px 12px 22px; }
-.sh-star { top: 4px; left: 4px; width: 24px; height: 24px; }
 #catModal .pc-row .pc-l { flex: 1 0 auto; white-space: nowrap; font-size: .78rem; }
 #catModal .pc-row input { width: 62px !important; }
 #catModal .tools-grid > :nth-child(odd):nth-last-child(2):has(+ [style*="grid-column"]) { grid-column: 1 / -1; }
@@ -3483,9 +3478,8 @@ body.pv-on { padding-bottom: 76px; }
 #shGrid .sh-tx { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 #shGrid .sh-tx b { font-size: .95rem; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #shGrid .sh-tx small { font-size: .74rem; line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-sub, #64748b); }
-#shGrid .sh-badge, #shGrid .sh-star { position: static; flex: none; }
+#shGrid .sh-badge { position: static; flex: none; }
 #shGrid .sh-badge { padding: 2px 8px; }
-#shGrid .sh-star { width: 32px; height: 32px; }
 #shGrid { grid-template-columns: minmax(0, 1fr); } #shGrid .sh-card { min-width: 0; width: 100%; box-sizing: border-box; overflow: hidden; }
 
 /* v403: مركز تجهيز البيانات صف قابل للضغط مكان «الأقسام الجاهزة محمّلة» */
@@ -4006,3 +4000,15 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 #catModal .modal-card > .tax-rv.in-settings { background: var(--surface, #fff); }
 .tax-rv.in-settings > .sh-bar { position: static; margin: 0; padding: 14px 16px; flex: none; }
 .tax-rv.in-settings .dh-body { background: transparent; }
+
+/* v510: شرح مصغّر تحت كل إعداد + شارات النطاق */
+.set-desc{margin:2px 0 10px;font-size:.78rem;line-height:1.7;color:#64748b}
+.set-hint{display:block;margin-top:3px;font-size:.74rem;color:#94a3b8;line-height:1.6}
+.set-sec{margin:14px 0 6px;font-size:.84rem;font-weight:800;color:var(--navy,#0f1c38)}
+.set-scope{font-style:normal;display:inline-block;margin-inline-end:6px;padding:1px 8px;border-radius:99px;font-size:.68rem;font-weight:700;background:#eef2f7;color:#475569}
+.set-scope.all{background:#e0f2fe;color:#0369a1}
+.lbl-open-btn{display:none}
+body.can-stockedit .lbl-open-btn{display:inline-flex}
+.rep-sys{margin-top:14px}.rep-sys h4{margin:0 0 8px;font-size:.95rem}
+.rep-sys .qk-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #eef2f7}
+.rep-sys .qk-row small{display:block;color:#64748b;font-size:.76rem}

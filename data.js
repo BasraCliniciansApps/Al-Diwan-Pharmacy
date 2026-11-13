@@ -2728,16 +2728,19 @@ function fillPricingForm() {
         return `<div class="pc-row"><span class="pc-l">${label}</span>${b.max === null ? '<span class="pc-fix">$</span>' : `<input type="number" id="pcMax${i}" min="1" value="${b.max}"><span class="pc-fix">$</span>`}<span class="pc-l">نسبة</span><input type="number" id="pcPct${i}" min="0" value="${b.pct}"><span class="pc-fix">%</span></div>`;
     }).join('');
 }
-async function savePricingSettings() {
+async function savePricingSettings(quiet) {
     const g = id => parseFloat(document.getElementById(id) && document.getElementById(id).value);
     const n = pricingCfg.brackets.length;
     const next = { rate: g('pcRate'), bookNo: (document.getElementById('pcBookNo').value || '').trim(), bookDate: document.getElementById('pcBookDate').value, round: g('pcRound') || 0, boundary: (document.getElementById('pcBoundary') || {}).value === 'lower' ? 'lower' : 'upper',
         brackets: pricingCfg.brackets.map((b, i) => ({ max: i === n - 1 ? null : g('pcMax' + i), pct: g('pcPct' + i) })) };
     const bad = !(next.rate > 0) || next.brackets.some((b, i) => isNaN(b.pct) || b.pct < 0 || (i < n - 1 && !(b.max > 0)) || (i > 0 && i < n - 1 && !(b.max > next.brackets[i - 1].max)));
+    if (bad && quiet) return false;
     if (bad) { Swal.fire({ icon: 'warning', title: 'تحقق من القيم', text: 'سعر الصرف رقم موجب، وحدود الشرائح تصاعدية، والنسب أرقام صحيحة.', confirmButtonColor: '#0f1c38' }); return; }
     pricingCfg = normPricingCfg(next);
-    saveLocal(); fillPricingForm();
+    saveLocal();
     pushToCloud(true);
+    if (quiet) return true;   // حفظ تلقائي: لا يعيد التسعير ولا يعيد رسم النموذج (زر «تطبيق الأسعار على المواد» يفعل ذلك)
+    fillPricingForm();
     await repriceAll();
 }
 async function repriceAll(silentIfNone) {   // يعيد تسعير كل المواد المعتمدة على كتاب النقابة

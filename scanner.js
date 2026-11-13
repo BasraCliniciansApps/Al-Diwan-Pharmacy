@@ -135,7 +135,7 @@ const SC_SHOW_LABELS = { price: ['سعر البيع', 'يظهر لكل من يم
 function shScanHtml() {
     const c = scCfg(), s = c.show;
     const opt = (k, ic, t, d) => `<button type="button" class="sc-opt ${c.mode === k ? 'on' : ''}" onclick="scSetMode('${k}')"><span>${ic}</span><span><b>${t}</b><small>${d}</small></span></button>`;
-    return `<small style="display:block;color:var(--text-sub);margin:0 0 8px">إعدادات فاحص المادة تتزامن بين أجهزتك. صلاحية كل مستخدم (تشغيل الأداة، حد الخصم، حذف التواريخ) من إدارة المستخدمين.</small>
+    return `<p class="set-desc"><i class="set-scope all">كل الأجهزة</i> إعدادات فاحص المادة تتزامن بين أجهزتك. صلاحية كل مستخدم (تشغيل الأداة، حد الخصم، حذف التواريخ) من إدارة المستخدمين.</p>
     <div class="qk-row"><div><b>تشغيل فاحص المادة</b><small>إيقافه يخفي الأداة من الرئيسية للجميع</small></div><label class="setup-sw"><input type="checkbox" ${c.on ? 'checked' : ''} onchange="scSetOn(this.checked)"><i></i></label></div>
     <h5 class="sc-h">طريقة حد الخصم للبائعين</h5>
     ${opt('safe', '🔒', 'الخصم المحمي', 'يعرض للبائع حدّاً آمناً أقل من الحد الحقيقي، ولا يكشف سعر الشراء')}

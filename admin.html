@@ -67,6 +67,10 @@
                     <button class="clear-search" id="clearSearchBtn" onclick="clearSearch()">✕</button>
                     <button type="button" class="bc-search-btn" onclick="scanBarcodeToSearch()" title="مسح باركود" aria-label="مسح باركود">▦</button>
                 </div>
+                <button type="button" class="filter-btn lbl-open-btn" onclick="lblOpen()" aria-label="ملصقات الباركود" title="ملصقات الباركود">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v14M8 5v14M12 5v14M16 5v14M20 5v14"/></svg>
+                    <span class="fb-t">ملصقات</span>
+                </button>
                 <button type="button" class="filter-btn" onclick="openFilterSheet()" aria-label="تصفية">
                     <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
                     <span class="fb-t">تصفية</span><b id="filterBtnCount" style="display:none;">0</b>
@@ -149,10 +153,53 @@
         <div class="modal-card">
             <h3 style="margin-bottom:14px; color:var(--primary-dark);">🗂️ إدارة الأقسام والتصنيفات</h3>
             
-            <div class="cat-manager-box" id="taxSeedBox"></div>
+            <!-- ===== صناديق الإعدادات: كل صندوق له معرّف ثابت data-k، والصفحات تُعرَّف في settings.js بهذه المعرّفات ===== -->
+            <div class="cat-manager-box" data-k="invoice" id="invSetBox">
+                <h4>🧾 بيانات الفاتورة</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> ما يظهر على الفاتورة المطبوعة وشاشة البيع.</p>
+                <div class="bill-settings" data-inv-set="1"></div>
+            </div>
 
-            <div class="cat-manager-box">
-                <h4>الأقسام الرئيسية (مثل: قسم الجلدية)</h4>
+            <div class="cat-manager-box" data-k="alerts">
+                <h4>حدود التنبيه</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> متى يُنبَّه إلى قلة الكمية وقرب انتهاء الصلاحية. تُحفظ التغييرات تلقائياً.</p>
+                <div class="form-group">
+                    <label>حد الكمية القليلة</label>
+                    <small class="set-hint">يُنبَّه إلى الصنف عندما تصل كميته إلى هذا الرقم أو أقل.</small>
+                    <input type="number" id="lowThresholdInput" min="0">
+                </div>
+                <div class="form-group">
+                    <label>مدد تنبيه الصلاحية (بالأشهر)</label>
+                    <small class="set-hint">ثلاث مراحل مرتبة من الأقصر إلى الأطول، مثال: 1 ثم 3 ثم 6.</small>
+                    <div class="add-inline-row"><input type="number" id="alertM1" min="1"><input type="number" id="alertM2" min="1"><input type="number" id="alertM3" min="1"></div>
+                </div>
+                <div class="form-group">
+                    <label>مدة قراءة تواريخ النفاذ من الوارد (بالأشهر)</label>
+                    <small class="set-hint"><i class="set-scope">هذا الجهاز</i> عمر فواتير الوارد التي تؤخذ منها تواريخ الانتهاء.</small>
+                    <input type="number" id="puWindowInput" min="1" max="60" placeholder="12">
+                </div>
+            </div>
+
+            <div class="cat-manager-box" data-k="pricing" id="pricingBox">
+                <h4>التسعير حسب كتاب النقابة</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> كيف يُحسب سعر البيع من سعر المذخر بالدولار. تُحفظ التغييرات تلقائياً، ولا تتغير أسعار المواد حتى تضغط «تطبيق الأسعار على المواد».</p>
+                <div class="set-sec">سعر الصرف والتقريب</div>
+                <div class="form-group"><label>سعر الصرف (دينار لكل 1 دولار)</label><input type="number" id="pcRate" min="1" inputmode="decimal"></div>
+                <div class="form-group"><label>تقريب السعر لأقرب (دينار)</label><small class="set-hint">اكتب 0 لإلغاء التقريب.</small><input type="number" id="pcRound" min="0" inputmode="numeric"></div>
+                <div class="set-sec">شرائح الإضافة</div>
+                <div class="form-group"><label>الشرائح (سعر المذخر بالدولار ← نسبة الإضافة)</label><div id="pcRows"></div></div>
+                <div class="form-group"><label>إذا ساوى السعر حد الشريحة بالضبط</label><small class="set-hint">مثال: سعر 5$ يقع بين شريحتين.</small><select id="pcBoundary"><option value="upper">يدخل الشريحة الأعلى (مثلاً 5$ ← 30%)</option><option value="lower">يدخل الشريحة الأدنى (مثلاً 5$ ← 40%)</option></select></div>
+                <div class="set-sec">مرجع كتاب النقابة</div>
+                <div class="form-group"><label>رقم الكتاب النقابي</label><small class="set-hint">للتوثيق فقط.</small><input type="text" id="pcBookNo" dir="ltr"></div>
+                <div class="form-group"><label>تاريخ الكتاب</label><input type="date" id="pcBookDate"></div>
+                <div class="set-sec">التطبيق على المواد</div>
+                <small class="set-hint">يعيد حساب أسعار كل المواد المسعّرة «حسب كتاب النقابة» دفعة واحدة بعد تأكيدك، والمواد اليدوية لا تتأثر.</small>
+                <button type="button" class="icon-btn primary-btn" onclick="savePricingSettings()">تطبيق الأسعار على المواد</button>
+            </div>
+
+            <div class="cat-manager-box" data-k="depts">
+                <h4>الأقسام الرئيسية</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> الأقسام الكبرى التي تجمع التصنيفات، مثل قسم الجلدية.</p>
                 <div id="deptListManager" class="manager-list"></div>
                 <div class="add-inline-row">
                     <input type="text" id="newDeptInput" placeholder="اسم قسم رئيسي جديد...">
@@ -160,8 +207,9 @@
                 </div>
             </div>
 
-            <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>التصنيفات الفرعية (قابلة لتعديل التسمية)</h4>
+            <div class="cat-manager-box" data-k="cats">
+                <h4>التصنيفات الفرعية</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> تفصّل كل قسم إلى تصنيفات تُسند إليها المواد. يمكن تعديل الاسم أو النقل أو الحذف.</p>
                 <div id="subCatListManager" class="manager-list"></div>
                 <div class="add-inline-row" style="flex-wrap:wrap;">
                     <select id="newSubCatDept" aria-label="القسم الرئيسي للتصنيف" style="flex:1 1 100%;"></select>
@@ -170,8 +218,22 @@
                 </div>
             </div>
 
-            <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>تبويبات الشريط السفلي (تعديل الأسماء وإضافة تبويبات جديدة)</h4>
+            <div class="cat-manager-box" data-k="forms">
+                <h4>الأشكال الدوائية</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> أقراص وشراب وحقن وغيرها، وتُستعمل في الفلاتر وإدخال المواد.</p>
+                <input type="search" class="bill-list-search" placeholder="🔍 ابحث عن شكل..." oninput="fmSearch(this.value)" style="margin-bottom:8px;">
+                <div id="formListManager" class="manager-list" style="max-height:320px;"></div>
+                <div class="add-inline-row" style="flex-wrap:wrap;">
+                    <select id="newFormGroup" aria-label="مجموعة الشكل" style="flex:1 1 100%;"></select>
+                    <input type="text" id="newFormInput" placeholder="اسم شكل دوائي جديد..." dir="ltr">
+                    <button class="icon-btn primary-btn" onclick="fmAdd()">+ إضافة</button>
+                </div>
+                <button type="button" class="icon-btn" onclick="fmAddGroup()" style="margin-top:8px;width:100%">＋ إضافة مجموعة أشكال</button>
+            </div>
+
+            <div class="cat-manager-box" data-k="types">
+                <h4>أنواع المواد (التبويبات)</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> تصنيف المواد في شاشة المخزن إلى: كل القسم، الأدوية، كوزمتك، غير متوفر وما تضيفه أنت.</p>
                 <div id="tabListManager" class="manager-list"></div>
                 <div class="add-inline-row">
                     <input type="text" id="newTabIcon" placeholder="🏷️" maxlength="4" style="width:56px; flex-grow:0; text-align:center;">
@@ -180,77 +242,29 @@
                 </div>
             </div>
 
-            <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>التنبيهات والمدد</h4>
-                <div class="form-group" style="margin-bottom:10px;">
-                    <label>تنبيه الكمية القليلة: عندما تصل كمية الصنف إلى (أو أقل من):</label>
-                    <div class="add-inline-row">
-                        <input type="number" id="lowThresholdInput" min="0">
-                        <button class="icon-btn primary-btn" onclick="saveLowThreshold()">حفظ</button>
-                    </div>
-                </div>
-                <div class="form-group" style="margin-bottom:10px;">
-                    <label>مدد تنبيه الصلاحية (بالأشهر، مرتبة من الأقصر للأطول):</label>
-                    <div class="add-inline-row">
-                        <input type="number" id="alertM1" min="1"><input type="number" id="alertM2" min="1"><input type="number" id="alertM3" min="1">
-                        <button class="icon-btn primary-btn" onclick="saveAlertMonths()">حفظ</button>
-                    </div>
-                </div>
-                <div class="form-group" style="margin-bottom:10px;">
-                    <label>مدة جلب تواريخ النفاذ من فواتير الوارد (بالأشهر):</label>
-                    <div class="add-inline-row">
-                        <input type="number" id="puWindowInput" min="1" max="60" placeholder="12">
-                        <button class="icon-btn primary-btn" onclick="savePuWindow()">حفظ</button>
-                    </div>
-                </div>
+            <div class="cat-manager-box" data-k="parts">
+                <h4>أنواع الجزء</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> أسماء الأجزاء التي تُباع بها العبوة بالتجزئة (شريط، حبة، مل…). تعديل الاسم يشمل كل المواد.</p>
+                <div class="tools-grid"><button type="button" class="icon-btn" onclick="manageSubTypes()" style="grid-column:1/-1;">✎ إدارة أنواع الجزء</button></div>
             </div>
 
-            <div class="cat-manager-box" id="pricingBox" style="margin-top:16px;">
-                <h4>التسعير حسب كتاب النقابة وسعر الصرف</h4>
-                <div class="form-group"><label>سعر الصرف (دينار لكل 1 دولار):</label><input type="number" id="pcRate" min="1" inputmode="decimal"></div>
-                <div class="form-group"><label>إذا كان السعر بالدولار يساوي حد الشريحة بالضبط (مثلاً 5$):</label><select id="pcBoundary"><option value="upper">يدخل الشريحة الأعلى (مثلاً 5$ ← 30%)</option><option value="lower">يدخل الشريحة الأدنى (مثلاً 5$ ← 40%)</option></select></div>
-                <div class="form-group"><label>رقم الكتاب النقابي:</label><input type="text" id="pcBookNo" dir="ltr"></div>
-                <div class="form-group"><label>تاريخ الكتاب:</label><input type="date" id="pcBookDate"></div>
-                <div class="form-group"><label>تقريب السعر لأقرب (دينار، 0 = بدون تقريب):</label><input type="number" id="pcRound" min="0" inputmode="numeric"></div>
-                <div class="form-group"><label>الشرائح (سعر المذخر بالدولار ← نسبة الإضافة):</label><div id="pcRows"></div></div>
-                <button type="button" class="icon-btn primary-btn" onclick="savePricingSettings()">💾 حفظ وإعادة تسعير المواد</button>
-                <small style="display:block;margin-top:8px;color:#64748b;line-height:1.7;">تغيير سعر الصرف أو النسب يعيد حساب أسعار كل المواد المسعّرة «حسب كتاب النقابة» دفعة واحدة، بعد تأكيدك. المواد اليدوية لا تتأثر.</small>
+            <div class="cat-manager-box" data-k="maint-hub">
+                <h4>مركز تجهيز البيانات</h4>
+                <p class="set-desc">مكان واحد لإكمال بيانات المخزن: المادة الفعالة، مراجعة التصنيف، المكرر، النواقص، تعبئة الشركات وقواعد تصنيفك الخاصة.</p>
+                <div class="tools-grid"><button type="button" class="icon-btn primary-btn" onclick="dhOpen()" style="grid-column:1/-1;">🧰 فتح مركز تجهيز البيانات</button></div>
             </div>
 
-            <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>النسخ الاحتياطي والاسترجاع</h4>
-                <div class="tools-grid">
-                    <button class="icon-btn" onclick="exportFullBackup()" style="grid-column: 1 / -1;">💾 نسخة احتياطية كاملة (كل شيء)</button>
-                    <button class="icon-btn" onclick="exportBackupJson()">📦 الأصناف فقط</button>
-                    <button class="icon-btn" onclick="exportCsv()">📊 تصدير Excel (CSV)</button>
-                    <button class="icon-btn" onclick="openCloudBackupsModal()">☁️ النسخ السحابية</button>
-                    <label class="icon-btn" for="restoreInput" style="grid-column: 1 / -1;">♻️ استرجاع من نسخة احتياطية</label>
-                    <input type="file" id="restoreInput" accept=".json,application/json" hidden onchange="restoreBackup(event)">
-                </div>
-                <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">النسخة الكاملة تحفظ الأصناف والمخزون والوارد والمذاخر والفواتير وكل السجلات والإعدادات. الصور تبقى في GitHub. الاسترجاع يعرض معاينة قبل التطبيق ولا يستبدل سجلاً أحدث.</p>
+            <div class="cat-manager-box" data-k="seed" id="taxSeedBox"></div>
+
+            <div class="cat-manager-box" data-k="maint-exp">
+                <h4>استيراد تواريخ الانتهاء</h4>
+                <p class="set-desc">أداة تُستعمل عند الحاجة: تضيف تواريخ الانتهاء المسجّلة في فواتير وارد مؤجَّلة لم تُطبَّق بعد على المخزن.</p>
+                <div class="tools-grid"><button class="icon-btn" onclick="puExpBackfill()" style="grid-column:1/-1;">📅 استيراد تواريخ الانتهاء من الفواتير المؤجَّلة</button></div>
             </div>
 
-            <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>أدوات المخزون</h4>
-                <div class="tools-grid">
-                    <button class="icon-btn" onclick="puExpBackfill()"><span class="tl-ico">📅</span> <span class="tl-t">تواريخ الانتهاء</span> <small class="tl-sub">من الفواتير المؤجَّلة</small></button>
-                    <button class="icon-btn" onclick="lblOpen()"><span class="tl-ico">🏷️</span> <span class="tl-t">ملصقات الباركود</span> <small class="tl-sub">توليد وطباعة</small></button>
-                </div>
-            </div>
-
-            <div class="cat-manager-box" id="securityBox" style="margin-top:16px;">
-                <h4>المستخدمون والسجلات</h4>
-                <div class="tools-grid">
-                    <button class="icon-btn" onclick="openUsers()">👥 المستخدمون والصلاحيات</button>
-                    <button class="icon-btn" onclick="openLogModal()">📜 سجل الإجراءات</button>
-                    <button class="icon-btn" onclick="openRecon()">⚖️ تقرير تطابق المخزون</button>
-                    <button class="icon-btn" onclick="openTrashModal()">🗑️ سلة المحذوفات</button>
-                </div>
-                <p style="font-size:0.74rem; color:var(--text-sub); margin-top:8px;">الحذف ينقل الصنف للسلة 30 يوماً. تُنشأ نسخة سحابية تلقائياً كل 7 أيام عند دخولك، ويُحتفظ بآخر 4 نسخ.</p>
-            </div>
-
-            <div class="cat-manager-box" id="aiSettingsBox" style="margin-top:16px;">
-                <h4>الذكاء الصناعي لمسح العبوة (إعدادات هذا الجهاز)</h4>
+            <div class="cat-manager-box" data-k="ai" id="aiSettingsBox">
+                <h4>الذكاء الصناعي لمسح العبوة</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> محرك قراءة العبوة والبحث بالاسم. المفتاح لا يُرفع للسحابة ولا يدخل النسخة الاحتياطية. تُحفظ التغييرات تلقائياً.</p>
                 <div class="form-group">
                     <label>محرك القراءة:</label>
                     <select id="aiEngineSelect" onchange="setAiEngine(this.value)">
@@ -279,7 +293,7 @@
                         </select>
                         <small style="display:block;margin-top:6px;color:#64748b;line-height:1.7;">الموصى به للحساب المجاني: <b dir="ltr">gemini-3.8-flash</b>. عند فشله يجرّب التطبيق تلقائياً <b dir="ltr">gemini-3.5-flash-lite</b> ثم <b dir="ltr">gemini-3.1-flash-lite</b>.</small>
                     </div>
-                    <label style="display:flex;gap:8px;align-items:flex-start;font-size:.85rem;line-height:1.7;margin:8px 0;"><input type="checkbox" id="aiWebSearch" style="width:auto;margin-top:5px;"><span>🌐 البحث على الإنترنت عند «البحث بالاسم» <small style="color:#64748b;display:block">يستعمل بحث جوجل. غير متاح في الحساب المجاني (يحتاج تفعيل الفوترة في AI Studio، وأول 5000 بحث شهرياً بلا رسوم). إن لم يتوفر يرجع التطبيق تلقائياً لمعرفة النموذج.</small></span></label>
+                    <div class="qk-row"><div><b>البحث على الإنترنت عند «البحث بالاسم»</b><small>يستعمل بحث جوجل، وهو غير متاح في الحساب المجاني (يحتاج تفعيل الفوترة في AI Studio، وأول 5000 بحث شهرياً بلا رسوم). إن لم يتوفر يرجع التطبيق تلقائياً إلى معرفة النموذج.</small></div><label class="setup-sw"><input type="checkbox" id="aiWebSearch"><i></i></label></div>
                 </div>
 
                 <div id="aiOpenAiBox" style="display:none;">
@@ -317,46 +331,65 @@
                 </div>
 
                 <div class="tools-grid">
-                    <button type="button" class="icon-btn" onclick="saveAiSettings()">💾 حفظ الإعدادات</button>
-                    <button type="button" class="icon-btn" onclick="testAiConnection()">🧪 اختبار الاتصال</button>
+                    <button type="button" class="icon-btn" onclick="testAiConnection()" style="grid-column:1/-1;">🧪 اختبار الاتصال</button>
                 </div>
                 <p id="aiTestResult" class="ai-test-result"></p>
                 <p class="ai-note">الإعدادات والمفتاح يُحفظان على هذا الجهاز فقط، ولا يُرفعان للسحابة ولا يدخلان النسخة الاحتياطية. عند استعمال الذكاء الصناعي تُرسل صورة العبوة إلى جوجل (والطبقة المجانية قد تُستخدم لتحسين منتجاتها)، فلا تصوّر أي شيء يخص الزبائن. الذكاء الصناعي قد يخطئ، فراجع الاسم والتركيز والمادة الفعالة قبل الحفظ.</p>
             </div>
 
-            <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>الأشكال الدوائية (إضافة ونقل وتعديل الأسماء)</h4>
-                <input type="search" class="bill-list-search" placeholder="🔍 ابحث عن شكل..." oninput="fmSearch(this.value)" style="margin-bottom:8px;">
-                <div id="formListManager" class="manager-list" style="max-height:320px;"></div>
-                <div class="add-inline-row" style="flex-wrap:wrap;">
-                    <select id="newFormGroup" aria-label="مجموعة الشكل" style="flex:1 1 100%;"></select>
-                    <input type="text" id="newFormInput" placeholder="اسم شكل دوائي جديد..." dir="ltr">
-                    <button class="icon-btn primary-btn" onclick="fmAdd()">+ إضافة</button>
-                </div>
-                <button type="button" class="icon-btn" onclick="fmAddGroup()" style="margin-top:8px;width:100%">＋ إضافة مجموعة أشكال</button>
+            <div class="cat-manager-box" data-k="docs" id="docSetBox">
+                <h4>إعدادات صفحة الأطباء</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> ما يراه الطبيب في صفحته وكيف تُحدَّث حالة المواد.</p>
+                <div class="doc-set-host" data-doc-set="1"><div class="dh-note">جارٍ التحميل…</div></div>
             </div>
 
-            <div class="cat-manager-box" style="margin-top:16px;">
-                <h4>التطبيق</h4>
-                <div class="tools-grid">
-                    <button class="icon-btn" onclick="installApp()" style="grid-column:1/-1;">📲 تثبيت التطبيق على الجهاز</button>
-                </div>
+            <div class="cat-manager-box" data-k="install">
+                <h4>تثبيت التطبيق</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> يضيف التطبيق إلى شاشة الجهاز ليعمل بملء الشاشة وبدون شريط المتصفح.</p>
+                <div class="tools-grid"><button class="icon-btn" onclick="installApp()" style="grid-column:1/-1;">📲 تثبيت التطبيق على الجهاز</button></div>
             </div>
 
-            <div class="cat-manager-box" id="dataProtectBox" style="margin-top:16px;">
-                <h4>حماية البيانات</h4>
+            <div class="cat-manager-box" data-k="device">
+                <h4>إعدادات الجهاز</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> خيارات تخص هذا الجهاز وحده ولا تنتقل إلى غيره.</p>
+                <div id="devNativeRows"></div>
+                <div class="qk-row"><div><b>أسماء الأطباء المحفوظة</b><small>قائمة الإكمال التلقائي لاسم الطبيب في الوصفة. تُحفظ على كل جهاز لوحده ولا تُرفع للسحابة.</small></div><button type="button" class="dc-mini" onclick="docClearNames()">مسح</button></div>
+            </div>
+
+            <div class="cat-manager-box" data-k="users" id="securityBox">
+                <h4>المستخدمون والصلاحيات</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> إضافة المستخدمين وتحديد ما يستطيع كل واحد منهم فعله.</p>
+                <div class="tools-grid"><button class="icon-btn" onclick="openUsers()" style="grid-column:1/-1;">👥 إدارة المستخدمين والصلاحيات</button></div>
+            </div>
+
+            <div class="cat-manager-box" data-k="protect" id="dataProtectBox">
+                <h4>الأمان والخصوصية</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> إخفاء البيانات الحساسة عمّن لا يملك صلاحيتها. كل أداة تُنفَّذ مرة واحدة ثم تبقى مفعّلة.</p>
                 <div class="tools-grid">
-                    <button class="icon-btn" onclick="migrateStockPrivate()" style="grid-column:1/-1;">🔒 حماية بيانات المخزون (إخفاء الكميات عن الزبائن)</button>
+                    <button class="icon-btn" onclick="migrateStockPrivate()" style="grid-column:1/-1;">🔒 حماية بيانات المخزون (فصل الكميات عن البيانات العامة)</button>
                     <button class="icon-btn" onclick="openCostSplit()" style="grid-column:1/-1;">🔒 فصل سعر الشراء (إخفاء الكلفة عن البائعين)</button>
                 </div>
             </div>
-            <div class="cat-manager-box" id="invSetBox" style="margin-top:16px;">
-                <h4>🧾 بيانات الصيدلية على الفاتورة</h4>
-                <div class="bill-settings" data-inv-set="1"></div>
+
+            <div class="cat-manager-box" data-k="backup">
+                <h4>النسخ الاحتياطي والتصدير</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> النسخة الكاملة تحفظ الأصناف والمخزون والوارد والمذاخر والفواتير وكل السجلات والإعدادات. تُنشأ نسخة سحابية تلقائياً كل 7 أيام ويُحتفظ بآخر 4 نسخ.</p>
+                <div class="tools-grid">
+                    <button class="icon-btn" onclick="exportFullBackup()" style="grid-column: 1 / -1;">💾 نسخة احتياطية كاملة (كل شيء)</button>
+                    <button class="icon-btn" onclick="exportBackupJson()">📦 الأصناف فقط</button>
+                    <button class="icon-btn" onclick="exportCsv()">📊 تصدير Excel (CSV)</button>
+                    <button class="icon-btn" onclick="openCloudBackupsModal()" style="grid-column: 1 / -1;">☁️ النسخ السحابية</button>
+                </div>
             </div>
-            <div class="cat-manager-box" id="docSetBox" style="margin-top:16px;">
-                <h4>🩺 إعدادات صفحة الأطباء</h4>
-                <div class="doc-set-host" data-doc-set="1"><div class="dh-note">جارٍ التحميل…</div></div>
+
+            <div class="cat-manager-box" data-k="restore">
+                <h4>الاسترجاع وسلة المحذوفات</h4>
+                <p class="set-desc">الحذف ينقل الصنف إلى السلة 30 يوماً. الاسترجاع من نسخة احتياطية يعرض معاينة قبل التطبيق ولا يستبدل سجلاً أحدث.</p>
+                <div class="tools-grid">
+                    <button class="icon-btn" onclick="openTrashModal()" style="grid-column: 1 / -1;">🗑️ سلة المحذوفات</button>
+                    <label class="icon-btn" for="restoreInput" style="grid-column: 1 / -1;">♻️ استرجاع من نسخة احتياطية</label>
+                    <input type="file" id="restoreInput" accept=".json,application/json" hidden onchange="restoreBackup(event)">
+                </div>
             </div>
 
             <div class="modal-actions-row" style="margin-top:18px;">
@@ -846,6 +879,12 @@
                     <button type="button" data-r="all" onclick="setReportRange('all')">الكل</button>
                 </div>
                 <div id="reportBody"></div>
+                <div class="rep-sys owner-only-rep" id="repSys" hidden>
+                    <h4>سجلات وتقارير النظام</h4>
+                    <div class="qk-row"><div><b>تقرير تطابق المخزون</b><small>يقارن الكميات الحالية بحركات البيع والإدخال ويكشف الفروقات.</small></div><button type="button" class="dc-mini" onclick="openRecon()">فتح</button></div>
+                    <div class="qk-row"><div><b>سجل الإجراءات</b><small>من أضاف أو عدّل أو حذف، ومتى.</small></div><button type="button" class="dc-mini" onclick="openLogModal()">فتح</button></div>
+                    <div class="qk-row"><div><b>سجل البحث الفاشل</b><small>كلمات بحث لم تجد نتيجة، لتعرف المواد المطلوبة وغير المتوفرة.</small></div><button type="button" class="dc-mini" onclick="openMissModal()">فتح</button></div>
+                </div>
             </div>
         </section>
 

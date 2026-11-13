@@ -248,9 +248,6 @@
         });
     };
     window.natOpenSettings = () => NAT.openSettings();
-    if (typeof SH_PAGES !== 'undefined' && !SH_PAGES.some(p => p.id === 'natapp')) {
-        SH_PAGES.push({ id: 'natapp', ico: '📱', t: 'إعدادات التطبيق', boxes: [], act: 'natOpenSettings', kw: 'تطبيق اندرويد بصمة قفل طابعة حرارية تذكير صلاحية ورق' });
-    }
 
     // إظهار الحقل الذي يُكتب فيه فوق لوحة المفاتيح
     document.addEventListener('focusin', e => {

@@ -3,16 +3,17 @@
 // ما تغيّر محتوى الإعدادات القديمة، بس ترتّبه (تعرض صناديق كل صفحة وتخفي الباقي).
 // =====================================================================
 const SH_PAGES = [
-    { id: 'invset', ico: '🧾', t: 'الفواتير والبيع', boxes: [13], kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع شاشة البيع جرد عند أول بيع invoice' },
-    { id: 'inv', ico: '📦', t: 'المخزون والتنبيهات', boxes: [4, 7], kw: 'مخزون تنبيه تنبيهات نقص كمية صلاحية انتهاء مدة نفاذ جرد وضع الجرد تحديث المواد من الوارد تواريخ الانتهاء الفواتير المؤجلة ملصقات باركود inventory alerts' },
-    { id: 'price', ico: '💰', t: 'التسعير', boxes: [5], kw: 'سعر تسعير نقابة صرف دولار دينار نسبة ربح فصل سعر الشراء كلفة pricing' },
-    { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيف', boxes: [0, 1, 2, 10], kw: 'ادخال سريع تعلم ما تعلمه التطبيق قواعد سجل البحث الفاشل اكمال تصنيف تلقائي شكل دوائي تلقائي اشكال الاشكال الدوائية مجموعة أشكال forms قسم اقسام تصنيف تصنيفات فرعية جاهزة الأقسام الرئيسية departments categories' },
-    { id: 'dhub', ico: '🧰', t: 'مركز تجهيز البيانات', boxes: [], act: 'shGoDataHub', kw: 'مركز تجهيز البيانات مواد فعالة المادة الفعالة مراجعة التصنيف مكررة المكرر بيانات ناقصة غير مسعرة تعبئة الشركات قواعد تصنيفي الخاصة' },
-    { id: 'scanner', ico: '🔎', t: 'المسح والذكاء الصناعي', boxes: [9], kw: 'فاحص المادة مسح باركود سعر خصم حد الخصم اكسباير نفاذ هامش ربح scanner discount ذكاء صناعي مسح عبوة gemini ocr قراءة العبوة' },
-    { id: 'docset', ico: '🩺', t: 'صفحة الأطباء', boxes: [14], kw: 'طبيب اطباء صفحة الاطباء المواد المعروضة رابط الصفحة اظهار الاسعار العدد طلبات الأطباء doctor' },
-    { id: 'ui', ico: '🧩', t: 'الواجهة والتطبيق', boxes: [3, 11], kw: 'تبويب تبويبات الشريط السفلي واجهة تثبيت التطبيق tabs install' },
-    { id: 'sec', ico: '🔐', t: 'الحسابات والأمان', boxes: [8, 12], kw: 'مستخدم مستخدمين صلاحيات حساب بصمة كلمة سر باسورد حماية أمان سجل اجراءات تعديلات سلة محذوفات استعادة حماية بيانات المخزون اخفاء الكميات فصل سعر الشراء تقرير تطابق users permissions security log trash' },
-    { id: 'sys', ico: '💾', t: 'النسخ والبيانات', boxes: [6], kw: 'نسخ احتياطي استرجاع تصدير نسخ سحابية backup restore export csv' },
+    { id: 'invset', ico: '🧾', t: 'الفواتير والبيع', boxes: ['invoice'], kw: 'فاتورة فواتير عنوان الصيدلية هاتف ختم توقيع سياسة الإرجاع شاشة البيع جرد عند أول بيع طباعة invoice print' },
+    { id: 'inv', ico: '📦', t: 'المخزون والتنبيهات', boxes: ['alerts'], kw: 'مخزون تنبيه تنبيهات نقص كمية قليلة صلاحية انتهاء مدة نفاذ تواريخ الوارد inventory alerts' },
+    { id: 'price', ico: '💰', t: 'التسعير', boxes: ['pricing'], kw: 'سعر تسعير نقابة كتاب صرف دولار دينار نسبة شرائح تقريب إعادة تسعير pricing' },
+    { id: 'tax', ico: '🗂️', t: 'الأقسام والتصنيف', boxes: ['depts', 'cats', 'forms', 'types', 'parts'], quick: true, kw: 'قسم اقسام تصنيف تصنيفات فرعية اشكال الاشكال الدوائية مجموعة تبويب تبويبات انواع المواد نوع الجزء اجزاء الإدخال السريع تعلم تلقائي ما تعلمه التطبيق forms categories departments' },
+    { id: 'maint', ico: '🧰', t: 'صيانة البيانات', boxes: ['maint-hub', 'seed', 'maint-exp'], kw: 'مركز تجهيز البيانات مواد فعالة مراجعة التصنيف مكررة ناقصة تعبئة الشركات قواعد تصنيفي الأقسام الجاهزة استيراد تواريخ الانتهاء الفواتير المؤجلة صيانة' },
+    { id: 'scanner', ico: '🔎', t: 'فاحص المادة', boxes: [], scan: true, kw: 'فاحص المادة مسح باركود حد الخصم الخصم المحمي الكامل هامش الامان اكسباير حاسبة الخصم scanner discount' },
+    { id: 'ai', ico: '✨', t: 'الذكاء الصناعي', boxes: ['ai'], kw: 'ذكاء صناعي مسح عبوة gemini firebase groq openrouter مفتاح نموذج بحث بالاسم قراءة العبوة ocr' },
+    { id: 'docset', ico: '🩺', t: 'صفحة الأطباء', boxes: ['docs'], kw: 'طبيب اطباء صفحة الاطباء رابط الصفحة اظهار الاسعار العدد تحديث تلقائي طلبات الأطباء doctor' },
+    { id: 'device', ico: '📱', t: 'هذا الجهاز', boxes: ['install', 'device'], kw: 'تثبيت التطبيق بصمة قفل تذكير طباعة ورق طابعة اسماء الاطباء المحفوظة الجهاز install' },
+    { id: 'sec', ico: '🔐', t: 'المستخدمون والأمان', boxes: ['users', 'protect'], kw: 'مستخدم مستخدمين صلاحيات حساب بائع حماية بيانات المخزون فصل سعر الشراء كلفة اخفاء أمان خصوصية users permissions security' },
+    { id: 'sys', ico: '💾', t: 'النسخ والاسترجاع', boxes: ['backup', 'restore'], kw: 'نسخ احتياطي استرجاع تصدير اكسل csv نسخ سحابية سلة محذوفات backup restore export trash' }
 ];
 // الرجوع الصحيح: النافذة التي تُفتح من الإعدادات (اختصار/أداة) تغلق الإعدادات مؤقتًا؛ عند الرجوع منها نعيد الإعدادات
 // في الصفحة التي كنت فيها، لا أن نتركك في الرئيسية. kind: 'layer' نافذة (تُراقَب) أو 'view' شاشة (تُعاد بزر الرجوع).
@@ -38,65 +39,32 @@ window.__shReturn = shReturn;
 window.__shSnap = () => (shRet ? { page: shRet.page } : null);   // لمعرفة صفحة الإعدادات التي جئنا منها
 setInterval(() => { if (shRet) shReturn(); }, 350);
 function shGoDataHub() { dhOpen(); }
-const SH_ORDER = ['invset', 'inv', 'price', 'tax', 'dhub', 'scanner', 'docset', 'ui', 'natapp', 'sec', 'sys'];
-function shSortPages() { SH_PAGES.sort((a, b) => { const x = SH_ORDER.indexOf(a.id), y = SH_ORDER.indexOf(b.id); return (x < 0 ? 99 : x) - (y < 0 ? 99 : y); }); }
 let shCur = null;
 const shNorm = s => String(s || '').toLowerCase().replace(/[ً-ٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
-// الصناديق الأساسية فقط (ثابتة العدد والترتيب): صناديق صفحة «الأقسام» الإضافية داخل #shQuick لا تُحسب، وإلا انزاحت فهارس الصفحات بعد زيارتها وظهر محتوى خاطئ
-function shBoxes() { return [...document.querySelectorAll('#catModal .cat-manager-box')].filter(b => !b.closest('#shQuick')); }
+// الصناديق تُعرَّف بمعرّف ثابت data-k (لا بأرقام ترتيب)، فلا تنزاح الصفحات مهما تغيّرت المحتويات
+function shBoxes() { return [...document.querySelectorAll('#catModal .cat-manager-box[data-k]')]; }
+function shBox(k) { return document.querySelector('#catModal .cat-manager-box[data-k="' + k + '"]'); }
 function shCard() { return document.querySelector('#catModal .modal-card'); }
 function shBuzz() { try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { /* تجاهل */ } }
 function shSummary(p) {
     try {
-        if (p.id === 'tax') { const n = (typeof taxSeeded === 'function' && taxSeeded()) ? taxMissingSubs().length + taxPendingRenames().length + taxPendingMoves().length : 0; return { s: `${fmtNum(departments.length)} قسم · ${fmtNum(subCategories.length)} تصنيف`, badge: n ? fmtNum(n) + ' جديد' : '' }; }
-        if (p.id === 'hub') return { s: 'المواد الفعالة والتصنيف والنواقص' };
-        if (p.id === 'doctor') { const n = (typeof docData !== 'undefined' && docData) ? Object.keys(docData.items).length : 0; return { s: n ? fmtNum(n) + ' مادة معروضة للأطباء' : 'اختر المواد وحالاتها للأطباء' }; }
-        if (p.id === 'rx') { const n = (typeof rxNewN === 'function') ? rxNewN() : 0; return { s: n ? fmtNum(n) + ' وصفة جديدة' : 'وصفات الأطباء وحالات التجهيز' }; }
-        if (p.id === 'catalog') return { s: 'دليل المواد الدوائية' };
-        if (p.id === 'hub') return { s: 'المواد الفعالة والتصنيف والنواقص' };
-        if (p.id === 'tabs' || p.id === 'ui') return { s: 'التبويبات السفلية · تثبيت التطبيق' };
-        if (p.id === 'inv') return { s: `حد النقص ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر · الجرد` };
-        if (p.id === 'invset') return { s: 'بيانات الفاتورة · الختم والتوقيع · شاشة البيع' };
-        if (p.id === 'docset') return { s: 'الرابط · الأسعار والعدد · الطلبات' };
-        if (p.id === 'dhub') return { s: 'المواد الفعالة · التصنيف · المكرر · النواقص' };
-        if (p.id === 'tax') return { s: 'الأقسام · التصنيفات · الأشكال الدوائية · الإدخال السريع' };
-        if (p.id === 'price') return { s: `سعر الصرف ${fmtNum(pricingCfg.rate)}` };
-        if (p.id === 'quick') { const c = qkCfg(), on = ['form', 'dept', 'like'].filter(k => c[k]).length, r = typeof learnRules === 'function' ? learnRules().length : 0; return { s: `الإدخال ${on}/3 · التعلّم ${learnOn() ? 'مفعّل' : 'متوقف'}${r ? ' · ' + fmtNum(r) + ' قاعدة' : ''}` }; }
+        if (p.id === 'tax') { const n = (typeof taxSeeded === 'function' && taxSeeded()) ? taxMissingSubs().length + taxPendingRenames().length + taxPendingMoves().length : 0; return { s: `${fmtNum(departments.length)} قسم · ${fmtNum(subCategories.length)} تصنيف · الأشكال والتبويبات`, badge: n ? fmtNum(n) + ' جديد' : '' }; }
+        if (p.id === 'inv') return { s: `حد الكمية ${fmtNum(lowStockThreshold)} · الصلاحية ${alertMonths.join('/')} أشهر` };
+        if (p.id === 'price') return { s: `سعر الصرف ${fmtNum(pricingCfg.rate)} · الشرائح والتقريب` };
+        if (p.id === 'invset') return { s: 'هوية الفاتورة · الختم والتوقيع · شاشة البيع · الطباعة' };
+        if (p.id === 'maint') return { s: 'مركز تجهيز البيانات · الأقسام الجاهزة · استيراد التواريخ' };
         if (p.id === 'scanner') { const c = typeof scCfg === 'function' ? scCfg() : null; return { s: c ? (c.on ? 'مشغّل · ' : 'متوقف · ') + (c.mode === 'safe' ? 'خصم محمي' : 'خصم كامل') : '' }; }
-        if (p.id === 'sec') return { s: 'المستخدمون · السجل · السلة' };
-        if (p.id === 'sys') return { s: 'نسخ احتياطي · تصدير · استرجاع · نسخ سحابية' };
+        if (p.id === 'ai') return { s: 'محرك القراءة · المفتاح · اختبار الاتصال' };
+        if (p.id === 'docset') return { s: 'الرابط · الأسعار والعدد · طلبات الأطباء' };
+        if (p.id === 'device') return { s: 'التثبيت · البصمة · التذكيرات · الطباعة' };
+        if (p.id === 'sec') return { s: 'المستخدمون · الصلاحيات · حماية البيانات' };
+        if (p.id === 'sys') return { s: 'نسخ احتياطي · تصدير · استرجاع · السلة' };
     } catch (e) { /* تجاهل */ }
     return { s: '' };
 }
-const SH_FAV_LS = 'diwanShFav', SH_FAV_MAX = 8;
-// مفتاح الأداة = نص onclick للزر (ثابت). المفضلة تقبل بطاقات (معرّف الصفحة) وأدوات (t:المفتاح)
-function shToolKey(b) { return 't:' + (b.getAttribute('onclick') || '').replace(/\s+/g, ' ').trim(); }
-function shToolBtns() { return [...document.querySelectorAll('#catModal .tools-grid > button.icon-btn')]; }
-function shToolByKey(k) { return shToolBtns().find(b => shToolKey(b) === k); }
-function shToolLabel(b) { const c = b.cloneNode(true); c.querySelectorAll('.sh-star').forEach(x => x.remove()); return c.textContent.trim(); }
-function shFav() { try { const a = JSON.parse(localStorage.getItem(SH_FAV_LS)); return Array.isArray(a) ? a.filter(id => id.startsWith('t:') ? !!shToolByKey(id) : SH_PAGES.some(p => p.id === id)).slice(0, SH_FAV_MAX) : []; } catch (e) { return []; } }
-function shFavToggle(id) {
-    let a = shFav();
-    if (a.includes(id)) a = a.filter(x => x !== id);
-    else { if (a.length >= SH_FAV_MAX) { shToast('أقصى حد ' + SH_FAV_MAX + ' مفضّلات'); return; } a.push(id); }
-    try { localStorage.setItem(SH_FAV_LS, JSON.stringify(a)); } catch (e) { /* تجاهل */ }
-    if (shCur) { shStarSync(); return; }
-    const sc = shCard() ? shCard().scrollTop : 0; shHome(false); if (shCard()) shCard().scrollTop = sc;
-}
-// نجمة على كل أداة داخل الصفحات (تُلتقط بمرحلة capture حتى لا ينفّذ الزر أمرَه)
-function shStarSync() { const f = shFav(); shToolBtns().forEach(b => { const st = b.querySelector('.sh-star'); if (!st) return; const on = f.includes(shToolKey(b)); st.classList.toggle('on', on); st.innerHTML = SH_STAR(on); }); }
-function shDecorate() {
-    shToolBtns().forEach(b => { if (b.querySelector('.sh-star')) return; const st = document.createElement('i'); st.className = 'sh-star sh-tstar'; st.dataset.star = shToolKey(b); st.setAttribute('role', 'button'); st.setAttribute('aria-label', 'تثبيت في المفضلة'); b.appendChild(st); });
-    shStarSync();
-}
-const SH_STAR = on => `<svg viewBox="0 0 24 24" width="16" height="16" fill="${on ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/></svg>`;
 function shHubHtml() {
-    shSortPages();
-    const fav = shFav();
-    const chip = id => { if (id.startsWith('t:')) { const b = shToolByKey(id), lab = shToolLabel(b), m = lab.match(/^(\S+)\s+(.*)$/); return `<button type="button" class="sh-chip" data-t="${id.replace(/"/g, '&quot;')}"><span class="sh-ico">${m ? m[1] : '⭐'}</span>${m ? m[2] : lab}</button>`; } const p = SH_PAGES.find(x => x.id === id); return `<button type="button" class="sh-chip" data-p="${p.id}"><span class="sh-ico">${p.ico}</span>${p.t}</button>`; };
-    const favRow = fav.length ? `<div class="sh-fav"><span class="sh-fav-t">${SH_STAR(true)} المفضلة</span>${fav.map(chip).join('')}</div>` : '';
-    return favRow + `<div class="sh-search"><input type="search" id="shQ" placeholder="ابحث في الإعدادات…" autocomplete="off" aria-label="بحث في الإعدادات"></div>
-    <div class="sh-grid" id="shGrid">${SH_PAGES.map(p => { const m = shSummary(p); return `<button type="button" class="sh-card" data-p="${p.id}"><span class="sh-ico">${p.ico}</span><span class="sh-tx"><b>${p.t}</b><small>${m.s}</small></span>${m.badge ? `<em class="sh-badge">${m.badge}</em>` : ''}<i class="sh-star ${shFav().includes(p.id) ? 'on' : ''}" data-star="${p.id}" role="button" aria-label="تثبيت في المفضلة">${SH_STAR(shFav().includes(p.id))}</i></button>`; }).join('')}</div>
+    return `<div class="sh-search"><input type="search" id="shQ" placeholder="ابحث في الإعدادات…" autocomplete="off" aria-label="بحث في الإعدادات"></div>
+    <div class="sh-grid" id="shGrid">${SH_PAGES.map(p => { const m = shSummary(p); return `<button type="button" class="sh-card" data-p="${p.id}"><span class="sh-ico">${p.ico}</span><span class="sh-tx"><b>${p.t}</b><small>${m.s}</small></span>${m.badge ? `<em class="sh-badge">${m.badge}</em>` : ''}</button>`; }).join('')}</div>
     <div class="sh-res" id="shRes" hidden></div>`;
 }
 function shQuickHtml() {
@@ -107,9 +75,8 @@ function shQuickHtml() {
     <div class="qk-row"><div><b>ما تعلّمه التطبيق</b><small>${fmtNum(lr)} قاعدة متعلَّمة من اختياراتك · اعرضها واحذف ما لا تريده</small></div><button type="button" class="ln-btn" onclick="learnOpen()">فتح</button></div>
     <div class="sh-danger"><h5>⚠️ منطقة الخطر</h5><p>يمسح كل ما تعلّمه التطبيق من اختياراتك (المواد لا تتأثر).</p><button type="button" class="sh-dbtn" onclick="learnClear()">🗑️ مسح كل التعلّم</button></div>`;
 }
-function shTaxExtraHtml() {   // أسفل صفحة «التصنيف والبيانات»: الإدخال السريع والتعلّم (مطوي)، ثم سجل البحث الفاشل بخانة مستقلة
-    return `<div class="cat-manager-box sh-show" id="shQkBox"><h4>🧩 الإدخال السريع والتعلّم</h4>${shQuickHtml()}</div>
-    <div class="cat-manager-box sh-show tx-hubonly" id="shMissBox" role="button" tabindex="0" onclick="openMissModal()" style="margin-top:12px"><div class="cmb-head"><span>🔎 سجل البحث الفاشل</span><i class="cmb-chev">‹</i></div><small class="tx-sub">كلمات بحث لم تُعطِ نتيجة، لتعرف ما ينقص فهرسك</small></div>`;
+function shTaxExtraHtml() {   // أسفل صفحة «الأقسام والتصنيف»: الإدخال السريع والتعلّم
+    return `<div class="cat-manager-box sh-show" id="shQkBox"><h4>🧩 الإدخال السريع والتعلّم</h4><p class="set-desc"><i class="set-scope">هذا الجهاز</i> اقتراحات تلقائية تختصر إدخال المواد الجديدة، وتتعلّم من اختياراتك.</p>${shQuickHtml()}</div>`;
 }
 function shInit() {
     const card = shCard(); if (!card || card.dataset.sh) return; card.dataset.sh = '1';
@@ -117,10 +84,8 @@ function shInit() {
     const h3 = card.querySelector('h3'); if (h3) { h3.id = 'shTitle'; }
     h3.insertAdjacentHTML('afterend', '<div id="shBar" class="sh-bar" hidden><button type="button" class="sh-back" id="shBack"><i>›</i> الإعدادات</button><b id="shPT"></b></div><div id="shHub"></div><div id="shQuick" class="cat-manager-box sh-quick" hidden></div>');
     document.getElementById('shBack').addEventListener('click', () => { shBuzz(); shHome(true); });
-    card.addEventListener('click', e => { const tc = e.target.closest('.sh-chip[data-t]'); if (tc) { shBuzz(); const b = shToolByKey(tc.dataset.t); if (b) b.click(); return; } const st = e.target.closest('.sh-star'); if (st) { e.stopPropagation(); shBuzz(); shFavToggle(st.dataset.star); return; } const ch = e.target.closest('.sh-chip'); if (ch) { shBuzz(); shOpen(ch.dataset.p); return; } const b = e.target.closest('.sh-card'); if (b) { shBuzz(); shOpen(b.dataset.p); } const r = e.target.closest('.sh-r'); if (r) { shBuzz(); shOpen(r.dataset.p, r.dataset.b === '' ? null : +r.dataset.b); } });
+    card.addEventListener('click', e => { const b = e.target.closest('.sh-card'); if (b) { shBuzz(); shOpen(b.dataset.p); return; } const r = e.target.closest('.sh-r'); if (r) { shBuzz(); shOpen(r.dataset.p, r.dataset.b || null); } });
     card.addEventListener('input', e => { if (e.target.id === 'shQ') shSearch(e.target.value); });
-    card.addEventListener('click', e => { const st = e.target.closest('.sh-tstar'); if (st) { e.stopPropagation(); e.preventDefault(); shBuzz(); shFavToggle(st.dataset.star); } }, true);
-    shDecorate();
     card.classList.add('sh');
 }
 function shHome(anim) {
@@ -134,48 +99,58 @@ function shHome(anim) {
     if (anim) { hub.classList.remove('sh-in-back'); void hub.offsetWidth; hub.classList.add('sh-in-back'); }
     card.scrollTop = 0;
 }
-function shOpen(id, boxIdx) {
+// صفوف الجهاز: خيارات التطبيق الأصلي (أندرويد) فقط
+function shDeviceRows() {
+    const host = document.getElementById('devNativeRows'); if (!host) return;
+    const app = !!(window.NAT && NAT.is);
+    host.innerHTML = app ? `<div class="qk-row"><div><b>البصمة والتذكيرات</b><small>قفل التطبيق بالبصمة وتذكيرات الدوام والنسخ الاحتياطي.</small></div><button type="button" class="dc-mini" onclick="NAT.openSettings()">فتح</button></div>
+        <div class="qk-row"><div><b>الطباعة</b><small>حجم الورق الافتراضي واتجاهه والطابعة الحرارية.</small></div><button type="button" class="dc-mini" onclick="NAT.printSettings()">فتح</button></div>` : '';
+}
+function shOpen(id, boxKey) {
     if (id === 'invset') { try { initBillSettings(); } catch (e) { /* تجاهل */ } }
     if (id === 'docset') { try { docSetMount(); } catch (e) { /* تجاهل */ } }
+    if (id === 'device') { try { shDeviceRows(); } catch (e) { /* تجاهل */ } }
     const card = shCard(), p = SH_PAGES.find(x => x.id === id); if (!card || !p) return;
-    if (p.act) { if (typeof window[p.act] === 'function') window[p.act](); return; }   // بطاقات تفتح نافذتها مباشرة
+    if (p.act) { if (typeof window[p.act] === 'function') window[p.act](); return; }
     shInit(); shCur = id; card.classList.add('sh-on');
     document.getElementById('shHub').hidden = true;
     const t = document.getElementById('shTitle'); if (t) t.textContent = '';
     document.getElementById('shBar').hidden = false; document.getElementById('shPT').textContent = p.ico + ' ' + p.t;
     if (typeof setupSettingsAccordion === 'function') setupSettingsAccordion();
-    const all = shBoxes(), q = document.getElementById('shQuick');
-    all.forEach(b => { b.classList.remove('sh-show', 'sh-single'); });
-    if (id === 'scanner') { document.getElementById('shHub').after(q); q.innerHTML = shScanHtml(); q.hidden = false; q.classList.add('sh-show'); q.classList.remove('sh-pg'); void q.offsetWidth; q.classList.add('sh-pg'); }
-    {
-        if (id === 'tax') { q.innerHTML = shTaxExtraHtml(); if (typeof setupSettingsAccordion === 'function') { const qb = document.getElementById('shQkBox'); if (qb) delete qb.dataset.acc; setupSettingsAccordion(); } q.hidden = false; q.classList.add('sh-show', 'sh-pg'); const lb = all[p.boxes[p.boxes.length - 1]]; if (lb) lb.after(q); } else if (id !== 'scanner') { q.hidden = true; document.getElementById('shHub').after(q); }
-        const firstVis = p.boxes.find(i => all[i] && !all[i].hidden);
-        p.boxes.forEach((i, k) => { const b = all[i]; if (!b) return; b.classList.add('sh-show'); if (p.boxes.length === 1) b.classList.add('sh-single'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (p.boxes.length === 1 || (boxIdx != null ? i === boxIdx : i === firstVis)) b.classList.add('open'); });
-        if (boxIdx != null && all[boxIdx]) { const b = all[boxIdx]; b.classList.add('open'); setTimeout(() => { b.scrollIntoView({ behavior: 'smooth', block: 'start' }); b.classList.add('sh-flash'); setTimeout(() => b.classList.remove('sh-flash'), 1600); }, 120); }
-        else card.scrollTop = 0;
-    }
+    shBoxes().forEach(b => { b.classList.remove('sh-show', 'sh-single'); });
+    const q = document.getElementById('shQuick'), hub = document.getElementById('shHub');
+    q.hidden = true; q.innerHTML = ''; q.classList.remove('sh-show', 'sh-pg', 'cat-manager-box'); hub.after(q);
+    if (p.scan) { q.innerHTML = shScanHtml(); q.hidden = false; q.classList.add('cat-manager-box', 'sh-show'); q.classList.remove('sh-pg'); void q.offsetWidth; q.classList.add('sh-pg'); }
+    const els = p.boxes.map(shBox).filter(Boolean);
+    let anchor = q; els.forEach(b => { anchor.after(b); anchor = b; });   // ترتيب الصناديق كما هو معرَّف للصفحة
+    if (p.quick) { q.innerHTML = shTaxExtraHtml(); if (typeof setupSettingsAccordion === 'function') { const qb = document.getElementById('shQkBox'); if (qb) delete qb.dataset.acc; setupSettingsAccordion(); } q.hidden = false; q.classList.add('sh-show', 'sh-pg'); anchor.after(q); }
+    const firstVis = els.find(b => !b.hidden);
+    els.forEach(b => { b.classList.add('sh-show'); if (els.length === 1) b.classList.add('sh-single'); b.classList.remove('sh-pg'); void b.offsetWidth; b.classList.add('sh-pg'); if (els.length === 1 || (boxKey ? b.dataset.k === boxKey : b === firstVis)) b.classList.add('open'); });
+    const tb = boxKey && shBox(boxKey);
+    if (tb) { tb.classList.add('open'); setTimeout(() => { tb.scrollIntoView({ behavior: 'smooth', block: 'start' }); tb.classList.add('sh-flash'); setTimeout(() => tb.classList.remove('sh-flash'), 1600); }, 120); }
+    else card.scrollTop = 0;
 }
 function shSearch(v) {
     const q = shNorm(v).trim(), grid = document.getElementById('shGrid'), res = document.getElementById('shRes');
     if (q.length < 2) { res.hidden = true; grid.hidden = false; return; }
-    const all = shBoxes(), out = [];
+    const out = [];
     SH_PAGES.forEach(p => {
         const pk = shNorm(p.t + ' ' + p.kw);
-        if (p.boxes.length === 0) { if (pk.includes(q)) out.push({ p, b: null, title: p.t }); return; }
-        p.boxes.forEach(i => {
-            const b = all[i]; if (!b) return;
-            const h = b.querySelector('h4'), title = h ? h.textContent.replace(/^\s*\d+\.\s*/, '').replace('▾', '').trim() : p.t;
-            if (shNorm(b.textContent).includes(q) || pk.includes(q)) out.push({ p, b: i, title });
+        if (!p.boxes.length) { if (pk.includes(q)) out.push({ p, b: '', title: p.t }); return; }
+        p.boxes.forEach(k => {
+            const b = shBox(k); if (!b) return;
+            const h = b.querySelector('h4'), title = h ? h.textContent.replace('▾', '').trim() : p.t;
+            if (shNorm(b.textContent).includes(q) || pk.includes(q)) out.push({ p, b: k, title });
         });
     });
     grid.hidden = true; res.hidden = false;
-    res.innerHTML = out.length ? out.map(r => `<button type="button" class="sh-r" data-p="${r.p.id}" data-b="${r.b == null ? '' : r.b}"><span class="sh-ico">${r.p.ico}</span><span class="sh-tx"><b>${r.title}</b><small>${r.p.t}</small></span></button>`).join('') : '<div class="ln-empty">لا يوجد ما يطابق هذا الاسم</div>';
+    res.innerHTML = out.length ? out.map(r => `<button type="button" class="sh-r" data-p="${r.p.id}" data-b="${r.b}"><span class="sh-ico">${r.p.ico}</span><span class="sh-tx"><b>${r.title}</b><small>${r.p.t}</small></span></button>`).join('') : '<div class="ln-empty">لا يوجد ما يطابق هذا البحث</div>';
 }
 if (typeof openCategoryManager === 'function') {
     const _oc = openCategoryManager;
     openCategoryManager = function () { _oc.apply(this, arguments); try { shInit(); shHome(false); } catch (e) { /* تجاهل */ } };
     const _os = openSettingsSection;
-    openSettingsSection = function (id) { try { shInit(); const all = shBoxes(), b = document.getElementById(id), i = all.indexOf(b), p = SH_PAGES.find(x => x.boxes.includes(i)); if (p) { shOpen(p.id, i); return; } } catch (e) { /* تجاهل */ } return _os(id); };
+    openSettingsSection = function (id) { try { shInit(); const b = document.getElementById(id), k = b && b.dataset.k, p = k && SH_PAGES.find(x => x.boxes.includes(k)); if (p) { shOpen(p.id, k); return; } } catch (e) { /* تجاهل */ } return _os(id); };
 }
 
 // ===== إشعار صغير مع «تراجع» =====
@@ -211,6 +186,18 @@ function shAutoBind() {
 }
 { const _si = shInit; shInit = function () { _si(); shAutoBind(); }; }
 { const _so = shOpen; shOpen = function () { Object.values(SH_AUTO).forEach(g => { try { g.prev = g.get(); } catch (e) { g.prev = null; } }); return _so.apply(this, arguments); }; }
+// حفظ تلقائي لإعدادات التسعير (بدون إعادة تسعير المواد) وإعدادات الذكاء الصناعي
+{
+    let pT = null, aT = null;
+    document.addEventListener('change', e => {
+        const t = e.target, id = t && t.id || '';
+        if (/^pc(Rate|BookNo|BookDate|Round|Boundary|Max\d+|Pct\d+)$/.test(id) && t.closest('#pricingBox')) {
+            clearTimeout(pT); pT = setTimeout(async () => { const ok = await savePricingSettings(true); t.classList.toggle('sh-bad', ok === false); if (ok) shToast('تم الحفظ ✓ — لتغيير أسعار المواد اضغط «تطبيق الأسعار على المواد»'); }, 250);
+        } else if (t && t.closest && t.closest('#aiSettingsBox') && /^(INPUT|SELECT)$/.test(t.tagName) && t.id !== 'aiEngineSelect' && !/Pick$/.test(t.id)) {
+            clearTimeout(aT); aT = setTimeout(() => { if (saveAiSettings(true)) shToast('تم الحفظ ✓'); }, 400);
+        }
+    });
+}
 // مفاتيح الإدخال السريع والتعلّم: حفظ فوري + تراجع
 if (typeof qkSet === 'function') { const _q = qkSet; qkSet = function (k, v) { _q(k, v); shToast('تم الحفظ ✓', () => { _q(k, !v); if (shCur === 'tax') shOpen('tax'); shToast('تم التراجع'); }); }; }
 if (typeof learnToggle === 'function') { const _l = learnToggle; learnToggle = function (v) { _l(v); shToast('تم الحفظ ✓', () => { _l(!v); if (shCur === 'tax') shOpen('tax'); shToast('تم التراجع'); }); }; }
@@ -247,3 +234,6 @@ function shHubHead(el, back, label) {
     head.className = 'sh-bar sh-bar-in';
     head.innerHTML = `<button type="button" class="sh-back" onclick="${back}"><i>›</i> ${label}</button><b>${title}</b>`;
 }
+
+// صلاحيات تظهر/تخفي أزرار حسب الدور: زر الملصقات في المخزن، وتقارير النظام للمالك فقط
+setInterval(() => { try { document.body.classList.toggle('can-stockedit', can('stockEdit')); const r = document.getElementById('repSys'); if (r) r.hidden = userRole !== 'owner'; } catch (e) { /* تجاهل */ } }, 1000);
