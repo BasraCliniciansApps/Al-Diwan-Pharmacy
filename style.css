@@ -4120,3 +4120,8 @@ body.can-stockedit .lbl-open-btn{display:inline-flex}
 .tr-back i{font-style:normal;font-size:1.1rem;line-height:1}
 .tr-head{justify-content:flex-start;gap:12px}
 .modal-card>div>.sh-back{margin-inline-end:4px}
+
+.us-presets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 6px}
+.us-presets .icon-btn,.us-actions .icon-btn{height:var(--field-h);min-height:var(--field-h);display:flex;align-items:center;justify-content:center;gap:8px;font-size:.88rem;font-weight:800;width:100%;box-sizing:border-box}
+.us-actions{display:flex;flex-direction:column;gap:8px;margin:22px 0 4px}
+.us-actions .us-del{color:#b91c1c;background:#fee2e2;border-color:#fecaca}

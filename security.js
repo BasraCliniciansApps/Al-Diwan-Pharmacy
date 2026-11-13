@@ -123,6 +123,7 @@ let usersCache = [];
 async function openUsers() {
     if (userRole !== 'owner') return;
     if (!requireOnline()) return;
+    { const cm = document.getElementById('catModal'); if (cm && (!cm.style.display || cm.style.display === 'none') && typeof openCategoryManager === 'function') openCategoryManager(); }
     let rows = '';
     try {
         const snap = await db.collection('pharmacy_users').get(); usersCache = [];
@@ -138,14 +139,105 @@ async function openUsers() {
     if (typeof shScreen === 'function' && shScreen('usersScr', 'المستخدمون والصلاحيات', html)) return;
     Swal.fire({ title: 'المستخدمون والصلاحيات', showConfirmButton: true, confirmButtonText: '+ إضافة مستخدم', showCancelButton: true, cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', html: '<div class="sw-form">' + html.replace('onclick="userAdd()"', 'onclick="Swal.close();userAdd()"').replace(/onclick="userEdit/g, 'onclick="Swal.close();userEdit') + '</div>' }).then(r => { if (r.isConfirmed) userAdd(); });
 }
-async function userAdd() {
-    const r = await Swal.fire({ title: 'مستخدم جديد', showCancelButton: true, confirmButtonText: 'إنشاء', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
-        html: `<div class="sw-form"><label>الاسم (يدخل به)<input id="uName" class="swal2-input"></label><label>الرمز السري (6 خانات فأكثر)<input id="uPin" class="swal2-input" dir="ltr" autocomplete="off"></label><small>الصلاحيات:</small>${permBoxes(PERM_PRESETS.seller)}</div>`,
-        preConfirm: () => { const n = document.getElementById('uName').value.trim(), pin = document.getElementById('uPin').value.trim(); if (!n) { Swal.showValidationMessage('اكتب الاسم'); return false; } if (pin.length < 6) { Swal.showValidationMessage('الرمز 6 خانات على الأقل'); return false; } return { n, pin, perms: readPerms() }; } });
-    if (!r.isConfirmed || !r.value) return;
-    await userCreate(r.value.n, r.value.pin, r.value.perms);
+// ---------- نموذج المستخدم (إضافة / تعديل) كشاشة داخل الإعدادات ----------
+const PERM_GROUPS = [
+    ['المبيعات', ['sell', 'cancelOwn', 'deleteOwn']],
+    ['المخزن', ['stockView', 'stockEdit', 'catalog', 'newItem', 'invList']],
+    ['الوارد والسجلات', ['purchases']],
+    ['فاحص المادة', ['scan', 'scanDisc', 'scanDel']]
+];
+const PERM_TXT = {
+    sell: ['إصدار الفواتير', 'البيع من شاشة البيع.'],
+    cancelOwn: ['إلغاء فواتيره', 'يلغي فواتيره هو وتُرجَع الكميات إلى المخزن. يتطلب صلاحية البيع.'],
+    deleteOwn: ['حذف فواتيره الملغاة نهائياً', 'يتطلب صلاحية إلغاء الفواتير.'],
+    stockView: ['عرض المخزن والكميات', 'رؤية الأصناف وكمياتها.'],
+    stockEdit: ['تعديل المواد والكميات والجرد', 'تعديل بيانات الأصناف وجردها.'],
+    catalog: ['سجل الأدوية', 'التسعير والكميات والإضافة السريعة، ويشمل تعديل المواد.'],
+    newItem: ['إضافة صنف من الباركود', 'إضافة صنف جديد أو ربط باركود عند مسح باركود غير مسجّل.'],
+    invList: ['قوائم الجرد', 'إدخال الأعداد والأسعار وتحديث المخزن منها.'],
+    purchases: ['الوارد والمذاخر والسجلات', 'فواتير الوارد والمذاخر وسجلاتها.'],
+    scan: ['فاحص المادة', 'سعر البيع وتواريخ الانتهاء.'],
+    scanDisc: ['حد الخصم وحاسبة الخصم', 'داخل فاحص المادة.'],
+    scanDel: ['حذف تواريخ الانتهاء', 'داخل فاحص المادة، ويتطلب تعديل المواد.']
+};
+const PERM_REQ = { cancelOwn: ['sell'], deleteOwn: ['cancelOwn'], catalog: ['stockEdit'], sell: ['stockView'], stockEdit: ['stockView'], purchases: ['stockView'], invList: ['stockView'], scanDel: ['stockEdit'] };
+let usForm = null;   // { uid, dirty }
+function usPermRows(cur) {
+    return PERM_GROUPS.map(([g, keys]) => `<h5 class="set-sec">${g}</h5>` + keys.map(k => `<div class="qk-row"><div><b>${PERM_TXT[k][0]}</b><small>${PERM_TXT[k][1]}</small></div><label class="setup-sw"><input type="checkbox" class="uPerm" data-p="${k}" ${cur && cur[k] ? 'checked' : ''}><i></i></label></div>`).join('')).join('');
+}
+function usBind() {
+    const root = document.getElementById('userFormScr'); if (!root) return;
+    const get = k => root.querySelector(`.uPerm[data-p="${k}"]`);
+    root.addEventListener('input', () => { if (usForm) usForm.dirty = true; });
+    root.addEventListener('change', e => {
+        const t = e.target; if (usForm) usForm.dirty = true;
+        if (!t.classList || !t.classList.contains('uPerm')) return;
+        const k = t.dataset.p;
+        if (t.checked) { const up = x => (PERM_REQ[x] || []).forEach(r => { const c = get(r); if (c && !c.checked) { c.checked = true; up(r); } }); up(k); }
+        else { const down = x => Object.keys(PERM_REQ).forEach(d => { if (PERM_REQ[d].includes(x)) { const c = get(d); if (c && c.checked) { c.checked = false; down(d); } } }); down(k); }
+    });
+    root.querySelectorAll('[data-preset]').forEach(b => b.addEventListener('click', () => {
+        const pr = PERM_PRESETS[b.dataset.preset] || {};
+        root.querySelectorAll('.uPerm').forEach(c => { c.checked = !!pr[c.dataset.p]; });
+        if (usForm) usForm.dirty = true; shToast('تم تطبيق القالب');
+    }));
+}
+function usForm_(u) {
+    const isNew = !u;
+    const html = `${isNew ? `<div class="form-group"><label>الاسم (يدخل به)</label><input type="text" id="uName" autocomplete="off"></div>` : ''}
+        <div class="form-group"><label>${isNew ? 'الرمز السري' : 'رمز سري جديد'}</label><small class="set-hint">${isNew ? '6 خانات على الأقل.' : 'اتركه فارغاً للإبقاء على الرمز الحالي. تغييره ينشئ حساباً جديداً بنفس الاسم.'}</small><input type="text" id="uPin" dir="ltr" autocomplete="off" inputmode="text"></div>
+        ${isNew ? '' : `<div class="qk-row"><div><b>الحساب فعّال</b><small>عند الإيقاف لا يستطيع المستخدم تسجيل الدخول.</small></div><label class="setup-sw"><input type="checkbox" id="uActive" ${u.active === false ? '' : 'checked'}><i></i></label></div>`}
+        <h5 class="set-sec">قالب سريع</h5>
+        <div class="us-presets"><button type="button" class="icon-btn" data-preset="seller">بائع</button><button type="button" class="icon-btn" data-preset="manager">مدير مخزن</button></div>
+        ${usPermRows(u ? u.perms : PERM_PRESETS.seller)}
+        <div class="us-actions"><button type="button" class="icon-btn primary-btn" onclick="userSave()">${isNew ? 'إنشاء المستخدم' : 'حفظ'}</button>
+        ${isNew ? '' : `<button type="button" class="icon-btn" onclick="userPreview('${u.uid}')"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg> معاينة صفحة هذا المستخدم</button><button type="button" class="icon-btn us-del" onclick="userDelete('${u.uid}')">حذف المستخدم</button>`}</div>`;
+    usForm = { uid: u ? u.uid : null, dirty: false };
+    if (typeof shScreen === 'function' && shScreen('userFormScr', isNew ? 'مستخدم جديد' : escapeHtml(u.name), html)) {
+        const bk = document.querySelector('#userFormScr .sh-back'); if (bk) { bk.removeAttribute('onclick'); bk.onclick = usBack; }
+        const body = document.querySelector('#userFormScr .sh-screen-body'); if (body) body.scrollTop = 0;
+        usBind();
+    }
+}
+async function usBack() {
+    if (usForm && usForm.dirty) {
+        const r = await Swal.fire({ icon: 'warning', title: 'تجاهل التغييرات؟', text: 'لم تُحفظ التغييرات على هذا المستخدم.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، تجاهل', cancelButtonText: 'متابعة التعديل' });
+        if (!r.isConfirmed) return;
+    }
+    usForm = null; shScreenClose('userFormScr');
+}
+async function userSave() {
+    const f = usForm; if (!f) return;
+    const pin = (document.getElementById('uPin').value || '').trim(), perms = readPerms();
+    if (!f.uid) {
+        const name = (document.getElementById('uName').value || '').trim();
+        if (!name) { Swal.fire({ icon: 'warning', title: 'اكتب الاسم', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (pin.length < 6) { Swal.fire({ icon: 'warning', title: 'الرمز 6 خانات على الأقل', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (await userCreate(name, pin, perms)) { usForm = null; shScreenClose('userFormScr'); }
+        return openUsers();
+    }
+    const u = usersCache.find(x => x.uid === f.uid); if (!u) return;
+    const active = document.getElementById('uActive').checked;
+    if (pin && pin.length < 6) { Swal.fire({ icon: 'warning', title: 'الرمز 6 خانات على الأقل', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+    try {
+        if (pin) { await userCreate(u.name, pin, perms, f.uid); }
+        else {
+            await db.collection('pharmacy_users').doc(f.uid).update({ perms, active });
+            if (u.login) { if (active) await db.collection('pharmacy_logins').doc(u.login).set({ email: u.email }); else await db.collection('pharmacy_logins').doc(u.login).delete(); }
+        }
+        usForm = null; shScreenClose('userFormScr'); shToast('تم الحفظ ✓');
+    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحفظ', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); return; }
     openUsers();
 }
+async function userDelete(uid) {
+    const u = usersCache.find(x => x.uid === uid); if (!u) return;
+    const c = await Swal.fire({ icon: 'warning', title: 'حذف ' + escapeHtml(u.name) + '؟', text: 'لن يستطيع الدخول بعد الآن.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'رجوع' });
+    if (!c.isConfirmed) return;
+    try { await db.collection('pharmacy_users').doc(uid).delete(); if (u.login) await db.collection('pharmacy_logins').doc(u.login).delete(); }
+    catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message, confirmButtonColor: '#0f1c38' }); return; }
+    usForm = null; shScreenClose('userFormScr'); openUsers();
+}
+function userAdd() { usForm_(null); }
 async function userCreate(name, pin, perms, replaceUid) {
     const key = loginKey(name);
     const h = Prog.start('إنشاء المستخدم', { text: 'جاري الإنشاء...' });
@@ -169,25 +261,7 @@ async function userCreate(name, pin, perms, replaceUid) {
         return false;
     }
 }
-async function userEdit(uid) {
-    const u = usersCache.find(x => x.uid === uid); if (!u) return;
-    const r = await Swal.fire({ title: 'تعديل ' + escapeHtml(u.name), showCancelButton: true, showDenyButton: true, confirmButtonText: 'حفظ', denyButtonText: '🗑 حذف', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
-        footer: `<button type="button" class="bill-tb-btn" onclick="window.__pvGo='${uid}';Swal.close()">👁 معاينة صفحة هذا المستخدم</button>`, html: `<div class="sw-form"><small>الصلاحيات:</small>${permBoxes(u.perms)}<label class="pu-chk"><input type="checkbox" id="uActive" ${u.active === false ? '' : 'checked'}><span>الحساب فعّال</span></label><label>رمز سري جديد (اتركه فارغاً بلا تغيير)<input id="uPin" class="swal2-input" dir="ltr" autocomplete="off"></label></div>`,
-        preConfirm: () => { const pin = document.getElementById('uPin').value.trim(); if (pin && pin.length < 6) { Swal.showValidationMessage('الرمز 6 خانات على الأقل'); return false; } return { pin, perms: readPerms(), active: document.getElementById('uActive').checked }; } });
-    if (window.__pvGo) { const g = window.__pvGo; window.__pvGo = null; return userPreview(g); }
-    if (r.isDenied) {
-        const c = await Swal.fire({ icon: 'warning', title: 'حذف ' + escapeHtml(u.name) + '؟', text: 'لن يستطيع الدخول بعد الآن.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'حذف', cancelButtonText: 'إلغاء' });
-        if (c.isConfirmed) { try { await db.collection('pharmacy_users').doc(uid).delete(); if (u.login) await db.collection('pharmacy_logins').doc(u.login).delete(); } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message, confirmButtonColor: '#0f1c38' }); } }
-        return openUsers();
-    }
-    if (!r.isConfirmed || !r.value) return openUsers();
-    try {
-        if (r.value.pin) { if (await userCreate(u.name, r.value.pin, r.value.perms, uid)) { if (r.value.active === false) { /* الحساب الجديد فعّال دائماً */ } } return openUsers(); }
-        await db.collection('pharmacy_users').doc(uid).update({ perms: r.value.perms, active: r.value.active });
-        if (u.login) { if (r.value.active) await db.collection('pharmacy_logins').doc(u.login).set({ email: u.email }); else await db.collection('pharmacy_logins').doc(u.login).delete(); }
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحفظ', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); }
-    openUsers();
-}
+function userEdit(uid) { const u = usersCache.find(x => x.uid === uid); if (u) usForm_(u); }
 
 // ---------- معاينة صفحة مستخدم (للمالك): عرض فقط، تُمنع كل عمليات الكتابة ----------
 let pvSaved = null;
@@ -205,9 +279,9 @@ function pvBlock(on) {
 }
 function userPreview(uid) {
     const u = usersCache.find(x => x.uid === uid); if (!u || pvSaved) return;
-    pvSaved = { role: userRole, perms: userPerms, name: userName, sh: window.__shSnap ? window.__shSnap() : null };
+    pvSaved = { role: userRole, perms: userPerms, name: userName, sh: window.__shSnap ? window.__shSnap() : null, edit: uid };
     if (window.__shRetClear) window.__shRetClear();   // لا نعيد الإعدادات أثناء المعاينة
-    try { ['usersScr', 'trashScr', 'cloudScr'].forEach(i => { if (typeof shScreenClose === 'function') shScreenClose(i); }); closeCategoryManager(); } catch (e) { /* تجاهل */ }   // تُغلق الإعدادات كاملة: المعاينة تعرض التطبيق كما يراه المستخدم
+    try { ['usersScr', 'userFormScr', 'trashScr', 'cloudScr'].forEach(i => { if (typeof shScreenClose === 'function') shScreenClose(i); }); closeCategoryManager(); } catch (e) { /* تجاهل */ }   // تُغلق الإعدادات كاملة: المعاينة تعرض التطبيق كما يراه المستخدم
     userRole = 'staff'; userPerms = Object.assign({}, u.perms || {}); userName = u.name || '';
     pvBlock(true); window.__pvOn = true;
     const d = document.createElement('div'); d.id = 'pvBar'; d.className = 'pv-bar'; d.dir = 'rtl';
@@ -218,11 +292,12 @@ function userPreview(uid) {
 }
 function userPreviewExit() {
     if (!pvSaved) return;
-    const pvSaved0 = pvSaved.sh; userRole = pvSaved.role; userPerms = pvSaved.perms; userName = pvSaved.name; pvSaved = null; window.__pvOn = false;
+    const pvSaved0 = pvSaved.sh, pvBack = pvSaved.edit; userRole = pvSaved.role; userPerms = pvSaved.perms; userName = pvSaved.name; pvSaved = null; window.__pvOn = false;
     pvBlock(false);
     const d = document.getElementById('pvBar'); if (d) d.remove(); document.body.classList.remove('pv-on');
     try { applyRoleUI(); } catch (e) { /* تجاهل */ }
     const sh = pvSaved0; showView('home'); try { renderAll(); } catch (e) { /* تجاهل */ }
+    const back = pvBack;
     try { openCategoryManager(); if (sh && sh.page) shOpen(sh.page); } catch (e) { /* تجاهل */ }
-    openUsers();
+    openUsers().then(() => { if (back) userEdit(back); });
 }
