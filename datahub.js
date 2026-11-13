@@ -60,7 +60,7 @@ function dhClose() {
 }
 function dhGo(s) { dhScreen = s; dhQ = ''; dhShown = 40; if (s === 'ing') dhFilter = 'miss'; dhRender(); }
 function dhHead(title, back) {
-    return `<div class="tr-head"><b>${title}</b><span>${back ? '<button type="button" class="tr-x" style="margin-inline-end:8px" onclick="dhBack()" aria-label="رجوع">↩</button>' : ''}<button type="button" class="tr-x" onclick="dhClose()" aria-label="إغلاق">✕</button></span></div>`;
+    return `<div class="tr-head"><button type="button" class="tr-back" onclick="dhBack()"><i>›</i> رجوع</button><b>${title}</b></div>`;
 }
 function dhRender(keep) { dhRender0(keep); shHubHead(dhEl(), 'dhBack()', dhScreen === 'home' || dhDirect ? 'الإعدادات' : 'المركز'); }
 function dhRender0(keep) {

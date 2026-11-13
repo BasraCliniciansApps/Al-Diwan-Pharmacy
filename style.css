@@ -4112,3 +4112,11 @@ body.can-stockedit .lbl-open-btn{display:inline-flex}
 .sh-screen-body{flex:1;overflow-y:auto;padding:4px 16px 18px;min-height:0}
 .sh-screen-body .sec-list{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
 .sh-screen-body .sec-note{font-size:.78rem;color:var(--text-sub);margin:8px 0 0}
+
+.us-list{margin:0 0 12px}.us-list .set-nav{border-top:1px solid #eef2f7}.us-list .set-nav small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.sh-screen-body .us-add{width:100%;height:var(--field-h);display:flex;align-items:center;justify-content:center}
+
+.tr-back{display:inline-flex;align-items:center;gap:4px;border:0;background:rgba(255,255,255,.15);color:#fff;border-radius:10px;padding:7px 12px;font-family:inherit;font-weight:700;font-size:.8rem;cursor:pointer}
+.tr-back i{font-style:normal;font-size:1.1rem;line-height:1}
+.tr-head{justify-content:flex-start;gap:12px}
+.modal-card>div>.sh-back{margin-inline-end:4px}

@@ -465,8 +465,8 @@
     <div class="modal-overlay" id="expiryModal">
         <div class="modal-card" style="max-width: 480px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                <button type="button" class="sh-back" onclick="closeExpiryModal()"><i>›</i> رجوع</button>
                 <h3 style="color:var(--primary-dark);">🔔 التنبيهات</h3>
-                <button class="icon-btn" onclick="closeExpiryModal()">✕</button>
             </div>
             <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:12px;">المواد التي تنتهي صلاحيتها خلال 6 أشهر، والأصناف التي وصلت كميتها للحد الأدنى.</p>
             <div id="expiryListContainer" style="max-height: 60vh; overflow-y: auto; display:flex; flex-direction:column; gap:8px;"></div>
@@ -477,8 +477,8 @@
     <div class="modal-overlay" id="inventoryModal">
         <div class="modal-card inv-card">
             <div class="inv-head">
+                <button type="button" class="sh-back" onclick="closeInventory()"><i>›</i> رجوع</button>
                 <h3>📋 وضع الجرد</h3>
-                <button class="icon-btn" onclick="closeInventory()">✕</button>
             </div>
             <p class="inv-hint">يعرض أصناف القسم والتبويب المحدَّدين حالياً. اكتب الكمية الفعلية (أو استعمل + و −)، ثم اضغط «تطبيق».</p>
             <input type="search" id="invSearch" class="inv-search" placeholder="🔍 ابحث داخل الجرد..." oninput="invFilter(this.value)" autocomplete="off">
@@ -494,8 +494,8 @@
     <div class="modal-overlay" id="barcodeModal">
         <div class="modal-card bc-card">
             <div class="inv-head">
+                <button type="button" class="sh-back" onclick="closeBarcodeScanner()"><i>›</i> رجوع</button>
                 <h3>▦ مسح الباركود</h3>
-                <button class="icon-btn" onclick="closeBarcodeScanner()">✕</button>
             </div>
             <div class="bc-video-wrap"><video id="bcVideo" playsinline muted></video><div class="bc-frame"></div></div>
             <div id="bcStatus" class="bc-status"></div>
@@ -528,8 +528,8 @@
     <div class="modal-overlay" id="ingModal">
         <div class="modal-card" style="max-width: 520px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <button type="button" class="sh-back" onclick="closeIngredientModal()"><i>›</i> رجوع</button>
                 <h3 style="color:var(--primary-dark);">🧪 إكمال المواد الفعالة</h3>
-                <button class="icon-btn" onclick="closeIngredientModal()">✕</button>
             </div>
             <p id="ingSummary" style="font-size:0.8rem; color:var(--text-sub); margin-bottom:10px;"></p>
             <div class="form-group" style="margin-bottom:10px;">
@@ -547,8 +547,8 @@
     <div class="modal-overlay" id="missModal">
         <div class="modal-card" style="max-width: 480px;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <button type="button" class="sh-back" onclick="closeMissModal()"><i>›</i> رجوع</button>
                 <h3 style="color:var(--primary-dark);">🔍 سجل البحث الفاشل</h3>
-                <button class="icon-btn" onclick="closeMissModal()">✕</button>
             </div>
             <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:10px;">أسماء بحث عنها الزبائن ولم تُوجد في أي قسم، الأكثر تكراراً أولاً. مفيدة لمعرفة ما تحتاج توفيره.</p>
             <div id="missListContainer" class="miss-list"></div>
@@ -651,7 +651,7 @@
 </div>
 
 <div id="scanView" class="sc-ov" dir="rtl">
-    <div class="tr-head"><b>🔎 فاحص المادة</b><button type="button" class="tr-x" onclick="scClose()" aria-label="إغلاق">✕</button></div>
+    <div class="tr-head"><button type="button" class="tr-back" onclick="scClose()"><i>›</i> رجوع</button><b>🔎 فاحص المادة</b></div>
     <div class="sc-ovb">
         <div class="bill-panel">
             <button type="button" class="sc-scanbtn" onclick="scScanTimed()"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><path d="M7 12h10"/></svg><span>مسح باركود</span></button>
