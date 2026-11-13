@@ -114,27 +114,27 @@ function shHome(anim) {
 // صفوف الجهاز: خيارات التطبيق الأصلي (أندرويد) فقط
 function shDeviceRows() {
     try { const ib = shBox('install'); if (ib) ib.hidden = !!((window.NAT && NAT.is) || isStandalone()); } catch (e) { /* تجاهل */ }
-    const host = document.getElementById('devNativeRows'); if (!host) return;
-    if (!(window.NAT && NAT.is)) { host.innerHTML = ''; return; }
+    const host = document.getElementById('devNativeRows'), ph = document.getElementById('devPrintRows');
+    if (!(window.NAT && NAT.is)) { if (host) host.innerHTML = ''; if (ph) ph.innerHTML = ''; return; }
     const c = NAT.cfg(), ps = c.paperSize || 'A4', ori = c.orient || 'portrait';
     const sw = (id, on, t, d) => `<div class="qk-row"><div><b>${t}</b><small>${d}</small></div><label class="setup-sw"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><i></i></label></div>`;
     const sel = (id, t, opts, cur) => `<div class="qk-row"><div><b>${t}</b></div><select id="${id}" class="dev-sel">${opts.map(o => `<option value="${o[0]}" ${cur === o[0] ? 'selected' : ''}>${o[1]}</option>`).join('')}</select></div>`;
     host.innerHTML = `<h5 class="set-sec">الأمان والتذكيرات</h5>
         ${sw('devBio', c.bio, 'قفل التطبيق بالبصمة', 'يطلب البصمة أو قفل الشاشة عند فتح التطبيق.')}
-        ${sw('devRem', c.remind, 'تذكير يومي بالصلاحية', 'إشعار الساعة 9 صباحاً بالمواد المنتهية والقريبة من الانتهاء.')}
-        <h5 class="set-sec">الطباعة العادية</h5>
+        ${sw('devRem', c.remind, 'تذكير يومي بالصلاحية', 'إشعار الساعة 9 صباحاً بالمواد المنتهية والقريبة من الانتهاء.')}`;
+    if (ph) ph.innerHTML = `<h5 class="set-sec">الطباعة العادية</h5>
         ${sel('devPaper', 'حجم الورق الافتراضي', [['A4', 'A4'], ['A5', 'A5'], ['LETTER', 'Letter'], ['LEGAL', 'Legal']], ps)}
         ${sel('devOri', 'اتجاه الورق', [['portrait', 'عمودي'], ['landscape', 'أفقي']], ori)}
         <h5 class="set-sec">الطابعة الحرارية</h5>
         ${sw('devP80', c.paper === 80, 'عرض الورق 80 ملم', 'الافتراضي 58 ملم.')}
         <button type="button" class="set-nav" id="devPrn"><div><b>اختيار الطابعة الحرارية</b><small id="devPrnN">${c.printerName ? escapeHtml(c.printerName) : 'لم تُحدَّد طابعة بعد.'}</small></div><i>‹</i></button>`;
     const g = id => document.getElementById(id);
-    g('devBio').onchange = async e => { const ok = await NAT.setBio(e.target.checked); if (!ok) e.target.checked = !e.target.checked; else shToast('تم الحفظ ✓'); };
-    g('devRem').onchange = e => { NAT.setRemind(e.target.checked); shToast('تم الحفظ ✓'); };
-    g('devPaper').onchange = e => { NAT.setCfg({ paperSize: e.target.value }); shToast('تم الحفظ ✓'); };
-    g('devOri').onchange = e => { NAT.setCfg({ orient: e.target.value }); shToast('تم الحفظ ✓'); };
-    g('devP80').onchange = e => { NAT.setCfg({ paper: e.target.checked ? 80 : 58 }); shToast('تم الحفظ ✓'); };
-    g('devPrn').onclick = async () => { await NAT.printerChoose(); const n = NAT.cfg().printerName; g('devPrnN').textContent = n || 'لم تُحدَّد طابعة بعد.'; };
+    if (g('devBio')) g('devBio').onchange = async e => { const ok = await NAT.setBio(e.target.checked); if (!ok) e.target.checked = !e.target.checked; else shToast('تم الحفظ ✓'); };
+    if (g('devRem')) g('devRem').onchange = e => { NAT.setRemind(e.target.checked); shToast('تم الحفظ ✓'); };
+    if (g('devPaper')) g('devPaper').onchange = e => { NAT.setCfg({ paperSize: e.target.value }); shToast('تم الحفظ ✓'); };
+    if (g('devOri')) g('devOri').onchange = e => { NAT.setCfg({ orient: e.target.value }); shToast('تم الحفظ ✓'); };
+    if (g('devP80')) g('devP80').onchange = e => { NAT.setCfg({ paper: e.target.checked ? 80 : 58 }); shToast('تم الحفظ ✓'); };
+    if (g('devPrn')) g('devPrn').onclick = async () => { await NAT.printerChoose(); const n = NAT.cfg().printerName; g('devPrnN').textContent = n || 'لم تُحدَّد طابعة بعد.'; };
 }
 function shScopeOnce(els) {
     const old = document.getElementById('shScopeTop'); if (old) old.remove();
@@ -148,7 +148,7 @@ function shScopeOnce(els) {
 function shOpen(id, boxKey) {
     if (id === 'invset') { try { initBillSettings(); } catch (e) { /* تجاهل */ } }
     if (id === 'docset') { try { docSetMount(); } catch (e) { /* تجاهل */ } }
-    if (id === 'device') { try { shDeviceRows(); } catch (e) { /* تجاهل */ } }
+    if (id === 'device' || id === 'invset') { try { shDeviceRows(); } catch (e) { /* تجاهل */ } }
     const card = shCard(), p = SH_PAGES.find(x => x.id === id); if (!card || !p) return;
     if (p.act) { if (typeof window[p.act] === 'function') window[p.act](); return; }
     shInit(); shCur = id; card.classList.add('sh-on');
