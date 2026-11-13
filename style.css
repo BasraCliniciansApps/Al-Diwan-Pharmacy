@@ -4200,3 +4200,5 @@ input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -
 :root[data-theme="dark"] .qty-control-lg button { background: var(--gold); color: #0f1c38; }
 :root[data-theme="dark"] .qty-control-lg > span { color: var(--text-main); }
 :root[data-theme="dark"] .sheet-brand { color: var(--gold); }
+/* اسم الصنف يبقى قابلاً للتحديد (نسخ / بحث عن صورة في الإنترنت) */
+.bento-title, .bento-brand, .sheet-brand, .sheet-name { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
