@@ -2109,6 +2109,7 @@ async function saveFormProduct() {
     
     closeFormModal();
     renderAll();
+    try { document.dispatchEvent(new CustomEvent('diwan:product', { detail: { id: obj.id } })); } catch (e) { /* تجاهل */ }   // إشعار لحظي لكل الشاشات المفتوحة
 
     const success = await saveSingleProductToCloud(obj);
     if (typeof onProductSaved === 'function') onProductSaved(obj);
