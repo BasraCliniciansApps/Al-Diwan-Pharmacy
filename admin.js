@@ -25,6 +25,7 @@ function showView(v) {
 // يُستدعى من data.js عند تغيّر حالة الدخول
 function onAdminAuth(user) {
     clearTimeout(splashTimer);
+    try { if (user) localStorage.setItem('diwanHadSess', '1'); else localStorage.removeItem('diwanHadSess'); } catch (e) { /* تجاهل */ }
     if (user) { if (currentView === 'splash' || currentView === 'login') showView('home'); }
     else showView('login');
 }
@@ -185,7 +186,7 @@ function renderAlerts() {
 // الشاشة الأولى: انتظر حالة الدخول، وإلا اذهب لشاشة الدخول
 document.body.dataset.view = 'splash';
 // إن كان هناك مستخدم مسجَّل سابقاً ننتظر استعادة جلسته أطول قبل عرض شاشة الدخول (لا نُظهرها ثم نخفيها)
-let _hadSess = false; try { for (let i = 0; i < localStorage.length; i++) if ((localStorage.key(i) || '').startsWith('firebase:authUser:')) { _hadSess = true; break; } } catch (e) { /* تجاهل */ }
+let _hadSess = false; try { _hadSess = localStorage.getItem('diwanHadSess') === '1'; } catch (e) { /* تجاهل */ }   // الجلسة عند Firebase تُحفظ في IndexedDB لا localStorage، فنحفظ علامة خاصة بنا
 splashTimer = setTimeout(() => { if (currentView === 'splash') showView('login'); }, _hadSess ? 15000 : 3500);
 
 // ============================================================================
