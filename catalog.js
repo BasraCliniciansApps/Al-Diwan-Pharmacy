@@ -255,6 +255,7 @@ async function catMerge(s, d, quiet) {
         products = products.filter(x => x.id !== s.id); saveLocal();
         if (isFirebaseReady && currentUser) { const delB = db.batch(); delB.delete(db.collection('pharmacy_products').doc(String(s.id))); delB.delete(db.collection('pharmacy_stock').doc(String(s.id))); if (costSplitOn) delB.delete(db.collection('pharmacy_cost').doc(String(s.id))); await fsCommit(delB); }
         logAction('edit', d, [{ f: 'ضم مادة', from: s.name, to: d.name }]);
+        try { if (typeof currentOpenId !== 'undefined' && currentOpenId === s.id) closeSheet(); } catch (e) { /* تجاهل */ }
         renderAll(); renderCatalog();
         if (quiet) return true;
         Swal.fire({ icon: 'success', title: 'تم الضم', text: 'صارت الكمية في «' + d.name + '»: ' + stockLabel(d), confirmButtonColor: '#0f1c38' });

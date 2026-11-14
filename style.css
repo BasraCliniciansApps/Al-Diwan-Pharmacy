@@ -4258,3 +4258,6 @@ input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -
 #formModal .fs-bcTop .fx-bch { min-height: 36px; }
 #formModal .fs-bcTop:not(.fx-closed) .fx-bch { margin-bottom: 2px; }
 #formModal #fs-price .fs-subbody > .form-group:first-child > label { display: none; }
+.sheet-top { align-items: center; justify-content: space-between; }
+.sheet-top .sheet-merge { width: 44px; height: 44px; min-height: 0; background: var(--surface); }
+.sheet-top .sheet-merge .ic { width: 22px; height: 22px; }

@@ -1360,7 +1360,7 @@ function openSheet(id) {
         : '';
 
     document.getElementById('sheetContent').innerHTML = `
-        <div class="sheet-top"><button type="button" class="sh-back" onclick="closeSheet()"><i>›</i> رجوع</button></div>
+        <div class="sheet-top"><button type="button" class="sh-back" onclick="closeSheet()"><i>›</i> رجوع</button>${IS_ADMIN_PAGE && typeof catMergeStart === 'function' && (userRole === 'owner' || (typeof can === 'function' && can('stockEdit'))) ? `<button type="button" class="cat-btn cat-merge sheet-merge" onclick="catMergeStart(${p.id})" title="ضم لمادة أخرى" aria-label="ضم لمادة أخرى">⇄</button>` : ''}</div>
         <div class="sheet-header">
             <div class="sheet-img-box${p.img ? '' : ' noimg'}" onclick="${IS_ADMIN_PAGE ? `sheetImgTap(${p.id})` : `zoomImage('${p.img}')`}">${IS_ADMIN_PAGE ? `<span class="img-edit-tag">${p.img ? '🔍' : '📷'}</span>` : ''}
                 ${p.img ? `<img src="${p.img}" alt="" onerror="this.parentNode.classList.add('noimg');this.remove()">` : ''}
