@@ -883,6 +883,9 @@ function catsOf(p) { return [p.category].concat(extrasOf(p.extraCategories)).fil
 
 // الأشكال الدوائية: id / الاسم المعروض / لون الشارة / كلمات التعرّف التلقائي (بالترتيب: الأدق أولاً)
 const FORM_GROUPS = ['Oral Solid', 'Oral Liquid', 'Injectables', 'Topical', 'Eye / Ear / Nose', 'Inhalation', 'Rectal & Vaginal', 'Oral Care', 'Dressings & Supplies', 'Antiseptics & Sanitizers', 'Pads & Diapers', 'Other'];
+// لون الشارة لكل مجموعة: يُطبَّق على الأشكال المضافة وعلى أي شكل نُقل إلى مجموعة أخرى
+const GROUP_CLS = { 'Oral Solid': 'badge-oral', 'Oral Liquid': 'badge-syrup', 'Injectables': 'badge-inj', 'Topical': 'badge-cream', 'Eye / Ear / Nose': 'badge-syrup', 'Inhalation': 'badge-spray', 'Rectal & Vaginal': 'badge-oint', 'Oral Care': 'badge-gel', 'Dressings & Supplies': 'badge-gel', 'Antiseptics & Sanitizers': 'badge-wash', 'Pads & Diapers': 'badge-other', 'Other': 'badge-other' };
+const groupCls = g => GROUP_CLS[g] || 'badge-other';
 const mkForm = (id, txt, cls, g, re) => ({ id, txt, cls, g, re: re || null });
 // الترتيب مهم للاكتشاف التلقائي (الأول المطابق يفوز): الأخص قبل الأعم. وما بلا نمط يُختار يدوياً فقط.
 const FORMS = [
@@ -1026,7 +1029,7 @@ const FORMS = [
     mkForm('other', 'Other', 'badge-other', '')
 ];
 function getFormBadge(item) {
-    if (item.form === 'other' && item.formOther) return { txt: String(item.formOther), cls: 'badge-other' };
+    if (item.form === 'other' && item.formOther) { const k = String(item.formOther).trim().toLowerCase(), cf = FORMS.find(x => x.custom && x.oth && String(x.txt).trim().toLowerCase() === k); return { txt: String(item.formOther), cls: cf ? cf.cls : 'badge-other' }; }
     if (item.form) { const f = FORMS.find(x => x.id === item.form); if (f) return { txt: f.txt, cls: f.cls }; }
     const str = `${item.name} ${item.meta}`.toLowerCase();
     const f = FORMS.find(x => x.re && x.re.test(str));

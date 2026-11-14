@@ -6,8 +6,9 @@ function formCfgApply() {
     FORMS.forEach(f => { if (f._t0 === undefined) { f._t0 = f.txt; f._g0 = f.g; } });
     (formCfg.added || []).forEach(a => { if (!FORMS.some(f => f.id === a.id)) { const i = FORMS.findIndex(f => f.id === 'other'); FORMS.splice(i < 0 ? FORMS.length : i, 0, { id: a.id, txt: a.txt, cls: 'badge-other', g: a.g, re: null, custom: true, oth: !!a.oth, _t0: a.txt, _g0: a.g }); } });
     FORMS.forEach(f => {
-        if (f.custom) { const a = (formCfg.added || []).find(x => x.id === f.id); if (a) { f.txt = a.txt; f.g = a.g; } }
-        else { f.txt = (formCfg.ren || {})[f.id] || f._t0; f.g = (formCfg.mov || {})[f.id] !== undefined ? formCfg.mov[f.id] : f._g0; }
+        if (f._c0 === undefined) f._c0 = f.cls;
+        if (f.custom) { const a = (formCfg.added || []).find(x => x.id === f.id); if (a) { f.txt = a.txt; f.g = a.g; } f.cls = groupCls(f.g); }
+        else { f.txt = (formCfg.ren || {})[f.id] || f._t0; f.g = (formCfg.mov || {})[f.id] !== undefined ? formCfg.mov[f.id] : f._g0; f.cls = f.g === f._g0 ? f._c0 : groupCls(f.g); }
         f.hidden = (formCfg.hid || []).includes(f.id);
     });
     const el = document.getElementById('fForm'); if (el) { const v = el.value; el.innerHTML = ''; try { fillFormSelect(); } catch (e) { /* تجاهل */ } el.value = v; }
