@@ -293,6 +293,25 @@ function sheetImgWeb(id) {
     Swal.fire({ icon: 'info', title: 'بعد حفظ الصورة', html: 'اضغط مطولاً على الصورة في المتصفح واختر «تنزيل الصورة»، ثم ارجع هنا واضغط «اختيار الصورة».', confirmButtonText: 'اختيار الصورة', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' })
         .then(r => { if (r.isConfirmed) sheetImgFile(id); });
 }
+// صورة الصنف داخل نافذة التعديل: نفس الخيارين (الجهاز / البحث في الإنترنت) بالاعتماد على حقول النموذج الحالية
+async function formImgPick() {
+    const r = await Swal.fire({
+        title: 'صورة الصنف', showDenyButton: true, showCancelButton: true,
+        confirmButtonText: 'اختيار من الجهاز', denyButtonText: 'بحث عن صورة في الإنترنت', cancelButtonText: 'إلغاء',
+        confirmButtonColor: '#0f1c38', denyButtonColor: '#a85d08', reverseButtons: true
+    });
+    if (r.isConfirmed) { document.getElementById('fImgFile').click(); return; }
+    if (!r.isDenied) return;
+    const v = id => { const e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; };
+    const fe = document.getElementById('fForm'); let form = '';
+    if (fe && fe.value && fe.selectedOptions && fe.selectedOptions[0]) { const t = fe.selectedOptions[0].text; if (!/تلقائي|Other/i.test(t)) form = t; }
+    const q = [v('fBrand'), v('fName'), v('fMeta'), form].filter(Boolean).join(' ').replace(/\|/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!q) { Swal.fire({ icon: 'info', title: 'اكتب اسم الصنف أولاً', text: 'يعتمد البحث على اسم الصنف والشركة والعبوة.', confirmButtonColor: '#0f1c38' }); return; }
+    const url = 'https://www.google.com/search?tbm=isch&q=' + encodeURIComponent(q);
+    try { const w = window.open(url, '_blank'); if (!w) location.href = url; } catch (e) { location.href = url; }
+    const r2 = await Swal.fire({ icon: 'info', title: 'بعد حفظ الصورة', html: 'اضغط مطولاً على الصورة في المتصفح واختر «تنزيل الصورة»، ثم ارجع هنا واضغط «اختيار الصورة».', confirmButtonText: 'اختيار الصورة', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+    if (r2.isConfirmed) document.getElementById('fImgFile').click();
+}
 function sheetImgFile(id) {
     const inp = document.getElementById('quickImgInput'); if (!inp) return;
     inp.value = ''; inp.onchange = () => { const f = inp.files && inp.files[0]; if (f) quickImgUpload(id, f); };

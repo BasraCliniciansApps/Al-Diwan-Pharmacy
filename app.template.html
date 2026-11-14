@@ -354,7 +354,7 @@
             <div class="fm-top"><button type="button" class="sh-back" onclick="requestCloseForm()"><i>›</i> رجوع</button><h3 id="formModalTitle">إضافة / تعديل صنف</h3></div>
             <input type="hidden" id="editId">
             <div class="fm-tabs"><button type="button" onclick="fmGoQuick()">سريع</button><button type="button" class="on">مفصل</button></div>
-            <div class="fm-imgrow"><div class="fm-img" onclick="document.getElementById('fImgFile').click()" role="button" aria-label="صورة الصنف"><img id="fImgPrev" alt="" style="display:none"><span id="fImgPh">📷<small>صورة</small></span></div>
+            <div class="fm-imgrow"><div class="fm-img" onclick="formImgPick()" role="button" aria-label="صورة الصنف"><img id="fImgPrev" alt="" style="display:none"><span id="fImgPh">📷<small>صورة</small></span></div>
                 <input type="file" id="fImgFile" accept="image/*" hidden onchange="uploadImgBase64(event)"><input type="text" id="fImg" dir="ltr" hidden></div>
             <div class="scan-box">
                 <div class="scan-head">
