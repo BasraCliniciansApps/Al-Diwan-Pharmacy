@@ -4261,3 +4261,36 @@ input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -
 .sheet-top { align-items: center; justify-content: space-between; }
 .sheet-top .sheet-merge { width: 44px; height: 44px; min-height: 0; background: var(--surface); }
 .sheet-top .sheet-merge .ic { width: 22px; height: 22px; }
+
+/* =====================================================
+   v555 — الحاسبة فقط (شاشة عريضة بمؤشر ماوس): الرئيسية بمربعات مدمجة بدل المربعات العملاقة
+   لا يؤثر على الموبايل ولا على التابلت باللمس
+   ===================================================== */
+@media (min-width: 900px) and (pointer: fine) {
+    #homeView > *:not(.brand-bar):not(.page-title) { width: min(calc(100% - 64px), 1120px); }
+    #homeView .home-grid, body.role-staff #homeView .home-grid { display: grid !important; grid-template-columns: repeat(12, 1fr); gap: 14px; margin-top: 16px; }
+    #homeView .home-grid > div, body.role-staff #homeView .home-grid > div { display: contents !important; }
+    #homeView .home-grid .home-tiles3 .home-tile.tile-sm, #homeView .home-grid .home-tile, body.role-staff #homeView .home-grid .home-tile, body.role-staff #homeView .home-grid .home-tiles3 .home-tile.tile-sm {
+        aspect-ratio: auto !important; min-height: 0 !important; margin: 0 !important; width: auto !important; max-width: none !important;
+        display: grid !important; grid-template-columns: auto 1fr; align-items: center; align-content: center; column-gap: 14px; row-gap: 6px;
+        justify-items: start; padding: 0 20px !important; text-align: start;
+    }
+    #homeView .home-grid .home-tile > svg { grid-row: 1 / span 2; grid-column: 1; width: 26px !important; height: 26px !important; padding: 10px !important; margin: 0; flex: none; align-self: center; }
+    #homeView .home-grid .home-tile > b { grid-column: 2; grid-row: 1; align-self: end; text-align: start !important; line-height: 1.5 !important; }
+    #homeView .home-grid .home-tile > small { grid-column: 2; grid-row: 2; align-self: start; max-width: none; font-size: .74rem; text-align: start; }
+    #homeView .home-grid .home-tile > b:only-of-type { grid-row: 1 / span 2; align-self: center; }
+    #homeView .home-grid .home-tile .tile-txt { grid-column: 2; grid-row: 1 / span 2; display: flex !important; flex-direction: column; align-items: flex-start !important; text-align: start !important; gap: 4px; }
+    #homeView .home-grid .home-tile .tile-txt b { line-height: 1.5 !important; }
+    #homeView .home-grid .home-tile .tile-badge { position: absolute; top: 10px; inset-inline-start: 10px; }
+    /* الأساسية: أربعة في صف */
+    #homeView .home-grid .tile-pos, #homeView .home-grid .tile-bill, #homeView .home-grid .tile-purch, #homeView .home-grid .tile-stock { grid-column: span 3 !important; height: 128px; border-radius: 22px; }
+    #homeView .home-grid .tile-pos b, #homeView .home-grid .tile-bill b, #homeView .home-grid .tile-purch b, #homeView .home-grid .tile-stock b { font-size: 1.35rem !important; }
+    /* الثانوية: ثلاثة في صف، أفقية (أيقونة بجانب النص) */
+    #homeView .home-grid .home-tiles3 .home-tile.tile-sm { grid-column: span 4 !important; height: 84px; border-radius: 18px; }
+    #homeView .home-grid .home-tiles3 .home-tile.tile-sm b { font-size: 1.05rem !important; line-height: 1.3; }
+    #homeView .home-grid .home-tile:hover { transform: translateY(-2px); box-shadow: 0 10px 22px -10px rgba(15,28,56,.45); cursor: pointer; }
+    #homeView .home-kpis { margin-top: 16px; }
+}
+@media (min-width: 900px) and (pointer: fine) {
+    #homeView .home-grid .tile-pos, #homeView .home-grid .tile-bill, #homeView .home-grid .tile-stock { row-gap: 12px; }
+}
