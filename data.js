@@ -361,6 +361,23 @@ function showSyncStatus() {
 }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
 
+// ===== وضع «الاستقبال فقط» لبرنامج الحاسبة: تُقرأ البيانات من السحابة ولا يُكتب إليها شيء =====
+function recvOnly() { try { return !!(window.diwanDesktop && window.diwanDesktop.isDesktop) && localStorage.getItem('diwanRecvOnly') !== '0'; } catch (e) { return false; } }
+let _roToastAt = 0;
+function installRecvOnly() {
+    if (window.__roInstalled || !window.firebase || !firebase.firestore) return;
+    window.__roInstalled = true;
+    const F = firebase.firestore, deny = () => {
+        if (Date.now() - _roToastAt > 6000) { _roToastAt = Date.now(); try { Swal.fire({ icon: 'info', title: 'الحاسبة في وضع الاستقبال فقط', text: 'لا يمكن حفظ تعديلات من هذا البرنامج. أجرِ التعديل من الهاتف أو أوقف الوضع من الصفحة الرئيسية.', toast: true, position: 'bottom', showConfirmButton: false, timer: 3500 }); } catch (e) { /* تجاهل */ } }
+        const err = new Error('وضع الاستقبال فقط: الكتابة إلى السحابة معطّلة في هذا البرنامج'); err.code = 'receive-only'; return Promise.reject(err);
+    };
+    const wrap = (proto, names) => { if (!proto) return; names.forEach(n => { const o = proto[n]; if (typeof o !== 'function') return; proto[n] = function () { return recvOnly() ? deny() : o.apply(this, arguments); }; }); };
+    wrap(F.DocumentReference && F.DocumentReference.prototype, ['set', 'update', 'delete']);
+    wrap(F.CollectionReference && F.CollectionReference.prototype, ['add']);
+    wrap(F.WriteBatch && F.WriteBatch.prototype, ['commit']);
+    if (F.Firestore && F.Firestore.prototype && F.Firestore.prototype.runTransaction) { const o = F.Firestore.prototype.runTransaction; F.Firestore.prototype.runTransaction = function () { if (recvOnly()) return deny(); return o.apply(this, arguments); }; }
+}
+
 async function initFirebase() {
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PUT_YOUR_API_KEY_HERE") {
         setSyncText("💾 محلي");
@@ -374,6 +391,10 @@ async function initFirebase() {
         auth = firebase.auth();
         db = firebase.firestore();
         isFirebaseReady = true;
+        if (recvOnly()) {
+            installRecvOnly();
+            try { if (localStorage.getItem('diwanRecvClean') !== '1') { await db.clearPersistence(); localStorage.setItem('diwanRecvClean', '1'); } } catch (e) { console.warn('clearPersistence:', e && e.code); }   // مسح طابور الكتابات القديم العالق مرة واحدة
+        }
         try { await db.enablePersistence({ synchronizeTabs: true }); persistenceOn = true; } catch (e) { persistenceOn = false; console.warn('Offline persistence:', e && e.code); }
         syncRefresh();
 
