@@ -4281,7 +4281,6 @@ input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -
     #homeView .home-grid .home-tile > b:only-of-type { grid-row: 1 / span 2; align-self: center; }
     #homeView .home-grid .home-tile .tile-txt { grid-column: 2; grid-row: 1 / span 2; display: flex !important; flex-direction: column; align-items: flex-start !important; text-align: start !important; gap: 4px; }
     #homeView .home-grid .home-tile .tile-txt b { line-height: 1.5 !important; }
-    #homeView .home-grid .home-tile .tile-badge { position: absolute; top: 10px; inset-inline-start: 10px; }
     /* الأساسية: أربعة في صف */
     #homeView .home-grid .tile-pos, #homeView .home-grid .tile-bill, #homeView .home-grid .tile-purch, #homeView .home-grid .tile-stock { grid-column: span 3 !important; height: 128px; border-radius: 22px; }
     #homeView .home-grid .tile-pos b, #homeView .home-grid .tile-bill b, #homeView .home-grid .tile-purch b, #homeView .home-grid .tile-stock b { font-size: 1.35rem !important; }
