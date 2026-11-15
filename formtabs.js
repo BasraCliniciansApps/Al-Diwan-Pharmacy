@@ -30,10 +30,20 @@ async function fmGoQuick() {
     const cb = fmAfter; fmAfter = null;
     catPrice(id, id ? undefined : { bc, name }, cb);
 }
-// من «سريع» إلى «مفصل»
+// من «سريع» إلى «مفصل»: ننقل قيم الحقول المعدّلة إلى النموذج المفصل حتى لا تضيع
+function fmQuickValues() {
+    const g = i => (document.getElementById(i) || {}).value;
+    return { name: String(g('qpName') || '').trim(), bc: cleanBarcode(g('qpBc') || ''), qty: g('qpQty'), loose: g('qpLoose'), mode: g('qpMode'), cost: g('qpCost'), price: g('qpPrice'), mk: g('qpMk'), sc: g('qpSc'), st: g('qpSt'), sp: g('qpSp') };
+}
+function fmCarry(q) {
+    const set = (i, v) => { const el = document.getElementById(i); if (!el || v === undefined || v === null) return; if (el.tagName === 'SELECT' && ![...el.options].some(o => o.value === String(v))) return; el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); };
+    set('fName', q.name); set('fQty', q.qty); set('fLoose', q.loose);
+    set('fPriceMode', q.mode); set('fCost', q.cost); set('fMarkup', q.mk); set('fPrice', q.price);
+    const sc = parseInt(q.sc) || 0; set('fSubCount', sc >= 2 ? sc : ''); if (sc >= 2) { set('fSubType', q.st); if (parseFloat(q.sp) > 0) set('fSubPrice', q.sp); }
+    if (q.bc && typeof formBarcodes !== 'undefined') { formBarcodes = [q.bc].concat(formBarcodes.filter(x => x !== q.bc)); if (typeof renderBarcodeChips === 'function') renderBarcodeChips(); }
+}
 function catGoDetailed() {
-    const g = i => (document.getElementById(i) || {}).value || '';
-    const name = g('qpName').trim(), bc = cleanBarcode(g('qpBc')), id = window.__qpId || 0, cb = window.__qpCb;
+    const q = fmQuickValues(), name = q.name, bc = q.bc, id = window.__qpId || 0, cb = window.__qpCb;
     try { Swal.close(); } catch (e) { /* تجاهل */ }
     fmNext = typeof cb === 'function' ? cb : null;
     openFormModal(id || null);
@@ -42,4 +52,5 @@ function catGoDetailed() {
         if (bc) { document.getElementById('fBarcode').value = bc; addFormBarcode(); }
         formSnapshot = '';
     }
+    try { fmCarry(q); } catch (e) { /* تجاهل */ }
 }
