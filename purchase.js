@@ -228,6 +228,12 @@ function puPM(it) { const p = products.find(x => x.id === it.pid); return it.pmo
 function puMk(it) { const p = products.find(x => x.id === it.pid); return it.pmarkup != null && it.pmarkup !== '' ? it.pmarkup : (p && p.pricing === 'percent' && p.markupPct != null ? p.markupPct : ''); }
 function puCurPrice(pid) { const p = products.find(x => x.id === pid); return p && p.price ? '(الحالي ' + fmtNum(p.price) + ')' : ''; }
 function puPriceMode(i, v) { const it = pu.items[i]; if (!it) return; it.pmode = v; const a = $b('puPm-' + i), b = $b('puPs-' + i); if (a) a.style.display = v === 'manual' || v === 'free' ? 'block' : 'none'; if (b) b.style.display = v === 'syndicate' || v === 'percent' ? 'block' : 'none'; const c = $b('puPk-' + i); if (c) c.style.display = v === 'percent' ? 'block' : 'none'; if (v === 'percent' && it.pmarkup == null) it.pmarkup = puMk(it); puRecalc(); puChanged(); }
+// فتح تعديل المادة (سريع/مفصل) من سطر الوارد، ثم تحديث السطور
+async function puEditProduct(pid) {
+    if (typeof catPrice !== 'function' || !can('stockEdit')) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'تعديل المادة يحتاج صلاحية تعديل المواد.', confirmButtonColor: '#0f1c38' }); return; }
+    await catPrice(pid, undefined, () => setTimeout(() => { try { puRenderItems(); } catch (e) { /* تجاهل */ } }, 300));
+    try { puRenderItems(); } catch (e) { /* تجاهل */ }
+}
 function puRenderItems() {
     $b('puCount').innerText = pu.items.length ? 'عدد المواد في الفاتورة: ' + pu.items.length : '';
     $b('puItems').innerHTML = pu.items.map((it, i) => `
@@ -239,7 +245,7 @@ function puRenderItems() {
                 <button type="button" class="pt-ret ${puNum(it.ret) > 0 ? 'on' : ''}" onclick="event.stopPropagation();ptRet(${i})" title="مردود لهذه المادة">↩️${puNum(it.ret) > 0 ? ' ' + puNum(it.ret) : ''}</button><button type="button" class="pu-x" onclick="event.stopPropagation();puRemoveItem(${i})" aria-label="حذف">✕</button>
             </div>
             <div class="pu-body" style="display:${it.open ? 'block' : 'none'}">
-                <div class="pu-item-h">${puThumb(it.pid)}<span class="pu-item-t"><b dir="ltr">${puNameHtml(it)}</b><span>${escapeHtml(puSub(it.pid))}</span></span></div>
+                <div class="pu-item-h">${puThumb(it.pid)}<span class="pu-item-t" role="button" title="تعديل المادة" style="cursor:pointer" onclick="puEditProduct(${it.pid})"><b dir="ltr">${puNameHtml(it)}</b><span>${escapeHtml(puSub(it.pid))}</span></span></div>
                 <div class="pu-grid">
                     ${pu.gift ? '' : `<label><span>العدد (عبوة)</span><input type="number" min="1" inputmode="numeric" value="${escapeHtml(String(puMainQty(it)))}" oninput="puItemEdit(${i},'qty',this.value)"></label>`}
                     <label><span>${pu.gift ? 'عدد البونص (مجاني)' : 'بونص (مجاني)'}</span><input type="number" min="0" inputmode="numeric" placeholder="0" value="${escapeHtml(it.bonus || '')}" oninput="puItemEdit(${i},'bonus',this.value)"></label>
