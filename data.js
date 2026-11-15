@@ -381,6 +381,7 @@ function usageAdd(t, n) {
     if (!n) return;
     const u = _usMem && _usMem.d === usageDayKey() ? _usMem : (_usMem = usageGet());
     u[t] += n;
+    if (t === 'w') { window.__abDirty = 1; if (typeof abDirty === 'function') abDirty(); }   // تغيّرت البيانات: تُحفظ نسخة تلقائية بعد قليل
     if (Date.now() - _usSaveAt > 2000) { _usSaveAt = Date.now(); try { localStorage.setItem('diwanUsage', JSON.stringify(u)); } catch (e) { /* تجاهل */ } }
     if (!usagePaused && u[t] >= usageCap(t)) usagePause('cap', t);
 }

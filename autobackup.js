@@ -26,7 +26,7 @@
             if (!where) { await idbPut(text); where = 'داخل التطبيق'; }
             const c = data.counts || {};
             localStorage.setItem(KEY, JSON.stringify({ ts: Date.now(), day: dayKey(), where, err, bytes: text.length, n: c.products || products.length, reason }));
-            running = false; render(); return true;
+            window.__abDirty = 0; running = false; render(); return true;
         } catch (e) {
             try { localStorage.setItem(KEY, JSON.stringify(Object.assign(info(), { err: (e && e.message) || 'فشل الحفظ' }))); } catch (x) { /* تجاهل */ }
             running = false; render(); return false;
@@ -35,7 +35,7 @@
     function render() {
         const el = document.getElementById('abInfo'), sw = document.getElementById('abOn'); if (sw) sw.checked = on();
         if (!el) return; const i = info();
-        el.textContent = (i.ts ? 'آخر نسخة: ' + new Date(i.ts).toLocaleString('ar-IQ') + ' — ' + (i.where || '') + (i.err ? ' (' + i.err + ')' : '') : 'لم تُحفظ نسخة تلقائية بعد') + ' · تُحفظ كل ليلة عند 12:00 وتستبدل السابقة.';
+        el.textContent = (i.ts ? 'آخر نسخة: ' + new Date(i.ts).toLocaleString('ar-IQ') + ' — ' + (i.where || '') + (i.err ? ' (' + i.err + ')' : '') : 'لم تُحفظ نسخة تلقائية بعد') + ' · تُحفظ بعد كل تعديل وعند الخروج من التطبيق وكل ليلة عند 12:00، وتستبدل السابقة.';
     }
     function check(reason) { if (on() && info().day !== dayKey()) return run(reason); }
     function schedule() {
@@ -51,6 +51,11 @@
     window.abRender = render;
     document.addEventListener('DOMContentLoaded', () => { render(); setInterval(render, 5000); });
     setTimeout(() => check('catchup'), 30000);                 // لحاق: أول فتح بعد منتصف الليل إن كان التطبيق مغلقاً وقتها
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') check('resume'); });
+    let dTimer = 0;
+    window.abDirty = () => { if (!on() || dTimer) return; dTimer = setTimeout(() => { dTimer = 0; if (window.__abDirty) run('change'); }, 180000); };   // بعد 3 دقائق من أول تعديل
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') check('resume');
+        else if (on() && window.__abDirty) run('background');   // عند الخروج من التطبيق
+    });
     schedule();
 })();
