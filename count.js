@@ -260,6 +260,10 @@ function cnFollow(l) {
     if (!l) return out;
     l.rows.forEach(r => {
         if (r.cnt === '') return; const cur = cnSysOf(r); if (cur === null) return;
+        if (l.apply !== false) {   // القائمة المعتمدة على المخزن: العدد يتبع المخزن تلقائياً (بيع، تعديل دفعات...)، إلا سطراً عدّله المستخدم يدوياً ولم يُعتمد (تجاوز)
+            if (r.ov && cnInt(r.cnt) === cur) r.ov = 0;
+            if (!r.ov) { if (cnInt(r.cnt) !== cur) { r.cnt = String(cur); out.push(r); } r.sq = cur; return; }
+        }
         if (r.sq === undefined) r.sq = r.applied ? cnInt(r.cnt) : (cnInt(r.cnt) === cur ? cur : undefined);   // سطر معتمد سابقاً: كان المخزن مطابقاً للعدد وقتها
         if (r.sq === undefined) return;
         if (cur === r.sq) return;
@@ -319,7 +323,7 @@ function cnRefreshTotals(r) {
     const tt = document.getElementById('cnTotal'); if (tt) tt.textContent = fmtNum(cnSum(cnCur.rows));
 }
 function cnRow(id) { return cnCur && cnCur.rows.find(r => r.id === id); }
-function cnSetCnt(id, v) { const r = cnRow(id); if (!r) return; r.cnt = v === '' ? '' : String(Math.max(0, cnInt(v))); cnRefreshTotals(r); cnTouch(); }
+function cnSetCnt(id, v) { const r = cnRow(id); if (!r) return; r.ov = 1; r.cnt = v === '' ? '' : String(Math.max(0, cnInt(v))); cnRefreshTotals(r); cnTouch(); }
 function cnSetPrice(id, v) { const r = cnRow(id); if (!r) return; r.pe = true; r.price = v === '' ? '' : String(cnNum(v)); cnRefreshTotals(r); cnTouch(); }
 async function cnDelRow(id) {
     const r = cnRow(id); if (!r) return; const p = products.find(x => x.id === r.pid);
