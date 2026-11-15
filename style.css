@@ -4323,3 +4323,11 @@ input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -
 .home-view > .page-title, .alerts-view > .page-title { margin-top: -1px; top: calc(var(--bb-h, 62px) - 1px); }
 .bill-top, .home-view > .brand-bar, .home-view > .page-title, .alerts-view > .brand-bar, .alerts-view > .page-title, .top-bar, .bill-tabs, .al-tabs { transform: translateZ(0); backface-visibility: hidden; will-change: transform; }
 html, body { overscroll-behavior-y: none; }
+
+/* v581: نفس ستايل ترويسة الرئيسية (نسيج ذهبي + خط ذهبي سفلي + حافة منحنية) على بقية الشاشات */
+.tr-head, .cn-head, .pos-head, .fm-top, .sh-bar { background-color: #0f1c38; background-image: linear-gradient(180deg, rgba(15,28,56,0) 0%, rgba(15,28,56,.5) 100%), var(--orn); background-size: 100% 100%, 56px 56px; background-repeat: no-repeat, repeat; background-position: 0 0, right top; color: #fff; border-radius: 0 0 22px 22px; box-shadow: inset 0 -3px 0 #0f1c38, inset 0 -4.5px 0 rgba(244,183,63,.85), 0 8px 14px -10px rgba(15,28,56,.55); }
+.tr-head, .cn-head, .pos-head { padding-bottom: 18px; }
+.fm-top, .sh-bar { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 18px; border-bottom: 0; }
+.fm-top h3, .sh-bar b { color: #fff; }
+.fm-top .sh-back, .sh-bar .sh-back { background: rgba(255,255,255,.14); color: #fff; }
+:root[data-theme="dark"] .fm-top, :root[data-theme="dark"] .sh-bar { background-color: #0b1326; }
