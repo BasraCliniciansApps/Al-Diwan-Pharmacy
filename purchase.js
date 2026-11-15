@@ -231,8 +231,10 @@ function puPriceMode(i, v) { const it = pu.items[i]; if (!it) return; it.pmode =
 // فتح تعديل المادة (سريع/مفصل) من سطر الوارد، ثم تحديث السطور
 async function puEditProduct(pid) {
     if (typeof catPrice !== 'function' || !can('stockEdit')) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'تعديل المادة يحتاج صلاحية تعديل المواد.', confirmButtonColor: '#0f1c38' }); return; }
-    await catPrice(pid, undefined, () => setTimeout(() => { try { puRenderItems(); } catch (e) { /* تجاهل */ } }, 300));
-    try { puRenderItems(); } catch (e) { /* تجاهل */ }
+    const p0 = products.find(x => x.id === pid), autos = p0 ? pu.items.filter(it => it.pid === pid && puNameAuto(it, p0)) : [];   // السطور التي اسمها تلقائي (يتبع المادة)
+    const sync = () => { const p = products.find(x => x.id === pid); if (p) autos.forEach(it => { it.name = dispName(p); }); try { puRenderItems(); } catch (e) { /* تجاهل */ } };
+    await catPrice(pid, undefined, () => setTimeout(sync, 300));
+    sync();
 }
 function puRenderItems() {
     $b('puCount').innerText = pu.items.length ? 'عدد المواد في الفاتورة: ' + pu.items.length : '';
