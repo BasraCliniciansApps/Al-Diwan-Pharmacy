@@ -459,6 +459,16 @@ function catPriceWire(p) {
         // مادة موجودة: نعرض دفعاتها الحالية للتعديل (إن كانت قابلة للعرض بلا فقدان: بدون أجزاء مفتوحة موزعة ولا تواريخ قديمة غير موزعة)
         if (p) {
             let init = []; try { const L = getBatches(p); if (!L.some(b => b.legacy || (parseInt(b.l) || 0) > 0)) { init = L.filter(b => (parseInt(b.q) || 0) > 0).map(b => ({ e: b.e || '', q: parseInt(b.q) || 0, pr: b.pr || 0 })); const have = new Set(init.map(b => b.e)); const dd = (p.bt ? btDateOnly(p) : ((parseInt(p.qty) || 0) > 0 ? [] : getProductExpiryDates(p))); dd.forEach(d => { if (!have.has(d)) init.push({ e: d, q: 0, pr: 0 }); }); } } catch (e) { init = []; }
+            // دفعات فيها أجزاء مفتوحة أو تواريخ غير موزعة لا تُعرض كصفوف قابلة للتعديل هنا: نعرضها للقراءة فقط بدل إخفائها، ونمنع الإضافة حتى لا تُستبدل
+            try {
+                const L2 = getBatches(p);
+                if (L2.some(b => b.legacy || (parseInt(b.l) || 0) > 0)) {
+                    const fd = e => { const m = /^(\d{4})-(\d{2})/.exec(e || ''); return m ? m[2] + '/' + m[1] : (e || 'بدون تاريخ'); };
+                    const txt = L2.map(b => b.legacy ? 'تواريخ: ' + b.legacy.map(fd).join('، ') + ' × ' + btFmt(b, p) : fd(b.e) + ' × ' + btFmt(b, p));
+                    box.innerHTML = '<div class="qp-btnote" style="font-size:.82rem;line-height:1.9;padding:8px 10px;background:#f1f5f9;border-radius:10px"><b>الدفعات الحالية (للعرض فقط):</b><br>' + txt.map(t => '<bdi>' + escapeHtml(t) + '</bdi>').join('<br>') + '<br><small>تعديل هذه الدفعات من تبويب «مفصل».</small></div>';
+                    const ab = $('qpBtAdd'); if (ab) ab.style.display = 'none';
+                }
+            } catch (e) { /* تجاهل */ }
             box.dataset.init = JSON.stringify(init);
             init.forEach(b => add(b.e, b.q, b.pr));
         }
