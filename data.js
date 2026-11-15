@@ -2865,6 +2865,10 @@ async function saveProductsDelta(entries, op) {
         let useMoves = !!(op && op.key && F);
         try { const off = +localStorage.getItem('diwanMovesOff') || 0; if (off && Date.now() - off < 3600000) useMoves = false; } catch (e) { /* تجاهل */ }
         const nChunks = Math.ceil(entries.length / 15);
+        if (useMoves) {   // نسخة firebase compat لا تدعم batch.create: نتحقق من وجود سجل العملية قبل الكتابة (المالك فقط يقرأ السجل، وغيره يتخطى الفحص)
+            try { const d0 = await Promise.race([db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#0' : '')).get(), new Promise(res => setTimeout(() => res(null), 2000))]); if (d0 && d0.exists) { const ae = new Error('already-exists'); ae.code = 'already-exists'; throw ae; } }
+            catch (e0) { if (e0 && e0.code === 'already-exists') throw e0; }
+        }
         for (let i = 0; i < entries.length; i += 15) {
             const slice = entries.slice(i, i + 15);
             const build = (withMove) => {
@@ -2908,7 +2912,7 @@ async function saveProductsDelta(entries, op) {
                 }
                 batch.set(ref, u, { merge: true });
             });
-            if (withMove) batch.create(db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#' + (i / 15) : '')), { key: op.key, kind: op.kind || '', inv: op.inv || '', no: op.no || '', by: userName || (userRole === 'owner' ? 'المالك' : ''), uid: currentUser.uid, ts: new Date().toISOString(), lines: slice.map(e => ({ p: e.p.id, dq: e.dq || 0, dl: e.dl || 0, q: parseInt(e.p.qty) || 0, l: parseInt(e.p.loose) || 0 })) });
+            if (withMove) batch.set(db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#' + (i / 15) : '')), { key: op.key, kind: op.kind || '', inv: op.inv || '', no: op.no || '', by: userName || (userRole === 'owner' ? 'المالك' : ''), uid: currentUser.uid, ts: new Date().toISOString(), lines: slice.map(e => ({ p: e.p.id, dq: e.dq || 0, dl: e.dl || 0, q: parseInt(e.p.qty) || 0, l: parseInt(e.p.loose) || 0 })) });
             return batch;
             };
             try { await fsCommit(build(useMoves)); }
