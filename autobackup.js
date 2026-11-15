@@ -52,7 +52,7 @@
     document.addEventListener('DOMContentLoaded', () => { render(); setInterval(render, 5000); });
     setTimeout(() => check('catchup'), 30000);                 // لحاق: أول فتح بعد منتصف الليل إن كان التطبيق مغلقاً وقتها
     let dTimer = 0;
-    window.abDirty = () => { if (!on() || dTimer) return; dTimer = setTimeout(() => { dTimer = 0; if (window.__abDirty) run('change'); }, 180000); };   // بعد 3 دقائق من أول تعديل
+    window.abDirty = () => { if (!on() || dTimer) return; dTimer = setTimeout(() => { dTimer = 0; if (window.__abDirty) run('change'); }, 60000); };   // بعد دقيقة من أول تعديل
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') check('resume');
         else if (on() && window.__abDirty) run('background');   // عند الخروج من التطبيق
