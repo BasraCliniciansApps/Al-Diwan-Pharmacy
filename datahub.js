@@ -70,6 +70,7 @@ function dhRender0(keep) {
     if (dhScreen === 'miss') return dhRenderMiss(el);
     if (dhScreen === 'rules') return dhRenderRules(el);
     if (dhScreen === 'brand') return dhRenderBrand(el);
+    if (dhScreen === 'fnm') return dhRenderFnm(el);
     dhRenderHome(el);
 }
 
@@ -89,6 +90,7 @@ function dhRenderHome(el) {
         ${dhCard('🔁', 'المواد المكررة', dups ? `${fmtNum(dups)} مجموعة أسماء متشابهة يمكن ضمها` : 'لا توجد مواد مكررة ظاهرة', null, "dhGo('dup')")}
         ${dhCard('📋', 'بيانات ناقصة', `بلا باركود ${fmtNum(st.n - st.bc)} • بلا سعر ${fmtNum(st.n - st.price)} • بلا شكل دوائي ${fmtNum(st.n - st.form)}`, null, "dhGo('miss')")}
         ${dhCard('🏭', 'تعبئة الشركات تلقائياً', (n => n ? `${fmtNum(n)} مادة بلا شركة يمكن تعبئتها من مواد بنفس الاسم التجاري` : 'لا يوجد ما يمكن تعبئته الآن')(dhBrandPlan().fill.length + dhBrandPlan().ask.length), null, "dhGo('brand')")}
+        ${dhCard('✂️', 'الشكل الدوائي المكرر في الاسم', (n => n ? `${fmtNum(n)} مادة فيها الشكل مكتوب في الاسم وفي حقل الشكل معاً` : 'لا توجد أسماء فيها شكل دوائي مكرر')(dhFnmPlan().length), null, "dhGo('fnm')")}
         ${dhCard('⚙️', 'قواعد تصنيفي الخاصة', dhRules.length ? `${fmtNum(dhRules.length)} قاعدة مضافة` : 'أضف قاعدة بنفسك: كلمة بالاسم ← تصنيف', null, "dhGo('rules')")}
     </div>`;
 }
@@ -304,5 +306,69 @@ async function dhBrandApply() {
     upd.forEach(u => { try { logAction('edit', u.p, [{ f: 'الشركة (تعبئة تلقائية)', from: '', to: u.b }]); } catch (e) { /* تجاهل */ } });
     dhBrandSel.clear(); try { renderAll(); } catch (e) { /* تجاهل */ }
     Swal.fire({ icon: 'success', title: 'تمت تعبئة ' + fmtNum(upd.length) + ' شركة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    dhRender();
+}
+
+// ---------- إزالة الشكل الدوائي المكرر من الاسم التجاري ----------
+// تُزال كلمة الشكل من الاسم فقط إن كان الشكل الدوائي نفسه مختاراً في حقل «الشكل الدوائي» للمادة
+let dhFnmOff = new Set();   // معرّفات المواد التي ألغى المستخدم تنظيفها
+const DH_FNM_ABBR = {
+    tablet: 'tablets?|tabs?', capsule: 'capsules?|caps?', ointment: 'ointments?|oint', suspension: 'suspensions?|susp',
+    injection: 'injections?|inj', suppository: 'suppositor(?:y|ies)|supp', solution: 'solutions?|soln|sol', syrup: 'syrups?',
+    cream: 'creams?', gel: 'gels?', lotion: 'lotions?', shampoo: 'shampoos?', sachet: 'sachets?', powder: 'powders?', patch: 'patch(?:es)?',
+    drops: 'drops?', spray: 'sprays?', foam: 'foam', paste: 'paste', oil: 'oil', elixir: 'elixir', emulsion: 'emulsions?', lozenge: 'lozenges?',
+    ampoule: 'ampoules?|amps?', vial: 'vials?', granules: 'granules?', inhaler: 'inhalers?', mouthwash: 'mouth\\s*wash', gargle: 'gargle',
+    enema: 'enemas?', cartridge: 'cartridges?', jelly: 'jelly', wash: 'wash', pessary: 'pessar(?:y|ies)', soap: 'soap'
+};
+const DH_FNM_SKIP = new Set(['other', 'device', 'diag', 'lens', 'pen']);
+function dhFnmEsc(t) { return t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function dhFnmTerms(p) {
+    if (!p.form || DH_FNM_SKIP.has(p.form)) return [];
+    const f = dispForm(p); if (!f) return [];
+    const out = [];
+    f.split('/').map(x => x.trim()).filter(Boolean).forEach(part => {
+        out.push(dhFnmEsc(part).replace(/[\s-]+/g, '[\\s-]*') + '(?:s|es)?');
+        const w = part.toLowerCase().split(/\s+/).pop().replace(/[^a-z]/g, '');
+        if (DH_FNM_ABBR[w]) out.push(DH_FNM_ABBR[w]);
+    });
+    return out;
+}
+function dhFnmClean(name, terms) {
+    let n = String(name || '');
+    terms.forEach(t => { n = n.replace(new RegExp('(?<![A-Za-z])(?:' + t + ')\\.?(?![A-Za-z])', 'gi'), ' '); });
+    n = n.replace(/\(\s*\)/g, ' ').replace(/\s{2,}/g, ' ').replace(/^[\s\-–,|/.]+|[\s\-–,|/]+$/g, '').trim();
+    return n;
+}
+function dhFnmPlan() {
+    const out = [];
+    products.forEach(p => {
+        const terms = dhFnmTerms(p); if (!terms.length) return;
+        const nn = dhFnmClean(p.name, terms), old = String(p.name || '').trim();
+        if (nn && nn !== old && nn.length >= 2 && /[A-Za-z0-9؀-ۿ]/.test(nn)) out.push({ p, old, nn, f: dispForm(p) });
+    });
+    return out.sort((a, b) => a.old.localeCompare(b.old));
+}
+function dhRenderFnm(el) {
+    const plan = dhFnmPlan(), on = plan.filter(r => !dhFnmOff.has(r.p.id)).length;
+    const row = r => `<div class="dh-row"><div class="dh-sub" dir="ltr"><span style="text-decoration:line-through;opacity:.65">${dhEsc(r.old)}</span></div>
+        <div class="dh-sub" dir="ltr"><b>${dhEsc(r.nn)}</b> <span style="opacity:.7">| ${dhEsc(r.f)}</span></div>
+        <div class="qk-row"><div><small>تنظيف هذه المادة</small></div><label class="setup-sw"><input type="checkbox" ${dhFnmOff.has(r.p.id) ? '' : 'checked'} onchange="dhFnmPick(${r.p.id},this.checked)"><i></i></label></div></div>`;
+    el.innerHTML = `${dhHead('✂️ إزالة الشكل الدوائي من الاسم', true)}
+    <div class="tr-prog">تُزال كلمة الشكل الدوائي (مثل Tablet أو Syrup) من الاسم التجاري فقط إذا كان الشكل نفسه مختاراً في حقل «الشكل الدوائي»، ويبقى الشكل في حقله. راجع القائمة وعطّل ما لا تريد تغييره، ثم اضغط حفظ.</div>
+    <div class="tr-list">${plan.length ? plan.slice(0, 300).map(row).join('') + (plan.length > 300 ? `<div class="dh-sub" style="padding:8px 4px">يظهر أول 300 فقط من ${fmtNum(plan.length)}. بعد حفظ هذه الدفعة تظهر البقية.</div>` : '') : '<div class="dh-sub" style="padding:16px">لا توجد مواد فيها شكل دوائي مكرر في الاسم.</div>'}</div>
+    <div class="tr-foot"><button type="button" class="tr-apply" id="dhFnmBtn" onclick="dhFnmApply()">💾 حفظ التنظيف (${fmtNum(Math.min(on, 300))})</button></div>`;
+}
+function dhFnmPick(id, v) { if (v) dhFnmOff.delete(id); else dhFnmOff.add(id); const b = document.getElementById('dhFnmBtn'); if (b) b.textContent = `💾 حفظ التنظيف (${fmtNum(dhFnmPlan().slice(0, 300).filter(r => !dhFnmOff.has(r.p.id)).length)})`; }
+async function dhFnmApply() {
+    if (!writesAllowed()) return;
+    const upd = dhFnmPlan().slice(0, 300).filter(r => !dhFnmOff.has(r.p.id));
+    if (!upd.length) { Swal.fire({ icon: 'info', title: 'لا توجد تعديلات للحفظ', timer: 1600, showConfirmButton: false }); return; }
+    if (!(await askSure('تنظيف ' + fmtNum(upd.length) + ' اسماً؟', 'سيُحذف الشكل الدوائي المكرر من الاسم التجاري للمواد المحددة فقط، ويبقى في حقل الشكل الدوائي.', 'نعم، نظّف'))) return;
+    upd.forEach(r => { r.p.name = r.nn; });
+    const ok = await saveProductsBatch(upd.map(r => r.p));
+    if (!ok) { upd.forEach(r => { r.p.name = r.old; }); return; }
+    upd.forEach(r => { try { logAction('edit', r.p, [{ f: 'الاسم (إزالة الشكل المكرر)', from: r.old, to: r.nn }]); } catch (e) { /* تجاهل */ } });
+    try { renderAll(); } catch (e) { /* تجاهل */ }
+    Swal.fire({ icon: 'success', title: 'تم تنظيف ' + fmtNum(upd.length) + ' اسماً', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     dhRender();
 }
