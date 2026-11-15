@@ -4310,3 +4310,7 @@ input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -
 .bill-tabs button.active, .cat-tabs button.on, .fm-tabs button.on { background: #0f1c38; border-color: #0f1c38; color: #fff; }
 [data-theme="dark"] .bill-tabs button, [data-theme="dark"] .cat-tabs button, [data-theme="dark"] .fm-tabs button { background: #1e293b; border-color: #334155; color: #e2e8f0; }
 [data-theme="dark"] .bill-tabs button.active, [data-theme="dark"] .cat-tabs button.on, [data-theme="dark"] .fm-tabs button.on { background: #0f1c38; border-color: #64748b; color: #fff; }
+
+/* v579: خط الرقعة في عناوين كل الشاشات (الجرد، البيع، الإعدادات، النماذج، الزبائن...) */
+.tr-head b, .cn-head b, .pos-head b, .fm-top h3, #shTitle, .sab-head, .da-head, .fs-head h3, .qi-head b, .inv-head b, .inv-head h3, .sc-head b, .scan-head b { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; }
+.tr-head b, .cn-head b, .pos-head b { font-size: 1.2rem; }
