@@ -348,20 +348,15 @@ async function quickImgUpload(id, file) {
             im.onload = () => { const cv = document.createElement('canvas'), max = 600; let w = im.width, h = im.height; if (w > h && w > max) { h *= max / w; w = max; } else if (h > max) { w *= max / h; h = max; } cv.width = w; cv.height = h; const cx = cv.getContext('2d'); cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, w, h); cx.drawImage(im, 0, 0, w, h); res(cv.toDataURL('image/jpeg', 0.82).split(',')[1]); };
             im.src = dataUrl;
         });
-        const fileName = 'med_' + Date.now() + '.jpg', path = 'images/' + fileName;
-        let resp, out;
-        h.set(25, 'رفع الصورة إلى GitHub...');
-        for (let i = 0; i < 5; i++) { // تعارض لحظي بالفرع (is at … but expected) → إعادة المحاولة
-            resp = await progPutJson('https://api.github.com/repos/BasraCliniciansApps/Al-Diwan-Pharmacy/contents/' + path, { Authorization: 'token ' + token, 'Content-Type': 'application/json' }, { message: 'صورة دواء: ' + fileName, content: b64, branch: 'main' }, (l, t) => h.set(25 + 55 * l / t));
-            out = resp.json || {};
-            if (resp.ok || !(resp.status === 409 || /but expected|is at/i.test(out.message || ''))) break;
-            h.set(null, 'تعارض لحظي — إعادة المحاولة ' + (i + 2) + ' من 5...');
-            await new Promise(r => setTimeout(r, 1200 * (i + 1)));
-        }
-        if (!resp.ok || !out.content) { if (resp.status === 401) localStorage.removeItem('diwan_gh_token'); throw new Error(out.message || 'فشل الرفع إلى GitHub'); }
-        h.set(85, 'حفظ رابط الصورة في المادة...');
-        const old = p.img; p.img = 'https://raw.githubusercontent.com/BasraCliniciansApps/Al-Diwan-Pharmacy/main/' + path;
-        if (!(await saveProductsDelta([{ p, dq: 0, dl: 0 }]))) { p.img = old; h.fail('رُفعت الصورة لكن لم يُحفظ رابطها', 'جرّب مرة ثانية'); return; }
+        const fileName = 'med_' + Date.now() + '.jpg', path = 'images/' + fileName, url = ImgStore.RAW + path;
+        // نحفظ الصورة على الجهاز فوراً (تظهر مباشرة وبدون نت)، ثم تُرفع إلى GitHub بالخلفية مع إعادة المحاولة
+        h.set(40, 'حفظ الصورة على الجهاز...');
+        const blob = await (await fetch('data:image/jpeg;base64,' + b64)).blob();
+        await ImgStore.localPut(url, blob);
+        h.set(70, 'حفظ رابط الصورة في المادة...');
+        const old = p.img; p.img = url;
+        if (!(await saveProductsDelta([{ p, dq: 0, dl: 0 }]))) { p.img = old; h.fail('لم يُحفظ رابط الصورة', 'جرّب مرة ثانية'); return; }
+        await ImgStore.enqueue(path, b64);
         logAction('edit', p, [{ f: 'الصورة', from: old || '', to: p.img }]);
         renderAll(); if (typeof dhImgDone === 'function' && dhImgDone(p.id)) { /* من مركز التجهيز */ } else { try { openSheet(p.id); } catch (e) { /* تجاهل */ } }
         h.ok(old ? 'تم تبديل الصورة' : 'تمت إضافة الصورة');

@@ -69,6 +69,16 @@
         } catch (e) { console.warn('NAT.saveBlob', e); return null; }
     };
 
+    // قراءة ملف نصي من مجلد النسخ (مثل ملف الصور) ثم ملف .nomedia كي لا تُفهرس محتويات المجلد في معرض الصور
+    NAT.readText = async function (rel) {
+        if (!FS) return null;
+        try { const r = await FS.readFile({ path: ROOT + '/' + rel, directory: 'DOCUMENTS', encoding: 'utf8' }); return typeof r.data === 'string' ? r.data : null; } catch (e) { return null; }
+    };
+    NAT.nomedia = async function () {
+        if (!FS || localStorage.getItem('diwanNomedia') === '1') return;
+        try { await FS.writeFile({ path: ROOT + '/Backups/.nomedia', data: 'IA==', directory: 'DOCUMENTS', recursive: true }); localStorage.setItem('diwanNomedia', '1'); } catch (e) { /* تجاهل */ }
+    };
+
     // ---------- زر الرجوع في الهاتف: نعالجه داخل التطبيق بدل الاعتماد على سجل المتصفح ----------
     if (APP && APP.addListener) {
         APP.addListener('backButton', () => {

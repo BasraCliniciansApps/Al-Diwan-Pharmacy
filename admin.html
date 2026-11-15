@@ -342,6 +342,10 @@
                 <div class="qk-row"><div><b>نسختان تلقائيتان بالتناوب</b><small id="abInfo">نسختان بالتناوب، واحدة لكل يوم، وتبقى نسخة الأمس سليمة.</small></div><label class="setup-sw"><input type="checkbox" id="abOn" checked onchange="abToggle(this)"><i></i></label></div>
                 <button type="button" class="set-nav set-act" onclick="abNow()"><div><b>حفظ النسخة التلقائية الآن</b><small>تُحفظ في نسخة اليوم وتستبدل ما قبلها.</small></div><i class="set-ico">💾</i></button>
                 <button type="button" class="set-nav set-act" onclick="abRestore()"><div><b>استرجاع نسخة تلقائية</b><small>اختيار النسخة A أو B واسترجاعها بعد معاينة.</small></div><i class="set-ico">♻️</i></button>
+                <div class="qk-row"><div><b>صور المواد على الجهاز</b><small id="imgBkInfo">تُحفظ صور المواد على الجهاز وتُرفع بالخلفية، وتُحفظ في ملف خاص مخفي عن معرض الصور مع النسخ الاحتياطية.</small></div></div>
+                <button type="button" class="set-nav set-act" onclick="imgSaveBackup()"><div><b>حفظ ملف الصور الآن</b><small>ملف واحد (JSON) في مجلد النسخ الاحتياطية، ولا يظهر في معرض الصور.</small></div><i class="set-ico">🖼️</i></button>
+                <button type="button" class="set-nav set-act" onclick="document.getElementById('imgRestoreIn').click()"><div><b>استرجاع الصور من ملف</b><small>يعيد الصور إلى الجهاز، وتُرفع المفقودة منها إلى الإنترنت بالخلفية.</small></div><i class="set-ico">♻️</i></button>
+                <input type="file" id="imgRestoreIn" accept=".json,application/json" hidden onchange="imgRestoreFromFile(event)">
             </div>
 
             <div class="cat-manager-box" data-k="restore">
@@ -1134,7 +1138,8 @@
     <script src="data.js"></script>
 <script src="invoice.js"></script><script src="sellpop.js"></script><script src="quickinv.js"></script><script src="pos.js"></script><script src="formsmgr.js"></script><script src="pricelist.js"></script><script src="purchase-xlsx.js"></script><script src="desktop.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="datahub.js"></script><script src="taxfilter.js"></script><script src="docpage.js"></script><script src="rxprint.js"></script><script src="rx.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><script src="labels.js"></script><script src="help.js"></script><script src="navtabs.js"></script><script src="count.js"></script><script src="formtabs.js"></script><script src="expenses.js"></script><script src="smartpo.js"></script><script src="customers.js"></script><script src="recon.js"></script><script src="taxmembers.js"></script><script src="formx.js"></script><script src="homeplus.js"></script>
 <script src="bidi.js"></script>
-<script src="autobackup.js"></script><script src="native.js"></script>
+<script src="autobackup.js"></script>
+<script src="imgstore.js"></script><script src="native.js"></script>
     <script>
         if ('serviceWorker' in navigator) {
             const hadCtl = !!navigator.serviceWorker.controller;

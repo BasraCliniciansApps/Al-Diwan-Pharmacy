@@ -1952,24 +1952,14 @@ async function uploadImgBase64(event) {
             const filePath = `${IMAGES_FOLDER}/${fileName}`;
 
             try {
-                const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${GITHUB_REPO}/contents/${filePath}`;
-                PH.set(20, 'رفع الصورة إلى GitHub...');
-                const response = await progPutJson(apiUrl, { "Authorization": `token ${githubToken}`, "Content-Type": "application/json" },
-                    { message: `إضافة صورة دواء في مجلد الصور: ${fileName}`, content: base64Content, branch: GITHUB_BRANCH },
-                    (l, t) => PH.set(20 + 75 * l / t));
-                const result = response.json || {};
-
-                if (response.ok && result.content) {
-                    // الرابط المباشر يشير إلى داخل فولدر images
-                    const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${filePath}`;
-                    imgInput.value = rawUrl;
-                    PH.ok('تم رفع الصورة — اضغط «حفظ» لتثبيتها في المادة');
-                } else {
-                    if (response.status === 401) {
-                        localStorage.removeItem('diwan_gh_token');
-                    }
-                    throw new Error(result.message || "فشل الرفع إلى GitHub");
-                }
+                // تُحفظ الصورة على الجهاز فوراً (تظهر بدون نت) ثم تُرفع إلى GitHub بالخلفية مع إعادة المحاولة
+                const rawUrl = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${GITHUB_REPO}/${GITHUB_BRANCH}/${filePath}`;
+                PH.set(40, 'حفظ الصورة على الجهاز...');
+                const blob = await (await fetch('data:image/jpeg;base64,' + base64Content)).blob();
+                await ImgStore.localPut(rawUrl, blob);
+                await ImgStore.enqueue(filePath, base64Content);
+                imgInput.value = rawUrl;
+                PH.ok('تم حفظ الصورة (ترفع إلى الإنترنت بالخلفية) — اضغط «حفظ» لتثبيتها في المادة');
             } catch (err) {
                 imgInput.value = "";
                 PH.fail('تعذر رفع الصورة إلى GitHub', 'السبب: ' + err.message);
@@ -3260,6 +3250,7 @@ async function restoreBackup(event) {
         }
 
         await applyBackupData(data);
+        try { if (window.ImgStore) await ImgStore.restoreAuto(); } catch (e) { /* تجاهل */ }
     } catch (err) {
         Swal.fire({ icon: 'error', title: 'تعذر الاسترجاع', text: err.message || String(err), confirmButtonColor: '#0f1c38' });
     } finally {

@@ -6,15 +6,15 @@
    - طلبات Firebase وGitHub API لا يتدخل فيها أبداً
    لإجبار كل الأجهزة على تحديث الكاش: غيّر رقم VERSION
    ===================================================== */
-const VERSION = 'diwan-v577';
+const VERSION = 'diwan-v578';
 const SHELL_CACHE = VERSION + '-shell';
 const LIB_CACHE = VERSION + '-lib';
-const IMG_CACHE = VERSION + '-img';
-const MAX_IMAGES = 600;
+const IMG_CACHE = 'diwan-keep-img';   // كاش الصور دائم: لا يُحذف عند تحديث الإصدار (يحمل صور المواد على الجهاز لتعمل بدون نت)
+const MAX_IMAGES = 6000;
 const NETWORK_TIMEOUT_MS = 1500;      // يوجد نسخة بالكاش: لا ننتظر الشبكة أكثر من هذا
 const NETWORK_TIMEOUT_NOCACHE_MS = 12000; // لا توجد نسخة: ننتظر أطول
 
-const SHELL_FILES = ['./style.css', './prog.js', './data.js', './icons.js', './swal-skin.js', './seed.js', './admin.html', './invoice.js', './sellpop.js', './quickinv.js', './pos.js', './formsmgr.js', './pricelist.js', './purchase-xlsx.js', './desktop.js', './vendor/html-to-image.js', './vendor/pdf-lib.min.js', './purchase.js', './purchase2.js', './ledger.js', './ledger2.js', './ledger3.js', './ledger4.js', './ledger5.js', './blink.js', './unify.js', './catalog.js', './taxmap.js', './taxonomy.js', './datahub.js', './docpage.js', './rxprint.js', './fonts/ArefRuqaa-Bold.ttf', './fonts/aref-ruqaa-arabic-700-normal.woff2', './fonts/aref-ruqaa-latin-700-normal.woff2', './fonts/tajawal-arabic-400-normal.woff2', './fonts/tajawal-latin-400-normal.woff2', './fonts/tajawal-arabic-500-normal.woff2', './fonts/tajawal-latin-500-normal.woff2', './fonts/tajawal-arabic-700-normal.woff2', './fonts/tajawal-latin-700-normal.woff2', './fonts/tajawal-arabic-800-normal.woff2', './fonts/tajawal-latin-800-normal.woff2', './taxfilter.js', './rx.js', './doctor.html', './navtabs.js', './count.js', './customers.js', './formtabs.js', './expenses.js', './smartpo.js', './native.js', './recon.js', './taxmembers.js', './formx.js', './homeplus.js', './bidi.js', './quick.js', './learn.js', './settings.js', './sselect.js', './scanner.js', './formsec.js', './security.js', './backup.js', './autobackup.js', './admin.js', './progsave.js', './pricefix.js', './labels.js', './help.js', './manifest-admin.json', './icon.jpg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
+const SHELL_FILES = ['./style.css', './prog.js', './data.js', './icons.js', './swal-skin.js', './seed.js', './admin.html', './invoice.js', './sellpop.js', './quickinv.js', './pos.js', './formsmgr.js', './pricelist.js', './purchase-xlsx.js', './desktop.js', './vendor/html-to-image.js', './vendor/pdf-lib.min.js', './purchase.js', './purchase2.js', './ledger.js', './ledger2.js', './ledger3.js', './ledger4.js', './ledger5.js', './blink.js', './unify.js', './catalog.js', './taxmap.js', './taxonomy.js', './datahub.js', './docpage.js', './rxprint.js', './fonts/ArefRuqaa-Bold.ttf', './fonts/aref-ruqaa-arabic-700-normal.woff2', './fonts/aref-ruqaa-latin-700-normal.woff2', './fonts/tajawal-arabic-400-normal.woff2', './fonts/tajawal-latin-400-normal.woff2', './fonts/tajawal-arabic-500-normal.woff2', './fonts/tajawal-latin-500-normal.woff2', './fonts/tajawal-arabic-700-normal.woff2', './fonts/tajawal-latin-700-normal.woff2', './fonts/tajawal-arabic-800-normal.woff2', './fonts/tajawal-latin-800-normal.woff2', './taxfilter.js', './rx.js', './doctor.html', './navtabs.js', './count.js', './customers.js', './formtabs.js', './expenses.js', './smartpo.js', './native.js', './recon.js', './taxmembers.js', './formx.js', './homeplus.js', './bidi.js', './quick.js', './learn.js', './settings.js', './sselect.js', './scanner.js', './formsec.js', './security.js', './backup.js', './autobackup.js', './imgstore.js', './admin.js', './progsave.js', './pricefix.js', './labels.js', './help.js', './manifest-admin.json', './icon.jpg', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 const CDN_FILES = [
     'https://cdn.jsdelivr.net/npm/sweetalert2@11',
@@ -85,7 +85,14 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
     event.waitUntil((async () => {
         const names = await caches.keys();
-        await Promise.all(names.filter(n => !n.startsWith(VERSION)).map(n => caches.delete(n)));
+        try {   // ترحيل صور الإصدارات السابقة إلى الكاش الدائم قبل حذفها
+            const keep = await caches.open(IMG_CACHE);
+            for (const n of names.filter(x => /-img$/.test(x) && x !== IMG_CACHE)) {
+                const c = await caches.open(n);
+                for (const k of await c.keys()) { if (!(await keep.match(k))) { const r = await c.match(k); if (r) await keep.put(k, r); } }
+            }
+        } catch (e) { /* تجاهل */ }
+        await Promise.all(names.filter(n => !n.startsWith(VERSION) && !n.startsWith('diwan-keep-')).map(n => caches.delete(n)));
         await self.clients.claim();
     })());
 });
@@ -123,7 +130,7 @@ async function staleWhileRevalidate(request, cacheName) {
 
 // الكاش أولاً (للصور)
 async function cacheFirstImage(request) {
-    const cached = await caches.match(request.url);
+    const cached = await caches.match(request.url, { cacheName: IMG_CACHE }) || await caches.match(request.url);
     if (cached) return cached;
     try {
         const sameOrigin = new URL(request.url).origin === self.location.origin;
