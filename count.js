@@ -269,8 +269,19 @@ function cnFollow(l) {
     if (out.length) cnTouch();
     return out;
 }
+// تحديث أسماء المواد الظاهرة عند أي تغيير في المواد (تعديل الاسم من نافذة التسعير أو من جهاز آخر) بدون إعادة فتح القائمة
+function cnLiveNames() {
+    if (!cnCur || !cnOpenFlag || cnScr !== 'list') return;
+    cnCur.rows.forEach(r => {
+        const row = document.getElementById('cnr-' + r.id); if (!row) return;
+        const p = products.find(x => x.id === r.pid); if (!p) return;
+        const sp = row.querySelector('.cn-nmb span'), t = dispName(p, r.unit === 'part');
+        if (sp && sp.textContent !== t) sp.textContent = t;
+    });
+}
 function cnLiveSync() {
     if (!cnCur || !cnOpenFlag || cnScr !== 'list') return;
+    try { cnLiveNames(); } catch (e) { /* تجاهل */ }
     const ch = cnFollow(cnCur); if (!ch.length) return;
     ch.forEach(r => {
         const row = document.getElementById('cnr-' + r.id); if (!row) return;
@@ -406,6 +417,7 @@ async function cnEditProduct(pid) {
     if (!cnCanEdit()) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'تعديل المادة يحتاج صلاحية تعديل المواد.', confirmButtonColor: '#0f1c38' }); return; }
     await catPrice(pid);
     if (cnCur) cnListRender(); else if (cnPendOpen) cnPendRender();
+    setTimeout(() => { try { cnLiveNames(); } catch (e) { /* تجاهل */ } }, 600);   // إن وصلت نسخة أقدم من السحابة بين الحفظ والرسم
 }
 function cnRedraw() { if (cnCur) cnListRender(); else if (cnPendOpen) cnPendRender(); }
 async function cnBarcode(pid) {
