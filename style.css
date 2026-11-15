@@ -4295,3 +4295,18 @@ input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -
 }
 
 .cn-n { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; } .cn-n .cn-up { width: 22px; height: 20px; padding: 0; border: 0; border-radius: 6px; background: #e2e8f0; color: #475569; font-size: .62rem; line-height: 1; cursor: pointer; } .cn-n span[role=button] { cursor: pointer; padding: 2px 0; }
+
+/* v576: ترويسة ثابتة في كل الشاشات + تبويبات موحّدة (أزرار مستطيلة بحواف ناعمة متراصة، والمحدّد ينزل قليلاً) */
+.bill-top { position: sticky; top: 0; z-index: 41; }
+.alerts-view > .brand-bar { position: sticky; top: 0; z-index: 40; }
+.alerts-view > .page-title { position: sticky; top: var(--bb-h, 62px); z-index: 39; box-shadow: 0 8px 14px -10px rgba(15,28,56,.55); }
+.bill-tabs, .al-tabs { position: sticky; top: calc(var(--hd-h, 96px) - 1px); z-index: 38; }
+.bill-tabs, .al-tabs, .cat-tabs, .fm-tabs { display: flex; gap: 3px; margin: 0; padding: 8px 10px 11px; background: var(--bg, #e8ecf3); border: 0; border-radius: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.bill-tabs::-webkit-scrollbar, .al-tabs::-webkit-scrollbar, .cat-tabs::-webkit-scrollbar, .fm-tabs::-webkit-scrollbar { display: none; }
+.fm-tabs { background: transparent; padding: 0 0 8px; }
+.bill-tabs button, .al-tabs button, .cat-tabs button, .fm-tabs button { min-height: 42px; padding: 0 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; color: #0f1c38; font-family: inherit; font-weight: 800; font-size: .82rem; cursor: pointer; flex: 0 0 auto; }
+.al-tabs button, .cat-tabs button, .fm-tabs button { flex: 1 1 0; }
+.bill-tabs button.active, .cat-tabs button.on, .fm-tabs button.on, .al-tabs button.on { transform: translateY(3px); box-shadow: 0 3px 8px rgba(15,28,56,.22); }
+.bill-tabs button.active, .cat-tabs button.on, .fm-tabs button.on { background: #0f1c38; border-color: #0f1c38; color: #fff; }
+[data-theme="dark"] .bill-tabs button, [data-theme="dark"] .cat-tabs button, [data-theme="dark"] .fm-tabs button { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+[data-theme="dark"] .bill-tabs button.active, [data-theme="dark"] .cat-tabs button.on, [data-theme="dark"] .fm-tabs button.on { background: #0f1c38; border-color: #64748b; color: #fff; }

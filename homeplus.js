@@ -30,3 +30,13 @@ function pcOpen() {
     try { const b = document.querySelector('.home-view > .brand-bar'); if (b && window.ResizeObserver) new ResizeObserver(set).observe(b); } catch (e) { /* تجاهل */ }
     setInterval(set, 1500); set();
 })();
+
+// ارتفاع ترويسة كل شاشة يُقاس (لتثبّت التبويبات تحتها مباشرة)
+(function () {
+    const set = () => document.querySelectorAll('.app-view').forEach(v => {
+        let h = 0; const bt = v.querySelector(':scope > .bill-top');
+        if (bt) h = bt.offsetHeight; else { const bb = v.querySelector(':scope > .brand-bar'), pt = v.querySelector(':scope > .page-title'); if (bb && pt) { h = bb.offsetHeight + pt.offsetHeight; if (bb.offsetHeight > 0) v.style.setProperty('--bb-h', bb.offsetHeight + 'px'); } }
+        if (h > 0) v.style.setProperty('--hd-h', h + 'px');
+    });
+    window.addEventListener('resize', set); window.addEventListener('load', set); setInterval(set, 1000); set();
+})();
