@@ -7,9 +7,10 @@ async function toggleSetupMode(on) {
     const r = await Swal.fire({ icon: 'question', title: on ? 'تشغيل وضع التأسيس؟' : 'إيقاف وضع التأسيس؟', confirmButtonColor: '#0f1c38', showCancelButton: true, confirmButtonText: on ? 'تشغيل' : 'إيقاف', cancelButtonText: 'رجوع', width: 'min(94vw, 460px)',
         html: on ? '<div style="text-align:right;font-size:.88rem;line-height:1.9">• المواد التي لم تُجرد بعد: الوارد والبيع والمردود <b>لا تغيّر كميتها</b> (تُحفظ القوائم في السجل والمستحقات).<br>• تصبح المادة «مجرودة» عند ضبط عددها (سجل الأدوية، الجرد، تعديل المادة).<br>• خذ نسخة احتياطية قبل أن تبدأ.</div>' : '<div style="text-align:right;font-size:.88rem;line-height:1.9">عند الإيقاف: <b>كل المواد</b> (حتى غير المجرودة) تتأثر بالوارد والبيع كالمعتاد.<br>تأكد من انتهاء الجرد.</div>' });
     if (!r.isConfirmed) { renderCatalog(); return; }
-    try { await db.collection('pharmacy_stock').doc('_setup').set({ on: !!on, at: new Date().toISOString(), by: actorName() }); }
+    try { await fsSet(db.collection('pharmacy_stock').doc('_setup'), { on: !!on, at: new Date().toISOString(), by: actorName() }); }   // لا ننتظر السحابة إن كان الإرسال متوقفاً، فيُحفظ في الطابور
     catch (e) { Swal.fire({ icon: 'error', title: 'تعذّر الحفظ', text: e.message, confirmButtonColor: '#0f1c38' }); renderCatalog(); return; }
     setupMode = !!on; renderAll(); renderCatalog();
+    if (typeof usagePaused !== 'undefined' && usagePaused) { Swal.fire({ icon: 'info', title: 'تم الحفظ على هذا الجهاز', text: 'الإرسال متوقف حالياً، فلن يصل التغيير إلى بقية الأجهزة قبل استئناف المزامنة (من مؤشر المزامنة).', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     Swal.fire({ icon: 'success', title: on ? 'وضع التأسيس مفعّل' : 'وضع التأسيس متوقف', toast: true, position: 'bottom', showConfirmButton: false, timer: 2000 });
 }
 function catFToggle(k) {
