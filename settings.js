@@ -12,6 +12,7 @@ const SH_PAGES = [
     { id: 'scanner', g: 'g2', ico: '🔎', t: 'فاحص المادة', boxes: [], scan: true, kw: 'فاحص المادة مسح باركود حد الخصم الخصم المحمي الكامل هامش الامان اكسباير حاسبة الخصم scanner discount' },
     { id: 'ai', g: 'g2', ico: '✨', t: 'الذكاء الصناعي', boxes: ['ai'], kw: 'ذكاء صناعي مسح عبوة gemini firebase groq openrouter مفتاح نموذج بحث بالاسم قراءة العبوة ocr' },
     { id: 'docset', g: 'g2', ico: '🩺', t: 'صفحة الأطباء', boxes: ['docs'], kw: 'طبيب اطباء صفحة الاطباء رابط الصفحة اظهار الاسعار العدد تحديث تلقائي طلبات الأطباء doctor' },
+    { id: 'desk', g: 'g4', ico: '💻', t: 'الحاسبة', boxes: ['desk'], kw: 'الحاسبة برنامج الحاسوب نسخة احتياطية قرص الاستقبال فقط مجلد' },
     { id: 'device', g: 'g4', ico: '📱', t: 'هذا الجهاز', boxes: ['install', 'device'], kw: 'تثبيت التطبيق بصمة قفل تذكير طباعة ورق طابعة اسماء الاطباء المحفوظة الجهاز install' },
     { id: 'users', g: 'g3', ico: '👥', t: 'المستخدمون والصلاحيات', act: 'openUsers', boxes: [], kw: 'مستخدم مستخدمين صلاحيات حساب بائع اضافة مستخدم users' },
     { id: 'sec', g: 'g3', ico: '🔐', t: 'الأمان والخصوصية', boxes: ['protect'], kw: 'مستخدم مستخدمين صلاحيات حساب بائع حماية بيانات المخزون فصل سعر الشراء كلفة اخفاء أمان خصوصية users permissions security' },
@@ -63,6 +64,7 @@ function shSummary(p) {
         if (p.id === 'scanner') { const c = typeof scCfg === 'function' ? scCfg() : null; return { s: c ? (c.on ? 'مشغّل · ' : 'متوقف · ') + (c.mode === 'safe' ? 'خصم محمي' : 'خصم كامل') : '' }; }
         if (p.id === 'ai') return { s: 'محرك القراءة · المفتاح · اختبار الاتصال' };
         if (p.id === 'docset') return { s: 'الرابط · الأسعار والعدد · طلبات الأطباء' };
+        if (p.id === 'desk') return { s: 'النسخة الاحتياطية على القرص · الاستقبال فقط' };
         if (p.id === 'device') return { s: 'التثبيت · البصمة · التذكيرات · الطباعة' };
         if (p.id === 'users') return { s: 'إضافة المستخدمين وتحديد ما يفعله كل واحد' };
         if (p.id === 'sec') return { s: 'حماية بيانات المخزون · فصل سعر الشراء' };
@@ -73,7 +75,7 @@ function shSummary(p) {
 const SH_GROUPS = { g1: 'المتجر', g2: 'الأدوات', g3: 'الحسابات والبيانات', g4: 'هذا الجهاز' };
 function shHubHtml() {
     const card = p => { const m = shSummary(p); return `<button type="button" class="sh-card" data-p="${p.id}"><span class="sh-ico">${p.ico}</span><span class="sh-tx"><b>${p.t}</b><small>${m.s}</small></span>${m.badge ? `<em class="sh-badge">${m.badge}</em>` : ''}</button>`; };
-    const grid = Object.keys(SH_GROUPS).map(g => `<h5 class="sh-gh">${SH_GROUPS[g]}</h5>` + SH_PAGES.filter(p => p.g === g && !(p.id === 'device' && !((window.NAT && NAT.is) || !isStandalone()))).map(card).join('')).join('');
+    const grid = Object.keys(SH_GROUPS).map(g => `<h5 class="sh-gh">${SH_GROUPS[g]}</h5>` + SH_PAGES.filter(p => p.g === g && !(p.id === 'desk' && !(window.diwanDesktop && window.diwanDesktop.isDesktop)) && !(p.id === 'device' && !((window.NAT && NAT.is) || !isStandalone()))).map(card).join('')).join('');
     return `<div class="sh-search"><input type="search" id="shQ" placeholder="ابحث في الإعدادات…" autocomplete="off" aria-label="بحث في الإعدادات"></div>
     <div class="sh-grid" id="shGrid">${grid}</div>
     <div class="sh-res" id="shRes" hidden></div>`;
@@ -149,6 +151,7 @@ function shScopeOnce(els) {
 function shOpen(id, boxKey) {
     if (id === 'invset') { try { initBillSettings(); } catch (e) { /* تجاهل */ } }
     if (id === 'docset') { try { docSetMount(); } catch (e) { /* تجاهل */ } }
+    if (id === 'desk' && typeof dsRender === 'function') { try { dsRender(); } catch (e) { /* تجاهل */ } }
     if (id === 'device' || id === 'invset') { try { shDeviceRows(); } catch (e) { /* تجاهل */ } }
     const card = shCard(), p = SH_PAGES.find(x => x.id === id); if (!card || !p) return;
     if (p.act) { if (typeof window[p.act] === 'function') window[p.act](); return; }

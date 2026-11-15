@@ -21,18 +21,17 @@
         busy = false; render();
     }
     function render() {
-        const anchor = document.getElementById('bkReminder'); if (!anchor) return;
-        let el = document.getElementById('dsBkLine');
-        if (!el) { el = document.createElement('div'); el.id = 'dsBkLine'; el.className = 'ds-bk'; anchor.insertAdjacentElement('afterend', el); }
+        const host = document.getElementById('dsHost'); if (!host) return;
         D.backupInfo().then(info => {
             const t = lastOk || info.ts, when = t ? new Date(t).toLocaleString('ar-IQ') : 'لم تُحفظ بعد';
-            el.innerHTML = `<div class="ds-bk-t">💽 نسخة تلقائية على قرص الحاسبة</div>
+            host.innerHTML = `<div class="qk-row"><div><b>الاستقبال فقط</b><small>يقرأ البرنامج من السحابة ولا يحفظ إليها أي تعديل.</small></div><label class="setup-sw"><input type="checkbox" id="dsRecv" ${recvOnly() ? 'checked' : ''} onchange="dsToggleRecv(this)"><i></i></label></div>
+                <div class="ds-bk"><div class="ds-bk-t">💽 نسخة تلقائية على قرص الحاسبة</div>
                 <div class="ds-bk-s${lastErr ? ' bad' : ''}">${lastErr ? 'تعذر الحفظ: ' + escapeHtml(lastErr) : 'آخر حفظ: ' + escapeHtml(when)}</div>
                 <div class="ds-bk-p" dir="ltr">${escapeHtml(info.dir || '')}</div>
-                <div class="qk-row ds-ro"><div><b>الاستقبال فقط</b><small>يقرأ البرنامج من السحابة ولا يحفظ إليها أي تعديل.</small></div><label class="setup-sw"><input type="checkbox" id="dsRecv" ${recvOnly() ? 'checked' : ''} onchange="dsToggleRecv(this)"><i></i></label></div>
-                <div class="ds-bk-b"><button type="button" onclick="dsOpenDir()">فتح المجلد</button><button type="button" onclick="dsChooseDir()">تغيير المجلد</button><button type="button" onclick="dsBackupNow()">حفظ الآن</button></div>`;
+                <div class="ds-bk-b"><button type="button" onclick="dsOpenDir()">فتح المجلد</button><button type="button" onclick="dsChooseDir()">تغيير المجلد</button><button type="button" onclick="dsBackupNow()">حفظ الآن</button></div></div>`;
         }).catch(() => { /* تجاهل */ });
     }
+    window.dsRender = render;
     window.dsToggleRecv = async cb => {
         const on = cb.checked;
         const r = await Swal.fire({ icon: 'question', title: on ? 'تفعيل الاستقبال فقط؟' : 'إيقاف الاستقبال فقط؟', text: on ? 'لن يحفظ هذا البرنامج أي تعديل في السحابة.' : 'سيتمكن هذا البرنامج من الكتابة إلى السحابة. قد تستهلك الكتابات الكثيرة الحصة المجانية.', showCancelButton: true, confirmButtonText: 'تأكيد', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });

@@ -301,6 +301,7 @@ function markSynced() { lastSyncAt = new Date().toISOString(); try { localStorag
 function syncRefresh() {
     let state, txt;
     if (!isFirebaseReady) { state = 'local'; txt = 'محلي'; }
+    else if (usagePaused) { state = 'off'; txt = usagePaused === 'cap' ? 'الإرسال متوقف: بلغ الحد اليومي لهذا الجهاز' : 'الإرسال متوقف بانتظار موافقتك'; }
     else if (!navigator.onLine) { state = 'off'; txt = 'بدون إنترنت' + (pendingOps ? ' — ' + pendingOps + ' بانتظار الإرسال' : '') + ' (يُحفظ على الجهاز وسيُرسل عند الاتصال)'; }
     else if (pendingOps > 0 || startupPending) { state = 'busy'; txt = 'جاري الإرسال للسحابة' + (pendingOps ? ' (' + pendingOps + ')' : '') + '...'; }
     else if (syncErrMsg) { state = 'err'; txt = 'خطأ في الحفظ: ' + syncErrMsg; }
@@ -336,8 +337,9 @@ async function hardRefresh() {   // تحديث كامل: مسح الكاش وإ�
 }
 async function syncNow() {
     if (!isFirebaseReady || !db) return;
+    if (usagePaused === 'cap') { const c = await Swal.fire({ icon: 'warning', title: 'استئناف الإرسال؟', text: 'بلغ هذا الجهاز حدّه اليومي. الاستئناف قد يستهلك من الحصة المجانية.', showCancelButton: true, confirmButtonText: 'استئناف', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' }); if (!c.isConfirmed) return; }
     const h = Prog.start('مزامنة مع السحابة', { text: 'جاري الاتصال...' });
-    try { await db.enableNetwork(); } catch (e) { /* تجاهل */ }
+    await usageResume();
     let n = 0;
     h.set(null, 'رفع السجلات المحفوظة محلياً...');
     try { if (typeof syncLocalRecords === 'function') n = await syncLocalRecords(false); } catch (e) { h.fail('تعذرت المزامنة', e && e.message); return; }
@@ -353,6 +355,7 @@ function showSyncStatus() {
     const html = `<div style="text-align:right;font-size:.9rem">` +
         row('الاتصال', online ? '🟢 متصل' : '🔴 بدون إنترنت') +
         row('بانتظار الإرسال', (pendingOps ? pendingOps + ' عملية' : (startupPending ? 'يوجد (من جلسة سابقة)' : 'لا شيء')) ) +
+        (() => { const u = usageGet(), cw = usageCap('w'), cr = usageCap('r'); return row('كتابات اليوم (هذا الجهاز)', u.w + ' / ' + cw) + row('قراءات اليوم (هذا الجهاز)', u.r + ' / ' + cr) + (usagePaused ? row('الإرسال', usagePaused === 'cap' ? '⏸️ متوقف (الحد اليومي)' : '⏸️ متوقف بانتظار موافقتك') : ''); })() +
         row('الحفظ بدون إنترنت', persistenceOn ? '✅ مفعّل' : '⚠️ غير مدعوم في هذا المتصفح') +
         row('آخر مزامنة ناجحة', lastSyncAt ? new Date(lastSyncAt).toLocaleString('ar-IQ') : '—') +
         (syncErrMsg ? row('آخر خطأ', escapeHtml(syncErrMsg)) : '') + loc +
@@ -360,6 +363,77 @@ function showSyncStatus() {
     Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', denyButtonColor: '#047857' }).then(r => { if (r.isConfirmed) syncNow(); else if (r.isDenied) hardRefresh(); });
 }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
+
+// ===== عدّاد استهلاك محلي + حد يومي لكل جهاز (تقريبي): يمنع حرق الحصة المجانية =====
+// عند بلوغ الحد يُقطع الاتصال بالسحابة (الكتابات تبقى محفوظة على الجهاز وتُرسل عند الاستئناف).
+const USAGE_DEFAULT = { w: 3000, r: 25000 };
+let usagePaused = '';            // سبب التوقف: '' | 'cap' | 'absence'
+function usageDayKey() { return new Date(Date.now() - 8 * 3600e3).toISOString().slice(0, 10); }   // تتجدد الحصة منتصف الليل بتوقيت المحيط الهادئ
+function usageGet() {
+    let u = null; try { u = JSON.parse(localStorage.getItem('diwanUsage') || 'null'); } catch (e) { /* تجاهل */ }
+    const k = usageDayKey();
+    if (!u || u.d !== k) u = { d: k, w: 0, r: 0, p: '' };
+    return u;
+}
+function usageCap(t) { let v = 0; try { v = parseInt(localStorage.getItem('diwanCap_' + t), 10); } catch (e) { /* تجاهل */ } return v > 0 ? v : USAGE_DEFAULT[t]; }
+let _usSaveAt = 0, _usMem = null;
+function usageAdd(t, n) {
+    if (!n) return;
+    const u = _usMem && _usMem.d === usageDayKey() ? _usMem : (_usMem = usageGet());
+    u[t] += n;
+    if (Date.now() - _usSaveAt > 2000) { _usSaveAt = Date.now(); try { localStorage.setItem('diwanUsage', JSON.stringify(u)); } catch (e) { /* تجاهل */ } }
+    if (!usagePaused && u[t] >= usageCap(t)) usagePause('cap', t);
+}
+async function usagePause(why, t) {
+    usagePaused = why;
+    try { if (db) await db.disableNetwork(); } catch (e) { /* تجاهل */ }
+    const u = usageGet(); u.p = why; try { localStorage.setItem('diwanUsage', JSON.stringify(u)); } catch (e) { /* تجاهل */ }
+    syncRefresh();
+    if (why === 'cap') { try { Swal.fire({ icon: 'warning', title: 'بلغ هذا الجهاز حدّه اليومي', html: 'تم إيقاف الإرسال والاستقبال مؤقتاً لحماية الحصة المجانية.<br>يستمر العمل على الجهاز، وتبقى التعديلات محفوظة وتُرسل عند الاستئناف.<br>الاستئناف تلقائي مع تجدد الحصة، أو يدوياً من «حالة المزامنة».', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' }); } catch (e) { /* تجاهل */ } }
+}
+async function usageResume() {
+    usagePaused = ''; const u = usageGet(); u.p = ''; try { localStorage.setItem('diwanUsage', JSON.stringify(u)); } catch (e) { /* تجاهل */ }
+    try { if (db) await db.enableNetwork(); } catch (e) { /* تجاهل */ }
+    syncRefresh();
+}
+function installUsage() {
+    if (window.__usInstalled || !window.firebase || !firebase.firestore) return;
+    window.__usInstalled = true;
+    const F = firebase.firestore;
+    const wrapW = (proto, names, per) => { if (!proto) return; names.forEach(n => { const o = proto[n]; if (typeof o !== 'function') return; proto[n] = function () { try { per.call(this, n); } catch (e) { /* تجاهل */ } return o.apply(this, arguments); }; }); };
+    wrapW(F.DocumentReference && F.DocumentReference.prototype, ['set', 'update', 'delete'], () => usageAdd('w', 1));
+    wrapW(F.CollectionReference && F.CollectionReference.prototype, ['add'], () => usageAdd('w', 1));
+    const WB = F.WriteBatch && F.WriteBatch.prototype;
+    wrapW(WB, ['set', 'update', 'delete'], function () { this.__n = (this.__n || 0) + 1; });
+    wrapW(WB, ['commit'], function () { usageAdd('w', this.__n || 1); this.__n = 0; });
+    const cnt = s => { try { if (s && !(s.metadata && s.metadata.fromCache)) usageAdd('r', typeof s.docChanges === 'function' ? s.docChanges().length : 1); } catch (e) { /* تجاهل */ } };
+    const wrapSnap = proto => {
+        if (!proto || typeof proto.onSnapshot !== 'function') return; const o = proto.onSnapshot;
+        proto.onSnapshot = function () {
+            const a = Array.prototype.slice.call(arguments); const i = a.findIndex(x => typeof x === 'function');
+            if (i >= 0) { const f = a[i]; a[i] = function (s) { cnt(s); return f.apply(this, arguments); }; }
+            else { const k = a.findIndex(x => x && typeof x === 'object' && typeof x.next === 'function'); if (k >= 0) { const ob = a[k]; a[k] = { next: function (s) { cnt(s); return ob.next.apply(ob, arguments); }, error: ob.error && ob.error.bind(ob), complete: ob.complete && ob.complete.bind(ob) }; } }
+            return o.apply(this, a);
+        };
+    };
+    setInterval(() => { if (usagePaused === 'cap') { const u = usageGet(); if (u.w < usageCap('w') && u.r < usageCap('r')) usageResume(); } }, 600000);   // استئناف تلقائي عند تجدد الحصة
+    wrapSnap(F.Query && F.Query.prototype); wrapSnap(F.DocumentReference && F.DocumentReference.prototype);
+    [F.Query && F.Query.prototype, F.DocumentReference && F.DocumentReference.prototype].forEach(proto => { if (!proto || typeof proto.get !== 'function') return; const o = proto.get; proto.get = function () { const r = o.apply(this, arguments); try { if (r && r.then) r.then(cnt, () => { }); } catch (e) { /* تجاهل */ } return r; }; });
+}
+// غياب طويل: قد توجد كتابات كثيرة معلّقة، فلا تُرسل تلقائياً قبل موافقة المستخدم
+async function usageAbsenceGuard() {
+    try {
+        const u = usageGet();
+        if (u.p === 'cap') { usagePaused = 'cap'; try { await db.disableNetwork(); } catch (e) { /* تجاهل */ } syncRefresh(); return; }
+        if (!lastSyncAt || recvOnly()) return;
+        const hrs = (Date.now() - new Date(lastSyncAt).getTime()) / 3600e3;
+        if (hrs < 24) return;
+        await db.disableNetwork(); usagePaused = 'absence'; syncRefresh();
+        const days = Math.floor(hrs / 24);
+        const r = await Swal.fire({ icon: 'question', title: 'غياب عن السحابة منذ ' + days + (days > 10 ? ' يوماً' : ' أيام'), html: 'قد توجد تعديلات محفوظة على هذا الجهاز بانتظار الإرسال.<br>أُوقف الإرسال مؤقتاً حتى لا تُرسل دفعة واحدة تستهلك الحصة المجانية.', showCancelButton: true, confirmButtonText: 'إرسال الآن', cancelButtonText: 'لاحقاً', confirmButtonColor: '#0f1c38', allowOutsideClick: false });
+        if (r.isConfirmed) await usageResume();
+    } catch (e) { /* تجاهل */ }
+}
 
 // ===== وضع «الاستقبال فقط» لبرنامج الحاسبة: تُقرأ البيانات من السحابة ولا يُكتب إليها شيء =====
 function recvOnly() { try { return !!(window.diwanDesktop && window.diwanDesktop.isDesktop) && localStorage.getItem('diwanRecvOnly') !== '0'; } catch (e) { return false; } }
@@ -391,12 +465,14 @@ async function initFirebase() {
         auth = firebase.auth();
         db = firebase.firestore();
         isFirebaseReady = true;
+        installUsage();
         if (recvOnly()) {
             installRecvOnly();
             try { if (localStorage.getItem('diwanRecvClean') !== '1') { await db.clearPersistence(); localStorage.setItem('diwanRecvClean', '1'); } } catch (e) { console.warn('clearPersistence:', e && e.code); }   // مسح طابور الكتابات القديم العالق مرة واحدة
         }
         try { await db.enablePersistence({ synchronizeTabs: true }); persistenceOn = true; } catch (e) { persistenceOn = false; console.warn('Offline persistence:', e && e.code); }
         syncRefresh();
+        usageAbsenceGuard();
 
         // الفرض الصارم لبقاء تسجيل الدخول دائماً
         await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
