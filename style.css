@@ -4339,3 +4339,17 @@ html, body { overscroll-behavior-y: none; }
 .modal-card > h3 { position: sticky; top: -22px; z-index: 6; margin: -22px -22px 16px !important; padding: 18px 22px 22px; border-radius: 24px 24px 22px 22px; font-family: 'Aref Ruqaa', 'Tajawal', serif; font-size: 1.2rem; }
 .modal-card > h3:empty { display: none; }
 :root[data-theme="dark"] .modal-card > h3, :root[data-theme="dark"] .rv-top, :root[data-theme="dark"] .lg-title { background-color: #0b1326; color: #fff !important; }
+
+/* v583: ترويسة المخزن مرتّبة — صف واحد بالهوية نفسها */
+.stk-bar .brand-logo .sync-dot { display: none; }
+.stk-tt { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
+.stk-pg { display: inline-flex; align-items: center; gap: 6px; font-family: 'Aref Ruqaa','Tajawal',serif; font-size: .95rem; font-weight: 700; color: #cbd5e1; }
+.stk-dot { position: static; width: 9px; height: 9px; border-width: 1.5px; }
+.stk-bar .small-icon-btn { width: 40px; height: 40px; }
+.stk-more { position: relative; display: inline-flex; }
+.stk-menu { white-space: nowrap; position: absolute; top: calc(100% + 6px); inset-inline-end: 0; z-index: 80; min-width: 200px; background: #0f1c38; border: 1px solid rgba(244,183,63,.55); border-radius: 12px; padding: 6px; box-shadow: 0 10px 24px rgba(0,0,0,.35); }
+.stk-menu[hidden] { display: none; }
+.stk-menu button { display: block; width: 100%; text-align: start; background: transparent; border: 0; color: #e2e8f0; font: inherit; font-weight: 700; padding: 10px 12px; border-radius: 8px; cursor: pointer; }
+.stk-menu button:active { background: rgba(255,255,255,.12); }
+#stockView .search-row { margin-top: 10px; }
+#stockView .filter-btn { width: 42px; height: 42px; }

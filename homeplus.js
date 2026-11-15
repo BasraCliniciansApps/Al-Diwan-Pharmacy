@@ -40,3 +40,10 @@ function pcOpen() {
     });
     window.addEventListener('resize', set); window.addEventListener('load', set); setInterval(set, 1000); set();
 })();
+
+/* v583: قائمة ⋯ في ترويسة المخزن */
+function stkMore(e) {
+    const m = document.getElementById('stkMenu'); if (!m) return;
+    if (e) { e.stopPropagation(); m.hidden = !m.hidden; } else m.hidden = true;
+}
+document.addEventListener('click', (ev) => { const m = document.getElementById('stkMenu'); if (m && !m.hidden && !ev.target.closest('.stk-more')) m.hidden = true; });
