@@ -246,11 +246,36 @@ function cnScan() {
 }
 
 // ---------- العرض ----------
+// ---------- ترتيب المواد داخل القائمة (نقل للأعلى/للأسفل أو إلى رقم محدد) ----------
+function cnMvBtns(r, n) {
+    const first = cnCur && cnCur.rows.find(x => x.pid === r.pid) === r;
+    if (!first) return n || '';
+    return `<button type="button" class="cn-up" onclick="cnMoveProd(${r.pid},-1)" aria-label="نقل للأعلى">▲</button><span onclick="cnMoveTo(${r.pid})" role="button" title="نقل إلى رقم">${n || ''}</span><button type="button" class="cn-up" onclick="cnMoveProd(${r.pid},1)" aria-label="نقل للأسفل">▼</button>`;
+}
+function cnProdOrder(l, gid) { const o = []; l.rows.forEach(r => { if (r.gid === gid && !o.includes(r.pid)) o.push(r.pid); }); return o; }
+function cnMoveApply(pid, to) {   // to: الموضع الجديد (يبدأ من 0) داخل مجموعة المادة
+    const l = cnCur, r0 = l && l.rows.find(x => x.pid === pid); if (!r0) return false;
+    const order = cnProdOrder(l, r0.gid), i = order.indexOf(pid); to = Math.max(0, Math.min(order.length - 1, to)); if (i < 0 || i === to) return false;
+    const pk = id => Math.min(...l.rows.filter(x => x.pid === id).map(x => x.ts || 0));
+    const tsList = order.map(pk).sort((a, b) => a - b); for (let k = 1; k < tsList.length; k++) if (tsList[k] <= tsList[k - 1]) tsList[k] = tsList[k - 1] + 0.001;
+    order.splice(i, 1); order.splice(to, 0, pid);
+    order.forEach((id, k) => l.rows.forEach(x => { if (x.pid === id) x.ts = tsList[k]; }));
+    cnTouch(); cnListRender();
+    setTimeout(() => { const f = l.rows.find(x => x.pid === pid), el = f && document.getElementById('cnr-' + f.id); if (el) { el.scrollIntoView({ block: 'center' }); el.classList.add('flash'); } }, 60);
+    return true;
+}
+function cnMoveProd(pid, step) { const l = cnCur, r0 = l && l.rows.find(x => x.pid === pid); if (!r0) return; cnMoveApply(pid, cnProdOrder(l, r0.gid).indexOf(pid) + step); }
+async function cnMoveTo(pid) {
+    const l = cnCur, r0 = l && l.rows.find(x => x.pid === pid); if (!r0) return;
+    const order = cnProdOrder(l, r0.gid), cur = order.indexOf(pid) + 1;
+    const r = await Swal.fire({ title: 'نقل المادة إلى مكان آخر', text: 'اكتب رقم المكان الجديد بين المواد في هذه المجموعة (1 إلى ' + order.length + '). المكان الحالي: ' + cur, input: 'number', inputValue: cur, inputAttributes: { min: 1, max: order.length, inputmode: 'numeric' }, showCancelButton: true, confirmButtonText: 'نقل', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+    if (!r.isConfirmed) return; const v = parseInt(r.value); if (!v) return; cnMoveApply(pid, v - 1);
+}
 function cnRowHtml(r, n) {
     const p = products.find(x => x.id === r.pid);
     if (!p) return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-n">${n || ''}</div><div class="cn-nm"><b dir="ltr" class="cn-nmb"><span>${cnEsc(r.nm || ('#' + r.pid))}</span></b><small>المادة غير متوفرة حالياً في السجل • السطر محفوظ</small></div><button type="button" class="cn-x" onclick="cnDelRow('${r.id}')" aria-label="حذف">✕</button></div>`;
     const part = r.unit === 'part', t = cnRowTotal(r), sys = part ? cnInt(p.loose) : cnInt(p.qty);
-    return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-n">${n || ''}</div><div class="cn-nm"><b dir="ltr" class="cn-nmb"><span onclick="cnEditProduct(${r.pid})">${cnEsc(dispName(p, part))}</span></b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small><button type="button" class="cn-gm" onclick="cnMovePick([${r.pid}])">📁 ${cnEsc(cnGroupName(cnCur, r.gid))} ▾</button></div>
+    return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-n">${cnMvBtns(r, n)}</div><div class="cn-nm"><b dir="ltr" class="cn-nmb"><span onclick="cnEditProduct(${r.pid})">${cnEsc(dispName(p, part))}</span></b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small><button type="button" class="cn-gm" onclick="cnMovePick([${r.pid}])">📁 ${cnEsc(cnGroupName(cnCur, r.gid))} ▾</button></div>
         <label class="cn-f"><span>العدد</span><input class="cn-cnt" type="number" inputmode="numeric" min="0" value="${cnEsc(r.cnt)}" oninput="cnSetCnt('${r.id}',this.value)" onchange="cnCommit('${r.id}','cnt')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();var q=document.getElementById('cnQ');if(q)q.focus();}"></label>
         <label class="cn-f"><span>السعر</span><input class="cn-pr" type="number" inputmode="numeric" min="0" value="${cnEsc(r.price)}" oninput="cnSetPrice('${r.id}',this.value)" onchange="cnCommit('${r.id}','price')"></label>
         <div class="cn-f cn-tt"><span>المجموع</span><b id="cnt-${r.id}">${t === null ? '' : fmtNum(t)}</b></div>

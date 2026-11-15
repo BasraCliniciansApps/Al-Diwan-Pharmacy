@@ -4293,3 +4293,5 @@ input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -
 @media (min-width: 900px) and (pointer: fine) {
     #homeView .home-grid .tile-pos, #homeView .home-grid .tile-bill, #homeView .home-grid .tile-stock { row-gap: 12px; }
 }
+
+.cn-n { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; } .cn-n .cn-up { width: 22px; height: 20px; padding: 0; border: 0; border-radius: 6px; background: #e2e8f0; color: #475569; font-size: .62rem; line-height: 1; cursor: pointer; } .cn-n span[role=button] { cursor: pointer; padding: 2px 0; }
