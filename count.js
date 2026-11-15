@@ -415,7 +415,15 @@ function cnRepoint(from, to) {
 function cnCanEdit() { return userRole === 'owner' || can('stockEdit'); }
 async function cnEditProduct(pid) {
     if (!cnCanEdit()) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'تعديل المادة يحتاج صلاحية تعديل المواد.', confirmButtonColor: '#0f1c38' }); return; }
-    await catPrice(pid);
+    // إن كان عدد الجرد لهذه المادة فارغاً وأُدخلت لها كمية في نافذة التعديل، يُملأ العدد بالكمية المحفوظة
+    const p0 = products.find(x => x.id === pid), q0 = p0 ? cnInt(p0.qty) : 0, l0 = p0 ? cnInt(p0.loose) : 0;
+    const fill = () => {
+        const p = products.find(x => x.id === pid); if (!p || !cnCur || (cnInt(p.qty) === q0 && cnInt(p.loose) === l0)) return;
+        let ch = false; cnCur.rows.forEach(r => { if (r.pid === pid && r.cnt === '') { const cur = cnSysOf(r); if (cur !== null && cur > 0) { r.cnt = String(cur); r.sq = cur; ch = true; } } });
+        if (ch) { cnTouch(); cnRedraw(); }
+    };
+    await catPrice(pid, undefined, () => setTimeout(fill, 300));
+    fill();
     if (cnCur) cnListRender(); else if (cnPendOpen) cnPendRender();
     setTimeout(() => { try { cnLiveNames(); } catch (e) { /* تجاهل */ } }, 600);   // إن وصلت نسخة أقدم من السحابة بين الحفظ والرسم
 }

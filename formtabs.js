@@ -33,13 +33,25 @@ async function fmGoQuick() {
 // من «سريع» إلى «مفصل»: ننقل قيم الحقول المعدّلة إلى النموذج المفصل حتى لا تضيع
 function fmQuickValues() {
     const g = i => (document.getElementById(i) || {}).value;
-    return { name: String(g('qpName') || '').trim(), bc: cleanBarcode(g('qpBc') || ''), qty: g('qpQty'), loose: g('qpLoose'), mode: g('qpMode'), cost: g('qpCost'), price: g('qpPrice'), mk: g('qpMk'), sc: g('qpSc'), st: g('qpSt'), sp: g('qpSp') };
+    return { name: String(g('qpName') || '').trim(), bc: cleanBarcode(g('qpBc') || ''), qty: g('qpQty'), loose: g('qpLoose'), mode: g('qpMode'), cost: g('qpCost'), price: g('qpPrice'), mk: g('qpMk'), sc: g('qpSc'), st: g('qpSt'), sp: g('qpSp'), bt: fmQuickBatches() };
+}
+// دفعات «سريع»: نعيدها فقط إن عُدِّلت (أو أُضيفت) هناك، حتى لا تُستبدل دفعات «مفصل» بلا داعٍ
+function fmQuickBatches() {
+    const box = document.getElementById('qpBt'); if (!box) return null;
+    const rows = [...box.querySelectorAll('.qp-bt')].map(r => ({ e: r.querySelector('.qb-e').value || '', q: parseInt(r.querySelector('.qb-q').value) || 0, pr: Math.round(parseFloat((r.querySelector('.qb-p') || {}).value) || 0) })).filter(b => b.q > 0 || b.e);
+    if (box.dataset.init !== undefined && box.dataset.init === JSON.stringify(rows)) return null;
+    return rows;
 }
 function fmCarry(q) {
     const set = (i, v) => { const el = document.getElementById(i); if (!el || v === undefined || v === null) return; if (el.tagName === 'SELECT' && ![...el.options].some(o => o.value === String(v))) return; el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); };
     set('fName', q.name); set('fQty', q.qty); set('fLoose', q.loose);
     set('fPriceMode', q.mode); set('fCost', q.cost); set('fMarkup', q.mk); set('fPrice', q.price);
     const sc = parseInt(q.sc) || 0; set('fSubCount', sc >= 2 ? sc : ''); if (sc >= 2) { set('fSubType', q.st); if (parseFloat(q.sp) > 0) set('fSubPrice', q.sp); }
+    if (q.bt && typeof formBt !== 'undefined' && typeof fbtRender === 'function') {
+        const lo = Math.max(0, parseInt(q.loose) || 0);
+        formBt = q.bt.map((b, i) => ({ e: b.e, q: b.q, l: i === 0 ? lo : 0, ...(b.pr > 0 ? { pr: b.pr } : {}) }));
+        fbtRender();
+    }
     if (q.bc && typeof formBarcodes !== 'undefined') { formBarcodes = [q.bc].concat(formBarcodes.filter(x => x !== q.bc)); if (typeof renderBarcodeChips === 'function') renderBarcodeChips(); }
 }
 function catGoDetailed() {
