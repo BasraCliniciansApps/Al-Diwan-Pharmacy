@@ -4353,3 +4353,14 @@ html, body { overscroll-behavior-y: none; }
 .stk-menu button:active { background: rgba(255,255,255,.12); }
 #stockView .search-row { margin-top: 10px; }
 #stockView .filter-btn { width: 42px; height: 42px; }
+
+/* v583b: مساحة أكبر لكلمة المخزن + نقطة المزامنة على الشعار */
+.stk-bar .brand-logo .sync-dot { display: block; }
+.stk-bar { gap: 6px; }
+.stk-bar .brand-id { gap: 8px; flex: 1 1 auto; }
+.stk-bar .brand-logo, .stk-bar .brand-logo img { width: 34px; height: 34px; }
+.stk-tt { gap: 3px; }
+.stk-bar .brand-name { font-size: 1.15rem; }
+.stk-pg { font-size: 1.1rem; color: #e2e8f0; white-space: nowrap; }
+.stk-bar .brand-actions { gap: 4px; flex: 0 0 auto; }
+.stk-bar .small-icon-btn { width: 36px; height: 36px; }
