@@ -181,9 +181,11 @@ function cnSyncParts(l) {
     l.rows.forEach(r => { if (r.pe) return; const p = products.find(x => x.id === r.pid); if (!p) return; const v = cnDefPrice(p, r.unit) || ''; if (String(r.price) !== String(v)) { r.price = v === '' ? '' : String(v); ch = true; } });   // السعر يُسحب من المادة ما لم يُعدَّل يدوياً
     [...new Set(l.rows.map(r => r.pid))].forEach(pid => {
         const p = products.find(x => x.id === pid); if (!p) return;
+        l.rows.forEach(r => { if (r.pid === pid && r.nm !== p.name) r.nm = p.name; });
         const want = cnUnits(p), mine = l.rows.filter(r => r.pid === pid), base = mine[0], ts = Math.min(...mine.map(r => r.ts || Date.now()));
         want.forEach(u => { if (!mine.some(r => r.unit === u)) { l.rows.splice(l.rows.indexOf(mine[mine.length - 1]) + 1, 0, { id: cnId(), gid: base.gid, pid, unit: u, cnt: '', price: cnDefPrice(p, u) || '', ts }); ch = true; } });
-        l.rows = l.rows.filter(r => r.pid !== pid || want.includes(r.unit) || r.cnt !== '' || (ch = true, false));
+        const gone = l.rows.filter(r => r.pid === pid && !want.includes(r.unit) && r.cnt === ''); if (gone.length) { cnTrash(l, gone); ch = true; }
+        l.rows = l.rows.filter(r => r.pid !== pid || want.includes(r.unit) || r.cnt !== '');
     });
     if (ch) cnTouch();
 }
@@ -245,7 +247,8 @@ function cnScan() {
 
 // ---------- العرض ----------
 function cnRowHtml(r, n) {
-    const p = products.find(x => x.id === r.pid); if (!p) return '';
+    const p = products.find(x => x.id === r.pid);
+    if (!p) return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-n">${n || ''}</div><div class="cn-nm"><b dir="ltr" class="cn-nmb"><span>${cnEsc(r.nm || ('#' + r.pid))}</span></b><small>المادة غير متوفرة حالياً في السجل • السطر محفوظ</small></div><button type="button" class="cn-x" onclick="cnDelRow('${r.id}')" aria-label="حذف">✕</button></div>`;
     const part = r.unit === 'part', t = cnRowTotal(r), sys = part ? cnInt(p.loose) : cnInt(p.qty);
     return `<div class="cn-row" id="cnr-${r.id}"><div class="cn-n">${n || ''}</div><div class="cn-nm"><b dir="ltr" class="cn-nmb"><span onclick="cnEditProduct(${r.pid})">${cnEsc(dispName(p, part))}</span></b><small>${part ? cnEsc(subTypeOf(p)) : 'قطعة كاملة'} • بالنظام: ${sys}</small><button type="button" class="cn-gm" onclick="cnMovePick([${r.pid}])">📁 ${cnEsc(cnGroupName(cnCur, r.gid))} ▾</button></div>
         <label class="cn-f"><span>العدد</span><input class="cn-cnt" type="number" inputmode="numeric" min="0" value="${cnEsc(r.cnt)}" oninput="cnSetCnt('${r.id}',this.value)" onchange="cnCommit('${r.id}','cnt')" onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();var q=document.getElementById('cnQ');if(q)q.focus();}"></label>
@@ -322,13 +325,26 @@ function cnRefreshTotals(r) {
     const e = document.getElementById('cnt-' + r.id), t = cnRowTotal(r); if (e) e.textContent = t === null ? '' : fmtNum(t);
     const tt = document.getElementById('cnTotal'); if (tt) tt.textContent = fmtNum(cnSum(cnCur.rows));
 }
+// سلة الأسطر المحذوفة: أي سطر يُحذف من القائمة (يدوياً أو تلقائياً) يُحفظ هنا بترتيبه الأصلي (ts) لإمكان استرجاعه
+function cnTrash(l, rows) {
+    if (!l || !rows || !rows.length) return;
+    l.trash = (l.trash || []).concat(rows.map(r => ({ ...r, _at: Date.now() }))).slice(-300);
+}
+async function cnRestoreRows() {
+    const l = cnCur; if (!l || !(l.trash || []).length) { Swal.fire({ icon: 'info', title: 'لا توجد أسطر محذوفة', timer: 1600, showConfirmButton: false }); return; }
+    const back = l.trash.filter(t => !l.rows.some(r => r.pid === t.pid && r.unit === t.unit));
+    const names = back.slice(0, 8).map(t => { const p = products.find(x => x.id === t.pid); return p ? p.name : (t.nm || ('#' + t.pid)); });
+    if (!(await askSure('استرجاع ' + fmtNum(back.length) + ' سطر محذوف؟', names.join('، ') + (back.length > 8 ? '، ...' : '') + ' — تعود الأسطر إلى أماكنها السابقة.', 'استرجاع'))) return;
+    back.forEach(t => { const r = { ...t }; delete r._at; l.rows.push(r); });
+    l.trash = []; cnTouch(); cnListRender();
+}
 function cnRow(id) { return cnCur && cnCur.rows.find(r => r.id === id); }
 function cnSetCnt(id, v) { const r = cnRow(id); if (!r) return; r.ov = 1; r.cnt = v === '' ? '' : String(Math.max(0, cnInt(v))); cnRefreshTotals(r); cnTouch(); }
 function cnSetPrice(id, v) { const r = cnRow(id); if (!r) return; r.pe = true; r.price = v === '' ? '' : String(cnNum(v)); cnRefreshTotals(r); cnTouch(); }
 async function cnDelRow(id) {
     const r = cnRow(id); if (!r) return; const p = products.find(x => x.id === r.pid);
     if (!(await askSure('حذف هذا السطر من القائمة؟', (p ? p.name : '') + ' (لا يتأثر المخزن)', 'حذف'))) return;
-    cnCur.rows = cnCur.rows.filter(x => x.id !== id); cnTouch(); cnListRender();
+    cnTrash(cnCur, [r]); cnCur.rows = cnCur.rows.filter(x => x.id !== id); cnTouch(); cnListRender();
 }
 
 // ---------- اعتماد العدد/السعر على المخزن ----------
@@ -524,7 +540,8 @@ async function cnSettings() {
     const r = await Swal.fire({ title: 'إعدادات القائمة', showCancelButton: true, showDenyButton: true, confirmButtonText: 'حفظ', denyButtonText: 'حذف القائمة', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', denyButtonColor: '#b91c1c',
         html: `<div class="sw-form"><label>اسم القائمة<input id="cnSn" class="swal2-input" value="${cnEsc(l.name)}"></label><label>التاريخ<input id="cnSd" type="date" class="swal2-input" value="${cnEsc(l.date || todayLocalISO())}"></label>
             <label class="cn-sw" style="margin-top:8px"><input type="checkbox" id="cnSa" ${l.apply !== false ? 'checked' : ''}><span>اعتماد الأعداد والأسعار على المخزن</span></label>
-            <small style="display:block;color:#64748b;margin-top:6px">عند الإيقاف تبقى الأعداد في القائمة فقط ولا تغيّر المخزن.</small></div>`,
+            <small style="display:block;color:#64748b;margin-top:6px">عند الإيقاف تبقى الأعداد في القائمة فقط ولا تغيّر المخزن.</small>
+            ${(l.trash || []).length ? `<button type="button" class="swal2-styled" style="margin:10px 0 0" onclick="Swal.close();cnRestoreRows()">↩️ استرجاع الأسطر المحذوفة (${(l.trash || []).length})</button>` : ''}</div>`,
         preConfirm: () => ({ n: document.getElementById('cnSn').value.trim() || l.name, d: document.getElementById('cnSd').value || l.date, a: document.getElementById('cnSa').checked }) });
     if (r.isConfirmed && r.value) { l.name = r.value.n; l.date = r.value.d; l.apply = r.value.a; cnTouch(); cnListRender(); }
     else if (r.isDenied) {
