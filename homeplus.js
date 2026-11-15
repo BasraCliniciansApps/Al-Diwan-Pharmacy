@@ -35,7 +35,7 @@ function pcOpen() {
 (function () {
     const set = () => document.querySelectorAll('.app-view').forEach(v => {
         let h = 0; const bt = v.querySelector(':scope > .bill-top');
-        if (bt) h = bt.offsetHeight; else { const bb = v.querySelector(':scope > .brand-bar'), pt = v.querySelector(':scope > .page-title'); if (bb && pt) { h = bb.offsetHeight + pt.offsetHeight; if (bb.offsetHeight > 0) v.style.setProperty('--bb-h', bb.offsetHeight + 'px'); } }
+        if (bt) { h = bt.getBoundingClientRect().height; const b0 = bt.querySelector(':scope > .brand-bar'); if (b0 && b0.offsetHeight > 0) v.style.setProperty('--bb-h', b0.getBoundingClientRect().height + 'px'); } else { const bb = v.querySelector(':scope > .brand-bar'), pt = v.querySelector(':scope > .page-title'); if (bb && pt) { h = bb.getBoundingClientRect().height + pt.getBoundingClientRect().height; if (bb.offsetHeight > 0) v.style.setProperty('--bb-h', bb.getBoundingClientRect().height + 'px'); } }
         if (h > 0) v.style.setProperty('--hd-h', h + 'px');
     });
     window.addEventListener('resize', set); window.addEventListener('load', set); setInterval(set, 1000); set();
