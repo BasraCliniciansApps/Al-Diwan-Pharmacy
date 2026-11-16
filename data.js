@@ -5355,6 +5355,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         ['formModal', () => vis('formModal'), () => requestCloseForm()],
         ['rxHub', () => vis('rxHub'), () => { if (typeof rxCurId !== 'undefined' && rxCurId) rxBack(); else rxClose(); }],
         ['cuOv', () => vis('cuOv'), () => { if (typeof cuBack === 'function') cuBack(); else cuClose(); }],
+        ['exOv', () => vis('exOv'), () => exClose()],
         ['cnOv', () => vis('cnOv'), () => { if (typeof cnBack === 'function') cnBack(); else cnClose(); }],
         ['posOv', () => vis('posOv'), () => { if (typeof posClose === 'function') posClose(); }],
         ['docHub', () => vis('docHub'), () => docClose()],
@@ -5412,6 +5413,17 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     }
     const syncSoon = () => { [0, 120, 450].forEach(ms => setTimeout(syncGuards, ms)); };
     ['touchend', 'pointerup', 'click', 'keydown'].forEach(t => window.addEventListener(t, syncSoon, { passive: true, capture: true }));
+    // يغلق كل الطبقات المفتوحة بالتسلسل (وتتوقف عند أول تأكيد أو طبقة ترفض الإغلاق)
+    window.__closeAllLayers = () => {
+        for (let i = 0; i < 10; i++) {
+            if (swalLive()) return false;
+            const d0 = depthNow() - ((IS_ADMIN_PAGE && typeof currentView !== 'undefined' && !['home', 'login', 'splash'].includes(currentView)) ? 1 + (window.__viewStack || []).length + (window.__tabDepth ? window.__tabDepth() : 0) : 0);
+            if (d0 <= 0) return true;
+            if (!closeTopLayer()) return true;
+            if (swalLive()) return false;
+        }
+        return false;
+    };
     window.__syncBackGuards = syncGuards; window.__backDepth = depthNow;
     // معالجة الرجوع من زر الهاتف في تطبيق الأندرويد (لا تعتمد على سجل المتصفح): ترجع true إن أُغلقت طبقة أو رُجع خطوة
     window.__handleBack = () => {

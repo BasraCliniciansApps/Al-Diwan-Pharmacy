@@ -4395,3 +4395,8 @@ html, body { overscroll-behavior-y: none; }
 [data-theme="dark"] .dr-btn { background: var(--surface, #1e293b) !important; border-color: #334155; }
 [data-theme="dark"] .dr-btn b { color: var(--text-main, #e2e8f0); } [data-theme="dark"] .dr-btn small { color: #94a3b8; }
 [data-theme="dark"] .dr-btn > svg { background: rgba(244,183,63,.14); color: #f4b73f; }
+
+/* v590: أزرار التنقل السريع في الترويسات */
+.hd-nav { display: inline-flex; gap: 6px; margin-inline-start: auto; flex: none; }
+.hd-b { width: 36px; height: 36px; padding: 0; display: inline-grid; place-items: center; border: 0; border-radius: 11px; background: rgba(255,255,255,.14); color: #fff; cursor: pointer; }
+.hd-b:active { transform: scale(.92); background: rgba(255,255,255,.26); }

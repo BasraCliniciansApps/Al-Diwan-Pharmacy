@@ -47,3 +47,27 @@ function stkMore(e) {
     if (e) { e.stopPropagation(); m.hidden = !m.hidden; } else m.hidden = true;
 }
 document.addEventListener('click', (ev) => { const m = document.getElementById('stkMenu'); if (m && !m.hidden && !ev.target.closest('.stk-more')) m.hidden = true; });
+
+/* v590: أيقونتا الرئيسية والمخزن في ترويسة كل صفحة داخلية */
+function hdGo(view) {
+    try { if (window.__closeAllLayers && !window.__closeAllLayers()) return; } catch (e) { /* تجاهل */ }
+    try { window.__viewStack = []; showView(view); setTimeout(() => { try { window.__syncBackGuards && window.__syncBackGuards(); } catch (e) { /* تجاهل */ } }, 50); } catch (e) { /* تجاهل */ }
+}
+(function () {
+    const SEL = '.tr-head, .cn-head, .pos-head, .fm-top, .sh-bar';
+    const HOME = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>';
+    const BOX = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>';
+    function mount(root) {
+        (root.matches && root.matches(SEL) ? [root] : []).concat([...(root.querySelectorAll ? root.querySelectorAll(SEL) : [])]).forEach(h => {
+            if (h.querySelector(':scope > .hd-nav') || h.closest('.top-bar, .bill-top')) return;
+            const d = document.createElement('span'); d.className = 'hd-nav';
+            d.innerHTML = '<button type="button" class="hd-b" onclick="hdGo(\'stock\')" aria-label="المخزن" title="المخزن">' + BOX + '</button><button type="button" class="hd-b" onclick="hdGo(\'home\')" aria-label="الرئيسية" title="الرئيسية">' + HOME + '</button>';
+            h.appendChild(d);
+        });
+    }
+    function start() {
+        mount(document.body);
+        new MutationObserver(ms => { ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) mount(n); })); }).observe(document.body, { childList: true, subtree: true });
+    }
+    if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
+})();
