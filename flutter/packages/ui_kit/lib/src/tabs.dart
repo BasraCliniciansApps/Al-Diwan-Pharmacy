@@ -32,19 +32,19 @@ class DiwanTabs extends StatelessWidget {
                   margin: EdgeInsets.only(top: i == index ? 3 : 0),
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
-                    color: i == index ? DiwanColors.navy : DiwanColors.surface,
+                    color: i == index ? DiwanColors.navy : context.cSurface,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                         color: i == index
                             ? DiwanColors.navy
-                            : DiwanColors.border),
+                            : context.cBorder),
                   ),
                   child: Text(
                     labels[i],
                     style: TextStyle(
                       fontWeight: FontWeight.w700,
                       fontSize: 14,
-                      color: i == index ? DiwanColors.gold : DiwanColors.textSub,
+                      color: i == index ? DiwanColors.gold : context.cTextSub,
                     ),
                   ),
                 ),

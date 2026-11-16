@@ -52,7 +52,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               constraints: const BoxConstraints(maxWidth: 420),
               padding: const EdgeInsets.fromLTRB(22, 26, 22, 22),
               decoration: BoxDecoration(
-                color: DiwanColors.surface,
+                color: context.cSurface,
                 borderRadius: BorderRadius.circular(22),
               ),
               child: Column(
@@ -69,11 +69,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 12),
                   Text('صيدلية الديوان',
                       textAlign: TextAlign.center,
-                      style: ruqaa(size: 28, color: DiwanColors.navy)),
+                      style: ruqaa(size: 28, color: context.cTitle)),
                   const SizedBox(height: 4),
-                  const Text('لوحة الصيدلي — سجّل دخولك للمتابعة',
+                  Text('لوحة الصيدلي — سجّل دخولك للمتابعة',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: DiwanColors.textSub)),
+                      style: TextStyle(color: context.cTextSub)),
                   const SizedBox(height: 20),
                   const Text('اسم المستخدم أو البريد',
                       style: TextStyle(fontWeight: FontWeight.w700)),

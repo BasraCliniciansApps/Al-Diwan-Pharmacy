@@ -6,3 +6,4 @@ pubspec_overrides.yaml
 *.iml
 local.properties
 .gradle/
+test/goldens/

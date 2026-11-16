@@ -14,7 +14,9 @@ class DiwanApp extends ConsumerWidget {
     return MaterialApp(
       title: 'صيدلية الديوان',
       debugShowCheckedModeBanner: false,
-      theme: buildDiwanTheme(),
+      theme: buildDiwanTheme(Brightness.light),
+      darkTheme: buildDiwanTheme(Brightness.dark),
+      themeMode: ref.watch(themeModeProvider),
       locale: const Locale('ar'),
       supportedLocales: const [Locale('ar')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,

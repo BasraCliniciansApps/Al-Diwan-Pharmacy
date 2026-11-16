@@ -16,15 +16,15 @@ Future<bool> showDiwanConfirm(
     builder: (ctx) => Directionality(
       textDirection: TextDirection.rtl,
       child: AlertDialog(
-        backgroundColor: DiwanColors.surface,
+        backgroundColor: ctx.cSurface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title, style: ruqaa(size: 20, color: DiwanColors.navy)),
+        title: Text(title, style: ruqaa(size: 20, color: ctx.cTitle)),
         content: message == null ? null : Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(cancelLabel,
-                style: const TextStyle(color: DiwanColors.textSub)),
+                style: TextStyle(color: ctx.cTextSub)),
           ),
           FilledButton(
             style: FilledButton.styleFrom(

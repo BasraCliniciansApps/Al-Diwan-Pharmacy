@@ -18,11 +18,14 @@ class UserProfile {
 
   bool get isOwner => role == DiwanRole.owner;
 
+  /// الاسم المعروض: «المدير» للمالك، واسم الموظف لغيره.
+  String get displayName => isOwner ? 'المدير' : name;
+
   bool can(String? perm) =>
       perm == null || perm.isEmpty || isOwner || (perms[perm] ?? false);
 
   factory UserProfile.owner(String uid) =>
-      UserProfile(uid: uid, role: DiwanRole.owner, name: 'المالك');
+      UserProfile(uid: uid, role: DiwanRole.owner, name: 'المدير');
 
   factory UserProfile.fromDoc(String uid, Map<String, dynamic> d) {
     final raw = d['perms'];
