@@ -49,9 +49,9 @@ function stkMore(e) {
 document.addEventListener('click', (ev) => { const m = document.getElementById('stkMenu'); if (m && !m.hidden && !ev.target.closest('.stk-more')) m.hidden = true; });
 
 /* v590: أيقونتا الرئيسية والمخزن في ترويسة كل صفحة داخلية */
-function hdRowHtml() {
+function hdRowHtml(pos) {
     const BOX = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>', HOME = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>';
-    return '<div class="hd-row1"><span class="hd-brand"><img src="icon.jpg" alt=""><b>صيدلية الديوان</b></span><span class="hd-nav"><button type="button" class="hd-b" onclick="hdGo(\'stock\')" aria-label="المخزن" title="المخزن">' + BOX + '</button><button type="button" class="hd-b" onclick="hdGo(\'home\')" aria-label="الرئيسية" title="الرئيسية">' + HOME + '</button></span></div>';
+    return '<div class="hd-row1"><span class="hd-brand"><img src="icon.jpg" alt=""><b>صيدلية الديوان</b></span><span class="hd-nav">' + (pos ? '<button type="button" class="hd-b" onclick="hdGo(\'bill\')" aria-label="الفواتير" title="الفواتير">' + '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg>' + '</button>' : '') + '<button type="button" class="hd-b" onclick="hdGo(\'stock\')" aria-label="المخزن" title="المخزن">' + BOX + '</button><button type="button" class="hd-b" onclick="hdGo(\'home\')" aria-label="الرئيسية" title="الرئيسية">' + HOME + '</button></span></div>';
 }
 function hdGo(view) {
     try { if (window.__closeAllLayers && !window.__closeAllLayers()) return; } catch (e) { /* تجاهل */ }
@@ -65,7 +65,7 @@ function hdGo(view) {
         (root.matches && root.matches(SEL) ? [root] : []).concat([...(root.querySelectorAll ? root.querySelectorAll(SEL) : [])]).forEach(h => {
             if (h.querySelector(':scope > .hd-row1') || h.closest('.top-bar, .bill-top')) return;
             const r = document.createElement('div'); r.className = 'hd-row1';
-            r.innerHTML = '<span class="hd-brand"><img src="icon.jpg" alt=""><b>صيدلية الديوان</b></span><span class="hd-nav"><button type="button" class="hd-b" onclick="hdGo(\'stock\')" aria-label="المخزن" title="المخزن">' + BOX + '</button><button type="button" class="hd-b" onclick="hdGo(\'home\')" aria-label="الرئيسية" title="الرئيسية">' + HOME + '</button></span>';
+            r.innerHTML = '<span class="hd-brand"><img src="icon.jpg" alt=""><b>صيدلية الديوان</b></span><span class="hd-nav">' + (h.matches('.pos-head') ? '<button type="button" class="hd-b" onclick="hdGo(\'bill\')" aria-label="الفواتير" title="الفواتير">' + '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg>' + '</button>' : '') + '<button type="button" class="hd-b" onclick="hdGo(\'stock\')" aria-label="المخزن" title="المخزن">' + BOX + '</button><button type="button" class="hd-b" onclick="hdGo(\'home\')" aria-label="الرئيسية" title="الرئيسية">' + HOME + '</button></span>';
             h.classList.add('hd-2'); h.insertBefore(r, h.firstChild);
         });
     }

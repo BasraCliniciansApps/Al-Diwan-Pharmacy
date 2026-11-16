@@ -4449,3 +4449,31 @@ html, body { overscroll-behavior-y: none; }
 #shTitle.hd-2 { padding-top: 13px !important; }
 .fm-top.hd-2 { margin-inline: -14px; }
 .swal2-title.pc-title { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; }
+
+/* v600: مطابقة الترويسات للرئيسية حرفياً (أحجام الشعار والأزرار والاسم) */
+.hd-brand img { width: 38px; height: 38px; border-radius: 11px; }
+.hd-b { width: 38px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.08); }
+.stk-bar .brand-logo, .stk-bar .brand-logo img { width: 38px; height: 38px; }
+.stk-bar .brand-name { font-size: 1.3rem; }
+.stk-bar .small-icon-btn { width: 38px; height: 40px; }
+.stk-bar .brand-id { gap: 10px; }
+.stk-title-row { justify-content: flex-start; }
+#stockView .search-row { display: flex; align-items: center; gap: 8px; }
+#stockView .search-row .search-input-wrap { flex: 1 1 auto; min-width: 0; }
+#stockView .search-row .filter-btn { flex: 0 0 auto; width: 44px; height: 44px; padding: 0; }
+#stockView .search-row .filter-btn:not(.lbl-open-btn) { order: 2; }
+#stockView .search-row .lbl-open-btn { order: 3; }
+#stockView .search-row .fb-t { display: none; }
+.top-bar { padding-top: 0; }
+.stk-title-row { margin-top: 3px; }
+.hd-2 { padding-top: 8px !important; }
+.hd-row1 { margin-bottom: 11px; margin-inline: -3px; }
+.tr-head.hd-2 .hd-row1, .cn-head.hd-2 .hd-row1, .pos-head.hd-2 .hd-row1 { margin-inline: -2px; }
+.hd-row1 { margin-bottom: 9px; }
+.hd-brand { gap: 10px; }
+.hd-brand b { position: relative; top: -1px; }
+.stk-title-row { margin-top: 6px; }
+.fm-top.hd-2 h3 { position: relative; top: -2px; }
+.help-top.hd-2 .help-bar h2 { position: relative; top: -3px; }
+#shTT { position: relative; top: -4px; }
+.hd-2 { padding-top: 7px !important; }

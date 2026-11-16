@@ -376,7 +376,7 @@ function posRender() {
 function posEnsureDom() {
     if (document.getElementById('posOv')) return;
     const d = document.createElement('div'); d.id = 'posOv'; d.className = 'pos-ov no-print'; d.setAttribute('dir', 'rtl'); d.style.display = 'none';
-    d.innerHTML = `<div class="pos-head"><button type="button" class="pos-back" onclick="posClose()" aria-label="رجوع">→</button><b>🛒 شاشة البيع</b><span class="pos-no" dir="ltr" id="posNo"></span></div>
+    d.innerHTML = `<div class="pos-head"><b>🛒 شاشة البيع</b><span class="pos-no" dir="ltr" id="posNo"></span></div>
         <div class="pos-bar"><input id="posQ" type="search" autocomplete="off" placeholder="امسح الباركود أو اكتب اسم المادة" oninput="posSearchInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();posEnter();}"><button type="button" class="pos-cam" onclick="posScan()" aria-label="مسح بالكاميرا">📷</button></div>
         <div id="posRes" class="pos-resbox" style="display:none"></div>
         <div class="pos-body"><div id="posList" class="pos-list"></div><div id="posExtra" class="pos-extra"></div><div id="posDone" class="pos-donebox"></div></div>

@@ -43,14 +43,7 @@
             
             
             <div class="brand-bar stk-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية">🏠</button><button class="small-icon-btn bell-btn" onclick="goAlerts('all')" title="التنبيهات" aria-label="التنبيهات">🔔<i id="stockAlertCount" class="bell-badge"></i><i class="bell-badge doc-badge" title="طلبات الأطباء"></i><i class="bell-badge rx-badge" title="وصفات جديدة"></i></button><button class="small-icon-btn" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button><button class="small-icon-btn" id="themeBtn" onclick="toggleTheme()" title="الوضع الداكن" aria-label="الوضع الداكن">🌓</button></div></div>
-            <div class="stk-title-row"><span class="stk-pg">📦 المخزن</span><span class="stk-tools"><button type="button" class="filter-btn lbl-open-btn" onclick="lblOpen()" aria-label="ملصقات الباركود" title="ملصقات الباركود">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v14M8 5v14M12 5v14M16 5v14M20 5v14"/></svg>
-                    <span class="fb-t">ملصقات</span>
-                </button>
-                <button type="button" class="filter-btn" onclick="openFilterSheet()" aria-label="تصفية">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
-                    <span class="fb-t">تصفية</span><b id="filterBtnCount" style="display:none;">0</b>
-                </button></span></div>
+            <div class="stk-title-row"><span class="stk-pg">🏭 المخزن</span></div>
             <button type="button" id="authBtn" hidden></button>
             
 
@@ -63,6 +56,14 @@
                     <button class="clear-search" id="clearSearchBtn" onclick="clearSearch()">✕</button>
                     <button type="button" class="bc-search-btn" onclick="scanBarcodeToSearch()" title="مسح باركود" aria-label="مسح باركود">▦</button>
                 </div>
+                <button type="button" class="filter-btn lbl-open-btn" onclick="lblOpen()" aria-label="ملصقات الباركود" title="ملصقات الباركود">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v14M8 5v14M12 5v14M16 5v14M20 5v14"/></svg>
+                    <span class="fb-t">ملصقات</span>
+                </button>
+                <button type="button" class="filter-btn" onclick="openFilterSheet()" aria-label="تصفية">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+                    <span class="fb-t">تصفية</span><b id="filterBtnCount" style="display:none;">0</b>
+                </button>
                 </div>
 
             <!-- الفلاتر المفعّلة (تظهر فقط عند وجود فلتر) -->
@@ -593,11 +594,11 @@
     </div>
     <div class="home-sq">
         <button type="button" class="home-tile tile-sq tile-purch" onclick="showView('purch')">
-            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/><path d="M8 5.5l8 3.8"/></svg>
+            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
             <span class="tile-txt"><b>الوارد</b><small id="homePuOwed">فواتير المذاخر</small></span>
         </button>
         <button type="button" class="home-tile tile-sq tile-stock" onclick="showView('stock')">
-            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect width="12" height="12" x="6" y="10"/></svg>
             <b>مخزن</b><small>الأصناف والكميات</small>
         </button>
     </div>
@@ -613,7 +614,7 @@
         </button>
         <button type="button" class="home-tile tile-sm tile-rxh" onclick="drOpen()">
             <span class="tile-badge rx-badge" style="display:none;">0</span>
-            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></svg>
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg>
             <b>ركن الأطباء</b>
         </button>
     </div>
@@ -644,7 +645,7 @@
             <b>سجل الأدوية</b>
         </button>
         <button type="button" class="home-tile tile-sm tile-exp ex-q" onclick="exOpen('rep')">
-            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-9"/><path d="M15 7h5v5"/></svg>
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
             <b>المصروفات والأرباح</b>
         </button>
     </div>
@@ -869,7 +870,7 @@
 <div id="purchView" class="app-view bill-view" dir="rtl">
     <div class="bill-top no-print">
     <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
-<div class="page-title">📥 الوارد من المذاخر</div>
+<div class="page-title">🚚 الوارد من المذاخر</div>
     </div>
     <div class="bill-tabs no-print" id="puTabs">
         <button type="button" data-tab="new" class="active" onclick="puTab('new')">➕ وارد جديد</button>
