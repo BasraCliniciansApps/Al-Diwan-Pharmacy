@@ -33,8 +33,21 @@
         const f = await fps(2500); L.push('سلاسة الرسم (خمول): ' + f.fps + ' إطار/ث · أسوأ إطار ' + f.worst + ' م.ث');
         const busy = longs.filter(x => x.at >= up).length; L.push('مهام طويلة خلال القياس: ' + busy);
         window.__perfLast = L.join('\n');
+        const fnl = Object.keys(fnT).map(k => k + ': آخر ' + fnT[k].last + ' م.ث · أقصى ' + fnT[k].max + ' · مرات ' + fnT[k].n); if (fnl.length) L.push('— أزمنة دوال التطبيق —', ...fnl);
+        window.__perfLast = L.join('\n');
+        try { document.title = 'PERF ' + (L.find(x => x.indexOf('سلاسة') === 0) || '') + ' | ' + ltTot + 'ms long'; } catch (e) { /* تجاهل */ }
+        showOverlay(L); return;
         try { await Swal.fire({ title: 'تشخيص الأداء', html: '<pre dir="rtl" style="text-align:right;white-space:pre-wrap;font-size:.78rem;line-height:1.7;margin:0">' + L.map(s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')).join('\n') + '</pre>', confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', width: 760 }); } catch (e) { alert(L.join('\n')); }
     }
+    const fnT = {};
+    function wrap(name) { const f = window[name]; if (typeof f !== 'function' || f.__pf) return; const w = function () { const a = performance.now(); try { return f.apply(this, arguments); } finally { const d = Math.round(performance.now() - a), r = fnT[name] || (fnT[name] = { last: 0, max: 0, n: 0 }); r.last = d; r.max = Math.max(r.max, d); r.n++; } }; w.__pf = 1; window[name] = w; }
+    window.addEventListener('load', () => { ['showView', 'renderAll', 'refreshHome', 'saveLocal', 'buildFullBackup', 'billRender', 'renderTable'].forEach(wrap); setTimeout(() => ['showView', 'renderAll', 'refreshHome'].forEach(wrap), 3000); });
+    function showOverlay(L) {
+        let o = document.getElementById('perfOv'); if (!o) { o = document.createElement('div'); o.id = 'perfOv'; o.style.cssText = 'position:fixed;inset:6% 12%;z-index:2147483000;background:#0b1220;color:#e2e8f0;border-radius:14px;padding:14px 16px;overflow:auto;font:13px/1.7 monospace;direction:rtl;text-align:right;box-shadow:0 10px 40px #000a'; document.body.appendChild(o); }
+        o.innerHTML = '<button type="button" id="perfX" style="float:left;padding:6px 14px;border-radius:8px;border:0;background:#334155;color:#fff">إغلاق</button><b>تشخيص الأداء</b><pre style="white-space:pre-wrap;margin:8px 0 0;font:inherit">' + L.map(x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;')).join('\n') + '</pre>';
+        o.querySelector('#perfX').onclick = () => o.remove();
+    }
+    window.addEventListener('load', () => { if (!(window.diwanDesktop)) return; const b = document.createElement('button'); b.type = 'button'; b.textContent = '⏱'; b.title = 'تشخيص الأداء'; b.style.cssText = 'position:fixed;left:8px;bottom:8px;z-index:2147482000;width:30px;height:30px;border-radius:50%;border:0;background:#0f1c38;color:#fff;opacity:.55;font-size:14px;cursor:pointer'; b.onclick = run; document.body.appendChild(b); });
     window.perfDiag = run;
     document.addEventListener('keydown', e => { if (e.ctrlKey && e.shiftKey && (e.key === 'P' || e.key === 'p')) { e.preventDefault(); run(); } });
 })();
