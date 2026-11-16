@@ -1,0 +1,8 @@
+.dart_tool/
+build/
+.flutter-plugins*
+.packages
+pubspec_overrides.yaml
+*.iml
+local.properties
+.gradle/
