@@ -27,8 +27,8 @@ function createHub(opts) {
     const stFile = path.join(dir, 'lan-state.json');
     fs.mkdirSync(dir, { recursive: true });
 
-    let st = { devices: {}, done: {}, seq: 0 };       // done: opId -> 'applied' | 'rejected'
-    try { const s = JSON.parse(fs.readFileSync(stFile, 'utf8')); if (s && typeof s === 'object') st = Object.assign(st, s); } catch (e) { /* أول تشغيل */ }
+    let st = { devices: {}, done: {}, seq: 0, doneSeq: {}, dseq: 0 };       // done: opId -> 'applied' | 'rejected'
+    try { const s = JSON.parse(fs.readFileSync(stFile, 'utf8')); if (s && typeof s === 'object') st = Object.assign(st, s); if (!st.doneSeq) st.doneSeq = {}; if (!st.dseq) st.dseq = 0; } catch (e) { /* أول تشغيل */ }
     const ops = new Map();                             // opId -> سجل العملية
     try {
         fs.readFileSync(opsFile, 'utf8').split('\n').forEach(l => { if (!l.trim()) return; try { const r = JSON.parse(l); if (r && r.id) ops.set(r.id, r); } catch (e) { /* سطر ناقص من انقطاع كهرباء: يُتجاهل */ } });
@@ -121,7 +121,12 @@ function createHub(opts) {
         }
         if (req.method === 'GET' && url === '/v1/status') {
             let mine = 0, applied = 0; ops.forEach(r => { if (r.dev === dev.id) { if (st.done[r.id]) applied++; else mine++; } });
-            return send(res, 200, { waiting: mine, applied, prefix: dev.d.prefix, name });
+            return send(res, 200, { waiting: mine, applied, prefix: dev.d.prefix, name, need: !!dev.d.needSnap, head: st.dseq });
+        }
+        if (req.method === 'GET' && url === '/v1/feed') {   // عمليات الأجهزة الأخرى التي وافق عليها الحاسوب (الاتجاه الثاني)
+            const q = new URLSearchParams((req.url.split('?')[1]) || ''); const after = parseInt(q.get('after')) || 0;
+            const list = [...ops.values()].filter(r => r.dev !== dev.id && r.type !== 'snapshot' && st.done[r.id] === 'applied' && (st.doneSeq[r.id] || 0) > after).sort((a, b) => st.doneSeq[a.id] - st.doneSeq[b.id]).slice(0, 100);
+            return send(res, 200, { ops: list.map(r => ({ id: r.id, type: r.type, ts: r.ts, data: r.data, dev: r.dev, devName: r.devName, fseq: st.doneSeq[r.id] })), last: list.length ? st.doneSeq[list[list.length - 1].id] : after, head: st.dseq });
         }
         send(res, 404, { error: 'not-found' });
     });
@@ -142,7 +147,8 @@ function createHub(opts) {
         newCode, activeCode,
         info() { const a = server.address(); return { port: a && a.port, ips: lanIps(), name, code: activeCode(), codeLeft: code ? Math.max(0, CODE_TTL - (Date.now() - codeAt)) : 0, devices: Object.keys(st.devices).map(id => ({ id, name: st.devices[id].name, prefix: st.devices[id].prefix, lastSeen: st.devices[id].lastSeen })), pending: this.pending().length }; },
         pending() { return [...ops.values()].filter(r => !st.done[r.id]).sort((a, b) => a.seq - b.seq); },
-        mark(ids, status) { ids.forEach(id => { if (ops.has(id)) st.done[id] = status; }); saveState(); emit(); },
+        mark(ids, status) { ids.forEach(id => { if (ops.has(id) && st.done[id] !== status) { st.done[id] = status; if (status === 'applied') st.doneSeq[id] = ++st.dseq; } }); saveState(); emit(); },
+        setNeed(devId, on) { if (st.devices[devId]) { st.devices[devId].needSnap = !!on; saveState(); } },
         forget(devId) { delete st.devices[devId]; saveState(); emit(); }
     };
 }

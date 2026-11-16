@@ -4,7 +4,7 @@
 // عند العودة إلى السحابة: يعيد كل جوال إرسال عملياته (التي سلّمها للحاسوب) إلى السحابة بمفاتيح ثابتة، فلا يتكرر شيء.
 (function () {
     'use strict';
-    const K = { mode: 'diwanLanMode', hub: 'diwanLanHub', dev: 'diwanLanDev', out: 'diwanLanOut', arch: 'diwanLanArch', done: 'diwanLanApplied' };
+    const K = { mode: 'diwanLanMode', hub: 'diwanLanHub', dev: 'diwanLanDev', out: 'diwanLanOut', arch: 'diwanLanArch', done: 'diwanLanApplied', auto: 'diwanLanAuto', feed: 'diwanLanFeed', snapAt: 'diwanLanSnapAt' };
     const D = window.diwanDesktop && window.diwanDesktop.lan ? window.diwanDesktop : null;   // الحاسوب فقط
     const ls = {
         get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } },
@@ -21,6 +21,16 @@
     // ======================= الجوال: الاتصال بالحاسوب =======================
     async function http(method, path, body, withToken, tmo) {
         const hub = ls.get(K.hub, null); if (!hub || !hub.ip) throw new Error('لم يُربط الجهاز بالحاسوب');
+        try { return await httpOnce(hub, method, path, body, withToken, tmo); }
+        catch (e) {   // تغيّر عنوان الحاسوب (يحدث مع الراوتر): نجرّب بقية عناوينه المحفوظة
+            const others = (hub.ips || []).filter(x => x !== hub.ip);
+            for (const ip of others) {
+                try { const h2 = Object.assign({}, hub, { ip }); const pr = await httpOnce(h2, 'GET', '/v1/ping', null, false, 2000); if (pr.s === 200 && pr.j.app === 'diwan-hub') { const nh = ls.get(K.hub, hub); nh.ip = ip; ls.set(K.hub, nh); return await httpOnce(nh, method, path, body, withToken, tmo); } } catch (e2) { /* العنوان التالي */ }
+            }
+            throw e;
+        }
+    }
+    async function httpOnce(hub, method, path, body, withToken, tmo) {
         const url = 'http://' + hub.ip + ':' + (hub.port || 8765) + path;
         const headers = { 'content-type': 'application/json' }; if (withToken !== false && hub.token) headers['x-diwan-token'] = hub.token;
         const CH = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
@@ -39,7 +49,7 @@
         ls.set(K.hub, { ip: a.ip, port: a.port });
         const r = await http('POST', '/v1/pair', { code: String(code || '').trim(), deviceId: devId(), deviceName: (window.userName || (window.userRole === 'owner' ? 'المالك' : 'جهاز')) + ' · ' + (/Android/i.test(navigator.userAgent) ? 'هاتف' : 'متصفح') }, false);
         if (r.s !== 200 || !r.j.token) { ls.set(K.hub, null); throw new Error(r.s === 403 ? 'الرمز غير صحيح أو منتهي' : r.s === 429 ? 'محاولات كثيرة، انتظر دقيقة' : 'تعذر الربط'); }
-        ls.set(K.hub, { ip: a.ip, port: a.port, token: r.j.token, prefix: r.j.prefix, name: r.j.hub });
+        const old = ls.get(K.hub, {}); ls.set(K.hub, { ip: a.ip, port: a.port, token: r.j.token, prefix: r.j.prefix, name: r.j.hub, ips: old.ips || [a.ip] });
     }
 
     // ======================= الربط بمسح رمز QR =======================
@@ -53,7 +63,7 @@
             try { ls.set(K.hub, { ip, port: p.p || 8765 }); const r = await http('GET', '/v1/ping', null, false, 2500); if (r.s === 200 && r.j.app === 'diwan-hub') { found = ip; break; } } catch (e) { /* العنوان التالي */ }
         }
         if (!found) { ls.set(K.hub, prev); throw new Error('تعذر الوصول إلى الحاسوب. تأكد أن الجوال والحاسوب على الشبكة نفسها'); }
-        try { await pair(found + ':' + (p.p || 8765), p.c); } catch (e) { ls.set(K.hub, prev); throw e; }
+        try { await pair(found + ':' + (p.p || 8765), p.c); const hh = ls.get(K.hub, {}); hh.ips = [found].concat(p.i.filter(x => x !== found)); ls.set(K.hub, hh); } catch (e) { ls.set(K.hub, prev); throw e; }
     }
     async function scanUi() {
         try { await loadScript('vendor/jsQR.js', () => !!window.jsQR); } catch (e) { toast('error', e.message); return; }
@@ -89,12 +99,12 @@
 
     // ======================= الجوال: إرسال كل بيانات الجهاز دفعة واحدة =======================
     function chunkBy(arr, maxBytes) { const out = []; let cur = [], sz = 0; (arr || []).forEach(x => { const l = JSON.stringify(x).length; if (cur.length && sz + l > maxBytes) { out.push(cur); cur = []; sz = 0; } cur.push(x); sz += l; }); if (cur.length) out.push(cur); return out; }
-    async function sendSnapshot() {
+    async function sendSnapshot(silent) {
         const hub = ls.get(K.hub, null);
         if (!hub || !hub.token) { Swal.fire({ icon: 'info', title: 'اربط الجهاز بالحاسوب أولاً', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-        const r = await ask({ icon: 'question', title: 'إرسال كل بيانات هذا الجهاز إلى الحاسوب؟', html: 'تُرسل نسخة كاملة (الأصناف والفواتير والوارد والمذاخر والسجل).<br><small>لا يُغيَّر شيء على الحاسوب قبل أن تراجعه هناك وتوافق عليه، وتُحفظ نسخة احتياطية قبل التطبيق.</small>', confirmButtonText: 'إرسال' });
+        const r = silent === true ? { isConfirmed: true } : await ask({ icon: 'question', title: 'إرسال كل بيانات هذا الجهاز إلى الحاسوب؟', html: 'تُرسل نسخة كاملة (الأصناف والفواتير والوارد والمذاخر والسجل).<br><small>لا يُغيَّر شيء على الحاسوب قبل أن تراجعه هناك وتوافق عليه، وتُحفظ نسخة احتياطية قبل التطبيق.</small>', confirmButtonText: 'إرسال' });
         if (!r.isConfirmed) return;
-        const h = Prog.start('تجهيز نسخة الجهاز', { text: 'جمع البيانات...' });
+        const h = Prog.start('تجهيز نسخة الجهاز', { text: silent === true ? 'الحاسوب طلب نسخة كاملة لإضافة المواد الجديدة...' : 'جمع البيانات...' });
         try {
             const data = buildFullBackup(), sid = 's' + Date.now().toString(36) + rnd(), parts = [];
             ['products', 'purchases', 'suppliers', 'invoices', 'ledger'].forEach(k => chunkBy(data[k], 180000).forEach(c => parts.push({ part: k, items: c })));
@@ -165,8 +175,41 @@
         finally { flushing = false; refreshUi(); try { syncRefresh(); } catch (e) { /* تجاهل */ } }
         return sent;
     }
-    setInterval(() => { if (active()) flush(); }, 20000);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && active()) flush(); });
+    // ---- الاستعلام الدوري: حالة الحاسوب + استلام عمليات الأجهزة الأخرى التي وافق عليها الحاسوب ----
+    let polling = false;
+    async function pullFeed() {
+        const st = ls.get(K.feed, { after: 0, ids: [] });
+        const r = await http('GET', '/v1/feed?after=' + (st.after || 0), null, true, 8000);
+        if (r.s !== 200) return 0;
+        const list = (r.j.ops || []).filter(o => o && o.id && !st.ids.includes(o.id));
+        if (list.length) {
+            const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() };
+            list.forEach(o => { try { if (o.type === 'stock') applyStockOp(o.data, rep); else applyRecordOp(o.type, o.data.rec, rep); } catch (e) { /* عملية تالفة: تُتخطّى */ } st.ids.push(o.id); });
+            saveLocal(); try { renderAll(); } catch (e) { /* تجاهل */ }
+            toast('success', 'وصلت ' + list.length + ' عملية من أجهزة أخرى');
+        }
+        st.after = Math.max(st.after || 0, r.j.last || 0); st.ids = st.ids.slice(-3000); ls.set(K.feed, st);
+        return list.length;
+    }
+    async function poll() {
+        if (!active() || polling || flushing) return;
+        const hub = ls.get(K.hub, null); if (!hub || !hub.token) return;
+        polling = true;
+        try {
+            const r = await http('GET', '/v1/status', null, true, 6000);
+            if (r.s === 401) { lastErr = 'انتهى الربط، أعد الربط بالحاسوب'; return; }
+            if (r.s !== 200) return;
+            lastErr = '';
+            if (r.j.need && Date.now() - (ls.get(K.snapAt, 0) || 0) > 300000) { ls.set(K.snapAt, Date.now()); await sendSnapshot(true); }   // الحاسوب ينقصه أصناف: أرسل نسخة كاملة بدون سؤال
+            await pullFeed();
+        } catch (e) { lastErr = (e && e.message) || 'تعذر الاتصال بالحاسوب'; }
+        finally { polling = false; refreshUi(); }
+    }
+    async function tick() { if (!active()) return; await flush(); await poll(); }
+    setInterval(tick, 20000);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && active()) tick(); });
+    window.addEventListener('online', () => { if (active()) tick(); });
+    window.addEventListener('load', () => setTimeout(() => { if (active()) tick(); }, 1500));
 
     // ======================= التبديل بين الطريقتين =======================
     async function switchToLan() {
@@ -275,7 +318,7 @@
     async function applySnapshot(g, fresh) {
         const d = snapDiff(g);
         const rows = [['الأصناف', d.padd.length, d.pupd.length, d.psame]].concat(d.plan.filter(p => p.total).map(p => [p.c.label, p.add.length, p.upd.length, p.keep]));
-        const html = '<div style="text-align:right;font-size:.85rem;margin-bottom:6px">من «' + esc(g.devName) + '»</div>' + rows.map(r => '<div style="padding:6px 0;border-bottom:1px solid #e5e7eb;text-align:right"><b>' + esc(r[0]) + '</b>: ' + r[1] + ' جديد · ' + r[2] + ' مختلف/أحدث · ' + r[3] + ' كما هو</div>').join('') + '<div style="margin-top:10px;font-size:.8rem;color:#475569;text-align:right">الأصناف المختلفة تُستبدل بنسخة الجوال. الفواتير والوارد والسجل لا يُستبدل منها سجل أحدث على الحاسوب. تُحفظ نسخة احتياطية قبل التطبيق.</div>';
+        const html = '<div style="text-align:right;font-size:.85rem;margin-bottom:6px">من «' + esc(g.devName) + '»</div>' + rows.map(r => '<div style="padding:6px 0;border-bottom:1px solid #e5e7eb;text-align:right"><b>' + esc(r[0]) + '</b>: ' + r[1] + ' جديد · ' + r[2] + ' مختلف/أحدث · ' + r[3] + ' كما هو</div>').join('') + (d.padd.length ? '<div style="margin-top:8px;text-align:right;font-size:.8rem"><b>المواد الجديدة:</b> ' + d.padd.slice(0, 12).map(x => esc(x.name || x.id)).join('، ') + (d.padd.length > 12 ? ' … و' + (d.padd.length - 12) + ' أخرى' : '') + '</div>' : '') + '<div style="margin-top:10px;font-size:.8rem;color:#475569;text-align:right">الأصناف المختلفة تُستبدل بنسخة الجوال. الفواتير والوارد والسجل لا يُستبدل منها سجل أحدث على الحاسوب. تُحفظ نسخة احتياطية قبل التطبيق.</div>';
         const r = await Swal.fire({ icon: 'question', title: 'نسخة كاملة من الجوال', html, showCancelButton: true, confirmButtonText: 'تطبيق', cancelButtonText: 'لاحقاً', confirmButtonColor: '#0f1c38' });
         if (!r.isConfirmed) return null;
         const h = Prog.start('تطبيق نسخة الجوال', { text: 'نسخة احتياطية قبل التطبيق...' });
@@ -293,14 +336,19 @@
             bkApplyExtras(d.data);
             const cover = fresh.filter(o => o.type !== 'snapshot' && o.dev === g.dev && o.seq < g.minSeq).map(o => o.id);   // عمليات أقدم من النسخة: مشمولة بها
             const done = ls.get(K.done, []); g.parts.forEach(o => done.push(o.id)); cover.forEach(id => done.push(id)); ls.set(K.done, done.slice(-20000));
-            await D.lan.mark(g.parts.map(o => o.id).concat(cover), 'applied');
+            await D.lan.mark(g.parts.map(o => o.id).concat(cover), 'applied'); try { await D.lan.need(g.dev, false); } catch (e) { /* تجاهل */ }
             try { renderAll(); } catch (e) { /* تجاهل */ }
             h.ok('طُبِّقت نسخة الجوال');
             return new Set(cover);
         } catch (e) { h.fail('تعذر التطبيق', (e && e.message) || ''); return null; }
     }
+    let reviewing = false, autoBusy = false, lastAutoBk = 0;
     async function review() {
         if (!D) return;
+        reviewing = true;
+        try { await review2(); } finally { reviewing = false; }
+    }
+    async function review2() {
         const all = await D.lan.pending();
         if (!all.length) { toast('info', 'لا توجد عمليات بانتظار المراجعة'); return; }
         const done = new Set(ls.get(K.done, []));
@@ -327,23 +375,76 @@
         }
         if (!r.isConfirmed) return;
         const h = Prog.start('تطبيق عمليات الهواتف', { text: 'نسخة احتياطية قبل التطبيق...' });
-        const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() };
+        const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() }, needDev = new Set();
         try {
             const b = await D.writeBackup(JSON.stringify(buildFullBackup()));
             if (!b || !b.ok) throw new Error('تعذر حفظ النسخة الاحتياطية، لم يُطبَّق شيء');
             const doneIds = ls.get(K.done, []);
             for (let i = 0; i < fresh.length; i++) {
                 const o = fresh[i];
+                const before = rep.skipped.length;
                 if (o.type === 'stock') applyStockOp(o.data, rep); else applyRecordOp(o.type, o.data.rec, rep);
+                if (rep.skipped.length > before) needDev.add(o.dev);
                 saveLocal(); doneIds.push(o.id); ls.set(K.done, doneIds.slice(-20000));
                 h.set(Math.round((i + 1) / fresh.length * 100), 'طُبِّقت ' + (i + 1) + ' من ' + fresh.length);
             }
             await D.lan.mark(fresh.map(o => o.id), 'applied');
+            for (const dv of needDev) { try { await D.lan.need(dv, true); } catch (e) { /* تجاهل */ } }   // الجوال سيرسل نسخة كاملة تلقائياً لإضافة المواد الناقصة
             try { renderAll(); } catch (e) { /* تجاهل */ }
             h.ok('طُبِّقت ' + fresh.length + ' عملية');
-            if (rep.skipped.length || rep.renum || rep.stale) Swal.fire({ icon: 'info', title: 'ملاحظات التطبيق', html: (rep.renum ? rep.renum + ' فاتورة بُدّل رقمها لتكرار الرقم<br>' : '') + (rep.stale ? rep.stale + ' سجل أقدم من الموجود فتُخطّي<br>' : '') + (rep.skipped.length ? 'مواد غير موجودة على الحاسوب: ' + esc(rep.skipped.slice(0, 8).join('، ')) : ''), confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+            if (rep.skipped.length || rep.renum || rep.stale) Swal.fire({ icon: 'info', title: 'ملاحظات التطبيق', html: (rep.renum ? rep.renum + ' فاتورة بُدّل رقمها لتكرار الرقم<br>' : '') + (rep.stale ? rep.stale + ' سجل أقدم من الموجود فتُخطّي<br>' : '') + (rep.skipped.length ? 'مواد غير موجودة على الحاسوب: ' + esc(rep.skipped.slice(0, 8).join('، ')) + '<br><small>سيرسل الجوال نسخة كاملة تلقائياً، وراجعها هنا لإضافة المواد.</small>' : ''), confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         } catch (e) { h.fail('تعذر التطبيق', (e && e.message) || ''); }
         refreshUi();
+    }
+
+    // ---- التطبيق التلقائي: الفواتير والوارد وحركات المخزن تُطبَّق بلا مراجعة. النسخة الكاملة تبقى بموافقتك ----
+    const autoOn = () => ls.raw(K.auto) !== '0';
+    async function autoTick() {
+        if (!D || !modeOn() || !autoOn() || reviewing || autoBusy) return;
+        autoBusy = true;
+        try {
+            const all = await D.lan.pending(); if (!all.length) return;
+            const done = new Set(ls.get(K.done, []));
+            const already = all.filter(o => done.has(o.id)); if (already.length) await D.lan.mark(already.map(o => o.id), 'applied');
+            const left = all.filter(o => !done.has(o.id));
+            const holdDevs = new Set(snapGroups(left).map(g => g.dev));   // جهاز له نسخة كاملة بانتظارك: عملياته تنتظر معها
+            const fresh = left.filter(o => o.type !== 'snapshot' && !holdDevs.has(o.dev));
+            if (holdDevs.size && !window.__lanSnapNote) { window.__lanSnapNote = 1; toast('info', 'نسخة كاملة من الجوال بانتظار موافقتك (مراجعة العمليات)'); setTimeout(() => { window.__lanSnapNote = 0; }, 600000); }
+            if (!fresh.length) return;
+            if (Date.now() - lastAutoBk > 600000) { const b = await D.writeBackup(JSON.stringify(buildFullBackup())); if (!b || !b.ok) throw new Error('نسخة احتياطية'); lastAutoBk = Date.now(); }
+            const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() }, needDev = new Set(), doneIds = ls.get(K.done, []);
+            fresh.forEach(o => { const before = rep.skipped.length; try { if (o.type === 'stock') applyStockOp(o.data, rep); else applyRecordOp(o.type, o.data.rec, rep); } catch (e) { rep.stale++; } if (rep.skipped.length > before) needDev.add(o.dev); doneIds.push(o.id); });
+            saveLocal(); ls.set(K.done, doneIds.slice(-20000));
+            await D.lan.mark(fresh.map(o => o.id), 'applied');
+            for (const dv of needDev) { try { await D.lan.need(dv, true); } catch (e) { /* تجاهل */ } }
+            try { renderAll(); } catch (e) { /* تجاهل */ }
+            toast('success', 'طُبِّقت ' + fresh.length + ' عملية من الهواتف' + (needDev.size ? ' · مواد ناقصة: طُلبت نسخة كاملة' : ''));
+        } catch (e) { /* تُعاد المحاولة في الدورة التالية */ }
+        finally { autoBusy = false; refreshUi(); }
+    }
+    function autoToggle(cb) { try { localStorage.setItem(K.auto, cb.checked ? '1' : '0'); } catch (e) { /* تجاهل */ } if (cb.checked) autoTick(); }
+
+    // ---- الجوال: اختبار الاتصال بالحاسوب ----
+    async function testConn() {
+        const hub = ls.get(K.hub, null);
+        if (!hub || !hub.token) { Swal.fire({ icon: 'info', title: 'الجهاز غير مرتبط بالحاسوب', text: 'اضغط «ربط بمسح QR» أولاً.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        const h = Prog.start('اختبار الاتصال', { text: 'جاري الفحص...' });
+        let icon = 'success', title = '', html = '';
+        try {
+            const p = await http('GET', '/v1/ping', null, false, 3000);
+            if (p.s !== 200 || p.j.app !== 'diwan-hub') { icon = 'error'; title = 'العنوان يخص جهازاً آخر'; html = 'أعد الربط بمسح الرمز من برنامج الحاسوب.'; }
+            else {
+                const st = await http('GET', '/v1/status', null, true, 5000);
+                if (st.s === 401) { icon = 'warning'; title = 'الحاسوب وصل لكن الربط منتهٍ'; html = 'أعد الربط بمسح الرمز.'; }
+                else { title = 'الاتصال سليم'; html = 'الحاسوب: <b>' + esc(p.j.name || hub.ip) + '</b> (' + esc(hub.ip) + ')<br>بانتظار موافقة الحاسوب: ' + (st.j.waiting || 0) + ' · طُبِّقت: ' + (st.j.applied || 0) + (st.j.need ? '<br>الحاسوب طلب نسخة كاملة وستُرسل تلقائياً.' : '') + '<br>بانتظار الإرسال من هذا الجهاز: ' + outbox().length; }
+            }
+            h.ok(title || 'تم');
+        } catch (e) {
+            icon = 'error'; title = 'تعذر الوصول إلى الحاسوب';
+            html = '<div style="text-align:right;line-height:2">تحقق من:<br>• برنامج الحاسوب مفتوح والمزامنة مفعّلة فيه.<br>• الجوال والحاسوب على شبكة الواي فاي نفسها.<br>• جدار ويندوز سمح للبرنامج بالشبكة الخاصة.<br>• الحاسوب غير نائم.<br><small>' + esc((e && e.message) || '') + '</small></div>';
+            h.fail('تعذر الاتصال', '');
+        }
+        Swal.fire({ icon, title, html, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
     }
 
     // ======================= الواجهة (الإعدادات) =======================
@@ -355,6 +456,7 @@
             const info = await D.lan.info().catch(() => ({ on: false }));
             body = '<div class="qk-row"><div><b>المزامنة عبر الحاسوب</b><small>تُوقَف السحابة مؤقتاً، ويستقبل هذا البرنامج عمليات الهواتف.</small></div>' + sw('lanSw', on, 'LAN.toggle(this)') + '</div>';
             if (info.on) {
+                body += '<div class="qk-row"><div><b>التطبيق التلقائي</b><small>تُطبَّق فواتير الهواتف والوارد وحركات المخزن بدون مراجعة. النسخة الكاملة تبقى بموافقتك.</small></div>' + sw('lanAutoSw', autoOn(), 'LAN.autoToggle(this)') + '</div>';
                 const ip = (info.ips || [])[0] || '—';
                 if (!info.code && !window.__lanAuto) { window.__lanAuto = 1; D.lan.newCode().then(() => { window.__lanAuto = 0; refreshUi(); }); }
                 let qr = '';
@@ -369,7 +471,7 @@
             const hub = ls.get(K.hub, null), out = outbox().length, arch = archive().length;
             body = '<div class="qk-row"><div><b>المزامنة عبر الحاسوب</b><small>' + (hub && hub.token ? 'مرتبط بالحاسوب ' + esc(hub.ip) : 'غير مرتبط بالحاسوب') + '</small></div>' + sw('lanSw', on, 'LAN.toggle(this)') + '</div>' +
                 '<div class="ds-bk"><div class="ds-bk-s' + (lastErr ? ' bad' : '') + '">' + (lastErr ? 'تعذر الاتصال: ' + esc(lastErr) : (on ? 'بانتظار الإرسال: ' + out + ' · سُلِّمت للحاسوب: ' + arch : 'السحابة هي الطريقة المفعّلة')) + '</div>' +
-                '<div class="ds-bk-b"><button type="button" onclick="LAN.scanUi()">ربط بمسح QR</button><button type="button" onclick="LAN.pairUi()">ربط يدوي</button>' + (on ? '<button type="button" onclick="LAN.sendNow()">إرسال الآن</button><button type="button" onclick="LAN.sendSnapshot()">إرسال كل بيانات الجهاز</button>' : '') + (!on && out + arch ? '<button type="button" onclick="LAN.replay()">إرسال العمليات المحفوظة إلى السحابة (' + (out + arch) + ')</button>' : '') + '</div></div>';
+                '<div class="ds-bk-b"><button type="button" onclick="LAN.scanUi()">ربط بمسح QR</button><button type="button" onclick="LAN.pairUi()">ربط يدوي</button>' + '<button type="button" onclick="LAN.testConn()">اختبار الاتصال</button>' + (on ? '<button type="button" onclick="LAN.sendNow()">إرسال الآن</button><button type="button" onclick="LAN.sendSnapshot()">إرسال كل بيانات الجهاز</button>' : '') + (!on && out + arch ? '<button type="button" onclick="LAN.replay()">إرسال العمليات المحفوظة إلى السحابة (' + (out + arch) + ')</button>' : '') + '</div></div>';
         }
         host.innerHTML = body;
     }
@@ -394,7 +496,7 @@
     }
     async function newCode() { if (D) { await D.lan.newCode(); refreshUi(); } }
 
-    window.LAN = { scanUi, pairQr, sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, refreshUi, pair, _ls: ls, K };
-    if (D) D.lan.onChange(() => { refreshUi(); });
+    window.LAN = { scanUi, pairQr, sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, autoToggle, testConn, poll, autoTick, refreshUi, pair, _ls: ls, K };
+    if (D) { D.lan.onChange(() => { refreshUi(); autoTick(); }); setInterval(autoTick, 15000); window.addEventListener('load', () => setTimeout(autoTick, 3000)); }
     window.addEventListener('load', () => { refreshUi(); if (D && modeOn()) D.lan.enable(true).catch(() => { /* تجاهل */ }); setInterval(refreshUi, 30000); });
 })();

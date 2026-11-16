@@ -340,6 +340,7 @@ async function syncNow() {
     if (window.LAN && LAN.mode() === 'lan') { Swal.fire({ icon: 'info', title: 'المزامنة عبر الحاسوب مفعّلة', text: 'أوقفها من الإعدادات للعودة إلى السحابة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     if (usagePaused === 'cap') { const c = await Swal.fire({ icon: 'warning', title: 'استئناف الإرسال؟', text: 'بلغ هذا الجهاز حدّه اليومي. الاستئناف قد يستهلك من الحصة المجانية.', showCancelButton: true, confirmButtonText: 'استئناف', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' }); if (!c.isConfirmed) return; }
     const h = Prog.start('مزامنة مع السحابة', { text: 'جاري الاتصال...' });
+    if (usagePaused === 'cap') usageGrant(5000, 500);   // الاستئناف اليدوي يمنح سماحاً إضافياً لليوم، وإلا يتوقف فوراً من جديد
     await usageResume();
     let n = 0;
     h.set(null, 'رفع السجلات المحفوظة محلياً...');
@@ -376,7 +377,9 @@ function usageGet() {
     if (!u || u.d !== k) u = { d: k, w: 0, r: 0, p: '' };
     return u;
 }
-function usageCap(t) { let v = 0; try { v = parseInt(localStorage.getItem('diwanCap_' + t), 10); } catch (e) { /* تجاهل */ } return v > 0 ? v : USAGE_DEFAULT[t]; }
+function usageBonus(t) { try { const b = JSON.parse(localStorage.getItem('diwanBonus') || 'null'); return b && b.d === usageDayKey() ? (b[t] || 0) : 0; } catch (e) { return 0; } }
+function usageGrant(r, w) { try { const k = usageDayKey(), b = JSON.parse(localStorage.getItem('diwanBonus') || 'null'); const x = b && b.d === k ? b : { d: k, r: 0, w: 0 }; x.r += r; x.w += w; localStorage.setItem('diwanBonus', JSON.stringify(x)); } catch (e) { /* تجاهل */ } }   // سماح إضافي لليوم الحالي فقط عند الاستئناف اليدوي
+function usageCap(t) { let v = 0; try { v = parseInt(localStorage.getItem('diwanCap_' + t), 10); } catch (e) { /* تجاهل */ } return (v > 0 ? v : USAGE_DEFAULT[t]) + usageBonus(t); }
 let _usSaveAt = 0, _usMem = null;
 function usageAdd(t, n) {
     if (!n) return;
