@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'catalog/catalog_index.dart';
 import 'catalog/product.dart';
+import 'catalog/scan_logic.dart';
 import 'catalog/stock_logic.dart';
 import 'repositories.dart';
 import 'user_profile.dart';
@@ -97,4 +98,21 @@ class FirebaseCatalogRepository implements CatalogRepository {
       .doc('metadata')
       .snapshots()
       .map((d) => AlertConfig.fromMetadata(d.data()));
+
+  @override
+  Stream<ScanConfig> watchScanConfig() => _db
+      .collection('pharmacy')
+      .doc('metadata')
+      .snapshots()
+      .map((d) => ScanConfig.fromMap(d.data()?['scan'] is Map ? Map<String, dynamic>.from(d.data()!['scan'] as Map) : null));
+
+  @override
+  Stream<List<Map<String, dynamic>>> watchPurchases() {
+    if (!(profile.isOwner || profile.can('purchases'))) return Stream.value(const []);
+    return _db
+        .collection('pharmacy_purchases')
+        .snapshots()
+        .map((s) => [for (final d in s.docs) d.data()])
+        .handleError((_) {});
+  }
 }

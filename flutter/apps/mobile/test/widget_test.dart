@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart' show FontLoader;
 import 'package:diwan_core/diwan_core.dart';
 import 'package:diwan_mobile/app.dart';
 import 'package:diwan_mobile/providers.dart';
+import 'package:diwan_mobile/screens/scan_card_screen.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,16 +32,8 @@ void _phone(WidgetTester t) {
   addTearDown(t.view.reset);
 }
 
-String _mon(int n) {
-  final d = DateTime(DateTime.now().year, DateTime.now().month + n, 1);
-  return '${d.year}-${d.month.toString().padLeft(2, '0')}';
-}
-
-final _items = <Map<String, dynamic>>[
-  {'id': 3, 'name': 'Panadol Extra', 'brand': 'GSK', 'meta': '24 Tablets', 'price': 3500, 'qty': 10, 'barcode': '6291041500213', 'bt': {_mon(1).replaceAll('-', '_'): {'q': 10, 'l': 0}}},
-  {'id': 2, 'name': 'أوغمنتين 1غم', 'brand': 'سامراء', 'meta': '14 Tablets', 'price': 12000, 'qty': 1},
-  {'id': 1, 'name': 'Voltaren Gel', 'brand': 'Novartis', 'meta': '50 g', 'price': 7250, 'qty': 0},
-];
+final _items = (jsonDecode(File('../../../tools/parity/seed_products.json').readAsStringSync()) as List)
+    .cast<Map<String, dynamic>>();
 
 class _FakeCatalog implements CatalogRepository {
   @override
@@ -47,6 +41,10 @@ class _FakeCatalog implements CatalogRepository {
       Stream.value(CatalogSnapshot(CatalogIndex([for (final m in _items) Product(m)])));
   @override
   Stream<AlertConfig> watchAlertConfig() => Stream.value(const AlertConfig());
+  @override
+  Stream<ScanConfig> watchScanConfig() => Stream.value(const ScanConfig());
+  @override
+  Stream<List<Map<String, dynamic>>> watchPurchases() => Stream.value(const []);
 }
 
 Widget _app(UserProfile? p) => ProviderScope(
@@ -67,6 +65,19 @@ Future<void> _loadFonts() async {
     ..addFont(f('Tajawal-Bold.ttf'));
   await r.load();
   await t.load();
+  if (Platform.environment['GOLDEN'] != null) {
+    final home = Platform.environment['HOME'] ?? '';
+    final f = File('$home/.pub-cache/hosted/pub.dev/lucide_icons_flutter-4.0.3/assets/build_font/LucideVariable-w300.ttf');
+    for (final w in ['300', '600']) {
+      final ff = File('$home/.pub-cache/hosted/pub.dev/lucide_icons_flutter-4.0.3/assets/build_font/LucideVariable-w$w.ttf');
+      if (ff.existsSync()) {
+        final l = FontLoader('packages/lucide_icons_flutter/Lucide$w')
+          ..addFont(Future.value(ByteData.sublistView(ff.readAsBytesSync())));
+        await l.load();
+      }
+    }
+    if (f.existsSync()) {}
+  }
 }
 
 void main() {
@@ -128,38 +139,36 @@ void main() {
         matchesGoldenFile('goldens/home_dark.png'));
   });
 
-  testWidgets('المخزن: يعرض المواد ويبحث ويصفّي التوفر', (t) async {
+  testWidgets('المخزن: يعرض المواد ويبحث ويصفّي «المتوفر فقط»', (t) async {
     _phone(t);
     await t.pumpWidget(_app(UserProfile.owner(diwanOwnerUid)));
     await t.pumpAndSettle();
     await t.tap(find.text('الأصناف والكميات'));
     await t.pumpAndSettle();
-    expect(find.text('Panadol Extra'), findsOneWidget);
-    expect(find.text('أوغمنتين 1غم'), findsOneWidget);
-    // بحث مع تجاهل الهمزة والـ «ال» وبالخطأ الإملائي
-    await t.enterText(find.byType(TextField), 'اوغمنتين');
+    expect(find.text('Panadol Extra 500mg'), findsOneWidget);
+    expect(find.text('8 صنف'), findsOneWidget);
+    await t.enterText(find.byType(TextField), 'augmentn'); // خطأ إملائي
     await t.pump(const Duration(milliseconds: 300));
-    expect(find.text('أوغمنتين 1غم'), findsOneWidget);
-    expect(find.text('Panadol Extra'), findsNothing);
-    // بحث بالباركود
-    await t.enterText(find.byType(TextField), '6291041500213');
+    expect(find.text('Augmentin 1g'), findsOneWidget);
+    expect(find.text('Panadol Extra 500mg'), findsNothing);
+    await t.enterText(find.byType(TextField), '6291041500213'); // باركود
     await t.pump(const Duration(milliseconds: 300));
-    expect(find.text('Panadol Extra'), findsOneWidget);
-    // تبويب «نافد»
+    expect(find.text('Panadol Extra 500mg'), findsOneWidget);
     await t.enterText(find.byType(TextField), '');
     await t.pump(const Duration(milliseconds: 300));
-    await t.tap(find.textContaining('نافد ('));
+    // نافذة التصفية: المتوفر فقط
+    await t.tap(find.byTooltip('تصفية'));
     await t.pumpAndSettle();
-    expect(find.text('Voltaren Gel'), findsOneWidget);
-    expect(find.text('Panadol Extra'), findsNothing);
+    await t.tap(find.text('المتوفر فقط'));
+    await t.pumpAndSettle();
+    expect(find.text('عرض 7 صنف'), findsOneWidget);
   });
 
   testWidgets('الرئيسية: شارة التنبيهات تحسب الكمية القليلة والصلاحية', (t) async {
     _phone(t);
     await t.pumpWidget(_app(UserProfile.owner(diwanOwnerUid)));
     await t.pumpAndSettle();
-    // أوغمنتين كمية 1 (≤ الحد 2) + باندول ينتهي خلال شهر = 2
-    expect(find.text('2'), findsWidgets);
+    expect(find.text('5'), findsWidgets); // نفس رقم الويب على نفس البيانات
   });
 
   testWidgets('التنبيهات: تفتح وتعرض المواد المعنية', (t) async {
@@ -168,9 +177,9 @@ void main() {
     await t.pumpAndSettle();
     await t.tap(find.text('التنبيهات'));
     await t.pumpAndSettle();
-    expect(find.text('أوغمنتين 1غم'), findsOneWidget);
-    expect(find.text('Panadol Extra'), findsOneWidget);
-    expect(find.text('Voltaren Gel'), findsNothing); // نافد بلا كمية: لا تنبيه
+    expect(find.text('Augmentin 1g'), findsOneWidget);
+    expect(find.text('Brufen 400'), findsOneWidget);
+    expect(find.text('Zyrtec 10mg'), findsNothing);
   });
 
   testWidgets('الرجوع يعود إلى مكان القدوم الفعلي', (t) async {
@@ -186,18 +195,52 @@ void main() {
     expect(find.text('شاشة البيع'), findsOneWidget);
   });
 
-  testWidgets('لقطات المخزن والتنبيهات (golden)', skip: Platform.environment['GOLDEN'] == null, (t) async {
+  /// لقطات التكافؤ البصري مع الويب (تُكتب في docs/parity/app) — تُشغَّل يدوياً: GOLDEN=1
+  testWidgets('لقطات التكافؤ (golden)', skip: Platform.environment['GOLDEN'] == null, (t) async {
     _phone(t);
-    await t.pumpWidget(RepaintBoundary(
-        key: const Key('shot2'), child: _app(UserProfile.owner(diwanOwnerUid))));
+    const out = '../../../../docs/parity/app';
+    await t.pumpWidget(RepaintBoundary(key: const Key('s'), child: _app(UserProfile.owner(diwanOwnerUid))));
     await t.pumpAndSettle();
+    await expectLater(find.byKey(const Key('s')), matchesGoldenFile('$out/home.png'));
     await t.tap(find.text('الأصناف والكميات'));
     await t.pumpAndSettle();
-    await expectLater(find.byKey(const Key('shot2')), matchesGoldenFile('goldens/stock.png'));
-    Navigator.of(t.element(find.text('المخزن').first)).pop();
+    await expectLater(find.byKey(const Key('s')), matchesGoldenFile('$out/stock.png'));
+    await t.tap(find.text('Panadol Extra 500mg'));
     await t.pumpAndSettle();
-    await t.tap(find.text('التنبيهات'));
+    await expectLater(find.byKey(const Key('s')), matchesGoldenFile('$out/sheet.png'));
+    await t.tapAt(const Offset(200, 30)); // إغلاق النافذة
     await t.pumpAndSettle();
-    await expectLater(find.byKey(const Key('shot2')), matchesGoldenFile('goldens/alerts.png'));
+    await t.tap(find.byTooltip('تصفية'));
+    await t.pumpAndSettle();
+    await expectLater(find.byKey(const Key('s')), matchesGoldenFile('$out/filter.png'));
+    await t.tapAt(const Offset(200, 30));
+    await t.pumpAndSettle();
+    await t.tap(find.byTooltip('التنبيهات'));
+    await t.pumpAndSettle();
+    await expectLater(find.byKey(const Key('s')), matchesGoldenFile('$out/alerts.png'));
+    Navigator.of(t.element(find.text('كل التنبيهات').first)).pop();
+    await t.pumpAndSettle();
+  });
+
+  testWidgets('لقطة بطاقة الفاحص (golden)', skip: Platform.environment['GOLDEN'] == null, (t) async {
+    _phone(t);
+    await t.pumpWidget(RepaintBoundary(key: const Key('s'), child: _app(UserProfile.owner(diwanOwnerUid))));
+    await t.pumpAndSettle();
+    Navigator.of(t.element(find.text('شاشة البيع'))).push(MaterialPageRoute<void>(builder: (_) => const ScanCardScreen(productId: 8)));
+    await t.pumpAndSettle();
+    await expectLater(find.byKey(const Key('s')), matchesGoldenFile('../../../../docs/parity/app/scan_card.png'));
+  });
+
+  testWidgets('بطاقة الفاحص: حاسبة الخصم تعرض النتيجة', (t) async {
+    _phone(t);
+    await t.pumpWidget(_app(UserProfile.owner(diwanOwnerUid)));
+    await t.pumpAndSettle();
+    Navigator.of(t.element(find.text('شاشة البيع'))).push(MaterialPageRoute<void>(builder: (_) => const ScanCardScreen(productId: 8)));
+    await t.pumpAndSettle();
+    expect(find.text('3,500 د.ع'), findsWidgets);
+    await t.scrollUntilVisible(find.text('حاسبة الخصم'), 200, scrollable: find.byType(Scrollable).last);
+    await t.tap(find.text('10٪'));
+    await t.pumpAndSettle();
+    expect(find.textContaining('خصم 10.0٪'), findsOneWidget);
   });
 }

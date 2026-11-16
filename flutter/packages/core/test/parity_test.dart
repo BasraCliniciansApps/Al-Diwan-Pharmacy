@@ -104,4 +104,40 @@ void main() {
       expect(r?.exp, w?['exp']);
     }
   });
+
+  test('فاحص المادة: النسبة الفعلية وحد الخصم للبائعين (أربع إعدادات)', () {
+    final sc = g['sc'] as Map<String, dynamic>;
+    final cfgs = [
+      for (final c in sc['cfgs'] as List)
+        ScanConfig(mode: c['mode'], margin: (c['margin'] as num).toDouble(), step: (c['step'] as num).toDouble()),
+    ];
+    for (final c in (sc['cases'] as List).cast<Map<String, dynamic>>()) {
+      final p = Product({'id': 1, 'price': c['price'], 'costPrice': c['cost']});
+      final ex = scExact(p);
+      expect(ex, (c['exact'] as num?)?.toDouble(), reason: 'exact ${c['price']}/${c['cost']}');
+      final lims = c['lim'] as List;
+      for (var i = 0; i < cfgs.length; i++) {
+        expect(scLimitFor(p, cfgs[i]), (lims[i] as num?)?.toDouble(),
+            reason: 'limit ${c['price']}/${c['cost']} cfg#$i');
+      }
+    }
+  });
+
+  test('حاسبة الخصم (مالك): خسارة/هامش ضعيف/رابح', () {
+    const cfg = ScanConfig();
+    final p = Product({'id': 1, 'price': 10000, 'costPrice': 8000});
+    expect(scCalc(p, cfg, owner: true, d: 30, fin: 7000).cls, 'bad');
+    expect(scCalc(p, cfg, owner: true, d: 18, fin: 8200).cls, 'mid');
+    expect(scCalc(p, cfg, owner: true, d: 5, fin: 9500).cls, 'ok');
+    expect(scCalc(Product({'id': 1, 'price': 10000}), cfg, owner: true, d: 5, fin: 9500).msg, 'لا توجد كلفة');
+  });
+
+  test('حاسبة الخصم (بائع): حد dlim دون كشف الكلفة', () {
+    const cfg = ScanConfig();
+    final p = Product({'id': 1, 'price': 10000, 'dlim': 10});
+    expect(scCalc(p, cfg, owner: false, d: 8, fin: 9200).msg, 'آمن');
+    expect(scCalc(p, cfg, owner: false, d: 12, fin: 8800).msg, 'يتجاوز الحد الآمن');
+    expect(scCalc(Product({'id': 1, 'price': 10000, 'dlim': 0}), cfg, owner: false, d: 1, fin: 9900).msg, 'لا يسمح بخصم');
+    expect(scCalc(Product({'id': 1, 'price': 10000}), cfg, owner: false, d: 1, fin: 9900).msg, 'حد الخصم غير محسوب');
+  });
 }

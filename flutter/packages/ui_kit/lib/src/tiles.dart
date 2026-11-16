@@ -53,7 +53,7 @@ class DiwanTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = _looks[style]!;
     final big = size == DiwanTileSize.big;
-    final circle = big ? 60.0 : 42.0;
+    final circle = big ? 60.0 : 40.0;
     final isz = big ? 30.0 : 22.0;
     final radius = BorderRadius.circular(big ? 26 : 22);
     final dark = l.fg == Colors.white;
@@ -116,7 +116,7 @@ class DiwanTile extends StatelessWidget {
                         Text(
                           title,
                           textAlign: TextAlign.center,
-                          style: ruqaa(size: big ? 21 : 17.5, color: l.fg)
+                          style: ruqaa(size: big ? 24 : 19.2, color: l.fg)
                               .copyWith(fontWeight: FontWeight.w700),
                         ),
                         if (subtitle != null && subtitle!.isNotEmpty)
@@ -125,9 +125,9 @@ class DiwanTile extends StatelessWidget {
                             child: Text(subtitle!,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 11.52,
                                     fontWeight: FontWeight.w700,
-                                    color: l.fg.withValues(alpha: .85))),
+                                    color: l.fg.withValues(alpha: .9))),
                           ),
                       ],
                     ),

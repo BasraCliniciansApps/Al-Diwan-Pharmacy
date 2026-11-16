@@ -14,3 +14,4 @@ export 'src/catalog/text_search.dart';
 export 'src/catalog/barcode.dart';
 export 'src/catalog/stock_logic.dart';
 export 'src/catalog/catalog_index.dart';
+export 'src/catalog/scan_logic.dart';

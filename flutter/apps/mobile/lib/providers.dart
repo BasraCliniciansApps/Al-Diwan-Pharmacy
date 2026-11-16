@@ -83,3 +83,15 @@ final alertCountProvider = Provider<int>((ref) {
   }
   return n;
 });
+
+final scanConfigProvider = StreamProvider<ScanConfig>((ref) {
+  final profile = ref.watch(profileProvider).value;
+  if (profile == null) return const Stream.empty();
+  return ref.watch(catalogRepoFactoryProvider)(profile).watchScanConfig();
+});
+
+final purchasesProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
+  final profile = ref.watch(profileProvider).value;
+  if (profile == null) return const Stream.empty();
+  return ref.watch(catalogRepoFactoryProvider)(profile).watchPurchases();
+});

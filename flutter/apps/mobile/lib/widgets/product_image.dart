@@ -14,8 +14,9 @@ class ProductImage extends StatelessWidget {
   final BoxFit fit;
   final int cacheWidth;
 
-  Widget _ph(BuildContext c) => Center(
-        child: Icon(DiwanIcons.registry, size: 34, color: c.cTextSub.withValues(alpha: .5)),
+  /// أيقونة «بدون صورة» الكبيرة كما في الويب (SVG رمادي مزرق يملأ الإطار).
+  Widget _ph(BuildContext c) => const Center(
+        child: Icon(DiwanIcons.imagePlaceholder, size: 100, color: Color(0xFF94A3B8)),
       );
 
   @override

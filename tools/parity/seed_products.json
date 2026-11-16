@@ -1,0 +1,109 @@
+[
+ {
+  "id": 8,
+  "name": "Panadol Extra 500mg",
+  "brand": "GSK",
+  "meta": "24 Tablets",
+  "form": "oral",
+  "price": 3500,
+  "qty": 10,
+  "barcode": "6291041500213",
+  "department": "قسم الجلدية",
+  "category": "مسكنات",
+  "bt": {
+   "2026_12": {
+    "q": 6,
+    "l": 0
+   },
+   "2027_08": {
+    "q": 4,
+    "l": 0
+   }
+  },
+  "activeIngredient": "Paracetamol + Caffeine",
+  "details": "مسكن للألم وخافض للحرارة"
+ },
+ {
+  "id": 7,
+  "name": "Augmentin 1g",
+  "brand": "Samarra",
+  "meta": "14 Tablets",
+  "price": 12000,
+  "qty": 1,
+  "category": "مضادات حيوية",
+  "department": "قسم الجلدية",
+  "expiryDate": "2027-03"
+ },
+ {
+  "id": 6,
+  "name": "Voltaren Emulgel 1%",
+  "brand": "Novartis",
+  "meta": "50 g",
+  "price": 7250,
+  "qty": 0,
+  "category": "مسكنات",
+  "department": "قسم الجلدية"
+ },
+ {
+  "id": 5,
+  "name": "Cetaphil Moisturizing Cream",
+  "brand": "Galderma",
+  "meta": "100 g",
+  "form": "cream",
+  "price": 14500,
+  "qty": 12,
+  "department": "قسم الجلدية",
+  "category": "مرطبات",
+  "bt": {
+   "2028_01": {
+    "q": 12,
+    "l": 0
+   }
+  }
+ },
+ {
+  "id": 4,
+  "name": "Brufen 400",
+  "brand": "Abbott",
+  "meta": "30 Tablets",
+  "price": 4500,
+  "qty": 8,
+  "subCount": 10,
+  "subType": "شريط",
+  "loose": 3,
+  "department": "قسم الجلدية",
+  "category": "مسكنات",
+  "expiryDate": "2026-10"
+ },
+ {
+  "id": 3,
+  "name": "Zyrtec 10mg",
+  "brand": "UCB",
+  "meta": "20 Tablets",
+  "price": 6000,
+  "qty": 20,
+  "department": "قسم الجلدية",
+  "category": "حساسية"
+ },
+ {
+  "id": 2,
+  "name": "Lantus SoloStar",
+  "brand": "Sanofi",
+  "meta": "5 Pens",
+  "price": 61000,
+  "qty": 2,
+  "department": "قسم الجلدية",
+  "category": "سكري"
+ },
+ {
+  "id": 1,
+  "name": "Vitamin C 1000 Effervescent",
+  "brand": "Bayer",
+  "meta": "20 Tablets",
+  "price": 8000,
+  "qty": 5,
+  "department": "قسم الجلدية",
+  "category": "فيتامينات",
+  "expiryDate": "2027-01"
+ }
+]

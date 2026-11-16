@@ -181,19 +181,50 @@ List<Batch> getBatches(Product p, {String? surplusTo}) {
 
 // ───────────── التنبيهات ─────────────
 
+const defaultDepartments = ['قسم الجلدية'];
+const defaultSubCategories = [
+  'واقيات الشمس',
+  'العناية بالشعر والشامبو',
+  'غسولات وعلاجات حب الشباب',
+  'المرطبات والترميم',
+  'التفتيح والتقشير',
+  'المضادات الموضعية (بكتيريا/فطريات/طفيليات)',
+  'الكورتيزونات والمراهم الموضعية',
+  'الأدوية الفموية والشرابات',
+];
+
+/// إعدادات المخزن من pharmacy/metadata: حدود التنبيه والأقسام والتصنيفات.
 class AlertConfig {
-  const AlertConfig({this.lowStockThreshold = 2, this.alertMonths = const [1, 3, 6]});
+  const AlertConfig({
+    this.lowStockThreshold = 2,
+    this.alertMonths = const [1, 3, 6],
+    this.departments = defaultDepartments,
+    this.subCategories = defaultSubCategories,
+    this.deptSubs = const {},
+    this.legacyDepts = const [],
+    this.legacyCats = const [],
+  });
   final int lowStockThreshold;
   final List<int> alertMonths;
+  final List<String> departments, subCategories, legacyDepts, legacyCats;
+  final Map<String, List<String>> deptSubs;
 
-  /// من مستند pharmacy/metadata.
   factory AlertConfig.fromMetadata(Map<String, dynamic>? d) {
     if (d == null) return const AlertConfig();
+    List<String> strs(Object? v, List<String> def) =>
+        v is List ? [for (final x in v) x.toString()] : def;
     final t = d['lowStockThreshold'];
     final m = d['alertMonths'];
+    final ds = d['deptSubs'];
+    final leg = d['taxLegacy'];
     return AlertConfig(
       lowStockThreshold: t is num ? t.toInt() : 2,
       alertMonths: (m is List && m.length == 3) ? m.map((e) => jsInt(e)).toList() : const [1, 3, 6],
+      departments: strs(d['departments'], defaultDepartments),
+      subCategories: strs(d['subCategories'], defaultSubCategories),
+      deptSubs: ds is Map ? {for (final e in ds.entries) '${e.key}': strs(e.value, const [])} : const {},
+      legacyDepts: leg is Map ? strs(leg['d'], const []) : const [],
+      legacyCats: leg is Map ? strs(leg['c'], const []) : const [],
     );
   }
 }
@@ -308,4 +339,133 @@ FormBadge formBadge(Product p) {
     if (_reOf(f)?.hasMatch(str) ?? false) return FormBadge(f.txt, f.cls);
   }
   return const FormBadge('كريم (Cream)', 'badge-cream');
+}
+
+
+// ───────────── التصفية (نافذة تصفية الأصناف) ─────────────
+
+List<String> deptsOf(Product p) {
+  final extra = p.raw['extraDepartments'];
+  return [
+    jsStr(p.raw['department']).isEmpty ? 'قسم الجلدية' : p.raw['department'].toString(),
+    if (extra is List) ...extra.where((x) => x is String && x.isNotEmpty).cast<String>(),
+  ];
+}
+
+String brandOf(Product p) {
+  final b = p.brand;
+  return b.isEmpty ? 'GENERIC' : b;
+}
+
+String formOf(Product p) => formBadge(p).txt;
+
+/// حالة التصفية (مرآة filCats/filDepts/filBrands/filForms/filInStock).
+class StockFilters {
+  StockFilters({
+    Set<String>? depts,
+    Set<String>? cats,
+    Set<String>? brands,
+    Set<String>? forms,
+    this.inStock = false,
+  })  : depts = depts ?? {},
+        cats = cats ?? {},
+        brands = brands ?? {},
+        forms = forms ?? {};
+  final Set<String> depts, cats, brands, forms;
+  bool inStock;
+
+  int get count => cats.length + depts.length + brands.length + forms.length + (inStock ? 1 : 0);
+
+  void clear() {
+    depts.clear();
+    cats.clear();
+    brands.clear();
+    forms.clear();
+    inStock = false;
+  }
+
+  bool matches(Product p) {
+    if ((cats.isNotEmpty || depts.isNotEmpty) &&
+        !(deptsOf(p).any(depts.contains) || p.cats.any(cats.contains))) {
+      return false;
+    }
+    if (brands.isNotEmpty && !brands.contains(brandOf(p))) return false;
+    if (forms.isNotEmpty && !forms.contains(formOf(p))) return false;
+    if (inStock && !p.inStock) return false;
+    return true;
+  }
+}
+
+class TaxNode {
+  TaxNode(this.k, this.cats, {this.virtual = false});
+  final String k;
+  final List<String> cats;
+  final bool virtual;
+}
+
+/// شجرة الأقسام والتصنيفات (tfAdminTree): كل قسم بتصنيفاته، ثم «تصنيفات أخرى» لغير الموزّعة.
+List<TaxNode> taxTree(Iterable<Product> products, AlertConfig c) {
+  final usedCats = <String>{for (final p in products) ...p.cats};
+  final usedDepts = <String>{for (final p in products) ...deptsOf(p)};
+  final depts = c.departments.where((d) => !c.legacyDepts.contains(d) || usedDepts.contains(d)).toList();
+  final list = depts.isEmpty ? c.departments : depts;
+  final placed = <String>{};
+  final tree = <TaxNode>[];
+  for (final d in list) {
+    final cats = (c.deptSubs[d] ?? const <String>[])
+        .where((x) => c.subCategories.contains(x) && (!c.legacyCats.contains(x) || usedCats.contains(x)))
+        .toList();
+    placed.addAll(cats);
+    tree.add(TaxNode(d, cats));
+  }
+  final orph = usedCats.where((x) => !placed.contains(x)).toList();
+  if (orph.isNotEmpty) tree.add(TaxNode('تصنيفات أخرى', orph, virtual: true));
+  return tree;
+}
+
+// ───────────── البدائل (بنفس المادة الفعالة) ─────────────
+
+String ingredientKey(String? s) {
+  final t = (s ?? '')
+      .toLowerCase()
+      .replaceAll(RegExp(r'\d+(?:[.,]\d+)?\s*(?:mg|mcg|g|ml|iu|%)'), ' ');
+  final parts = t
+      .split(RegExp(r'[+,/،&]|\band\b'))
+      .map((x) => x.replaceAll(RegExp(r'\s+'), ' ').trim())
+      .where((x) => x.isNotEmpty)
+      .toList()
+    ..sort();
+  return parts.join('+');
+}
+
+/// بدائل المادة: المتوفر أولاً ثم الأرخص (مرآة getAlternatives).
+List<Product> alternativesOf(Product p, Iterable<Product> all) {
+  final key = ingredientKey(jsStr(p.raw['activeIngredient']));
+  if (key.isEmpty) return const [];
+  final l = all
+      .where((x) => x.id != p.id && ingredientKey(jsStr(x.raw['activeIngredient'])) == key)
+      .toList();
+  return stableSorted(l, (a, b) {
+    final sa = a.inStock ? 0 : 1, sb = b.inStock ? 0 : 1;
+    if (sa != sb) return sa - sb;
+    double pr(Product x) => x.price > 0 ? x.price : 1e12;
+    return pr(a).compareTo(pr(b));
+  });
+}
+
+
+/// عدد الأزواج (مادة، تاريخ) القريبة الانتهاء أو المنتهية (≤ 180 يوماً): مرآة getExpiringProducts().length.
+int expiringCount(Iterable<Product> products, {DateTime? today}) {
+  var n = 0;
+  for (final p in products) {
+    if (p.arch || !p.hasUnits) continue;
+    final dates = p.raw['bt'] != null
+        ? getBatches(p).map((b) => b.e).where((e) => e.isNotEmpty).toSet()
+        : productExpiryDates(p).toSet();
+    for (final d in dates) {
+      final days = expiryDaysOf(d, today: today);
+      if (days != null && days <= 180) n++;
+    }
+  }
+  return n;
 }

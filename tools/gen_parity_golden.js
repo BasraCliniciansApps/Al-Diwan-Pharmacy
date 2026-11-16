@@ -5,7 +5,7 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
 const read = f => fs.readFileSync(path.join(root, f), 'utf8');
-const SRC = { 'data.js': read('data.js'), 'admin.js': read('admin.js') };
+const SRC = { 'data.js': read('data.js'), 'admin.js': read('admin.js'), 'scanner.js': read('scanner.js') };
 
 function extractFn(name) {
   for (const f of Object.keys(SRC)) {
@@ -33,13 +33,13 @@ class FakeDate extends Date { constructor(...a) { if (a.length) super(...a); els
 const names = ['normSearch', 'editDistanceWithin', 'tokenMatchScore', 'searchScore', 'searchIndexOf', 'extrasOf', 'catsOf',
   'cleanBarcode', 'parseGS1', 'gs1Exp', 'barcodeKeys', 'barcodesOf', 'fixMetaOrder', 'dispForm', 'packLine', 'dispParts', 'dispName',
   'subCountOf', 'hasRetail', 'subTypeOf', 'stockLabel', 'getProductExpiryDates', 'btKey', 'btDate', 'btPr', 'btSc', 'getBatches',
-  'hasUnits', 'getMinQty', 'isLowStock', 'expiryDaysOf', 'alertKinds', 'isInStock'];
+  'hasUnits', 'getMinQty', 'isLowStock', 'expiryDaysOf', 'alertKinds', 'isInStock', 'scExact', 'scLimitFor'];
 const code = [
-  'const SEARCH_IDX = new WeakMap(); const alertMonths = [1, 3, 6]; const lowStockThreshold = 2;',
+  'const SEARCH_IDX = new WeakMap(); const alertMonths = [1, 3, 6]; const lowStockThreshold = 2; let __scc = { mode: "safe", margin: 5, step: 5 }; const scCfg = () => __scc; this.__setSc = c => { __scc = c; };',
   'const mkForm = (id, txt, cls, g, re) => ({ id, txt, cls, g, re: re || null });',
   extractBlock(/^const FORMS = \[/),
   ...names.map(extractFn),
-  'this.__api = { normSearch, searchScore, searchIndexOf, barcodeKeys, parseGS1, fixMetaOrder, dispName, packLine, stockLabel, getBatches, alertKinds, isLowStock, isInStock, getProductExpiryDates };',
+  'this.__api = { scExact, scLimitFor, normSearch, searchScore, searchIndexOf, barcodeKeys, parseGS1, fixMetaOrder, dispName, packLine, stockLabel, getBatches, alertKinds, isLowStock, isInStock, getProductExpiryDates };',
 ].join('\n');
 const ctx = vm.createContext({ Date: FakeDate, console });
 vm.runInContext(code, ctx);
@@ -86,6 +86,10 @@ const out = {
     alert: (() => { const k = api.alertKinds(p); return { days: k.days, date: k.date, bq: k.bq || null, expired: k.expired, m1: k.m1, m3: k.m3, m6: k.m6, low: k.low, any: k.any }; })(),
   })),
   search: queries.map(q => { const n = api.normSearch(q), t = n ? n.split(' ') : []; return { q, scores: products.map(p => api.searchScore(p, n, t)) }; }),
+  sc: (() => { const cfgs = [{ mode: 'safe', margin: 5, step: 5 }, { mode: 'exact', margin: 5, step: 5 }, { mode: 'safe', margin: 0, step: 1 }, { mode: 'safe', margin: 12.5, step: 2.5 }];
+    const cases = []; const prs = [0, 1000, 3500, 7250, 12000, 61000], cs = [0, 500, 2500, 3400, 6900, 11000, 12000, 15000];
+    prs.forEach(pr => cs.forEach(c => { const p = { id: 1, price: pr, costPrice: c }; cases.push({ price: pr, cost: c, exact: api.scExact(p), lim: cfgs.map(cf => { ctx.__setSc(cf); const v = api.scLimitFor(p); return v === undefined ? null : v; }) }); }));
+    return { cfgs, cases }; })(),
   barcodes: barcodes.map(b => [b, [...api.barcodeKeys(b)].sort()]),
   gs1: barcodes.map(b => [b, api.parseGS1(b)]),
 };

@@ -79,7 +79,7 @@ class HomeScreen extends ConsumerWidget {
               // نسب ثابتة من العرض فيبقى التخطيط واحداً على كل الشاشات.
               final w = c.maxWidth - 32;
               const gap = 12.0;
-              final bigH = (w - gap) / 2 * .70;
+              final bigH = (w - gap) / 2 * .796;
               final smallH = (w - 2 * gap) / 3 * .87;
               Widget row(List<Widget> ch, double h) => Padding(
                     padding: const EdgeInsets.only(bottom: gap),
@@ -93,9 +93,72 @@ class HomeScreen extends ConsumerWidget {
                       ]),
                     ),
                   );
+              final idx = ref.watch(catalogIndexProvider);
+              final cfg = ref.watch(alertCfgValueProvider);
+              final live = idx.all.where((p) => !p.arch);
+              final kOut = live.where((p) => !p.inStock).length;
+              final kLow = live.where((p) => isLowStock(p, cfg)).length;
+              final kExp = expiringCount(idx.all);
+              Widget kpi(String label, String val, Color col, {double fs = 20.8}) => Expanded(
+                    child: Container(
+                      height: 56,
+                      decoration: BoxDecoration(
+                        color: context.cSurface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: context.isDark ? DiwanColors.darkBorder : const Color(0xFFE6EAF3)),
+                        boxShadow: const [BoxShadow(color: Color(0x730F1C38), blurRadius: 16, spreadRadius: -12, offset: Offset(0, 8))],
+                      ),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                        Text(val, style: TextStyle(fontSize: fs, fontWeight: FontWeight.w900, height: 1.15, color: col)),
+                        Text(label,
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.visible,
+                            style: TextStyle(fontSize: 9.92, fontWeight: FontWeight.w700, height: 1.2, color: context.cTextSub)),
+                      ]),
+                    ),
+                  );
               return ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                 children: [
+                  // تذكير النسخة الاحتياطية (يختفي بعد أول نسخة كاملة؛ وظيفتها في المرحلة 5)
+                  Container(
+                    height: 41.7,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: context.isDark ? const Color(0xFF3B2F12) : const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: context.isDark ? const Color(0xFF7C5E10) : const Color(0xFFFCD34D)),
+                    ),
+                    child: Row(children: [
+                      Icon(DiwanIcons.warn, size: 16, color: context.isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E)),
+                      const SizedBox(width: 6),
+                      Text('لم تُحمَّل نسخة كاملة بعد',
+                          style: TextStyle(fontSize: 13.1, color: context.isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E))),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => _soon(context),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(color: DiwanColors.navy, borderRadius: BorderRadius.circular(9)),
+                          child: const Text('تحميل الآن', style: TextStyle(color: Colors.white, fontSize: 13.3)),
+                        ),
+                      ),
+                    ]),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(children: [
+                      kpi('غير متوفر', '$kOut', const Color(0xFFB91C1C)),
+                      const SizedBox(width: 6),
+                      kpi('كمية قليلة', '$kLow', const Color(0xFFC2410C)),
+                      const SizedBox(width: 6),
+                      kpi('قريب الانتهاء', '$kExp', const Color(0xFFA16207)),
+                      const SizedBox(width: 6),
+                      kpi('مبيعات اليوم', '0', const Color(0xFF15803D), fs: 16.8),
+                    ]),
+                  ),
                   row([
                     tile(TileStyle.pos, DiwanIcons.pos, 'شاشة البيع',
                         sub: 'بيع سريع',

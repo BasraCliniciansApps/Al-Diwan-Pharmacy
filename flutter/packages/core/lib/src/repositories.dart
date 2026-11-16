@@ -1,4 +1,5 @@
 import 'catalog/catalog_index.dart';
+import 'catalog/scan_logic.dart';
 import 'catalog/stock_logic.dart';
 import 'user_profile.dart';
 
@@ -29,4 +30,10 @@ class AuthFailure implements Exception {
 abstract class CatalogRepository {
   Stream<CatalogSnapshot> watchCatalog();
   Stream<AlertConfig> watchAlertConfig();
+
+  /// إعدادات فاحص المادة (pharmacy/metadata.scan).
+  Stream<ScanConfig> watchScanConfig();
+
+  /// وثائق الوارد (للمدير/صلاحية الوارد فقط) لحساب أقل/أعلى/آخر سعر شراء.
+  Stream<List<Map<String, dynamic>>> watchPurchases();
 }

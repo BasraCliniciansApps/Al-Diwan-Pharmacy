@@ -48,6 +48,7 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
     this.onStock,
     this.trailing = const [],
     this.sideLabel,
+    this.sideWidget,
     this.syncState = SyncState.ok,
   });
 
@@ -59,22 +60,22 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onStock;
   final List<Widget> trailing;
   final String? sideLabel;
+  final Widget? sideWidget;
   final SyncState syncState;
 
   @override
-  Size get preferredSize => const Size.fromHeight(height + 2);
+  Size get preferredSize => const Size.fromHeight(height);
 
   @override
   Widget build(BuildContext context) {
     final top = MediaQuery.of(context).padding.top;
     final bg = context.isDark ? DiwanColors.darkHeader : DiwanColors.navy;
     return SizedBox(
-      height: height + top + 2,
+      height: height + top,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
           Positioned.fill(
-            bottom: 2,
             child: ClipRRect(
               borderRadius:
                   const BorderRadius.vertical(bottom: Radius.circular(22)),
@@ -94,9 +95,8 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
           ),
           // الخط الذهبي السفلي (خارج القصّ ليظهر توهّجه كاملاً)
           const Positioned.fill(
-            bottom: 2,
             child: IgnorePointer(
-              child: CustomPaint(painter: _GoldEdgePainter()),
+              child: CustomPaint(painter: GoldEdgePainter()),
             ),
           ),
           // صف الشعار والأزرار
@@ -116,17 +116,17 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
                 ),
                 const Spacer(),
                 ..._spaced([
-                  ...trailing,
-                  if (onStock != null)
-                    DiwanIconButton(
-                        icon: DiwanIcons.stock,
-                        tooltip: 'المخزن',
-                        onTap: onStock),
                   if (onHome != null)
                     DiwanIconButton(
                         icon: DiwanIcons.home,
                         tooltip: 'الرئيسية',
                         onTap: onHome),
+                  if (onStock != null)
+                    DiwanIconButton(
+                        icon: DiwanIcons.stock,
+                        tooltip: 'المخزن',
+                        onTap: onStock),
+                  ...trailing,
                 ]),
               ],
             ),
@@ -143,6 +143,7 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
                 Text(title,
                     style: ruqaa(size: 16.8, color: DiwanColors.slateText)),
                 const Spacer(),
+                if (sideWidget != null) sideWidget!,
                 if (sideLabel != null) _UserPill(sideLabel!),
               ],
             ),
@@ -236,8 +237,8 @@ class _UserPill extends StatelessWidget {
 
 /// الخط الذهبي: تدرّج لامع (مركز أفتح وأطراف أعمق) يتبع انحناء الحافة السفلية،
 /// بسماكة 2.5px مع توهّج خفيف تحته يمنحه عمقاً دون أن يحجب المحتوى.
-class _GoldEdgePainter extends CustomPainter {
-  const _GoldEdgePainter();
+class GoldEdgePainter extends CustomPainter {
+  const GoldEdgePainter();
 
   @override
   void paint(Canvas canvas, Size size) {
