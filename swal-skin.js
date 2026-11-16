@@ -26,7 +26,7 @@
         cc.popup = 'dw-pop ' + (sheet ? 'dw-sheet' : 'dw-card');
         cc.container = (cc.container ? cc.container + ' ' : '') + (sheet ? 'dw-cont-sheet' : 'dw-cont-card');
         cc.icon = 'dw-ic dw-ic-' + (o.icon || 'none');
-        cc.title = 'dw-title'; cc.htmlContainer = 'dw-text';
+        cc.title = 'dw-title' + (o.customClass && o.customClass.title ? ' ' + o.customClass.title : ''); cc.htmlContainer = 'dw-text';
         cc.confirmButton = 'dw-btn dw-btn-main' + (/^#(b91c1c|dc2626|ef4444|991b1b|c0392b)/i.test(String(o.confirmButtonColor || '')) ? ' dw-btn-danger' : ''); cc.cancelButton = 'dw-btn dw-btn-ghost'; cc.denyButton = 'dw-btn dw-btn-deny';
         cc.actions = 'dw-actions';
         o2.customClass = cc;
