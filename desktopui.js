@@ -23,8 +23,9 @@
         c.style.display = 'none'; t.style.display = '';
         rows.sort((a, b) => { const x = val(a, sortK), y = val(b, sortK); return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'ar')) * sortD; });
         const ok = typeof isInStock === 'function' ? isInStock : () => true;
-        t.innerHTML = '<table class="dk-tb"><thead><tr><th class="dk-dot"></th>' + COLS.map(c2 => '<th class="dk-s' + (sortK === c2[0] ? ' on' : '') + '" onclick="dkSort(\'' + c2[0] + '\')">' + c2[1] + (sortK === c2[0] ? (sortD > 0 ? ' ▲' : ' ▼') : '') + '</th>').join('') + '</tr></thead><tbody>' +
-            rows.map(p => '<tr onclick="openSheet(' + p.id + ')"><td class="dk-dot"><i class="' + (ok(p) ? 'ok' : 'out') + '"></i></td><td class="dk-n" dir="auto">' + esc(p.name) + '</td><td dir="auto">' + esc(p.brand) + '</td><td dir="ltr">' + esc(val(p, 'pack')) + '</td><td>' + (p.price ? num(p.price) : '—') + '</td><td>' + num(p.qty) + '</td><td dir="ltr">' + esc(expiryOf(p) || '—') + '</td></tr>').join('') + '</tbody></table>';
+        t.innerHTML = '<table class="dk-tb"><thead><tr><th class="dk-dot"></th>' + COLS.map(c2 => '<th class="dk-s' + (sortK === c2[0] ? ' on' : '') + '" onclick="dkSort(\'' + c2[0] + '\')">' + c2[1] + (sortK === c2[0] ? (sortD > 0 ? ' ▲' : ' ▼') : '') + '</th>').join('') + '</tr></thead><tbody></tbody></table>';
+        const rowHtml = p => '<tr onclick="openSheet(' + p.id + ')"><td class="dk-dot"><i class="' + (ok(p) ? 'ok' : 'out') + '"></i></td><td class="dk-n" dir="auto">' + esc(p.name) + '</td><td dir="auto">' + esc(p.brand) + '</td><td dir="ltr">' + esc(val(p, 'pack')) + '</td><td>' + (p.price ? num(p.price) : '—') + '</td><td>' + num(p.qty) + '</td><td dir="ltr">' + esc(expiryOf(p) || '—') + '</td></tr>';
+        lazyFill(t.querySelector('tbody'), rows, rowHtml, 120, 'tbody');
     }
     window.dkSort = k => { if (sortK === k) sortD = -sortD; else { sortK = k; sortD = 1; } renderTable(); };
     function ensureToggle() {
