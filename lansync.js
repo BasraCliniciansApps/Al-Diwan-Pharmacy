@@ -19,17 +19,17 @@
     function ask(o) { return Swal.fire(Object.assign({ showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'متابعة', cancelButtonText: 'إلغاء' }, o)); }
 
     // ======================= الجوال: الاتصال بالحاسوب =======================
-    async function http(method, path, body, withToken) {
+    async function http(method, path, body, withToken, tmo) {
         const hub = ls.get(K.hub, null); if (!hub || !hub.ip) throw new Error('لم يُربط الجهاز بالحاسوب');
         const url = 'http://' + hub.ip + ':' + (hub.port || 8765) + path;
         const headers = { 'content-type': 'application/json' }; if (withToken !== false && hub.token) headers['x-diwan-token'] = hub.token;
         const CH = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
         if (CH) {   // داخل التطبيق: طلب أصلي (لا يمنعه قيد المحتوى المختلط بين https وhttp)
-            const r = await CH.request({ url, method, headers, data: body, connectTimeout: 4000, readTimeout: 15000 });
+            const r = await CH.request({ url, method, headers, data: body, connectTimeout: tmo || 4000, readTimeout: tmo || 15000 });
             let j = r.data; if (typeof j === 'string') { try { j = JSON.parse(j); } catch (e) { j = {}; } }
             return { s: r.status, j: j || {} };
         }
-        const ac = new AbortController(), t = setTimeout(() => ac.abort(), 8000);
+        const ac = new AbortController(), t = setTimeout(() => ac.abort(), tmo || 8000);
         try { const r = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined, signal: ac.signal }); let j = {}; try { j = await r.json(); } catch (e) { /* تجاهل */ } return { s: r.status, j }; }
         finally { clearTimeout(t); }
     }
@@ -40,6 +40,51 @@
         const r = await http('POST', '/v1/pair', { code: String(code || '').trim(), deviceId: devId(), deviceName: (window.userName || (window.userRole === 'owner' ? 'المالك' : 'جهاز')) + ' · ' + (/Android/i.test(navigator.userAgent) ? 'هاتف' : 'متصفح') }, false);
         if (r.s !== 200 || !r.j.token) { ls.set(K.hub, null); throw new Error(r.s === 403 ? 'الرمز غير صحيح أو منتهي' : r.s === 429 ? 'محاولات كثيرة، انتظر دقيقة' : 'تعذر الربط'); }
         ls.set(K.hub, { ip: a.ip, port: a.port, token: r.j.token, prefix: r.j.prefix, name: r.j.hub });
+    }
+
+    // ======================= الربط بمسح رمز QR =======================
+    function loadScript(src, test) {
+        return new Promise((res, rej) => { if (test()) return res(); const s = document.createElement('script'); s.src = src; s.onload = () => (test() ? res() : rej(new Error('تعذر تحميل المكتبة'))); s.onerror = () => rej(new Error('تعذر تحميل المكتبة')); document.head.appendChild(s); });
+    }
+    async function pairQr(p) {
+        if (!p || p.t !== 'diwan-lan' || !p.c || !Array.isArray(p.i)) throw new Error('الرمز ليس رمز ربط للحاسوب');
+        const prev = ls.get(K.hub, null); let found = '';
+        for (const ip of p.i.slice(0, 6)) {
+            try { ls.set(K.hub, { ip, port: p.p || 8765 }); const r = await http('GET', '/v1/ping', null, false, 2500); if (r.s === 200 && r.j.app === 'diwan-hub') { found = ip; break; } } catch (e) { /* العنوان التالي */ }
+        }
+        if (!found) { ls.set(K.hub, prev); throw new Error('تعذر الوصول إلى الحاسوب. تأكد أن الجوال والحاسوب على الشبكة نفسها'); }
+        try { await pair(found + ':' + (p.p || 8765), p.c); } catch (e) { ls.set(K.hub, prev); throw e; }
+    }
+    async function scanUi() {
+        try { await loadScript('vendor/jsQR.js', () => !!window.jsQR); } catch (e) { toast('error', e.message); return; }
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { toast('error', 'الكاميرا غير متاحة على هذا الجهاز'); return; }
+        let stream = null; try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }); } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر فتح الكاميرا', text: 'اسمح للتطبيق باستخدام الكاميرا ثم أعد المحاولة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        const ov = document.createElement('div'); ov.id = 'lanScanOv';
+        ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:#0b1220;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:16px;box-sizing:border-box';
+        ov.innerHTML = '<div style="color:#fff;font-weight:800;font-size:1.05rem">ربط بالحاسوب</div><video playsinline muted style="width:100%;max-width:420px;aspect-ratio:1;object-fit:cover;border-radius:18px;border:2px solid #f59e0b"></video><div style="color:#cbd5e1;font-size:.9rem;text-align:center">وجّه الكاميرا نحو الرمز المعروض في برنامج الحاسوب</div><button type="button" id="lanScanX" style="padding:12px 28px;border-radius:12px;border:none;background:#1e293b;color:#fff;font:inherit;font-weight:700">إغلاق</button>';
+        document.body.appendChild(ov);
+        const v = ov.querySelector('video'); v.srcObject = stream; try { await v.play(); } catch (e) { /* تجاهل */ }
+        const cv = document.createElement('canvas'), cx = cv.getContext('2d', { willReadFrequently: true });
+        let alive = true; const stop = () => { alive = false; try { stream.getTracks().forEach(t => t.stop()); } catch (e) { /* تجاهل */ } ov.remove(); };
+        ov.querySelector('#lanScanX').onclick = stop;
+        const tick = async () => {
+            if (!alive) return;
+            if (v.videoWidth) {
+                const w = Math.min(640, v.videoWidth), hh = Math.round(w * v.videoHeight / v.videoWidth); cv.width = w; cv.height = hh; cx.drawImage(v, 0, 0, w, hh);
+                const q = window.jsQR(cx.getImageData(0, 0, w, hh).data, w, hh, { inversionAttempts: 'dontInvert' });
+                if (q && q.data) {
+                    let p = null; try { p = JSON.parse(q.data); } catch (e) { /* ليس رمزنا */ }
+                    if (p && p.t === 'diwan-lan') {
+                        stop();
+                        const h = Prog.start('الربط بالحاسوب', { text: 'جاري الاتصال...' });
+                        try { await pairQr(p); h.ok('تم الربط بالحاسوب'); } catch (e) { h.fail('تعذر الربط', (e && e.message) || ''); }
+                        refreshUi(); return;
+                    }
+                }
+            }
+            setTimeout(tick, 120);
+        };
+        tick();
     }
 
     // ======================= الجوال: إرسال كل بيانات الجهاز دفعة واحدة =======================
@@ -311,7 +356,10 @@
             body = '<div class="qk-row"><div><b>المزامنة عبر الحاسوب</b><small>تُوقَف السحابة مؤقتاً، ويستقبل هذا البرنامج عمليات الهواتف.</small></div>' + sw('lanSw', on, 'LAN.toggle(this)') + '</div>';
             if (info.on) {
                 const ip = (info.ips || [])[0] || '—';
-                body += '<div class="ds-bk"><div class="ds-bk-t">بيانات الربط للهواتف</div>' +
+                if (!info.code && !window.__lanAuto) { window.__lanAuto = 1; D.lan.newCode().then(() => { window.__lanAuto = 0; refreshUi(); }); }
+                let qr = '';
+                if (info.code) { try { await loadScript('vendor/qrcode.js', () => !!window.qrcode); const q = window.qrcode(0, 'M'); q.addData(JSON.stringify({ t: 'diwan-lan', p: info.port, i: info.ips || [], c: info.code })); q.make(); qr = '<div style="display:flex;justify-content:center;padding:10px 0"><div style="background:#fff;padding:10px;border-radius:12px;width:210px;height:210px;box-sizing:border-box;border:1px solid #e5e7eb">' + q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }) + '</div></div><div class="ds-bk-s" style="text-align:center">امسح الرمز بكاميرا التطبيق: الإعدادات ← المزامنة عبر الحاسوب ← ربط بمسح QR</div>'; } catch (e) { qr = ''; } }
+                body += '<div class="ds-bk"><div class="ds-bk-t">بيانات الربط للهواتف</div>' + qr +
                     '<div class="ds-bk-p" dir="ltr">' + esc(ip + ':' + info.port) + '</div>' +
                     '<div class="ds-bk-s">الرمز: <b dir="ltr" style="letter-spacing:3px">' + esc(info.code || '——') + '</b>' + (info.code ? '' : ' (منتهٍ)') + '</div>' +
                     '<div class="ds-bk-b"><button type="button" onclick="LAN.newCode()">رمز جديد</button><button type="button" onclick="LAN.review()">مراجعة العمليات (' + (info.pending || 0) + ')</button></div>' +
@@ -321,7 +369,7 @@
             const hub = ls.get(K.hub, null), out = outbox().length, arch = archive().length;
             body = '<div class="qk-row"><div><b>المزامنة عبر الحاسوب</b><small>' + (hub && hub.token ? 'مرتبط بالحاسوب ' + esc(hub.ip) : 'غير مرتبط بالحاسوب') + '</small></div>' + sw('lanSw', on, 'LAN.toggle(this)') + '</div>' +
                 '<div class="ds-bk"><div class="ds-bk-s' + (lastErr ? ' bad' : '') + '">' + (lastErr ? 'تعذر الاتصال: ' + esc(lastErr) : (on ? 'بانتظار الإرسال: ' + out + ' · سُلِّمت للحاسوب: ' + arch : 'السحابة هي الطريقة المفعّلة')) + '</div>' +
-                '<div class="ds-bk-b"><button type="button" onclick="LAN.pairUi()">ربط بالحاسوب</button>' + (on ? '<button type="button" onclick="LAN.sendNow()">إرسال الآن</button><button type="button" onclick="LAN.sendSnapshot()">إرسال كل بيانات الجهاز</button>' : '') + (!on && out + arch ? '<button type="button" onclick="LAN.replay()">إرسال العمليات المحفوظة إلى السحابة (' + (out + arch) + ')</button>' : '') + '</div></div>';
+                '<div class="ds-bk-b"><button type="button" onclick="LAN.scanUi()">ربط بمسح QR</button><button type="button" onclick="LAN.pairUi()">ربط يدوي</button>' + (on ? '<button type="button" onclick="LAN.sendNow()">إرسال الآن</button><button type="button" onclick="LAN.sendSnapshot()">إرسال كل بيانات الجهاز</button>' : '') + (!on && out + arch ? '<button type="button" onclick="LAN.replay()">إرسال العمليات المحفوظة إلى السحابة (' + (out + arch) + ')</button>' : '') + '</div></div>';
         }
         host.innerHTML = body;
     }
@@ -346,7 +394,7 @@
     }
     async function newCode() { if (D) { await D.lan.newCode(); refreshUi(); } }
 
-    window.LAN = { sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, refreshUi, pair, _ls: ls, K };
+    window.LAN = { scanUi, pairQr, sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, refreshUi, pair, _ls: ls, K };
     if (D) D.lan.onChange(() => { refreshUi(); });
     window.addEventListener('load', () => { refreshUi(); if (D && modeOn()) D.lan.enable(true).catch(() => { /* تجاهل */ }); setInterval(refreshUi, 30000); });
 })();
