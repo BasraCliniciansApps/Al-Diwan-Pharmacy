@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../providers.dart';
+import '../nav.dart';
 import 'connection_test_screen.dart';
 
 /// الرئيسية (م0): نفس ألوان وتخطيط الويب. الوظائف تُفعَّل في المراحل التالية.
@@ -38,7 +39,8 @@ class HomeScreen extends ConsumerWidget {
             {String? sub,
             String? perm,
             DiwanTileSize size = DiwanTileSize.small,
-            int? badge}) =>
+            int? badge,
+            VoidCallback? go}) =>
         DiwanTile(
           style: st,
           icon: ic,
@@ -47,7 +49,7 @@ class HomeScreen extends ConsumerWidget {
           size: size,
           badge: badge,
           enabled: _ok(perm),
-          onTap: () => _soon(context),
+          onTap: go ?? () => _soon(context),
         );
 
     return Scaffold(
@@ -112,11 +114,12 @@ class HomeScreen extends ConsumerWidget {
                     tile(TileStyle.stock, DiwanIcons.stock, 'مخزن',
                         sub: 'الأصناف والكميات',
                         perm: 'stockView',
-                        size: DiwanTileSize.big),
+                        size: DiwanTileSize.big,
+                        go: () => openStock(context)),
                   ], bigH),
                   row([
                     tile(TileStyle.navy, DiwanIcons.scan, 'فاحص المادة',
-                        perm: 'stockView'),
+                        perm: 'stockView', go: () => openScanner(context)),
                     tile(TileStyle.navy, DiwanIcons.customers, 'الزبائن',
                         perm: 'sell'),
                     tile(TileStyle.navy, DiwanIcons.doctors, 'ركن الأطباء',
@@ -126,7 +129,9 @@ class HomeScreen extends ConsumerWidget {
                     tile(TileStyle.navy, DiwanIcons.inventory, 'الجرد',
                         perm: 'invList'),
                     tile(TileStyle.alert, DiwanIcons.alerts, 'التنبيهات',
-                        perm: 'stockView'),
+                        perm: 'stockView',
+                        badge: ref.watch(alertCountProvider),
+                        go: () => openAlerts(context)),
                     tile(TileStyle.navy, DiwanIcons.settings, 'الإعدادات',
                         perm: 'manager'),
                   ], smallH),

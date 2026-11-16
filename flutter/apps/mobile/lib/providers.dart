@@ -44,3 +44,42 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 
 final themeModeProvider =
     NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
+
+// ───────────── المخزن (م1) ─────────────
+
+typedef CatalogRepoFactory = CatalogRepository Function(UserProfile profile);
+
+/// مصنع مستودع المخزن (Firestore الآن؛ الاختبارات/المرحلة 7 تستبدله).
+final catalogRepoFactoryProvider = Provider<CatalogRepoFactory>(
+    (ref) => (profile) => FirebaseCatalogRepository(profile));
+
+/// لقطة المخزن الحيّة (تبقى حيّة بين الشاشات حتى الخروج).
+final catalogProvider = StreamProvider<CatalogSnapshot>((ref) {
+  final profile = ref.watch(profileProvider).value;
+  if (profile == null) return const Stream.empty();
+  return ref.watch(catalogRepoFactoryProvider)(profile).watchCatalog();
+});
+
+final alertConfigProvider = StreamProvider<AlertConfig>((ref) {
+  final profile = ref.watch(profileProvider).value;
+  if (profile == null) return const Stream.empty();
+  return ref.watch(catalogRepoFactoryProvider)(profile).watchAlertConfig();
+});
+
+/// فهرس المخزن الحالي (فارغ حتى يصل أول تحديث).
+final catalogIndexProvider = Provider<CatalogIndex>(
+    (ref) => ref.watch(catalogProvider).value?.index ?? CatalogIndex.empty);
+
+final alertCfgValueProvider = Provider<AlertConfig>(
+    (ref) => ref.watch(alertConfigProvider).value ?? const AlertConfig());
+
+/// عدد المواد التي عليها تنبيه (صلاحية خلال 6 أشهر أو كمية قليلة) كما في الويب.
+final alertCountProvider = Provider<int>((ref) {
+  final idx = ref.watch(catalogIndexProvider);
+  final cfg = ref.watch(alertCfgValueProvider);
+  var n = 0;
+  for (final p in idx.all) {
+    if (alertKinds(p, cfg).any) n++;
+  }
+  return n;
+});

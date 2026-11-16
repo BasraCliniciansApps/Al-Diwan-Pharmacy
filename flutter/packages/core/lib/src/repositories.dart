@@ -1,3 +1,5 @@
+import 'catalog/catalog_index.dart';
+import 'catalog/stock_logic.dart';
 import 'user_profile.dart';
 
 /// واجهات مجرّدة: تنفيذ Firestore الآن، وتنفيذ محلي (Drift/LAN) في المرحلة 7.
@@ -21,4 +23,10 @@ class AuthFailure implements Exception {
   final String message;
   @override
   String toString() => message;
+}
+
+/// المخزن الكامل (مواد + مخزون [+ كلفة للمدير]) كلقطة حيّة.
+abstract class CatalogRepository {
+  Stream<CatalogSnapshot> watchCatalog();
+  Stream<AlertConfig> watchAlertConfig();
 }

@@ -27,5 +27,12 @@ abstract final class DiwanIcons {
   static const IconData user = LucideIcons300.userRound;
   static const IconData activity = LucideIcons300.activity;
   static const IconData cloud = LucideIcons300.cloud;
+  static const IconData search = LucideIcons300.search;
+  static const IconData close = LucideIcons300.x;
+  static const IconData copy = LucideIcons300.copy;
+  static const IconData torch = LucideIcons300.flashlight;
+  static const IconData torchOff = LucideIcons300.flashlightOff;
+  static const IconData filter = LucideIcons300.listFilter;
+  static const IconData empty = LucideIcons300.packageSearch;
   static const IconData check = LucideIcons300.circleCheck;
 }
