@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- نسخ أندرويد الآلي (إصدار 11 وأقل): تُستثنى ملفات الصور المخزنة مؤقتاً؛ تبقى في ملف الصور الاحتياطي -->
+<full-backup-content>
+    <exclude domain="root" path="app_webview/Default/Service Worker/CacheStorage" />
+    <exclude domain="root" path="app_webview/Default/Service Worker/ScriptCache" />
+    <exclude domain="root" path="app_webview/Default/Cache" />
+    <exclude domain="root" path="app_webview/Default/Code Cache" />
+    <exclude domain="cache" path="." />
+</full-backup-content>

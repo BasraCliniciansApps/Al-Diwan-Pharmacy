@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- نسخ أندرويد الآلي (إصدار 12 وأعلى): السحابة ونقل الجهاز، مع استثناء الصور المخزنة مؤقتاً -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="app_webview/Default/Service Worker/CacheStorage" />
+        <exclude domain="root" path="app_webview/Default/Service Worker/ScriptCache" />
+        <exclude domain="root" path="app_webview/Default/Cache" />
+        <exclude domain="root" path="app_webview/Default/Code Cache" />
+        <exclude domain="cache" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="app_webview/Default/Service Worker/CacheStorage" />
+        <exclude domain="root" path="app_webview/Default/Service Worker/ScriptCache" />
+        <exclude domain="cache" path="." />
+    </device-transfer>
+</data-extraction-rules>
