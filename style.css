@@ -4406,3 +4406,12 @@ html, body { overscroll-behavior-y: none; }
 
 /* v592: «المخزن» بنفس حجم ولون عناوين الصفحات الأخرى */
 .stk-pg { font-size: 1.05rem; color: #cbd5e1; }
+
+/* v593: صف الهوية (الشعار والاسم) أعلى كل ترويسة داخلية */
+.hd-2 { flex-wrap: wrap !important; }
+.hd-row1 { flex: 0 0 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.hd-brand { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.hd-brand img { width: 34px; height: 34px; border-radius: 10px; object-fit: cover; display: block; }
+.hd-brand b { font-family: 'Aref Ruqaa', serif; font-size: 1.3rem; font-weight: 700; color: var(--gold, #f4b73f) !important; white-space: nowrap; }
+.hd-nav { margin-inline-start: 0; }
+.hd-2 > b, .hd-2 > h3, .hd-2 > .sh-back + b { font-size: 1.05rem !important; color: #cbd5e1 !important; }

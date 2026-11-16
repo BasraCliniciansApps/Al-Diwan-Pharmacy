@@ -59,10 +59,10 @@ function hdGo(view) {
     const BOX = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>';
     function mount(root) {
         (root.matches && root.matches(SEL) ? [root] : []).concat([...(root.querySelectorAll ? root.querySelectorAll(SEL) : [])]).forEach(h => {
-            if (h.querySelector(':scope > .hd-nav') || h.closest('.top-bar, .bill-top')) return;
-            const d = document.createElement('span'); d.className = 'hd-nav';
-            d.innerHTML = '<button type="button" class="hd-b" onclick="hdGo(\'stock\')" aria-label="المخزن" title="المخزن">' + BOX + '</button><button type="button" class="hd-b" onclick="hdGo(\'home\')" aria-label="الرئيسية" title="الرئيسية">' + HOME + '</button>';
-            h.appendChild(d);
+            if (h.querySelector(':scope > .hd-row1') || h.closest('.top-bar, .bill-top')) return;
+            const r = document.createElement('div'); r.className = 'hd-row1';
+            r.innerHTML = '<span class="hd-brand"><img src="icon.jpg" alt=""><b>صيدلية الديوان</b></span><span class="hd-nav"><button type="button" class="hd-b" onclick="hdGo(\'stock\')" aria-label="المخزن" title="المخزن">' + BOX + '</button><button type="button" class="hd-b" onclick="hdGo(\'home\')" aria-label="الرئيسية" title="الرئيسية">' + HOME + '</button></span>';
+            h.classList.add('hd-2'); h.insertBefore(r, h.firstChild);
         });
     }
     function start() {
