@@ -48,7 +48,7 @@ function cnHub() {
 function cnHubRender() {
     cnCur = null; cnScr = 'hub'; cnPendOpen = false;
     const own = userRole === 'owner', c = typeof scCfg === 'function' ? scCfg() : {};
-    document.getElementById('cnBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cnClose()" aria-label="رجوع">→</button><b>الجرد</b><span></span></div>
+    document.getElementById('cnBox').innerHTML = `<div class="cn-head"><b>📋 الجرد</b></div>
         <div class="cn-body"><div class="cn-hub">
         ${cnAllowed() ? `<button type="button" class="cn-card" onclick="cnIndex()"><i>📋</i><span><b>قوائم الجرد</b><small>قوائم بمجموعات (رفوف)، إدخال سريع، طباعة وExcel. الأعداد تحدّث المخزن.</small></span></button>` : ''}
         ${cnAllowed() ? `<button type="button" class="cn-card" onclick="cnPending()"><i>🗃️</i><span><b>مواد لم تدخل قوائم الجرد</b><small>مواد المخزن غير الموجودة في أي قائمة: حذف، ضم، أو إضافة إلى قائمة جرد.</small></span></button>` : ''}

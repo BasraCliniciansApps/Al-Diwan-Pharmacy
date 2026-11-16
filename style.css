@@ -4415,3 +4415,8 @@ html, body { overscroll-behavior-y: none; }
 .hd-brand b { font-family: 'Aref Ruqaa', serif; font-size: 1.3rem; font-weight: 700; color: var(--gold, #f4b73f) !important; white-space: nowrap; }
 .hd-nav { margin-inline-start: 0; }
 .hd-2 > b, .hd-2 > h3, .hd-2 > .sh-back + b { font-size: 1.05rem !important; color: #cbd5e1 !important; }
+/* v594: ارتفاع الترويسات الداخلية = ارتفاع ترويسة الرئيسية */
+.hd-2 { padding-top: 10px !important; padding-bottom: 14px !important; row-gap: 0; align-content: center; }
+.hd-row1 { margin-bottom: 2px; }
+.hd-2 > b { line-height: 1.2; }
+.hd-2 { min-height: 97px; box-sizing: border-box; }

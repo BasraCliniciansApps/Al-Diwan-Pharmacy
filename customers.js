@@ -56,7 +56,7 @@ function cuBack() { if (cuScr === 'detail') { cuCur = null; cuScr = 'list'; cuLi
 function cuListRender(keepQ) {
     cuScr = 'list';
     const g = cuGroups(); let owedAll = 0, cnt = 0; g.forEach(x => { if (x.owed > 0) { owedAll += x.owed; cnt++; } });
-    document.getElementById('cuBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cuClose()" aria-label="رجوع">→</button><b>الزبائن</b><span></span></div>
+    document.getElementById('cuBox').innerHTML = `<div class="cn-head"><b>👥 الزبائن</b></div>
         <div class="cn-bar"><input id="cuQ" type="search" autocomplete="off" placeholder="ابحث باسم الزبون" value="${escapeHtml(keepQ ? cuQ : '')}" oninput="cuQ=this.value;cuRows()"></div>
         <div class="cn-body"><div class="cu-sum"><span>إجمالي الآجل على الزبائن</span><b>${fmtNum(owedAll)} د.ع</b><small>${cnt} زبون عليهم آجل</small></div>
         <div class="cu-seg"><button type="button" id="cuSegOwe" onclick="cuSeg='owe';cuRows()">عليهم آجل</button><button type="button" id="cuSegAll" onclick="cuSeg='all';cuRows()">كل الزبائن</button></div>
