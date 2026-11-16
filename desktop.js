@@ -46,6 +46,46 @@
         try { await run(true); if (h) { if (lastErr) h.fail('تعذر الحفظ', lastErr); else h.ok('تم حفظ النسخة على القرص'); } }
         catch (e) { if (h) h.fail('تعذر الحفظ', e.message || String(e)); }
     };
+
+    // ===== اختصارات الكيبورد (الحاسبة فقط) =====
+    // F2 شاشة البيع · Ctrl+K بحث المخزن · Ctrl+S حفظ · F9 إصدار · Esc/Alt+← إغلاق الأعلى/رجوع
+    document.addEventListener('keydown', e => {
+        const k = e.key, ctrl = e.ctrlKey || e.metaKey;
+        const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') || (e.target && e.target.isContentEditable);
+        const dialog = !!document.querySelector('.swal2-container');
+        const vis = el => !!el && el.offsetParent !== null;
+        try {
+            if (k === 'Escape' && !dialog) { if (typeof window.__handleBack === 'function' && window.__handleBack()) e.preventDefault(); return; }
+            if (k === 'ArrowLeft' && e.altKey && !dialog) { if (window.__handleBack && window.__handleBack()) e.preventDefault(); return; }
+            if (dialog) return;
+            if (k === 'F2') { e.preventDefault(); if (typeof posOpen === 'function') posOpen(); return; }
+            if (ctrl && (k === 'k' || k === 'K')) {
+                e.preventDefault(); if (typeof showView === 'function') showView('stock');
+                setTimeout(() => { const i = document.getElementById('searchInput'); if (i) { i.removeAttribute('readonly'); i.focus(); i.select(); } }, 80); return;
+            }
+            if (ctrl && (k === 's' || k === 'S')) {
+                e.preventDefault();
+                const fm = document.getElementById('formModal');
+                const sv = fm && fm.style.display !== 'none' ? [...fm.querySelectorAll('button')].find(b => /حفظ/.test(b.textContent) && vis(b)) : null;
+                if (sv) sv.click(); return;
+            }
+            if (k === 'F9') {
+                e.preventDefault();
+                const b = [document.querySelector('.pos-big.go'), document.getElementById('billIssueBtn')].find(vis);
+                if (b) b.click(); return;
+            }
+            if (!typing && k === '/') { const i = [...document.querySelectorAll('input[type=search], #searchInput')].find(vis); if (i) { e.preventDefault(); i.removeAttribute('readonly'); i.focus(); } }
+        } catch (er) { /* تجاهل */ }
+    });
+    // Enter يُنقل للحقل التالي داخل جداول الفاتورة والوارد (إدخال سريع للأسعار والكميات)
+    document.addEventListener('keydown', e => {
+        if (e.key !== 'Enter' || e.shiftKey || !e.target || e.target.tagName !== 'INPUT') return;
+        const t = e.target; if (!/^(text|number|tel|search|)$/.test(t.type)) return;
+        const row = t.closest('tr'); if (!row) return;
+        const all = [...row.closest('table').querySelectorAll('input')].filter(i => i.offsetParent !== null && !i.disabled);
+        const idx = all.indexOf(t); if (idx < 0) return;
+        const nx = all[idx + 1]; if (nx) { e.preventDefault(); nx.focus(); try { nx.select(); } catch (er) { /* تجاهل */ } }
+    });
     window.addEventListener('DOMContentLoaded', () => { render(); setInterval(render, 600000); });
     setTimeout(() => run(true), 45000);                       // بعد الفتح (بعد ما تكتمل البيانات)
     setInterval(() => run(false), 10 * 60 * 1000);            // كل 10 دقائق من الذاكرة

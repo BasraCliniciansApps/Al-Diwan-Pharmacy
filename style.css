@@ -4482,3 +4482,56 @@ html, body { overscroll-behavior-y: none; }
 .hd-brand .brand-logo, .hd-brand .brand-logo img { width: 38px; height: 38px; }
 .hd-brand .brand-logo img { border-radius: 11px; }
 .swal2-title.dw-title.pc-title { font-family: 'Aref Ruqaa', 'Tajawal', serif !important; font-weight: 700; }
+
+/* =====================================================
+   v603 — تحسينات الحاسبة فقط (html.is-desktop-app يضيفه desktop.js داخل Electron)
+   لا أثر على الأندرويد ولا المتصفح على الموبايل
+   ===================================================== */
+html.is-desktop-app { --dk-w: 1120px; --dk-pad: max(18px, calc((100% - var(--dk-w)) / 2)); }
+/* 1) عرض موحّد: الترويسة تمتد كاملة والمحتوى بعرض واحد بنفس المحاذاة */
+html.is-desktop-app .cn-box { max-width: none; background: transparent; }
+html.is-desktop-app .cn-ov { background: #f4f6fa; }
+html.is-desktop-app .cn-head.hd-2, html.is-desktop-app .tr-head.hd-2, html.is-desktop-app .help-top.hd-2 { padding-inline: var(--dk-pad) !important; margin-inline: 0; }
+html.is-desktop-app .cn-body, html.is-desktop-app .dh-body, html.is-desktop-app .help-scroll, html.is-desktop-app .tr-list { padding-inline: var(--dk-pad); box-sizing: border-box; }
+html.is-desktop-app .help-top.hd-2 .hd-row1 { margin-inline: 0; }
+/* 3) الظل الغريب: الورقتان السفليتان المخفيتان ترسمان ظلّهما داخل الشاشة */
+html.is-desktop-app .bottom-sheet:not(.open) { box-shadow: none !important; }
+/* 4) أعمدة مزدوجة */
+html.is-desktop-app .cn-hub { grid-template-columns: 1fr 1fr; }
+html.is-desktop-app .dr-body { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; }
+html.is-desktop-app .dr-body > .dr-home { grid-column: 1 / -1; }
+/* 5) الإعدادات: نافذة أعرض ومسافات بين البطاقات */
+html.is-desktop-app #catModal .modal-card { max-width: 720px; }
+html.is-desktop-app #catModal .sh-card { margin-bottom: 8px; }
+/* 6) خط أوضح على الشاشات العريضة */
+html.is-desktop-app { font-size: 15px; }
+html.is-desktop-app small, html.is-desktop-app .tile-sub { font-size: max(.8rem, 12.5px); }
+/* 7) حقول الفاتورة واضحة أنها قابلة للكتابة */
+html.is-desktop-app .bill-sheet input:not([type=checkbox]):not([type=radio]), html.is-desktop-app .bill-sheet textarea { border: 1px solid #cbd5e1 !important; border-radius: 8px; padding: 4px 10px; background: #fff; }
+html.is-desktop-app .bill-sheet input:focus, html.is-desktop-app .bill-sheet textarea:focus { border-color: #0f1c38 !important; box-shadow: 0 0 0 3px rgba(244,183,63,.35); outline: 0; }
+/* 9) حلقة التركيز وhover */
+html.is-desktop-app button:focus-visible, html.is-desktop-app a:focus-visible, html.is-desktop-app [tabindex]:focus-visible, html.is-desktop-app select:focus-visible { outline: 3px solid rgba(244,183,63,.75); outline-offset: 2px; }
+html.is-desktop-app button, html.is-desktop-app [role=button], html.is-desktop-app .home-tile, html.is-desktop-app .cn-card, html.is-desktop-app .dr-btn, html.is-desktop-app .sh-card, html.is-desktop-app .hd-b, html.is-desktop-app .p-card { cursor: pointer; }
+html.is-desktop-app .hd-b:hover, html.is-desktop-app .small-icon-btn:hover { background: rgba(255,255,255,.18); }
+html.is-desktop-app .cn-card:hover, html.is-desktop-app .dr-btn:hover, html.is-desktop-app .sh-card:hover { box-shadow: 0 6px 16px -8px rgba(15,28,56,.35); transform: translateY(-1px); transition: box-shadow .15s, transform .15s; }
+/* 10) شريط تمرير رفيع */
+html.is-desktop-app *::-webkit-scrollbar { width: 10px; height: 10px; }
+html.is-desktop-app *::-webkit-scrollbar-track { background: transparent; }
+html.is-desktop-app *::-webkit-scrollbar-thumb { background: #b8c2d4; border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
+html.is-desktop-app *::-webkit-scrollbar-thumb:hover { background: #8d99b0; background-clip: content-box; }
+/* 11) الزر العائم لا يغطي الورقة: أصغر وعلى الحافة */
+html.is-desktop-app .pos-fab { left: 12px; bottom: 16px; height: 40px; padding: 0 12px; opacity: .92; }
+/* 12) التأكيدات: بطاقة بالوسط بدل الورقة السفلية */
+html.is-desktop-app .swal2-container.dw-cont-sheet { align-items: center !important; padding: 16px !important; }
+html.is-desktop-app .dw-sheet { max-width: 460px !important; border-radius: 22px !important; padding: 26px 22px 20px !important; }
+html.is-desktop-app .dw-sheet::before { display: none; }
+/* 13) بطاقات المخزن أكثر كثافة */
+html.is-desktop-app #itemsContainer.grid-layout { grid-template-columns: repeat(auto-fill, minmax(188px, 1fr)); gap: 12px; }
+html.is-desktop-app #itemsContainer .bento-img-wrap { height: 100px; aspect-ratio: auto; }
+
+/* v603b: الرئيسية والتنبيهات والفواتير والمخزن بالمحاذاة نفسها */
+html.is-desktop-app .home-view > .brand-bar, html.is-desktop-app .alerts-view > .brand-bar, html.is-desktop-app .bill-top .brand-bar { padding-inline: var(--dk-pad); }
+html.is-desktop-app .home-view > .page-title, html.is-desktop-app .alerts-view > .page-title, html.is-desktop-app .bill-top .page-title { padding-inline: calc(var(--dk-pad) + 2px); }
+html.is-desktop-app .top-bar-inner { max-width: var(--dk-w); }
+html.is-desktop-app .cn-box > :not(.cn-head):not(.cn-body) { margin-inline: var(--dk-pad); }
+html.is-desktop-app .cn-bar { padding-inline: 0; }

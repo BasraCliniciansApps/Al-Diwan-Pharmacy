@@ -67,7 +67,7 @@ function loadAppUrl() {   // يمكن تغيير العنوان من desktop-con
 function createWindow() {
     loadAppUrl();
     win = new BrowserWindow({
-        width: 1366, height: 860, minWidth: 900, minHeight: 600,
+        width: (readCfg().bounds || {}).width || 1366, height: (readCfg().bounds || {}).height || 860, x: (readCfg().bounds || {}).x, y: (readCfg().bounds || {}).y, minWidth: 1100, minHeight: 680,
         title: 'صيدلية الديوان', backgroundColor: '#0f1c38', show: false, autoHideMenuBar: true,
         icon: path.join(__dirname, 'build', 'icon.png'),
         webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, spellcheck: false }
@@ -93,6 +93,8 @@ function createWindow() {
     win.webContents.on('did-navigate', (_e, url, code) => {   // صفحة 404 من الموقع: عرض صفحة الخطأ بدل صفحة GitHub
         if (code === 404 && sameApp(url)) win.loadFile(path.join(__dirname, 'offline.html'), { query: { u: APP_URL } });
     });
+    let bt = null; const saveB = () => { clearTimeout(bt); bt = setTimeout(() => { try { if (win && !win.isMinimized() && !win.isMaximized()) { const c = readCfg(); c.bounds = win.getBounds(); writeCfg(c); } } catch (e) { /* تجاهل */ } }, 600); };
+    win.on('resize', saveB); win.on('move', saveB);
     win.loadURL(APP_URL);
     win.on('closed', () => { win = null; });
 }

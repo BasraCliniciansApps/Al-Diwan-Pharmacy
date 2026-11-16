@@ -48,8 +48,8 @@ const Prog = {
         } catch (e) { return { y: 0, r: 0 }; }
         if (!hit || !last) return { y: 0, r: 0 };
         let r = 0; try { r = Math.min(40, parseFloat(getComputedStyle(last).borderBottomLeftRadius) || 0); } catch (e) { r = 0; }
-        const bottom = last.getBoundingClientRect().bottom;
-        return { y: bottom > 0 && bottom < 200 ? bottom : y, r };
+        const lr = last.getBoundingClientRect(), bottom = lr.bottom;
+        return { y: bottom > 0 && bottom < 200 ? bottom : y, r, x0: lr.left, x1: lr.right };
     },
     hide() { if (Prog.el) Prog.el.hidden = true; if (Prog.ln) Prog.ln.hidden = true; clearInterval(Prog.timer); Prog.cur = null; },
     fmtT(s) { s = Math.max(0, Math.round(s)); return s < 60 ? s + ' ث' : Math.floor(s / 60) + ' د ' + (s % 60) + ' ث'; },
@@ -60,6 +60,7 @@ const Prog = {
             const ln = Prog.ln; if (ln) {
                 const g = Prog.lineY(), r = Math.round(g.r), H = r + 4;
                 ln.style.top = Math.max(0, g.y - H) + 'px'; ln.style.height = H + 'px'; ln.style.setProperty('--r', r + 'px'); ln.hidden = false;
+                if (document.documentElement.classList.contains('is-desktop-app') && g.x1 > g.x0) { ln.style.left = Math.max(0, g.x0) + 'px'; ln.style.right = Math.max(0, window.innerWidth - g.x1) + 'px'; } else { ln.style.left = ''; ln.style.right = ''; }
                 const det = h.pct !== null;
                 ln.className = 'pl-' + (h.state === 'ok' ? 'ok' : h.state === 'err' ? 'err' : (!navigator.onLine || (Date.now() - h.last) / 1000 > 12) ? 'warn' : 'run') + (det || h.state !== 'run' ? '' : ' ind');
                 const pc = h.state === 'ok' ? 100 : det ? Math.max(3, Math.round(h.pct)) : 100;
