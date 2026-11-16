@@ -4364,3 +4364,10 @@ html, body { overscroll-behavior-y: none; }
 .stk-pg { font-size: 1.1rem; color: #e2e8f0; white-space: nowrap; }
 .stk-bar .brand-actions { gap: 4px; flex: 0 0 auto; }
 .stk-bar .small-icon-btn { width: 36px; height: 36px; }
+
+/* v585: «المخزن» بسطر مستقل مثل الوارد، والبحث بالأسفل بعرض كامل */
+.stk-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 2px 0; }
+.stk-pg { font-size: 1.25rem; }
+.stk-tools { display: inline-flex; gap: 8px; }
+#stockView .stk-tools .filter-btn { width: 40px; height: 40px; }
+#stockView .search-row { margin-top: 10px; }

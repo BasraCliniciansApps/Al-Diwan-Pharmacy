@@ -42,7 +42,15 @@
         <div class="top-bar-inner">
             
             <!--A-->
-            <div class="brand-bar stk-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="stk-tt"><span class="brand-name">صيدلية الديوان</span><span class="stk-pg">📦 المخزن</span></span></div><div class="brand-actions"><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية">🏠</button><button class="small-icon-btn bell-btn" onclick="goAlerts('all')" title="التنبيهات" aria-label="التنبيهات">🔔<i id="stockAlertCount" class="bell-badge"></i><i class="bell-badge doc-badge" title="طلبات الأطباء"></i><i class="bell-badge rx-badge" title="وصفات جديدة"></i></button><button class="small-icon-btn" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button><span class="stk-more"><button type="button" class="small-icon-btn" id="stkMoreBtn" onclick="stkMore(event)" aria-label="المزيد" title="المزيد">⋯</button><div class="stk-menu" id="stkMenu" hidden><button type="button" id="themeBtn" onclick="toggleTheme();stkMore()">🌓 الوضع الداكن</button><button type="button" onclick="stkMore();helpOpen()">ℹ️ مركز المعلومات</button></div></span></div></div>
+            <div class="brand-bar stk-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية">🏠</button><button class="small-icon-btn bell-btn" onclick="goAlerts('all')" title="التنبيهات" aria-label="التنبيهات">🔔<i id="stockAlertCount" class="bell-badge"></i><i class="bell-badge doc-badge" title="طلبات الأطباء"></i><i class="bell-badge rx-badge" title="وصفات جديدة"></i></button><button class="small-icon-btn" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button><span class="stk-more"><button type="button" class="small-icon-btn" id="stkMoreBtn" onclick="stkMore(event)" aria-label="المزيد" title="المزيد">⋯</button><div class="stk-menu" id="stkMenu" hidden><button type="button" id="themeBtn" onclick="toggleTheme();stkMore()">🌓 الوضع الداكن</button><button type="button" onclick="stkMore();helpOpen()">ℹ️ مركز المعلومات</button></div></span></div></div>
+            <div class="stk-title-row"><span class="stk-pg">📦 المخزن</span><span class="stk-tools"><button type="button" class="filter-btn lbl-open-btn" onclick="lblOpen()" aria-label="ملصقات الباركود" title="ملصقات الباركود">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v14M8 5v14M12 5v14M16 5v14M20 5v14"/></svg>
+                    <span class="fb-t">ملصقات</span>
+                </button>
+                <button type="button" class="filter-btn" onclick="openFilterSheet()" aria-label="تصفية">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+                    <span class="fb-t">تصفية</span><b id="filterBtnCount" style="display:none;">0</b>
+                </button></span></div>
             <button type="button" id="authBtn" hidden></button>
             <!--/A-->
 
@@ -55,15 +63,7 @@
                     <button class="clear-search" id="clearSearchBtn" onclick="clearSearch()">✕</button>
                     <button type="button" class="bc-search-btn" onclick="scanBarcodeToSearch()" title="مسح باركود" aria-label="مسح باركود">▦</button>
                 </div>
-                <button type="button" class="filter-btn lbl-open-btn" onclick="lblOpen()" aria-label="ملصقات الباركود" title="ملصقات الباركود">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v14M8 5v14M12 5v14M16 5v14M20 5v14"/></svg>
-                    <span class="fb-t">ملصقات</span>
-                </button>
-                <button type="button" class="filter-btn" onclick="openFilterSheet()" aria-label="تصفية">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
-                    <span class="fb-t">تصفية</span><b id="filterBtnCount" style="display:none;">0</b>
-                </button>
-            </div>
+                </div>
 
             <!-- الفلاتر المفعّلة (تظهر فقط عند وجود فلتر) -->
             <div class="active-filters" id="activeFilters" style="display:none;"></div>
