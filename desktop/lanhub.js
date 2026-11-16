@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const TYPES = ['invoice', 'stock', 'purchase'];
+const TYPES = ['invoice', 'stock', 'purchase', 'snapshot'];
 const MAX_BODY = 8 * 1024 * 1024;
 const MAX_OPS_PER_REQ = 200;
 const CODE_TTL = 10 * 60 * 1000;

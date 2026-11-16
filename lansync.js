@@ -42,6 +42,31 @@
         ls.set(K.hub, { ip: a.ip, port: a.port, token: r.j.token, prefix: r.j.prefix, name: r.j.hub });
     }
 
+    // ======================= الجوال: إرسال كل بيانات الجهاز دفعة واحدة =======================
+    function chunkBy(arr, maxBytes) { const out = []; let cur = [], sz = 0; (arr || []).forEach(x => { const l = JSON.stringify(x).length; if (cur.length && sz + l > maxBytes) { out.push(cur); cur = []; sz = 0; } cur.push(x); sz += l; }); if (cur.length) out.push(cur); return out; }
+    async function sendSnapshot() {
+        const hub = ls.get(K.hub, null);
+        if (!hub || !hub.token) { Swal.fire({ icon: 'info', title: 'اربط الجهاز بالحاسوب أولاً', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        const r = await ask({ icon: 'question', title: 'إرسال كل بيانات هذا الجهاز إلى الحاسوب؟', html: 'تُرسل نسخة كاملة (الأصناف والفواتير والوارد والمذاخر والسجل).<br><small>لا يُغيَّر شيء على الحاسوب قبل أن تراجعه هناك وتوافق عليه، وتُحفظ نسخة احتياطية قبل التطبيق.</small>', confirmButtonText: 'إرسال' });
+        if (!r.isConfirmed) return;
+        const h = Prog.start('تجهيز نسخة الجهاز', { text: 'جمع البيانات...' });
+        try {
+            const data = buildFullBackup(), sid = 's' + Date.now().toString(36) + rnd(), parts = [];
+            ['products', 'purchases', 'suppliers', 'invoices', 'ledger'].forEach(k => chunkBy(data[k], 180000).forEach(c => parts.push({ part: k, items: c })));
+            parts.push({ part: 'meta', extras: { invoiceSettings: data.invoiceSettings || null, counts: data.counts || null, exportedAt: data.exportedAt } });
+            const now = new Date().toISOString();
+            const ops = parts.map((p, i) => ({ id: 'snap:' + sid + ':' + i, type: 'snapshot', ts: now, data: Object.assign({ sid, n: i, total: parts.length }, p) }));
+            const arch = archive(); outbox().forEach(o => { if (o.type !== 'snapshot' && !arch.some(x => x.id === o.id)) arch.push(o); });   // العمليات المنتظرة مشمولة بالنسخة، فلا تُرسل ثانية
+            ls.set(K.arch, arch); ls.set(K.out, ops);
+            h.set(30, 'جاري الإرسال إلى الحاسوب...');
+            await flush(true);
+            const left = outbox().length;
+            if (left) throw new Error('بقي ' + left + ' جزء لم يُرسل');
+            h.ok('أُرسلت نسخة الجهاز. راجعها على الحاسوب');
+        } catch (e) { h.fail('تعذر الإرسال', (e && e.message) || ''); }
+        refreshUi();
+    }
+
     // ======================= الجوال: التقاط العمليات =======================
     const outbox = () => ls.get(K.out, []);
     const archive = () => ls.get(K.arch, []);
@@ -77,13 +102,15 @@
         if (!hub || !hub.token || !out.length) return 0;
         flushing = true; let sent = 0;
         try {
-            for (let i = 0; i < out.length; i += 50) {
-                const part = out.slice(i, i + 50);
+            const batches = []; let cur = [], sz = 0;
+            out.forEach(o => { const l = JSON.stringify(o).length; if (cur.length && (cur.length >= 50 || sz + l > 3 * 1024 * 1024)) { batches.push(cur); cur = []; sz = 0; } cur.push(o); sz += l; });
+            if (cur.length) batches.push(cur);
+            for (const part of batches) {
                 const r = await http('POST', '/v1/ops', { ops: part });
                 if (r.s !== 200) throw new Error(r.s === 401 ? 'انتهى الربط، أعد الربط بالحاسوب' : 'رفض الحاسوب الإرسال');
                 const ok = new Set([].concat(r.j.stored || [], r.j.dup || []));
                 const bad = new Set(r.j.invalid || []);
-                const arch = archive(); part.forEach(o => { if (ok.has(o.id) && !arch.some(x => x.id === o.id)) arch.push(o); });
+                const arch = archive(); part.forEach(o => { if (ok.has(o.id) && o.type !== 'snapshot' && !arch.some(x => x.id === o.id)) arch.push(o); });
                 ls.set(K.arch, arch.slice(-5000));
                 ls.set(K.out, outbox().filter(o => !ok.has(o.id) && !bad.has(o.id)));
                 sent += ok.size;
@@ -187,13 +214,64 @@
         try { if (type === 'invoice') { billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec); } else { puAll = puAll.filter(x => x.id !== rec.id); puAll.unshift(rec); } } catch (e) { /* تجاهل */ }
         rep[type === 'invoice' ? 'inv' : 'pur']++;
     }
+    function stable(o) { if (o === null || typeof o !== 'object') return JSON.stringify(o); if (Array.isArray(o)) return '[' + o.map(stable).join(',') + ']'; return '{' + Object.keys(o).sort().map(k => JSON.stringify(k) + ':' + stable(o[k])).join(',') + '}'; }
+    function snapGroups(list) {
+        const g = {};
+        list.filter(o => o.type === 'snapshot').forEach(o => { const k = o.dev + ':' + o.data.sid; const x = g[k] || (g[k] = { dev: o.dev, devName: o.devName, sid: o.data.sid, total: o.data.total, parts: [], minSeq: Infinity }); x.parts.push(o); x.minSeq = Math.min(x.minSeq, o.seq); });
+        return Object.values(g);
+    }
+    function snapDiff(g) {
+        const data = { products: [], purchases: [], suppliers: [], invoices: [], ledger: [], version: 2, full: true };
+        g.parts.sort((a, b) => a.data.n - b.data.n).forEach(o => { if (o.data.part === 'meta') data.invoiceSettings = o.data.extras && o.data.extras.invoiceSettings; else if (data[o.data.part]) data[o.data.part] = data[o.data.part].concat(o.data.items || []); });
+        const pcMap = new Map(products.map(p => [String(p.id), p])); const padd = [], pupd = []; let psame = 0;
+        data.products.forEach(sp => { const ex = pcMap.get(String(sp.id)); if (!ex) padd.push(sp); else if (stable(ex) !== stable(sp)) pupd.push(sp); else psame++; });
+        return { data, plan: bkPlan(data), padd, pupd, psame };
+    }
+    async function applySnapshot(g, fresh) {
+        const d = snapDiff(g);
+        const rows = [['الأصناف', d.padd.length, d.pupd.length, d.psame]].concat(d.plan.filter(p => p.total).map(p => [p.c.label, p.add.length, p.upd.length, p.keep]));
+        const html = '<div style="text-align:right;font-size:.85rem;margin-bottom:6px">من «' + esc(g.devName) + '»</div>' + rows.map(r => '<div style="padding:6px 0;border-bottom:1px solid #e5e7eb;text-align:right"><b>' + esc(r[0]) + '</b>: ' + r[1] + ' جديد · ' + r[2] + ' مختلف/أحدث · ' + r[3] + ' كما هو</div>').join('') + '<div style="margin-top:10px;font-size:.8rem;color:#475569;text-align:right">الأصناف المختلفة تُستبدل بنسخة الجوال. الفواتير والوارد والسجل لا يُستبدل منها سجل أحدث على الحاسوب. تُحفظ نسخة احتياطية قبل التطبيق.</div>';
+        const r = await Swal.fire({ icon: 'question', title: 'نسخة كاملة من الجوال', html, showCancelButton: true, confirmButtonText: 'تطبيق', cancelButtonText: 'لاحقاً', confirmButtonColor: '#0f1c38' });
+        if (!r.isConfirmed) return null;
+        const h = Prog.start('تطبيق نسخة الجوال', { text: 'نسخة احتياطية قبل التطبيق...' });
+        try {
+            const b = await D.writeBackup(JSON.stringify(buildFullBackup()));
+            if (!b || !b.ok) throw new Error('تعذر حفظ النسخة الاحتياطية، لم يُطبَّق شيء');
+            h.set(40, 'تطبيق الأصناف...');
+            const map = new Map(products.map(p => [String(p.id), p])), touched = [];
+            d.padd.concat(d.pupd).forEach(sp => { const ex = map.get(String(sp.id)); if (ex) { Object.keys(ex).forEach(k => delete ex[k]); Object.assign(ex, sp); touched.push(ex); } else { products.push(sp); touched.push(sp); } });
+            try { syncStockLocal(touched); } catch (e) { /* تجاهل */ }
+            saveLocal();
+            h.set(70, 'تطبيق الفواتير والوارد...');
+            const oc = window.cloudReady; window.cloudReady = () => false;   // الحاسوب لا يكتب إلى السحابة
+            try { await bkApplyPlan(d.plan); } finally { window.cloudReady = oc; }
+            bkApplyExtras(d.data);
+            const cover = fresh.filter(o => o.type !== 'snapshot' && o.dev === g.dev && o.seq < g.minSeq).map(o => o.id);   // عمليات أقدم من النسخة: مشمولة بها
+            const done = ls.get(K.done, []); g.parts.forEach(o => done.push(o.id)); cover.forEach(id => done.push(id)); ls.set(K.done, done.slice(-20000));
+            await D.lan.mark(g.parts.map(o => o.id).concat(cover), 'applied');
+            try { renderAll(); } catch (e) { /* تجاهل */ }
+            h.ok('طُبِّقت نسخة الجوال');
+            return new Set(cover);
+        } catch (e) { h.fail('تعذر التطبيق', (e && e.message) || ''); return null; }
+    }
     async function review() {
         if (!D) return;
         const all = await D.lan.pending();
         if (!all.length) { toast('info', 'لا توجد عمليات بانتظار المراجعة'); return; }
         const done = new Set(ls.get(K.done, []));
-        const fresh = all.filter(o => !done.has(o.id)), already = all.filter(o => done.has(o.id));
+        let fresh = all.filter(o => !done.has(o.id)); const already = all.filter(o => done.has(o.id));
         if (already.length) await D.lan.mark(already.map(o => o.id), 'applied');   // طُبِّقت سابقاً قبل انقطاع: لا تُطبَّق مرتين
+        const snaps = snapGroups(fresh).filter(g => g.parts.length >= g.total).sort((a, b) => a.minSeq - b.minSeq);
+        const partial = snapGroups(fresh).filter(g => g.parts.length < g.total);
+        if (snaps.length) {
+            const g = snaps[snaps.length - 1];   // الأحدث لكل جهاز؛ الأقدم مشمول به
+            const older = snaps.filter(x => x !== g && x.dev === g.dev);
+            const cov = await applySnapshot(g, fresh);
+            if (cov) { await D.lan.mark(older.flatMap(x => x.parts.map(o => o.id)), 'applied'); const gone = new Set([...cov, ...g.parts.map(o => o.id), ...older.flatMap(x => x.parts.map(o => o.id))]); fresh = fresh.filter(o => !gone.has(o.id)); }
+            else return;
+        }
+        fresh = fresh.filter(o => o.type !== 'snapshot' && !partial.some(g => g.dev === o.dev && g.sid === (o.data && o.data.sid)));
+        if (partial.length && !fresh.length) { toast('info', 'نسخة الجوال لم تكتمل بعد، أعد الإرسال'); return; }
         if (!fresh.length) { refreshUi(); return; }
         const by = {}; fresh.forEach(o => { const g = by[o.devName] || (by[o.devName] = { inv: 0, stk: 0, pur: 0, tot: 0 }); if (o.type === 'invoice') { g.inv++; if (!o.data.rec.cancelled) g.tot += (typeof invTotalOf === 'function' ? invTotalOf(o.data.rec) : 0); } else if (o.type === 'stock') g.stk++; else g.pur++; });
         const html = Object.keys(by).map(n => { const g = by[n]; return '<div style="padding:8px 0;border-bottom:1px solid #e5e7eb;text-align:right"><b>' + esc(n) + '</b><br><small>' + g.inv + ' فاتورة (' + fmtNum(g.tot) + ' د.ع) · ' + g.stk + ' حركة مخزون · ' + g.pur + ' وارد</small></div>'; }).join('');
@@ -243,7 +321,7 @@
             const hub = ls.get(K.hub, null), out = outbox().length, arch = archive().length;
             body = '<div class="qk-row"><div><b>المزامنة عبر الحاسوب</b><small>' + (hub && hub.token ? 'مرتبط بالحاسوب ' + esc(hub.ip) : 'غير مرتبط بالحاسوب') + '</small></div>' + sw('lanSw', on, 'LAN.toggle(this)') + '</div>' +
                 '<div class="ds-bk"><div class="ds-bk-s' + (lastErr ? ' bad' : '') + '">' + (lastErr ? 'تعذر الاتصال: ' + esc(lastErr) : (on ? 'بانتظار الإرسال: ' + out + ' · سُلِّمت للحاسوب: ' + arch : 'السحابة هي الطريقة المفعّلة')) + '</div>' +
-                '<div class="ds-bk-b"><button type="button" onclick="LAN.pairUi()">ربط بالحاسوب</button>' + (on ? '<button type="button" onclick="LAN.sendNow()">إرسال الآن</button>' : '') + (!on && out + arch ? '<button type="button" onclick="LAN.replay()">إرسال العمليات المحفوظة إلى السحابة (' + (out + arch) + ')</button>' : '') + '</div></div>';
+                '<div class="ds-bk-b"><button type="button" onclick="LAN.pairUi()">ربط بالحاسوب</button>' + (on ? '<button type="button" onclick="LAN.sendNow()">إرسال الآن</button><button type="button" onclick="LAN.sendSnapshot()">إرسال كل بيانات الجهاز</button>' : '') + (!on && out + arch ? '<button type="button" onclick="LAN.replay()">إرسال العمليات المحفوظة إلى السحابة (' + (out + arch) + ')</button>' : '') + '</div></div>';
         }
         host.innerHTML = body;
     }
@@ -268,7 +346,7 @@
     }
     async function newCode() { if (D) { await D.lan.newCode(); refreshUi(); } }
 
-    window.LAN = { active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, refreshUi, pair, _ls: ls, K };
+    window.LAN = { sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, refreshUi, pair, _ls: ls, K };
     if (D) D.lan.onChange(() => { refreshUi(); });
     window.addEventListener('load', () => { refreshUi(); if (D && modeOn()) D.lan.enable(true).catch(() => { /* تجاهل */ }); setInterval(refreshUi, 30000); });
 })();
