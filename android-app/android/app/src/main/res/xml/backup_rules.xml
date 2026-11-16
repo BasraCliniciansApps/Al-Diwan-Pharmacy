@@ -5,5 +5,4 @@
     <exclude domain="root" path="app_webview/Default/Service Worker/ScriptCache" />
     <exclude domain="root" path="app_webview/Default/Cache" />
     <exclude domain="root" path="app_webview/Default/Code Cache" />
-    <exclude domain="cache" path="." />
 </full-backup-content>
