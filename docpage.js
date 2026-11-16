@@ -330,12 +330,13 @@ function drOpen() { if (typeof userRole !== "undefined" && userRole !== "owner")
     if (!el) { el = document.createElement('div'); el.id = 'drHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
     const ic = d => `<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
     const btn = (cls, on, i, t, sm, badge) => `<button type="button" class="dr-btn ${cls}" onclick="${on}">${badge ? '<span class="tile-badge rx-badge" style="display:none;">0</span>' : ''}${ic(i)}<span><b>${t}</b><small>${sm}</small></span></button>`;
-    el.innerHTML = `<div class="tr-head"><b>🩺 ركن الأطباء</b><button type="button" class="tr-x" onclick="drClose()" aria-label="إغلاق">✕</button></div>
+    el.innerHTML = `<div class="tr-head"><b>🩺 ركن الأطباء</b></div>
     <div class="dh-body dr-body">
         ${btn('b1', 'rxOpen()', '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>', 'الوصفات الإلكترونية', 'وصفات الأطباء وسجلاتهم وتجهيزها', true)}
         ${btn('b2', 'docOpen()', '<path d="M10.5 20.5 3.5 13.5a4.9 4.9 0 0 1 7-7l7 7a4.9 4.9 0 0 1-7 7z"/><path d="m8.5 8.5 7 7"/>', 'المواد المعروضة للأطباء', 'اختر المواد وحالتها في صفحة الأطباء')}
         ${btn('b3', "docOpen('set')", '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 'إعدادات صفحة الأطباء', 'التحديث التلقائي، الأسعار، الرابط وطلبات الأطباء')}
         ${btn('b4', "location.href='doctor.html'", '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/>', 'معاينة صفحة الأطباء', 'افتح الصفحة كما يراها الطبيب')}
+        <button type="button" class="dr-home" onclick="drClose()">🏠 العودة إلى الرئيسية</button>
     </div>`;
     document.body.classList.add('doc-open'); el.style.display = 'flex';
     try { rxBadges(); } catch (e) { /* تجاهل */ }
