@@ -4371,3 +4371,8 @@ html, body { overscroll-behavior-y: none; }
 .stk-tools { display: inline-flex; gap: 8px; }
 #stockView .stk-tools .filter-btn { width: 40px; height: 40px; }
 #stockView .search-row { margin-top: 10px; }
+
+/* v586: ترويسة الإعدادات ثابتة: بلا خط أبيض علوي ولا حركة جانبية */
+#catModal .modal-card { padding: 0 16px 16px; overflow-x: hidden; overscroll-behavior: contain; touch-action: pan-y; }
+#catModal .modal-card > h3 { top: 0; margin: 0 -16px 14px !important; border-radius: 0 0 22px 22px; }
+#catModal .sh-bar { top: 0; margin: 0 -16px 14px; border-radius: 0 0 22px 22px; }
