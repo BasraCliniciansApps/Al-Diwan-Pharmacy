@@ -4535,3 +4535,52 @@ html.is-desktop-app .home-view > .page-title, html.is-desktop-app .alerts-view >
 html.is-desktop-app .top-bar-inner { max-width: var(--dk-w); }
 html.is-desktop-app .cn-box > :not(.cn-head):not(.cn-body) { margin-inline: var(--dk-pad); }
 html.is-desktop-app .cn-bar { padding-inline: 0; }
+
+/* =====================================================
+   v604 — الدفعة 3 للحاسبة فقط: جدول المخزن، شريط جانبي، شاشة بيع بقسمين، لوحة تفاصيل، إعدادات بعمودين، لوحة الرئيسية
+   ===================================================== */
+/* شريط التنقل الجانبي (يظهر من عرض 1300px كي لا يغطي المحتوى) */
+html.is-desktop-app #dkRail { display: none; }
+@media (min-width: 1300px) {
+    html.is-desktop-app #dkRail { position: fixed; z-index: 9300; top: 50%; right: 10px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; padding: 8px; background: #0f1c38; border-radius: 18px; box-shadow: 0 10px 28px -8px rgba(15,28,56,.55), inset 0 0 0 1px rgba(244,183,63,.35); }
+    html.is-desktop-app body[data-view="login"] #dkRail, html.is-desktop-app body[data-view="splash"] #dkRail { display: none; }
+    #dkRail button { width: 42px; height: 42px; border: 0; border-radius: 12px; background: transparent; color: #cbd5e1; display: grid; place-items: center; cursor: pointer; transition: background .15s, color .15s; }
+    #dkRail button:hover { background: rgba(255,255,255,.12); color: #fff; }
+    #dkRail button.on { background: rgba(244,183,63,.2); color: #f4b73f; }
+}
+/* جدول المخزن */
+html.is-desktop-app #dkTable { background: var(--surface, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 14px; overflow: hidden; margin-bottom: 24px; }
+.dk-tb { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.dk-tb th { position: sticky; top: 0; background: #0f1c38; color: #fff; text-align: start; padding: 10px 12px; font-weight: 800; white-space: nowrap; }
+.dk-tb th.dk-s { cursor: pointer; user-select: none; } .dk-tb th.dk-s:hover { background: #1b2d52; } .dk-tb th.on { color: #f4b73f; }
+.dk-tb td { padding: 9px 12px; border-top: 1px solid var(--border, #eef2f7); }
+.dk-tb tbody tr { cursor: pointer; } .dk-tb tbody tr:nth-child(even) td { background: rgba(15,28,56,.025); } .dk-tb tbody tr:hover td { background: rgba(244,183,63,.14); }
+.dk-tb .dk-n { font-weight: 800; color: var(--navy, #0f1c38); } [data-theme="dark"] .dk-tb .dk-n { color: var(--text-main); }
+.dk-tb .dk-dot { width: 26px; text-align: center; padding-inline: 8px; } .dk-dot i { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #10b981; } .dk-dot i.out { background: #ef4444; }
+html.is-desktop-app .dk-viewbtn { width: 42px; height: 42px; }
+/* شاشة البيع بقسمين: يمين البحث والسلة، يسار الملخص والإصدار */
+html.is-desktop-app .pos-ov[style*="flex"] { display: grid !important; width: min(1180px, 100vw); grid-template-columns: minmax(0, 1fr) 400px; grid-template-rows: auto auto minmax(0, 1fr); }
+html.is-desktop-app .pos-head { grid-column: 1 / -1; }
+html.is-desktop-app .pos-bar { grid-column: 1; grid-row: 2; }
+html.is-desktop-app .pos-body { grid-column: 1; grid-row: 3; }
+html.is-desktop-app .pos-foot { grid-column: 2; grid-row: 2 / 4; border-top: 0; border-inline-start: 1px solid #e2e8f0; box-shadow: none; padding: 22px; gap: 18px; justify-content: flex-start; background: #fff; }
+html.is-desktop-app .pos-tot { flex-direction: column; align-items: stretch; gap: 6px; padding: 18px; border-radius: 16px; background: #f1f5f9; }
+html.is-desktop-app .pos-tot b { font-size: 2.4rem; } html.is-desktop-app .pos-tot span { margin-inline-start: 0; }
+html.is-desktop-app .pos-ov.is-done .pos-body { grid-column: 1 / -1; }
+html.is-desktop-app .pos-resbox { inset-inline: auto; right: 12px; left: auto; width: calc(100% - 400px - 24px); }
+/* لوحة التفاصيل الجانبية بدل الورقة السفلية */
+html.is-desktop-app .bottom-sheet { left: 0; right: auto; bottom: 0; top: 0; max-width: 460px; width: 460px; max-height: none; margin: 0; border-radius: 0 24px 24px 0; transform: translateX(-110%); padding: 22px 22px 30px; }
+html.is-desktop-app .bottom-sheet.open { transform: translateX(0); box-shadow: 18px 0 44px rgba(10,20,40,.28); }
+html.is-desktop-app .bottom-sheet .sheet-handle { display: none; }
+/* الإعدادات بعمودين */
+html.is-desktop-app #catModal .modal-card { max-width: 1000px; }
+html.is-desktop-app #catModal .sh-grp { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 12px; align-items: stretch; }
+html.is-desktop-app #catModal .sh-grp > :not(.sh-card) { grid-column: 1 / -1; }
+html.is-desktop-app #catModal .sh-grp > .sh-card { margin-bottom: 0; }
+/* لوحة الرئيسية */
+html.is-desktop-app #dkHome { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; margin-top: 16px; }
+.dk-card { background: var(--surface, #fff); border: 1px solid var(--border, #e2e8f0); border-radius: 18px; padding: 16px 18px; color: var(--text-main, #0f1c38); }
+.dk-card h4 { margin: 0 0 10px; font-family: 'Aref Ruqaa', 'Tajawal', serif; font-size: 1.1rem; font-weight: 700; }
+.dk-rb { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-top: 1px solid var(--border, #eef2f7); background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; border-radius: 8px; }
+.dk-rb:hover { background: rgba(244,183,63,.14); } .dk-rb span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .dk-rb em { font-style: normal; font-weight: 800; color: #b45309; }
+.dk-empty { color: #64748b; padding: 14px 4px; }
