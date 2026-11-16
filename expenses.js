@@ -110,7 +110,7 @@ function exRender() {
             ${c.exps.map(e => `<div class="cu-row" onclick="exEdit('${e.id}')"><div class="cu-av">${escapeHtml([...(e.cat || '؟')][0])}</div><div><b>${escapeHtml(e.cat || '')}</b><small>${escapeHtml(fmtDateDMY(e.date))}${e.note ? ' • ' + escapeHtml(e.note) : ''}</small></div><div class="cu-amt owe">${fmtNum(e.amount)}<small>د.ع</small></div></div>`).join('') || '<div class="cu-none">لا توجد مصروفات في هذه الفترة.</div>'}
             <button type="button" class="ex-cat" onclick="exCatsManage()">إدارة التصنيفات</button>`;
     }
-    document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>📈 المصروفات وصافي الربح</b></div>
+    document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>💰 المصروفات وصافي الربح</b></div>
         <div class="cn-body">${tabs}${exPeriodHtml()}${body}</div>`;
 }
 

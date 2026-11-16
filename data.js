@@ -1788,7 +1788,7 @@ function openFormModal(id = null) {
     const modal = document.getElementById('formModal');
     if (id) {
         const p = products.find(x => x.id === id);
-        document.getElementById('formModalTitle').innerText = 'تعديل بيانات الصنف';
+        document.getElementById('formModalTitle').innerText = '✏️ تعديل بيانات الصنف';
         document.getElementById('editId').value = p.id;
         document.getElementById('fDepartment').value = p.department || deptList()[0];
         if (document.getElementById('fDepartment').value !== (p.department || '')) { const o = document.createElement('option'); o.value = o.textContent = p.department || ''; document.getElementById('fDepartment').appendChild(o); document.getElementById('fDepartment').value = p.department || ''; }
@@ -1813,7 +1813,7 @@ function openFormModal(id = null) {
         setExtraSelections(p);
         { const pm = document.getElementById('fPriceMode'); if (pm) pm.value = (p.pricing === 'syndicate' || p.pricing === 'percent' || p.pricing === 'free') ? p.pricing : 'manual'; const mk = document.getElementById('fMarkup'); if (mk) mk.value = p.markupPct != null ? p.markupPct : ''; }
     } else {
-        document.getElementById('formModalTitle').innerText = 'إضافة صنف جديد';
+        document.getElementById('formModalTitle').innerText = '➕ إضافة صنف جديد';
         document.getElementById('editId').value = '';
         document.getElementById('fDepartment').value = activeDept === ALL_DEPTS ? (deptList()[0] || '') : activeDept; refreshCatSelect('');
         fillFormSelect(); if (document.getElementById('fForm')) document.getElementById('fForm').value = ''; if (document.getElementById('fFormOther')) document.getElementById('fFormOther').value = ''; onFormChange();

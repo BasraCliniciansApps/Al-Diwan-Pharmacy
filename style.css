@@ -4431,3 +4431,20 @@ html, body { overscroll-behavior-y: none; }
 .help-top.hd-2 .help-bar { margin-bottom: 8px; }
 .help-top.hd-2 .hd-row1 { margin-bottom: 6px; }
 .help-top .help-bar h2 { font-family: "Aref Ruqaa","Tajawal",serif; font-size: 1.05rem; font-weight: 700; color: #cbd5e1; }
+
+/* v597: توحيد موضع العنوان والأيقونة مع الرئيسية (58px من الأعلى، 19px من اليمين) */
+.hd-2 { padding-inline: 19px !important; padding-top: 10px !important; padding-bottom: 7px !important; }
+.hd-row1 { margin-bottom: 9px; }
+.hd-2 > .cn-back, .hd-2 > .tr-back, .hd-2 > .sh-back, .hd-2 > .pos-back, .hd-2 .help-back { order: 9; margin-inline-start: auto; }
+.hd-2 > b, .hd-2 > h3 { margin-inline-end: 0; }
+.help-top.hd-2 .help-bar { margin-bottom: 8px; }
+.help-top.hd-2 .help-back { order: 9; }
+.help-top.hd-2 { padding-bottom: 18px !important; }
+#shTitle.hd-2 { padding-bottom: 10px !important; }
+.stk-title-row { margin-top: -5px; }
+.tr-head.hd-2, .cn-head.hd-2, .pos-head.hd-2 { padding-inline: 18px !important; }
+.fm-top.hd-2 { padding-top: 8px !important; }
+.fm-top.hd-2 h3 { flex: 1; text-align: start; margin: 0; padding: 0; }
+.help-top.hd-2 { padding-inline: 19px !important; }
+#shTitle.hd-2 { padding-top: 13px !important; }
+.fm-top.hd-2 { margin-inline: -14px; }
