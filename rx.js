@@ -34,7 +34,7 @@ function rxRender() {
     if (rxTop === 'dr') { rxDrRender(el); return; }
     const cnt = k => k === 'arch' ? rxRaw.filter(x => x.arch).length : k === 'act' ? rxRaw.filter(x => !x.arch && !['done', 'saved'].includes(rxSt(x))).length : rxRaw.filter(x => !x.arch && rxSt(x) === k).length;
     const rows = rxRaw.filter(x => rxFil === 'arch' ? x.arch : (!x.arch && (rxFil === 'act' ? !['done', 'saved'].includes(rxSt(x)) : rxSt(x) === rxFil))).sort((a, b) => b.ts - a.ts);
-    el.innerHTML = `<div class="tr-head"><b>📝 الوصفات الإلكترونية</b><button type="button" class="tr-x" onclick="rxClose()" aria-label="إغلاق">✕</button></div>
+    el.innerHTML = `<div class="tr-head"><b>📝 الوصفات الإلكترونية</b></div>
     <div class="dh-body">${rxTopBar()}<div class="rx-fs">${RX_FIL.map(f => `<button type="button" class="${rxFil === f[0] ? 'on' : ''}" onclick="rxSetFil('${f[0]}')">${f[1]} <em>${fmtNum(cnt(f[0]))}</em></button>`).join('')}</div>
     ${rows.map(x => `<button type="button" class="rx-c st-${rxSt(x)}" onclick="rxShow('${rxE(x.id)}')"><div><b dir="auto">${rxE(x.doctor)}</b><small>المريض: <bdi>${rxE(x.patient)}</bdi> · ${fmtNum((x.items || []).length)} ${(x.items || []).length > 2 && (x.items || []).length < 11 ? 'أدوية' : 'دواء'} · ${rxTime(x.ts)}</small></div><span class="rx-p">${RX_ST[rxSt(x)]}</span></button>`).join('') || '<div class="dh-note">لا توجد وصفات في هذا القسم.</div>'}</div>`;
 }
@@ -216,7 +216,7 @@ function rxDrRender(el) {
         return;
     }
     const pend = rxRs.filter(x => !x.claimed).sort((a, b) => b.ts - a.ts);
-    el.innerHTML = `<div class="tr-head"><b>📝 الوصفات الإلكترونية</b><button type="button" class="tr-x" onclick="rxClose()" aria-label="إغلاق">✕</button></div>
+    el.innerHTML = `<div class="tr-head"><b>📝 الوصفات الإلكترونية</b></div>
     <div class="dh-body">${rxTopBar()}
     ${pend.length ? `<div class="dc-card"><div class="qk-row"><div><b>طلبات استرجاع السجل (${fmtNum(pend.length)})</b><small>اختر سجل الطبيب ثم «إرجاع السجل» ليظهر لك رمز تعطيه له.</small></div></div>${pend.map(q => {
         const nn = rxNormN(q.name), best = (docs.find(d => rxNormN(d.name) === nn) || docs.find(d => rxNormN(d.name).includes(nn) || nn.includes(rxNormN(d.name))) || {}).key;

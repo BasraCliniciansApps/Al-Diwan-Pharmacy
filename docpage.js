@@ -106,7 +106,7 @@ async function docOpen(mode) {
     docMode = mode === 'set' ? 'set' : 'list';
     let el = docEl();
     if (!el) { el = document.createElement('div'); el.id = 'docHub'; el.className = 'tax-rv'; document.body.appendChild(el); }
-    document.body.classList.add('doc-open'); el.style.display = 'flex'; el.innerHTML = '<div class="tr-head"><b>🩺 صفحة الطبيب</b><button type="button" class="tr-x" onclick="docClose()">✕</button></div><div class="dh-body"><div class="dh-note">جارٍ التحميل…</div></div>';
+    document.body.classList.add('doc-open'); el.style.display = 'flex'; el.innerHTML = '<div class="tr-head"><b>🩺 صفحة الطبيب</b></div><div class="dh-body"><div class="dh-note">جارٍ التحميل…</div></div>';
     await docLoad(); docQ = ''; docFil = 'all'; docShown = 60; docMenu = false; docKeep.clear(); docSel.d.clear(); docSel.c.clear(); docRender();
 }
 function docSyncOpen() { const on = ['docHub', 'rxHub', 'drHub'].some(i => { const e = document.getElementById(i); return e && e.style.display === 'flex'; }); document.body.classList.toggle('doc-open', on); }
@@ -136,7 +136,7 @@ function docSetMount() { docLoad().then(docSetSync).catch(() => {}); }
 function docRender() {
     const el = docEl(); if (!el) return;
     const c = docData.cfg;
-    el.innerHTML = `<div class="tr-head"><b>${docMode === 'set' ? '⚙ إعدادات صفحة الأطباء' : '💊 المواد المعروضة للأطباء'}</b><button type="button" class="tr-x" onclick="docClose()" aria-label="إغلاق">✕</button></div>
+    el.innerHTML = `<div class="tr-head"><b>${docMode === 'set' ? '⚙ إعدادات صفحة الأطباء' : '💊 المواد المعروضة للأطباء'}</b></div>
     <div class="dh-body dc-fx ${docMode === 'set' || docSetOpen ? 'sopen' : ''}">
       <div class="dc-fixed">
         ${docMode === 'set' ? `<div class="dc-setpanel" id="docSet" data-doc-set="1">${docSetHtml()}        </div>` : `<div class="dc-bar">
