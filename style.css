@@ -4403,3 +4403,6 @@ html, body { overscroll-behavior-y: none; }
 
 /* v591: الخط الذهبي أسفل ترويسة المخزن */
 .top-bar { box-shadow: inset 0 -3px 0 #0f1c38, inset 0 -4.5px 0 rgba(244,183,63,.85), 0 8px 14px -10px rgba(15,28,56,.55); padding-bottom: 18px; }
+
+/* v592: «المخزن» بنفس حجم ولون عناوين الصفحات الأخرى */
+.stk-pg { font-size: 1.05rem; color: #cbd5e1; }
