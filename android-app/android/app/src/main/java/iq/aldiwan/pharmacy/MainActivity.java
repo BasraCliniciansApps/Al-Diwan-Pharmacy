@@ -14,6 +14,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.CapConfig;
 
 public class MainActivity extends BridgeActivity {
     // وجهة الفتح السريع: pos (شاشة البيع) أو scan (فاحص المادة)؛ تُرسل إلى الصفحة بعد جاهزيتها (محاولات متعددة، ولكل فتحة رمز مميز كي لا تتكرر)
@@ -39,6 +40,21 @@ public class MainActivity extends BridgeActivity {
         for (long d : delays) {
             try { getBridge().getWebView().postDelayed(() -> { try { getBridge().getWebView().evaluateJavascript(js, null); } catch (Exception e) { /* تجاهل */ } }, d); } catch (Exception e) { /* تجاهل */ }
         }
+    }
+
+    // الفتح المباشر: عند الإطلاق من أيقونة البيع/الفاحص تُحمَّل الصفحة بوسيط go كي تفتح الشاشة المطلوبة دون المرور بالرئيسية
+    @Override
+    protected void load() {
+        try {
+            String t = targetOf(getIntent());
+            if (!t.isEmpty()) {
+                if (config == null) config = CapConfig.loadDefault(this);
+                java.lang.reflect.Field f = CapConfig.class.getDeclaredField("startPath");
+                f.setAccessible(true);
+                f.set(config, "?go=" + t);
+            }
+        } catch (Throwable e) { /* تجاهل: يبقى الإرسال بعد التحميل احتياطاً */ }
+        super.load();
     }
 
     @Override

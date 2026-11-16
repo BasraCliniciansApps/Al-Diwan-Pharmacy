@@ -274,18 +274,37 @@
 
     // الفتح السريع من أيقونات الشاشة/الاختصارات: pos = شاشة البيع، scan = فاحص المادة (يرسلها الجزء الأصلي بعد جاهزية الصفحة)
     window.dwLaunch = function (t) {
+        if (window.__dwT === t && Date.now() - (window.__dwAt || 0) < 20000) return;   // الإطلاق نفسه وصل بطريقتين: ننفذه مرة واحدة
+        window.__dwT = t; window.__dwAt = Date.now();
+        const clear = () => document.documentElement.classList.remove('dw-go');
         let tries = 0;
         const go = () => {
             tries++;
             const ready = typeof currentView !== 'undefined' && !['splash', 'login', ''].includes(currentView) && typeof products !== 'undefined';
             const locked = !!(NAT.isLocked && NAT.isLocked());
-            if (!ready || locked) { if (tries < 120) setTimeout(go, 400); return; }
+            if (!ready || locked) { if (tries < 150) setTimeout(go, 400); else clear(); return; }
             try {
                 if (window.__closeAllLayers) window.__closeAllLayers();
-                if (t === 'pos' && typeof posOpen === 'function' && can('sell')) posOpen();
-                else if (t === 'scan' && typeof scGo === 'function' && can('scan')) scGo();
+                if (t === 'pos' && typeof posOpen === 'function' && can('sell')) { window.__dwDirect = 'pos'; posOpen(); }
+                else if (t === 'scan' && typeof scGo === 'function' && can('scan')) { window.__dwDirect = 'scan'; scGo(); }
             } catch (e) { /* تجاهل */ }
+            setTimeout(clear, 250);
         };
         go();
     };
+    NAT.exit = () => { try { if (APP && APP.exitApp) APP.exitApp(); } catch (e) { /* تجاهل */ } };
+    // الإغلاق المباشر: إذا فُتح التطبيق من أيقونة البيع/الفاحص فإغلاق الشاشة يخرج من التطبيق بدل الرجوع للرئيسية
+    window.addEventListener('load', () => {
+        const shown = id => { const e = document.getElementById(id); return !!e && getComputedStyle(e).display !== 'none'; };
+        const check = tgt => setTimeout(() => {
+            if (window.__dwDirect !== tgt || window.__dwNav) return;
+            const open = tgt === 'pos' ? shown('posOv') : (shown('scanView') || shown('barcodeModal'));
+            if (!open) { window.__dwDirect = ''; NAT.exit(); }
+        }, 350);
+        const wrap = (name, tgt) => { const o = window[name]; if (typeof o !== 'function') return; window[name] = function () { const r = o.apply(this, arguments); check(tgt); return r; }; };
+        wrap('posClose', 'pos'); wrap('scClose', 'scan'); wrap('closeBarcodeScanner', 'scan');
+        const ca = window.__closeAllLayers;
+        if (typeof ca === 'function') window.__closeAllLayers = function () { window.__dwNav = true; window.__dwDirect = ''; try { return ca.apply(this, arguments); } finally { setTimeout(() => { window.__dwNav = false; }, 0); } };
+    });
+    if (window.__dwGo) window.dwLaunch(window.__dwGo);
 })();
