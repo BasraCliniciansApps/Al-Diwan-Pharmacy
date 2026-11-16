@@ -493,10 +493,9 @@
     </div>
 
     <!-- ماسح الباركود -->
-    <div class="modal-overlay" id="barcodeModal">
+    <div class="modal-overlay" id="barcodeModal" onclick="if(event.target===this)closeBarcodeScanner()">
         <div class="modal-card bc-card">
-            <div class="inv-head">
-                <button type="button" class="sh-back" onclick="closeBarcodeScanner()"><i>›</i> رجوع</button>
+            <div class="inv-head bc-head">
                 <h3>▦ مسح الباركود</h3>
             </div>
             <div class="bc-video-wrap"><video id="bcVideo" playsinline muted></video><div class="bc-frame"></div></div>

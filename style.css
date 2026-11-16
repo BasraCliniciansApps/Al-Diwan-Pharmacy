@@ -4584,3 +4584,8 @@ html.is-desktop-app #dkHome { display: grid; grid-template-columns: 1.2fr 1fr; g
 .dk-rb { display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; border: 0; border-top: 1px solid var(--border, #eef2f7); background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; border-radius: 8px; }
 .dk-rb:hover { background: rgba(244,183,63,.14); } .dk-rb span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .dk-rb em { font-style: normal; font-weight: 800; color: #b45309; }
 .dk-empty { color: #64748b; padding: 14px 4px; }
+
+/* v606: نافذة مسح الباركود: بلا زر رجوع، العنوان على اليمين، والكاميرا أكبر */
+.bc-head { justify-content: flex-start; }
+.bc-head h3 { margin: 0; text-align: right; }
+.bc-video-wrap { aspect-ratio: 1 / 1; }
