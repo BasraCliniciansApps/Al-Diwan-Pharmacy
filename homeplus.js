@@ -6,7 +6,7 @@ function pcOpen() {
         <div id="pcOut" class="pc-out"><span class="pc-hint">أدخل سعر الشراء ليظهر سعر البيع.</span></div>
         <div class="pc-src">${escapeHtml(syndBookText())} · سعر الصرف ${fmtNum(pricingCfg.rate)}</div></div>`;
     Swal.fire({
-        title: '🧮 حاسبة الأسعار', html, showConfirmButton: false, showCloseButton: true, focusConfirm: false,
+        title: '🧮 حاسبة الأسعار', html, showConfirmButton: false, showCloseButton: true, focusConfirm: false, customClass: { title: 'pc-title' },
         didOpen: () => {
             const inp = document.getElementById('pcCost'), out = document.getElementById('pcOut');
             const toNum = s => Number(String(s).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[,\s،]/g, '')) || 0;

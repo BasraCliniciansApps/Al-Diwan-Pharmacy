@@ -4448,3 +4448,4 @@ html, body { overscroll-behavior-y: none; }
 .help-top.hd-2 { padding-inline: 19px !important; }
 #shTitle.hd-2 { padding-top: 13px !important; }
 .fm-top.hd-2 { margin-inline: -14px; }
+.swal2-title.pc-title { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; }
