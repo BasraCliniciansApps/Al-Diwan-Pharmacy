@@ -23,8 +23,35 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
 
         </activity>
+
+        <!-- أيقونتان إضافيتان على الشاشة تفتحان التطبيق نفسه على شاشة البيع وفاحص المادة -->
+        <activity-alias
+            android:name=".PosAlias"
+            android:targetActivity=".MainActivity"
+            android:label="@string/app_name_pos"
+            android:icon="@mipmap/ic_pos"
+            android:roundIcon="@mipmap/ic_pos_round"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".ScanAlias"
+            android:targetActivity=".MainActivity"
+            android:label="@string/app_name_scan"
+            android:icon="@mipmap/ic_scan"
+            android:roundIcon="@mipmap/ic_scan_round"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -4,4 +4,10 @@
     <string name="title_activity_main">صيدلية الديوان</string>
     <string name="package_name">iq.aldiwan.pharmacy</string>
     <string name="custom_url_scheme">iq.aldiwan.pharmacy</string>
+    <string name="app_name_pos">بيع سريع</string>
+    <string name="app_name_scan">فاحص المادة</string>
+    <string name="shortcut_pos_short">بيع سريع</string>
+    <string name="shortcut_pos_long">شاشة البيع السريع</string>
+    <string name="shortcut_scan_short">فاحص المادة</string>
+    <string name="shortcut_scan_long">فاحص المادة بالكاميرا</string>
 </resources>

@@ -109,6 +109,7 @@
             if (el) el.textContent = /cancel|user_cancel|negative/i.test(m) ? '' : 'تعذر التحقق: ' + m;
         }
     };
+    NAT.isLocked = () => !!locked;
     NAT.lockNow = function () {
         if (!cfg().bio) return;
         locked = true; lockEl().style.display = 'flex'; NAT.unlock();
@@ -270,4 +271,21 @@
     document.addEventListener('DOMContentLoaded', () => { if (cfg().bio) NAT.lockNow(); });
     if (document.readyState !== 'loading' && cfg().bio) NAT.lockNow();
     setTimeout(() => NAT.refreshReminders(), 15000);
+
+    // الفتح السريع من أيقونات الشاشة/الاختصارات: pos = شاشة البيع، scan = فاحص المادة (يرسلها الجزء الأصلي بعد جاهزية الصفحة)
+    window.dwLaunch = function (t) {
+        let tries = 0;
+        const go = () => {
+            tries++;
+            const ready = typeof currentView !== 'undefined' && !['splash', 'login', ''].includes(currentView) && typeof products !== 'undefined';
+            const locked = !!(NAT.isLocked && NAT.isLocked());
+            if (!ready || locked) { if (tries < 120) setTimeout(go, 400); return; }
+            try {
+                if (window.__closeAllLayers) window.__closeAllLayers();
+                if (t === 'pos' && typeof posOpen === 'function' && can('sell')) posOpen();
+                else if (t === 'scan' && typeof scGo === 'function' && can('scan')) scGo();
+            } catch (e) { /* تجاهل */ }
+        };
+        go();
+    };
 })();
