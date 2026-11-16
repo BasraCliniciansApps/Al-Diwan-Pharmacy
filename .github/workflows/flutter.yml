@@ -4,7 +4,7 @@ on:
   push:
     paths: ['flutter/**', '.github/workflows/flutter.yml']
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,6 +43,21 @@ jobs:
       - name: Build APK
         working-directory: flutter/apps/mobile
         run: flutter build apk --release --build-number=${{ github.run_number }}
+      - name: Name the APK
+        run: cp build/app/outputs/flutter-apk/app-release.apk "$GITHUB_WORKSPACE/Al-Diwan-Flutter.apk"
+        working-directory: flutter/apps/mobile
+      # رابط تنزيل مباشر ثابت يُحدَّث مع كل بناء:
+      # https://github.com/BasraCliniciansApps/Al-Diwan-Pharmacy/releases/download/flutter-latest/Al-Diwan-Flutter.apk
+      - name: Publish rolling release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: flutter-latest
+          target_commitish: ${{ github.sha }}
+          name: صيدلية الديوان Flutter (تجريبي) — آخر بناء
+          body: "آخر بناء تجريبي من فرع ${{ github.ref_name }} (commit ${{ github.sha }}). ثبّته بجانب التطبيق الحالي."
+          prerelease: true
+          make_latest: false
+          files: Al-Diwan-Flutter.apk
       - uses: actions/upload-artifact@v4
         with:
           name: Al-Diwan-Flutter-APK
