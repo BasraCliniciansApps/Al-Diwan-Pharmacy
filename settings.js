@@ -93,7 +93,7 @@ function shTaxExtraHtml() {   // أسفل صفحة «الأقسام والتصن
 function shInit() {
     const card = shCard(); if (!card || card.dataset.sh) return; card.dataset.sh = '1';
     card.insertAdjacentHTML('afterbegin', '<div class="sh-grab" aria-hidden="true"></div>');
-    const h3 = card.querySelector('h3'); if (h3) { h3.id = 'shTitle'; }
+    const h3 = card.querySelector('h3'); if (h3) { h3.id = 'shTitle'; h3.classList.add('hd-2'); h3.innerHTML = (typeof hdRowHtml === 'function' ? hdRowHtml() : '') + '<span id="shTT">⚙️ الإعدادات</span>'; }
     h3.insertAdjacentHTML('afterend', '<div id="shSBar" class="sh-sbar"><input type="search" id="shQ" placeholder="ابحث في الإعدادات…" autocomplete="off" aria-label="بحث في الإعدادات"></div><div id="shBar" class="sh-bar" hidden><button type="button" class="sh-back" id="shBack"><i>›</i> الإعدادات</button><b id="shPT"></b></div><div id="shHub"></div><div id="shQuick" class="cat-manager-box sh-quick" hidden></div>');
     document.getElementById('shBack').addEventListener('click', () => { shBuzz(); shHome(true); });
     card.addEventListener('click', e => { const b = e.target.closest('.sh-card'); if (b) { shBuzz(); shOpen(b.dataset.p); return; } const r = e.target.closest('.sh-r'); if (r) { shBuzz(); shOpen(r.dataset.p, r.dataset.b || null); } });
@@ -108,7 +108,7 @@ function shHome(anim) {
     const q = document.getElementById('shQuick'); if (q) q.hidden = true;
     document.getElementById('shBar').hidden = true;
     { const sb = document.getElementById('shSBar'); if (sb) { sb.hidden = false; const i = document.getElementById('shQ'); if (i) i.value = ''; } shSbarPos(); }
-    const t = document.getElementById('shTitle'); if (t) t.textContent = '⚙️ الإعدادات';
+    const t = document.getElementById('shTitle'); if (t) { t.style.display = ''; const tt = document.getElementById('shTT'); if (tt) tt.textContent = '⚙️ الإعدادات'; } shSbarPos();
     const hub = document.getElementById('shHub'); hub.hidden = false; hub.innerHTML = shHubHtml();
     if (anim) { hub.classList.remove('sh-in-back'); void hub.offsetWidth; hub.classList.add('sh-in-back'); }
     card.scrollTop = 0;
@@ -157,7 +157,7 @@ function shOpen(id, boxKey) {
     if (p.act) { if (typeof window[p.act] === 'function') window[p.act](); return; }
     shInit(); shCur = id; card.classList.add('sh-on');
     document.getElementById('shHub').hidden = true;
-    const t = document.getElementById('shTitle'); if (t) t.textContent = '';
+    const t = document.getElementById('shTitle'); if (t) t.style.display = 'none';
     { const sb = document.getElementById('shSBar'); if (sb) sb.hidden = true; }
     document.getElementById('shBar').hidden = false; document.getElementById('shPT').textContent = p.ico + ' ' + p.t;
     if (typeof setupSettingsAccordion === 'function') setupSettingsAccordion();

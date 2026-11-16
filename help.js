@@ -184,7 +184,7 @@ function helpRender(keepScroll, keepFocus) {
         <div class="help-h">دليل الأزرار والأقسام</div>
         <div class="help-grid">${HELP_SECTIONS.map(s => `<button type="button" class="help-card" onclick="helpGo('${s.id}')"><span class="help-ico">${s.ico}</span><b>${helpEsc(s.t)}</b><small>${helpEsc(s.d)}</small><em>${s.items.length}</em></button>`).join('')}</div>`;
     }
-    e.innerHTML = `<div class="help-top"><div class="help-bar"><button type="button" class="help-back" onclick="helpBack()" aria-label="رجوع">›</button><h2>${title === 'مركز المعلومات' ? 'ℹ️ ' : ''}${helpEsc(title)}</h2><button type="button" class="help-x" onclick="helpClose()" aria-label="إغلاق">✕</button></div>
+    e.innerHTML = `<div class="help-top"><div class="help-bar"><button type="button" class="help-back" onclick="helpBack()" aria-label="رجوع">›</button><h2>${title === 'مركز المعلومات' ? 'ℹ️ ' : ''}${helpEsc(title)}</h2></div>
         <div class="help-sbox"><input id="helpQ" type="search" placeholder="ابحث في الدليل: باركود، فاتورة، وارد..." autocomplete="off" value="${helpEsc(helpSt.q)}" oninput="helpSearch(this.value)"></div></div>
         <div class="help-scroll">${main}</div>`;
     const ns = e.querySelector('.help-scroll'); if (ns && keepScroll) ns.scrollTop = top;
