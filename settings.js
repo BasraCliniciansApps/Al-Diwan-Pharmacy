@@ -74,10 +74,9 @@ function shSummary(p) {
 }
 const SH_GROUPS = { g1: 'المتجر', g2: 'الأدوات', g3: 'الحسابات والبيانات', g4: 'هذا الجهاز' };
 function shHubHtml() {
-    const card = p => { const m = shSummary(p); return `<button type="button" class="sh-card" data-p="${p.id}"><span class="sh-ico">${p.ico}</span><span class="sh-tx"><b>${p.t}</b><small>${m.s}</small></span>${m.badge ? `<em class="sh-badge">${m.badge}</em>` : ''}</button>`; };
-    const grid = Object.keys(SH_GROUPS).map(g => `<h5 class="sh-gh">${SH_GROUPS[g]}</h5>` + SH_PAGES.filter(p => p.g === g && !(p.id === 'desk' && !(window.diwanDesktop && window.diwanDesktop.isDesktop)) && !(p.id === 'device' && !((window.NAT && NAT.is) || !isStandalone()))).map(card).join('')).join('');
-    return `<div class="sh-search"><input type="search" id="shQ" placeholder="ابحث في الإعدادات…" autocomplete="off" aria-label="بحث في الإعدادات"></div>
-    <div class="sh-grid" id="shGrid">${grid}</div>
+    const card = p => { const m = shSummary(p); return `<button type="button" class="sh-card" data-p="${p.id}" data-k="${(p.t + ' ' + (p.kw || '') + ' ' + m.s).replace(/"/g, '')}"><span class="sh-ico">${p.ico}</span><span class="sh-tx"><b>${p.t}</b><small>${m.s}</small></span>${m.badge ? `<em class="sh-badge">${m.badge}</em>` : ''}</button>`; };
+    const grid = Object.keys(SH_GROUPS).map(g => `<div class="sh-grp" data-g="${g}"><h5 class="sh-gh">${SH_GROUPS[g]}</h5>` + SH_PAGES.filter(p => p.g === g && !(p.id === 'desk' && !(window.diwanDesktop && window.diwanDesktop.isDesktop)) && !(p.id === 'device' && !((window.NAT && NAT.is) || !isStandalone()))).map(card).join('') + '</div>').join('');
+    return `<div class="sh-grid" id="shGrid">${grid}</div>
     <div class="sh-res" id="shRes" hidden></div>`;
 }
 function shQuickHtml() {
@@ -95,7 +94,7 @@ function shInit() {
     const card = shCard(); if (!card || card.dataset.sh) return; card.dataset.sh = '1';
     card.insertAdjacentHTML('afterbegin', '<div class="sh-grab" aria-hidden="true"></div>');
     const h3 = card.querySelector('h3'); if (h3) { h3.id = 'shTitle'; }
-    h3.insertAdjacentHTML('afterend', '<div id="shBar" class="sh-bar" hidden><button type="button" class="sh-back" id="shBack"><i>›</i> الإعدادات</button><b id="shPT"></b></div><div id="shHub"></div><div id="shQuick" class="cat-manager-box sh-quick" hidden></div>');
+    h3.insertAdjacentHTML('afterend', '<div id="shSBar" class="sh-sbar"><input type="search" id="shQ" placeholder="ابحث في الإعدادات…" autocomplete="off" aria-label="بحث في الإعدادات"></div><div id="shBar" class="sh-bar" hidden><button type="button" class="sh-back" id="shBack"><i>›</i> الإعدادات</button><b id="shPT"></b></div><div id="shHub"></div><div id="shQuick" class="cat-manager-box sh-quick" hidden></div>');
     document.getElementById('shBack').addEventListener('click', () => { shBuzz(); shHome(true); });
     card.addEventListener('click', e => { const b = e.target.closest('.sh-card'); if (b) { shBuzz(); shOpen(b.dataset.p); return; } const r = e.target.closest('.sh-r'); if (r) { shBuzz(); shOpen(r.dataset.p, r.dataset.b || null); } });
     card.addEventListener('input', e => { if (e.target.id === 'shQ') shSearch(e.target.value); });
@@ -108,6 +107,7 @@ function shHome(anim) {
     shBoxes().forEach(b => b.classList.remove('sh-show'));
     const q = document.getElementById('shQuick'); if (q) q.hidden = true;
     document.getElementById('shBar').hidden = true;
+    { const sb = document.getElementById('shSBar'); if (sb) { sb.hidden = false; const i = document.getElementById('shQ'); if (i) i.value = ''; } shSbarPos(); }
     const t = document.getElementById('shTitle'); if (t) t.textContent = '⚙️ الإعدادات';
     const hub = document.getElementById('shHub'); hub.hidden = false; hub.innerHTML = shHubHtml();
     if (anim) { hub.classList.remove('sh-in-back'); void hub.offsetWidth; hub.classList.add('sh-in-back'); }
@@ -158,6 +158,7 @@ function shOpen(id, boxKey) {
     shInit(); shCur = id; card.classList.add('sh-on');
     document.getElementById('shHub').hidden = true;
     const t = document.getElementById('shTitle'); if (t) t.textContent = '';
+    { const sb = document.getElementById('shSBar'); if (sb) sb.hidden = true; }
     document.getElementById('shBar').hidden = false; document.getElementById('shPT').textContent = p.ico + ' ' + p.t;
     if (typeof setupSettingsAccordion === 'function') setupSettingsAccordion();
     shBoxes().forEach(b => { b.classList.remove('sh-show', 'sh-single'); });
@@ -174,9 +175,13 @@ function shOpen(id, boxKey) {
     if (tb) { tb.classList.add('open'); setTimeout(() => { tb.scrollIntoView({ behavior: 'smooth', block: 'start' }); tb.classList.add('sh-flash'); setTimeout(() => tb.classList.remove('sh-flash'), 1600); }, 120); }
     else card.scrollTop = 0;
 }
+function shSbarPos() { try { const h = document.getElementById('shTitle'), sb = document.getElementById('shSBar'); if (h && sb) sb.style.top = h.offsetHeight + 'px'; } catch (e) { /* تجاهل */ } }
 function shSearch(v) {
     const q = shNorm(v).trim(), grid = document.getElementById('shGrid'), res = document.getElementById('shRes');
-    if (q.length < 2) { res.hidden = true; grid.hidden = false; return; }
+    grid.hidden = false;
+    grid.querySelectorAll('.sh-card').forEach(c => { c.hidden = q.length >= 1 && !shNorm(c.dataset.k).includes(q); });
+    grid.querySelectorAll('.sh-grp').forEach(g => { g.hidden = !g.querySelector('.sh-card:not([hidden])'); });
+    if (q.length < 2) { res.hidden = true; return; }
     const out = [];
     SH_PAGES.forEach(p => {
         const pk = shNorm(p.t + ' ' + p.kw);
@@ -187,7 +192,7 @@ function shSearch(v) {
             if (shNorm(b.textContent).includes(q) || pk.includes(q)) out.push({ p, b: k, title });
         });
     });
-    grid.hidden = true; res.hidden = false;
+    res.hidden = false;
     res.innerHTML = out.length ? out.map(r => `<button type="button" class="sh-r" data-p="${r.p.id}" data-b="${r.b}"><span class="sh-ico">${r.p.ico}</span><span class="sh-tx"><b>${r.title}</b><small>${r.p.t}</small></span></button>`).join('') : '<div class="ln-empty">لا يوجد ما يطابق هذا البحث</div>';
 }
 if (typeof openCategoryManager === 'function') {
