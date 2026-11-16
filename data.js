@@ -296,12 +296,12 @@ let startupPending = false;     // كتابات من جلسة سابقة ما ز
 let syncErrMsg = '';
 let lastSyncAt = (() => { try { return localStorage.getItem('diwanLastSync') || ''; } catch (e) { return ''; } })();
 function fv() { try { return (window.firebase && firebase.firestore && firebase.firestore.FieldValue) || null; } catch (e) { return null; } }
-function writesAllowed() { if (window.__pvOn) { try { Swal.fire({ icon: 'info', title: 'وضع المعاينة', text: 'العمليات معطّلة أثناء معاينة صفحة المستخدم.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); } catch (e) { /* تجاهل */ } return false; } if (navigator.onLine || persistenceOn) return true; return requireOnline(); }
+function writesAllowed() { if (window.LAN && LAN.active() && !window.__pvOn) return true; if (window.__pvOn) { try { Swal.fire({ icon: 'info', title: 'وضع المعاينة', text: 'العمليات معطّلة أثناء معاينة صفحة المستخدم.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); } catch (e) { /* تجاهل */ } return false; } if (navigator.onLine || persistenceOn) return true; return requireOnline(); }
 function markSynced() { lastSyncAt = new Date().toISOString(); try { localStorage.setItem('diwanLastSync', lastSyncAt); } catch (e) { /* تجاهل */ } }
 function syncRefresh() {
     let state, txt;
     if (!isFirebaseReady) { state = 'local'; txt = 'محلي'; }
-    else if (usagePaused) { state = 'off'; txt = usagePaused === 'cap' ? 'الإرسال متوقف: بلغ الحد اليومي لهذا الجهاز' : 'الإرسال متوقف بانتظار موافقتك'; }
+    else if (usagePaused) { state = 'off'; txt = usagePaused === 'cap' ? 'الإرسال متوقف: بلغ الحد اليومي لهذا الجهاز' : usagePaused === 'lan' ? 'المزامنة عبر الحاسوب مفعّلة' + (window.LAN && !window.diwanDesktop ? ' — بانتظار الإرسال: ' + (LAN._ls.get('diwanLanOut', []).length) : '') : 'الإرسال متوقف بانتظار موافقتك'; }
     else if (!navigator.onLine) { state = 'off'; txt = 'بدون إنترنت' + (pendingOps ? ' — ' + pendingOps + ' بانتظار الإرسال' : '') + ' (يُحفظ على الجهاز وسيُرسل عند الاتصال)'; }
     else if (pendingOps > 0 || startupPending) { state = 'busy'; txt = 'جاري الإرسال للسحابة' + (pendingOps ? ' (' + pendingOps + ')' : '') + '...'; }
     else if (syncErrMsg) { state = 'err'; txt = 'خطأ في الحفظ: ' + syncErrMsg; }
@@ -337,6 +337,7 @@ async function hardRefresh() {   // تحديث كامل: مسح الكاش وإ�
 }
 async function syncNow() {
     if (!isFirebaseReady || !db) return;
+    if (window.LAN && LAN.mode() === 'lan') { Swal.fire({ icon: 'info', title: 'المزامنة عبر الحاسوب مفعّلة', text: 'أوقفها من الإعدادات للعودة إلى السحابة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     if (usagePaused === 'cap') { const c = await Swal.fire({ icon: 'warning', title: 'استئناف الإرسال؟', text: 'بلغ هذا الجهاز حدّه اليومي. الاستئناف قد يستهلك من الحصة المجانية.', showCancelButton: true, confirmButtonText: 'استئناف', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' }); if (!c.isConfirmed) return; }
     const h = Prog.start('مزامنة مع السحابة', { text: 'جاري الاتصال...' });
     await usageResume();
@@ -355,7 +356,7 @@ function showSyncStatus() {
     const html = `<div style="text-align:right;font-size:.9rem">` +
         row('الاتصال', online ? '🟢 متصل' : '🔴 بدون إنترنت') +
         row('بانتظار الإرسال', (pendingOps ? pendingOps + ' عملية' : (startupPending ? 'يوجد (من جلسة سابقة)' : 'لا شيء')) ) +
-        (() => { const u = usageGet(), cw = usageCap('w'), cr = usageCap('r'); return row('كتابات اليوم (هذا الجهاز)', u.w + ' / ' + cw) + row('قراءات اليوم (هذا الجهاز)', u.r + ' / ' + cr) + (usagePaused ? row('الإرسال', usagePaused === 'cap' ? '⏸️ متوقف (الحد اليومي)' : '⏸️ متوقف بانتظار موافقتك') : ''); })() +
+        (() => { const u = usageGet(), cw = usageCap('w'), cr = usageCap('r'); return row('كتابات اليوم (هذا الجهاز)', u.w + ' / ' + cw) + row('قراءات اليوم (هذا الجهاز)', u.r + ' / ' + cr) + (usagePaused ? row('الإرسال', usagePaused === 'cap' ? '⏸️ متوقف (الحد اليومي)' : usagePaused === 'lan' ? '💻 عبر الحاسوب' : '⏸️ متوقف بانتظار موافقتك') : ''); })() +
         row('الحفظ بدون إنترنت', persistenceOn ? '✅ مفعّل' : '⚠️ غير مدعوم في هذا المتصفح') +
         row('آخر مزامنة ناجحة', lastSyncAt ? new Date(lastSyncAt).toLocaleString('ar-IQ') : '—') +
         (syncErrMsg ? row('آخر خطأ', escapeHtml(syncErrMsg)) : '') + loc +
@@ -426,6 +427,7 @@ async function usageAbsenceGuard() {
     try {
         const u = usageGet();
         if (u.p === 'cap') { usagePaused = 'cap'; try { await db.disableNetwork(); } catch (e) { /* تجاهل */ } syncRefresh(); return; }
+        if (localStorage.getItem('diwanLanMode') === 'lan') { usagePaused = 'lan'; try { await db.disableNetwork(); } catch (e) { /* تجاهل */ } syncRefresh(); return; }   // المزامنة عبر الحاسوب مفعّلة: لا اتصال بالسحابة
         if (!lastSyncAt || recvOnly()) return;
         const hrs = (Date.now() - new Date(lastSyncAt).getTime()) / 3600e3;
         if (hrs < 24) return;
@@ -2841,6 +2843,7 @@ function deltaFromSnap(p, s) {
 async function saveProductsDelta(entries, op) {
     window.__opAlready = false;
     entries = (entries || []).filter(Boolean);
+    if (window.LAN && LAN.active() && entries.some(e => e.dq || e.dl || (op && op.key))) return LAN.captureStock(entries, op);   // المزامنة عبر الحاسوب: تُرسل العملية للحاسوب بدل السحابة
     entries.forEach(btPrepare);
     saveLocal();
     if (!isFirebaseReady || !currentUser) {

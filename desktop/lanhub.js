@@ -1,0 +1,150 @@
+// خادم المزامنة عبر الشبكة المحلية (يعمل داخل برنامج الحاسوب فقط، ولا يمس السحابة)
+// الجوال يرسل "عمليات" (فاتورة بيع، حركة مخزون، وارد) وليس نسخة كاملة من البيانات.
+// كل عملية لها معرّف فريد، فإرسالها مرتين لا يكررها. العمليات تُحفظ على القرص فوراً وتبقى بانتظار موافقة المستخدم على الحاسوب.
+const http = require('http');
+const os = require('os');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const TYPES = ['invoice', 'stock', 'purchase'];
+const MAX_BODY = 8 * 1024 * 1024;
+const MAX_OPS_PER_REQ = 200;
+const CODE_TTL = 10 * 60 * 1000;
+
+function lanIps() {
+    const out = [];
+    const nets = os.networkInterfaces();
+    Object.keys(nets).forEach(n => (nets[n] || []).forEach(a => { if (a.family === 'IPv4' && !a.internal) out.push(a.address); }));
+    // عناوين الشبكات المنزلية أولاً
+    return out.sort((a, b) => (/^(192\.168|10\.|172\.(1[6-9]|2\d|3[01]))/.test(b) ? 1 : 0) - (/^(192\.168|10\.|172\.(1[6-9]|2\d|3[01]))/.test(a) ? 1 : 0));
+}
+
+function createHub(opts) {
+    const dir = opts.dir;
+    const name = opts.name || 'Diwan-PC';
+    const opsFile = path.join(dir, 'lan-ops.jsonl');
+    const stFile = path.join(dir, 'lan-state.json');
+    fs.mkdirSync(dir, { recursive: true });
+
+    let st = { devices: {}, done: {}, seq: 0 };       // done: opId -> 'applied' | 'rejected'
+    try { const s = JSON.parse(fs.readFileSync(stFile, 'utf8')); if (s && typeof s === 'object') st = Object.assign(st, s); } catch (e) { /* أول تشغيل */ }
+    const ops = new Map();                             // opId -> سجل العملية
+    try {
+        fs.readFileSync(opsFile, 'utf8').split('\n').forEach(l => { if (!l.trim()) return; try { const r = JSON.parse(l); if (r && r.id) ops.set(r.id, r); } catch (e) { /* سطر ناقص من انقطاع كهرباء: يُتجاهل */ } });
+    } catch (e) { /* لا ملف بعد */ }
+
+    function saveState() { const tmp = stFile + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(st)); fs.renameSync(tmp, stFile); }
+    function emit() { try { opts.onChange && opts.onChange(); } catch (e) { /* تجاهل */ } }
+
+    let code = '', codeAt = 0, bad = 0, lockUntil = 0;
+    function newCode() { code = String(crypto.randomInt(0, 1000000)).padStart(6, '0'); codeAt = Date.now(); bad = 0; return code; }
+    function activeCode() { return code && Date.now() - codeAt < CODE_TTL ? code : ''; }
+
+    function authDev(req) {
+        const t = String(req.headers['x-diwan-token'] || '');
+        if (!t) return null;
+        const tb = Buffer.from(t);
+        for (const id of Object.keys(st.devices)) {
+            const d = st.devices[id], b = Buffer.from(d.token || '');
+            if (b.length === tb.length && crypto.timingSafeEqual(b, tb)) return { id, d };
+        }
+        return null;
+    }
+
+    function validOp(o) {
+        if (!o || typeof o !== 'object') return false;
+        if (typeof o.id !== 'string' || !/^[\w:.\-]{6,80}$/.test(o.id)) return false;
+        if (TYPES.indexOf(o.type) < 0) return false;
+        if (typeof o.ts !== 'string' || isNaN(Date.parse(o.ts))) return false;
+        if (!o.data || typeof o.data !== 'object') return false;
+        return true;
+    }
+
+    function ingest(dev, list) {
+        const stored = [], dup = [], invalid = [];
+        const lines = [];
+        list.forEach(o => {
+            if (!validOp(o)) { invalid.push(o && o.id || ''); return; }
+            if (ops.has(o.id)) { dup.push(o.id); return; }
+            const rec = { id: o.id, type: o.type, ts: o.ts, data: o.data, dev: dev.id, devName: dev.d.name, recvAt: new Date().toISOString(), seq: ++st.seq };
+            ops.set(rec.id, rec); lines.push(JSON.stringify(rec)); stored.push(rec.id);
+        });
+        if (lines.length) {
+            const fd = fs.openSync(opsFile, 'a');
+            try { fs.writeSync(fd, lines.join('\n') + '\n'); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }   // لا نؤكد الاستلام قبل أن يصير على القرص
+            dev.d.lastSeen = Date.now(); saveState(); emit();
+        } else { dev.d.lastSeen = Date.now(); }
+        return { stored, dup, invalid };
+    }
+
+    function readBody(req, res, cb) {
+        let size = 0; const chunks = [];
+        req.on('data', c => { size += c.length; if (size > MAX_BODY) { res.writeHead(413); res.end(); req.destroy(); return; } chunks.push(c); });
+        req.on('end', () => { let j = null; try { j = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}'); } catch (e) { return send(res, 400, { error: 'bad-json' }); } cb(j); });
+    }
+    function send(res, status, obj) {
+        const b = JSON.stringify(obj);
+        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(b), 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type,x-diwan-token', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Private-Network': 'true', 'Cache-Control': 'no-store' });
+        res.end(b);
+    }
+
+    const server = http.createServer((req, res) => {
+        const url = (req.url || '').split('?')[0];
+        if (req.method === 'OPTIONS') return send(res, 204, {});
+        if (req.method === 'GET' && url === '/v1/ping') return send(res, 200, { app: 'diwan-hub', v: 1, name, time: new Date().toISOString() });
+        if (req.method === 'POST' && url === '/v1/pair') {
+            return readBody(req, res, j => {
+                if (Date.now() < lockUntil) return send(res, 429, { error: 'locked' });
+                const c = activeCode();
+                const given = String(j.code || '');
+                const ok = c && given.length === c.length && crypto.timingSafeEqual(Buffer.from(given), Buffer.from(c));
+                if (!ok) { if (++bad >= 5) { lockUntil = Date.now() + 60000; bad = 0; } return send(res, 403, { error: 'bad-code' }); }
+                const did = String(j.deviceId || '').replace(/[^\w\-]/g, '').slice(0, 40) || crypto.randomBytes(6).toString('hex');
+                const prev = st.devices[did];
+                const used = Object.keys(st.devices).map(k => st.devices[k].prefix);
+                const prefix = prev ? prev.prefix : 'ABCDEFGHJKLMNPQRSTUVWXYZ'.split('').find(x => used.indexOf(x) < 0) || 'Z';
+                const token = crypto.randomBytes(24).toString('hex');
+                st.devices[did] = { name: String(j.deviceName || 'جهاز').slice(0, 40), token, prefix, pairedAt: Date.now(), lastSeen: Date.now() };
+                code = ''; saveState(); emit();
+                send(res, 200, { token, prefix, hub: name });
+            });
+        }
+        const dev = authDev(req);
+        if (!dev) return send(res, 401, { error: 'unauthorized' });
+        if (req.method === 'POST' && url === '/v1/ops') {
+            return readBody(req, res, j => {
+                const list = Array.isArray(j.ops) ? j.ops : [];
+                if (!list.length || list.length > MAX_OPS_PER_REQ) return send(res, 400, { error: 'bad-count' });
+                try { send(res, 200, ingest(dev, list)); } catch (e) { send(res, 500, { error: 'disk' }); }
+            });
+        }
+        if (req.method === 'GET' && url === '/v1/status') {
+            let mine = 0, applied = 0; ops.forEach(r => { if (r.dev === dev.id) { if (st.done[r.id]) applied++; else mine++; } });
+            return send(res, 200, { waiting: mine, applied, prefix: dev.d.prefix, name });
+        }
+        send(res, 404, { error: 'not-found' });
+    });
+
+    return {
+        start(port) {
+            return new Promise((resolve, reject) => {
+                const tryPort = (p, left) => {
+                    const onErr = e => { server.removeListener('listening', onOk); if (e.code === 'EADDRINUSE' && left > 0) tryPort(p + 1, left - 1); else reject(e); };
+                    const onOk = () => { server.removeListener('error', onErr); resolve(server.address().port); };
+                    server.once('error', onErr); server.once('listening', onOk);
+                    server.listen(p, '0.0.0.0');
+                };
+                tryPort(port || 8765, 10);
+            });
+        },
+        stop() { return new Promise(r => { try { server.close(() => r()); } catch (e) { r(); } }); },
+        newCode, activeCode,
+        info() { const a = server.address(); return { port: a && a.port, ips: lanIps(), name, code: activeCode(), codeLeft: code ? Math.max(0, CODE_TTL - (Date.now() - codeAt)) : 0, devices: Object.keys(st.devices).map(id => ({ id, name: st.devices[id].name, prefix: st.devices[id].prefix, lastSeen: st.devices[id].lastSeen })), pending: this.pending().length }; },
+        pending() { return [...ops.values()].filter(r => !st.done[r.id]).sort((a, b) => a.seq - b.seq); },
+        mark(ids, status) { ids.forEach(id => { if (ops.has(id)) st.done[id] = status; }); saveState(); emit(); },
+        forget(devId) { delete st.devices[devId]; saveState(); emit(); }
+    };
+}
+
+module.exports = { createHub, lanIps };

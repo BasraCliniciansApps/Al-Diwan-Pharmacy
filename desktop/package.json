@@ -1,7 +1,7 @@
 {
   "name": "diwan-pharmacy-desktop",
   "productName": "صيدلية الديوان",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "برنامج سطح المكتب لصيدلية الديوان",
   "main": "main.js",
   "author": "Al-Diwan Pharmacy",
@@ -20,7 +20,7 @@
     "productName": "Al-Diwan Pharmacy",
     "artifactName": "Al-Diwan-Pharmacy-Setup-${version}.${ext}",
     "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "offline.html", "package.json", "build/icon.png"],
+    "files": ["main.js", "preload.js", "lanhub.js", "offline.html", "package.json", "build/icon.png"],
     "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "icon": "build/icon.png" },
     "nsis": {
       "oneClick": false,

@@ -3,6 +3,7 @@
 const { app, BrowserWindow, ipcMain, Menu, shell, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const { createHub } = require('./lanhub');
 
 const DEFAULT_URL = 'https://basracliniciansapps.github.io/Al-Diwan-Pharmacy/admin.html';   // الحروف الكبيرة مهمة في مسار GitHub Pages
 let APP_URL = DEFAULT_URL;
@@ -58,6 +59,27 @@ ipcMain.handle('diwan:chooseBackupDir', async () => {
 });
 ipcMain.handle('diwan:openBackupDir', async () => { try { await shell.openPath(backupDir()); return true; } catch (e) { return false; } });
 
+// ---- المزامنة عبر الشبكة المحلية (خيار إضافي؛ لا يتعارض مع فايربيس) ----
+let hub = null, hubPort = 0;
+async function lanStart() {
+    if (hub) return;
+    try {
+        hub = createHub({ dir: path.join(app.getPath('userData'), 'lan'), name: require('os').hostname(), onChange: () => { try { win && win.webContents.send('diwan:lan:changed'); } catch (e) { /* تجاهل */ } } });
+        hubPort = await hub.start(8765);
+    } catch (e) { hub = null; hubPort = 0; throw e; }
+}
+async function lanStop() { if (!hub) return; const h = hub; hub = null; hubPort = 0; await h.stop(); }
+const lanInfo = () => hub ? Object.assign({ on: true }, hub.info()) : { on: false };
+ipcMain.handle('diwan:lan:info', () => lanInfo());
+ipcMain.handle('diwan:lan:enable', async (_e, on) => {
+    try { if (on) await lanStart(); else await lanStop(); const c = readCfg(); c.lanOn = !!on; writeCfg(c); return lanInfo(); }
+    catch (e) { return { on: false, error: String(e && e.message || e) }; }
+});
+ipcMain.handle('diwan:lan:code', () => { if (!hub) return { on: false }; hub.newCode(); return lanInfo(); });
+ipcMain.handle('diwan:lan:pending', () => hub ? hub.pending() : []);
+ipcMain.handle('diwan:lan:mark', (_e, ids, status) => { if (hub && Array.isArray(ids) && (status === 'applied' || status === 'rejected')) hub.mark(ids.map(String), status); return lanInfo(); });
+ipcMain.handle('diwan:lan:forget', (_e, id) => { if (hub) hub.forget(String(id)); return lanInfo(); });
+
 function sameApp(u) { try { return new URL(u).origin === APP_ORIGIN; } catch (e) { return false; } }
 function authHost(u) { try { const h = new URL(u).hostname; return AUTH_HOSTS.some(x => h === x || h.endsWith('.' + x)); } catch (e) { return false; } }
 
@@ -100,5 +122,5 @@ function createWindow() {
 }
 
 app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
-app.whenReady().then(() => { Menu.setApplicationMenu(null); createWindow(); });
+app.whenReady().then(() => { Menu.setApplicationMenu(null); createWindow(); if (readCfg().lanOn) lanStart().catch(() => { /* المنفذ مشغول أو الجدار الناري: يظهر الخطأ عند فتح الإعداد */ }); });
 app.on('window-all-closed', () => app.quit());

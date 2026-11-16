@@ -640,6 +640,7 @@ async function saveInvoiceRecord(b) {
     list = list.filter(x => x.id !== rec.id); list.unshift(rec);
     lsSet(BILL_LS.list, JSON.stringify(list.slice(0, 300)));
     billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec);
+    if (window.LAN && LAN.active()) { LAN.captureRecord('invoice', rec); return; }
     if (cloudReady() && (navigator.onLine || persistenceOn)) {
         try { await fsSet(db.collection('pharmacy_invoices').doc(rec.id), rec); }
         catch (e) { lsSet('diwanNeedsPush', '1'); Swal.fire({ icon: 'warning', title: 'حُفظت الفاتورة على هذا الجهاز فقط', text: 'أضف قاعدة pharmacy_invoices إلى قواعد Firestore لتُحفظ في السحابة أيضاً. ستُعاد المحاولة تلقائياً.', confirmButtonColor: '#0f1c38' }); }
