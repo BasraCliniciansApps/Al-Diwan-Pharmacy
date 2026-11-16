@@ -1,6 +1,6 @@
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'icons.dart';
 import 'patterns.dart';
 import 'progress.dart';
 import 'theme.dart';
@@ -14,9 +14,7 @@ class DiwanIconButton extends StatelessWidget {
   final VoidCallback? onTap;
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsetsDirectional.only(end: 8),
-        child: Tooltip(
+  Widget build(BuildContext context) => Tooltip(
           message: tooltip,
           child: Material(
             color: Colors.white.withValues(alpha: .08),
@@ -30,11 +28,10 @@ class DiwanIconButton extends StatelessWidget {
               child: SizedBox(
                 width: 40,
                 height: 40,
-                child: Icon(icon, size: 20, color: Colors.white),
+                child: Icon(icon, size: 21, color: Colors.white),
               ),
             ),
           ),
-        ),
       );
 }
 
@@ -74,6 +71,7 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
     return SizedBox(
       height: height + top + 2,
       child: Stack(
+        clipBehavior: Clip.none,
         children: [
           Positioned.fill(
             bottom: 2,
@@ -83,8 +81,6 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   color: bg,
-                  border: const Border(
-                      bottom: BorderSide(color: DiwanColors.gold, width: 2)),
                   boxShadow: const [
                     BoxShadow(
                         color: Color(0x470A1428),
@@ -96,10 +92,17 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
               ),
             ),
           ),
+          // الخط الذهبي السفلي (خارج القصّ ليظهر توهّجه كاملاً)
+          const Positioned.fill(
+            bottom: 2,
+            child: IgnorePointer(
+              child: CustomPaint(painter: _GoldEdgePainter()),
+            ),
+          ),
           // صف الشعار والأزرار
           Positioned(
             top: top + 8,
-            left: 12,
+            left: 16,
             right: 16,
             child: Row(
               children: [
@@ -112,17 +115,19 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
                       style: ruqaa(size: 20.8, color: DiwanColors.gold)),
                 ),
                 const Spacer(),
-                ...trailing,
-                if (onStock != null)
-                  DiwanIconButton(
-                      icon: LucideIcons.package,
-                      tooltip: 'المخزن',
-                      onTap: onStock),
-                if (onHome != null)
-                  DiwanIconButton(
-                      icon: LucideIcons.house,
-                      tooltip: 'الرئيسية',
-                      onTap: onHome),
+                ..._spaced([
+                  ...trailing,
+                  if (onStock != null)
+                    DiwanIconButton(
+                        icon: DiwanIcons.stock,
+                        tooltip: 'المخزن',
+                        onTap: onStock),
+                  if (onHome != null)
+                    DiwanIconButton(
+                        icon: DiwanIcons.home,
+                        tooltip: 'الرئيسية',
+                        onTap: onHome),
+                ]),
               ],
             ),
           ),
@@ -130,7 +135,7 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
           Positioned(
             top: top + 58,
             right: 19,
-            left: 19,
+            left: 16,
             child: Row(
               children: [
                 Icon(icon, size: 18, color: DiwanColors.slateText),
@@ -138,10 +143,7 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
                 Text(title,
                     style: ruqaa(size: 16.8, color: DiwanColors.slateText)),
                 const Spacer(),
-                if (sideLabel != null)
-                  Text(sideLabel!,
-                      style:
-                          ruqaa(size: 15, color: DiwanColors.slateText)),
+                if (sideLabel != null) _UserPill(sideLabel!),
               ],
             ),
           ),
@@ -195,4 +197,88 @@ class _Logo extends StatelessWidget {
       ),
     );
   }
+}
+
+List<Widget> _spaced(List<Widget> ws) => [
+      for (var i = 0; i < ws.length; i++) ...[
+        if (i > 0) const SizedBox(width: 8),
+        ws[i],
+      ],
+    ];
+
+/// شارة المستخدم (المدير/اسم الموظف): كبسولة بنفس نمط أزرار الترويسة،
+/// أيقونة ذهبية + اسم بخط الرقعة، محاذاة يسار الترويسة مع حافة الأزرار.
+class _UserPill extends StatelessWidget {
+  const _UserPill(this.label);
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        height: 28,
+        padding: const EdgeInsets.symmetric(horizontal: 11),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .08),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white.withValues(alpha: .14)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(DiwanIcons.user, size: 15, color: DiwanColors.gold),
+            const SizedBox(width: 6),
+            Text(label,
+                style: ruqaa(size: 15, color: DiwanColors.slateText)
+                    .copyWith(height: 1.35)),
+          ],
+        ),
+      );
+}
+
+/// الخط الذهبي: تدرّج لامع (مركز أفتح وأطراف أعمق) يتبع انحناء الحافة السفلية،
+/// بسماكة 2.5px مع توهّج خفيف تحته يمنحه عمقاً دون أن يحجب المحتوى.
+class _GoldEdgePainter extends CustomPainter {
+  const _GoldEdgePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const r = 22.0, w = 2.5;
+    final y = size.height - w / 2;
+    final path = Path()
+      ..moveTo(0, y - r)
+      ..quadraticBezierTo(0, y, r, y)
+      ..lineTo(size.width - r, y)
+      ..quadraticBezierTo(size.width, y, size.width, y - r);
+    final rect = Offset.zero & size;
+
+    // توهّج
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5)
+        ..color = DiwanColors.goldDeep.withValues(alpha: .30),
+    );
+    // الخط
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w
+        ..strokeCap = StrokeCap.round
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFFC9780F),
+            DiwanColors.gold,
+            Color(0xFFFFE29A),
+            DiwanColors.gold,
+            Color(0xFFC9780F),
+          ],
+          stops: [0, .2, .5, .8, 1],
+        ).createShader(rect),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
 }

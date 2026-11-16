@@ -42,7 +42,6 @@ dependencies:
     path: ../../packages/core
   diwan_ui:
     path: ../../packages/ui_kit
-  lucide_icons_flutter: ^4.0.3
   flutter_localizations:
     sdk: flutter
   intl: ^0.20.3

@@ -1,7 +1,6 @@
 import 'package:diwan_ui/diwan_ui.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../providers.dart';
 
@@ -37,14 +36,14 @@ class _S extends ConsumerState<ConnectionTestScreen> {
     return Scaffold(
       appBar: DiwanHeader(
         title: 'اختبار الاتصال',
-        icon: LucideIcons.activity,
+        icon: DiwanIcons.activity,
         onHome: () => Navigator.of(context).popUntil((r) => r.isFirst),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(children: [
           const SizedBox(height: 20),
-          Icon(_ok ? LucideIcons.circleCheck : LucideIcons.cloud,
+          Icon(_ok ? DiwanIcons.check : DiwanIcons.cloud,
               size: 56, color: _ok ? DiwanColors.success : DiwanColors.navy),
           const SizedBox(height: 12),
           Text(_msg, textAlign: TextAlign.center),

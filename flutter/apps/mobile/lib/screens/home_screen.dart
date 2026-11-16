@@ -1,7 +1,6 @@
 import 'package:diwan_core/diwan_core.dart';
 import 'package:diwan_ui/diwan_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../providers.dart';
@@ -56,19 +55,19 @@ class HomeScreen extends ConsumerWidget {
         children: [
           DiwanHeader(
             title: 'الرئيسية',
-            icon: LucideIcons.house,
+            icon: DiwanIcons.home,
             sideLabel: profile.displayName,
             trailing: [
               DiwanIconButton(
-                  icon: dark ? LucideIcons.moon : LucideIcons.sun,
+                  icon: dark ? DiwanIcons.moon : DiwanIcons.sun,
                   tooltip: dark ? 'الوضع النهاري' : 'الوضع الليلي',
                   onTap: () => ref.read(themeModeProvider.notifier).toggle()),
               DiwanIconButton(
-                  icon: LucideIcons.info,
+                  icon: DiwanIcons.info,
                   tooltip: 'مركز المعلومات',
                   onTap: () => _soon(context)),
               DiwanIconButton(
-                  icon: LucideIcons.logOut,
+                  icon: DiwanIcons.logout,
                   tooltip: 'تسجيل الخروج',
                   onTap: () => _logout(context, ref)),
             ],
@@ -96,46 +95,46 @@ class HomeScreen extends ConsumerWidget {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 children: [
                   row([
-                    tile(TileStyle.pos, LucideIcons.store, 'شاشة البيع',
+                    tile(TileStyle.pos, DiwanIcons.pos, 'شاشة البيع',
                         sub: 'بيع سريع',
                         perm: 'sell',
                         size: DiwanTileSize.big),
-                    tile(TileStyle.bill, LucideIcons.receiptText, 'فاتورة',
+                    tile(TileStyle.bill, DiwanIcons.bill, 'فاتورة',
                         sub: 'إصدار وإدارة الفواتير',
                         perm: 'sell',
                         size: DiwanTileSize.big),
                   ], bigH),
                   row([
-                    tile(TileStyle.purch, LucideIcons.package, 'الوارد',
+                    tile(TileStyle.purch, DiwanIcons.purchases, 'الوارد',
                         sub: 'فواتير المذاخر',
                         perm: 'purchases',
                         size: DiwanTileSize.big),
-                    tile(TileStyle.stock, LucideIcons.box, 'مخزن',
+                    tile(TileStyle.stock, DiwanIcons.stock, 'مخزن',
                         sub: 'الأصناف والكميات',
                         perm: 'stockView',
                         size: DiwanTileSize.big),
                   ], bigH),
                   row([
-                    tile(TileStyle.navy, LucideIcons.scan, 'فاحص المادة',
+                    tile(TileStyle.navy, DiwanIcons.scan, 'فاحص المادة',
                         perm: 'stockView'),
-                    tile(TileStyle.navy, LucideIcons.users, 'الزبائن',
+                    tile(TileStyle.navy, DiwanIcons.customers, 'الزبائن',
                         perm: 'sell'),
-                    tile(TileStyle.navy, LucideIcons.fileText, 'ركن الأطباء',
+                    tile(TileStyle.navy, DiwanIcons.doctors, 'ركن الأطباء',
                         perm: 'manager'),
                   ], smallH),
                   row([
-                    tile(TileStyle.navy, LucideIcons.clipboardCheck, 'الجرد',
+                    tile(TileStyle.navy, DiwanIcons.inventory, 'الجرد',
                         perm: 'invList'),
-                    tile(TileStyle.alert, LucideIcons.bell, 'التنبيهات',
+                    tile(TileStyle.alert, DiwanIcons.alerts, 'التنبيهات',
                         perm: 'stockView'),
-                    tile(TileStyle.navy, LucideIcons.settings, 'الإعدادات',
+                    tile(TileStyle.navy, DiwanIcons.settings, 'الإعدادات',
                         perm: 'manager'),
                   ], smallH),
                   row([
-                    tile(TileStyle.navy, LucideIcons.calculator,
+                    tile(TileStyle.navy, DiwanIcons.calculator,
                         'حاسبة الأسعار'),
-                    tile(TileStyle.navy, LucideIcons.bookOpen, 'سجل الأدوية'),
-                    tile(TileStyle.navy, LucideIcons.trendingUp,
+                    tile(TileStyle.navy, DiwanIcons.registry, 'سجل الأدوية'),
+                    tile(TileStyle.navy, DiwanIcons.finance,
                         'المصروفات والأرباح',
                         perm: 'manager'),
                   ], smallH),
@@ -146,7 +145,7 @@ class HomeScreen extends ConsumerWidget {
                         context,
                         MaterialPageRoute(
                             builder: (_) => const ConnectionTestScreen())),
-                    icon: const Icon(LucideIcons.activity, size: 18),
+                    icon: const Icon(DiwanIcons.activity, size: 18),
                     label: const Text('اختبار الاتصال (م0)'),
                   ),
                 ],

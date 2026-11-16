@@ -9,3 +9,4 @@ export 'src/confirm.dart';
 export 'src/back_stack.dart';
 export 'src/patterns.dart';
 export 'src/tiles.dart';
+export 'src/icons.dart';
