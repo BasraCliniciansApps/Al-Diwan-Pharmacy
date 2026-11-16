@@ -35,6 +35,17 @@
         o2.showClass = { popup: sheet ? 'dw-in-sheet' : 'dw-in-card', backdrop: 'swal2-backdrop-show', icon: '' };
         o2.hideClass = { popup: sheet ? 'dw-out-sheet' : 'dw-out-card', backdrop: 'swal2-backdrop-hide', icon: '' };
         o2.buttonsStyling = false; o2.reverseButtons = false;
+        if (sheet) {   // سحب الورقة السفلية للأسفل لإغلاقها (يُعدّ إلغاءً)
+            var od2 = o.didOpen;
+            o2.didOpen = function (pop) {
+                var y0 = 0, dy = 0, on = false;
+                pop.addEventListener('touchstart', function (e) { on = e.touches.length === 1 && e.touches[0].clientY - pop.getBoundingClientRect().top <= 90; y0 = e.touches[0].clientY; dy = 0; }, { passive: true });
+                pop.addEventListener('touchmove', function (e) { if (!on) return; dy = e.touches[0].clientY - y0; if (dy > 0) { if (e.cancelable) e.preventDefault(); pop.style.transition = 'none'; pop.style.transform = 'translateY(' + dy + 'px)'; } }, { passive: false });
+                var end = function () { if (!on) return; on = false; pop.style.transition = ''; if (dy > 80) { try { if (o.showCancelButton) Swal.clickCancel(); else Swal.close(); } catch (er) { /* تجاهل */ } } pop.style.transform = ''; dy = 0; };
+                pop.addEventListener('touchend', end, { passive: true }); pop.addEventListener('touchcancel', end, { passive: true });
+                if (od2) return od2.apply(this, arguments);
+            };
+        }
         return orig(o2);
     };
     Swal.__dw = true;
