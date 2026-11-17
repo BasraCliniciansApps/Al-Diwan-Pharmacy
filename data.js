@@ -352,7 +352,9 @@ async function syncNow() {
     await usageResume();
     let n = 0;
     h.set(null, 'رفع السجلات المحفوظة محلياً...');
-    try { if (typeof syncLocalRecords === 'function') n = await syncLocalRecords(false); } catch (e) { h.fail('تعذرت المزامنة', e && e.message); return; }
+    window.__forceCloud++;
+    try { if (typeof syncLocalRecords === 'function') n = await syncLocalRecords(false); } catch (e) { window.__forceCloud = Math.max(0, window.__forceCloud - 1); h.fail('تعذرت المزامنة', e && e.message); return; }
+    window.__forceCloud = Math.max(0, window.__forceCloud - 1);
     checkPending();
     h.ok(n ? 'رُفع ' + n + ' سجل محفوظ محلياً' : 'تمت المزامنة — كل شيء محدّث');
 }
@@ -400,6 +402,19 @@ function showSyncStatus() {
     Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' } })      .then(r => { if (r.isConfirmed) { if (waM && window.WA) WA.exportSales(); else syncNow(); } else if (r.isDenied) hardRefresh(); });
 }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
+
+// ===== بوّابة القراءة من السحابة: القراءات الكاملة (واردات، دفتر، فواتير...) تُجرى مرة كل مدة بدل كل فتح شاشة =====
+// التخزين المحلي هو المرجع، والسحابة تُقرأ فقط عند انتهاء المدة أو طلب مزامنة يدوي أو إذا كانت النسخة المحلية فارغة.
+window.__forceCloud = 0;
+function cloudClaim(key, ttlMin, haveLocal) {
+    if (window.__forceCloud || !haveLocal) { try { localStorage.setItem('diwanLd_' + key, String(Date.now())); } catch (e) { /* تجاهل */ } return true; }
+    let t = 0; try { t = +localStorage.getItem('diwanLd_' + key) || 0; } catch (e) { /* تجاهل */ }
+    if (Date.now() - t < ttlMin * 60000) return false;
+    try { localStorage.setItem('diwanLd_' + key, String(Date.now())); } catch (e) { /* تجاهل */ }
+    return true;
+}
+function cloudRelease(key) { try { localStorage.removeItem('diwanLd_' + key); } catch (e) { /* تجاهل */ } }
+async function withForceCloud(fn) { window.__forceCloud++; try { return await fn(); } finally { window.__forceCloud = Math.max(0, window.__forceCloud - 1); } }
 
 // ===== عدّاد استهلاك محلي + حد يومي لكل جهاز (تقريبي): يمنع حرق الحصة المجانية =====
 // عند بلوغ الحد يُقطع الاتصال بالسحابة (الكتابات تبقى محفوظة على الجهاز وتُرسل عند الاستئناف).

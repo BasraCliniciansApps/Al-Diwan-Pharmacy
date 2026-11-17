@@ -9,7 +9,8 @@ function bkInvExtras() {   // إعدادات الفواتير المحلية (ت
     ['meta', 'seq', 'sig', 'stamp'].forEach(k => { const v = lsGet(BILL_LS[k]); if (v !== null && v !== undefined) o[k] = v; });
     return o;
 }
-async function bkRefresh() {   // نقرأ أحدث نسخة من السحابة قبل التصدير حتى لا يفوت شيء
+async function bkRefresh() { return withForceCloud(bkRefresh0); }
+async function bkRefresh0() {   // نقرأ أحدث نسخة من السحابة قبل التصدير حتى لا يفوت شيء
     progTick(0, 3, 'قراءة الوارد من السحابة...');
     try { if (typeof puLoad === 'function') await puLoad(); } catch (e) { /* تجاهل */ }
     progTick(1, 3, 'قراءة الفواتير من السحابة...');

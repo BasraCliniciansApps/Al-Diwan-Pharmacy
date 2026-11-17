@@ -42,7 +42,7 @@ async function puLoad() {
     let sup = [];
     try { sup = JSON.parse(lsGet(PU_LS.sup)) || []; } catch (e) { sup = []; }
     const smap = new Map(sup.map(s => [s.id, s]));
-    if (cloudReady() && navigator.onLine) {
+    if (cloudReady() && navigator.onLine && cloudClaim('pu', 60, map.size > 0)) {
         try {
             const snap = await db.collection('pharmacy_purchases').limit(1000).get(), cloud = new Map();
             snap.forEach(d => { const x = d.data(); if (x && x.id) cloud.set(x.id, x); });
@@ -51,7 +51,7 @@ async function puLoad() {
             const ckeys = new Set([...cloud.values()].map(ck));
             [...map.values()].forEach(x => { if (!cloud.has(x.id) && ckeys.has(ck(x))) map.delete(x.id); });
             cloud.forEach((x, id) => map.set(id, x));
-        } catch (e) { /* القواعد غير مضافة */ }
+        } catch (e) { cloudRelease('pu'); /* القواعد غير مضافة */ }
         try { const snap = await db.collection('pharmacy_suppliers').limit(500).get(); snap.forEach(d => { const x = d.data(); if (x && x.id) smap.set(x.id, x); }); } catch (e) { /* القواعد غير مضافة */ }
     }
     puAll = [...map.values()].sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdTs).localeCompare(String(a.createdTs)));
@@ -820,7 +820,7 @@ let syncingLocal = false;
 function localOnlyCounts() { return ''; }
 async function syncLocalRecords(auto) {
     if (!cloudReady() || !navigator.onLine || syncingLocal) return 0;
-    if (auto && lsGet('diwanNeedsPush') !== '1' && lsGet('diwanPushedOnce') === sessionStorage.getItem('diwanSess')) return 0;
+    if (auto && lsGet('diwanNeedsPush') !== '1' && (lsGet('diwanPushedOnce') === sessionStorage.getItem('diwanSess') || Date.now() - (+lsGet('diwanPushedAt') || 0) < 12 * 3600e3)) return 0;   // الفحص الشامل (آلاف القراءات) مرة كل 12 ساعة، أو فوراً إن وُجدت سجلات لم تُرسل
     syncingLocal = true; let n = 0;
     try {
         try { n += await pushLocalInvoices(); } catch (e) { /* القواعد */ }
@@ -834,6 +834,7 @@ async function syncLocalRecords(auto) {
         } catch (e) { /* القواعد */ }
         try { if (typeof lgSyncLocal === 'function') n += await lgSyncLocal(); } catch (e) { /* القواعد */ }
         lsSet('diwanNeedsPush', '0');
+        lsSet('diwanPushedAt', String(Date.now()));
         try { sessionStorage.setItem('diwanSess', sessionStorage.getItem('diwanSess') || String(Date.now())); lsSet('diwanPushedOnce', sessionStorage.getItem('diwanSess')); } catch (e) { /* تجاهل */ }
     } finally { syncingLocal = false; }
     return n;

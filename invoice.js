@@ -683,8 +683,8 @@ async function pushLocalInvoices() {
 async function loadInvoices() {
     const map = new Map();
     try { (JSON.parse(lsGet(BILL_LS.list)) || []).forEach(x => x && x.id && map.set(x.id, x)); } catch (e) { /* تجاهل */ }
-    if (cloudReady() && navigator.onLine) {
-        try { const snap = await db.collection('pharmacy_invoices').orderBy('issuedTs', 'desc').limit(300).get(); snap.forEach(d => { const x = d.data(); if (x && x.id) map.set(x.id, x); }); } catch (e) { /* تجاهل */ }
+    if (cloudReady() && navigator.onLine && cloudClaim('inv', 10, map.size > 0)) {
+        try { const snap = await db.collection('pharmacy_invoices').orderBy('issuedTs', 'desc').limit(300).get(); snap.forEach(d => { const x = d.data(); if (x && x.id) map.set(x.id, x); }); } catch (e) { cloudRelease('inv'); /* تجاهل */ }
     }
     billAll = [...map.values()].sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
     return billAll;

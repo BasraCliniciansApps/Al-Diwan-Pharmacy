@@ -208,10 +208,13 @@ async function softRefresh() {
     try {
         if (typeof syncLocalRecords === 'function' && isFirebaseReady && navigator.onLine) { try { await syncLocalRecords(false); } catch (e) { /* تجاهل */ } }
         const jobs = [];
+        window.__forceCloud++;   // السحب للتحديث طلب صريح: يتجاوز بوّابة المدة
+        try {
         if (typeof puLoad === 'function' && can('purchases')) jobs.push(puLoad());
         if (typeof loadInvoices === 'function' && can('sell')) jobs.push(loadInvoices());
         if (typeof lgLoad === 'function' && can('purchases')) jobs.push(lgLoad());
-        await Promise.allSettled(jobs);
+        } finally { window.__forceCloud = Math.max(0, window.__forceCloud - 1); }
+        await Promise.allSettled(jobs);   // (الاستدعاءات أعلاه داخل withForceCloud)
         const editing = (currentView === 'purch' && (puTabName || 'new') === 'new') || (currentView === 'bill' && (currentBillTab || 'new') === 'new');
         if (!editing && currentView !== 'splash' && currentView !== 'login') showView(currentView);   // يبقى بنفس الشاشة والتبويب
         window.scrollTo(0, y);
