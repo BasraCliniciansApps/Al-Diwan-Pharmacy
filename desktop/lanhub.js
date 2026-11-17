@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const TYPES = ['invoice', 'stock', 'purchase', 'snapshot', 'pinfo', 'cfg', 'rec'];
+const TYPES = ['invoice', 'stock', 'purchase', 'snapshot', 'pinfo', 'cfg', 'rec', 'qset'];
 const OWNER_TYPES = ['pinfo', 'cfg', 'rec', 'purchase', 'snapshot'];   // لا يقبلها الخادم إلا من جهاز يقدّم نفسه مالكاً
 const STAFF_HIDE = ['pinfo.cost', 'rec', 'purchase', 'snapshot'];
 const MAX_BODY = 8 * 1024 * 1024;
@@ -67,7 +67,7 @@ function createHub(opts) {
         const stored = [], dup = [], invalid = [];
         const lines = [];
         list.forEach(o => {
-            if (!validOp(o) || (role !== 'owner' && OWNER_TYPES.indexOf(o.type) >= 0 && o.type !== 'purchase' && o.type !== 'snapshot')) { invalid.push(o && o.id || ''); return; }
+            if (!validOp(o) || o.type === 'qset' || (role !== 'owner' && OWNER_TYPES.indexOf(o.type) >= 0 && o.type !== 'purchase' && o.type !== 'snapshot')) { invalid.push(o && o.id || ''); return; }
             if (ops.has(o.id)) { dup.push(o.id); return; }
             const rec = { id: o.id, type: o.type, ts: o.ts, data: o.data, dev: dev.id, devName: dev.d.name, recvAt: new Date().toISOString(), seq: ++st.seq };
             ops.set(rec.id, rec); lines.push(JSON.stringify(rec)); stored.push(rec.id);
@@ -127,10 +127,11 @@ function createHub(opts) {
         }
         if (req.method === 'GET' && url === '/v1/feed') {   // عمليات الأجهزة الأخرى التي وافق عليها الحاسوب (الاتجاه الثاني)
             const q = new URLSearchParams((req.url.split('?')[1]) || ''); const after = parseInt(q.get('after')) || 0;
-            const list = [...ops.values()].filter(r => r.dev !== dev.id && r.type !== 'snapshot' && st.done[r.id] === 'applied' && (st.doneSeq[r.id] || 0) > after).sort((a, b) => st.doneSeq[a.id] - st.doneSeq[b.id]).slice(0, 100);
+            const list = [...ops.values()].filter(r => r.dev !== dev.id && r.type !== 'snapshot' && r.type !== 'stock' && st.done[r.id] === 'applied' && (st.doneSeq[r.id] || 0) > after).sort((a, b) => st.doneSeq[a.id] - st.doneSeq[b.id]).slice(0, 100);
             const owner = String(req.headers['x-diwan-role'] || '') === 'owner';
             const outL = list.filter(r => owner || (r.type !== 'rec' && r.type !== 'purchase')).map(r => { let d = r.data; if (!owner && r.type === 'pinfo' && d && d.cost) { d = Object.assign({}, d); delete d.cost; } return { id: r.id, type: r.type, ts: r.ts, data: d, dev: r.dev, devName: r.devName, fseq: st.doneSeq[r.id] }; });
-            return send(res, 200, { ops: outL, last: list.length ? st.doneSeq[list[list.length - 1].id] : after, head: st.dseq });
+            const acked = [...ops.values()].filter(r => r.dev === dev.id && st.done[r.id] === 'applied').slice(-600).map(r => r.id);
+            return send(res, 200, { acked, ops: outL, last: list.length ? st.doneSeq[list[list.length - 1].id] : after, head: st.dseq });
         }
         send(res, 404, { error: 'not-found' });
     });

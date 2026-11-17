@@ -32,7 +32,7 @@
     }
     async function httpOnce(hub, method, path, body, withToken, tmo) {
         const url = 'http://' + hub.ip + ':' + (hub.port || 8765) + path;
-        const headers = { 'content-type': 'application/json' }; if (withToken !== false && hub.token) headers['x-diwan-token'] = hub.token; headers['x-diwan-role'] = window.userRole === 'owner' ? 'owner' : '';
+        const headers = { 'content-type': 'application/json' }; if (withToken !== false && hub.token) headers['x-diwan-token'] = hub.token; headers['x-diwan-role'] = userRole === 'owner' ? 'owner' : '';
         const CH = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
         if (CH) {   // داخل التطبيق: طلب أصلي (لا يمنعه قيد المحتوى المختلط بين https وhttp)
             const r = await CH.request({ url, method, headers, data: body, connectTimeout: tmo || 4000, readTimeout: tmo || 15000 });
@@ -47,7 +47,7 @@
     async function pair(addr, code) {
         const a = parseAddr(addr); if (!a) throw new Error('عنوان الحاسوب غير صحيح');
         ls.set(K.hub, { ip: a.ip, port: a.port });
-        const r = await http('POST', '/v1/pair', { code: String(code || '').trim(), deviceId: devId(), deviceName: (window.userName || (window.userRole === 'owner' ? 'المالك' : 'جهاز')) + ' · ' + (/Android/i.test(navigator.userAgent) ? 'هاتف' : 'متصفح') }, false);
+        const r = await http('POST', '/v1/pair', { code: String(code || '').trim(), deviceId: devId(), deviceName: ((typeof userName !== 'undefined' && userName) || (userRole === 'owner' ? 'المالك' : 'جهاز')) + ' · ' + (/Android/i.test(navigator.userAgent) ? 'هاتف' : 'متصفح') }, false);
         if (r.s !== 200 || !r.j.token) { ls.set(K.hub, null); throw new Error(r.s === 403 ? 'الرمز غير صحيح أو منتهي' : r.s === 429 ? 'محاولات كثيرة، انتظر دقيقة' : 'تعذر الربط'); }
         const old = ls.get(K.hub, {}); ls.set(K.hub, { ip: a.ip, port: a.port, token: r.j.token, prefix: r.j.prefix, name: r.j.hub, ips: old.ips || [a.ip] });
     }
@@ -153,7 +153,8 @@
     // ======================= تتبّع تعديلات المالك (كل البيانات) =======================
     // المالك وحده يعدّل: أي تغيير في معلومات المادة/الصورة/السعر/الإعدادات/المذاخر/السجل يُرسَل تلقائياً كتغيير مفرد. الكميات لا تُرسَل هنا أبداً (تنتقل بعمليات فقط).
     const TK = 'diwanLanTrack';
-    const isOwner = () => window.userRole === 'owner';
+    const SF = ['qty', 'loose', 'counted', 'bt', 'expiryDate', 'expiryDates'];
+    const isOwner = () => userRole === 'owner';
     const trackOn = () => modeOn() && isOwner();
     function hsh(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
     function pSplit(p) {
@@ -176,12 +177,19 @@
     function trackSave(t) { ls.set(TK, t); }
     function scanChanges() {   // يقارن الحالة الحالية بآخر ما أُرسل/استُلم
         let t = trackLoad(); const fresh = !t; if (!t) t = { p: {}, c: '', r: {} };
+        const sBase = !t.s; if (!t.s) t.s = {};
         const ops = [], marks = [];
         (typeof products !== 'undefined' ? products : []).forEach(p => {
             const s = pSplit(p), h = hsh(stable({ i: s.info, c: s.cost }));
             if (t.p[p.id] === h) return;
             if (!fresh) ops.push({ id: 'pi:' + p.id + ':' + h, type: 'pinfo', ts: new Date().toISOString(), data: { pid: p.id, info: s.info, cost: s.cost, init: t.p[p.id] === undefined ? s.init : undefined } });
             marks.push(['p', String(p.id), h]);
+        });
+        if (D) (typeof products !== 'undefined' ? products : []).forEach(p => {   // الكميات: الحاسوب وحده يعلنها بعد حسابها
+            const st = {}; SF.forEach(k => { if (p[k] !== undefined) st[k] = p[k]; });
+            const h = hsh(stable(st)); if (t.s[p.id] === h) return;
+            if (!fresh && !sBase) ops.push({ id: 'qs:' + p.id + ':' + h + ':' + Date.now().toString(36), type: 'qset', ts: new Date().toISOString(), data: { pid: p.id, st } });
+            marks.push(['s', String(p.id), h]);
         });
         const cf = cfgNow(), ch = hsh(stable(cf));
         if (t.c !== ch) { if (!fresh && t.c) ops.push({ id: 'cf:' + ch, type: 'cfg', ts: new Date().toISOString(), data: { cfg: cf } }); marks.push(['c', '', ch]); }
@@ -193,7 +201,7 @@
         }));
         return { t, ops, marks, fresh };
     }
-    function applyMarks(t, marks) { marks.forEach(([k, id, h]) => { if (k === 'c') t.c = h; else t[k][id] = h; }); trackSave(t); }
+    function applyMarks(t, marks) { marks.forEach(([k, id, h]) => { if (k === 'c') t.c = h; else { t[k] = t[k] || {}; t[k][id] = h; } }); trackSave(t); }
     let trackBusy = false;
     async function trackTick() {
         if (trackBusy || !trackOn() || (!D && !ls.get(K.hub, null))) return;
@@ -216,6 +224,14 @@
         finally { trackBusy = false; }
     }
     function trackSoon() { clearTimeout(trackSoon.t); trackSoon.t = setTimeout(trackTick, 1500); }
+    function pendingParts(pid) {   // عمليات هذا الجوال التي لم يؤكدها الحاسوب بعد
+        const ack = new Set((ls.get(K.feed, {}).ack) || []), p = products.find(x => String(x.id) === String(pid)), sc = p ? btSc(p) : 1; let n = 0;
+        outbox().concat(archive()).forEach(o => {
+            if (o.type !== 'stock' || ack.has(o.id) || Date.now() - Date.parse(o.ts) > 172800000) return;
+            ((o.data && o.data.entries) || []).forEach(en => { if (String(en.pid) === String(pid)) n += snapNum(en.dq) * sc + (sc > 1 ? snapNum(en.dl) : 0); });
+        });
+        return n;
+    }
     function trackIngest(type, data) {   // استلام تغيير من المالك على جهاز آخر
         let t = trackLoad() || { p: {}, c: '', r: {} }; let changed = false;
         if (type === 'pinfo') {
@@ -230,6 +246,14 @@
             }
             const s = pSplit(p); t.p[pid] = hsh(stable({ i: s.info, c: s.cost })); changed = true;
             try { syncStockLocal([p]); } catch (e) { /* تجاهل */ }
+        } else if (type === 'qset' && data.st) {   // الكمية النهائية من الحاسوب + ما بعته هذا الجوال ولم يحسبه الحاسوب بعد
+            const p = products.find(x => String(x.id) === String(data.pid)); if (!p) return false;
+            const sc = btSc(p), pend = pendingParts(p.id);
+            Object.keys(data.st).forEach(k => { if (k !== 'qty' && k !== 'loose') p[k] = data.st[k]; });
+            const base = snapNum(data.st.qty) * sc + (sc > 1 ? snapNum(data.st.loose) : 0), tgt = Math.max(0, base + pend);
+            p.qty = Math.floor(tgt / sc); p.loose = sc > 1 ? tgt % sc : 0;
+            try { syncStockLocal([p]); } catch (e) { /* تجاهل */ }
+            return true;
         } else if (type === 'cfg' && data.cfg) {
             const c = data.cfg;
             if (c.departments) departments = c.departments; if (c.subCategories) subCategories = c.subCategories; if (c.deptSubs) deptSubs = c.deptSubs; if (c.taxLegacy) taxLegacy = c.taxLegacy;
@@ -248,7 +272,7 @@
     }
     function applyAny(o, rep) {
         if (o.type === 'stock') applyStockOp(o.data, rep);
-        else if (o.type === 'pinfo' || o.type === 'cfg' || o.type === 'rec') { if (trackIngest(o.type, o.data)) rep.info = (rep.info || 0) + 1; }
+        else if (o.type === 'pinfo' || o.type === 'cfg' || o.type === 'rec' || o.type === 'qset') { if (trackIngest(o.type, o.data)) rep.info = (rep.info || 0) + 1; }
         else applyRecordOp(o.type, o.data.rec, rep);
     }
     setInterval(trackTick, 60000);
@@ -286,6 +310,7 @@
         const st = ls.get(K.feed, { after: 0, ids: [] });
         const r = await http('GET', '/v1/feed?after=' + (st.after || 0), null, true, 8000);
         if (r.s !== 200) return 0;
+        st.ack = Array.from(new Set((st.ack || []).concat(r.j.acked || []))).slice(-2500); ls.set(K.feed, st);
         const list = (r.j.ops || []).filter(o => o && o.id && !st.ids.includes(o.id));
         if (list.length) {
             const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() };
@@ -381,7 +406,8 @@
             const p = (typeof products !== 'undefined' ? products : []).find(x => String(x.id) === String(en.pid));
             if (!p) { rep.skipped.push(en.name || en.pid); return; }
             const sc = btSc(p), cur = snapNum(p.qty) * sc + (sc > 1 ? snapNum(p.loose) : 0);
-            const nt = Math.max(0, cur + snapNum(en.dq) * sc + (sc > 1 ? snapNum(en.dl) : 0));
+            const raw = cur + snapNum(en.dq) * sc + (sc > 1 ? snapNum(en.dl) : 0), nt = Math.max(0, raw);
+            if (raw < 0) (rep.over = rep.over || []).push(p.name);
             p.qty = Math.floor(nt / sc); p.loose = sc > 1 ? nt % sc : 0;
             if (en.hints) p._badd = en.hints;
             btPrepare({ p, expAdd: en.expAdd || [], expRemove: en.expRemove || [], expChanged: !!en.expChanged });
@@ -534,9 +560,11 @@
             const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() }, needDev = new Set(), doneIds = ls.get(K.done, []);
             fresh.forEach(o => { const before = rep.skipped.length; try { applyAny(o, rep); } catch (e) { rep.stale++; } if (rep.skipped.length > before) needDev.add(o.dev); doneIds.push(o.id); });
             saveLocal(); ls.set(K.done, doneIds.slice(-20000));
+            try { await trackTick(); } catch (e) { /* تجاهل */ }   // الكميات النهائية تُعلَن فوراً لكل الهواتف
             await D.lan.mark(fresh.map(o => o.id), 'applied');
             for (const dv of needDev) { try { await D.lan.need(dv, true); } catch (e) { /* تجاهل */ } }
             try { renderAll(); } catch (e) { /* تجاهل */ }
+            if (rep.over && rep.over.length) { try { Swal.fire({ icon: 'warning', title: 'بيع متزامن تجاوز المتوفر', html: 'بِيعت كمية أكبر من المتوفر في: <b>' + rep.over.slice(0, 6).map(esc).join('، ') + '</b><br>ضُبط الرصيد عند الصفر. راجع الفواتير والجرد.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); } catch (e) { /* تجاهل */ } }
             toast('success', 'طُبِّقت ' + fresh.length + ' عملية من الهواتف' + (needDev.size ? ' · مواد ناقصة: طُلبت نسخة كاملة' : ''));
         } catch (e) { /* تُعاد المحاولة في الدورة التالية */ }
         finally { autoBusy = false; refreshUi(); }

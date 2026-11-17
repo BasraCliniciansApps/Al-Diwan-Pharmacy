@@ -15,7 +15,8 @@ const J = (port, method, url, body, tok) => fetch('http://127.0.0.1:' + port + u
   assert.equal((await J(port, 'GET', '/v1/feed?after=0', null, ta)).j.ops.length, 0, 'لا يرجع للجهاز نفسه ما أرسله');
   h.mark(['stk-aaaaaa'], 'applied');
   const f2 = (await J(port, 'GET', '/v1/feed?after=' + f.last, null, tb)).j;
-  assert.deepEqual(f2.ops.map(o => o.id), ['stk-aaaaaa']);
+  assert.deepEqual(f2.ops.map(o => o.id), [], 'عمليات المخزن لا تُمرَّر: الكمية النهائية تأتي من الحاسوب');
+  assert.ok((await J(port, 'GET', '/v1/feed?after=0', null, ta)).j.acked.includes('stk-aaaaaa'), 'تأكيد استلام عمليات الجهاز');
   assert.equal((await J(port, 'GET', '/v1/feed?after=' + f2.last, null, tb)).j.ops.length, 0);
   h.setNeed('phoneA', true); assert.equal((await J(port, 'GET', '/v1/status', null, ta)).j.need, true);
   h.setNeed('phoneA', false); assert.equal((await J(port, 'GET', '/v1/status', null, ta)).j.need, false);
