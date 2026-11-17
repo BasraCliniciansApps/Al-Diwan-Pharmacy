@@ -32,7 +32,7 @@
     }
     async function httpOnce(hub, method, path, body, withToken, tmo) {
         const url = 'http://' + hub.ip + ':' + (hub.port || 8765) + path;
-        const headers = { 'content-type': 'application/json' }; if (withToken !== false && hub.token) headers['x-diwan-token'] = hub.token;
+        const headers = { 'content-type': 'application/json' }; if (withToken !== false && hub.token) headers['x-diwan-token'] = hub.token; headers['x-diwan-role'] = window.userRole === 'owner' ? 'owner' : '';
         const CH = window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform() && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp;
         if (CH) {   // داخل التطبيق: طلب أصلي (لا يمنعه قيد المحتوى المختلط بين https وhttp)
             const r = await CH.request({ url, method, headers, data: body, connectTimeout: tmo || 4000, readTimeout: tmo || 15000 });
@@ -150,6 +150,111 @@
         enqueue({ id: (type === 'invoice' ? 'inv:' : 'pur:') + rec.id + ':' + recStamp(rec).replace(/[^\w]/g, '').slice(-14), type, ts: new Date().toISOString(), data: { rec: data } });
     }
 
+    // ======================= تتبّع تعديلات المالك (كل البيانات) =======================
+    // المالك وحده يعدّل: أي تغيير في معلومات المادة/الصورة/السعر/الإعدادات/المذاخر/السجل يُرسَل تلقائياً كتغيير مفرد. الكميات لا تُرسَل هنا أبداً (تنتقل بعمليات فقط).
+    const TK = 'diwanLanTrack';
+    const isOwner = () => window.userRole === 'owner';
+    const trackOn = () => modeOn() && isOwner();
+    function hsh(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
+    function pSplit(p) {
+        const info = {}, cost = {}, init = {};
+        Object.keys(p).forEach(k => {
+            if (k.charAt(0) === '_' || k === 'inStock' || k === 'dlim') return;
+            if (COST_FIELDS.indexOf(k) >= 0) cost[k] = p[k];
+            else if (STOCK_FIELDS.indexOf(k) >= 0) { if (k === 'minQty') info[k] = p[k]; else init[k] = p[k]; }
+            else info[k] = p[k];
+        });
+        return { info, cost, init };
+    }
+    function cfgNow() {
+        const c = { departments, subCategories, deptSubs, taxLegacy, subTypes, lowStockThreshold, alertMonths, pricingCfg };
+        try { if (typeof formCfg !== 'undefined') c.formCfg = formCfg; } catch (e) { /* تجاهل */ }
+        return JSON.parse(JSON.stringify(c));
+    }
+    function recSets() { const o = []; try { o.push(['suppliers', puSuppliers || []]); o.push(['ledger', lgAll || []]); } catch (e) { /* تجاهل */ } return o; }
+    function trackLoad() { return ls.get(TK, null); }
+    function trackSave(t) { ls.set(TK, t); }
+    function scanChanges() {   // يقارن الحالة الحالية بآخر ما أُرسل/استُلم
+        let t = trackLoad(); const fresh = !t; if (!t) t = { p: {}, c: '', r: {} };
+        const ops = [], marks = [];
+        (typeof products !== 'undefined' ? products : []).forEach(p => {
+            const s = pSplit(p), h = hsh(stable({ i: s.info, c: s.cost }));
+            if (t.p[p.id] === h) return;
+            if (!fresh) ops.push({ id: 'pi:' + p.id + ':' + h, type: 'pinfo', ts: new Date().toISOString(), data: { pid: p.id, info: s.info, cost: s.cost, init: t.p[p.id] === undefined ? s.init : undefined } });
+            marks.push(['p', String(p.id), h]);
+        });
+        const cf = cfgNow(), ch = hsh(stable(cf));
+        if (t.c !== ch) { if (!fresh && t.c) ops.push({ id: 'cf:' + ch, type: 'cfg', ts: new Date().toISOString(), data: { cfg: cf } }); marks.push(['c', '', ch]); }
+        recSets().forEach(([coll, arr]) => arr.forEach(r => {
+            if (!r || !r.id) return; const h = hsh(stable(r)), k = coll + ':' + r.id;
+            if (t.r[k] === h) return;
+            if (!fresh) ops.push({ id: 'rc:' + k + ':' + h, type: 'rec', ts: new Date().toISOString(), data: { coll, rec: r } });
+            marks.push(['r', k, h]);
+        }));
+        return { t, ops, marks, fresh };
+    }
+    function applyMarks(t, marks) { marks.forEach(([k, id, h]) => { if (k === 'c') t.c = h; else t[k][id] = h; }); trackSave(t); }
+    let trackBusy = false;
+    async function trackTick() {
+        if (trackBusy || !trackOn() || (!D && !ls.get(K.hub, null))) return;
+        trackBusy = true;
+        try {
+            const sc = scanChanges();
+            if (sc.fresh) { applyMarks(sc.t, sc.marks); return; }   // أول مرة: خط الأساس فقط (النسخة الكاملة تغطيه)
+            if (!sc.ops.length) { if (sc.marks.length) applyMarks(sc.t, sc.marks); return; }
+            if (D) { await D.lan.local(sc.ops); applyMarks(sc.t, sc.marks); return; }
+            for (let i = 0; i < sc.ops.length; i += 40) {
+                const part = sc.ops.slice(i, i + 40);
+                const r = await http('POST', '/v1/ops', { ops: part });
+                if (r.s !== 200) throw new Error('رفض');
+                const ok = new Set([].concat(r.j.stored || [], r.j.dup || [], r.j.invalid || []));
+                const ids = new Set(part.map(o => o.id));
+                const done = sc.marks.filter(m => { const key = m[0] === 'p' ? 'pi:' + m[1] + ':' + m[2] : m[0] === 'c' ? 'cf:' + m[2] : 'rc:' + m[1] + ':' + m[2]; return !ids.has(key) || ok.has(key); });
+                applyMarks(sc.t, done);
+            }
+        } catch (e) { /* تُعاد المحاولة في الدورة التالية */ }
+        finally { trackBusy = false; }
+    }
+    function trackSoon() { clearTimeout(trackSoon.t); trackSoon.t = setTimeout(trackTick, 1500); }
+    function trackIngest(type, data) {   // استلام تغيير من المالك على جهاز آخر
+        let t = trackLoad() || { p: {}, c: '', r: {} }; let changed = false;
+        if (type === 'pinfo') {
+            const pid = String(data.pid); let p = products.find(x => String(x.id) === pid);
+            const cur = p ? pSplit(p) : null;
+            if (p && t.p[pid] !== undefined && hsh(stable({ i: cur.info, c: cur.cost })) !== t.p[pid]) return false;   // عندي تعديل لم يُرسَل: لا أكتب فوقه
+            if (!p) { p = Object.assign({}, data.info, data.init || {}, data.cost || {}); if (p.id === undefined) p.id = data.pid; products.push(p); }
+            else {
+                Object.keys(p).forEach(k => { if (k.charAt(0) !== '_' && STOCK_FIELDS.indexOf(k) < 0 && k !== 'inStock' && k !== 'dlim' && !(k in data.info)) delete p[k]; });
+                Object.assign(p, data.info);
+                if (data.cost && isOwner()) Object.assign(p, data.cost);
+            }
+            const s = pSplit(p); t.p[pid] = hsh(stable({ i: s.info, c: s.cost })); changed = true;
+            try { syncStockLocal([p]); } catch (e) { /* تجاهل */ }
+        } else if (type === 'cfg' && data.cfg) {
+            const c = data.cfg;
+            if (c.departments) departments = c.departments; if (c.subCategories) subCategories = c.subCategories; if (c.deptSubs) deptSubs = c.deptSubs; if (c.taxLegacy) taxLegacy = c.taxLegacy;
+            if (c.subTypes) subTypes = c.subTypes; if (c.lowStockThreshold !== undefined) lowStockThreshold = c.lowStockThreshold; if (c.alertMonths) alertMonths = c.alertMonths;
+            if (c.pricingCfg) pricingCfg = normPricingCfg(c.pricingCfg);
+            try { if (c.formCfg && typeof formCfgImport === 'function') formCfgImport(c.formCfg); } catch (e) { /* تجاهل */ }
+            t.c = hsh(stable(cfgNow())); changed = true;
+        } else if (type === 'rec' && data.rec && data.rec.id) {
+            const arr = data.coll === 'suppliers' ? puSuppliers : data.coll === 'ledger' ? lgAll : null; if (!arr) return false;
+            const i = arr.findIndex(x => x.id === data.rec.id); if (i >= 0) arr[i] = data.rec; else arr.push(data.rec);
+            try { if (data.coll === 'suppliers') lsSet(PU_LS.sup, JSON.stringify(puSuppliers)); else lsSet(LG_LS.list, JSON.stringify(lgAll)); } catch (e) { /* تجاهل */ }
+            t.r[data.coll + ':' + data.rec.id] = hsh(stable(data.rec)); changed = true;
+        }
+        if (changed) trackSave(t);
+        return changed;
+    }
+    function applyAny(o, rep) {
+        if (o.type === 'stock') applyStockOp(o.data, rep);
+        else if (o.type === 'pinfo' || o.type === 'cfg' || o.type === 'rec') { if (trackIngest(o.type, o.data)) rep.info = (rep.info || 0) + 1; }
+        else applyRecordOp(o.type, o.data.rec, rep);
+    }
+    setInterval(trackTick, 60000);
+    window.addEventListener('load', () => setTimeout(trackTick, 4000));
+    ['saveLocal', 'saveProductsLocalSoon'].forEach(fn => { try { const orig = window[fn]; if (typeof orig === 'function') window[fn] = function () { const r = orig.apply(this, arguments); trackSoon(); return r; }; } catch (e) { /* تجاهل */ } });
+
     let flushing = false, lastErr = '', lastOkAt = 0;
     async function flush(manual) {
         if (D || flushing) return 0;
@@ -184,7 +289,7 @@
         const list = (r.j.ops || []).filter(o => o && o.id && !st.ids.includes(o.id));
         if (list.length) {
             const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() };
-            list.forEach(o => { try { if (o.type === 'stock') applyStockOp(o.data, rep); else applyRecordOp(o.type, o.data.rec, rep); } catch (e) { /* عملية تالفة: تُتخطّى */ } st.ids.push(o.id); });
+            list.forEach(o => { try { applyAny(o, rep); } catch (e) { /* عملية تالفة: تُتخطّى */ } st.ids.push(o.id); });
             saveLocal(); try { renderAll(); } catch (e) { /* تجاهل */ }
             toast('success', 'وصلت ' + list.length + ' عملية من أجهزة أخرى');
         }
@@ -383,7 +488,7 @@
             for (let i = 0; i < fresh.length; i++) {
                 const o = fresh[i];
                 const before = rep.skipped.length;
-                if (o.type === 'stock') applyStockOp(o.data, rep); else applyRecordOp(o.type, o.data.rec, rep);
+                applyAny(o, rep);
                 if (rep.skipped.length > before) needDev.add(o.dev);
                 saveLocal(); doneIds.push(o.id); ls.set(K.done, doneIds.slice(-20000));
                 h.set(Math.round((i + 1) / fresh.length * 100), 'طُبِّقت ' + (i + 1) + ' من ' + fresh.length);
@@ -413,7 +518,7 @@
             if (!fresh.length) return;
             if (Date.now() - lastAutoBk > 600000) { const b = await D.writeBackup(JSON.stringify(buildFullBackup())); if (!b || !b.ok) throw new Error('نسخة احتياطية'); lastAutoBk = Date.now(); }
             const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() }, needDev = new Set(), doneIds = ls.get(K.done, []);
-            fresh.forEach(o => { const before = rep.skipped.length; try { if (o.type === 'stock') applyStockOp(o.data, rep); else applyRecordOp(o.type, o.data.rec, rep); } catch (e) { rep.stale++; } if (rep.skipped.length > before) needDev.add(o.dev); doneIds.push(o.id); });
+            fresh.forEach(o => { const before = rep.skipped.length; try { applyAny(o, rep); } catch (e) { rep.stale++; } if (rep.skipped.length > before) needDev.add(o.dev); doneIds.push(o.id); });
             saveLocal(); ls.set(K.done, doneIds.slice(-20000));
             await D.lan.mark(fresh.map(o => o.id), 'applied');
             for (const dv of needDev) { try { await D.lan.need(dv, true); } catch (e) { /* تجاهل */ } }

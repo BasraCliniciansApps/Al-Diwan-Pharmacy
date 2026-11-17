@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld('diwanDesktop', {
         newCode: () => ipcRenderer.invoke('diwan:lan:code'),
         pending: () => ipcRenderer.invoke('diwan:lan:pending'),
         mark: (ids, status) => ipcRenderer.invoke('diwan:lan:mark', ids, status),
+        local: (list) => ipcRenderer.invoke('diwan:lan:local', list),
         need: (id, on) => ipcRenderer.invoke('diwan:lan:need', id, !!on),
         forget: (id) => ipcRenderer.invoke('diwan:lan:forget', id),
         onChange: (cb) => { ipcRenderer.on('diwan:lan:changed', () => { try { cb(); } catch (e) { /* تجاهل */ } }); }

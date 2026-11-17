@@ -7,7 +7,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const TYPES = ['invoice', 'stock', 'purchase', 'snapshot'];
+const TYPES = ['invoice', 'stock', 'purchase', 'snapshot', 'pinfo', 'cfg', 'rec'];
+const OWNER_TYPES = ['pinfo', 'cfg', 'rec', 'purchase', 'snapshot'];   // لا يقبلها الخادم إلا من جهاز يقدّم نفسه مالكاً
+const STAFF_HIDE = ['pinfo.cost', 'rec', 'purchase', 'snapshot'];
 const MAX_BODY = 8 * 1024 * 1024;
 const MAX_OPS_PER_REQ = 200;
 const CODE_TTL = 10 * 60 * 1000;
@@ -61,11 +63,11 @@ function createHub(opts) {
         return true;
     }
 
-    function ingest(dev, list) {
+    function ingest(dev, list, role) {
         const stored = [], dup = [], invalid = [];
         const lines = [];
         list.forEach(o => {
-            if (!validOp(o)) { invalid.push(o && o.id || ''); return; }
+            if (!validOp(o) || (role !== 'owner' && OWNER_TYPES.indexOf(o.type) >= 0 && o.type !== 'purchase' && o.type !== 'snapshot')) { invalid.push(o && o.id || ''); return; }
             if (ops.has(o.id)) { dup.push(o.id); return; }
             const rec = { id: o.id, type: o.type, ts: o.ts, data: o.data, dev: dev.id, devName: dev.d.name, recvAt: new Date().toISOString(), seq: ++st.seq };
             ops.set(rec.id, rec); lines.push(JSON.stringify(rec)); stored.push(rec.id);
@@ -85,7 +87,7 @@ function createHub(opts) {
     }
     function send(res, status, obj) {
         const b = JSON.stringify(obj);
-        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(b), 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type,x-diwan-token', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Private-Network': 'true', 'Cache-Control': 'no-store' });
+        res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Content-Length': Buffer.byteLength(b), 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type,x-diwan-role,x-diwan-token', 'Access-Control-Allow-Methods': 'GET,POST,OPTIONS', 'Access-Control-Allow-Private-Network': 'true', 'Cache-Control': 'no-store' });
         res.end(b);
     }
 
@@ -116,7 +118,7 @@ function createHub(opts) {
             return readBody(req, res, j => {
                 const list = Array.isArray(j.ops) ? j.ops : [];
                 if (!list.length || list.length > MAX_OPS_PER_REQ) return send(res, 400, { error: 'bad-count' });
-                try { send(res, 200, ingest(dev, list)); } catch (e) { send(res, 500, { error: 'disk' }); }
+                try { send(res, 200, ingest(dev, list, String(req.headers['x-diwan-role'] || ''))); } catch (e) { send(res, 500, { error: 'disk' }); }
             });
         }
         if (req.method === 'GET' && url === '/v1/status') {
@@ -126,7 +128,9 @@ function createHub(opts) {
         if (req.method === 'GET' && url === '/v1/feed') {   // عمليات الأجهزة الأخرى التي وافق عليها الحاسوب (الاتجاه الثاني)
             const q = new URLSearchParams((req.url.split('?')[1]) || ''); const after = parseInt(q.get('after')) || 0;
             const list = [...ops.values()].filter(r => r.dev !== dev.id && r.type !== 'snapshot' && st.done[r.id] === 'applied' && (st.doneSeq[r.id] || 0) > after).sort((a, b) => st.doneSeq[a.id] - st.doneSeq[b.id]).slice(0, 100);
-            return send(res, 200, { ops: list.map(r => ({ id: r.id, type: r.type, ts: r.ts, data: r.data, dev: r.dev, devName: r.devName, fseq: st.doneSeq[r.id] })), last: list.length ? st.doneSeq[list[list.length - 1].id] : after, head: st.dseq });
+            const owner = String(req.headers['x-diwan-role'] || '') === 'owner';
+            const outL = list.filter(r => owner || (r.type !== 'rec' && r.type !== 'purchase')).map(r => { let d = r.data; if (!owner && r.type === 'pinfo' && d && d.cost) { d = Object.assign({}, d); delete d.cost; } return { id: r.id, type: r.type, ts: r.ts, data: d, dev: r.dev, devName: r.devName, fseq: st.doneSeq[r.id] }; });
+            return send(res, 200, { ops: outL, last: list.length ? st.doneSeq[list[list.length - 1].id] : after, head: st.dseq });
         }
         send(res, 404, { error: 'not-found' });
     });
@@ -148,6 +152,12 @@ function createHub(opts) {
         info() { const a = server.address(); return { port: a && a.port, ips: lanIps(), name, code: activeCode(), codeLeft: code ? Math.max(0, CODE_TTL - (Date.now() - codeAt)) : 0, devices: Object.keys(st.devices).map(id => ({ id, name: st.devices[id].name, prefix: st.devices[id].prefix, lastSeen: st.devices[id].lastSeen })), pending: this.pending().length }; },
         pending() { return [...ops.values()].filter(r => !st.done[r.id]).sort((a, b) => a.seq - b.seq); },
         mark(ids, status) { ids.forEach(id => { if (ops.has(id) && st.done[id] !== status) { st.done[id] = status; if (status === 'applied') st.doneSeq[id] = ++st.dseq; } }); saveState(); emit(); },
+        addLocal(list) {   // تغييرات الحاسوب نفسه: تُسجَّل مطبَّقة وتوزَّع على الجوالات
+            const lines = [];
+            (list || []).forEach(o => { if (!validOp(o) || ops.has(o.id)) return; const rec = { id: o.id, type: o.type, ts: o.ts, data: o.data, dev: 'pc', devName: name, recvAt: new Date().toISOString(), seq: ++st.seq }; ops.set(rec.id, rec); lines.push(JSON.stringify(rec)); st.done[rec.id] = 'applied'; st.doneSeq[rec.id] = ++st.dseq; });
+            if (lines.length) { const fd = fs.openSync(opsFile, 'a'); try { fs.writeSync(fd, lines.join('\n') + '\n'); fs.fsyncSync(fd); } finally { fs.closeSync(fd); } saveState(); }
+            return lines.length;
+        },
         setNeed(devId, on) { if (st.devices[devId]) { st.devices[devId].needSnap = !!on; saveState(); } },
         forget(devId) { delete st.devices[devId]; saveState(); emit(); }
     };
