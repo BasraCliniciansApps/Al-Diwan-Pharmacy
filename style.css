@@ -4705,3 +4705,15 @@ div.ss-warn:not(.ss-hero) { padding: 10px 12px; border-radius: 12px; background:
 .dw-card:not(:has(.dw-ic)) .swal2-title { display: block; margin: -22px -18px 16px !important; padding: 18px 20px 22px !important; text-align: right !important; color: #fff !important; font-family: 'Aref Ruqaa', 'Tajawal', serif !important; font-weight: 700 !important; font-size: 1.2rem !important; line-height: 1.5 !important; width: auto !important; max-width: none !important;
     background-color: #0f1c38; background-image: linear-gradient(180deg, rgba(15,28,56,0) 0%, rgba(15,28,56,.5) 100%), var(--orn); background-size: 100% 100%, 56px 56px; background-repeat: no-repeat, repeat; background-position: 0 0, right top;
     box-shadow: inset 0 -3px 0 #0f1c38, inset 0 -4.5px 0 rgba(244,183,63,.85); }
+
+/* أزرار أسفل النوافذ: عرض متساوٍ وزر رئيسي على اليمين في كل نوافذ التطبيق (v628) */
+.modal-card .modal-actions-row { gap: 10px; }
+.modal-card .modal-actions-row .icon-btn { flex: 1 1 0; min-height: 48px; justify-content: center; font-weight: 800; }
+.modal-card .modal-actions-row .icon-btn.primary-btn { order: -1; }
+
+/* شريطا تبويبات الفواتير والوارد: عدد التبويبات أكبر من عرض الشاشة، فيبقى التمرير مع تلاشٍ على الطرف يدل على وجود المزيد (v628) */
+#billTabs, #puTabs { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 26px); mask-image: linear-gradient(to right, transparent 0, #000 26px); }
+
+/* رقم الفاتورة يظهر كاملاً، ومساحة أسفل الشاشة كي لا يغطي زر السلة العائم آخر الحقول (v628) */
+.bill-no input { width: 150px; font-size: .78rem; }
+body.admin-page[data-view="bill"] { padding-bottom: 90px; }
