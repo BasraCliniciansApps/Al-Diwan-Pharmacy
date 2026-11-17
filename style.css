@@ -3954,9 +3954,9 @@ html{-webkit-text-size-adjust:100%;-moz-text-size-adjust:100%;text-size-adjust:1
 #homeView .home-tile.tile-stock > svg { border-color: rgba(255,255,255,.35) !important; background: rgba(255,255,255,.2) !important; }
 #homeView .home-tile.tile-purch { background: linear-gradient(155deg, #12968a 0%, #0b5f58 100%) !important; box-shadow: 0 2px 3px rgba(11,95,88,.3), 0 18px 30px -14px rgba(11,95,88,.7) !important; }
 #homeView .home-tile.tile-scan, #homeView .home-tile.tile-cus, #homeView .home-tile.tile-rxh, #homeView .home-tile.tile-inv,
-#homeView .home-tile.tile-gear, #homeView .home-tile.tile-calc, #homeView .home-tile.tile-cat, #homeView .home-tile.tile-exp { background: linear-gradient(155deg, #2c437a 0%, #172647 100%) !important; box-shadow: 0 2px 3px rgba(23,38,71,.3), 0 14px 24px -14px rgba(23,38,71,.75) !important; }
+#homeView .home-tile.tile-gear, #homeView .home-tile.tile-calc, #homeView .home-tile.tile-cat, #homeView .home-tile.tile-exp, #homeView .home-tile.tile-fu { background: linear-gradient(155deg, #2c437a 0%, #172647 100%) !important; box-shadow: 0 2px 3px rgba(23,38,71,.3), 0 14px 24px -14px rgba(23,38,71,.75) !important; }
 #homeView .home-tile.tile-scan > svg, #homeView .home-tile.tile-cus > svg, #homeView .home-tile.tile-rxh > svg, #homeView .home-tile.tile-inv > svg,
-#homeView .home-tile.tile-gear > svg, #homeView .home-tile.tile-calc > svg, #homeView .home-tile.tile-cat > svg, #homeView .home-tile.tile-exp > svg { color: #f9c14a; }
+#homeView .home-tile.tile-gear > svg, #homeView .home-tile.tile-calc > svg, #homeView .home-tile.tile-cat > svg, #homeView .home-tile.tile-exp > svg, #homeView .home-tile.tile-fu > svg { color: #f9c14a; }
 #homeView .home-tile.tile-alert { background: linear-gradient(155deg, #c4504b 0%, #8f2a27 100%) !important; box-shadow: 0 2px 3px rgba(143,42,39,.3), 0 14px 24px -14px rgba(143,42,39,.75) !important; }
 
 /* v487 خط الرقعة لعناوين كل أزرار الواجهة (الصغيرة أيضاً) */
@@ -4796,3 +4796,33 @@ body.admin-page[data-view="bill"] { padding-bottom: 90px; }
 .ss-by { margin-top: 12px; line-height: 1.9; } .ss-by b { color: #334155; }
 .ss-cap { display: grid; grid-template-columns: 1fr 110px; gap: 8px; align-items: center; margin-top: 14px; font-size: .8rem; font-weight: 700; color: #475569; }
 .ss-cap input { height: var(--field-h, 46px); box-sizing: border-box; width: 100%; text-align: center; border: 1px solid var(--border, #d8e0ec); border-radius: var(--field-r, 12px); font-family: inherit; font-size: .9rem; }
+
+/* v645: المتابعات */
+body.role-staff:not(.can-followups) .home-tile.tile-fu, body.role-staff:not(.can-followups) .home-row6 { display: none !important; }
+.fu-row.fu-late { border-color: #fca5a5; background: #fef2f2; }
+.fu-av { font-size: 1.1rem; }
+.fu-av.wp { background: #e0e7ff; } .fu-av.wb { background: #fef3c7; } .fu-av.ok { background: #d1fae5; } .fu-av.bad { background: #fee2e2; }
+.fu-st { flex: none; font-size: .74rem; font-weight: 800; padding: 4px 10px; border-radius: 999px; background: #e2e8f0; color: #334155; white-space: nowrap; }
+.fu-st.wp { background: #e0e7ff; color: #3730a3; } .fu-st.wb { background: #fef3c7; color: #92400e; } .fu-st.ok { background: #d1fae5; color: #065f46; } .fu-st.bad { background: #fee2e2; color: #991b1b; }
+.fu-chips { padding-inline: 0; }
+.fu-q { margin: 0 0 8px; } .fu-q input { width: 100%; height: 46px; border: 1px solid #cbd5e1; border-radius: 12px; padding: 0 12px; font: inherit; font-size: 1rem; background: #fff; box-sizing: border-box; }
+.fu-days { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 14px 2px 4px; font-size: .86rem; font-weight: 700; color: #475569; }
+.fu-days input { width: 90px; height: 42px; border: 1px solid #cbd5e1; border-radius: 12px; text-align: center; font: inherit; background: #fff; }
+.fu-form { display: grid; gap: 12px; align-content: start; }
+.fu-l { display: grid; gap: 5px; font-size: .82rem; font-weight: 800; color: #334155; min-width: 0; }
+.fu-in { width: 100%; height: 46px; border: 1px solid #cbd5e1; border-radius: 12px; padding: 0 12px; font: inherit; font-size: 1rem; font-weight: 500; background: #fff; box-sizing: border-box; min-width: 0; }
+.fu-in:disabled { background: #f1f5f9; color: #64748b; }
+.fu-ta { height: auto; min-height: 64px; padding: 10px 12px; resize: vertical; }
+.fu-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; align-items: end; }
+.fu-sw { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 46px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 12px; background: #fff; font-weight: 700; }
+.fu-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 46px; padding: 6px 12px; border: 1px solid #99f6e4; border-radius: 12px; background: #f0fdfa; font-weight: 700; }
+.fu-mode button:disabled { opacity: .5; }
+.fu-det { display: grid; gap: 6px; text-align: right; }
+.fu-det-st { justify-self: start; margin-bottom: 4px; }
+.fu-dr { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f1f5f9; font-size: .9rem; } .fu-dr span { color: #64748b; flex: none; } .fu-dr b { text-align: left; word-break: break-word; }
+.fu-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.fu-ab { min-height: 46px; border: 1.5px solid #cbd5e1; border-radius: 12px; background: #fff; font: inherit; font-weight: 800; font-size: .86rem; color: #0f1c38; cursor: pointer; padding: 6px; }
+.fu-ab.ok { background: #0f766e; border-color: #0f766e; color: #fff; } .fu-ab.bad { color: #b91c1c; border-color: #fca5a5; }
+[data-theme="dark"] .fu-in, [data-theme="dark"] .fu-q input, [data-theme="dark"] .fu-days input, [data-theme="dark"] .fu-sw, [data-theme="dark"] .fu-ab { background: #1e293b; border-color: #334155; color: #e2e8f0; }
+[data-theme="dark"] .fu-row.fu-late { background: #3b1d1d; } [data-theme="dark"] .fu-item { background: #12302d; border-color: #115e59; } [data-theme="dark"] .fu-l { color: #cbd5e1; }
+#fuBox .cn-new { font-family: inherit; font-weight: 800; font-size: 1rem; }

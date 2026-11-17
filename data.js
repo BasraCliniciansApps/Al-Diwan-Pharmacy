@@ -347,7 +347,7 @@ async function syncClock() {
 }
 setTimeout(syncClock, 3000); setInterval(syncClock, 6 * 3600e3); window.addEventListener('online', () => setTimeout(syncClock, 1500));
 // السجلات المتزامنة تُختم بوقت آخر تعديل الموثوق (_u): أساس المزامنة التدريجية (يُجلب بعد المؤشر فقط)
-const DELTA_COLLS = { pharmacy_purchases: 1, pharmacy_suppliers: 1, pharmacy_ledger: 1, pharmacy_invoices: 1, pharmacy_expenses: 1, pharmacy_counts: 1 };
+const DELTA_COLLS = { pharmacy_purchases: 1, pharmacy_suppliers: 1, pharmacy_ledger: 1, pharmacy_invoices: 1, pharmacy_expenses: 1, pharmacy_counts: 1, pharmacy_followups: 1 };
 // _su = وقت الخادم عند وصول الكتابة فعلاً (حتى الكتابات المؤجلة دون إنترنت تأخذ وقتها عند الوصول)، فلا يفوت أي جهاز سجلاً متأخراً
 function fsSet(ref, data, opts) {
     let out = data, stamped = false;
@@ -450,7 +450,7 @@ function showSyncStatus() {
     const u = usageGet(), cw = usageCap('w'), cr = usageCap('r');
     const bar = (label, n, cap) => { const pc = Math.min(100, Math.round(n / Math.max(1, cap) * 100)); return `<div class="ss-use"><div class="ss-ut"><span>${label}</span><b>${n} من ${cap}</b></div><div class="ss-bar"><i class="${pc >= 90 ? 'hi' : pc >= 70 ? 'mid' : ''}" style="width:${pc}%"></i></div></div>`; };
     const nearCap = u.w / Math.max(1, cw) >= .7 || u.r / Math.max(1, cr) >= .7;
-    const SRC = { pharmacy_products: 'المواد', pharmacy_stock: 'المخزون', pharmacy_cost: 'التكلفة', pharmacy_purchases: 'الواردات', pharmacy_suppliers: 'المذاخر', pharmacy_ledger: 'الدفتر', pharmacy_invoices: 'الفواتير', pharmacy_expenses: 'المصروفات', pharmacy_counts: 'الجرد', pharmacy_moves: 'الحركات', pharmacy_log: 'السجل', pharmacy_backups: 'النسخ الاحتياطية', pharmacy_users: 'المستخدمون', pharmacy: 'الإعدادات' };
+    const SRC = { pharmacy_products: 'المواد', pharmacy_stock: 'المخزون', pharmacy_cost: 'التكلفة', pharmacy_purchases: 'الواردات', pharmacy_suppliers: 'المذاخر', pharmacy_ledger: 'الدفتر', pharmacy_invoices: 'الفواتير', pharmacy_expenses: 'المصروفات', pharmacy_counts: 'الجرد', pharmacy_followups: 'المتابعات', pharmacy_moves: 'الحركات', pharmacy_log: 'السجل', pharmacy_backups: 'النسخ الاحتياطية', pharmacy_users: 'المستخدمون', pharmacy: 'الإعدادات' };
     const topBy = (t) => { const m = usageBy()[t] || {}; return Object.keys(m).sort((a, b) => m[b] - m[a]).slice(0, 4).map(k => `<span>${escapeHtml(SRC[k] || k)}: <b>${fmtNum(m[k])}</b></span>`).join(' · '); };
     const byHtml = (topBy('r') || topBy('w')) ? `<div class="ss-note ss-by">${topBy('r') ? '<div>أكثر القراءات: ' + topBy('r') + '</div>' : ''}${topBy('w') ? '<div>أكثر الكتابات: ' + topBy('w') + '</div>' : ''}</div>` : '';
     const capHtml = userRole === 'owner' ? `<div class="ss-cap"><label for="ssCapR">الحد اليومي للقراءات</label><input id="ssCapR" type="number" inputmode="numeric" min="1000" step="1000" value="${cr}" onchange="usageSetCap('r', this.value)"><label for="ssCapW">الحد اليومي للكتابات</label><input id="ssCapW" type="number" inputmode="numeric" min="1000" step="500" value="${cw}" onchange="usageSetCap('w', this.value)"></div><div class="ss-note">حصة Firebase المجانية للمشروع كله 50,000 قراءة و20,000 كتابة يومياً، وهي مشتركة بين كل الأجهزة. يُفضّل أن يكون مجموع حدود الأجهزة أقل منها.</div>` : '';
@@ -5521,6 +5521,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         ['rxHub', () => vis('rxHub'), () => { if (typeof rxCurId !== 'undefined' && rxCurId) rxBack(); else rxClose(); }],
         ['cuOv', () => vis('cuOv'), () => { if (typeof cuBack === 'function') cuBack(); else cuClose(); }],
         ['exOv', () => vis('exOv'), () => exClose()],
+        ['fuOv', () => vis('fuOv'), () => { if (typeof fuBack === 'function') fuBack(); else fuClose(); }],
         ['cnOv', () => vis('cnOv'), () => { if (typeof cnBack === 'function') cnBack(); else cnClose(); }],
         ['posOv', () => vis('posOv'), () => { if (typeof posClose === 'function') posClose(); }],
         ['docHub', () => vis('docHub'), () => docClose()],

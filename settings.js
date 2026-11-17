@@ -312,7 +312,7 @@ function shHubHead(el, back, label) {
 }
 
 // صلاحيات تظهر/تخفي أزرار حسب الدور: زر الملصقات في المخزن، وتقارير النظام للمدير فقط
-setInterval(() => { try { document.body.classList.toggle('can-stockedit', can('stockEdit')); const r = document.getElementById('repSys'); if (r) r.hidden = userRole !== 'owner'; } catch (e) { /* تجاهل */ } }, 1000);
+setInterval(() => { try { document.body.classList.toggle('can-stockedit', can('stockEdit')); document.body.classList.toggle('can-followups', can('followups')); const r = document.getElementById('repSys'); if (r) r.hidden = userRole !== 'owner'; } catch (e) { /* تجاهل */ } }, 1000);
 
 document.addEventListener('click', e => { const d = e.target.closest && e.target.closest('#catModal .set-desc'); if (d && !e.target.closest('a,button')) d.classList.toggle('open'); });
 
