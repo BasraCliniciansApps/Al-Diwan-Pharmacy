@@ -1,0 +1,24 @@
+name: Vendor SweetAlert2
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download SweetAlert2 (pinned)
+        run: |
+          mkdir -p vendor /tmp/sw && cd /tmp/sw
+          npm pack sweetalert2@11.26.25
+          tar xzf sweetalert2-11.26.25.tgz
+          cp package/dist/sweetalert2.all.min.js "$GITHUB_WORKSPACE/vendor/sweetalert2.all.min.js"
+          cp package/LICENSE "$GITHUB_WORKSPACE/vendor/sweetalert2.LICENSE"
+      - name: Commit
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add vendor/sweetalert2.all.min.js vendor/sweetalert2.LICENSE
+          git commit -m "تضمين SweetAlert2 محلياً (11.26.25)" || echo "no changes"
+          git push
