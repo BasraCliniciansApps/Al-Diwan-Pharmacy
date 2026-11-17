@@ -220,7 +220,8 @@ function puRecalc() {
         const sum = fmtNum(puNum(it.qty) * puNum(it.cost)), set = (id, v) => { const el = $b(id + i); if (el) el.innerText = v; };
         { const el = $b('puPs-' + i); if (el) el.innerHTML = puPM(it) === 'syndicate' ? syndHintHtml(puEffCost(it)) : puPM(it) === 'percent' ? markupHintHtml(puEffCost(it), it.pmarkup) : ''; }
         { const el = $b('puBcH-' + i); if (el) { const on = it.bc && (parseInt(it.bonus) || 0) > 0 && puNum(it.cost) > 0; el.style.display = on ? 'block' : 'none'; if (on) el.innerHTML = 'الكلفة الفعلية للقطعة: <b>' + fmtNum(Math.round(puEffCost(it))) + '</b> (' + fmtNum(puNum(it.qty)) + ' + ' + fmtNum(puNum(it.bonus)) + ' مجاناً) — يُسعَّر البيع وتُقيَّد كلفة المخزن على هذا الأساس'; } }
-        puRetailRefresh(i); set('puLine-', sum); set('puBq-', fmtNum(puNum(it.qty))); set('puBc-', puNum(it.cost) > 0 ? fmtNum(it.cost) : '⚠ بلا سعر'); set('puBs-', sum);
+        { const el = $b('puMg-' + i); if (el) { const co = puEffCost(it), pr = puSellPrice(it, co); const on = !pu.gift && pr > 0 && co > 0; el.style.display = on ? 'block' : 'none'; if (on) { el.className = 'fs-margin' + (pr < co ? ' bad' : ''); el.innerHTML = 'الربح للقطعة: <b>' + fmtNum(Math.round(pr - co)) + ' د.ع (' + ((pr - co) / pr * 100).toFixed(1) + '٪)</b>'; } } }
+                puRetailRefresh(i); set('puLine-', sum); set('puBq-', fmtNum(puNum(it.qty))); set('puBc-', puNum(it.cost) > 0 ? fmtNum(it.cost) : '⚠ بلا سعر'); set('puBs-', sum);
     });
 }
 function puThumb(pid) { const p = products.find(x => x.id === pid); return p && p.img ? `<img class="pk-img" src="${escapeHtml(p.img)}" alt="" onerror="this.style.visibility='hidden'">` : '<span class="pk-img pk-noimg">💊</span>'; }
@@ -267,6 +268,7 @@ function puRenderItems() {
                     <label id="puPk-${i}" style="display:${puPM(it) === 'percent' ? 'block' : 'none'}"><span>نسبة الإضافة على سعر الشراء (%)</span><input type="number" min="0" step="any" inputmode="decimal" placeholder="مثال: 25" value="${escapeHtml(String(puMk(it)))}" oninput="puItemEdit(${i},'pmarkup',this.value)"></label>
                     <label id="puPm-${i}" style="display:${(pu.gift || puPM(it) === 'manual' || puPM(it) === 'free') ? 'block' : 'none'}"><span>سعر البيع المطبوع على الملصق ${puCurPrice(it.pid)}</span><input type="number" min="0" inputmode="decimal" placeholder="اتركه فارغاً للإبقاء على السعر الحالي" value="${escapeHtml(it.pprice || '')}" oninput="puItemEdit(${i},'pprice',this.value)"></label>
                     <div id="puPs-${i}" class="pu-syn" style="display:${puPM(it) === 'syndicate' || puPM(it) === 'percent' ? 'block' : 'none'}"></div>
+                    <div id="puMg-${i}" class="fs-margin"></div>
                 </div>
                 ${puRetailHtml(it, i)}
                 ${pu.gift ? '' : `<div class="pu-line">المجموع: <b id="puLine-${i}">0</b> د.ع</div>`}
@@ -288,6 +290,13 @@ function puRetailWarn(it) {   // تنبيه: سعر جزء يدوي محفوظ �
     if (it.rsp != null) return '';
     const p = products.find(x => x.id === it.pid); if (!puSubManual(p)) return '';
     const auto = puRetailPriceAuto(it); return auto > 0 && Math.round(auto) !== Math.round(puNum(p.subPrice)) ? `<br><span style="color:#c0392b">⚠ سعر الجزء اليدوي المحفوظ (<bdi>${fmtNum(p.subPrice)}</bdi> د.ع) يختلف عن المحسوب من السعر الجديد (<bdi>${fmtNum(auto)}</bdi> د.ع). امسح الخانة ليُحسب تلقائياً.</span>` : '';
+}
+function puSellPrice(it, cost) {   // سعر البيع الذي سيُعتمد لهذه المادة بحسب طريقة التسعير
+    const p = products.find(x => x.id === it.pid), pm = puPM(it);
+    if (pm === 'percent' && cost > 0) return markupCalc(cost, puNum(puMk(it)));
+    if (pm === 'syndicate' && cost > 0) return syndPrice(cost);
+    if (puNum(it.pprice) > 0) return puNum(it.pprice);
+    return p ? Number(p.price) || 0 : 0;
 }
 function puRetailPriceAuto(it) {
     const p = products.find(x => x.id === it.pid); const pm = puPM(it), cost = puEffCost(it);

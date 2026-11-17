@@ -96,7 +96,7 @@
     if (APP && APP.addListener) {
         APP.addListener('backButton', () => {
             try { if (locked) return; if (window.__handleBack && window.__handleBack()) return; } catch (e) { /* تجاهل */ }
-            try { APP.exitApp(); } catch (e) { /* تجاهل */ }
+            try { if (APP.minimizeApp) APP.minimizeApp(); else APP.exitApp(); } catch (e) { try { APP.exitApp(); } catch (e2) { /* تجاهل */ } }
         });
     }
 
@@ -305,7 +305,7 @@
         };
         go();
     };
-    NAT.exit = () => { try { if (APP && APP.exitApp) APP.exitApp(); } catch (e) { /* تجاهل */ } };
+    NAT.exit = () => { try { if (APP && APP.minimizeApp) APP.minimizeApp(); else if (APP && APP.exitApp) APP.exitApp(); } catch (e) { /* تجاهل */ } };
     // الإغلاق المباشر: إذا فُتح التطبيق من أيقونة البيع/الفاحص فإغلاق الشاشة يخرج من التطبيق بدل الرجوع للرئيسية
     window.addEventListener('load', () => {
         const shown = id => { const e = document.getElementById(id); return !!e && getComputedStyle(e).display !== 'none'; };
