@@ -193,7 +193,7 @@ splashTimer = setTimeout(() => { if (currentView === 'splash') showView('login')
 // (إن تبيّن أن الجلسة انتهت أو عُطّل الحساب تعود شاشة الدخول تلقائياً)
 try {
     const sr = localStorage.getItem('diwanHadSess'); let ok = false;
-    if (sr === 'owner') { userRole = 'owner'; userName = 'المالك'; ok = true; }
+    if (sr === 'owner') { userRole = 'owner'; userName = 'المدير'; ok = true; }
     else if (sr === 'staff') { const rc = JSON.parse(localStorage.getItem('diwanRoleCache') || 'null'); if (rc && rc.doc && rc.doc.active !== false) { userRole = 'staff'; userPerms = rc.doc.perms || {}; userName = rc.doc.name || ''; window.userOrd = parseInt(rc.doc.ord) || 0; ok = true; } }
     if (ok) { document.body.classList.add('admin-mode'); if (typeof applyRoleUI === 'function') applyRoleUI(); clearTimeout(splashTimer); showView('home'); }
 } catch (e) { /* تجاهل: نكمل بالمسار العادي */ }

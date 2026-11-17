@@ -1,7 +1,7 @@
 // ============================================================================
-// المصروفات وصافي الربح (للمالك فقط)
+// المصروفات وصافي الربح (للمدير فقط)
 // صافي الربح = الربح الإجمالي (من كلفة المواد المسجَّلة بالفواتير) − المصروفات.
-// المصروفات في Firestore: pharmacy_expenses (للمالك فقط)، مع نسخة محلية.
+// المصروفات في Firestore: pharmacy_expenses (للمدير فقط)، مع نسخة محلية.
 // ============================================================================
 const EX_LS = 'diwanExpenses', EX_CATS_LS = 'diwanExpCats';
 const EX_DEF_CATS = ['إيجار', 'رواتب', 'كهرباء وماء', 'نقل وتوصيل', 'صيانة', 'مستلزمات', 'أخرى'];
@@ -69,7 +69,7 @@ function exEnsureDom() {
     d.innerHTML = '<div class="cn-box" id="exBox"></div>'; document.body.appendChild(d);
 }
 async function exOpen(tab) {
-    if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'هذه الصفحة للمالك فقط.', confirmButtonColor: '#0f1c38' }); return; }
+    if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'هذه الصفحة للمدير فقط.', confirmButtonColor: '#0f1c38' }); return; }
     exEnsureDom(); exTab = tab || 'rep'; exAll = exLocal(); try { cuLoadLocal(); } catch (e) { /* تجاهل */ }
     document.getElementById('exOv').style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open'); exOpenFlag = true;
     exRender();
@@ -136,7 +136,7 @@ async function exEdit(id) {
         const n = await Swal.fire({ title: 'اسم التصنيف الجديد', input: 'text', showCancelButton: true, confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e' });
         const v = n.isConfirmed ? String(n.value || '').trim() : ''; if (!v) return; r.value.c = v;
     }
-    const rec = cur ? { ...cur } : { id: 'ex' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: new Date().toISOString(), by: (typeof userName !== 'undefined' && userName) || 'المالك' };
+    const rec = cur ? { ...cur } : { id: 'ex' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ts: new Date().toISOString(), by: (typeof userName !== 'undefined' && userName) || 'المدير' };
     rec.date = r.value.d; rec.cat = r.value.c; rec.amount = r.value.a; rec.note = r.value.n; rec.upd = new Date().toISOString();
     const h = Prog.start('حفظ المصروف', { text: 'جارٍ الحفظ...' });
     try {

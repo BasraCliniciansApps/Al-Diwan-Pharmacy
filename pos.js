@@ -223,7 +223,7 @@ function posField(k, v) {
 function posToggleExtra() { posExtraOpen = !posExtraOpen; posRender(); }
 
 // ---------- الإصدار: نافذة واحدة (خصم محسوب بلا خسارة + تسوية الألف + بيع آجل) ----------
-function posLimits() {   // أعلى خصم مسموح بالمبلغ، بنفس منطق فاحص المادة (حد البائعين dlim، أو الحد الكامل للمالك)
+function posLimits() {   // أعلى خصم مسموح بالمبلغ، بنفس منطق فاحص المادة (حد البائعين dlim، أو الحد الكامل للمدير)
     const own = userRole === 'owner'; let allow = 0, unknown = false;
     bill.items.forEach(it => {
         const lt = (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), p = it.pid && products.find(x => x.id === it.pid); let lim = null;
@@ -235,7 +235,7 @@ function posLimits() {   // أعلى خصم مسموح بالمبلغ، بنفس
 // خصم يجعل الصافي مبلغاً بلا كسور (أقرب 250 د.ع)، وخيار «سعر الكلفة» (الكلفة مقرّبة إلى أقرب ألف فوقها)
 const POS_STEP_BIG = 1000, POS_STEP_SMALL = 250;
 function posStepFor(S) { return S >= 5000 ? POS_STEP_BIG : POS_STEP_SMALL; }   // الفواتير الصغيرة: 250 حتى لا يصير التقريب خصماً كبيراً
-function posCostRaw() {   // كلفة الفاتورة (للمالك من سعر الشراء، وللمستخدم من حد الخصم المخزن مع المادة)
+function posCostRaw() {   // كلفة الفاتورة (للمدير من سعر الشراء، وللمستخدم من حد الخصم المخزن مع المادة)
     const own = userRole === 'owner'; let cost = 0;
     bill.items.forEach(it => {
         const lt = (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), p = it.pid && products.find(x => x.id === it.pid); let lim = null;

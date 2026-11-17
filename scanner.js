@@ -36,7 +36,7 @@ async function scRecalcAll() {
     const ok = await saveProductsBatch(list);
     if (ok) h.ok('تم تحديث ' + fmtNum(list.length) + ' مادة'); else h.fail('تعذر الحفظ');
 }
-// ---- سجلات الشراء للمالك ----
+// ---- سجلات الشراء للمدير ----
 function scBuyLines(p) {
     const src = (typeof puAll !== 'undefined' && puAll && puAll.length) ? puAll : (typeof puLocalList === 'function' ? puLocalList() : []), out = [];
     src.filter(r => r && !r.cancelled).forEach(r => (r.items || []).forEach(l => { if ((l.pid === p.id || (!l.pid && puKey(l.name) === puKey(p.name))) && puNum(l.cost) > 0 && puNum(l.qty) > 0) out.push({ r, l, c: puNum(l.cost) }); }));
@@ -131,7 +131,7 @@ async function scDelExp(pid, ym) {
     else { Object.assign(p, snap); scRender(); }
 }
 // ---- صفحة الإعدادات ----
-const SC_SHOW_LABELS = { price: ['سعر البيع', 'يظهر لكل من يملك الأداة'], cost: ['سعر الشراء (أقل/أعلى/آخر سعر)', 'للمالك فقط — لا يصل إلى البائعين'], margin: ['الربح والهامش', 'للمالك فقط'], expiry: ['تواريخ الانتهاء', 'مع حالة كل تاريخ'], del: ['زر حذف تاريخ الانتهاء', 'للصيدلي، وللمستخدم إذا مُنح صلاحية الحذف'], calc: ['حاسبة الخصم', 'نسبة أو سعر نهائي مع إشارة آمن/خطر'], limit: ['حد الخصم (أعلى خصم)', 'الرقم الأقصى المسموح'] };
+const SC_SHOW_LABELS = { price: ['سعر البيع', 'يظهر لكل من يملك الأداة'], cost: ['سعر الشراء (أقل/أعلى/آخر سعر)', 'للمدير فقط — لا يصل إلى البائعين'], margin: ['الربح والهامش', 'للمدير فقط'], expiry: ['تواريخ الانتهاء', 'مع حالة كل تاريخ'], del: ['زر حذف تاريخ الانتهاء', 'للصيدلي، وللمستخدم إذا مُنح صلاحية الحذف'], calc: ['حاسبة الخصم', 'نسبة أو سعر نهائي مع إشارة آمن/خطر'], limit: ['حد الخصم (أعلى خصم)', 'الرقم الأقصى المسموح'] };
 function shScanHtml() {
     const c = scCfg(), s = c.show;
     const opt = (k, ic, t, d) => `<button type="button" class="sc-opt ${c.mode === k ? 'on' : ''}" onclick="scSetMode('${k}')"><span>${ic}</span><span><b>${t}</b><small>${d}</small></span></button>`;

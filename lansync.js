@@ -47,7 +47,7 @@
     async function pair(addr, code) {
         const a = parseAddr(addr); if (!a) throw new Error('عنوان الحاسوب غير صحيح');
         ls.set(K.hub, { ip: a.ip, port: a.port });
-        const r = await http('POST', '/v1/pair', { code: String(code || '').trim(), deviceId: devId(), deviceName: ((typeof userName !== 'undefined' && userName) || (userRole === 'owner' ? 'المالك' : 'جهاز')) + ' · ' + (/Android/i.test(navigator.userAgent) ? 'هاتف' : 'متصفح') }, false);
+        const r = await http('POST', '/v1/pair', { code: String(code || '').trim(), deviceId: devId(), deviceName: ((typeof userName !== 'undefined' && userName) || (userRole === 'owner' ? 'المدير' : 'جهاز')) + ' · ' + (/Android/i.test(navigator.userAgent) ? 'هاتف' : 'متصفح') }, false);
         if (r.s !== 200 || !r.j.token) { ls.set(K.hub, null); throw new Error(r.s === 403 ? 'الرمز غير صحيح أو منتهي' : r.s === 429 ? 'محاولات كثيرة، انتظر دقيقة' : 'تعذر الربط'); }
         const old = ls.get(K.hub, {}); ls.set(K.hub, { ip: a.ip, port: a.port, token: r.j.token, prefix: r.j.prefix, name: r.j.hub, ips: old.ips || [a.ip] });
     }
@@ -154,8 +154,8 @@
         enqueue({ id: (type === 'invoice' ? 'inv:' : 'pur:') + rec.id + ':' + recStamp(rec).replace(/[^\w]/g, '').slice(-14), type, ts: new Date().toISOString(), data: { rec: data } });
     }
 
-    // ======================= تتبّع تعديلات المالك (كل البيانات) =======================
-    // المالك وحده يعدّل: أي تغيير في معلومات المادة/الصورة/السعر/الإعدادات/المذاخر/السجل يُرسَل تلقائياً كتغيير مفرد. الكميات لا تُرسَل هنا أبداً (تنتقل بعمليات فقط).
+    // ======================= تتبّع تعديلات المدير (كل البيانات) =======================
+    // المدير وحده يعدّل: أي تغيير في معلومات المادة/الصورة/السعر/الإعدادات/المذاخر/السجل يُرسَل تلقائياً كتغيير مفرد. الكميات لا تُرسَل هنا أبداً (تنتقل بعمليات فقط).
     const TK = 'diwanLanTrack';
     const SF = ['qty', 'loose', 'counted', 'bt', 'expiryDate', 'expiryDates'];
     const isOwner = () => userRole === 'owner';
@@ -272,7 +272,7 @@
         });
         return n;
     }
-    function trackIngest(type, data) {   // استلام تغيير من المالك على جهاز آخر
+    function trackIngest(type, data) {   // استلام تغيير من المدير على جهاز آخر
         let t = trackLoad() || { p: {}, c: '', r: {} }; let changed = false;
         if (type === 'pinfo') {
             const pid = String(data.pid); let p = products.find(x => String(x.id) === pid);
@@ -717,7 +717,7 @@
                 body += '<div class="ds-bk"><div class="ds-bk-t">بيانات الربط للهواتف</div>' + qr +
                     '<div class="ds-bk-p" dir="ltr">' + esc(ip + ':' + info.port) + '</div>' +
                     '<div class="ds-bk-s">الرمز: <b dir="ltr" style="letter-spacing:3px">' + esc(info.code || '——') + '</b>' + (info.code ? '' : ' (منتهٍ)') + '</div>' +
-                    '<div class="ds-bk-s">الرمز لربط: <b>' + (info.codeRole === 'owner' ? 'جهاز المالك' : 'جهاز مستخدم') + '</b></div><div class="ds-bk-b"><button type="button" onclick="LAN.newCode(\'staff\')">رمز للمستخدم</button><button type="button" onclick="LAN.newCode(\'owner\')">رمز للمالك</button><button type="button" onclick="LAN.review()">مراجعة العمليات (' + (info.pending || 0) + ')</button></div>' +
+                    '<div class="ds-bk-s">الرمز لربط: <b>' + (info.codeRole === 'owner' ? 'جهاز المدير' : 'جهاز مستخدم') + '</b></div><div class="ds-bk-b"><button type="button" onclick="LAN.newCode(\'staff\')">رمز للمستخدم</button><button type="button" onclick="LAN.newCode(\'owner\')">رمز للمدير</button><button type="button" onclick="LAN.review()">مراجعة العمليات (' + (info.pending || 0) + ')</button></div>' +
                     ((info.devices || []).length ? '<div class="ds-bk-s" style="margin-top:8px">الأجهزة المرتبطة: ' + info.devices.map(d => esc(d.name) + ' (' + esc(d.prefix) + ')').join('، ') + '</div>' : '') + '</div>';
             }
         } else {

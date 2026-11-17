@@ -1,6 +1,6 @@
 // =====================================================================
 // صفحة الطبيب (الإعدادات): تختار المواد التي تظهر للأطباء وحالة كل مادة.
-// تُحفظ في وثيقة pharmacy/doctor (قراءة عامة، كتابة للمالك فقط) وتقرأها الصفحة العامة doctor.html بقراءة واحدة.
+// تُحفظ في وثيقة pharmacy/doctor (قراءة عامة، كتابة للمدير فقط) وتقرأها الصفحة العامة doctor.html بقراءة واحدة.
 // لا تلمس المخزن ولا الجرد ولا وضع التأسيس.
 // =====================================================================
 const DOC_ST = { ok: 'متوفر', noph: 'غير متوفر في الصيدلية', nosup: 'غير متوفر في المذخر', back: 'عاد بعد انقطاع' };
@@ -238,7 +238,7 @@ async function docAlert(id) {
     const old = it.al; it.al = { s: st, t: Date.now() };
     const ok = await docPublish();
     if (ok) { h.ok('وصل التنبيه إلى صفحة الأطباء'); logAction('edit', p, [{ f: 'تنبيه الأطباء', from: '', to: DOC_ST[st] }]); }
-    else { if (old) it.al = old; else delete it.al; h.fail('تعذر الإرسال', 'تحقق من الاتصال وسجّل دخول المالك'); }
+    else { if (old) it.al = old; else delete it.al; h.fail('تعذر الإرسال', 'تحقق من الاتصال وسجّل دخول المدير'); }
     docRenderList();
 }
 function docSetNote(id, v) { const it = docData.items[id]; if (!it) return; v = String(v || '').trim(); if (v) it.nt = v; else delete it.nt; docSaveSoon(); }

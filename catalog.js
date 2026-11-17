@@ -145,7 +145,7 @@ function renderCatalog() {
     }
     const sb = document.getElementById('catSetup');
     if (sb) {
-        const own = userRole === 'owner', sw = `<label class="setup-sw ${own ? '' : 'ro'}" title="${own ? 'تشغيل / إيقاف وضع التأسيس' : 'للمالك فقط'}"><input type="checkbox" ${setupMode ? 'checked' : ''} ${own ? '' : 'disabled'} onchange="toggleSetupMode(this.checked)"><i></i></label>`;
+        const own = userRole === 'owner', sw = `<label class="setup-sw ${own ? '' : 'ro'}" title="${own ? 'تشغيل / إيقاف وضع التأسيس' : 'للمدير فقط'}"><input type="checkbox" ${setupMode ? 'checked' : ''} ${own ? '' : 'disabled'} onchange="toggleSetupMode(this.checked)"><i></i></label>`;
         sb.innerHTML = `<div class="setup-bar ${setupMode ? 'on' : 'off'}">${sw}<div class="setup-txt"><b>🧮 وضع التأسيس: ${setupMode ? 'مفعّل' : 'متوقف'}<button type="button" class="setup-i" onclick="catSetupInfo = !catSetupInfo; renderCatalog()" aria-label="تفاصيل">ⓘ</button></b><span ${catSetupInfo ? '' : 'hidden'}>${setupMode ? 'الوارد والبيع والمردود <u>لا تغيّر</u> كمية أي مادة «لم تُجرد». المادة تصير مجرودة أول ما تضبط عددها' + (unc ? '.' : ' — كل المواد انجردت 🎉') : 'كل المواد تتأثر بالوارد والبيع بشكل عادي. شغّله أثناء إدخال أرصدة الصيدلية.'}</span></div></div>`;
     }
     if (catSim) arr = arr.slice().sort((a, b) => (simKey.get(a.id) || '').localeCompare(simKey.get(b.id) || '') || rank.get(a.id) - rank.get(b.id));

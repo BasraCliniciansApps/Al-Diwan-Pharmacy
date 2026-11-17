@@ -181,17 +181,17 @@ function setupSkip(p) { return setupMode && !!p && p.counted !== true; }   // tr
 let stockReady = false;     // وصلت أول لقطة مخزون (من الكاش أو السحابة)
 let stockMap = {};          // بيانات المخزون الخاصة (للصيدلي فقط)
 let unsubStock = null;
-// التكلفة (سعر الشراء وآخر وارد ونسبة الربح) تُحفظ في مجموعة pharmacy_cost المقفلة على المالك بعد «فصل التكلفة»
+// التكلفة (سعر الشراء وآخر وارد ونسبة الربح) تُحفظ في مجموعة pharmacy_cost المقفلة على المدير بعد «فصل التكلفة»
 const OWNER_UID = 'VrZUN6AMvTPMklvhlZcwKlqJciY2';
 let userRole = 'staff', userPerms = {}, userName = '';   // الدور: owner أو staff (بصلاحيات userPerms)
-const LAN_LOCKED_PERMS = ['stockEdit', 'newItem', 'purchases', 'scanDel'];   // مع المزامنة المحلية: التعديل للمالك فقط
+const LAN_LOCKED_PERMS = ['stockEdit', 'newItem', 'purchases', 'scanDel'];   // مع المزامنة المحلية: التعديل للمدير فقط
 function can(p) {
     if (!p || userRole === 'owner') return true;
     try { if (LAN_LOCKED_PERMS.indexOf(p) >= 0 && (localStorage.getItem('diwanLanMode') === 'lan' || localStorage.getItem('diwanWaMode') === '1')) return false; } catch (e) { /* تجاهل */ }
     return !!(userPerms && userPerms[p]);
 }
 const COST_FIELDS = ['costPrice', 'lastPurchase', 'markupPct'];
-let costMap = {};           // بيانات التكلفة (للمالك فقط)
+let costMap = {};           // بيانات التكلفة (للمدير فقط)
 let costSplitOn = false;    // هل فُصلت التكلفة؟ (علامة في pharmacy_cost/_meta)
 let unsubCost = null;
 
@@ -380,7 +380,7 @@ function showSyncStatus() {
         if (window.diwanDesktop) { head = 'المزامنة عبر الحاسوب'; sub = 'هذا البرنامج يستقبل عمليات الهواتف على الشبكة'; tone = 'lan'; }
         else if (lanErr) { tone = 'err'; head = 'الحاسوب غير متصل'; sub = lanErr; }
         else { tone = 'lan'; head = 'متصل بالحاسوب'; sub = pend ? opsTxt(pend) + ' بانتظار الإرسال إليه' : 'كل العمليات وصلت إلى الحاسوب'; }
-    } else if (usagePaused === 'wa') { const n = window.WA ? WA.pendingCount() : 0; tone = n ? 'busy' : 'lan'; head = 'وضع واتساب'; sub = n ? opsTxt(n) + ' لم تُرسل إلى المالك بعد' : 'لا توجد مبيعات بانتظار الإرسال'; }
+    } else if (usagePaused === 'wa') { const n = window.WA ? WA.pendingCount() : 0; tone = n ? 'busy' : 'lan'; head = 'وضع واتساب'; sub = n ? opsTxt(n) + ' لم تُرسل إلى المدير بعد' : 'لا توجد مبيعات بانتظار الإرسال'; }
     else if (!isFirebaseReady) { tone = 'warn'; head = 'محلي فقط'; sub = 'لا يوجد اتصال بالسحابة'; }
     else if (usagePaused) { tone = 'warn'; head = 'الإرسال متوقف'; sub = usagePaused === 'cap' ? 'بلغ هذا الجهاز الحد اليومي' : 'بانتظار موافقتك'; }
     else if (!online) { tone = 'err'; head = 'بدون إنترنت'; sub = 'تُحفظ العمليات على الجهاز وتُرسل عند عودة الاتصال' + (pend ? ' (' + opsTxt(pend) + ' بانتظار الإرسال)' : ''); }
@@ -394,7 +394,7 @@ function showSyncStatus() {
     const html = `<div class="ss-wrap">
         <div class="ss-hero ss-${tone}"><span class="ss-dot"></span><div class="ss-ht"><b>${head}</b><small>${sub}</small></div></div>` +
         (dups.length ? `<div class="ss-warn">أرقام فواتير مكررة (أُصدرت من أجهزة مختلفة بدون إنترنت):<br>${dups.map(escapeHtml).join('، ')}</div>` : '') +
-        `<button type="button" class="ss-link" onclick="Swal.close();WA.open()">📲 المبيعات عبر واتساب<small>إرسال المبيعات إلى المالك أو استيرادها كملف</small></button>` +
+        `<button type="button" class="ss-link" onclick="Swal.close();WA.open()">📲 المبيعات عبر واتساب<small>${userRole === 'owner' ? 'إرسال لقطة المخزون إلى المستخدم واستيراد مبيعاته' : 'إرسال المبيعات إلى المدير واستيراد لقطة المخزون'}</small></button>` +
         `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}</details></div>`;
     const waM = usagePaused === 'wa';
     Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' } })      .then(r => { if (r.isConfirmed) { if (waM && window.WA) WA.exportSales(); else syncNow(); } else if (r.isDenied) hardRefresh(); });
@@ -2917,7 +2917,7 @@ async function saveProductsDelta(entries, op) {
         let useMoves = !!(op && op.key && F);
         try { const off = +localStorage.getItem('diwanMovesOff') || 0; if (off && Date.now() - off < 3600000) useMoves = false; } catch (e) { /* تجاهل */ }
         const nChunks = Math.ceil(entries.length / 15);
-        if (useMoves) {   // نسخة firebase compat لا تدعم batch.create: نتحقق من وجود سجل العملية قبل الكتابة (المالك فقط يقرأ السجل، وغيره يتخطى الفحص)
+        if (useMoves) {   // نسخة firebase compat لا تدعم batch.create: نتحقق من وجود سجل العملية قبل الكتابة (المدير فقط يقرأ السجل، وغيره يتخطى الفحص)
             try { const d0 = await Promise.race([db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#0' : '')).get(), new Promise(res => setTimeout(() => res(null), 2000))]); if (d0 && d0.exists) { const ae = new Error('already-exists'); ae.code = 'already-exists'; throw ae; } }
             catch (e0) { if (e0 && e0.code === 'already-exists') throw e0; }
         }
@@ -2964,7 +2964,7 @@ async function saveProductsDelta(entries, op) {
                 }
                 batch.set(ref, u, { merge: true });
             });
-            if (withMove) batch.set(db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#' + (i / 15) : '')), { key: op.key, kind: op.kind || '', inv: op.inv || '', no: op.no || '', by: userName || (userRole === 'owner' ? 'المالك' : ''), uid: currentUser.uid, ts: new Date().toISOString(), lines: slice.map(e => ({ p: e.p.id, dq: e.dq || 0, dl: e.dl || 0, q: parseInt(e.p.qty) || 0, l: parseInt(e.p.loose) || 0 })) });
+            if (withMove) batch.set(db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#' + (i / 15) : '')), { key: op.key, kind: op.kind || '', inv: op.inv || '', no: op.no || '', by: userName || (userRole === 'owner' ? 'المدير' : ''), uid: currentUser.uid, ts: new Date().toISOString(), lines: slice.map(e => ({ p: e.p.id, dq: e.dq || 0, dl: e.dl || 0, q: parseInt(e.p.qty) || 0, l: parseInt(e.p.loose) || 0 })) });
             return batch;
             };
             try { await fsCommit(build(useMoves)); }
@@ -2987,7 +2987,7 @@ async function saveProductsDelta(entries, op) {
             saveLocal(); setSyncText('☁️ تم الحفظ'); Prog.end(PO, 'quiet'); window.__opAlready = true; return true;
         }
         const code = err && err.code || '';
-        const why = code === 'permission-denied' ? 'لا تملك صلاحية هذه العملية على هذه المادة. راجع المالك لتفعيل صلاحية البيع، أو حدّث التطبيق.' : code === 'not-found' ? 'المادة غير موجودة في مخزون السحابة. يجب أن يضيفها المالك أولاً.' : err.message;
+        const why = code === 'permission-denied' ? 'لا تملك صلاحية هذه العملية على هذه المادة. راجع المدير لتفعيل صلاحية البيع، أو حدّث التطبيق.' : code === 'not-found' ? 'المادة غير موجودة في مخزون السحابة. يجب أن يضيفها المدير أولاً.' : err.message;
         const names = entries.slice(0, 4).map(e => e.p && e.p.name).filter(Boolean).join('، ');
         try { console.warn('saveProductsDelta', code, err && err.message, entries.map(e => ({ id: e.p && e.p.id, hasStock: !!stockMap[String(e.p && e.p.id)], bt: !!e.btOut, dq: e.dq, dl: e.dl, role: userRole }))); } catch (x) { /* تجاهل */ }
         await Swal.fire({ icon: 'error', title: 'خطأ في السحابة', html: escapeHtml(why) + (names ? '<br><small>المواد: ' + escapeHtml(names) + '</small>' : '') + '<br><small dir="ltr">' + escapeHtml(code || '') + '</small>', confirmButtonColor: '#0f1c38' });

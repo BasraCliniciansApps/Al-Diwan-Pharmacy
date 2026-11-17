@@ -1,10 +1,10 @@
 // =====================================================================
-// المبيعات عبر واتساب: مستخدم بلا سحابة ولا حاسوب يرسل مبيعاته كملف إلى المالك، والمالك يستورده فتتحدّث الأرصدة والفواتير.
-// المبدأ: ننقل «حركات» (ما بيع وما أُلغي) لا أرصدة، فتجتمع مبيعات المالك والمستخدم ولا تُلغي إحداهما الأخرى.
+// المبيعات عبر واتساب: مستخدم بلا سحابة ولا حاسوب يرسل مبيعاته كملف إلى المدير، والمدير يستورده فتتحدّث الأرصدة والفواتير.
+// المبدأ: ننقل «حركات» (ما بيع وما أُلغي) لا أرصدة، فتجتمع مبيعات المدير والمستخدم ولا تُلغي إحداهما الأخرى.
 //   • كل حركة لها معرّف فريد، فاستيراد الملف مرتين لا يكرّر شيئاً.
-//   • الملف موقَّع (HMAC-SHA256) بمفتاح خاص بكل جهاز مستخدم يمنحه المالك، فلا يُقبل ملف معدَّل أو من جهاز غير مسجَّل.
+//   • الملف موقَّع (HMAC-SHA256) بمفتاح خاص بكل جهاز مستخدم يمنحه المدير، فلا يُقبل ملف معدَّل أو من جهاز غير مسجَّل.
 //   • المستخدم لا يرسل إلا البيع والإلغاء والتعديل والمرتجع، ولا يرسل أسعار الشراء.
-//   • «لقطة المخزون» من المالك للمستخدم: أرصدة وأسعار حديثة، وتُعاد فوقها مبيعات المستخدم التي لم يؤكدها المالك.
+//   • «لقطة المخزون» من المدير للمستخدم: أرصدة وأسعار حديثة، وتُعاد فوقها مبيعات المستخدم التي لم يؤكدها المدير.
 // =====================================================================
 (function () {
     'use strict';
@@ -94,7 +94,7 @@
         if (!op || !op.id) return;
         const all = ops(); if (all.some(x => x.id === op.id)) return;
         const lim = Date.now() - OPS_KEEP_DAYS * 86400000, e = expMap(), s = seenSet();
-        const keep = all.filter(x => !(s.has(x.id) && Date.parse(x.ts) < lim));   // ما أكّده المالك وقدُم يُحذف
+        const keep = all.filter(x => !(s.has(x.id) && Date.parse(x.ts) < lim));   // ما أكّده المدير وقدُم يُحذف
         keep.push(op); ls.set(K.ops, keep);
         const em = {}; keep.forEach(x => { if (e[x.id]) em[x.id] = e[x.id]; }); ls.set(K.exp, em);
         refresh(); try { syncRefresh(); } catch (x) { /* تجاهل */ }
@@ -119,27 +119,27 @@
     const codeOf = d => 'DWA1-' + b64e(JSON.stringify({ k: d.kid, s: d.secret, n: d.label }));
 
     async function setLink() {
-        const r = await Swal.fire({ title: 'ربط بالمالك', html: '<div style="text-align:right;font-size:.85rem;margin-bottom:8px">الصق رمز الربط الذي أرسله لك المالك (يبدأ بـ DWA1).</div><textarea id="waCodeIn" class="swal2-textarea" dir="ltr" style="height:90px;font-size:.8rem" placeholder="DWA1-..."></textarea>', showCancelButton: true, confirmButtonText: 'ربط', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', preConfirm: () => { const c = parseCode(document.getElementById('waCodeIn').value); if (!c) { Swal.showValidationMessage('الرمز غير صحيح. انسخه كاملاً كما وصلك.'); return false; } return c; } });
+        const r = await Swal.fire({ title: 'ربط بالمدير', html: '<div style="text-align:right;font-size:.85rem;margin-bottom:8px">الصق رمز الربط الذي أرسله لك المدير (يبدأ بـ DWA1).</div><textarea id="waCodeIn" class="swal2-textarea" dir="ltr" style="height:90px;font-size:.8rem" placeholder="DWA1-..."></textarea>', showCancelButton: true, confirmButtonText: 'ربط', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', preConfirm: () => { const c = parseCode(document.getElementById('waCodeIn').value); if (!c) { Swal.showValidationMessage('الرمز غير صحيح. انسخه كاملاً كما وصلك.'); return false; } return c; } });
         if (!r.isConfirmed || !r.value) return;
         const old = link();
-        if (old && old.k !== r.value.k && unconfirmed().length) { const q = await Swal.fire({ icon: 'warning', title: 'يوجد مبيعات غير مؤكدة', text: 'ربط الجهاز بمالك آخر قد يُضيّع مبيعاتك غير المؤكدة. تأكد من إرسالها أولاً. المتابعة؟', showCancelButton: true, confirmButtonText: 'متابعة', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c' }); if (!q.isConfirmed) return; }
+        if (old && old.k !== r.value.k && unconfirmed().length) { const q = await Swal.fire({ icon: 'warning', title: 'يوجد مبيعات غير مؤكدة', text: 'ربط الجهاز بمدير آخر قد يُضيّع مبيعاتك غير المؤكدة. تأكد من إرسالها أولاً. المتابعة؟', showCancelButton: true, confirmButtonText: 'متابعة', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c' }); if (!q.isConfirmed) return; }
         ls.set(K.link, { k: r.value.k, s: r.value.s, n: r.value.n, at: nowIso() });
-        toast('success', 'تم الربط بالمالك'); refresh();
+        toast('success', 'تم الربط بالمدير'); refresh();
     }
     async function unlink() {
         const n = groups(unconfirmed());
-        const r = await Swal.fire({ icon: 'warning', title: 'فك الربط بالمالك؟', html: 'لن تتمكن من إرسال مبيعات أو استلام لقطة مخزون حتى تربط الجهاز من جديد.' + (n ? '<br><b style="color:#b91c1c">يوجد ' + num(n) + ' فاتورة لم يؤكدها المالك.</b>' : ''), showCancelButton: true, confirmButtonText: 'فك الربط', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c' });
+        const r = await Swal.fire({ icon: 'warning', title: 'فك الربط بالمدير؟', html: 'لن تتمكن من إرسال مبيعات أو استلام لقطة مخزون حتى تربط الجهاز من جديد.' + (n ? '<br><b style="color:#b91c1c">يوجد ' + num(n) + ' فاتورة لم يؤكدها المدير.</b>' : ''), showCancelButton: true, confirmButtonText: 'فك الربط', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c' });
         if (!r.isConfirmed) return;
         if (waOn()) { await setMode(false, true); if (waOn()) return; }
         try { localStorage.removeItem(K.link); } catch (e) { /* تجاهل */ }
         toast('success', 'فُكّ الربط'); refresh();
     }
     async function setMode(on, silent) {
-        if (isOwner()) { Swal.fire({ icon: 'info', title: 'لحساب المستخدم فقط', text: 'المالك يستورد الملفات ولا يحتاج هذا الوضع.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return false; }
+        if (isOwner()) { Swal.fire({ icon: 'info', title: 'لحساب المستخدم فقط', text: 'المدير يستورد الملفات ولا يحتاج هذا الوضع.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return false; }
         if (on) {
-            if (!link()) { await Swal.fire({ icon: 'info', title: 'اربط الجهاز بالمالك أولاً', text: 'اضغط «ربط بالمالك» وألصق الرمز الذي أرسله لك.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return false; }
+            if (!link()) { await Swal.fire({ icon: 'info', title: 'اربط الجهاز بالمدير أولاً', text: 'اضغط «ربط بالمدير» وألصق الرمز الذي أرسله لك.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return false; }
             if (L.mode() === 'lan') { await Swal.fire({ icon: 'info', title: 'المزامنة عبر الحاسوب مفعّلة', text: 'أوقفها أولاً من الإعدادات، فلا يجتمع الوضعان.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return false; }
-            const r = await Swal.fire({ icon: 'question', title: 'تفعيل وضع واتساب؟', html: 'يتوقف اتصال هذا الجهاز بالسحابة، وتُحفظ مبيعاتك على الجهاز ثم ترسلها للمالك كملف عبر واتساب.<br><small>الأرصدة تتحدّث عندك حين تستورد «لقطة المخزون» من المالك.</small>', showCancelButton: true, confirmButtonText: 'تفعيل', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+            const r = await Swal.fire({ icon: 'question', title: 'تفعيل وضع واتساب؟', html: 'يتوقف اتصال هذا الجهاز بالسحابة، وتُحفظ مبيعاتك على الجهاز ثم ترسلها للمدير كملف عبر واتساب.<br><small>الأرصدة تتحدّث عندك حين تستورد «لقطة المخزون» من المدير.</small>', showCancelButton: true, confirmButtonText: 'تفعيل', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
             if (!r.isConfirmed) return false;
             try { localStorage.setItem(K.mode, '1'); } catch (e) { /* تجاهل */ }
             try { await Promise.race([usagePause('wa'), new Promise(r => setTimeout(r, 4000))]); } catch (e) { /* تجاهل */ }
@@ -152,7 +152,7 @@
         let choice = 'cloud';
         if (!silent || un.length) {
             const sm = summarize(un);
-            const r = await Swal.fire({ icon: un.length ? 'warning' : 'question', title: 'الرجوع إلى السحابة؟', html: (un.length ? 'لديك <b>' + num(pendingCount()) + '</b> فاتورة لم تُرسل للمالك.<br>اختر: رفعها إلى السحابة مباشرة، أو إرسالها كملف أولاً.' : 'ستعود المزامنة مع السحابة.') + (warnSent ? '<br><small style="color:#b45309">أرسلتَ كملف ' + num(warnSent) + ' فاتورة لم يؤكدها المالك بعد؛ تأكد أنه استوردها.</small>' : ''), showCancelButton: true, showDenyButton: un.length > 0, confirmButtonText: un.length ? 'رفعها للسحابة والرجوع' : 'رجوع', denyButtonText: 'إرسالها كملف أولاً', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' } });
+            const r = await Swal.fire({ icon: un.length ? 'warning' : 'question', title: 'الرجوع إلى السحابة؟', html: (un.length ? 'لديك <b>' + num(pendingCount()) + '</b> فاتورة لم تُرسل للمدير.<br>اختر: رفعها إلى السحابة مباشرة، أو إرسالها كملف أولاً.' : 'ستعود المزامنة مع السحابة.') + (warnSent ? '<br><small style="color:#b45309">أرسلتَ كملف ' + num(warnSent) + ' فاتورة لم يؤكدها المدير بعد؛ تأكد أنه استوردها.</small>' : ''), showCancelButton: true, showDenyButton: un.length > 0, confirmButtonText: un.length ? 'رفعها للسحابة والرجوع' : 'رجوع', denyButtonText: 'إرسالها كملف أولاً', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' } });
             if (r.isDenied) { await exportSales(); return false; }
             if (!r.isConfirmed) return false;
         }
@@ -170,15 +170,15 @@
         return !waOn();
     }
 
-    // ---------------- التصدير (المستخدم → المالك) ----------------
+    // ---------------- التصدير (المستخدم → المدير) ----------------
     function fileName(kind, kid) { const d = new Date(), p = n => String(n).padStart(2, '0'); return 'diwan-' + kind + '-' + kid + '-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + '.json'; }
     async function exportSales(opts) {
         opts = opts || {};
         if (isOwner()) { Swal.fire({ icon: 'info', title: 'لحساب المستخدم فقط', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const lk = link();
-        if (!lk) { await Swal.fire({ icon: 'info', title: 'اربط الجهاز بالمالك أولاً', text: 'اضغط «ربط بالمالك» وألصق الرمز الذي أرسله لك.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (!lk) { await Swal.fire({ icon: 'info', title: 'اربط الجهاز بالمدير أولاً', text: 'اضغط «ربط بالمدير» وألصق الرمز الذي أرسله لك.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const list = (opts.all ? unconfirmed() : unsent()).sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
-        if (!list.length) { await Swal.fire({ icon: 'info', title: opts.all ? 'لا توجد مبيعات غير مؤكدة' : 'لا توجد مبيعات جديدة للإرسال', text: opts.all ? 'المالك أكّد كل مبيعاتك.' : 'كل مبيعاتك أُرسلت سابقاً. إن لم يصل شيء للمالك استعمل «إعادة إرسال ما لم يؤكده المالك».', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (!list.length) { await Swal.fire({ icon: 'info', title: opts.all ? 'لا توجد مبيعات غير مؤكدة' : 'لا توجد مبيعات جديدة للإرسال', text: opts.all ? 'المدير أكّد كل مبيعاتك.' : 'كل مبيعاتك أُرسلت سابقاً. إن لم يصل شيء للمدير استعمل «إعادة إرسال ما لم يؤكده المدير».', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const sm = summarize(list);
         const h = Prog.start('تجهيز ملف المبيعات', { text: 'جمع الحركات...' });
         let text, name;
@@ -190,18 +190,18 @@
         const msg = 'مبيعات ' + ((typeof userName !== 'undefined' && userName) || lk.n || '') + ' — ' + num(sm.n) + ' فاتورة';
         let res = await shareText(name, text, msg);
         if (res === 'blocked') {
-            const r = await Swal.fire({ icon: 'success', title: 'الملف جاهز', html: num(list.length) + ' عملية · ' + num(sm.n) + ' فاتورة<br><small>اضغط «إرسال» واختر واتساب ثم المالك.</small>', confirmButtonText: 'إرسال', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', preConfirm: async () => { const x = await shareText(name, text, msg); return x; } });
+            const r = await Swal.fire({ icon: 'success', title: 'الملف جاهز', html: num(list.length) + ' عملية · ' + num(sm.n) + ' فاتورة<br><small>اضغط «إرسال» واختر واتساب ثم المدير.</small>', confirmButtonText: 'إرسال', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', preConfirm: async () => { const x = await shareText(name, text, msg); return x; } });
             res = r.isConfirmed ? r.value : 'cancelled';
         }
         if (res === 'cancelled' || res === 'blocked' || !res) { toast('info', 'لم يُرسل الملف. تبقى المبيعات بانتظار الإرسال'); refresh(); return; }
         const em = expMap(); list.forEach(o => { em[o.id] = nowIso(); }); ls.set(K.exp, em); ls.set('diwanWaLastExp', { at: nowIso(), n: list.length });
-        if (res === 'saved') await Swal.fire({ icon: 'success', title: 'حُفظ الملف على الجهاز', html: 'أرسله للمالك من واتساب: <b>📎 ← مستند</b> ثم اختر الملف<br><small dir="ltr">' + esc(window._natSavedPath || name) + '</small>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
-        else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب وأرسله للمالك.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        if (res === 'saved') await Swal.fire({ icon: 'success', title: 'حُفظ الملف على الجهاز', html: 'أرسله للمدير من واتساب: <b>📎 ← مستند</b> ثم اختر الملف<br><small dir="ltr">' + esc(window._natSavedPath || name) + '</small>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب وأرسله للمدير.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else toast('success', 'جُهّز الملف: ' + num(list.length) + ' عملية');
         refresh(); try { syncRefresh(); } catch (e) { /* تجاهل */ }
     }
 
-    // ---------------- المالك: الأجهزة والاستيراد ----------------
+    // ---------------- المدير: الأجهزة والاستيراد ----------------
     const devs = () => ls.get(K.devs, []);
     const impAll = () => ls.get(K.imp, {});
     function impSet() { const s = new Set(); const m = impAll(); Object.keys(m).forEach(k => (m[k] || []).forEach(x => s.add(x))); return s; }
@@ -222,7 +222,7 @@
     async function showCode(kid) {
         const d = devs().find(x => x.kid === kid); if (!d) return;
         const code = codeOf(d);
-        const msg = 'رمز ربط جهازك بصيدلية الديوان (واتساب):\n' + code + '\nالصقه في: حالة المزامنة ← المبيعات عبر واتساب ← ربط بالمالك.';
+        const msg = 'رمز ربط جهازك بصيدلية الديوان (واتساب):\n' + code + '\nالصقه في: حالة المزامنة ← المبيعات عبر واتساب ← ربط بالمدير.';
         const r = await Swal.fire({ icon: 'success', title: 'رمز ربط: ' + esc(d.label), html: '<div style="font-size:.82rem;text-align:right;margin-bottom:6px">أرسل هذا الرمز لصاحب الجهاز وحده، فهو مفتاح توقيع مبيعاته.</div><textarea readonly class="swal2-textarea" dir="ltr" style="height:96px;font-size:.72rem" onclick="this.select()">' + esc(code) + '</textarea>', showCancelButton: true, showDenyButton: true, confirmButtonText: 'إرسال عبر واتساب', denyButtonText: 'نسخ الرمز', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' }, preConfirm: () => 'wa', preDeny: () => 'copy' });
         if (r.isConfirmed) { try { window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank'); } catch (e) { /* تجاهل */ } }
         else if (r.isDenied) { try { await navigator.clipboard.writeText(code); toast('success', 'نُسخ الرمز'); } catch (e) { toast('info', 'حدّد الرمز وانسخه يدوياً'); } }
@@ -284,7 +284,7 @@
         if (pf.err) { await Swal.fire({ icon: 'error', title: 'ملف غير صالح', text: pf.err, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const f = pf.f;
         if (f.kind === 'snap') return importSnapshot(f);
-        if (!isOwner()) { await Swal.fire({ icon: 'info', title: 'ملف مبيعات', text: 'هذا الملف يستورده المالك. أنت تستورد «لقطة المخزون» فقط.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (!isOwner()) { await Swal.fire({ icon: 'info', title: 'ملف مبيعات', text: 'هذا الملف يستورده المدير. أنت تستورد «لقطة المخزون» فقط.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const dev = devs().find(d => d.kid === f.kid);
         if (!dev) { await Swal.fire({ icon: 'error', title: 'جهاز غير مسجَّل', html: 'هذا الملف من جهاز لم تضفه في «أجهزة المستخدمين»، أو حُذف.<br><small>أضف الجهاز وأرسل له رمز الربط ثم ليعد الإرسال.</small>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         if (sign(dev.secret, f) !== f.sig) { await Swal.fire({ icon: 'error', title: 'الملف غير موثوق', text: 'التوقيع لا يطابق: الملف مُعدَّل أو تالف، فلم يُقبل. اطلب من المستخدم إعادة الإرسال.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
@@ -379,7 +379,7 @@
         await Swal.fire({ icon: rep.fail.length ? 'warning' : 'success', title: rep.fail.length ? 'اكتمل جزئياً' : 'تم الاستيراد', html: '<div class="wa-pv">' + body + '<div class="wa-li mut"><span>أرسل للمستخدم «لقطة مخزون» ليتحدّث رصيده.</span></div></div>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
     }
 
-    // ---------------- لقطة المخزون (المالك → المستخدم) ----------------
+    // ---------------- لقطة المخزون (المدير → المستخدم) ----------------
     async function exportSnapshot(kid) {
         if (!isOwner()) return;
         const dev = devs().find(d => d.kid === kid); if (!dev) return;
@@ -388,7 +388,7 @@
         try {
             const items = products.map(p => { const s = I.pSplit(p), st = {}; SNAP_ST.forEach(k => { if (p[k] !== undefined) st[k] = p[k]; }); return { pid: p.id, info: s.info, st }; });
             n = items.length;
-            const payload = { diwan: 1, kind: 'snap', kid, at: nowIso(), from: { name: (typeof userName !== 'undefined' && userName) || 'المالك' }, products: items, cfg: I.cfgNow(), seen: (impAll()[kid] || []).slice(-4000) };
+            const payload = { diwan: 1, kind: 'snap', kid, at: nowIso(), from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, products: items, cfg: I.cfgNow(), seen: (impAll()[kid] || []).slice(-4000) };
             h.set(60, 'توقيع الملف...'); const rt = JSON.parse(JSON.stringify(payload)); rt.sig = sign(dev.secret, rt); text = JSON.stringify(rt); name = fileName('stock', kid);
             h.ok('الملف جاهز: ' + num(n) + ' مادة (' + (typeof fmtBytes === 'function' ? fmtBytes(text.length) : Math.round(text.length / 1024) + ' ك.ب') + ')');
         } catch (e) { h.fail('تعذّر تجهيز اللقطة', (e && e.message) || ''); return; }
@@ -406,16 +406,16 @@
     async function importSnapshot(f) {
         if (isOwner()) { await Swal.fire({ icon: 'info', title: 'لقطة مخزون', text: 'هذا الملف يستورده المستخدم. أنت تستورد ملفات المبيعات.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const lk = link();
-        if (!lk) { await Swal.fire({ icon: 'info', title: 'اربط الجهاز بالمالك أولاً', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (!lk) { await Swal.fire({ icon: 'info', title: 'اربط الجهاز بالمدير أولاً', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         if (f.kid !== lk.k) { await Swal.fire({ icon: 'error', title: 'الملف لجهاز آخر', text: 'هذه اللقطة أُعدّت لجهاز غير هذا الجهاز.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-        if (sign(lk.s, f) !== f.sig) { await Swal.fire({ icon: 'error', title: 'الملف غير موثوق', text: 'التوقيع لا يطابق: الملف مُعدَّل أو تالف. اطلب من المالك إعادة الإرسال.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (sign(lk.s, f) !== f.sig) { await Swal.fire({ icon: 'error', title: 'الملف غير موثوق', text: 'التوقيع لا يطابق: الملف مُعدَّل أو تالف. اطلب من المدير إعادة الإرسال.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const last = ls.get(K.snapAt, ''); if (last && f.at && String(f.at) <= String(last)) { const q = await Swal.fire({ icon: 'warning', title: 'لقطة أقدم من المستورَدة', text: 'استوردتَ لقطة أحدث من هذه سابقاً. استيراد الأقدم قد يعيد أرصدة قديمة. المتابعة؟', showCancelButton: true, confirmButtonText: 'متابعة', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c' }); if (!q.isConfirmed) return; }
         const seen = new Set(Array.isArray(f.seen) ? f.seen : []);
         const pend = ops().filter(o => o.type === 'stock' && allowedOp(o) && !seen.has(o.id)).sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
         const pc = new Set(); pend.forEach(o => pc.add(groupKey(o)));
-        const r = await Swal.fire({ icon: 'question', title: 'استيراد لقطة المخزون', html: '<div class="wa-pv"><div class="wa-li"><span>📦 <b>' + num((f.products || []).length) + '</b> مادة بأرصدتها وأسعارها · أُعدّت ' + esc(ago(f.at)) + '</span></div>' + (pend.length ? '<div class="wa-li warn"><span>مبيعاتك التي لم يؤكدها المالك (' + num(pc.size) + ') ستُحسب فوق الرصيد الجديد، فلا يضيع شيء.</span></div>' : '') + '</div>', showCancelButton: true, confirmButtonText: 'استيراد', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+        const r = await Swal.fire({ icon: 'question', title: 'استيراد لقطة المخزون', html: '<div class="wa-pv"><div class="wa-li"><span>📦 <b>' + num((f.products || []).length) + '</b> مادة بأرصدتها وأسعارها · أُعدّت ' + esc(ago(f.at)) + '</span></div>' + (pend.length ? '<div class="wa-li warn"><span>مبيعاتك التي لم يؤكدها المدير (' + num(pc.size) + ') ستُحسب فوق الرصيد الجديد، فلا يضيع شيء.</span></div>' : '') + '</div>', showCancelButton: true, confirmButtonText: 'استيراد', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
         if (!r.isConfirmed) return;
-        const h = Prog.start('تحديث المخزون من المالك', { text: 'جاري التطبيق...' });
+        const h = Prog.start('تحديث المخزون من المدير', { text: 'جاري التطبيق...' });
         try {
             const arr = Array.isArray(f.products) ? f.products : []; let added = 0, upd = 0, i = 0;
             arr.forEach(it => {
@@ -446,23 +446,23 @@
     function html() {
         if (isOwner()) {
             const dv = devs(), lg = ls.get(K.log, []);
-            let h = '<p class="set-desc wa-intro">يرسل المستخدم مبيعاته كملف عبر واتساب، فتستورده هنا فتتحدّث الأرصدة والفواتير. لا تتكرر الحركات ولا تتداخل مع مبيعاتك.</p>';
+            let h = '<p class="set-desc wa-intro">يرسل المستخدم مبيعاته كملف عبر واتساب، فتستورده هنا فتتحدّث الأرصدة والفواتير. وترسل له «لقطة مخزون» ليتحدّث رصيده. لا تتكرر الحركات ولا تتداخل مع مبيعاتك.</p>';
             h += btn('set-act wa-main', 'WA.importFlow()', '📥 استيراد ملف من مستخدم', 'اختر الملف الذي وصلك على واتساب (مبيعات).');
             h += '<h5 class="wa-h">أجهزة المستخدمين</h5>';
             if (!dv.length) h += '<div class="wa-empty">لا توجد أجهزة. أضف جهازاً وأرسل رمز الربط لصاحبه.</div>';
-            dv.forEach(d => { h += '<div class="wa-dev"><div class="wa-dev-t"><b>' + esc(d.label) + '</b><small dir="ltr">' + esc(d.kid) + '</small></div><small>' + (d.last ? 'آخر استيراد ' + esc(ago(d.last)) + ' · ' + num(d.ni || 0) + ' فاتورة' : 'لم يُستورد منه شيء بعد') + '</small><div class="wa-dev-b"><button type="button" onclick="WA.showCode(\'' + esc(d.kid) + '\')">رمز الربط</button><button type="button" onclick="WA.exportSnapshot(\'' + esc(d.kid) + '\')">لقطة مخزون</button><button type="button" class="del" onclick="WA.delDevice(\'' + esc(d.kid) + '\')">حذف</button></div></div>'; });
+            dv.forEach(d => { h += '<div class="wa-dev"><div class="wa-dev-t"><b>' + esc(d.label) + '</b><small dir="ltr">' + esc(d.kid) + '</small></div><small>' + (d.last ? 'آخر استيراد ' + esc(ago(d.last)) + ' · ' + num(d.ni || 0) + ' فاتورة' : 'لم يُستورد منه شيء بعد') + '</small><div class="wa-dev-b"><button type="button" onclick="WA.showCode(\'' + esc(d.kid) + '\')">رمز الربط</button><button type="button" onclick="WA.exportSnapshot(\'' + esc(d.kid) + '\')">إرسال لقطة مخزون</button><button type="button" class="del" onclick="WA.delDevice(\'' + esc(d.kid) + '\')">حذف</button></div></div>'; });
             h += btn('set-act', 'WA.addDevice()', '➕ إضافة جهاز مستخدم', 'ينشئ رمز ربط خاصاً بالجهاز.');
             if (lg.length) { h += '<h5 class="wa-h">آخر عمليات الاستيراد</h5>'; lg.slice(0, 5).forEach(x => { h += '<div class="wa-log"><b>' + esc(x.label) + '</b><span>' + esc(ago(x.at)) + '</span><small>' + num(x.inv) + ' فاتورة · ' + num(x.stock) + ' حركة' + (x.fail ? ' · ' + num(x.fail) + ' خطأ' : '') + '</small></div>'; }); }
             return h;
         }
         const lk = link(), on = waOn(), un = unsent(), sm = summarize(un), conf = groups(unconfirmed()), le = ls.get('diwanWaLastExp', null), sa = ls.get(K.snapAt, '');
-        let h = '<p class="set-desc wa-intro">تُحفظ مبيعاتك على الجهاز وترسلها للمالك كملف عبر واتساب، ويرسل لك المالك «لقطة مخزون» لتحديث الأرصدة.</p>';
-        if (!lk) return h + '<div class="wa-empty">الجهاز غير مربوط بالمالك.</div>' + btn('set-act wa-main', 'WA.setLink()', '🔗 ربط بالمالك', 'الصق رمز الربط الذي أرسله لك المالك.');
+        let h = '<p class="set-desc wa-intro">تُحفظ مبيعاتك على الجهاز وترسلها للمدير كملف عبر واتساب، ويرسل لك المدير «لقطة مخزون» لتحديث الأرصدة.</p>';
+        if (!lk) return h + '<div class="wa-empty">الجهاز غير مربوط بالمدير.</div>' + btn('set-act wa-main', 'WA.setLink()', '🔗 ربط بالمدير', 'الصق رمز الربط الذي أرسله لك المدير.');
         h += '<div class="qk-row"><div><b>وضع واتساب</b><small>' + (on ? 'مفعّل: لا اتصال بالسحابة، والمبيعات تُرسل كملف.' : 'متوقف: الجهاز يعمل مع السحابة كالمعتاد.') + '</small></div>' + sw('waSw', on, 'WA.toggleMode(this)') + '</div>';
-        h += '<div class="wa-st"><div><b>' + num(pendingCount()) + '</b><small>مبيعات لم تُرسل</small></div><div><b>' + num(sm.tot) + '</b><small>مبلغها (د.ع)</small></div><div><b>' + num(conf) + '</b><small>لم يؤكدها المالك</small></div></div>';
-        h += btn('set-act wa-main', 'WA.exportSales()', '📤 إرسال المبيعات للمالك', un.length ? num(un.length) + ' عملية جاهزة للإرسال عبر واتساب.' : 'لا توجد مبيعات جديدة.');
-        h += btn('set-act', 'WA.exportSales({all:true})', '🔁 إعادة إرسال ما لم يؤكده المالك', 'إن لم يصل ملف سابق. التكرار آمن ولا يضاعف شيئاً.');
-        h += btn('set-act', 'WA.importFlow()', '📥 استيراد لقطة المخزون', sa ? 'آخر لقطة: ' + esc(ago(sa)) : 'اختر الملف الذي أرسله المالك.');
+        h += '<div class="wa-st"><div><b>' + num(pendingCount()) + '</b><small>مبيعات لم تُرسل</small></div><div><b>' + num(sm.tot) + '</b><small>مبلغها (د.ع)</small></div><div><b>' + num(conf) + '</b><small>لم يؤكدها المدير</small></div></div>';
+        h += btn('set-act wa-main', 'WA.exportSales()', '📤 إرسال المبيعات للمدير', un.length ? num(un.length) + ' عملية جاهزة للإرسال عبر واتساب.' : 'لا توجد مبيعات جديدة.');
+        h += btn('set-act', 'WA.exportSales({all:true})', '🔁 إعادة إرسال ما لم يؤكده المدير', 'إن لم يصل ملف سابق. التكرار آمن ولا يضاعف شيئاً.');
+        h += btn('set-act', 'WA.importFlow()', '📥 استيراد لقطة المخزون', sa ? 'آخر لقطة: ' + esc(ago(sa)) : 'اختر الملف الذي أرسله المدير.');
         const bl = opsBlocked(); if (bl) h += '<div class="wa-li warn"><span>' + num(bl) + ' عملية (جرد أو تعديل) لا تُرسل عبر واتساب وتبقى على هذا الجهاز فقط.</span></div>';
         h += '<div class="wa-meta">مرتبط بـ: <b>' + esc(lk.n || lk.k) + '</b>' + (le ? ' · آخر إرسال ' + esc(ago(le.at)) : '') + ' · <a href="#" onclick="WA.unlink();return false">فك الربط</a></div>';
         return h;

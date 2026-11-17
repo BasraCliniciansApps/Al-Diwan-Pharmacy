@@ -30,7 +30,7 @@ function billDevTag() {
     }
     return t;
 }
-function billUserCode() {   // المالك = 1، والمستخدمون بحسب أقدمية إنشاء حسابهم (2، 3، ...)
+function billUserCode() {   // المدير = 1، والمستخدمون بحسب أقدمية إنشاء حسابهم (2، 3، ...)
     if (typeof userRole !== 'undefined' && userRole === 'owner') return '1';
     const o = parseInt(window.userOrd) || 0; if (o > 0) return String(o);
     const u = (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) || '';
@@ -497,7 +497,7 @@ function cancelInvoiceEditNow() {
 }
 async function saveInvoiceEdit(doPrintAfter) {
     if (!bill || !bill.issued || !bill.editing) return;
-    if (userRole !== 'owner' && bill.byUid && typeof currentUser !== 'undefined' && currentUser && bill.byUid !== currentUser.uid) { Swal.fire({ icon: 'info', title: 'لا يمكن تعديل هذه الفاتورة', text: 'هذه الفاتورة أصدرها مستخدم آخر. يعدّلها صاحبها أو المالك.', confirmButtonColor: '#0f1c38' }); return; }
+    if (userRole !== 'owner' && bill.byUid && typeof currentUser !== 'undefined' && currentUser && bill.byUid !== currentUser.uid) { Swal.fire({ icon: 'info', title: 'لا يمكن تعديل هذه الفاتورة', text: 'هذه الفاتورة أصدرها مستخدم آخر. يعدّلها صاحبها أو المدير.', confirmButtonColor: '#0f1c38' }); return; }
     readInvoiceFields();
     if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'لا يمكن حفظ فاتورة بلا مواد. استعمل «إلغاء الفاتورة» بدلاً من ذلك.', confirmButtonColor: '#0f1c38' }); return; }
     if (billHasExpired()) return;
@@ -558,7 +558,7 @@ async function invAdoptFresh(b, fr) {   // يحدّث النسخة المحلي�
     Object.assign(b, fr);
     try { await saveInvoiceRecord(b); } catch (e) { /* تجاهل */ }
 }
-// صلاحية البائع على فاتورة: يلزم تفعيلها من المالك وأن تكون فاتورته هو
+// صلاحية البائع على فاتورة: يلزم تفعيلها من المدير وأن تكون فاتورته هو
 function invCanOwn(b, perm) {
     if (userRole === 'owner') return true;
     return can(perm) && !!b && !!b.byUid && typeof currentUser !== 'undefined' && !!currentUser && b.byUid === currentUser.uid;
@@ -566,7 +566,7 @@ function invCanOwn(b, perm) {
 async function cancelInvoice(target) {
     const b = target || bill;
     if (!b || !b.issued || b.cancelled) return;
-    if (!invCanOwn(b, 'cancelOwn')) { Swal.fire({ icon: 'info', title: 'لا يمكن إلغاء هذه الفاتورة', text: can('cancelOwn') ? 'هذه الفاتورة أصدرها مستخدم آخر. يلغيها صاحبها أو المالك.' : 'لا تملك صلاحية إلغاء الفواتير. راجع المالك.', confirmButtonColor: '#0f1c38' }); return; }
+    if (!invCanOwn(b, 'cancelOwn')) { Swal.fire({ icon: 'info', title: 'لا يمكن إلغاء هذه الفاتورة', text: can('cancelOwn') ? 'هذه الفاتورة أصدرها مستخدم آخر. يلغيها صاحبها أو المدير.' : 'لا تملك صلاحية إلغاء الفواتير. راجع المدير.', confirmButtonColor: '#0f1c38' }); return; }
     const r = await Swal.fire({ icon: 'warning', title: 'إلغاء الفاتورة ' + escapeHtml(b.no) + '؟', text: b.deducted ? 'ستُرجَع الكميات المخصومة إلى المخزن.' : 'لم تُخصم كميات بهذه الفاتورة.', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، ألغِ', cancelButtonText: 'رجوع' });
     if (!r.isConfirmed) return;
     const fr = await invFresh(b);
@@ -607,7 +607,7 @@ async function cancelInvoice(target) {
 async function deleteInvoicePermanently(id) {
     id = id || (bill && bill.id);
     const b = billAll.find(x => x.id === id) || (bill && bill.id === id ? bill : null);
-    if (b && !invCanOwn(b, 'deleteOwn')) { Swal.fire({ icon: 'info', title: 'لا يمكن حذف هذه الفاتورة', text: can('deleteOwn') ? 'هذه الفاتورة أصدرها مستخدم آخر.' : 'لا تملك صلاحية حذف الفواتير. راجع المالك.', confirmButtonColor: '#0f1c38' }); return; }
+    if (b && !invCanOwn(b, 'deleteOwn')) { Swal.fire({ icon: 'info', title: 'لا يمكن حذف هذه الفاتورة', text: can('deleteOwn') ? 'هذه الفاتورة أصدرها مستخدم آخر.' : 'لا تملك صلاحية حذف الفواتير. راجع المدير.', confirmButtonColor: '#0f1c38' }); return; }
     if (!b || !b.cancelled) { Swal.fire({ icon: 'info', title: 'الحذف النهائي للفواتير الملغاة فقط', text: 'ألغِ الفاتورة أولاً ثم احذفها.', confirmButtonColor: '#0f1c38' }); return; }
     const r = await Swal.fire({ icon: 'warning', title: 'حذف الفاتورة ' + escapeHtml(b.no || '') + ' نهائياً؟', html: 'ستُحذف من هذا الجهاز ومن السحابة ولا يمكن استرجاعها.<br>لا يتأثر المخزون ولا حسابات المبيعات (فهي ملغاة أصلاً).', showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'احذف نهائياً', cancelButtonText: 'تراجع' });
     if (!r.isConfirmed) return;
@@ -636,7 +636,7 @@ function invTotalOf(b) {
 }
 async function saveInvoiceRecord(b) {
     const rec = JSON.parse(JSON.stringify({ ...b, total: invTotalOf(b) }));
-    if (!rec.byUid && typeof currentUser !== 'undefined' && currentUser) { rec.byUid = currentUser.uid; rec.by = (typeof userName !== 'undefined' && userName) || (userRole === 'owner' ? 'المالك' : ''); }
+    if (!rec.byUid && typeof currentUser !== 'undefined' && currentUser) { rec.byUid = currentUser.uid; rec.by = (typeof userName !== 'undefined' && userName) || (userRole === 'owner' ? 'المدير' : ''); }
     let list = [];
     try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
     list = list.filter(x => x.id !== rec.id); list.unshift(rec);

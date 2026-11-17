@@ -1,6 +1,6 @@
-/* تقرير تطابق المخزون: يقارن سلسلة حركات البيع/الإلغاء/التعديل لكل مادة ويكشف الفروقات (للمالك) */
+/* تقرير تطابق المخزون: يقارن سلسلة حركات البيع/الإلغاء/التعديل لكل مادة ويكشف الفروقات (للمدير) */
 async function openRecon() {
-    if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'للمالك فقط', confirmButtonColor: '#0f1c38' }); return; }
+    if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'للمدير فقط', confirmButtonColor: '#0f1c38' }); return; }
     if (!navigator.onLine || !db) { Swal.fire({ icon: 'info', title: 'يلزم اتصال بالإنترنت', confirmButtonColor: '#0f1c38' }); return; }
     const days = 7, since = new Date(Date.now() - days * 86400000).toISOString();
     const PO = Prog.open('جاري إعداد تقرير التطابق');

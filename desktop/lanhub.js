@@ -8,7 +8,7 @@ const path = require('path');
 const crypto = require('crypto');
 
 const TYPES = ['invoice', 'stock', 'purchase', 'snapshot', 'pinfo', 'cfg', 'rec', 'qset'];
-const OWNER_TYPES = ['pinfo', 'cfg', 'rec', 'purchase', 'snapshot'];   // لا يقبلها الخادم إلا من جهاز يقدّم نفسه مالكاً
+const OWNER_TYPES = ['pinfo', 'cfg', 'rec', 'purchase', 'snapshot'];   // لا يقبلها الخادم إلا من جهاز يقدّم نفسه مديراً
 const STAFF_HIDE = ['pinfo.cost', 'rec', 'purchase', 'snapshot'];
 const MAX_BODY = 8 * 1024 * 1024;
 const MAX_OPS_PER_REQ = 200;
@@ -63,7 +63,7 @@ function createHub(opts) {
         return true;
     }
 
-    // الدور الفعلي: مالك فقط إذا ربط الجهاز برمز المالك (إن وُجد دور محفوظ) وكان حساب التطبيق مالكاً
+    // الدور الفعلي: مدير فقط إذا ربط الجهاز برمز المدير (إن وُجد دور محفوظ) وكان حساب التطبيق مديراً
     const digests = {}, qtyMap = {}; let qLoaded = false;
     function noteQ(r) { if (r && r.type === 'qset' && r.data && r.data.st) qtyMap[String(r.data.pid)] = { q: parseInt(r.data.st.qty) || 0, l: parseInt(r.data.st.loose) || 0, at: r.ts }; }
     function loadQ() { if (!qLoaded) { qLoaded = true; ops.forEach(noteQ); } }

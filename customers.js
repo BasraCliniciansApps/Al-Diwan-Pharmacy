@@ -1,6 +1,6 @@
 // ============================================================================
 // الزبائن: أرصدة الآجل لكل زبون (مستخرجة من الفواتير الصادرة، حسب اسم الزبون)، كشف حساب، تسديد دفعة واحدة
-// تتوزع تلقائياً على أقدم الفواتير، وطباعة الكشف. للمالك فقط (مثل تبويب الآجل).
+// تتوزع تلقائياً على أقدم الفواتير، وطباعة الكشف. للمدير فقط (مثل تبويب الآجل).
 // ============================================================================
 let cuScr = 'list', cuSeg = 'owe', cuQ = '', cuKeys = [], cuCur = null, cuOpenFlag = false;
 const cuNorm = s => String(s || '').replace(/\s+/g, ' ').trim();
@@ -36,7 +36,7 @@ function cuEnsureDom() {
     document.body.appendChild(d);
 }
 async function cuOpen() {
-    if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'صفحة الزبائن للمالك فقط.', confirmButtonColor: '#0f1c38' }); return; }
+    if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'صفحة الزبائن للمدير فقط.', confirmButtonColor: '#0f1c38' }); return; }
     cuEnsureDom(); cuLoadLocal();
     document.getElementById('cuOv').style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open'); cuOpenFlag = true;
     cuScr = 'list'; cuCur = null; cuSeg = 'owe'; cuQ = ''; cuListRender();

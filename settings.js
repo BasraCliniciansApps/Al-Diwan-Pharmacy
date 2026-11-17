@@ -87,7 +87,7 @@ function shSummary(p) {
         if (p.id === 'ai') return { s: 'محرك القراءة · المفتاح · اختبار الاتصال' };
         if (p.id === 'docset') return { s: 'الرابط · الأسعار والعدد · طلبات الأطباء' };
         if (p.id === 'desk') return { s: 'النسخة الاحتياطية على القرص · الاستقبال فقط' };
-        if (p.id === 'wa') return { s: window.WA ? (userRole === 'owner' ? 'استيراد مبيعات المستخدمين كملف' : (WA.on() ? 'مفعّل · لم تُرسل: ' + WA.pendingCount() : 'إرسال المبيعات كملف')) : '' };
+        if (p.id === 'wa') return { s: window.WA ? (userRole === 'owner' ? 'استيراد مبيعات المستخدمين وإرسال لقطة المخزون إليهم' : (WA.on() ? 'مفعّل · لم تُرسل: ' + WA.pendingCount() : 'إرسال المبيعات كملف')) : '' };
         if (p.id === 'lan') return { s: (window.LAN && LAN.mode() === 'lan' ? 'مفعّلة · ' : 'متوقفة · ') + 'الشبكة المحلية بدل السحابة' };
         if (p.id === 'device') return { s: 'التثبيت · البصمة · التذكيرات · الطباعة' };
         if (p.id === 'users') return { s: 'إضافة المستخدمين وتحديد ما يفعله كل واحد' };
@@ -310,7 +310,7 @@ function shHubHead(el, back, label) {
     head.innerHTML = `<button type="button" class="sh-back" onclick="${back}"><i>›</i> ${label}</button><b>${title}</b>`;
 }
 
-// صلاحيات تظهر/تخفي أزرار حسب الدور: زر الملصقات في المخزن، وتقارير النظام للمالك فقط
+// صلاحيات تظهر/تخفي أزرار حسب الدور: زر الملصقات في المخزن، وتقارير النظام للمدير فقط
 setInterval(() => { try { document.body.classList.toggle('can-stockedit', can('stockEdit')); const r = document.getElementById('repSys'); if (r) r.hidden = userRole !== 'owner'; } catch (e) { /* تجاهل */ } }, 1000);
 
 document.addEventListener('click', e => { const d = e.target.closest && e.target.closest('#catModal .set-desc'); if (d && !e.target.closest('a,button')) d.classList.toggle('open'); });

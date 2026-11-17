@@ -1,4 +1,4 @@
-// الأمان: فصل التكلفة إلى مجموعة pharmacy_cost المقفلة على المالك (ثم الأدوار والمستخدمون)
+// الأمان: فصل التكلفة إلى مجموعة pharmacy_cost المقفلة على المدير (ثم الأدوار والمستخدمون)
 const COST_RULE = `match /pharmacy_cost/{id} {
   allow read, write: if request.auth != null && request.auth.uid == "VrZUN6AMvTPMklvhlZcwKlqJciY2";
 }`;
@@ -72,7 +72,7 @@ function loginKey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/
 
 async function resolveRole(user) {
     userRole = 'staff'; userPerms = {}; userName = ''; window.userOrd = 0;
-    if (user.uid === OWNER_UID) { userRole = 'owner'; userName = 'المالك'; window.userOrd = 1; setTimeout(() => { userEnsureOrds().catch(() => { }); }, 4000); return true; }
+    if (user.uid === OWNER_UID) { userRole = 'owner'; userName = 'المدير'; window.userOrd = 1; setTimeout(() => { userEnsureOrds().catch(() => { }); }, 4000); return true; }
     let doc = null, failed = false;
     const RK = 'diwanRoleCache';
     try { const s = await db.collection('pharmacy_users').doc(user.uid).get(); doc = s.exists ? s.data() : null; } catch (e) { failed = true; }
@@ -89,13 +89,13 @@ async function resolveRole(user) {
         try { await auth.signOut(); } catch (e) { /* تجاهل */ }
         currentUser = null; document.body.classList.remove('admin-mode', 'role-staff');
         showView('login');
-        const err = document.getElementById('gateError'); if (err) { err.innerText = doc ? 'هذا الحساب معطّل. راجع المالك.' : 'هذا الحساب غير مفعّل في النظام. راجع المالك.'; err.style.display = 'block'; }
+        const err = document.getElementById('gateError'); if (err) { err.innerText = doc ? 'هذا الحساب معطّل. راجع المدير.' : 'هذا الحساب غير مفعّل في النظام. راجع المدير.'; err.style.display = 'block'; }
         return false;
     }
     userPerms = doc.perms || {}; userName = doc.name || ''; window.userOrd = parseInt(doc.ord) || 0;
     return true;
 }
-// يمنح كل مستخدم قديم بلا رقم تسلسلي رقماً بحسب تاريخ إنشاء حسابه (يعمل عند دخول المالك)
+// يمنح كل مستخدم قديم بلا رقم تسلسلي رقماً بحسب تاريخ إنشاء حسابه (يعمل عند دخول المدير)
 async function userEnsureOrds() {
     if (!cloudReady() || !navigator.onLine || userRole !== 'owner') return;
     const snap = await db.collection('pharmacy_users').get(); const all = [];
@@ -112,7 +112,7 @@ function applyRoleUI() {
     if (t) t.textContent = userRole === 'owner' ? '🏠 الرئيسية' : '👤 ' + userName;
 }
 
-// ---------- إدارة المستخدمين (للمالك) ----------
+// ---------- إدارة المستخدمين (للمدير) ----------
 function secAuth() {
     const app = firebase.apps.find(a => a.name === 'sec') || firebase.initializeApp(firebaseConfig, 'sec');
     return app.auth();
@@ -254,7 +254,7 @@ async function userCreate(name, pin, perms, replaceUid) {
         const uid = cred.user.uid; await sa.signOut();
         let ord = 0;
         if (replaceUid) { try { const o = await db.collection('pharmacy_users').doc(replaceUid).get(); if (o.exists) ord = parseInt(o.data().ord) || 0; } catch (e) { /* تجاهل */ } }
-        if (!ord) { const all = await db.collection('pharmacy_users').get(); all.forEach(d => { ord = Math.max(ord, parseInt(d.data().ord) || 0); }); ord = Math.max(ord, 1) + 1; }   // المالك = 1، ثم المستخدمون بحسب أقدمية الإنشاء
+        if (!ord) { const all = await db.collection('pharmacy_users').get(); all.forEach(d => { ord = Math.max(ord, parseInt(d.data().ord) || 0); }); ord = Math.max(ord, 1) + 1; }   // المدير = 1، ثم المستخدمون بحسب أقدمية الإنشاء
         await db.collection('pharmacy_users').doc(uid).set({ name, login: key, email, perms, active: true, ord, createdAt: new Date().toISOString() });
         await db.collection('pharmacy_logins').doc(key).set({ email });
         if (replaceUid) { try { await db.collection('pharmacy_users').doc(replaceUid).delete(); } catch (e) { /* تجاهل */ } }
@@ -267,7 +267,7 @@ async function userCreate(name, pin, perms, replaceUid) {
 }
 function userEdit(uid) { const u = usersCache.find(x => x.uid === uid); if (u) usForm_(u); }
 
-// ---------- معاينة صفحة مستخدم (للمالك): عرض فقط، تُمنع كل عمليات الكتابة ----------
+// ---------- معاينة صفحة مستخدم (للمدير): عرض فقط، تُمنع كل عمليات الكتابة ----------
 let pvSaved = null;
 const PV_MSG = 'وضع المعاينة: العمليات معطّلة';
 const pvOrig = {};
