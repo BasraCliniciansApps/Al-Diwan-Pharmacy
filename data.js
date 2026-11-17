@@ -450,7 +450,11 @@ function showSyncStatus() {
     const u = usageGet(), cw = usageCap('w'), cr = usageCap('r');
     const bar = (label, n, cap) => { const pc = Math.min(100, Math.round(n / Math.max(1, cap) * 100)); return `<div class="ss-use"><div class="ss-ut"><span>${label}</span><b>${n} من ${cap}</b></div><div class="ss-bar"><i class="${pc >= 90 ? 'hi' : pc >= 70 ? 'mid' : ''}" style="width:${pc}%"></i></div></div>`; };
     const nearCap = u.w / Math.max(1, cw) >= .7 || u.r / Math.max(1, cr) >= .7;
-    const tech = bar('الكتابات اليوم (هذا الجهاز)', u.w, cw) + bar('القراءات اليوم (هذا الجهاز)', u.r, cr) +
+    const SRC = { pharmacy_products: 'المواد', pharmacy_stock: 'المخزون', pharmacy_cost: 'التكلفة', pharmacy_purchases: 'الواردات', pharmacy_suppliers: 'المذاخر', pharmacy_ledger: 'الدفتر', pharmacy_invoices: 'الفواتير', pharmacy_expenses: 'المصروفات', pharmacy_counts: 'الجرد', pharmacy_moves: 'الحركات', pharmacy_log: 'السجل', pharmacy_backups: 'النسخ الاحتياطية', pharmacy_users: 'المستخدمون', pharmacy: 'الإعدادات' };
+    const topBy = (t) => { const m = usageBy()[t] || {}; return Object.keys(m).sort((a, b) => m[b] - m[a]).slice(0, 4).map(k => `<span>${escapeHtml(SRC[k] || k)}: <b>${fmtNum(m[k])}</b></span>`).join(' · '); };
+    const byHtml = (topBy('r') || topBy('w')) ? `<div class="ss-note ss-by">${topBy('r') ? '<div>أكثر القراءات: ' + topBy('r') + '</div>' : ''}${topBy('w') ? '<div>أكثر الكتابات: ' + topBy('w') + '</div>' : ''}</div>` : '';
+    const capHtml = userRole === 'owner' ? `<div class="ss-cap"><label for="ssCapR">الحد اليومي للقراءات</label><input id="ssCapR" type="number" inputmode="numeric" min="1000" step="1000" value="${cr}" onchange="usageSetCap('r', this.value)"><label for="ssCapW">الحد اليومي للكتابات</label><input id="ssCapW" type="number" inputmode="numeric" min="1000" step="500" value="${cw}" onchange="usageSetCap('w', this.value)"></div><div class="ss-note">حصة Firebase المجانية للمشروع كله 50,000 قراءة و20,000 كتابة يومياً، وهي مشتركة بين كل الأجهزة. يُفضّل أن يكون مجموع حدود الأجهزة أقل منها.</div>` : '';
+    const tech = bar('الكتابات اليوم (هذا الجهاز)', u.w, cw) + bar('القراءات اليوم (هذا الجهاز)', u.r, cr) + byHtml + capHtml +
         (!native && !persistenceOn ? '<div class="ss-note">الحفظ دون إنترنت غير مدعوم في هذا المتصفح، فلا تُحفظ العمليات إن انقطع الاتصال.</div>' : '');
     const html = `<div class="ss-wrap">
         <div class="ss-hero ss-${tone}"><span class="ss-dot"></span><div class="ss-ht"><b>${head}</b><small>${sub}</small></div></div>` +
@@ -490,8 +494,21 @@ function usageBonus(t) { try { const b = JSON.parse(localStorage.getItem('diwanB
 function usageGrant(r, w) { try { const k = usageDayKey(), b = JSON.parse(localStorage.getItem('diwanBonus') || 'null'); const x = b && b.d === k ? b : { d: k, r: 0, w: 0 }; x.r += r; x.w += w; localStorage.setItem('diwanBonus', JSON.stringify(x)); } catch (e) { /* تجاهل */ } }   // سماح إضافي لليوم الحالي فقط عند الاستئناف اليدوي
 function usageCap(t) { let v = 0; try { v = parseInt(localStorage.getItem('diwanCap_' + t), 10); } catch (e) { /* تجاهل */ } return (v > 0 ? v : USAGE_DEFAULT[t]) + usageBonus(t); }
 let _usSaveAt = 0, _usMem = null;
-function usageAdd(t, n) {
+let _usBy = null, _usBySave = 0;
+function usageBy() {   // تفصيل الاستهلاك اليومي حسب المصدر (اسم المجموعة)
+    const k = usageDayKey();
+    if (!_usBy || _usBy.d !== k) { try { _usBy = JSON.parse(localStorage.getItem('diwanUsageBy') || 'null'); } catch (e) { _usBy = null; } if (!_usBy || _usBy.d !== k) _usBy = { d: k, r: {}, w: {} }; }
+    return _usBy;
+}
+function usageSetCap(t, v) {
+    const n = Math.round(Number(v)); if (!(n >= 1000)) { Swal.fire({ icon: 'warning', title: 'قيمة غير صالحة', text: 'أدخل رقماً لا يقل عن 1000.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+    try { localStorage.setItem('diwanCap_' + t, String(n)); } catch (e) { /* تجاهل */ }
+    const u = usageGet(); if (usagePaused === 'cap' && u.r < usageCap('r') && u.w < usageCap('w')) usageResume();
+    Swal.close(); showSyncStatus();
+}
+function usageAdd(t, n, src) {
     if (!n) return;
+    try { const by = usageBy(), m = by[t] || (by[t] = {}), s = src || 'أخرى'; m[s] = (m[s] || 0) + n; if (Date.now() - _usBySave > 3000) { _usBySave = Date.now(); localStorage.setItem('diwanUsageBy', JSON.stringify(by)); } } catch (e) { /* تجاهل */ }
     const u = _usMem && _usMem.d === usageDayKey() ? _usMem : (_usMem = usageGet());
     u[t] += n;
     if (t === 'w') { window.__abDirty = 1; if (typeof abDirty === 'function') abDirty(); }   // تغيّرت البيانات: تُحفظ نسخة تلقائية بعد قليل
@@ -514,13 +531,13 @@ function installUsage() {
     if (window.__usInstalled || !window.firebase || !firebase.firestore) return;
     window.__usInstalled = true;
     const F = firebase.firestore;
-    const wrapW = (proto, names, per) => { if (!proto) return; names.forEach(n => { const o = proto[n]; if (typeof o !== 'function') return; proto[n] = function () { try { per.call(this, n); } catch (e) { /* تجاهل */ } return o.apply(this, arguments); }; }); };
-    wrapW(F.DocumentReference && F.DocumentReference.prototype, ['set', 'update', 'delete'], () => usageAdd('w', 1));
+    const wrapW = (proto, names, per) => { if (!proto) return; names.forEach(n => { const o = proto[n]; if (typeof o !== 'function') return; proto[n] = function () { try { per.call(this, n, arguments); } catch (e) { /* تجاهل */ } return o.apply(this, arguments); }; }); };
+    wrapW(F.DocumentReference && F.DocumentReference.prototype, ['set', 'update', 'delete'], function () { usageAdd('w', 1, this.parent && this.parent.id); });
     wrapW(F.CollectionReference && F.CollectionReference.prototype, ['add'], () => usageAdd('w', 1));
     const WB = F.WriteBatch && F.WriteBatch.prototype;
-    wrapW(WB, ['set', 'update', 'delete'], function () { this.__n = (this.__n || 0) + 1; });
-    wrapW(WB, ['commit'], function () { usageAdd('w', this.__n || 1); this.__n = 0; });
-    const cnt = s => { try { if (s && !(s.metadata && s.metadata.fromCache)) usageAdd('r', typeof s.docChanges === 'function' ? s.docChanges().length : 1); } catch (e) { /* تجاهل */ } };
+    wrapW(WB, ['set', 'update', 'delete'], function (n, a) { this.__n = (this.__n || 0) + 1; const c = (a && a[0] && a[0].parent && a[0].parent.id) || 'أخرى'; this.__c = this.__c || {}; this.__c[c] = (this.__c[c] || 0) + 1; });
+    wrapW(WB, ['commit'], function () { const c = this.__c || {}, ks = Object.keys(c); if (ks.length) ks.forEach(k => usageAdd('w', c[k], k)); else usageAdd('w', this.__n || 1); this.__n = 0; this.__c = {}; });
+    const cnt = s => { try { if (s && !(s.metadata && s.metadata.fromCache)) { const src = (s.docs && s.docs[0] && s.docs[0].ref && s.docs[0].ref.parent && s.docs[0].ref.parent.id) || (s.ref && s.ref.parent && s.ref.parent.id) || 'أخرى'; usageAdd('r', typeof s.docChanges === 'function' ? s.docChanges().length : 1, src); } } catch (e) { /* تجاهل */ } };
     const wrapSnap = proto => {
         if (!proto || typeof proto.onSnapshot !== 'function') return; const o = proto.onSnapshot;
         proto.onSnapshot = function () {

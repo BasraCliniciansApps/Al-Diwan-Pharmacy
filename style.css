@@ -4792,3 +4792,7 @@ body.admin-page[data-view="bill"] { padding-bottom: 90px; }
 /* v640: زر حذف الدفعة في التعديل السريع بنفس ارتفاع حقليه (46) */
 .qp-bt .qb-r1 { align-items: stretch; }
 .qp-bt .qb-x { height: var(--field-h, 46px); min-height: var(--field-h, 46px); min-width: var(--field-h, 46px); }
+/* v644: تفصيل الاستهلاك وتعديل الحد اليومي في «حالة المزامنة» */
+.ss-by { margin-top: 12px; line-height: 1.9; } .ss-by b { color: #334155; }
+.ss-cap { display: grid; grid-template-columns: 1fr 110px; gap: 8px; align-items: center; margin-top: 14px; font-size: .8rem; font-weight: 700; color: #475569; }
+.ss-cap input { height: var(--field-h, 46px); box-sizing: border-box; width: 100%; text-align: center; border: 1px solid var(--border, #d8e0ec); border-radius: var(--field-r, 12px); font-family: inherit; font-size: .9rem; }
