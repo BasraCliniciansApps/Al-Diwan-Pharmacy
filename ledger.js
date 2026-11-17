@@ -17,11 +17,12 @@ function lgLocal() { try { return JSON.parse(lsGet(LG_LS.list)) || []; } catch (
 async function lgLoad() {
     const map = new Map();
     lgLocal().forEach(x => x && x.id && map.set(x.id, x));
-    if (cloudReady() && navigator.onLine && cloudClaim('lg', 60, map.size > 0)) {
+    if (cloudReady() && navigator.onLine) {
         try {
-            const snap = await db.collection('pharmacy_ledger').limit(3000).get();
+            const r1 = await cloudDelta('lg', 'pharmacy_ledger', map.size > 0, 3, 24, c => c.limit(3000)); if (!r1) throw { skip: 1 };
+            const snap = r1.snap;
             snap.forEach(d => { const x = d.data(); if (!x || !x.id) return; const c = map.get(x.id); if (!c || String(x.upd || '') >= String(c.upd || '')) map.set(x.id, x); });
-        } catch (e) { cloudRelease('lg'); /* القاعدة غير مضافة بعد */ }
+        } catch (e) { /* القاعدة غير مضافة بعد، أو لا حاجة للقراءة الآن */ }
     }
     lgAll = [...map.values()];
     lsSet(LG_LS.list, JSON.stringify(lgAll));

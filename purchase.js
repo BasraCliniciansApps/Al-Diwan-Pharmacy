@@ -42,17 +42,18 @@ async function puLoad() {
     let sup = [];
     try { sup = JSON.parse(lsGet(PU_LS.sup)) || []; } catch (e) { sup = []; }
     const smap = new Map(sup.map(s => [s.id, s]));
-    if (cloudReady() && navigator.onLine && cloudClaim('pu', 60, map.size > 0)) {
+    if (cloudReady() && navigator.onLine) {
         try {
-            const snap = await db.collection('pharmacy_purchases').limit(1000).get(), cloud = new Map();
+            const r1 = await cloudDelta('pu', 'pharmacy_purchases', map.size > 0, 3, 24, c => c.limit(1000)); if (!r1) throw { skip: 1 };
+            const snap = r1.snap, cloud = new Map();
             snap.forEach(d => { const x = d.data(); if (x && x.id) cloud.set(x.id, x); });
             // حماية من التكرار: سجل محلي فقط (غير موجود بالسحابة) له نفس المذخر والرقم والتاريخ لسجل سحابي بمعرّف مختلف = نسخة مكررة، فلا نبقيها ولا نرسلها
             const ck = r => puKey(r.supplier) + '|' + puKey(r.no) + '|' + String(r.date || '');
             const ckeys = new Set([...cloud.values()].map(ck));
             [...map.values()].forEach(x => { if (!cloud.has(x.id) && ckeys.has(ck(x))) map.delete(x.id); });
             cloud.forEach((x, id) => map.set(id, x));
-        } catch (e) { cloudRelease('pu'); /* القواعد غير مضافة */ }
-        try { const snap = await db.collection('pharmacy_suppliers').limit(500).get(); snap.forEach(d => { const x = d.data(); if (x && x.id) smap.set(x.id, x); }); } catch (e) { /* القواعد غير مضافة */ }
+        } catch (e) { /* القواعد غير مضافة، أو لا حاجة للقراءة الآن */ }
+        try { const r2 = await cloudDelta('pus', 'pharmacy_suppliers', smap.size > 0, 3, 24, c => c.limit(500)); if (r2) r2.snap.forEach(d => { const x = d.data(); if (x && x.id) smap.set(x.id, x); }); } catch (e) { /* القواعد غير مضافة */ }
     }
     puAll = [...map.values()].sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdTs).localeCompare(String(a.createdTs)));
     puSuppliers = [...smap.values()];

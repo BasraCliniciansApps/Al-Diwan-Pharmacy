@@ -16,12 +16,13 @@ function cnStoreLocal() { lsSet(CN_LS, JSON.stringify(cnLists)); }
 function cnSort() { cnLists.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.createdTs || '').localeCompare(String(a.createdTs || ''))); }
 async function cnLoad() {
     cnLists = cnLocal();
-    if (cloudReady() && navigator.onLine && cloudClaim('cn', 30, cnLists.length > 0)) {
+    if (cloudReady() && navigator.onLine) {
         try {
-            const snap = await db.collection('pharmacy_counts').limit(100).get(), m = new Map(cnLists.map(x => [x.id, x]));
+            const r1 = await cloudDelta('cn', 'pharmacy_counts', cnLists.length > 0, 3, 24, c => c.limit(100)); if (!r1) throw { skip: 1 };
+            const snap = r1.snap, m = new Map(cnLists.map(x => [x.id, x]));
             snap.forEach(d => { const x = d.data(); if (!x || !x.id) return; const l = m.get(x.id); if (!l || String(x.upd || '') > String(l.upd || '')) m.set(x.id, x); });
             cnLists = [...m.values()]; cnStoreLocal();
-        } catch (e) { cloudRelease('cn'); /* القواعد غير مضافة */ }
+        } catch (e) { /* القواعد غير مضافة، أو لا حاجة للقراءة الآن */ }
     }
     cnSort();
 }

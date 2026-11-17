@@ -19,8 +19,8 @@ function exLocal() { try { return (JSON.parse(lsGet(EX_LS)) || []).filter(x => x
 function exStore() { lsSet(EX_LS, JSON.stringify(exAll)); }
 async function exLoad() {
     const m = new Map(); exLocal().forEach(x => m.set(x.id, x));
-    if (cloudReady() && navigator.onLine && cloudClaim('ex', 60, m.size > 0)) {
-        try { const snap = await db.collection('pharmacy_expenses').get(); snap.forEach(d => { const x = d.data(); if (x && x.id) m.set(x.id, x); }); } catch (e) { cloudRelease('ex'); /* قد لا تكون القاعدة مضافة بعد */ }
+    if (cloudReady() && navigator.onLine) {
+        try { const r1 = await cloudDelta('ex', 'pharmacy_expenses', m.size > 0, 3, 24, c => c); if (r1) r1.snap.forEach(d => { const x = d.data(); if (x && x.id) m.set(x.id, x); }); } catch (e) { /* قد لا تكون القاعدة مضافة بعد */ }
     }
     exAll = [...m.values()].sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.ts || '').localeCompare(String(a.ts || '')));
     exStore();

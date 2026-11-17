@@ -331,7 +331,58 @@ async function fsWrite(promise) {
     return r;
 }
 function fsCommit(batch) { return fsWrite(batch.commit()); }
-function fsSet(ref, data, opts) { return fsWrite(opts ? ref.set(data, opts) : ref.set(data)); }
+// ===== ساعة موثوقة: فرق الوقت بين الجهاز وخادم الموقع (من ترويسة Date) يُحفظ ويُستعمل لختم «آخر تعديل» =====
+let clockOff = 0; try { clockOff = +localStorage.getItem('diwanClockOff') || 0; } catch (e) { clockOff = 0; }
+function trustedNow() { return Date.now() + clockOff; }
+function trustedISO() { return new Date(trustedNow()).toISOString(); }
+async function syncClock() {
+    try {
+        if (!navigator.onLine) return;
+        const t0 = Date.now(), r = await fetch('./sw.js?_ck=' + t0, { method: 'HEAD', cache: 'no-store' }), t1 = Date.now();
+        const srv = Date.parse(r.headers.get('date') || ''); if (!srv || t1 - t0 > 8000) return;
+        clockOff = Math.round(srv + 500 - (t0 + t1) / 2);   // الترويسة بدقة ثانية: نضيف نصف ثانية للتعويض
+        if (Math.abs(clockOff) < 1500) clockOff = 0;   // فرق صغير: نتجاهله
+        try { localStorage.setItem('diwanClockOff', String(clockOff)); } catch (e) { /* تجاهل */ }
+    } catch (e) { /* تجاهل */ }
+}
+setTimeout(syncClock, 3000); setInterval(syncClock, 6 * 3600e3); window.addEventListener('online', () => setTimeout(syncClock, 1500));
+// السجلات المتزامنة تُختم بوقت آخر تعديل الموثوق (_u): أساس المزامنة التدريجية (يُجلب بعد المؤشر فقط)
+const DELTA_COLLS = { pharmacy_purchases: 1, pharmacy_suppliers: 1, pharmacy_ledger: 1, pharmacy_invoices: 1, pharmacy_expenses: 1, pharmacy_counts: 1 };
+// _su = وقت الخادم عند وصول الكتابة فعلاً (حتى الكتابات المؤجلة دون إنترنت تأخذ وقتها عند الوصول)، فلا يفوت أي جهاز سجلاً متأخراً
+function fsSet(ref, data, opts) {
+    let out = data, stamped = false;
+    try {
+        if (data && typeof data === 'object' && !Array.isArray(data) && ref && ref.parent && DELTA_COLLS[ref.parent.id]) {
+            data._u = trustedISO();
+            if (localStorage.getItem('diwanNoStamp') !== '1' && fv() && firebase.firestore.FieldValue.serverTimestamp) { out = Object.assign({}, data, { _su: firebase.firestore.FieldValue.serverTimestamp() }); stamped = true; }
+        }
+    } catch (e) { out = data; stamped = false; }
+    let pr = opts ? ref.set(out, opts) : ref.set(out);
+    if (stamped) pr = pr.catch(e => {   // قواعد Firestore ترفض الحقل الإضافي: نكتب بدونه ونوقف الختم (تعود المزامنة لنمط القراءة الكاملة الآمن)
+        if (e && e.code === 'permission-denied') { try { localStorage.setItem('diwanNoStamp', '1'); } catch (x) { /* تجاهل */ } return opts ? ref.set(data, opts) : ref.set(data); }
+        throw e;
+    });
+    return fsWrite(pr);
+}
+// المزامنة التدريجية: يجلب السجلات المتغيرة بعد المؤشر فقط؛ قراءة كاملة عند الحاجة (أول مرة، يومياً، أو بطلب «مزامنة الآن»/النسخ الاحتياطي)
+// يرجع null إذا لا حاجة للقراءة الآن، وإلا {snap, full}. الحذف لا ينتقل بالتدريجي فيلتقطه التحديث الكامل اليومي.
+async function cloudDelta(key, coll, haveLocal, ttlMin, fullHours, fullQuery) {
+    const g = k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, st = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) { /* تجاهل */ } };
+    const now = Date.now(), force = window.__forceCloud > 0, stampOK = g('diwanNoStamp') !== '1';
+    const lastTry = +g('diwanLd_' + key) || 0, lastFull = +g('diwanFull_' + key) || 0, cur = +g('diwanCur_' + key) || 0;
+    if (!force && haveLocal && now - lastTry < (stampOK ? ttlMin : 60) * 60000) return null;
+    st('diwanLd_' + key, now);
+    const full = window.__forceFull > 0 || !haveLocal || !stampOK || !cur || now - lastFull > fullHours * 3600e3;
+    const startMs = trustedNow();
+    try {
+        const q = full ? fullQuery(db.collection(coll)) : db.collection(coll).where('_su', '>', firebase.firestore.Timestamp.fromMillis(Math.max(0, cur - 120000))).limit(1000);
+        const snap = await q.get();
+        let mx = 0; snap.forEach(d => { const x = d.data(), t = x && x._su && x._su.toMillis ? x._su.toMillis() : 0; if (t > mx) mx = t; });
+        if (full) { st('diwanFull_' + key, now); st('diwanCur_' + key, Math.max(mx, startMs - 300000)); }
+        else if (mx > cur) st('diwanCur_' + key, mx);
+        return { snap, full };
+    } catch (e) { try { localStorage.removeItem('diwanLd_' + key); } catch (x) { /* تجاهل */ } throw e; }
+}
 function checkPending() {   // كتابات قديمة من جلسة سابقة؟
     if (!db || !isFirebaseReady || typeof db.waitForPendingWrites !== 'function') return;
     const t = setTimeout(() => { startupPending = true; syncRefresh(); }, 600);
@@ -354,6 +405,14 @@ async function syncNow() {
     h.set(null, 'رفع السجلات المحفوظة محلياً...');
     window.__forceCloud++;
     try { if (typeof syncLocalRecords === 'function') n = await syncLocalRecords(false); } catch (e) { window.__forceCloud = Math.max(0, window.__forceCloud - 1); h.fail('تعذرت المزامنة', e && e.message); return; }
+    h.set(null, 'تحديث السجلات من السحابة...');
+    try {   // جلب الجديد فقط من الواردات والدفتر والفواتير والمصروفات والجرد (تجاوز مدة الانتظار)
+        const jobs = [];
+        if (typeof puLoad === 'function' && can('purchases')) jobs.push(puLoad());
+        if (typeof lgLoad === 'function' && can('purchases')) jobs.push(lgLoad());
+        if (typeof loadInvoices === 'function' && can('sell')) jobs.push(loadInvoices());
+        await Promise.allSettled(jobs);
+    } catch (e) { /* تجاهل */ }
     window.__forceCloud = Math.max(0, window.__forceCloud - 1);
     checkPending();
     h.ok(n ? 'رُفع ' + n + ' سجل محفوظ محلياً' : 'تمت المزامنة — كل شيء محدّث');
@@ -414,7 +473,7 @@ function cloudClaim(key, ttlMin, haveLocal) {
     return true;
 }
 function cloudRelease(key) { try { localStorage.removeItem('diwanLd_' + key); } catch (e) { /* تجاهل */ } }
-async function withForceCloud(fn) { window.__forceCloud++; try { return await fn(); } finally { window.__forceCloud = Math.max(0, window.__forceCloud - 1); } }
+async function withForceCloud(fn, full) { window.__forceCloud++; if (full) window.__forceFull = (window.__forceFull || 0) + 1; try { return await fn(); } finally { window.__forceCloud = Math.max(0, window.__forceCloud - 1); if (full) window.__forceFull = Math.max(0, (window.__forceFull || 1) - 1); } }
 
 // ===== عدّاد استهلاك محلي + حد يومي لكل جهاز (تقريبي): يمنع حرق الحصة المجانية =====
 // عند بلوغ الحد يُقطع الاتصال بالسحابة (الكتابات تبقى محفوظة على الجهاز وتُرسل عند الاستئناف).
