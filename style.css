@@ -4762,3 +4762,14 @@ body.admin-page[data-view="bill"] { padding-bottom: 90px; }
 :root[data-theme="dark"] .wa-st b, :root[data-theme="dark"] .wa-dev-t b, :root[data-theme="dark"] .wa-h { color: #f1f5f9; }
 @media print { .wa-ov { display: none !important; } }
 #waHost .wa-intro { display: none; }
+
+/* v635: «تعبئة سريعة» — أزرار وحقول بارتفاع واحد وأعمدة متساوية */
+#formModal .fs-scan.fs-open > .scan-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+#formModal .fs-scan.fs-open > .name-lookup-row { display: flex; gap: 8px; align-items: stretch; }
+#formModal .fs-scan .scan-engine { gap: 8px; }
+#formModal .fs-scan .scan-engine-select, #formModal .fs-scan .scan-gear, #formModal .fs-scan .scan-act,
+#formModal .fs-scan .name-lookup-row input, #formModal .fs-scan .scan-go { height: var(--field-h); min-height: var(--field-h); box-sizing: border-box; }
+#formModal .fs-scan .scan-gear { width: var(--field-h); flex: 0 0 var(--field-h); display: inline-flex; align-items: center; justify-content: center; }
+#formModal .fs-scan .scan-engine-select { width: 140px; max-width: 140px; padding-inline: 10px; }
+#formModal .fs-scan .scan-act { min-width: 0; width: 100%; }
+#formModal .fs-scan .scan-go { flex: 0 0 auto; min-width: 84px; display: inline-flex; align-items: center; justify-content: center; }
