@@ -4783,3 +4783,12 @@ body.admin-page[data-view="bill"] { padding-bottom: 90px; }
 #formModal .fs-scan .scan-act span { font-family: inherit; font-size: inherit; font-weight: inherit; }
 #formModal .fs-scan .scan-engine-select { width: 112px; max-width: 112px; padding-inline: 8px; }
 #formModal .fs-scan .scan-engine { gap: 6px; }
+
+/* v640: صفوف الدفعات في تعديل الصنف — التاريخ والعلب والأجزاء وزر الحذف على خط سفلي واحد وبارتفاع 46 */
+.fbt-row { align-items: end; }
+.fbt-row > label, .fbt-row > .fbt-pr { margin: 0; }
+.fbt-row .expiry-input, .fbt-row label input { height: var(--field-h, 46px); min-height: var(--field-h, 46px); box-sizing: border-box; margin: 0; }
+.fbt-row .expiry-remove { height: var(--field-h, 46px); min-height: var(--field-h, 46px); width: var(--field-h, 46px); margin: 0; align-self: end; }
+/* v640: زر حذف الدفعة في التعديل السريع بنفس ارتفاع حقليه (46) */
+.qp-bt .qb-r1 { align-items: stretch; }
+.qp-bt .qb-x { height: var(--field-h, 46px); min-height: var(--field-h, 46px); min-width: var(--field-h, 46px); }
