@@ -64,7 +64,9 @@ function createHub(opts) {
     }
 
     // الدور الفعلي: مالك فقط إذا ربط الجهاز برمز المالك (إن وُجد دور محفوظ) وكان حساب التطبيق مالكاً
-    const digests = {};
+    const digests = {}, qtyMap = {}; let qLoaded = false;
+    function noteQ(r) { if (r && r.type === 'qset' && r.data && r.data.st) qtyMap[String(r.data.pid)] = { q: parseInt(r.data.st.qty) || 0, l: parseInt(r.data.st.loose) || 0, at: r.ts }; }
+    function loadQ() { if (!qLoaded) { qLoaded = true; ops.forEach(noteQ); } }
     function effRole(dev, req) { const claim = String(req.headers['x-diwan-role'] || '') === 'owner'; return claim && (dev.d.role === undefined || dev.d.role === 'owner') ? 'owner' : 'staff'; }
     const STAFF_KINDS = ['sale', 'cancel', 'edit', 'ret'];
     function ingest(dev, list, role) {
@@ -132,13 +134,25 @@ function createHub(opts) {
             let mine = 0, applied = 0; ops.forEach(r => { if (r.dev === dev.id) { if (st.done[r.id]) applied++; else mine++; } });
             return send(res, 200, { waiting: mine, applied, prefix: dev.d.prefix, name, need: !!dev.d.needSnap, head: st.dseq });
         }
+        if (req.method === 'GET' && url === '/v1/qty') {   // الكمية النهائية عند الحاسوب (لفحص التوفر قبل البيع)
+            const q = new URLSearchParams((req.url.split('?')[1]) || ''); loadQ();
+            const out = {}; String(q.get('ids') || '').split(',').slice(0, 60).forEach(id => { if (qtyMap[id]) out[id] = qtyMap[id]; });
+            return send(res, 200, { q: out, at: Date.now() });
+        }
         if (req.method === 'GET' && url === '/v1/feed') {   // عمليات الأجهزة الأخرى التي وافق عليها الحاسوب (الاتجاه الثاني)
-            const q = new URLSearchParams((req.url.split('?')[1]) || ''); const after = parseInt(q.get('after')) || 0;
-            const list = [...ops.values()].filter(r => r.dev !== dev.id && r.type !== 'snapshot' && r.type !== 'stock' && st.done[r.id] === 'applied' && (st.doneSeq[r.id] || 0) > after).sort((a, b) => st.doneSeq[a.id] - st.doneSeq[b.id]).slice(0, 100);
+            const q = new URLSearchParams((req.url.split('?')[1]) || ''); const after = parseInt(q.get('after')) || 0, wait = Math.min(25, parseInt(q.get('wait')) || 0);
             const owner = effRole(dev, req) === 'owner';
-            const outL = list.filter(r => owner || (r.type !== 'rec' && r.type !== 'purchase')).map(r => { let d = r.data; if (!owner && r.type === 'pinfo' && d && d.cost) { d = Object.assign({}, d); delete d.cost; } return { id: r.id, type: r.type, ts: r.ts, data: d, dev: r.dev, devName: r.devName, fseq: st.doneSeq[r.id] }; });
-            const acked = [...ops.values()].filter(r => r.dev === dev.id && st.done[r.id] === 'applied').slice(-600).map(r => r.id);
-            return send(res, 200, { acked, ops: outL, last: list.length ? st.doneSeq[list[list.length - 1].id] : after, head: st.dseq });
+            const build = () => {
+                const list = [...ops.values()].filter(r => r.dev !== dev.id && r.type !== 'snapshot' && r.type !== 'stock' && st.done[r.id] === 'applied' && (st.doneSeq[r.id] || 0) > after).sort((a, b) => st.doneSeq[a.id] - st.doneSeq[b.id]).slice(0, 100);
+                const outL = list.filter(r => owner || (r.type !== 'rec' && r.type !== 'purchase')).map(r => { let d = r.data; if (!owner && r.type === 'pinfo' && d && d.cost) { d = Object.assign({}, d); delete d.cost; } return { id: r.id, type: r.type, ts: r.ts, data: d, dev: r.dev, devName: r.devName, fseq: st.doneSeq[r.id] }; });
+                const acked = [...ops.values()].filter(r => r.dev === dev.id && st.done[r.id] === 'applied').slice(-600).map(r => r.id);
+                return { n: list.length, body: { acked, ops: outL, last: list.length ? st.doneSeq[list[list.length - 1].id] : after, head: st.dseq } };
+            };
+            let r = build();
+            if (r.n || !wait) return send(res, 200, r.body);
+            let alive = true; req.on('close', () => { alive = false; }); const t0 = Date.now();   // انتظار طويل: يُجاب فور وصول جديد
+            const again = () => { if (!alive) return; r = build(); if (r.n || Date.now() - t0 > wait * 1000) return send(res, 200, r.body); setTimeout(again, 250); };
+            return setTimeout(again, 250);
         }
         send(res, 404, { error: 'not-found' });
     });
@@ -155,7 +169,7 @@ function createHub(opts) {
                 tryPort(port || 8765, 10);
             });
         },
-        stop() { return new Promise(r => { try { server.close(() => r()); } catch (e) { r(); } }); },
+        stop() { return new Promise(r => { try { server.close(() => r()); if (server.closeAllConnections) server.closeAllConnections(); } catch (e) { r(); } }); },
         newCode, activeCode,
         info() { const a = server.address(); return { port: a && a.port, ips: lanIps(), name, code: activeCode(), codeRole, codeLeft: code ? Math.max(0, CODE_TTL - (Date.now() - codeAt)) : 0, devices: Object.keys(st.devices).map(id => ({ id, name: st.devices[id].name, prefix: st.devices[id].prefix, lastSeen: st.devices[id].lastSeen })), pending: this.pending().length }; },
         pending() { return [...ops.values()].filter(r => !st.done[r.id]).sort((a, b) => a.seq - b.seq); },
@@ -164,6 +178,7 @@ function createHub(opts) {
         addLocal(list) {   // تغييرات الحاسوب نفسه: تُسجَّل مطبَّقة وتوزَّع على الجوالات
             const lines = [];
             (list || []).forEach(o => { if (!validOp(o) || ops.has(o.id)) return; const rec = { id: o.id, type: o.type, ts: o.ts, data: o.data, dev: 'pc', devName: name, recvAt: new Date().toISOString(), seq: ++st.seq }; ops.set(rec.id, rec); lines.push(JSON.stringify(rec)); st.done[rec.id] = 'applied'; st.doneSeq[rec.id] = ++st.dseq; });
+            loadQ(); (list || []).forEach(o => { if (o && o.type === 'qset') noteQ(ops.get(o.id)); });
             if (lines.length) { const fd = fs.openSync(opsFile, 'a'); try { fs.writeSync(fd, lines.join('\n') + '\n'); fs.fsyncSync(fd); } finally { fs.closeSync(fd); } saveState(); }
             return lines.length;
         },

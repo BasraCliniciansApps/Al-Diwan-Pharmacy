@@ -1,7 +1,7 @@
 {
   "name": "diwan-pharmacy-desktop",
   "productName": "صيدلية الديوان",
-  "version": "1.5.3",
+  "version": "1.5.4",
   "description": "برنامج سطح المكتب لصيدلية الديوان",
   "main": "main.js",
   "author": "Al-Diwan Pharmacy",

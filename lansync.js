@@ -342,10 +342,11 @@
     }
     // ---- الاستعلام الدوري: حالة الحاسوب + استلام عمليات الأجهزة الأخرى التي وافق عليها الحاسوب ----
     let polling = false;
-    async function pullFeed() {
-        const st = ls.get(K.feed, { after: 0, ids: [] });
-        const r = await http('GET', '/v1/feed?after=' + (st.after || 0), null, true, 8000);
+    async function pullFeed(wait) {
+        const st0 = ls.get(K.feed, { after: 0, ids: [] });
+        const r = await http('GET', '/v1/feed?after=' + (st0.after || 0) + (wait ? '&wait=' + wait : ''), null, true, wait ? 35000 : 8000);
         if (r.s !== 200) return 0;
+        const st = ls.get(K.feed, { after: 0, ids: [] });   // أعد القراءة: قد يكون طلب آخر سبقنا
         st.ack = Array.from(new Set((st.ack || []).concat(r.j.acked || []))).slice(-2500); ls.set(K.feed, st);
         const list = (r.j.ops || []).filter(o => o && o.id && !st.ids.includes(o.id));
         if (list.length) {
@@ -378,9 +379,36 @@
         } catch (e) { lastErr = (e && e.message) || 'تعذر الاتصال بالحاسوب'; }
         finally { polling = false; refreshUi(); try { syncRefresh(); } catch (e) { /* تجاهل */ } }
     }
-    async function tick() { if (!active()) return; await flush(); await poll(); }
+    // استقبال شبه فوري: طلب انتظار طويل يُجاب فور وصول جديد من الحاسوب
+    let lpOn = false;
+    async function longPoll() {
+        if (lpOn) return; lpOn = true;
+        try {
+            while (active() && !document.hidden) {
+                try { const n = await pullFeed(20); if (n === undefined) await new Promise(r => setTimeout(r, 3000)); }
+                catch (e) { await new Promise(r => setTimeout(r, 5000)); }
+            }
+        } finally { lpOn = false; }
+    }
+    // فحص التوفر عند الحاسوب قبل البيع: لا يعطّل البيع (مهلة 1.5 ثانية)
+    async function preSale(plan) {
+        if (!active()) return [];
+        try {
+            const ids = (plan || []).map(e => e.p.id).join(','); if (!ids) return [];
+            const r = await http('GET', '/v1/qty?ids=' + ids, null, true, 1500); if (r.s !== 200) return [];
+            const out = [];
+            (plan || []).forEach(e => {
+                const h = r.j.q && r.j.q[e.p.id]; if (!h) return;
+                const sc = btSc(e.p), need = (e.from.qty - e.to.qty) * sc + (sc > 1 ? e.from.loose - e.to.loose : 0);
+                const av = snapNum(h.q) * sc + (sc > 1 ? snapNum(h.l) : 0) + pendingParts(e.p.id);
+                if (av < need) out.push({ name: e.p.name, av: Math.max(0, Math.floor(av / sc)) + (sc > 1 && av % sc > 0 ? ' + ' + (av % sc) + ' جزء' : '') });
+            });
+            return out;
+        } catch (e) { return []; }
+    }
+    async function tick() { if (!active()) return; longPoll(); await flush(); await poll(); }
     setInterval(tick, 20000);
-    document.addEventListener('visibilitychange', () => { if (!document.hidden && active()) tick(); });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden && active()) { tick(); longPoll(); } });
     window.addEventListener('online', () => { if (active()) tick(); });
     window.addEventListener('load', () => setTimeout(() => { if (active()) tick(); }, 1500));
 
@@ -717,7 +745,7 @@
     }
     async function newCode(role) { if (D) { await D.lan.newCode(role); refreshUi(); } }
 
-    window.LAN = { autostart, err: () => lastErr, digestTick, sendDigest, pushDirty, scanUi, pairQr, sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, autoToggle, testConn, poll, autoTick, refreshUi, pair, _ls: ls, K };
+    window.LAN = { preSale, longPoll, autostart, err: () => lastErr, digestTick, sendDigest, pushDirty, scanUi, pairQr, sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, autoToggle, testConn, poll, autoTick, refreshUi, pair, _ls: ls, K };
     if (D) { D.lan.onChange(() => { refreshUi(); autoTick(); }); setInterval(autoTick, 15000); setInterval(digestTick, 30000); window.addEventListener('load', () => setTimeout(autoTick, 3000)); }
     window.addEventListener('load', () => { refreshUi(); if (D && modeOn()) D.lan.enable(true).catch(() => { /* تجاهل */ }); setInterval(refreshUi, 30000); });
 })();
