@@ -4717,3 +4717,48 @@ div.ss-warn:not(.ss-hero) { padding: 10px 12px; border-radius: 12px; background:
 /* رقم الفاتورة يظهر كاملاً، ومساحة أسفل الشاشة كي لا يغطي زر السلة العائم آخر الحقول (v628) */
 .bill-no input { width: 150px; font-size: .78rem; }
 body.admin-page[data-view="bill"] { padding-bottom: 90px; }
+
+/* ===== المبيعات عبر واتساب (v630) ===== */
+.ss-link { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; margin-top: 10px; padding: 11px 14px; border: 1.5px solid #cbd5e1; border-radius: 14px; background: #f8fafc; color: #0f1c38; font: inherit; font-weight: 800; font-size: .9rem; text-align: right; cursor: pointer; }
+.ss-link small { font-weight: 600; font-size: .74rem; color: #64748b; }
+.ss-link:active { background: #eef2f7; }
+.wa-ov { position: fixed; inset: 0; z-index: 1000; display: none; align-items: flex-end; justify-content: center; background: rgba(15,28,56,.45); }
+.wa-sheet { width: 100%; max-width: 560px; max-height: 92vh; background: #fff; border-radius: 22px 22px 0 0; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 -10px 40px rgba(0,0,0,.25); }
+.wa-hd { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #0f1c38; color: #fff; font-size: 1rem; }
+.wa-hd b { font-weight: 800; }
+.wa-x { width: 36px; height: 36px; border: 0; border-radius: 12px; background: rgba(255,255,255,.14); color: #fff; font-size: 1.05rem; cursor: pointer; }
+.wa-body { padding: 12px 14px calc(18px + env(safe-area-inset-bottom, 0px)); overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; gap: 8px; }
+.wa-intro { margin: 0 0 4px; }
+.wa-h { margin: 10px 0 2px; font-size: .86rem; font-weight: 800; color: #0f1c38; }
+.wa-empty { padding: 14px; border: 1.5px dashed #cbd5e1; border-radius: 14px; text-align: center; color: #64748b; font-size: .84rem; font-weight: 600; }
+.wa-main { border-color: #0f1c38 !important; }
+.wa-dev { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 14px; background: #f8fafc; }
+.wa-dev-t { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.wa-dev-t b { font-weight: 800; color: #0f1c38; }
+.wa-dev-t small, .wa-dev > small { color: #64748b; font-size: .74rem; font-weight: 600; }
+.wa-dev-b { display: flex; gap: 6px; }
+.wa-dev-b button { flex: 1 1 0; min-height: 40px; padding: 0 6px; border: 1.5px solid #cbd5e1; border-radius: 12px; background: #fff; color: #0f1c38; font: inherit; font-weight: 700; font-size: .78rem; cursor: pointer; }
+.wa-dev-b button.del { color: #b91c1c; border-color: #fecaca; }
+.wa-log { display: grid; grid-template-columns: 1fr auto; gap: 0 8px; padding: 8px 12px; border-radius: 12px; background: #f1f5f9; font-size: .8rem; }
+.wa-log small { grid-column: 1 / -1; color: #64748b; font-weight: 600; }
+.wa-log span { color: #64748b; font-size: .74rem; }
+.wa-st { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.wa-st > div { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 4px; border-radius: 14px; background: #f1f5f9; }
+.wa-st b { font-size: 1.05rem; color: #0f1c38; font-weight: 800; }
+.wa-st small { font-size: .7rem; color: #64748b; font-weight: 600; text-align: center; }
+.wa-meta { margin-top: 2px; font-size: .76rem; color: #64748b; text-align: center; }
+.wa-meta a { color: #b91c1c; font-weight: 700; text-decoration: none; }
+.wa-pv { display: flex; flex-direction: column; gap: 6px; text-align: right; }
+.wa-pv-h { display: flex; flex-direction: column; padding-bottom: 6px; border-bottom: 1px solid #e2e8f0; }
+.wa-pv-h small { color: #64748b; font-size: .76rem; }
+.wa-li { display: flex; gap: 8px; align-items: flex-start; padding: 7px 10px; border-radius: 10px; background: #f1f5f9; font-size: .84rem; line-height: 1.6; }
+.wa-li i { font-style: normal; }
+.wa-li.warn { background: #fef3c7; color: #78350f; }
+.wa-li.bad { background: #fee2e2; color: #991b1b; }
+.wa-li.mut { background: transparent; color: #64748b; padding-inline: 2px; }
+:root[data-theme="dark"] .wa-sheet { background: #0f172a; color: #e2e8f0; }
+:root[data-theme="dark"] .wa-dev, :root[data-theme="dark"] .wa-st > div, :root[data-theme="dark"] .wa-log, :root[data-theme="dark"] .wa-li { background: #1e293b; color: #e2e8f0; }
+:root[data-theme="dark"] .wa-dev-b button, :root[data-theme="dark"] .ss-link { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+:root[data-theme="dark"] .wa-st b, :root[data-theme="dark"] .wa-dev-t b, :root[data-theme="dark"] .wa-h { color: #f1f5f9; }
+@media print { .wa-ov { display: none !important; } }
+#waHost .wa-intro { display: none; }

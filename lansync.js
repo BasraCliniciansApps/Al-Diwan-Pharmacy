@@ -125,8 +125,12 @@
     // ======================= الجوال: التقاط العمليات =======================
     const outbox = () => ls.get(K.out, []);
     const archive = () => ls.get(K.arch, []);
-    function enqueue(op) { const o = outbox(); if (!o.some(x => x.id === op.id)) o.push(op); ls.set(K.out, o); setTimeout(flush, 50); refreshUi(); }
-    function active() { return modeOn() && !D; }
+    function enqueue(op) {
+        if (waOn()) { try { window.WA.add(op); } catch (e) { /* تجاهل */ } return; }   // وضع واتساب: تُحفظ العملية بسجل الجهاز وتُرسل كملف
+        const o = outbox(); if (!o.some(x => x.id === op.id)) o.push(op); ls.set(K.out, o); setTimeout(flush, 50); refreshUi();
+    }
+    function active() { return modeOn() && !D; }   // الاتصال الشبكي بالحاسوب (وضع المزامنة المحلية فقط)
+    const waOn = () => ls.raw('diwanWaMode') === '1' && !D;   // وضع واتساب (مستخدم بلا سحابة ولا حاسوب)
     function snapNum(n) { return parseInt(n) || 0; }
 
     function captureStock(entries, op) {
@@ -745,7 +749,7 @@
     }
     async function newCode(role) { if (D) { await D.lan.newCode(role); refreshUi(); } }
 
-    window.LAN = { preSale, longPoll, autostart, err: () => lastErr, digestTick, sendDigest, pushDirty, scanUi, pairQr, sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, autoToggle, testConn, poll, autoTick, refreshUi, pair, _ls: ls, K };
+    window.LAN = { preSale, longPoll, autostart, err: () => lastErr, digestTick, sendDigest, pushDirty, scanUi, pairQr, sendSnapshot, active: () => active() || waOn(), net: active, wa: waOn, mode: () => (modeOn() ? 'lan' : (waOn() ? 'wa' : 'cloud')), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, autoToggle, testConn, poll, autoTick, refreshUi, pair, _ls: ls, K, _i: { applyStockOp, applyRecordOp, trackIngest, pSplit, cfgNow, recStamp, replayOne, snapNum, hsh, stable, isOwner } };
     if (D) { D.lan.onChange(() => { refreshUi(); autoTick(); }); setInterval(autoTick, 15000); setInterval(digestTick, 30000); window.addEventListener('load', () => setTimeout(autoTick, 3000)); }
     window.addEventListener('load', () => { refreshUi(); if (D && modeOn()) D.lan.enable(true).catch(() => { /* تجاهل */ }); setInterval(refreshUi, 30000); });
 })();

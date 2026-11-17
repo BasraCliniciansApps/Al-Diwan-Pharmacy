@@ -69,6 +69,19 @@
         } catch (e) { console.warn('NAT.saveBlob', e); return null; }
     };
 
+    // مشاركة ملف مباشرة إلى واتساب وغيره (تحتاج إضافة Share في التطبيق؛ إن غابت يعود null فتُستعمل الطرق الأخرى)
+    NAT.shareFile = async function (blob, filename, title) {
+        const SH = P('Share');
+        if (!FS || !SH) return null;
+        try {
+            const path = 'share/' + filename;
+            await FS.writeFile({ path, data: await blobB64(blob), directory: 'CACHE', recursive: true });
+            const u = await FS.getUri({ path, directory: 'CACHE' });
+            await SH.share({ title: title || filename, files: [u.uri], dialogTitle: 'إرسال الملف' });
+            return 'shared';
+        } catch (e) { if (/cancel/i.test(String((e && (e.message || e.errorMessage)) || e))) return 'cancelled'; console.warn('NAT.shareFile', e); return null; }
+    };
+
     // قراءة ملف نصي من مجلد النسخ (مثل ملف الصور) ثم ملف .nomedia كي لا تُفهرس محتويات المجلد في معرض الصور
     NAT.readText = async function (rel) {
         if (!FS) return null;

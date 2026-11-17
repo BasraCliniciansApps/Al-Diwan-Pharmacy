@@ -187,7 +187,7 @@ let userRole = 'staff', userPerms = {}, userName = '';   // الدور: owner أ
 const LAN_LOCKED_PERMS = ['stockEdit', 'newItem', 'purchases', 'scanDel'];   // مع المزامنة المحلية: التعديل للمالك فقط
 function can(p) {
     if (!p || userRole === 'owner') return true;
-    try { if (LAN_LOCKED_PERMS.indexOf(p) >= 0 && localStorage.getItem('diwanLanMode') === 'lan') return false; } catch (e) { /* تجاهل */ }
+    try { if (LAN_LOCKED_PERMS.indexOf(p) >= 0 && (localStorage.getItem('diwanLanMode') === 'lan' || localStorage.getItem('diwanWaMode') === '1')) return false; } catch (e) { /* تجاهل */ }
     return !!(userPerms && userPerms[p]);
 }
 const COST_FIELDS = ['costPrice', 'lastPurchase', 'markupPct'];
@@ -306,6 +306,7 @@ function markSynced() { lastSyncAt = new Date().toISOString(); try { localStorag
 function syncRefresh() {
     let state, txt;
     if (!isFirebaseReady) { state = 'local'; txt = 'محلي'; }
+    else if (usagePaused === 'wa') { state = 'busy'; txt = 'وضع واتساب' + (window.WA ? ' — مبيعات لم تُرسل: ' + WA.pendingCount() : ''); }
     else if (usagePaused) { state = 'off'; txt = usagePaused === 'cap' ? 'الإرسال متوقف: بلغ الحد اليومي لهذا الجهاز' : usagePaused === 'lan' ? 'المزامنة عبر الحاسوب مفعّلة' + (window.LAN && !window.diwanDesktop ? ' — بانتظار الإرسال: ' + (LAN._ls.get('diwanLanOut', []).length) : '') : 'الإرسال متوقف بانتظار موافقتك'; }
     else if (!navigator.onLine) { state = 'off'; txt = 'بدون إنترنت' + (pendingOps ? ' — ' + pendingOps + ' بانتظار الإرسال' : '') + ' (يُحفظ على الجهاز وسيُرسل عند الاتصال)'; }
     else if (pendingOps > 0 || startupPending) { state = 'busy'; txt = 'جاري الإرسال للسحابة' + (pendingOps ? ' (' + pendingOps + ')' : '') + '...'; }
@@ -343,6 +344,7 @@ async function hardRefresh() {   // تحديث كامل: مسح الكاش وإ�
 }
 async function syncNow() {
     if (!isFirebaseReady || !db) return;
+    if (window.LAN && LAN.mode() === 'wa') { Swal.fire({ icon: 'info', title: 'وضع واتساب مفعّل', text: 'هذا الجهاز لا يتصل بالسحابة. أوقف الوضع من نافذة «المبيعات عبر واتساب» للعودة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     if (window.LAN && LAN.mode() === 'lan') { Swal.fire({ icon: 'info', title: 'المزامنة عبر الحاسوب مفعّلة', text: 'أوقفها من الإعدادات للعودة إلى السحابة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     if (usagePaused === 'cap') { const c = await Swal.fire({ icon: 'warning', title: 'استئناف الإرسال؟', text: 'بلغ هذا الجهاز حدّه اليومي. الاستئناف قد يستهلك من الحصة المجانية.', showCancelButton: true, confirmButtonText: 'استئناف', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' }); if (!c.isConfirmed) return; }
     const h = Prog.start('مزامنة مع السحابة', { text: 'جاري الاتصال...' });
@@ -378,7 +380,8 @@ function showSyncStatus() {
         if (window.diwanDesktop) { head = 'المزامنة عبر الحاسوب'; sub = 'هذا البرنامج يستقبل عمليات الهواتف على الشبكة'; tone = 'lan'; }
         else if (lanErr) { tone = 'err'; head = 'الحاسوب غير متصل'; sub = lanErr; }
         else { tone = 'lan'; head = 'متصل بالحاسوب'; sub = pend ? opsTxt(pend) + ' بانتظار الإرسال إليه' : 'كل العمليات وصلت إلى الحاسوب'; }
-    } else if (!isFirebaseReady) { tone = 'warn'; head = 'محلي فقط'; sub = 'لا يوجد اتصال بالسحابة'; }
+    } else if (usagePaused === 'wa') { const n = window.WA ? WA.pendingCount() : 0; tone = n ? 'busy' : 'lan'; head = 'وضع واتساب'; sub = n ? opsTxt(n) + ' لم تُرسل إلى المالك بعد' : 'لا توجد مبيعات بانتظار الإرسال'; }
+    else if (!isFirebaseReady) { tone = 'warn'; head = 'محلي فقط'; sub = 'لا يوجد اتصال بالسحابة'; }
     else if (usagePaused) { tone = 'warn'; head = 'الإرسال متوقف'; sub = usagePaused === 'cap' ? 'بلغ هذا الجهاز الحد اليومي' : 'بانتظار موافقتك'; }
     else if (!online) { tone = 'err'; head = 'بدون إنترنت'; sub = 'تُحفظ العمليات على الجهاز وتُرسل عند عودة الاتصال' + (pend ? ' (' + opsTxt(pend) + ' بانتظار الإرسال)' : ''); }
     else if (syncErrMsg) { tone = 'err'; head = 'تعذّر الحفظ'; sub = escapeHtml(syncErrMsg); }
@@ -391,8 +394,10 @@ function showSyncStatus() {
     const html = `<div class="ss-wrap">
         <div class="ss-hero ss-${tone}"><span class="ss-dot"></span><div class="ss-ht"><b>${head}</b><small>${sub}</small></div></div>` +
         (dups.length ? `<div class="ss-warn">أرقام فواتير مكررة (أُصدرت من أجهزة مختلفة بدون إنترنت):<br>${dups.map(escapeHtml).join('، ')}</div>` : '') +
+        `<button type="button" class="ss-link" onclick="Swal.close();WA.open()">📲 المبيعات عبر واتساب<small>إرسال المبيعات إلى المالك أو استيرادها كملف</small></button>` +
         `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}</details></div>`;
-    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' } }).then(r => { if (r.isConfirmed) syncNow(); else if (r.isDenied) hardRefresh(); });
+    const waM = usagePaused === 'wa';
+    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' } })      .then(r => { if (r.isConfirmed) { if (waM && window.WA) WA.exportSales(); else syncNow(); } else if (r.isDenied) hardRefresh(); });
 }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
 
@@ -460,6 +465,7 @@ async function usageAbsenceGuard() {
     try {
         const u = usageGet();
         if (u.p === 'cap') { usagePaused = 'cap'; try { await db.disableNetwork(); } catch (e) { /* تجاهل */ } syncRefresh(); return; }
+        if (localStorage.getItem('diwanWaMode') === '1') { usagePaused = 'wa'; try { await db.disableNetwork(); } catch (e) { /* تجاهل */ } syncRefresh(); return; }   // وضع واتساب: لا اتصال بالسحابة
         if (localStorage.getItem('diwanLanMode') === 'lan') { usagePaused = 'lan'; try { await db.disableNetwork(); } catch (e) { /* تجاهل */ } syncRefresh(); return; }   // المزامنة عبر الحاسوب مفعّلة: لا اتصال بالسحابة
         if (!lastSyncAt || recvOnly()) return;
         const hrs = (Date.now() - new Date(lastSyncAt).getTime()) / 3600e3;
@@ -2895,6 +2901,7 @@ function deltaFromSnap(p, s) {
 async function saveProductsDelta(entries, op) {
     window.__opAlready = false;
     entries = (entries || []).filter(Boolean);
+    try { if (window.WA && !window.__waImporting) WA.noteCount(entries); } catch (e) { /* تجاهل */ }   // وقت الجرد: لتجاهل مبيعات أقدم منه عند الاستيراد
     if (window.LAN && LAN.active() && entries.some(e => e.dq || e.dl || (op && op.key))) return LAN.captureStock(entries, op);   // المزامنة عبر الحاسوب: تُرسل العملية للحاسوب بدل السحابة
     entries.forEach(btPrepare);
     saveLocal();
@@ -5396,6 +5403,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     // سجلّ الطبقات: كل طبقة تُغلق بدالّتها الأصلية (لا إخفاء مباشر)، ونختار الأعلى فعلياً بحسب z-index (وعند التساوي بترتيب القائمة)
     const LAYERS = [
         ['helpHub', () => vis('helpHub'), () => helpBack()],
+        ['waOv', () => vis('waOv'), () => { if (window.WA) WA.close(); }],
         ['ssOv', () => !!document.getElementById('ssOv'), () => { if (typeof ssClose === 'function') ssClose(); else document.getElementById('ssOv').remove(); }],
         ['barcodeModal', () => vis('barcodeModal'), () => closeBarcodeScanner()],
         ['reportViewer', () => !!document.getElementById('reportViewer'), () => closeReport()],

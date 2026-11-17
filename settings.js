@@ -14,6 +14,7 @@ const SH_PAGES = [
     { id: 'docset', g: 'g2', ico: '🩺', t: 'صفحة الأطباء', boxes: ['docs'], kw: 'طبيب اطباء صفحة الاطباء رابط الصفحة اظهار الاسعار العدد تحديث تلقائي طلبات الأطباء doctor' },
     { id: 'desk', g: 'g4', ico: '💻', t: 'الحاسبة', boxes: ['desk'], kw: 'الحاسبة برنامج الحاسوب نسخة احتياطية قرص الاستقبال فقط مجلد' },
     { id: 'lan', g: 'g4', ico: '🔄', t: 'المزامنة عبر الحاسوب', boxes: ['lan'], kw: 'مزامنة عبر الحاسوب شبكة محلية واي فاي ربط الهاتف بالحاسوب سحابة بديلة lan sync' },
+    { id: 'wa', g: 'g4', ico: '📲', t: 'المبيعات عبر واتساب', boxes: ['wa'], kw: 'واتساب وتساب مبيعات ملف مستخدم استيراد لقطة مخزون ربط جهاز بدون انترنت whatsapp' },
     { id: 'about', g: 'g4', ico: 'ℹ️', t: 'عن التطبيق', boxes: ['about'], kw: 'عن التطبيق نسخة اصدار إصدار رقم النسخة تحديث' },
     { id: 'device', g: 'g4', ico: '📱', t: 'هذا الجهاز', boxes: ['install', 'device'], kw: 'تثبيت التطبيق بصمة قفل تذكير طباعة ورق طابعة اسماء الاطباء المحفوظة الجهاز install' },
     { id: 'users', g: 'g3', ico: '👥', t: 'المستخدمون والصلاحيات', act: 'openUsers', boxes: [], kw: 'مستخدم مستخدمين صلاحيات حساب بائع اضافة مستخدم users' },
@@ -86,6 +87,7 @@ function shSummary(p) {
         if (p.id === 'ai') return { s: 'محرك القراءة · المفتاح · اختبار الاتصال' };
         if (p.id === 'docset') return { s: 'الرابط · الأسعار والعدد · طلبات الأطباء' };
         if (p.id === 'desk') return { s: 'النسخة الاحتياطية على القرص · الاستقبال فقط' };
+        if (p.id === 'wa') return { s: window.WA ? (userRole === 'owner' ? 'استيراد مبيعات المستخدمين كملف' : (WA.on() ? 'مفعّل · لم تُرسل: ' + WA.pendingCount() : 'إرسال المبيعات كملف')) : '' };
         if (p.id === 'lan') return { s: (window.LAN && LAN.mode() === 'lan' ? 'مفعّلة · ' : 'متوقفة · ') + 'الشبكة المحلية بدل السحابة' };
         if (p.id === 'device') return { s: 'التثبيت · البصمة · التذكيرات · الطباعة' };
         if (p.id === 'users') return { s: 'إضافة المستخدمين وتحديد ما يفعله كل واحد' };
@@ -173,6 +175,7 @@ function shScopeOnce(els) {
 function shOpen(id, boxKey) {
     if (id === 'invset') { try { initBillSettings(); } catch (e) { /* تجاهل */ } }
     if (id === 'docset') { try { docSetMount(); } catch (e) { /* تجاهل */ } }
+    if (id === 'wa' && window.WA) { try { WA.render(); } catch (e) { /* تجاهل */ } }
     if (id === 'lan' && window.LAN) { try { LAN.refreshUi(); } catch (e) { /* تجاهل */ } }
     if (id === 'desk' && typeof dsRender === 'function') { try { dsRender(); } catch (e) { /* تجاهل */ } }
     if (id === 'device' || id === 'invset') { try { shDeviceRows(); } catch (e) { /* تجاهل */ } }
