@@ -1,6 +1,6 @@
 // برنامج صيدلية الديوان لسطح المكتب: نافذة تفتح التطبيق نفسه (نفس بيانات فايربيس ونفس الموبايل)
 // + تخزين مستقل عن المتصفح (مجلد البرنامج) + نسخ احتياطية كاملة على قرص الحاسبة.
-const { app, BrowserWindow, ipcMain, Menu, shell, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, shell, dialog, powerSaveBlocker } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { createHub } = require('./lanhub');
@@ -66,9 +66,11 @@ async function lanStart() {
     try {
         hub = createHub({ dir: path.join(app.getPath('userData'), 'lan'), name: require('os').hostname(), onChange: () => { try { win && win.webContents.send('diwan:lan:changed'); } catch (e) { /* تجاهل */ } } });
         hubPort = await hub.start(8765);
+        try { if (psb === null) psb = powerSaveBlocker.start('prevent-app-suspension'); } catch (e) { /* تجاهل */ }   // الحاسوب لا ينام ما دام يستقبل من الهواتف
     } catch (e) { hub = null; hubPort = 0; throw e; }
 }
-async function lanStop() { if (!hub) return; const h = hub; hub = null; hubPort = 0; await h.stop(); }
+let psb = null;
+async function lanStop() { try { if (psb !== null) { powerSaveBlocker.stop(psb); psb = null; } } catch (e) { /* تجاهل */ } if (!hub) return; const h = hub; hub = null; hubPort = 0; await h.stop(); }
 const lanInfo = () => hub ? Object.assign({ on: true }, hub.info()) : { on: false };
 ipcMain.handle('diwan:lan:info', () => lanInfo());
 ipcMain.handle('diwan:lan:enable', async (_e, on) => {
@@ -79,6 +81,9 @@ ipcMain.handle('diwan:lan:code', (_e, role) => { if (!hub) return { on: false };
 ipcMain.handle('diwan:lan:pending', () => hub ? hub.pending() : []);
 ipcMain.handle('diwan:lan:mark', (_e, ids, status) => { if (hub && Array.isArray(ids) && (status === 'applied' || status === 'rejected')) hub.mark(ids.map(String), status); return lanInfo(); });
 ipcMain.handle('diwan:lan:local', (_e, list) => (hub && Array.isArray(list) ? hub.addLocal(list) : 0));
+ipcMain.handle('diwan:lan:digests', () => (hub ? hub.takeDigests() : {}));
+ipcMain.handle('diwan:autostart:get', () => { try { return !!app.getLoginItemSettings().openAtLogin; } catch (e) { return false; } });
+ipcMain.handle('diwan:autostart:set', (_e, on) => { try { app.setLoginItemSettings({ openAtLogin: !!on }); } catch (e) { /* تجاهل */ } return !!app.getLoginItemSettings().openAtLogin; });
 ipcMain.handle('diwan:lan:need', (_e, id, on) => { if (hub) hub.setNeed(String(id), !!on); return true; });
 ipcMain.handle('diwan:lan:forget', (_e, id) => { if (hub) hub.forget(String(id)); return lanInfo(); });
 

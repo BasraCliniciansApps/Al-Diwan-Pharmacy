@@ -64,6 +64,7 @@ function createHub(opts) {
     }
 
     // الدور الفعلي: مالك فقط إذا ربط الجهاز برمز المالك (إن وُجد دور محفوظ) وكان حساب التطبيق مالكاً
+    const digests = {};
     function effRole(dev, req) { const claim = String(req.headers['x-diwan-role'] || '') === 'owner'; return claim && (dev.d.role === undefined || dev.d.role === 'owner') ? 'owner' : 'staff'; }
     const STAFF_KINDS = ['sale', 'cancel', 'edit', 'ret'];
     function ingest(dev, list, role) {
@@ -117,6 +118,9 @@ function createHub(opts) {
         }
         const dev = authDev(req);
         if (!dev) return send(res, 401, { error: 'unauthorized' });
+        if (req.method === 'POST' && url === '/v1/digest') {   // بصمة كميات الجهاز: يقارنها الحاسوب ويصحح الفروقات
+            return readBody(req, res, j => { if (j && j.m && typeof j.m === 'object') digests[dev.id] = { ts: Date.now(), m: j.m }; send(res, 200, { ok: true }); });
+        }
         if (req.method === 'POST' && url === '/v1/ops') {
             return readBody(req, res, j => {
                 const list = Array.isArray(j.ops) ? j.ops : [];
@@ -156,6 +160,7 @@ function createHub(opts) {
         info() { const a = server.address(); return { port: a && a.port, ips: lanIps(), name, code: activeCode(), codeRole, codeLeft: code ? Math.max(0, CODE_TTL - (Date.now() - codeAt)) : 0, devices: Object.keys(st.devices).map(id => ({ id, name: st.devices[id].name, prefix: st.devices[id].prefix, lastSeen: st.devices[id].lastSeen })), pending: this.pending().length }; },
         pending() { return [...ops.values()].filter(r => !st.done[r.id]).sort((a, b) => a.seq - b.seq); },
         mark(ids, status) { ids.forEach(id => { if (ops.has(id) && st.done[id] !== status) { st.done[id] = status; if (status === 'applied') st.doneSeq[id] = ++st.dseq; } }); saveState(); emit(); },
+        takeDigests() { const o = Object.assign({}, digests); Object.keys(digests).forEach(k => delete digests[k]); return o; },
         addLocal(list) {   // تغييرات الحاسوب نفسه: تُسجَّل مطبَّقة وتوزَّع على الجوالات
             const lines = [];
             (list || []).forEach(o => { if (!validOp(o) || ops.has(o.id)) return; const rec = { id: o.id, type: o.type, ts: o.ts, data: o.data, dev: 'pc', devName: name, recvAt: new Date().toISOString(), seq: ++st.seq }; ops.set(rec.id, rec); lines.push(JSON.stringify(rec)); st.done[rec.id] = 'applied'; st.doneSeq[rec.id] = ++st.dseq; });

@@ -311,6 +311,7 @@ function syncRefresh() {
     else if (pendingOps > 0 || startupPending) { state = 'busy'; txt = 'جاري الإرسال للسحابة' + (pendingOps ? ' (' + pendingOps + ')' : '') + '...'; }
     else if (syncErrMsg) { state = 'err'; txt = 'خطأ في الحفظ: ' + syncErrMsg; }
     else { state = 'ok'; txt = 'متزامن'; }
+    if (usagePaused === 'lan' && window.LAN && !window.diwanDesktop && LAN.err && LAN.err()) { state = 'err'; txt = 'الحاسوب غير متصل: ' + LAN.err(); }
     syncState = state;
     document.querySelectorAll('.sync-dot').forEach(d => { d.dataset.state = state; d.dataset.pend = (pendingOps || startupPending) ? '1' : '0'; d.title = txt + ' — اضغط للتفاصيل'; });
 }

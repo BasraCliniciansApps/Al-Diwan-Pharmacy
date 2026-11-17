@@ -357,6 +357,12 @@
         st.after = Math.max(st.after || 0, r.j.last || 0); st.ids = st.ids.slice(-3000); ls.set(K.feed, st);
         return list.length;
     }
+    let lastDigest = 0;
+    async function sendDigest(force) {   // بصمة كمياتي: يقارنها الحاسوب ويصحح أي فرق
+        if (!force && Date.now() - lastDigest < 120000) return; lastDigest = Date.now();
+        const m = {}; (typeof products !== 'undefined' ? products : []).forEach(p => { m[p.id] = hsh(snapNum(p.qty) + '|' + snapNum(p.loose)); });
+        await http('POST', '/v1/digest', { m }, true, 15000);
+    }
     async function poll() {
         if (!active() || polling || flushing) return;
         const hub = ls.get(K.hub, null); if (!hub || !hub.token) return;
@@ -368,8 +374,9 @@
             lastErr = '';
             if (r.j.need && Date.now() - (ls.get(K.snapAt, 0) || 0) > 300000) { ls.set(K.snapAt, Date.now()); await sendSnapshot(true); }   // الحاسوب ينقصه أصناف: أرسل نسخة كاملة بدون سؤال
             await pullFeed();
+            try { await sendDigest(); } catch (e) { /* تُعاد لاحقاً */ }
         } catch (e) { lastErr = (e && e.message) || 'تعذر الاتصال بالحاسوب'; }
-        finally { polling = false; refreshUi(); }
+        finally { polling = false; refreshUi(); try { syncRefresh(); } catch (e) { /* تجاهل */ } }
     }
     async function tick() { if (!active()) return; await flush(); await poll(); }
     setInterval(tick, 20000);
@@ -616,6 +623,24 @@
         } catch (e) { /* تُعاد المحاولة في الدورة التالية */ }
         finally { autoBusy = false; refreshUi(); }
     }
+    let dgBusy = false;
+    async function digestTick() {   // الحاسوب: يقارن بصمة كل هاتف بكمياته ويعلن الصحيح للمختلف
+        if (!D || !modeOn() || dgBusy || !D.lan.digests) return;
+        dgBusy = true;
+        try {
+            const all = await D.lan.digests(); const ops = []; const seen = new Set();
+            Object.keys(all || {}).forEach(dv => {
+                const m = all[dv].m || {};
+                (typeof products !== 'undefined' ? products : []).forEach(p => {
+                    const h = m[p.id]; if (h === undefined || seen.has(p.id) || ops.length >= 300) return;
+                    if (h !== hsh(snapNum(p.qty) + '|' + snapNum(p.loose))) { seen.add(p.id); const st = {}; SF.forEach(k => { if (p[k] !== undefined) st[k] = p[k]; }); ops.push({ id: 'qs:' + p.id + ':dg:' + Date.now().toString(36) + ops.length, type: 'qset', ts: new Date().toISOString(), data: { pid: p.id, st } }); }
+                });
+            });
+            if (ops.length) await D.lan.local(ops);
+        } catch (e) { /* تُعاد في الدورة التالية */ }
+        finally { dgBusy = false; }
+    }
+    function autostart(cb) { try { D.autostart.set(cb.checked); } catch (e) { /* تجاهل */ } }
     function autoToggle(cb) { try { localStorage.setItem(K.auto, cb.checked ? '1' : '0'); } catch (e) { /* تجاهل */ } if (cb.checked) autoTick(); }
 
     // ---- الجوال: اختبار الاتصال بالحاسوب ----
@@ -651,6 +676,8 @@
             body = '<div class="qk-row"><div><b>المزامنة عبر الحاسوب</b><small>تُوقَف السحابة مؤقتاً، ويستقبل هذا البرنامج عمليات الهواتف.</small></div>' + sw('lanSw', on, 'LAN.toggle(this)') + '</div>';
             if (info.on) {
                 body += '<div class="qk-row"><div><b>التطبيق التلقائي</b><small>تُطبَّق فواتير الهواتف والوارد وحركات المخزن بدون مراجعة. النسخة الكاملة تبقى بموافقتك.</small></div>' + sw('lanAutoSw', autoOn(), 'LAN.autoToggle(this)') + '</div>';
+                let asOn = false; try { asOn = D.autostart ? await D.autostart.get() : false; } catch (e) { /* تجاهل */ }
+                if (D.autostart) body += '<div class="qk-row"><div><b>تشغيل البرنامج مع ويندوز</b><small>يبدأ استقبال الهواتف تلقائياً بعد تشغيل الحاسوب. ولا ينام الحاسوب أثناء الاستقبال.</small></div>' + sw('lanAs', asOn, 'LAN.autostart(this)') + '</div>';
                 const ip = (info.ips || [])[0] || '—';
                 if (!info.code && !window.__lanAuto) { window.__lanAuto = 1; D.lan.newCode().then(() => { window.__lanAuto = 0; refreshUi(); }); }
                 let qr = '';
@@ -690,7 +717,7 @@
     }
     async function newCode(role) { if (D) { await D.lan.newCode(role); refreshUi(); } }
 
-    window.LAN = { pushDirty, scanUi, pairQr, sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, autoToggle, testConn, poll, autoTick, refreshUi, pair, _ls: ls, K };
-    if (D) { D.lan.onChange(() => { refreshUi(); autoTick(); }); setInterval(autoTick, 15000); window.addEventListener('load', () => setTimeout(autoTick, 3000)); }
+    window.LAN = { autostart, err: () => lastErr, digestTick, sendDigest, pushDirty, scanUi, pairQr, sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, autoToggle, testConn, poll, autoTick, refreshUi, pair, _ls: ls, K };
+    if (D) { D.lan.onChange(() => { refreshUi(); autoTick(); }); setInterval(autoTick, 15000); setInterval(digestTick, 30000); window.addEventListener('load', () => setTimeout(autoTick, 3000)); }
     window.addEventListener('load', () => { refreshUi(); if (D && modeOn()) D.lan.enable(true).catch(() => { /* تجاهل */ }); setInterval(refreshUi, 30000); });
 })();
