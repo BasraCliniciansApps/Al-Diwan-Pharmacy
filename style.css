@@ -4773,3 +4773,11 @@ body.admin-page[data-view="bill"] { padding-bottom: 90px; }
 #formModal .fs-scan .scan-engine-select { width: 140px; max-width: 140px; padding-inline: 10px; }
 #formModal .fs-scan .scan-act { min-width: 0; width: 100%; }
 #formModal .fs-scan .scan-go { flex: 0 0 auto; min-width: 84px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* v639: «تعبئة سريعة» — خطوط موحّدة: العنوان بنفس خط وحجم عناوين الأقسام المجاورة، وكل ما تحته Tajawal بحجم واحد */
+#formModal .fs-scan .scan-title { font-family: 'Tajawal', sans-serif; font-size: 1.05rem; font-weight: 800; color: var(--navy); }
+#formModal .fs-scan .scan-engine-select, #formModal .fs-scan .scan-act, #formModal .fs-scan .name-lookup-row input, #formModal .fs-scan .scan-go { font-family: 'Tajawal', sans-serif; font-size: .85rem; }
+#formModal .fs-scan .scan-engine-select, #formModal .fs-scan .scan-act { font-weight: 700; }
+#formModal .fs-scan .name-lookup-row input { font-weight: 500; }
+#formModal .fs-scan .scan-go { font-weight: 800; }
+#formModal .fs-scan .scan-act span { font-family: inherit; font-size: inherit; font-weight: inherit; }
