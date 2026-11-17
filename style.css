@@ -4312,7 +4312,7 @@ input, textarea, select, [contenteditable="true"], .sel-ok, .sheet-section p { -
 [data-theme="dark"] .bill-tabs button.active, [data-theme="dark"] .cat-tabs button.on, [data-theme="dark"] .fm-tabs button.on { background: #0f1c38; border-color: #64748b; color: #fff; }
 
 /* v579: خط الرقعة في عناوين كل الشاشات (الجرد، البيع، الإعدادات، النماذج، الزبائن...) */
-.tr-head b, .cn-head b, .pos-head b, .fm-top h3, #shTitle, .sab-head, .da-head, .fs-head h3, .qi-head b, .inv-head b, .inv-head h3, .sc-head b, .scan-head b { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; }
+.tr-head b, .cn-head b, .pos-head b, .fm-top h3, #shTitle, .da-head, .fs-head h3, .qi-head b, .inv-head b, .inv-head h3, .sc-head b, .scan-head b { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; }
 .tr-head b, .cn-head b, .pos-head b { font-size: 1.2rem; }
 
 /* v580: ترويسات مزخرفة (نسيج النجمة الذهبي نفسه) وثابتة بلا اهتزاز */
@@ -4592,3 +4592,62 @@ html.is-desktop-app #dkHome { display: grid; grid-template-columns: 1.2fr 1fr; g
 /* v615: بطاقات الإعدادات على الحاسوب: البطاقة الأخيرة المنفردة تمتد بعرض الصف، والصفوف متساوية */
 html.is-desktop-app #catModal .sh-grp > .sh-card:nth-child(even):last-child { grid-column: 1 / -1; }
 html.is-desktop-app #catModal .sh-grp > .sh-card { min-height: 64px; }
+
+/* ===== v617: نافذة إتمام البيع بستايل التطبيق ===== */
+.px-ov { position: fixed; inset: 0; z-index: 10050; background: rgba(15,23,42,.55); display: flex; align-items: flex-end; justify-content: center; direction: rtl; }
+.px-sheet { width: 100%; max-width: 560px; max-height: 94vh; max-height: 94dvh; display: flex; flex-direction: column; background: var(--surface, #fff); color: var(--text-main, #0f172a); border-radius: 24px 24px 0 0; overflow: hidden; box-shadow: 0 -10px 40px rgba(15,28,56,.35); animation: pxUp .22s cubic-bezier(.16,1,.3,1); font-family: inherit; }
+@keyframes pxUp { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+@media (min-width: 700px) { .px-ov { align-items: center; } .px-sheet { border-radius: 24px; max-height: 92vh; } }
+.px-hd { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 20px 20px; border-radius: 0 0 22px 22px; background-color: #0f1c38; background-image: linear-gradient(180deg, rgba(15,28,56,0) 0%, rgba(15,28,56,.5) 100%), var(--orn); background-size: 100% 100%, 56px 56px; background-repeat: no-repeat, repeat; background-position: 0 0, right top; box-shadow: inset 0 -3px 0 #0f1c38, inset 0 -4.5px 0 rgba(244,183,63,.85); position: relative; z-index: 2; }
+.px-hd b { font-family: 'Aref Ruqaa', 'Tajawal', serif; font-weight: 700; font-size: 1.3rem; color: #fff; }
+.px-x { width: 38px; height: 38px; border: 0; border-radius: 11px; background: rgba(255,255,255,.14); color: #fff; font-size: 1rem; cursor: pointer; display: grid; place-items: center; }
+.px-x:active { background: rgba(255,255,255,.26); }
+.px-bd { flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; padding: 14px 16px 6px; -webkit-overflow-scrolling: touch; }
+.px-ov .px { gap: 10px; text-align: right; }
+.px-ov .px-sum { padding: 12px 14px; border-radius: 14px; background: var(--surface-2, #f5f7fb); border: 1px solid var(--border, #e2e8f0); align-items: center; font-size: .95rem; color: var(--text-sub, #475569); }
+.px-ov .px-sum b { font-size: 1.35rem; color: var(--navy, #0f1c38); }
+.px-ov .px-sec { margin: 6px 2px 0; font-size: .8rem; font-weight: 800; color: var(--text-sub, #64748b); }
+.px-ov .px-row { gap: 10px; }
+.px-ov .px-row label span { font-size: .76rem; color: var(--text-sub, #475569); }
+.px-ov .px-row input, .px-ov .px-paid { height: 50px; border: 1.5px solid var(--border, #cbd5e1); border-radius: 13px; background: var(--surface, #fff); color: var(--text-main, #0f172a); font-weight: 800; font-size: 1.15rem; font-family: inherit; text-align: center; width: 100%; box-sizing: border-box; padding: 0 10px; }
+.px-ov .px-row input:focus, .px-ov .px-paid:focus { outline: none; border-color: var(--gold, #f4b73f); box-shadow: 0 0 0 3px rgba(249,168,37,.2); }
+.px-ov .px-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 0; }
+.px-ov .px-chips button { min-height: 44px; padding: 0 6px; border-radius: 13px; font-size: .92rem; background: var(--surface-2, #f5f7fb); color: var(--navy, #0f1c38); border: 1px solid var(--border, #cbd5e1); }
+.px-ov .px-chips button.cost, .px-ov .px-chips button.clr { grid-column: span 2; }
+.px-ov .px-chips button.on { background: #0f1c38; color: #fff; border-color: #0f1c38; }
+.px-ov .px-max { min-height: 42px; border-radius: 12px; }
+.px-ov .px-msg { min-height: 0; text-align: center; } .px-ov .px-msg:empty { display: none; }
+.px-ov .px-rl { display: flex; flex-direction: column; gap: 8px; }
+.px-ov .px-rr { display: flex !important; flex-direction: row !important; align-items: center; gap: 12px; padding: 11px 12px; border: 1.5px solid var(--border, #e2e8f0); border-radius: 13px; background: var(--surface-2, #f8fafc); cursor: pointer; margin: 0; width: auto; text-align: right; }
+.px-ov .px-rr input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: #0f1c38; }
+.px-ov .px-rr:has(input:checked) { border-color: #0f1c38; background: rgba(15,28,56,.05); box-shadow: 0 0 0 2px rgba(15,28,56,.08); }
+.px-ov .px-rn { flex: 1 1 auto; min-width: 0; font-size: .88rem; font-weight: 700; direction: ltr; text-align: right; overflow-wrap: anywhere; line-height: 1.5; }
+.px-ov .px-rr b { flex: none; font-size: .95rem; color: var(--navy, #0f1c38); }
+.px-ov .px-st { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 2px; }
+.px-ov .px-sc { display: flex; flex-direction: column; align-items: stretch; border-radius: 14px; overflow: hidden; border: 1.5px solid var(--border, #e2e8f0); background: var(--surface-2, #f8fafc); }
+.px-ov .px-sc b { text-align: center; padding: 5px 0; font-size: 1rem; color: var(--navy, #0f1c38); letter-spacing: .5px; }
+.px-ov .px-sc button { height: 46px; border: 0; font-weight: 800; font-size: 1.7rem; line-height: 1; font-family: inherit; color: #fff; cursor: pointer; display: grid; place-items: center; }
+.px-ov .px-sc button.up { background: #15803d; } .px-ov .px-sc button.dn { background: #b91c1c; }
+.px-ov .px-sc button:active { filter: brightness(.88); transform: scale(.98); }
+.px-ov .px-cr { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 13px; background: var(--surface-2, #f5f7fb); border: 1px solid var(--border, #e2e8f0); font-weight: 800; font-size: .92rem; margin: 2px 0 0; }
+.px-ov .px-warn { padding: 10px 12px; border-radius: 12px; background: #fffbeb; border: 1px solid #fde68a; }
+.px-ft { flex: none; padding: 10px 16px calc(14px + env(safe-area-inset-bottom, 0px)); background: var(--surface, #fff); border-top: 1px solid var(--border, #e2e8f0); box-shadow: 0 -8px 16px -12px rgba(15,28,56,.3); display: flex; flex-direction: column; gap: 10px; }
+.px-ft .px-net { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: .95rem; color: var(--text-sub, #475569); }
+.px-ft .px-net b { font-size: 1.6rem; color: var(--navy, #0f1c38); }
+.px-val { padding: 8px 12px; border-radius: 10px; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; font-weight: 800; font-size: .84rem; text-align: center; }
+.px-ab { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.px-b { height: 54px; border: 0; border-radius: 15px; font-weight: 800; font-size: 1.1rem; font-family: inherit; cursor: pointer; }
+.px-b.main { background: #0f1c38; color: #fff; box-shadow: 0 6px 16px rgba(15,28,56,.3); }
+.px-b.gold { background: var(--gold, #f4b73f); color: #0f1c38; }
+.px-b:active { transform: scale(.97); }
+[data-theme="dark"] .px-sheet { background: var(--surface); } [data-theme="dark"] .px-ov .px-sum b, [data-theme="dark"] .px-ft .px-net b, [data-theme="dark"] .px-ov .px-rr b, [data-theme="dark"] .px-ov .px-sc b { color: var(--text-main); }
+[data-theme="dark"] .px-ov .px-chips button { color: var(--text-main); }
+@media print { .px-ov { display: none !important; } }
+
+/* v617: كل ما يُكتب في الترويسات الكحلية بخط الرقعة (والأزرار والأرقام داخلها). «تحكم الصيدلي المباشر» بالخط العادي */
+.brand-bar, .brand-bar *, .page-title, .page-title *, .bill-top .page-title, .tr-head, .tr-head *, .cn-head, .cn-head *, .pos-head, .pos-head *, .fm-top, .fm-top *, .sh-bar, .sh-bar *, .rv-top, .rv-top *, .lg-title, .lg-title *, .modal-card > h3, .modal-card > h3 *, .help-top, .help-top *, .hd-2, .hd-2 *, .px-hd, .px-hd *, .da-head, .fs-head, .qi-head, .qi-head *, .inv-head, .inv-head *, .sc-head, .sc-head *, .scan-head, .scan-head * { font-family: 'Aref Ruqaa', 'Tajawal', serif; }
+.sab-head, .sab-head * { font-family: inherit; font-weight: 900; }
+/* v617: زر شاشة البيع في الفواتير: أيقونة فقط (ذهبي على كحلي) */
+.pos-fab { left: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); width: 60px; height: 60px; padding: 0; border-radius: 20px; justify-content: center; background: linear-gradient(145deg, #f9c04a, #e8a317); color: #0f1c38; box-shadow: 0 8px 20px rgba(232,163,23,.45), inset 0 0 0 2px rgba(15,28,56,.9); }
+.pos-fab:active { transform: scale(.94); }
+html.is-desktop-app .pos-fab { left: 14px; bottom: 16px; width: 52px; height: 52px; border-radius: 17px; padding: 0; opacity: 1; }

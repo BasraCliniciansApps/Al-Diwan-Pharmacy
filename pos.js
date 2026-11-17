@@ -256,6 +256,29 @@ function posCostNet() { return Math.ceil(posCostRaw() / 1000 - 1e-9) * 1000; }
 function posDiscForCost(S) { return Math.max(0, Math.floor(S - posCostNet())); }
 function posCostChipOn() { try { return userRole === 'owner' || !!scCfg().posCostChip; } catch (e) { return false; } }
 function posCostChipSet(v) { try { const c = scCfg(); c.posCostChip = !!v; scSave(c); } catch (e) { /* تجاهل */ } }
+// نافذة إتمام البيع: ورقة بنفس ستايل التطبيق (ترويسة كحلية + أزرار الإصدار ثابتة أسفل الشاشة لسرعة البيع)
+function pxShowVal(msg) { const e = document.getElementById('pxVal'); if (e) { e.textContent = msg || ''; e.style.display = msg ? '' : 'none'; } }
+function pxSheet(o) {
+    return new Promise(resolve => {
+        const ov = document.createElement('div'); ov.className = 'px-ov no-print'; ov.id = 'pxOv';
+        ov.innerHTML = `<div class="px-sheet" role="dialog" aria-modal="true" aria-label="إتمام البيع">
+            <div class="px-hd"><b>إتمام البيع</b><button type="button" class="px-x" id="pxBack" aria-label="رجوع">✕</button></div>
+            <div class="px-bd">${o.html}</div>
+            <div class="px-ft"><div class="px-net"><span>الصافي</span><b id="pxNet"></b></div><div class="px-val" id="pxVal" style="display:none" role="alert"></div>
+                <div class="px-ab"><button type="button" class="px-b main" id="pxOk">إصدار</button><button type="button" class="px-b gold" id="pxPrint">إصدار وطباعة</button></div></div></div>`;
+        document.body.appendChild(ov);
+        let done = false;
+        const close = res => { if (done) return; done = true; document.removeEventListener('keydown', key, true); ov.remove(); resolve(res); };
+        const go = deny => { const v = o.val(); if (v === false) return; close({ isConfirmed: !deny, isDenied: !!deny, isDismissed: false, value: v }); };
+        const key = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close({ isConfirmed: false, isDenied: false, isDismissed: true }); } else if (e.key === 'Enter' && e.target && /^(INPUT)$/.test(e.target.tagName) && e.target.type !== 'radio' && e.target.type !== 'checkbox') { e.preventDefault(); go(false); } };
+        document.addEventListener('keydown', key, true);
+        ov.querySelector('#pxOk').onclick = () => go(false); ov.querySelector('#pxPrint').onclick = () => go(true);
+        ov.querySelector('#pxBack').onclick = () => close({ isConfirmed: false, isDenied: false, isDismissed: true });
+        window.__pxBack = () => { if (!document.getElementById('pxOv')) return false; close({ isConfirmed: false, isDenied: false, isDismissed: true }); return true; };
+        try { o.didOpen(); } catch (e) { console.warn(e); }
+        if (window.diwanDesktop) { const f = document.getElementById('pxP'); if (f) setTimeout(() => f.focus(), 60); }
+    });
+}
 async function posIssue() {
     if (!bill.items.length) { Swal.fire({ icon: 'info', title: 'أضف مادة أولاً', toast: true, position: 'top', showConfirmButton: false, timer: 1500 }); return; }
     if (typeof billHasExpired === 'function' && billHasExpired()) return;
@@ -267,13 +290,11 @@ async function posIssue() {
     const showLim = userRole === 'owner' || (typeof can === 'function' && can('scanDisc'));
     const val = () => {
         const L = posLimits(), d = parseFloat(bill.discount) || 0;
-        if (userRole !== 'owner' && d > L.allow) { Swal.showValidationMessage(L.allow > 0 ? 'الخصم يتجاوز الحد المسموح' : 'لا يُسمح بخصم على هذه المواد'); return false; }
+        if (userRole !== 'owner' && d > L.allow) { pxShowVal(L.allow > 0 ? 'الخصم يتجاوز الحد المسموح' : 'لا يُسمح بخصم على هذه المواد'); return false; }
         const cr = document.getElementById('pxCr').checked;
         return { credit: cr, paid: cr ? (parseFloat(document.getElementById('pxPaid').value) || 0) : null };
     };
-    const r = await Swal.fire({
-        title: 'إتمام البيع', showCancelButton: true, showDenyButton: true, confirmButtonText: 'إصدار', denyButtonText: 'إصدار وطباعة', cancelButtonText: 'رجوع',
-        confirmButtonColor: '#15803d', denyButtonColor: '#0f1c38', preConfirm: val, preDeny: val,
+    const r = await pxSheet({ val,
         html: `<div class="px">
             <div class="px-sum"><span>المجموع</span><b id="pxSub"></b></div>
             <div class="px-sec">الخصم</div>
@@ -282,12 +303,10 @@ async function posIssue() {
             ${showLim ? '<button type="button" class="px-max" id="pxMax"></button>' : ''}
             <div id="pxMsg" class="px-msg"></div>
             ${el.length ? `<div id="pxRound"><div class="px-sec">تسوية المجموع إلى ألف كاملة</div>
-                <div class="px-rl">${el.map((i, k) => `<label class="px-rr"><input type="radio" name="pxRI" value="${i}" ${k === 0 ? 'checked' : ''}><span dir="ltr">${posEsc(bill.items[i].name)}</span><b id="pxRP${i}"></b></label>`).join('')}</div>
-                <div class="px-rb"><button type="button" data-d="-750">− 750</button><button type="button" data-d="-500">− 500</button><button type="button" data-d="-250">− 250</button></div>
-                <div class="px-rb"><button type="button" data-d="250">+ 250</button><button type="button" data-d="500">+ 500</button><button type="button" data-d="750">+ 750</button></div></div>` : ''}
-            <label class="px-cr"><input type="checkbox" id="pxCr"><span>بيع آجل (دفع جزء من المبلغ)</span></label>
-            <div id="pxPaidBox" style="display:none"><input id="pxPaid" type="number" inputmode="numeric" min="0" class="swal2-input" placeholder="المبلغ المدفوع (0 إن لم يُدفع شيء)"></div>
-            <div class="px-net">الصافي: <b id="pxNet"></b></div>
+                <div class="px-rl">${el.map((i, k) => `<label class="px-rr"><input type="radio" name="pxRI" value="${i}" ${k === 0 ? 'checked' : ''}><span class="px-rn" dir="ltr">${posEsc(bill.items[i].name)}</span><b id="pxRP${i}"></b></label>`).join('')}</div>
+                <div class="px-st">${[250, 500, 750].map(n => `<div class="px-sc"><button type="button" class="up" data-d="${n}" aria-label="زيادة ${n}">+</button><b>${n}</b><button type="button" class="dn" data-d="-${n}" aria-label="نقص ${n}">−</button></div>`).join('')}</div></div>` : ''}
+            <div class="px-cr"><span>بيع آجل (دفع جزء من المبلغ)</span><label class="setup-sw"><input type="checkbox" id="pxCr" aria-label="بيع آجل"><i></i></label></div>
+            <div id="pxPaidBox" style="display:none"><input id="pxPaid" type="number" inputmode="numeric" min="0" class="px-paid" placeholder="المبلغ المدفوع (0 إن لم يُدفع شيء)"></div>
             ${short.length ? `<div class="px-warn">⚠️ كميات غير كافية بالمخزن:<br>${short.map(e => posEsc(e.p.name)).join('<br>')}</div>` : ''}</div>`,
         didOpen: () => {
             const $ = id => document.getElementById(id), sub = () => billTotals().sub;
@@ -309,7 +328,7 @@ async function posIssue() {
             $('pxCr').onchange = () => { $('pxPaidBox').style.display = $('pxCr').checked ? '' : 'none'; };
             let cur = el[0];
             document.querySelectorAll('input[name=pxRI]').forEach(x => { x.onchange = () => { cur = +x.value; }; });
-            document.querySelectorAll('.px-rb button').forEach(b => { b.onclick = () => { const it = bill.items[cur]; if (!it) return; const np = (parseFloat(it.price) || 0) + (+b.dataset.d) / (parseFloat(it.qty) || 1); if (np <= 0) return; it.price = np; upd(); }; });
+            document.querySelectorAll('.px-st button').forEach(b => { b.onclick = () => { const it = bill.items[cur]; if (!it) return; const np = (parseFloat(it.price) || 0) + (+b.dataset.d) / (parseFloat(it.qty) || 1); if (np <= 0) return; it.price = np; upd(); }; });
             upd();
         }
     });
@@ -403,7 +422,7 @@ function posClose() {
 function posFabSync() {
     const v = document.getElementById('billView'); if (!v) return;
     let b = document.getElementById('posFab');
-    if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'posFab'; b.className = 'pos-fab no-print'; b.innerHTML = '🛒<span>شاشة البيع</span>'; b.setAttribute('aria-label', 'شاشة البيع السريعة'); b.onclick = posOpen; v.appendChild(b); }
+    if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'posFab'; b.className = 'pos-fab no-print'; b.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.6 12.2a2 2 0 0 0 2 1.6h8a2 2 0 0 0 2-1.5L21 7H6"/></svg>'; b.title = 'شاشة البيع'; b.setAttribute('aria-label', 'شاشة البيع السريعة'); b.onclick = posOpen; v.appendChild(b); }
     b.style.display = (typeof currentBillTab === 'undefined' || currentBillTab === 'new') ? '' : 'none';
 }
 (function () {

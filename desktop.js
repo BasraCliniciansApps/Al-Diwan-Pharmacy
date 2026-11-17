@@ -52,7 +52,7 @@
     document.addEventListener('keydown', e => {
         const k = e.key, ctrl = e.ctrlKey || e.metaKey;
         const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target && e.target.tagName) || '') || (e.target && e.target.isContentEditable);
-        const dialog = !!document.querySelector('.swal2-container');
+        const dialog = !!document.querySelector('.swal2-container, .px-ov');
         const vis = el => !!el && el.offsetParent !== null;
         try {
             if (k === 'Escape' && !dialog) { if (typeof window.__handleBack === 'function' && window.__handleBack()) e.preventDefault(); return; }

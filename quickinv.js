@@ -14,6 +14,8 @@ function qiRemember() {
 }
 const QI_ICON = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M10.5 5.5h3M9.5 10h5M9.5 13h5M9.5 16h3"/></svg>';
 function qiEnsureFab() {
+    const old = document.getElementById('qiFab'); if (old) old.remove();   // زر «فاتورة سريعة» أُزيل من صفحة الفواتير
+    return;
     const v = document.getElementById('billView'); if (!v || document.getElementById('qiFab')) return;
     const b = document.createElement('button'); b.type = 'button'; b.id = 'qiFab'; b.className = 'qi-fab no-print';
     b.setAttribute('aria-label', 'فاتورة سريعة'); b.title = 'فاتورة سريعة'; b.innerHTML = QI_ICON; b.onclick = qiStart;

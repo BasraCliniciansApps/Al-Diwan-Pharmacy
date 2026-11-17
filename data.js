@@ -5402,6 +5402,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     function layerZ(id) { const e = layerEl(id); if (!e) return 0; let z = parseInt(getComputedStyle(e).zIndex, 10); z = isNaN(z) ? 0 : z; if (e.classList && e.classList.contains('in-settings')) z += 100000; return z; }   // الشاشة المفتوحة داخل الإعدادات تُغلق أولاً قبل الإعدادات نفسها
     const swalLive = () => { try { if (!(window.Swal && Swal.isVisible && Swal.isVisible())) return false; const p = Swal.getPopup(); return !(p && (p.classList.contains('swal2-toast') || p.classList.contains('swal2-hide'))); } catch (e) { return false; } };   // نافذة تُغلق (حركة الإخفاء) لا تُحسب طبقة
     function closeTopLayer() {
+        if (window.__pxBack && window.__pxBack()) return true;   // نافذة إتمام البيع
         if (swalLive()) { if (Swal.isLoading && Swal.isLoading()) return true; Swal.close(); return true; }   // أثناء تحميل داخل نافذة: نتجاهل الرجوع
         let best = null;
         LAYERS.forEach(([id, on, close], i) => { let ok = false; try { ok = on(); } catch (e) { ok = false; } if (!ok) return; const z = layerZ(id), el = layerEl(id); if (!best || z > best.z || (z === best.z && el && best.el && (best.el.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING))) best = { z, el, close }; });   // عند تساوي z يعلو العنصر الأحدث في الصفحة

@@ -31,8 +31,22 @@ const Prog = {
         document.body.appendChild(el); Prog.el = el;
         const ln = document.createElement('div'); ln.id = 'progLine'; ln.hidden = true; ln.innerHTML = '<b class="pl-track"></b><b class="pl-fill"></b>'; document.body.appendChild(ln); Prog.ln = ln;
     },
-    // موضع الخط: الحد الفاصل بين ترويسة التطبيق الكحلية والمحتوى تحتها (وإلا أعلى الشاشة)
+    // موضع الخط: الحد الفاصل بين الترويسة الكحلية والمحتوى تحتها. داخل النوافذ المنبثقة يلتزم بحدود النافذة نفسها لا بعرض الشاشة
+    topCard() {
+        let best = null;
+        try {
+            document.querySelectorAll('.swal2-popup, .px-sheet, .modal-overlay .modal-card, .pos-ov').forEach(e => {
+                const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+                if (r.width < 60 || r.height < 60 || cs.visibility === 'hidden' || cs.display === 'none') return;
+                const ov = e.closest('.modal-overlay'); if (ov && getComputedStyle(ov).display === 'none') return;
+                if (r.width >= window.innerWidth - 2 && r.top <= 1 && r.height >= window.innerHeight - 2) return;   // شاشة كاملة: ليست نافذة منبثقة
+                best = e;
+            });
+        } catch (e) { return null; }
+        return best;
+    },
     lineY() {
+        const card = Prog.topCard();
         let last = null;
         const dark = e => {
             for (let n = e; n && n.nodeType === 1; n = n.parentElement) {
@@ -41,15 +55,18 @@ const Prog = {
             }
             return false;
         };
-        let y = 0, hit = false;
+        let y = 0, hit = false, x = Math.round(window.innerWidth / 2), y0 = 2, y1 = 160, cr = null;
+        if (card) { cr = card.getBoundingClientRect(); x = Math.round(cr.left + 10); y0 = Math.round(cr.top + 30); y1 = Math.min(Math.round(cr.top + 320), Math.round(cr.bottom - 10)); }
         try {
-            const x = Math.round(window.innerWidth / 2);
-            for (let yy = 2; yy <= 160; yy += 3) { const e = document.elementFromPoint(x, yy); if (e && dark(e)) y = yy; else { hit = true; break; } }
+            for (let yy = y0; yy <= y1; yy += 3) { const e = document.elementFromPoint(x, yy); if (e && dark(e)) y = yy; else { hit = true; break; } }
         } catch (e) { return { y: 0, r: 0 }; }
-        if (!hit || !last) return { y: 0, r: 0 };
+        if (!hit || !last || y === 0) {
+            if (cr) return { y: cr.top + 4, r: 0, x0: cr.left + 20, x1: cr.right - 20 };   // نافذة بلا ترويسة كحلية: خط قصير أعلى النافذة
+            return { y: 0, r: 0 };
+        }
         let r = 0; try { r = Math.min(40, parseFloat(getComputedStyle(last).borderBottomLeftRadius) || 0); } catch (e) { r = 0; }
         const lr = last.getBoundingClientRect(), bottom = lr.bottom;
-        return { y: bottom > 0 && bottom < 200 ? bottom : y, r, x0: lr.left, x1: lr.right };
+        return { y: bottom > 0 && bottom < 520 ? bottom : y, r, x0: cr ? Math.max(cr.left, lr.left) : lr.left, x1: cr ? Math.min(cr.right, lr.right) : lr.right };
     },
     hide() { if (Prog.el) Prog.el.hidden = true; if (Prog.ln) Prog.ln.hidden = true; clearInterval(Prog.timer); Prog.cur = null; },
     fmtT(s) { s = Math.max(0, Math.round(s)); return s < 60 ? s + ' ث' : Math.floor(s / 60) + ' د ' + (s % 60) + ' ث'; },
@@ -60,7 +77,7 @@ const Prog = {
             const ln = Prog.ln; if (ln) {
                 const g = Prog.lineY(), r = Math.round(g.r), H = r + 4;
                 ln.style.top = Math.max(0, g.y - H) + 'px'; ln.style.height = H + 'px'; ln.style.setProperty('--r', r + 'px'); ln.hidden = false;
-                if (document.documentElement.classList.contains('is-desktop-app') && g.x1 > g.x0) { ln.style.left = Math.max(0, g.x0) + 'px'; ln.style.right = Math.max(0, window.innerWidth - g.x1) + 'px'; } else { ln.style.left = ''; ln.style.right = ''; }
+                if (g.x1 > g.x0 && (g.x1 - g.x0) < window.innerWidth - 2) { ln.style.left = Math.max(0, g.x0) + 'px'; ln.style.right = Math.max(0, window.innerWidth - g.x1) + 'px'; } else { ln.style.left = ''; ln.style.right = ''; }
                 const det = h.pct !== null;
                 ln.className = 'pl-' + (h.state === 'ok' ? 'ok' : h.state === 'err' ? 'err' : (!navigator.onLine || (Date.now() - h.last) / 1000 > 12) ? 'warn' : 'run') + (det || h.state !== 'run' ? '' : ' ind');
                 const pc = h.state === 'ok' ? 100 : det ? Math.max(3, Math.round(h.pct)) : 100;
