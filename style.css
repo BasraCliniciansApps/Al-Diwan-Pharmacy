@@ -4651,3 +4651,7 @@ html.is-desktop-app #catModal .sh-grp > .sh-card { min-height: 64px; }
 .pos-fab { left: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); width: 60px; height: 60px; padding: 0; border-radius: 20px; justify-content: center; background: linear-gradient(145deg, #f9c04a, #e8a317); color: #0f1c38; box-shadow: 0 8px 20px rgba(232,163,23,.45), inset 0 0 0 2px rgba(15,28,56,.9); }
 .pos-fab:active { transform: scale(.94); }
 html.is-desktop-app .pos-fab { left: 14px; bottom: 16px; width: 52px; height: 52px; border-radius: 17px; padding: 0; opacity: 1; }
+/* v618: شارات العدد (التنبيهات...) بخط ثابت واضح لا يتأثر بخط الترويسة، وبدون قص */
+.bell-badge { font-family: 'Tajawal', sans-serif; font-weight: 800; font-size: .7rem; line-height: 1; letter-spacing: 0; box-sizing: border-box; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; top: -7px; inset-inline-start: -7px; white-space: nowrap; box-shadow: 0 0 0 2px #0f1c38; }
+.bell-badge.doc-badge { inset-inline-start: auto; inset-inline-end: -7px; }
+.bell-badge.rx-badge { top: auto; bottom: -6px; inset-inline-start: auto; inset-inline-end: -7px; }
