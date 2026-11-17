@@ -2316,9 +2316,9 @@ function getExpiryStatus(expiryDateStr) {
     if (diffDays <= 0) {
         return { level: 'expired', days: diffDays, label: 'منتهي الصلاحية!', bg: '#fee2e2', color: '#991b1b', border: '#f87171' };
     } else if (diffDays <= 90) { // أقل من 3 أشهر
-        return { level: '3m', days: diffDays, label: `أقل من 3 أشهر (يبدأ نفاذه في ${expiryDateStr}-01)`, bg: '#ffedd5', color: '#c2410c', border: '#fb923c' };
+        return { level: '3m', days: diffDays, label: `أقل من 3 أشهر`, bg: '#ffedd5', color: '#c2410c', border: '#fb923c' };
     } else if (diffDays <= 180) { // بين 3 إلى 6 أشهر
-        return { level: '6m', days: diffDays, label: `أقل من 6 أشهر (يبدأ نفاذه في ${expiryDateStr}-01)`, bg: '#fef9c3', color: '#854d0e', border: '#facc15' };
+        return { level: '6m', days: diffDays, label: `أقل من 6 أشهر`, bg: '#fef9c3', color: '#854d0e', border: '#facc15' };
     }
     return null; 
 }

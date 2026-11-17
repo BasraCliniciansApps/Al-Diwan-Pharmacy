@@ -3643,7 +3643,7 @@ input.pl-in{direction:ltr;text-align:center}
 .pos-tot { display: flex; align-items: baseline; gap: 8px; } .pos-tot small { color: #64748b; font-weight: 700; } .pos-tot span { font-weight: 800; color: #334155; margin-inline-start: auto; }
 .pos-tot b { font-size: 1.7rem; color: #0f1c38; } .pos-tot i { font-style: normal; font-size: .9rem; color: #64748b; }
 .pos-btns { display: flex; gap: 8px; }
-.pos-big { flex: 1; height: 58px; border: 0; border-radius: 16px; font: 800 1.15rem inherit; font-family: inherit; cursor: pointer; }
+.pos-big { flex: 1; height: 58px; border: 0; border-radius: 16px; font-family: inherit; font-weight: 800; font-size: 1.15rem; cursor: pointer; }
 .pos-big.go { background: #15803d; color: #fff; } .pos-big.alt { background: #e2e8f0; color: #0f1c38; flex: .7; }
 .pos-donebox { display: none; flex-direction: column; align-items: center; gap: 14px; padding: 40px 12px; text-align: center; }
 .pos-ov.is-done .pos-donebox { display: flex; } .pos-ov.is-done .pos-list, .pos-ov.is-done .pos-extra, .pos-ov.is-done .pos-foot, .pos-ov.is-done .pos-bar { display: none; }
