@@ -12,11 +12,11 @@ const SH_PAGES = [
     { id: 'scanner', g: 'g2', ico: '🔎', t: 'فاحص المادة', boxes: [], scan: true, kw: 'فاحص المادة مسح باركود حد الخصم الخصم المحمي الكامل هامش الامان اكسباير حاسبة الخصم scanner discount' },
     { id: 'ai', g: 'g2', ico: '✨', t: 'الذكاء الصناعي', boxes: ['ai'], kw: 'ذكاء صناعي مسح عبوة gemini firebase groq openrouter مفتاح نموذج بحث بالاسم قراءة العبوة ocr' },
     { id: 'docset', g: 'g2', ico: '🩺', t: 'صفحة الأطباء', boxes: ['docs'], kw: 'طبيب اطباء صفحة الاطباء رابط الصفحة اظهار الاسعار العدد تحديث تلقائي طلبات الأطباء doctor' },
-    { id: 'desk', g: 'g4', ico: '💻', t: 'الحاسبة', boxes: ['desk'], kw: 'الحاسبة برنامج الحاسوب نسخة احتياطية قرص الاستقبال فقط مجلد' },
     { id: 'lan', g: 'g4', ico: '🔄', t: 'المزامنة عبر الحاسوب', boxes: ['lan'], kw: 'مزامنة عبر الحاسوب شبكة محلية واي فاي ربط الهاتف بالحاسوب سحابة بديلة lan sync' },
     { id: 'wa', g: 'g4', ico: '📲', t: 'المبيعات عبر واتساب', boxes: ['wa'], kw: 'واتساب وتساب مبيعات ملف مستخدم استيراد لقطة مخزون ربط جهاز بدون انترنت whatsapp' },
-    { id: 'about', g: 'g4', ico: 'ℹ️', t: 'عن التطبيق', boxes: ['about'], kw: 'عن التطبيق نسخة اصدار إصدار رقم النسخة تحديث' },
-    { id: 'device', g: 'g4', ico: '📱', t: 'هذا الجهاز', boxes: ['install', 'device'], kw: 'تثبيت التطبيق بصمة قفل تذكير طباعة ورق طابعة اسماء الاطباء المحفوظة الجهاز install' },
+    { id: 'device', g: 'g5', ico: '📱', t: 'التثبيت والقفل والتذكيرات', boxes: ['install', 'device'], kw: 'تثبيت التطبيق بصمة قفل تذكير طباعة ورق طابعة اسماء الاطباء المحفوظة الجهاز install' },
+    { id: 'desk', g: 'g5', ico: '💻', t: 'برنامج الحاسوب (الحاسبة)', boxes: ['desk'], kw: 'الحاسبة برنامج الحاسوب نسخة احتياطية قرص الاستقبال فقط مجلد' },
+    { id: 'about', g: 'g5', ico: 'ℹ️', t: 'عن التطبيق', boxes: ['about'], kw: 'عن التطبيق نسخة اصدار إصدار رقم النسخة تحديث' },
     { id: 'users', g: 'g3', ico: '👥', t: 'المستخدمون والصلاحيات', act: 'openUsers', boxes: [], kw: 'مستخدم مستخدمين صلاحيات حساب بائع اضافة مستخدم users' },
     { id: 'sec', g: 'g3', ico: '🔐', t: 'الأمان والخصوصية', boxes: ['protect'], kw: 'مستخدم مستخدمين صلاحيات حساب بائع حماية بيانات المخزون فصل سعر الشراء كلفة اخفاء أمان خصوصية users permissions security' },
     { id: 'sys', g: 'g3', ico: '💾', t: 'النسخ الاحتياطي والاسترجاع', boxes: ['backup', 'restore'], kw: 'نسخ احتياطي استرجاع تصدير اكسل csv backup restore export' },
@@ -86,17 +86,18 @@ function shSummary(p) {
         if (p.id === 'scanner') { const c = typeof scCfg === 'function' ? scCfg() : null; return { s: c ? (c.on ? 'مشغّل · ' : 'متوقف · ') + (c.mode === 'safe' ? 'خصم محمي' : 'خصم كامل') : '' }; }
         if (p.id === 'ai') return { s: 'محرك القراءة · المفتاح · اختبار الاتصال' };
         if (p.id === 'docset') return { s: 'الرابط · الأسعار والعدد · طلبات الأطباء' };
-        if (p.id === 'desk') return { s: 'النسخة الاحتياطية على القرص · الاستقبال فقط' };
+        if (p.id === 'desk') return { s: 'نسخة احتياطية على القرص · وضع الاستقبال فقط' };
         if (p.id === 'wa') return { s: window.WA ? (userRole === 'owner' ? 'استيراد مبيعات المستخدمين وإرسال لقطة المخزون إليهم' : (WA.on() ? 'مفعّل · لم تُرسل: ' + WA.pendingCount() : 'إرسال المبيعات كملف')) : '' };
         if (p.id === 'lan') return { s: (window.LAN && LAN.mode() === 'lan' ? 'مفعّلة · ' : 'متوقفة · ') + 'الشبكة المحلية بدل السحابة' };
-        if (p.id === 'device') return { s: 'التثبيت · البصمة · التذكيرات · الطباعة' };
+        if (p.id === 'device') return { s: (window.NAT && NAT.is) ? 'قفل التطبيق بالبصمة · تذكير الصلاحية اليومي' : 'تثبيت التطبيق على شاشة الجهاز' };
+        if (p.id === 'about') return { s: 'رقم النسخة · بيئة التشغيل' };
         if (p.id === 'users') return { s: 'إضافة المستخدمين وتحديد ما يفعله كل واحد' };
         if (p.id === 'sec') return { s: 'حماية بيانات المخزون · فصل سعر الشراء' };
         if (p.id === 'sys') return { s: 'نسخة كاملة · تصدير Excel · استرجاع من ملف' };
     } catch (e) { /* تجاهل */ }
     return { s: '' };
 }
-const SH_GROUPS = { g1: 'المتجر', g2: 'الأدوات', g3: 'الحسابات والبيانات', g4: 'هذا الجهاز' };
+const SH_GROUPS = { g1: 'المتجر', g2: 'الأدوات', g3: 'الحسابات والبيانات', g4: 'الاتصال والمزامنة', g5: 'الجهاز والتطبيق' };
 function shHubHtml() {
     const card = p => { const m = shSummary(p); return `<button type="button" class="sh-card" data-p="${p.id}" data-k="${(p.t + ' ' + (p.kw || '') + ' ' + m.s).replace(/"/g, '')}"><span class="sh-ico">${p.ico}</span><span class="sh-tx"><b>${p.t}</b><small>${m.s}</small></span>${m.badge ? `<em class="sh-badge">${m.badge}</em>` : ''}</button>`; };
     const grid = Object.keys(SH_GROUPS).map(g => `<div class="sh-grp" data-g="${g}"><h5 class="sh-gh">${SH_GROUPS[g]}</h5>` + SH_PAGES.filter(p => p.g === g && !(p.id === 'desk' && !(window.diwanDesktop && window.diwanDesktop.isDesktop)) && !(p.id === 'device' && !((window.NAT && NAT.is) || !isStandalone()))).map(card).join('') + '</div>').join('');
