@@ -7,6 +7,9 @@
     Swal.fire = function (o) {
         if (!o || typeof o !== 'object' || o.toast || (o.customClass && o.customClass.popup)) return orig.apply(null, arguments);
         var o2 = Object.assign({}, o);
+        if (o2.confirmButtonText === undefined) o2.confirmButtonText = 'حسناً';   // لا يظهر «OK» الإنجليزي أبداً
+        if (o2.cancelButtonText === undefined) o2.cancelButtonText = 'إلغاء';
+        if (o2.denyButtonText === undefined) o2.denyButtonText = 'لا';
         // نوافذ الأدوات داخل الإعدادات: تُعرض كصفحة داخل الإعدادات نفسها لا كنافذة منبثقة
         var host = document.querySelector('#catModal .modal-card'), cm = document.getElementById('catModal');
         if (host && cm && cm.style.display && cm.style.display !== 'none' && (o.html || o.input) && !o.icon && !o.timer && !o.target) {
@@ -27,7 +30,7 @@
         cc.container = (cc.container ? cc.container + ' ' : '') + (sheet ? 'dw-cont-sheet' : 'dw-cont-card');
         cc.icon = 'dw-ic dw-ic-' + (o.icon || 'none');
         cc.title = 'dw-title' + (o.customClass && o.customClass.title ? ' ' + o.customClass.title : ''); cc.htmlContainer = 'dw-text';
-        cc.confirmButton = 'dw-btn dw-btn-main' + (/^#(b91c1c|dc2626|ef4444|991b1b|c0392b)/i.test(String(o.confirmButtonColor || '')) ? ' dw-btn-danger' : ''); cc.cancelButton = 'dw-btn dw-btn-ghost'; cc.denyButton = 'dw-btn dw-btn-deny';
+        cc.confirmButton = 'dw-btn dw-btn-main' + (/^#(b91c1c|dc2626|ef4444|991b1b|c0392b)/i.test(String(o.confirmButtonColor || '')) ? ' dw-btn-danger' : ''); cc.cancelButton = (o.customClass && o.customClass.cancelButton) || 'dw-btn dw-btn-ghost'; cc.denyButton = (o.customClass && o.customClass.denyButton) || 'dw-btn dw-btn-deny';
         cc.actions = 'dw-actions';
         o2.customClass = cc;
         if (o.icon && ICMAP[o.icon] && window.AppIcons && !o.iconHtml) o2.iconHtml = AppIcons.svg(ICMAP[o.icon]);

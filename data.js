@@ -354,21 +354,45 @@ async function syncNow() {
     checkPending();
     h.ok(n ? 'رُفع ' + n + ' سجل محفوظ محلياً' : 'تمت المزامنة — كل شيء محدّث');
 }
+function syncAgo(iso) {   // «قبل كذا» بدل التاريخ الكامل
+    const t = Date.parse(iso); if (!t) return '';
+    const m = Math.max(0, Math.round((Date.now() - t) / 60000));
+    const un = (n, one, two, few, many) => n === 1 ? one : n === 2 ? two : n <= 10 ? 'قبل ' + n + ' ' + few : 'قبل ' + n + ' ' + many;
+    if (m < 1) return 'قبل لحظات';
+    if (m < 60) return un(m, 'قبل دقيقة', 'قبل دقيقتين', 'دقائق', 'دقيقة');
+    const h = Math.round(m / 60); if (h < 24) return un(h, 'قبل ساعة', 'قبل ساعتين', 'ساعات', 'ساعة');
+    const d = Math.round(h / 24); return un(d, 'قبل يوم', 'قبل يومين', 'أيام', 'يوماً');
+}
+const opsTxt = n => n === 1 ? 'عملية واحدة' : n === 2 ? 'عمليتان' : n <= 10 ? n + ' عمليات' : n + ' عملية';
 function showSyncStatus() {
     if (!IS_ADMIN_PAGE) return;
-    const online = navigator.onLine;
+    const online = navigator.onLine, native = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
     const dups = (typeof billDuplicateNumbers === 'function') ? billDuplicateNumbers() : [];
-    const loc = (typeof localOnlyCounts === 'function') ? localOnlyCounts() : '';
-    const row = (k, v) => `<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #e5e7eb;"><span style="color:#64748b">${k}</span><b>${v}</b></div>`;
-    const html = `<div style="text-align:right;font-size:.9rem">` +
-        row('الاتصال', online ? '🟢 متصل' : '🔴 بدون إنترنت') +
-        row('بانتظار الإرسال', (pendingOps ? pendingOps + ' عملية' : (startupPending ? 'يوجد (من جلسة سابقة)' : 'لا شيء')) ) +
-        (() => { const u = usageGet(), cw = usageCap('w'), cr = usageCap('r'); return row('كتابات اليوم (هذا الجهاز)', u.w + ' / ' + cw) + row('قراءات اليوم (هذا الجهاز)', u.r + ' / ' + cr) + (usagePaused ? row('الإرسال', usagePaused === 'cap' ? '⏸️ متوقف (الحد اليومي)' : usagePaused === 'lan' ? '💻 عبر الحاسوب' : '⏸️ متوقف بانتظار موافقتك') : ''); })() +
-        row('الحفظ بدون إنترنت', persistenceOn ? '✅ مفعّل' : '⚠️ غير مدعوم في هذا المتصفح') +
-        row('آخر مزامنة ناجحة', lastSyncAt ? new Date(lastSyncAt).toLocaleString('ar-IQ') : '—') +
-        (syncErrMsg ? row('آخر خطأ', escapeHtml(syncErrMsg)) : '') + loc +
-        (dups.length ? `<div style="margin-top:10px;color:#b45309;font-weight:700;font-size:.82rem">⚠️ أرقام فواتير مكررة (أُصدرت من أجهزة مختلفة بدون إنترنت): ${dups.map(escapeHtml).join('، ')}</div>` : '') + `</div>`;
-    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', denyButtonColor: '#047857' }).then(r => { if (r.isConfirmed) syncNow(); else if (r.isDenied) hardRefresh(); });
+    const lan = usagePaused === 'lan', lanErr = (lan && window.LAN && !window.diwanDesktop && LAN.err) ? LAN.err() : '';
+    const outN = (lan && window.LAN && !window.diwanDesktop) ? (LAN._ls.get('diwanLanOut', []).length) : 0;
+    const pend = lan ? outN : (pendingOps || 0);
+    const ago = lastSyncAt ? syncAgo(lastSyncAt) : '';
+    // الحالة الرئيسية: جملة واحدة بلون واحد
+    let tone = 'ok', head = 'متزامن', sub = ago ? 'آخر مزامنة ناجحة ' + ago : 'لا توجد مزامنة مسجّلة بعد';
+    if (lan) {
+        if (window.diwanDesktop) { head = 'المزامنة عبر الحاسوب'; sub = 'هذا البرنامج يستقبل عمليات الهواتف على الشبكة'; tone = 'lan'; }
+        else if (lanErr) { tone = 'err'; head = 'الحاسوب غير متصل'; sub = lanErr; }
+        else { tone = 'lan'; head = 'متصل بالحاسوب'; sub = pend ? opsTxt(pend) + ' بانتظار الإرسال إليه' : 'كل العمليات وصلت إلى الحاسوب'; }
+    } else if (!isFirebaseReady) { tone = 'warn'; head = 'محلي فقط'; sub = 'لا يوجد اتصال بالسحابة'; }
+    else if (usagePaused) { tone = 'warn'; head = 'الإرسال متوقف'; sub = usagePaused === 'cap' ? 'بلغ هذا الجهاز الحد اليومي' : 'بانتظار موافقتك'; }
+    else if (!online) { tone = 'err'; head = 'بدون إنترنت'; sub = 'تُحفظ العمليات على الجهاز وتُرسل عند عودة الاتصال' + (pend ? ' (' + opsTxt(pend) + ' بانتظار الإرسال)' : ''); }
+    else if (syncErrMsg) { tone = 'err'; head = 'تعذّر الحفظ'; sub = escapeHtml(syncErrMsg); }
+    else if (pend > 0 || startupPending) { tone = 'busy'; head = 'جارٍ الإرسال'; sub = pend ? opsTxt(pend) + ' بانتظار الإرسال' : 'عمليات من جلسة سابقة بانتظار الإرسال'; }
+    const u = usageGet(), cw = usageCap('w'), cr = usageCap('r');
+    const bar = (label, n, cap) => { const pc = Math.min(100, Math.round(n / Math.max(1, cap) * 100)); return `<div class="ss-use"><div class="ss-ut"><span>${label}</span><b>${n} من ${cap}</b></div><div class="ss-bar"><i class="${pc >= 90 ? 'hi' : pc >= 70 ? 'mid' : ''}" style="width:${pc}%"></i></div></div>`; };
+    const nearCap = u.w / Math.max(1, cw) >= .7 || u.r / Math.max(1, cr) >= .7;
+    const tech = bar('الكتابات اليوم (هذا الجهاز)', u.w, cw) + bar('القراءات اليوم (هذا الجهاز)', u.r, cr) +
+        (!native && !persistenceOn ? '<div class="ss-note">الحفظ دون إنترنت غير مدعوم في هذا المتصفح، فلا تُحفظ العمليات إن انقطع الاتصال.</div>' : '');
+    const html = `<div class="ss-wrap">
+        <div class="ss-hero ss-${tone}"><span class="ss-dot"></span><div class="ss-ht"><b>${head}</b><small>${sub}</small></div></div>` +
+        (dups.length ? `<div class="ss-warn">أرقام فواتير مكررة (أُصدرت من أجهزة مختلفة بدون إنترنت):<br>${dups.map(escapeHtml).join('، ')}</div>` : '') +
+        `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}</details></div>`;
+    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' } }).then(r => { if (r.isConfirmed) syncNow(); else if (r.isDenied) hardRefresh(); });
 }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
 
