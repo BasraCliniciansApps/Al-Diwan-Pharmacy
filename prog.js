@@ -20,6 +20,7 @@ const Prog = {
         h.close = () => { if (Prog.cur === h) Prog.hide(); };
         Prog.cur = h; Prog.paint();
         clearInterval(Prog.timer); Prog.timer = setInterval(Prog.paint, 500);
+        Prog.watch();
         return h;
     },
     // فتح عملية فقط إن ما كانت شغالة وحدة (للدوال المشتركة): يرجع {h, own}
@@ -36,6 +37,7 @@ const Prog = {
         let best = null;
         try {
             document.querySelectorAll('.swal2-popup, .px-sheet, .modal-overlay .modal-card, .pos-ov').forEach(e => {
+                if (e.classList.contains('swal2-hide') || (e.closest && e.closest('.swal2-container.swal2-backdrop-hide'))) return;   // نافذة قيد الإغلاق: لا يلتزم الخط بها
                 const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
                 if (r.width < 60 || r.height < 60 || cs.visibility === 'hidden' || cs.display === 'none') return;
                 const ov = e.closest('.modal-overlay'); if (ov && getComputedStyle(ov).display === 'none') return;
@@ -68,7 +70,21 @@ const Prog = {
         const lr = last.getBoundingClientRect(), bottom = lr.bottom;
         return { y: bottom > 0 && bottom < 520 ? bottom : y, r, x0: cr ? Math.max(cr.left, lr.left) : lr.left, x1: cr ? Math.min(cr.right, lr.right) : lr.right };
     },
-    hide() { if (Prog.el) Prog.el.hidden = true; if (Prog.ln) Prog.ln.hidden = true; clearInterval(Prog.timer); Prog.cur = null; },
+    // مراقبة موضع النافذة كل إطار: عند فتح النافذة أو إغلاقها أو تحرّكها ينتقل الخط فوراً بدل انتظار الرسم الدوري
+    watch() {
+        if (Prog.raf) return;
+        const loop = () => {
+            if (!Prog.cur) { Prog.raf = 0; Prog.sig = ''; return; }
+            try {
+                const c = Prog.topCard(); let sig = 'none';
+                if (c) { const r = c.getBoundingClientRect(); sig = [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)].join(','); }
+                if (sig !== Prog.sig) { Prog.sig = sig; Prog.paint(); }
+            } catch (e) { /* تجاهل */ }
+            Prog.raf = requestAnimationFrame(loop);
+        };
+        Prog.raf = requestAnimationFrame(loop);
+    },
+    hide() { if (Prog.raf) { cancelAnimationFrame(Prog.raf); Prog.raf = 0; } if (Prog.el) Prog.el.hidden = true; if (Prog.ln) Prog.ln.hidden = true; clearInterval(Prog.timer); Prog.cur = null; },
     fmtT(s) { s = Math.max(0, Math.round(s)); return s < 60 ? s + ' ث' : Math.floor(s / 60) + ' د ' + (s % 60) + ' ث'; },
     paint() {
         const h = Prog.cur, el = Prog.el; if (!h || !el) return;
