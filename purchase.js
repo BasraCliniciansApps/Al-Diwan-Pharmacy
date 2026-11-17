@@ -448,9 +448,17 @@ function puExpiryPush(p, e) {   // يُرجع true إذا أُضيف تاريخ 
     if (dates.includes(e)) return false;
     dates.push(e); dates.sort(); p.expiryDates = dates; p.expiryDate = dates[0]; return true;
 }
+// قفل الحفظ: ضغطتان متتاليتان لا تسجّلان الوارد مرتين (والمعرّف الثابت للمسودة يمنع التكرار عند إعادة المحاولة)
 async function puSave() {
+    if (window.__puSaving) return;
+    window.__puSaving = true; const sb = $b('puSaveBtn'); if (sb) sb.disabled = true;
+    try { return await puSave0(); } finally { window.__puSaving = false; const b2 = $b('puSaveBtn'); if (b2) b2.disabled = false; }
+}
+async function puSave0() {
     puReadFields();
     const editing = pu.editId ? puAll.find(x => x.id === pu.editId) : null;
+    if (!pu.uid) { pu.uid = 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); lsSet(PU_LS.draft, JSON.stringify(pu)); }   // معرّف ثابت للمسودة: يُستخدم معرّفاً للسجل ومفتاحاً للعملية (يُحفظ فوراً ليصمد أمام إغلاق التطبيق)
+    const recId = editing ? editing.id : 'pu' + pu.uid;
     const supplier = pu.supplier.trim();
     let no = pu.no.trim(); if (pu.gift && !no) no = 'BONUS-' + String(pu.date || todayLocalISO()) + '-' + String(Date.now()).slice(-4);
     const gift = !!pu.gift;
@@ -538,7 +546,7 @@ async function puSave() {
         lines.push(line);
     });
     const touched = [...snaps.values()].map(s => s.p);
-    let ok; window.__fsWait = 200; try { ok = await saveProductsDelta([...snaps.values()].map(s => deltaFromSnap(s.p, s))); } finally { window.__fsWait = null; }   // الحفظ محلي فوراً والمزامنة تكمل بالخلفية
+    let ok; window.__fsWait = 200; try { ok = await saveProductsDelta([...snaps.values()].map(s => deltaFromSnap(s.p, s)), { key: 'pu:' + recId + ':' + pu.uid, kind: 'purchase', inv: recId, no }); } finally { window.__fsWait = null; }   // الحفظ محلي فوراً والمزامنة تكمل بالخلفية
     if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; s.p.lastPurchase = s.lastPurchase; s.p.price = s.price; s.p.pricing = s.pricing; s.p.markupPct = s.markupPct; }); renderAll(); return; }
     // تحقق من وصول الكميات للسحابة بالخلفية (لا يوقف العمل)
     setTimeout(async () => {
@@ -559,7 +567,7 @@ async function puSave() {
         rec = { ...editing, seq: (editing.seq && puMonthOf({ ...editing, date: pu.date, useEntry: !!pu.useEntry }) === puMonthOf(editing)) ? editing.seq : puNextSeq(puMonthOf({ ...editing, date: pu.date, useEntry: !!pu.useEntry }), editing.id), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, notes: pu.notes.trim(), editedAt: new Date().toISOString() };
         rec.payments = (editing.payments || []).slice(); if (Math.abs(diff) > 0.001) rec.payments.push({ at: todayLocalISO(), amount: diff, adj: true });
     } else {
-        rec = { id: 'pu' + Date.now(), seq: puNextSeq((pu.useEntry ? todayLocalISO() : String(pu.date)).slice(0, 7)), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
+        rec = { id: recId, seq: puNextSeq((pu.useEntry ? todayLocalISO() : String(pu.date)).slice(0, 7)), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
     }
     if (gift) { rec.gift = true; rec.bonusOnly = true; delete rec.seq; }
     puSaveRecord(rec).catch(() => {});   // محلي فوراً، والسحابة بالخلفية
