@@ -75,7 +75,7 @@ ipcMain.handle('diwan:lan:enable', async (_e, on) => {
     try { if (on) await lanStart(); else await lanStop(); const c = readCfg(); c.lanOn = !!on; writeCfg(c); return lanInfo(); }
     catch (e) { return { on: false, error: String(e && e.message || e) }; }
 });
-ipcMain.handle('diwan:lan:code', () => { if (!hub) return { on: false }; hub.newCode(); return lanInfo(); });
+ipcMain.handle('diwan:lan:code', (_e, role) => { if (!hub) return { on: false }; hub.newCode(role); return lanInfo(); });
 ipcMain.handle('diwan:lan:pending', () => hub ? hub.pending() : []);
 ipcMain.handle('diwan:lan:mark', (_e, ids, status) => { if (hub && Array.isArray(ids) && (status === 'applied' || status === 'rejected')) hub.mark(ids.map(String), status); return lanInfo(); });
 ipcMain.handle('diwan:lan:local', (_e, list) => (hub && Array.isArray(list) ? hub.addLocal(list) : 0));

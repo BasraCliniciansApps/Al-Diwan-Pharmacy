@@ -39,8 +39,8 @@ function createHub(opts) {
     function saveState() { const tmp = stFile + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(st)); fs.renameSync(tmp, stFile); }
     function emit() { try { opts.onChange && opts.onChange(); } catch (e) { /* تجاهل */ } }
 
-    let code = '', codeAt = 0, bad = 0, lockUntil = 0;
-    function newCode() { code = String(crypto.randomInt(0, 1000000)).padStart(6, '0'); codeAt = Date.now(); bad = 0; return code; }
+    let code = '', codeRole = 'staff', codeAt = 0, bad = 0, lockUntil = 0;
+    function newCode(role) { codeRole = role === 'owner' ? 'owner' : 'staff'; code = String(crypto.randomInt(0, 1000000)).padStart(6, '0'); codeAt = Date.now(); bad = 0; return code; }
     function activeCode() { return code && Date.now() - codeAt < CODE_TTL ? code : ''; }
 
     function authDev(req) {
@@ -63,11 +63,14 @@ function createHub(opts) {
         return true;
     }
 
+    // الدور الفعلي: مالك فقط إذا ربط الجهاز برمز المالك (إن وُجد دور محفوظ) وكان حساب التطبيق مالكاً
+    function effRole(dev, req) { const claim = String(req.headers['x-diwan-role'] || '') === 'owner'; return claim && (dev.d.role === undefined || dev.d.role === 'owner') ? 'owner' : 'staff'; }
+    const STAFF_KINDS = ['sale', 'cancel', 'edit', 'ret'];
     function ingest(dev, list, role) {
         const stored = [], dup = [], invalid = [];
         const lines = [];
         list.forEach(o => {
-            if (!validOp(o) || o.type === 'qset' || (role !== 'owner' && OWNER_TYPES.indexOf(o.type) >= 0 && o.type !== 'purchase' && o.type !== 'snapshot')) { invalid.push(o && o.id || ''); return; }
+            if (!validOp(o) || o.type === 'qset' || (role !== 'owner' && o.type === 'stock' && STAFF_KINDS.indexOf(String(o.data && o.data.op && o.data.op.kind || '')) < 0) || (role !== 'owner' && OWNER_TYPES.indexOf(o.type) >= 0 && o.type !== 'purchase' && o.type !== 'snapshot')) { invalid.push(o && o.id || ''); return; }
             if (ops.has(o.id)) { dup.push(o.id); return; }
             const rec = { id: o.id, type: o.type, ts: o.ts, data: o.data, dev: dev.id, devName: dev.d.name, recvAt: new Date().toISOString(), seq: ++st.seq };
             ops.set(rec.id, rec); lines.push(JSON.stringify(rec)); stored.push(rec.id);
@@ -107,7 +110,7 @@ function createHub(opts) {
                 const used = Object.keys(st.devices).map(k => st.devices[k].prefix);
                 const prefix = prev ? prev.prefix : 'ABCDEFGHJKLMNPQRSTUVWXYZ'.split('').find(x => used.indexOf(x) < 0) || 'Z';
                 const token = crypto.randomBytes(24).toString('hex');
-                st.devices[did] = { name: String(j.deviceName || 'جهاز').slice(0, 40), token, prefix, pairedAt: Date.now(), lastSeen: Date.now() };
+                st.devices[did] = { name: String(j.deviceName || 'جهاز').slice(0, 40), role: codeRole, token, prefix, pairedAt: Date.now(), lastSeen: Date.now() };
                 code = ''; saveState(); emit();
                 send(res, 200, { token, prefix, hub: name });
             });
@@ -118,7 +121,7 @@ function createHub(opts) {
             return readBody(req, res, j => {
                 const list = Array.isArray(j.ops) ? j.ops : [];
                 if (!list.length || list.length > MAX_OPS_PER_REQ) return send(res, 400, { error: 'bad-count' });
-                try { send(res, 200, ingest(dev, list, String(req.headers['x-diwan-role'] || ''))); } catch (e) { send(res, 500, { error: 'disk' }); }
+                try { send(res, 200, ingest(dev, list, effRole(dev, req))); } catch (e) { send(res, 500, { error: 'disk' }); }
             });
         }
         if (req.method === 'GET' && url === '/v1/status') {
@@ -128,7 +131,7 @@ function createHub(opts) {
         if (req.method === 'GET' && url === '/v1/feed') {   // عمليات الأجهزة الأخرى التي وافق عليها الحاسوب (الاتجاه الثاني)
             const q = new URLSearchParams((req.url.split('?')[1]) || ''); const after = parseInt(q.get('after')) || 0;
             const list = [...ops.values()].filter(r => r.dev !== dev.id && r.type !== 'snapshot' && r.type !== 'stock' && st.done[r.id] === 'applied' && (st.doneSeq[r.id] || 0) > after).sort((a, b) => st.doneSeq[a.id] - st.doneSeq[b.id]).slice(0, 100);
-            const owner = String(req.headers['x-diwan-role'] || '') === 'owner';
+            const owner = effRole(dev, req) === 'owner';
             const outL = list.filter(r => owner || (r.type !== 'rec' && r.type !== 'purchase')).map(r => { let d = r.data; if (!owner && r.type === 'pinfo' && d && d.cost) { d = Object.assign({}, d); delete d.cost; } return { id: r.id, type: r.type, ts: r.ts, data: d, dev: r.dev, devName: r.devName, fseq: st.doneSeq[r.id] }; });
             const acked = [...ops.values()].filter(r => r.dev === dev.id && st.done[r.id] === 'applied').slice(-600).map(r => r.id);
             return send(res, 200, { acked, ops: outL, last: list.length ? st.doneSeq[list[list.length - 1].id] : after, head: st.dseq });
@@ -150,7 +153,7 @@ function createHub(opts) {
         },
         stop() { return new Promise(r => { try { server.close(() => r()); } catch (e) { r(); } }); },
         newCode, activeCode,
-        info() { const a = server.address(); return { port: a && a.port, ips: lanIps(), name, code: activeCode(), codeLeft: code ? Math.max(0, CODE_TTL - (Date.now() - codeAt)) : 0, devices: Object.keys(st.devices).map(id => ({ id, name: st.devices[id].name, prefix: st.devices[id].prefix, lastSeen: st.devices[id].lastSeen })), pending: this.pending().length }; },
+        info() { const a = server.address(); return { port: a && a.port, ips: lanIps(), name, code: activeCode(), codeRole, codeLeft: code ? Math.max(0, CODE_TTL - (Date.now() - codeAt)) : 0, devices: Object.keys(st.devices).map(id => ({ id, name: st.devices[id].name, prefix: st.devices[id].prefix, lastSeen: st.devices[id].lastSeen })), pending: this.pending().length }; },
         pending() { return [...ops.values()].filter(r => !st.done[r.id]).sort((a, b) => a.seq - b.seq); },
         mark(ids, status) { ids.forEach(id => { if (ops.has(id) && st.done[id] !== status) { st.done[id] = status; if (status === 'applied') st.doneSeq[id] = ++st.dseq; } }); saveState(); emit(); },
         addLocal(list) {   // تغييرات الحاسوب نفسه: تُسجَّل مطبَّقة وتوزَّع على الجوالات

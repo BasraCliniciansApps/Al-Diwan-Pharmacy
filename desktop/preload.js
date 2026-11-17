@@ -8,7 +8,7 @@ contextBridge.exposeInMainWorld('diwanDesktop', {
     lan: {
         info: () => ipcRenderer.invoke('diwan:lan:info'),
         enable: (on) => ipcRenderer.invoke('diwan:lan:enable', !!on),
-        newCode: () => ipcRenderer.invoke('diwan:lan:code'),
+        newCode: (role) => ipcRenderer.invoke('diwan:lan:code', role),
         pending: () => ipcRenderer.invoke('diwan:lan:pending'),
         mark: (ids, status) => ipcRenderer.invoke('diwan:lan:mark', ids, status),
         local: (list) => ipcRenderer.invoke('diwan:lan:local', list),

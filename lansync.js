@@ -134,7 +134,7 @@
         entries = (entries || []).filter(Boolean);
         const list = entries.map(e => {
             const hints = Array.isArray(e.p._badd) && e.p._badd.length ? JSON.parse(JSON.stringify(e.p._badd)) : null;   // قبل أن يستهلكها btPrepare
-            return { e, pack: { pid: e.p.id, name: e.p.name, dq: snapNum(e.dq), dl: snapNum(e.dl), hints, expAdd: e.expAdd || [], expRemove: e.expRemove || [], expChanged: !!e.expChanged, cost: e.cost, lastSet: !!e.lastSet, last: e.last, mark: !!e.mark, unmark: !!e.unmark } };
+            return { e, pack: { pid: e.p.id, name: e.p.name, dq: snapNum(e.dq), dl: snapNum(e.dl), abs: (e.mark && (snapNum(e.dq) || snapNum(e.dl))) ? { q: snapNum(e.p.qty), l: snapNum(e.p.loose) } : undefined, hints, expAdd: e.expAdd || [], expRemove: e.expRemove || [], expChanged: !!e.expChanged, cost: e.cost, lastSet: !!e.lastSet, last: e.last, mark: !!e.mark, unmark: !!e.unmark } };
         });
         list.forEach(x => btPrepare(x.e));
         saveLocal();
@@ -155,7 +155,7 @@
     const TK = 'diwanLanTrack';
     const SF = ['qty', 'loose', 'counted', 'bt', 'expiryDate', 'expiryDates'];
     const isOwner = () => userRole === 'owner';
-    const trackOn = () => modeOn() && isOwner();
+    const trackOn = () => modeOn() && (isOwner() || !!D);
     function hsh(s) { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0; return (h >>> 0).toString(36); }
     function pSplit(p) {
         const info = {}, cost = {}, init = {};
@@ -179,7 +179,7 @@
         let t = trackLoad(); const fresh = !t; if (!t) t = { p: {}, c: '', r: {} };
         const sBase = !t.s; if (!t.s) t.s = {};
         const ops = [], marks = [];
-        (typeof products !== 'undefined' ? products : []).forEach(p => {
+        if (isOwner()) (typeof products !== 'undefined' ? products : []).forEach(p => {
             const s = pSplit(p), h = hsh(stable({ i: s.info, c: s.cost }));
             if (t.p[p.id] === h) return;
             if (!fresh) ops.push({ id: 'pi:' + p.id + ':' + h, type: 'pinfo', ts: new Date().toISOString(), data: { pid: p.id, info: s.info, cost: s.cost, init: t.p[p.id] === undefined ? s.init : undefined } });
@@ -191,9 +191,9 @@
             if (!fresh && !sBase) ops.push({ id: 'qs:' + p.id + ':' + h + ':' + Date.now().toString(36), type: 'qset', ts: new Date().toISOString(), data: { pid: p.id, st } });
             marks.push(['s', String(p.id), h]);
         });
-        const cf = cfgNow(), ch = hsh(stable(cf));
-        if (t.c !== ch) { if (!fresh && t.c) ops.push({ id: 'cf:' + ch, type: 'cfg', ts: new Date().toISOString(), data: { cfg: cf } }); marks.push(['c', '', ch]); }
-        recSets().forEach(([coll, arr]) => arr.forEach(r => {
+        const own = isOwner(), cf = cfgNow(), ch = hsh(stable(cf));
+        if (own && t.c !== ch) { if (!fresh && t.c) ops.push({ id: 'cf:' + ch, type: 'cfg', ts: new Date().toISOString(), data: { cfg: cf } }); marks.push(['c', '', ch]); }
+        if (own) recSets().forEach(([coll, arr]) => arr.forEach(r => {
             if (!r || !r.id) return; const h = hsh(stable(r)), k = coll + ':' + r.id;
             if (t.r[k] === h) return;
             if (!fresh) ops.push({ id: 'rc:' + k + ':' + h, type: 'rec', ts: new Date().toISOString(), data: { coll, rec: r } });
@@ -202,6 +202,41 @@
         return { t, ops, marks, fresh };
     }
     function applyMarks(t, marks) { marks.forEach(([k, id, h]) => { if (k === 'c') t.c = h; else { t[k] = t[k] || {}; t[k][id] = h; } }); trackSave(t); }
+    // ما تغيّر أثناء المزامنة المحلية (معلومات/إعدادات/مذاخر/سجل): يُرفع للسحابة عند العودة إليها
+    const DK = 'diwanLanDirty';
+    function dirtyAdd(fn) { const d = ls.get(DK, null) || { p: {}, c: 0, r: {} }; fn(d); ls.set(DK, d); }
+    function dirtyFromOps(ops) {
+        dirtyAdd(d => ops.forEach(o => {
+            if (o.type === 'pinfo') { const k = String(o.data.pid); d.p[k] = d.p[k] === 'n' || o.data.init ? 'n' : 1; }
+            else if (o.type === 'cfg') d.c = 1;
+            else if (o.type === 'rec' && o.data.rec) d.r[o.data.coll + ':' + o.data.rec.id] = 1;
+        }));
+    }
+    async function pushDirty() {
+        const d = ls.get(DK, null); if (!d || !isOwner() || !cloudReady()) return 0;
+        const pids = Object.keys(d.p), rk = Object.keys(d.r); const total = pids.length + rk.length + (d.c ? 1 : 0); if (!total) return 0;
+        const h = Prog.start('رفع تعديلات المزامنة المحلية إلى السحابة', { text: 'جاري الرفع...' }); let n = 0;
+        try {
+            for (let i = 0; i < pids.length; i += 20) {
+                const b = db.batch();
+                pids.slice(i, i + 20).forEach(id => {
+                    const p = products.find(x => String(x.id) === id); if (!p) return;
+                    if (d.p[id] === 'n') writeProductBatch(b, p);   // مادة جديدة: بكميتها الأولى
+                    else { const sp = splitProduct(p); b.set(db.collection('pharmacy_products').doc(id), sp.pub); if (sp.cost) b.set(db.collection('pharmacy_cost').doc(id), sp.cost); }   // مادة قديمة: بلا كميات (تصل بعملياتها)
+                });
+                await fsCommit(b); n += Math.min(20, pids.length - i); h.set(Math.round(n / total * 100), 'رُفع ' + n + ' من ' + total);
+            }
+            if (d.c) { await pushToCloud(true); n++; h.set(Math.round(n / total * 100), 'الإعدادات'); }
+            for (const k of rk) {
+                const ix = k.indexOf(':'), coll = k.slice(0, ix), id = k.slice(ix + 1);
+                const arr = coll === 'suppliers' ? puSuppliers : lgAll, r = (arr || []).find(x => String(x.id) === id);
+                if (r) await fsSet(db.collection(coll === 'suppliers' ? 'pharmacy_suppliers' : 'pharmacy_ledger').doc(id), JSON.parse(JSON.stringify(r)));
+                n++; h.set(Math.round(n / total * 100), 'رُفع ' + n + ' من ' + total);
+            }
+            ls.set(DK, { p: {}, c: 0, r: {} }); h.ok('رُفعت تعديلات المزامنة المحلية');
+        } catch (e) { h.fail('تعذر رفع التعديلات', (e && e.message) || ''); }
+        return n;
+    }
     let trackBusy = false;
     async function trackTick() {
         if (trackBusy || !trackOn() || (!D && !ls.get(K.hub, null))) return;
@@ -210,6 +245,7 @@
             const sc = scanChanges();
             if (sc.fresh) { applyMarks(sc.t, sc.marks); return; }   // أول مرة: خط الأساس فقط (النسخة الكاملة تغطيه)
             if (!sc.ops.length) { if (sc.marks.length) applyMarks(sc.t, sc.marks); return; }
+            dirtyFromOps(sc.ops.filter(o => o.type !== 'qset'));
             if (D) { await D.lan.local(sc.ops); applyMarks(sc.t, sc.marks); return; }
             for (let i = 0; i < sc.ops.length; i += 40) {
                 const part = sc.ops.slice(i, i + 40);
@@ -267,11 +303,11 @@
             try { if (data.coll === 'suppliers') lsSet(PU_LS.sup, JSON.stringify(puSuppliers)); else lsSet(LG_LS.list, JSON.stringify(lgAll)); } catch (e) { /* تجاهل */ }
             t.r[data.coll + ':' + data.rec.id] = hsh(stable(data.rec)); changed = true;
         }
-        if (changed) trackSave(t);
+        if (changed) { trackSave(t); if (type === 'pinfo') dirtyFromOps([{ type, data: { pid: data.pid } }]); else if (type === 'cfg') dirtyFromOps([{ type }]); else if (type === 'rec') dirtyFromOps([{ type, data }]); }
         return changed;
     }
     function applyAny(o, rep) {
-        if (o.type === 'stock') applyStockOp(o.data, rep);
+        if (o.type === 'stock') applyStockOp(o.data, rep, o.ts);
         else if (o.type === 'pinfo' || o.type === 'cfg' || o.type === 'rec' || o.type === 'qset') { if (trackIngest(o.type, o.data)) rep.info = (rep.info || 0) + 1; }
         else applyRecordOp(o.type, o.data.rec, rep);
     }
@@ -362,9 +398,10 @@
         const r = await ask({ icon: 'question', title: 'العودة إلى السحابة؟', html: 'ستُستأنف المزامنة مع السحابة.' + (D ? '<br>يتوقف استقبال العمليات من الهواتف.' + ' <br><small>طبّق العمليات المنتظرة قبل العودة، فالبيانات الجديدة تُقرأ من السحابة.</small>' : (arch.length + out.length ? '<br>ستُرسل ' + (arch.length + out.length) + ' عملية من هذا الجهاز إلى السحابة بدون تكرار.' : '')) });
         if (!r.isConfirmed) return false;
         try { localStorage.setItem(K.mode, 'cloud'); } catch (e) { /* تجاهل */ }
-        if (D) { await D.lan.enable(false); await usageResume(); refreshUi(); return true; }
+        if (D) { await D.lan.enable(false); await usageResume(); try { await pushDirty(); } catch (e) { /* تجاهل */ } refreshUi(); return true; }
         await usageResume();
         await replay();
+        try { await pushDirty(); } catch (e) { /* تجاهل */ }
         return true;
     }
     async function replay() {
@@ -401,12 +438,20 @@
     function stripPre(r) { const c = JSON.parse(JSON.stringify(r)); delete c.__pre; return c; }
 
     // ======================= الحاسوب: التطبيق المحلي للعمليات =======================
-    function applyStockOp(d, rep) {
+    function applyStockOp(d, rep, ts0) {
+        const R = ls.get('diwanLanRecent', {}), ts = ts0 || new Date().toISOString(), cutoff = new Date(Date.now() - 3 * 86400000).toISOString();
         (d.entries || []).forEach(en => {
             const p = (typeof products !== 'undefined' ? products : []).find(x => String(x.id) === String(en.pid));
             if (!p) { rep.skipped.push(en.name || en.pid); return; }
             const sc = btSc(p), cur = snapNum(p.qty) * sc + (sc > 1 ? snapNum(p.loose) : 0);
-            const raw = cur + snapNum(en.dq) * sc + (sc > 1 ? snapNum(en.dl) : 0), nt = Math.max(0, raw);
+            const delta = snapNum(en.dq) * sc + (sc > 1 ? snapNum(en.dl) : 0), rr = R[p.id] || (R[p.id] = { l: [], a: '' });
+            let raw;
+            if (en.abs) {   // جرد: العدد الفعلي وقت الجرد، والحاسوب يُضيف ما حدث بعده فقط
+                const since = rr.l.filter(x => x[0] > ts).reduce((a, x) => a + x[1], 0);
+                raw = snapNum(en.abs.q) * sc + (sc > 1 ? snapNum(en.abs.l) : 0) + since; if (ts > rr.a) rr.a = ts;
+            } else if (rr.a && ts < rr.a) { rep.stale++; return; }   // عملية أقدم من جرد معتمد: الجرد يشملها
+            else { raw = cur + delta; rr.l.push([ts, delta]); }
+            const nt = Math.max(0, raw);
             if (raw < 0) (rep.over = rep.over || []).push(p.name);
             p.qty = Math.floor(nt / sc); p.loose = sc > 1 ? nt % sc : 0;
             if (en.hints) p._badd = en.hints;
@@ -417,6 +462,8 @@
             try { syncStockLocal([p]); } catch (e) { /* تجاهل */ }
             rep.touched.add(p.id);
         });
+        Object.keys(R).forEach(k => { R[k].l = R[k].l.filter(x => x[0] > cutoff); if (!R[k].l.length && (!R[k].a || R[k].a < cutoff)) delete R[k]; });
+        ls.set('diwanLanRecent', R);
         rep.stock++;
     }
     function applyRecordOp(type, rec0, rep) {
@@ -611,7 +658,7 @@
                 body += '<div class="ds-bk"><div class="ds-bk-t">بيانات الربط للهواتف</div>' + qr +
                     '<div class="ds-bk-p" dir="ltr">' + esc(ip + ':' + info.port) + '</div>' +
                     '<div class="ds-bk-s">الرمز: <b dir="ltr" style="letter-spacing:3px">' + esc(info.code || '——') + '</b>' + (info.code ? '' : ' (منتهٍ)') + '</div>' +
-                    '<div class="ds-bk-b"><button type="button" onclick="LAN.newCode()">رمز جديد</button><button type="button" onclick="LAN.review()">مراجعة العمليات (' + (info.pending || 0) + ')</button></div>' +
+                    '<div class="ds-bk-s">الرمز لربط: <b>' + (info.codeRole === 'owner' ? 'جهاز المالك' : 'جهاز مستخدم') + '</b></div><div class="ds-bk-b"><button type="button" onclick="LAN.newCode(\'staff\')">رمز للمستخدم</button><button type="button" onclick="LAN.newCode(\'owner\')">رمز للمالك</button><button type="button" onclick="LAN.review()">مراجعة العمليات (' + (info.pending || 0) + ')</button></div>' +
                     ((info.devices || []).length ? '<div class="ds-bk-s" style="margin-top:8px">الأجهزة المرتبطة: ' + info.devices.map(d => esc(d.name) + ' (' + esc(d.prefix) + ')').join('، ') + '</div>' : '') + '</div>';
             }
         } else {
@@ -641,9 +688,9 @@
         const h = Prog.start('الإرسال إلى الحاسوب', { text: 'جاري الإرسال...' });
         try { const n = await flush(true); h.ok(n ? 'سُلِّمت ' + n + ' عملية للحاسوب' : 'لا توجد عمليات بانتظار الإرسال'); } catch (e) { h.fail('تعذر الإرسال', (e && e.message) || ''); }
     }
-    async function newCode() { if (D) { await D.lan.newCode(); refreshUi(); } }
+    async function newCode(role) { if (D) { await D.lan.newCode(role); refreshUi(); } }
 
-    window.LAN = { scanUi, pairQr, sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, autoToggle, testConn, poll, autoTick, refreshUi, pair, _ls: ls, K };
+    window.LAN = { pushDirty, scanUi, pairQr, sendSnapshot, active, mode: () => (modeOn() ? 'lan' : 'cloud'), captureStock, captureRecord, toggle, pairUi, sendNow, newCode, review, flush, replay, autoToggle, testConn, poll, autoTick, refreshUi, pair, _ls: ls, K };
     if (D) { D.lan.onChange(() => { refreshUi(); autoTick(); }); setInterval(autoTick, 15000); window.addEventListener('load', () => setTimeout(autoTick, 3000)); }
     window.addEventListener('load', () => { refreshUi(); if (D && modeOn()) D.lan.enable(true).catch(() => { /* تجاهل */ }); setInterval(refreshUi, 30000); });
 })();
