@@ -463,7 +463,7 @@ async function puSave() {
         const r = await Swal.fire({ icon: 'question', title: 'بعض المواد بلا سعر شراء', text: 'لن يُحسب لها ربح ولن يتغير سعر شرائها. متابعة؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'متابعة', cancelButtonText: 'رجوع' });
         if (!r.isConfirmed) return;
     }
-    await puLoad();
+    if (!puAll.length) await puLoad();   // السجل المحلي كافٍ للفحص؛ لا ننتظر السحابة
     if (!gift && puAll.some(x => x.id !== pu.editId && !x.cancelled && !puIsBonusOnly(x) && puKey(x.supplier) === puKey(supplier) && puKey(x.no) === puKey(no))) {
         const r = await Swal.fire({ icon: 'warning', title: 'رقم الفاتورة مسجّل سابقاً لهذا المذخر', text: 'هل تريد تسجيلها مرة أخرى؟', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'تسجيل', cancelButtonText: 'رجوع' });
         if (!r.isConfirmed) return;
@@ -538,16 +538,19 @@ async function puSave() {
         lines.push(line);
     });
     const touched = [...snaps.values()].map(s => s.p);
-    const ok = await saveProductsDelta([...snaps.values()].map(s => deltaFromSnap(s.p, s)));
+    let ok; window.__fsWait = 200; try { ok = await saveProductsDelta([...snaps.values()].map(s => deltaFromSnap(s.p, s))); } finally { window.__fsWait = null; }   // الحفظ محلي فوراً والمزامنة تكمل بالخلفية
     if (!ok) { snaps.forEach(s => { s.p.qty = s.qty; s.p.costPrice = s.costPrice; s.p.expiryDates = s.expiryDates; s.p.expiryDate = s.expiryDate; s.p.lastPurchase = s.lastPurchase; s.p.price = s.price; s.p.pricing = s.pricing; s.p.markupPct = s.markupPct; }); renderAll(); return; }
-    // تحقق من وصول الكميات للسحابة فعلاً
-    try {
-        if (cloudReady() && navigator.onLine && pendingOps === 0) {
-            const bad = [];
-            for (const sn of snaps.values()) { const d = await db.collection('pharmacy_stock').doc(String(sn.p.id)).get(); const data = d.exists ? d.data() : null; if (!data || (parseInt(data.qty) || 0) !== (parseInt(sn.p.qty) || 0)) bad.push(sn.p.name); }
-            if (bad.length) Swal.fire({ icon: 'warning', title: 'تنبيه: لم تصل بعض الكميات للسحابة', text: 'الأصناف: ' + bad.join('، ') + '. تأكد من قواعد pharmacy_stock ومن الاتصال ثم أعد المحاولة.', confirmButtonColor: '#0f1c38' });
-        }
-    } catch (e) { /* تجاهل */ }
+    // تحقق من وصول الكميات للسحابة بالخلفية (لا يوقف العمل)
+    setTimeout(async () => {
+        try {
+            await new Promise(r => setTimeout(r, 4000));
+            if (cloudReady() && navigator.onLine && pendingOps === 0) {
+                const sn2 = [...snaps.values()], got = await Promise.all(sn2.map(sn => db.collection('pharmacy_stock').doc(String(sn.p.id)).get().catch(() => null)));
+                const bad = []; sn2.forEach((sn, k) => { const d = got[k]; if (!d) return; const data = d.exists ? d.data() : null; if (!data || (parseInt(data.qty) || 0) !== (parseInt(sn.p.qty) || 0)) bad.push(sn.p.name); });
+                if (bad.length) Swal.fire({ icon: 'warning', title: 'تنبيه: لم تصل بعض الكميات للسحابة', text: 'الأصناف: ' + bad.join('، ') + '. تأكد من قواعد pharmacy_stock ومن الاتصال ثم أعد المحاولة.', confirmButtonColor: '#0f1c38' });
+            }
+        } catch (e) { /* تجاهل */ }
+    }, 0);
     lines.filter(l => l.applied !== false).forEach(l => { const p = products.find(x => x.id === l.pid); const old = oldBy.get(l.pid); logAction('qty', p, [{ f: 'الكمية (' + (editing ? 'تعديل وارد ' : 'وارد ') + no + ' - ' + supplier + ')', from: String(old ? puLQ(old) : l.prevQty), to: String(old ? puLQ(l) : l.prevQty + puLQ(l)) }]); });
     const paid = Math.min(puNum(pu.paid), Math.max(total - ret, 0));
     let rec;
@@ -559,9 +562,9 @@ async function puSave() {
         rec = { id: 'pu' + Date.now(), seq: puNextSeq((pu.useEntry ? todayLocalISO() : String(pu.date)).slice(0, 7)), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
     }
     if (gift) { rec.gift = true; rec.bonusOnly = true; delete rec.seq; }
-    await puSaveRecord(rec);
+    puSaveRecord(rec).catch(() => {});   // محلي فوراً، والسحابة بالخلفية
     try { if (typeof docOnArrive === 'function') docOnArrive((rec.items || []).map(l => l.pid), rec.id); } catch (e) { /* تجاهل */ }
-    await puUpsertSupplier(supplier);
+    puUpsertSupplier(supplier).catch(() => {});
     renderAll();
     const retMap = {}; (pu.items || []).forEach(it => { if (puNum(it.ret) > 0) retMap[it.pid] = puNum(it.ret); });   // مواد علّمتها «مردود» أثناء الإدخال
     pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew();
