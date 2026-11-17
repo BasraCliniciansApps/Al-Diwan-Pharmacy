@@ -184,7 +184,12 @@ let unsubStock = null;
 // التكلفة (سعر الشراء وآخر وارد ونسبة الربح) تُحفظ في مجموعة pharmacy_cost المقفلة على المالك بعد «فصل التكلفة»
 const OWNER_UID = 'VrZUN6AMvTPMklvhlZcwKlqJciY2';
 let userRole = 'staff', userPerms = {}, userName = '';   // الدور: owner أو staff (بصلاحيات userPerms)
-function can(p) { return !p || userRole === 'owner' || !!(userPerms && userPerms[p]); }
+const LAN_LOCKED_PERMS = ['stockEdit', 'newItem', 'purchases', 'scanDel'];   // مع المزامنة المحلية: التعديل للمالك فقط
+function can(p) {
+    if (!p || userRole === 'owner') return true;
+    try { if (LAN_LOCKED_PERMS.indexOf(p) >= 0 && localStorage.getItem('diwanLanMode') === 'lan') return false; } catch (e) { /* تجاهل */ }
+    return !!(userPerms && userPerms[p]);
+}
 const COST_FIELDS = ['costPrice', 'lastPurchase', 'markupPct'];
 let costMap = {};           // بيانات التكلفة (للمالك فقط)
 let costSplitOn = false;    // هل فُصلت التكلفة؟ (علامة في pharmacy_cost/_meta)

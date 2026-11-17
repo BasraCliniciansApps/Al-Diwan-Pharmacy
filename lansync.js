@@ -417,14 +417,21 @@
         const data = { products: [], purchases: [], suppliers: [], invoices: [], ledger: [], version: 2, full: true };
         g.parts.sort((a, b) => a.data.n - b.data.n).forEach(o => { if (o.data.part === 'meta') data.invoiceSettings = o.data.extras && o.data.extras.invoiceSettings; else if (data[o.data.part]) data[o.data.part] = data[o.data.part].concat(o.data.items || []); });
         const pcMap = new Map(products.map(p => [String(p.id), p])); const padd = [], pupd = []; let psame = 0;
-        data.products.forEach(sp => { const ex = pcMap.get(String(sp.id)); if (!ex) padd.push(sp); else if (stable(ex) !== stable(sp)) pupd.push(sp); else psame++; });
-        return { data, plan: bkPlan(data), padd, pupd, psame };
+        const qd = [];
+        data.products.forEach(sp => {
+            const ex = pcMap.get(String(sp.id)); if (!ex) { padd.push(sp); return; }
+            const a = pSplit(ex), b = pSplit(sp);
+            if (stable({ i: a.info, c: a.cost }) !== stable({ i: b.info, c: b.cost })) pupd.push(sp); else psame++;
+            if ((parseInt(ex.qty) || 0) !== (parseInt(sp.qty) || 0) || (parseInt(ex.loose) || 0) !== (parseInt(sp.loose) || 0)) qd.push({ name: ex.name, pc: (parseInt(ex.qty) || 0) + (parseInt(ex.loose) ? '+' + ex.loose : ''), ph: (parseInt(sp.qty) || 0) + (parseInt(sp.loose) ? '+' + sp.loose : '') });
+        });
+        return { data, plan: bkPlan(data), padd, pupd, psame, qd };
     }
     async function applySnapshot(g, fresh) {
         const d = snapDiff(g);
         const rows = [['الأصناف', d.padd.length, d.pupd.length, d.psame]].concat(d.plan.filter(p => p.total).map(p => [p.c.label, p.add.length, p.upd.length, p.keep]));
         const html = '<div style="text-align:right;font-size:.85rem;margin-bottom:6px">من «' + esc(g.devName) + '»</div>' + rows.map(r => '<div style="padding:6px 0;border-bottom:1px solid #e5e7eb;text-align:right"><b>' + esc(r[0]) + '</b>: ' + r[1] + ' جديد · ' + r[2] + ' مختلف/أحدث · ' + r[3] + ' كما هو</div>').join('') + (d.padd.length ? '<div style="margin-top:8px;text-align:right;font-size:.8rem"><b>المواد الجديدة:</b> ' + d.padd.slice(0, 12).map(x => esc(x.name || x.id)).join('، ') + (d.padd.length > 12 ? ' … و' + (d.padd.length - 12) + ' أخرى' : '') + '</div>' : '') + '<div style="margin-top:10px;font-size:.8rem;color:#475569;text-align:right">الأصناف المختلفة تُستبدل بنسخة الجوال. الفواتير والوارد والسجل لا يُستبدل منها سجل أحدث على الحاسوب. تُحفظ نسخة احتياطية قبل التطبيق.</div>';
-        const r = await Swal.fire({ icon: 'question', title: 'نسخة كاملة من الجوال', html, showCancelButton: true, confirmButtonText: 'تطبيق', cancelButtonText: 'لاحقاً', confirmButtonColor: '#0f1c38' });
+        const qn = d.qd.length ? '<div style="margin-top:8px;padding:8px;background:#fff7ed;border-radius:8px;text-align:right;font-size:.82rem"><b>فروقات في الكميات (لن تُغيَّر): ' + d.qd.length + '</b><br>' + d.qd.slice(0, 8).map(x => esc(x.name) + ': الحاسوب ' + x.pc + ' · الجوال ' + x.ph).join('<br>') + (d.qd.length > 8 ? '<br>…' : '') + '</div>' : '';
+        const r = await Swal.fire({ icon: 'question', title: 'نسخة كاملة من الجوال', html: html + qn, showCancelButton: true, confirmButtonText: 'تطبيق', cancelButtonText: 'لاحقاً', confirmButtonColor: '#0f1c38' });
         if (!r.isConfirmed) return null;
         const h = Prog.start('تطبيق نسخة الجوال', { text: 'نسخة احتياطية قبل التطبيق...' });
         try {
@@ -432,7 +439,14 @@
             if (!b || !b.ok) throw new Error('تعذر حفظ النسخة الاحتياطية، لم يُطبَّق شيء');
             h.set(40, 'تطبيق الأصناف...');
             const map = new Map(products.map(p => [String(p.id), p])), touched = [];
-            d.padd.concat(d.pupd).forEach(sp => { const ex = map.get(String(sp.id)); if (ex) { Object.keys(ex).forEach(k => delete ex[k]); Object.assign(ex, sp); touched.push(ex); } else { products.push(sp); touched.push(sp); } });
+            d.padd.concat(d.pupd).forEach(sp => {
+                const ex = map.get(String(sp.id));
+                if (ex) {   // دمج آمن: المعلومات والأسعار من الجوال، والكميات والصلاحيات تبقى كما هي في الحاسوب
+                    Object.keys(ex).forEach(k => { if (k.charAt(0) !== '_' && STOCK_FIELDS.indexOf(k) < 0 && k !== 'inStock' && k !== 'dlim' && !(k in sp)) delete ex[k]; });
+                    Object.keys(sp).forEach(k => { if (k !== 'inStock' && k !== 'dlim' && (STOCK_FIELDS.indexOf(k) < 0 || COST_FIELDS.indexOf(k) >= 0 || k === 'minQty')) ex[k] = sp[k]; });
+                    touched.push(ex);
+                } else { products.push(sp); touched.push(sp); }
+            });
             try { syncStockLocal(touched); } catch (e) { /* تجاهل */ }
             saveLocal();
             h.set(70, 'تطبيق الفواتير والوارد...');
