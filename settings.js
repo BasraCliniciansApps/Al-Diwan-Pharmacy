@@ -14,6 +14,7 @@ const SH_PAGES = [
     { id: 'docset', g: 'g2', ico: '🩺', t: 'صفحة الأطباء', boxes: ['docs'], kw: 'طبيب اطباء صفحة الاطباء رابط الصفحة اظهار الاسعار العدد تحديث تلقائي طلبات الأطباء doctor' },
     { id: 'desk', g: 'g4', ico: '💻', t: 'الحاسبة', boxes: ['desk'], kw: 'الحاسبة برنامج الحاسوب نسخة احتياطية قرص الاستقبال فقط مجلد' },
     { id: 'lan', g: 'g4', ico: '🔄', t: 'المزامنة عبر الحاسوب', boxes: ['lan'], kw: 'مزامنة عبر الحاسوب شبكة محلية واي فاي ربط الهاتف بالحاسوب سحابة بديلة lan sync' },
+    { id: 'about', g: 'g4', ico: 'ℹ️', t: 'عن التطبيق', boxes: ['about'], kw: 'عن التطبيق نسخة اصدار إصدار رقم النسخة تحديث' },
     { id: 'device', g: 'g4', ico: '📱', t: 'هذا الجهاز', boxes: ['install', 'device'], kw: 'تثبيت التطبيق بصمة قفل تذكير طباعة ورق طابعة اسماء الاطباء المحفوظة الجهاز install' },
     { id: 'users', g: 'g3', ico: '👥', t: 'المستخدمون والصلاحيات', act: 'openUsers', boxes: [], kw: 'مستخدم مستخدمين صلاحيات حساب بائع اضافة مستخدم users' },
     { id: 'sec', g: 'g3', ico: '🔐', t: 'الأمان والخصوصية', boxes: ['protect'], kw: 'مستخدم مستخدمين صلاحيات حساب بائع حماية بيانات المخزون فصل سعر الشراء كلفة اخفاء أمان خصوصية users permissions security' },
@@ -45,6 +46,25 @@ window.__shReturn = shReturn;
 window.__shSnap = () => (shRet ? { page: shRet.page } : null);   // لمعرفة صفحة الإعدادات التي جئنا منها
 setInterval(() => { if (shRet) shReturn(); }, 350);
 function shGoDataHub() { dhOpen(); }
+// «عن التطبيق»: أرقام النسخ (التطبيق، تطبيق الهاتف، برنامج الحاسوب)
+async function shAboutFill() {
+    const box = document.getElementById('aboutRows'); if (!box) return;
+    const rows = [];
+    let ver = '';
+    try { const ks = await caches.keys(); const n = ks.map(k => (/^diwan-v(\d+)/.exec(k) || [])[1]).filter(Boolean).map(Number).sort((a, b) => b - a)[0]; if (n) ver = String(n); } catch (e) { /* تجاهل */ }
+    if (!ver) { try { const t = await (await fetch('sw.js', { cache: 'no-store' })).text(); ver = (/diwan-v(\d+)/.exec(t) || [])[1] || ''; } catch (e) { /* تجاهل */ } }
+    rows.push(['رقم نسخة التطبيق', ver ? ver : 'غير معروف']);
+    const D = window.diwanDesktop, C = window.Capacitor;
+    if (D && D.isDesktop) { let v = ''; try { v = D.version ? await D.version() : ''; } catch (e) { /* تجاهل */ } rows.push(['نسخة برنامج الحاسوب', v || 'غير معروفة']); }
+    else if (C && C.isNativePlatform && C.isNativePlatform()) {
+        let v = ''; try { const i = await C.Plugins.App.getInfo(); v = i.version + (i.build ? ' (' + i.build + ')' : ''); } catch (e) { /* تجاهل */ }
+        rows.push(['نسخة تطبيق الهاتف', v || 'غير معروفة']);
+    }
+    rows.push(['بيئة التشغيل', D && D.isDesktop ? 'برنامج الحاسوب' : (C && C.isNativePlatform && C.isNativePlatform() ? 'تطبيق الهاتف' : 'المتصفح')]);
+    box.innerHTML = rows.map(r => '<div class="qk-row"><div><b>' + r[0] + '</b></div><span dir="ltr" style="font-weight:700">' + r[1] + '</span></div>').join('');
+}
+setInterval(() => { const m = document.getElementById('catModal'); if (m && m.style.display && m.style.display !== 'none') shAboutFill(); }, 2500);
+window.addEventListener('load', () => setTimeout(shAboutFill, 2000));
 let shCur = null;
 const shNorm = s => String(s || '').toLowerCase().replace(/[ً-ٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
 // الصناديق تُعرَّف بمعرّف ثابت data-k (لا بأرقام ترتيب)، فلا تنزاح الصفحات مهما تغيّرت المحتويات

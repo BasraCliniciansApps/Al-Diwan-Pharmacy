@@ -81,6 +81,7 @@ ipcMain.handle('diwan:lan:code', (_e, role) => { if (!hub) return { on: false };
 ipcMain.handle('diwan:lan:pending', () => hub ? hub.pending() : []);
 ipcMain.handle('diwan:lan:mark', (_e, ids, status) => { if (hub && Array.isArray(ids) && (status === 'applied' || status === 'rejected')) hub.mark(ids.map(String), status); return lanInfo(); });
 ipcMain.handle('diwan:lan:local', (_e, list) => (hub && Array.isArray(list) ? hub.addLocal(list) : 0));
+ipcMain.handle('diwan:version', () => app.getVersion());
 ipcMain.handle('diwan:lan:digests', () => (hub ? hub.takeDigests() : {}));
 ipcMain.handle('diwan:autostart:get', () => { try { return !!app.getLoginItemSettings().openAtLogin; } catch (e) { return false; } });
 ipcMain.handle('diwan:autostart:set', (_e, on) => { try { app.setLoginItemSettings({ openAtLogin: !!on }); } catch (e) { /* تجاهل */ } return !!app.getLoginItemSettings().openAtLogin; });

@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('diwanDesktop', {
     isDesktop: true,
+    version: () => ipcRenderer.invoke('diwan:version'),
     writeBackup: (text) => ipcRenderer.invoke('diwan:writeBackup', text),
     backupInfo: () => ipcRenderer.invoke('diwan:backupInfo'),
     chooseBackupDir: () => ipcRenderer.invoke('diwan:chooseBackupDir'),
