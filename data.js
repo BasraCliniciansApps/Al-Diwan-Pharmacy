@@ -2972,6 +2972,12 @@ function deltaFromSnap(p, s) {
     return d;
 }
 // op (اختياري): { key, kind, inv, no } يسجّل «حركة» بمعرّف ثابت داخل نفس الدفعة؛ إن كانت مسجّلة مسبقاً (من جهاز آخر أو محاولة سابقة) تُرفض الدفعة كلها فلا تتكرر الكمية
+function pubDiff(pub, base, F) {   // الحقول التي تغيّرت عن نسخة السحابة (والمحذوفة بـ delete)
+    const data = {}, fields = [];
+    Object.keys(pub).forEach(k => { if (JSON.stringify(pub[k]) !== JSON.stringify(base[k])) { data[k] = pub[k]; fields.push(k); } });
+    Object.keys(base).forEach(k => { if (!(k in pub)) { data[k] = F.delete(); fields.push(k); } });
+    return fields.length ? { data, fields } : null;
+}
 async function saveProductsDelta(entries, op) {
     window.__opAlready = false;
     entries = (entries || []).filter(Boolean);
@@ -2991,6 +2997,7 @@ async function saveProductsDelta(entries, op) {
         let useMoves = !!(op && op.key && F);
         try { const off = +localStorage.getItem('diwanMovesOff') || 0; if (off && Date.now() - off < 3600000) useMoves = false; } catch (e) { /* تجاهل */ }
         const nChunks = Math.ceil(entries.length / 15);
+        const cpm = new Map((cloudPub || []).map(d => [String(d.id), d]));   // آخر نسخة عامة للمواد من السحابة (أساس المقارنة)
         if (useMoves) {   // نسخة firebase compat لا تدعم batch.create: نتحقق من وجود سجل العملية قبل الكتابة (المدير فقط يقرأ السجل، وغيره يتخطى الفحص)
             try { const d0 = await Promise.race([db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#0' : '')).get(), new Promise(res => setTimeout(() => res(null), 2000))]); if (d0 && d0.exists) { const ae = new Error('already-exists'); ae.code = 'already-exists'; throw ae; } }
             catch (e0) { if (e0 && e0.code === 'already-exists') throw e0; }
@@ -3003,7 +3010,11 @@ async function saveProductsDelta(entries, op) {
                 if (e.mark && (can('stockEdit') || can('invList'))) e.p.counted = true;   // ضبط العدد يدوياً = المادة صارت مجرودة
                 if (e.unmark && can('stockEdit')) e.p.counted = false;   // التراجع عن اعتماد الرصيد
                 const { pub, stock, cost } = splitProduct(e.p);
-                if (can('stockEdit')) batch.set(db.collection('pharmacy_products').doc(String(e.p.id)), pub);
+                if (can('stockEdit')) {   // نكتب الحقول المتغيرة فقط عن آخر نسخة من السحابة: جهاز بنسخة قديمة لا يمسح تعديلات جهاز آخر
+                    const _b = F && cpm.get(String(e.p.id)), _fl = _b ? pubDiff(pub, _b, F) : null;
+                    if (!_b || !F) batch.set(db.collection('pharmacy_products').doc(String(e.p.id)), pub);
+                    else if (_fl) batch.set(db.collection('pharmacy_products').doc(String(e.p.id)), _fl.data, { mergeFields: _fl.fields });
+                }
                 else if (can('invList') && e.priceFields) { const pu = { inStock: pub.inStock }; ['price', 'pricing', 'markupPct', 'subPrice', 'subManual'].forEach(k => { if (pub[k] !== undefined) pu[k] = pub[k]; }); batch.update(db.collection('pharmacy_products').doc(String(e.p.id)), pu); }   // قوائم الجرد: الأسعار فقط
                 else batch.update(db.collection('pharmacy_products').doc(String(e.p.id)), { inStock: pub.inStock });   // البائع يحدّث حالة التوفر فقط
                 const ref = db.collection('pharmacy_stock').doc(String(e.p.id));
