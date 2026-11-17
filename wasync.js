@@ -211,6 +211,37 @@
         let c = null; (entries || []).forEach(e => { if (e && e.mark && e.p && e.p.id !== undefined) { c = c || ls.get(K.cnt, {}); c[String(e.p.id)] = nowIso(); } });
         if (c) ls.set(K.cnt, c);
     }
+    // المستخدمون الذين أضافهم المدير من الإعدادات يظهرون تلقائياً كأجهزة (لكل مستخدم مفتاح توقيع خاص)
+    let usersAt = 0, loadingUsers = false;
+    function mergeUsers() {
+        if (!isOwner() || typeof usersCache === 'undefined' || !usersCache.length) return false;
+        const all = devs(); let ch = false;
+        usersCache.forEach(u => {
+            const off = u.active === false; let d = all.find(x => x.uid === u.uid);
+            if (!d) { all.push({ kid: rid(6), secret: rid(24), uid: u.uid, label: u.name || 'مستخدم', created: nowIso(), last: '', n: 0, ni: 0, off }); ch = true; }
+            else { if (u.name && d.label !== u.name) { d.label = u.name; ch = true; } if (!!d.off !== off) { d.off = off; ch = true; } }
+        });
+        if (ch) ls.set(K.devs, all); return ch;
+    }
+    async function loadUsers(force) {
+        if (!isOwner() || loadingUsers) return;
+        if (!force && Date.now() - usersAt < 600000) { if (mergeUsers()) refresh(); return; }
+        if (!(typeof cloudReady === 'function' && cloudReady() && navigator.onLine)) { if (mergeUsers()) refresh(); return; }
+        loadingUsers = true; const h = Prog.start('تحميل المستخدمين', { text: 'جاري القراءة من السحابة...' });
+        try {
+            const snap = await db.collection('pharmacy_users').get(), arr = []; snap.forEach(d => arr.push({ uid: d.id, ...d.data() }));
+            usersCache = arr; usersAt = Date.now();
+            const ids = new Set(arr.map(u => u.uid)); ls.set(K.devs, devs().filter(d => !d.uid || ids.has(d.uid)));   // مستخدم حُذف: يسقط مفتاحه فلا تُقبل ملفاته
+            mergeUsers(); h.ok('تم التحميل');
+        } catch (e) { h.fail('تعذّر تحميل المستخدمين', 'تظهر آخر قائمة محفوظة'); mergeUsers(); }
+        finally { loadingUsers = false; refresh(); }
+    }
+    async function renewKey(kid) {
+        const d = devs().find(x => x.kid === kid); if (!d) return;
+        const r = await Swal.fire({ icon: 'warning', title: 'تجديد مفتاح «' + esc(d.label) + '»؟', html: 'يبطل الرمز القديم، ولن تُقبل ملفات المستخدم حتى يربط جهازه بالرمز الجديد.', showCancelButton: true, confirmButtonText: 'تجديد', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c' });
+        if (!r.isConfirmed) return;
+        const all = devs(), x = all.find(y => y.kid === kid); x.secret = rid(24); ls.set(K.devs, all); refresh(); await showCode(kid);
+    }
     async function addDevice() {
         if (!isOwner()) return;
         const r = await Swal.fire({ title: 'إضافة جهاز مستخدم', html: '<div style="text-align:right;font-size:.85rem;margin-bottom:8px">اكتب اسماً يدلّك على صاحب الجهاز.</div><input id="waDevLbl" class="swal2-input" placeholder="مثال: أحمد (الفرع الثاني)" maxlength="40">', showCancelButton: true, confirmButtonText: 'إنشاء الرمز', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', preConfirm: () => { const v = document.getElementById('waDevLbl').value.trim(); if (!v) { Swal.showValidationMessage('اكتب اسماً'); return false; } return v; } });
@@ -287,6 +318,7 @@
         if (!isOwner()) { await Swal.fire({ icon: 'info', title: 'ملف مبيعات', text: 'هذا الملف يستورده المدير. أنت تستورد «لقطة المخزون» فقط.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const dev = devs().find(d => d.kid === f.kid);
         if (!dev) { await Swal.fire({ icon: 'error', title: 'جهاز غير مسجَّل', html: 'هذا الملف من جهاز لم تضفه في «أجهزة المستخدمين»، أو حُذف.<br><small>أضف الجهاز وأرسل له رمز الربط ثم ليعد الإرسال.</small>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (dev.off) { await Swal.fire({ icon: 'error', title: 'حساب المستخدم معطّل', text: 'فعّل حساب «' + dev.label + '» من المستخدمين والصلاحيات ثم أعد المحاولة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         if (sign(dev.secret, f) !== f.sig) { await Swal.fire({ icon: 'error', title: 'الملف غير موثوق', text: 'التوقيع لا يطابق: الملف مُعدَّل أو تالف، فلم يُقبل. اطلب من المستخدم إعادة الإرسال.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         let skipCounted = true, P = planSales(f, dev, skipCounted);
         if (!P.ops.length) { await Swal.fire({ icon: 'info', title: P.dup ? 'استُورد هذا الملف سابقاً' : 'لا توجد حركات صالحة', text: P.dup ? 'كل عملياته موجودة عندك، فلم يتغيّر شيء.' : '', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
@@ -445,13 +477,12 @@
     const btn = (cls, fn, t, sub) => '<button type="button" class="set-nav ' + cls + '" onclick="' + fn + '"><div><b>' + t + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div><i>‹</i></button>';
     function html() {
         if (isOwner()) {
-            const dv = devs(), lg = ls.get(K.log, []);
+            mergeUsers(); const dv = devs(), lg = ls.get(K.log, []);
             let h = '<p class="set-desc wa-intro">يرسل المستخدم مبيعاته كملف عبر واتساب، فتستورده هنا فتتحدّث الأرصدة والفواتير. وترسل له «لقطة مخزون» ليتحدّث رصيده. لا تتكرر الحركات ولا تتداخل مع مبيعاتك.</p>';
             h += btn('set-act wa-main', 'WA.importFlow()', '📥 استيراد ملف من مستخدم', 'اختر الملف الذي وصلك على واتساب (مبيعات).');
-            h += '<h5 class="wa-h">أجهزة المستخدمين</h5>';
-            if (!dv.length) h += '<div class="wa-empty">لا توجد أجهزة. أضف جهازاً وأرسل رمز الربط لصاحبه.</div>';
-            dv.forEach(d => { h += '<div class="wa-dev"><div class="wa-dev-t"><b>' + esc(d.label) + '</b><small dir="ltr">' + esc(d.kid) + '</small></div><small>' + (d.last ? 'آخر استيراد ' + esc(ago(d.last)) + ' · ' + num(d.ni || 0) + ' فاتورة' : 'لم يُستورد منه شيء بعد') + '</small><div class="wa-dev-b"><button type="button" onclick="WA.showCode(\'' + esc(d.kid) + '\')">رمز الربط</button><button type="button" onclick="WA.exportSnapshot(\'' + esc(d.kid) + '\')">إرسال لقطة مخزون</button><button type="button" class="del" onclick="WA.delDevice(\'' + esc(d.kid) + '\')">حذف</button></div></div>'; });
-            h += btn('set-act', 'WA.addDevice()', '➕ إضافة جهاز مستخدم', 'ينشئ رمز ربط خاصاً بالجهاز.');
+            h += '<h5 class="wa-h">المستخدمون</h5>';
+            if (!dv.length) h += '<div class="wa-empty">لا يوجد مستخدمون. أضف مستخدماً من «المستخدمون والصلاحيات» فيظهر هنا تلقائياً.</div>';
+            dv.forEach(d => { h += '<div class="wa-dev"><div class="wa-dev-t"><b>' + esc(d.label) + (d.off ? ' <em class="tg bad">معطّل</em>' : '') + '</b><small dir="ltr">' + esc(d.kid) + '</small></div><small>' + (d.last ? 'آخر استيراد ' + esc(ago(d.last)) + ' · ' + num(d.ni || 0) + ' فاتورة' : 'لم يُستورد منه شيء بعد') + '</small><div class="wa-dev-b"><button type="button" onclick="WA.showCode(\'' + esc(d.kid) + '\')">رمز الربط</button><button type="button" onclick="WA.exportSnapshot(\'' + esc(d.kid) + '\')">إرسال لقطة مخزون</button>' + (d.uid ? '<button type="button" class="del" onclick="WA.renewKey(\'' + esc(d.kid) + '\')">تجديد المفتاح</button>' : '<button type="button" class="del" onclick="WA.delDevice(\'' + esc(d.kid) + '\')">حذف</button>') + '</div></div>'; });
             if (lg.length) { h += '<h5 class="wa-h">آخر عمليات الاستيراد</h5>'; lg.slice(0, 5).forEach(x => { h += '<div class="wa-log"><b>' + esc(x.label) + '</b><span>' + esc(ago(x.at)) + '</span><small>' + num(x.inv) + ' فاتورة · ' + num(x.stock) + ' حركة' + (x.fail ? ' · ' + num(x.fail) + ' خطأ' : '') + '</small></div>'; }); }
             return h;
         }
@@ -479,12 +510,12 @@
             ov.addEventListener('click', e => { if (e.target === ov) close(); });
             document.body.appendChild(ov);
         }
-        ov.style.display = 'flex'; refresh();
+        ov.style.display = 'flex'; refresh(); loadUsers();
     }
     function close() { const ov = document.getElementById('waOv'); if (ov) ov.style.display = 'none'; }
     async function toggleMode(cb) { const want = cb.checked; const ok = await setMode(want); if (!ok) cb.checked = !want; refresh(); }
     setInterval(() => { const ov = document.getElementById('waOv'); if ((ov && ov.style.display !== 'none') || document.getElementById('waHost')) { if (!document.querySelector('.swal2-container')) refresh(); } }, 20000);
 
-    window.WA = { add, noteCount, pendingCount, open, close, render: refresh, exportSales, importFlow, exportSnapshot, setLink, unlink, toggleMode, addDevice, showCode, delDevice, on: waOn, _skip: null, _t: { sha256, hmacHex, sign, parseCode, codeOf, planSales, cleanStock, devs, impSet, link, ops, unsent, unconfirmed, summarize, applySales, importSnapshot, parseFile, K } };
+    window.WA = { loadUsers, renewKey, add, noteCount, pendingCount, open, close, render: refresh, exportSales, importFlow, exportSnapshot, setLink, unlink, toggleMode, addDevice, showCode, delDevice, on: waOn, _skip: null, _t: { sha256, hmacHex, sign, parseCode, codeOf, planSales, cleanStock, devs, impSet, link, ops, unsent, unconfirmed, summarize, applySales, importSnapshot, parseFile, K } };
     window.addEventListener('load', () => setTimeout(refresh, 1500));
 })();

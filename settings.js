@@ -175,7 +175,7 @@ function shScopeOnce(els) {
 function shOpen(id, boxKey) {
     if (id === 'invset') { try { initBillSettings(); } catch (e) { /* تجاهل */ } }
     if (id === 'docset') { try { docSetMount(); } catch (e) { /* تجاهل */ } }
-    if (id === 'wa' && window.WA) { try { WA.render(); } catch (e) { /* تجاهل */ } }
+    if (id === 'wa' && window.WA) { try { WA.render(); WA.loadUsers(); } catch (e) { /* تجاهل */ } }
     if (id === 'lan' && window.LAN) { try { LAN.refreshUi(); } catch (e) { /* تجاهل */ } }
     if (id === 'desk' && typeof dsRender === 'function') { try { dsRender(); } catch (e) { /* تجاهل */ } }
     if (id === 'device' || id === 'invset') { try { shDeviceRows(); } catch (e) { /* تجاهل */ } }
