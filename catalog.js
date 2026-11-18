@@ -408,7 +408,7 @@ function catPriceHtml(p, isNew, pre) {
         <div class="qsec"><h4>🧩 البيع بالتجزئة (اختياري)</h4>
             <div class="qg3">
                 <div class="qf"><span>عدد الأجزاء</span><input id="qpSc" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${sub ? subCountOf(sub) : ''}"></div>
-                <div class="qf"><span>نوع الجزء</span><select id="qpSt" class="qin ltr" dir="ltr">${types.map(t => `<option value="${escapeHtml(t)}"${sub && sub.subType === t ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></div>
+                <div class="qf"><span>حجم الجزء</span><select id="qpSt" class="qin ltr" dir="ltr">${types.map(t => `<option value="${escapeHtml(t)}"${sub && sub.subType === t ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></div>
                 <div class="qf"><span>سعر الجزء</span><input id="qpSp" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${sub && sub.subPrice ? sub.subPrice : ''}" data-manual="${sub && sub.subPrice && (Math.round((parseFloat(sub.price) || 0) / subCountOf(sub)) !== (parseFloat(sub.subPrice) || 0) && subPriceCalc(sub.price, subCountOf(sub)) !== (parseFloat(sub.subPrice) || 0)) ? 1 : ''}"></div>
             </div>
             <div class="qf qrow"><span>أجزاء مفتوحة من عبوة (تتحول لعلب إذا زادت عن عدد الأجزاء)</span><input id="qpLoose" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${p ? (parseInt(p.loose) || 0) : 0}"></div>

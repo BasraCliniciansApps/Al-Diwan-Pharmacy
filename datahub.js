@@ -71,6 +71,7 @@ function dhRender0(keep) {
     if (dhScreen === 'rules') return dhRenderRules(el);
     if (dhScreen === 'brand') return dhRenderBrand(el);
     if (dhScreen === 'fnm') return dhRenderFnm(el);
+    if (dhScreen === 'psz') return dhRenderPsz(el);
     dhRenderHome(el);
 }
 
@@ -91,6 +92,7 @@ function dhRenderHome(el) {
         ${dhCard('📋', 'بيانات ناقصة', `بلا باركود ${fmtNum(st.n - st.bc)} • بلا سعر ${fmtNum(st.n - st.price)} • بلا شكل دوائي ${fmtNum(st.n - st.form)}`, null, "dhGo('miss')")}
         ${dhCard('🏭', 'تعبئة الشركات تلقائياً', (n => n ? `${fmtNum(n)} مادة بلا شركة يمكن تعبئتها من مواد بنفس الاسم التجاري` : 'لا يوجد ما يمكن تعبئته الآن')(dhBrandPlan().fill.length + dhBrandPlan().ask.length), null, "dhGo('brand')")}
         ${dhCard('✂️', 'الشكل الدوائي المكرر في الاسم', (n => n ? `${fmtNum(n)} مادة فيها الشكل مكتوب في الاسم وفي حقل الشكل معاً` : 'لا توجد أسماء فيها شكل دوائي مكرر')(dhFnmPlan().length), null, "dhGo('fnm')")}
+        ${dhCard('🧩', 'حجم الجزء التلقائي', (n => n ? `${fmtNum(n)} مادة بالتجزئة بلا حجم جزء، يمكن حسابه من العبوة ÷ عدد الأجزاء` : 'لا توجد مواد تحتاج حجم جزء')(dhPszPlan().length), null, "dhGo('psz')")}
         ${dhCard('⚙️', 'قواعد تصنيفي الخاصة', dhRules.length ? `${fmtNum(dhRules.length)} قاعدة مضافة` : 'أضف قاعدة بنفسك: كلمة بالاسم ← تصنيف', null, "dhGo('rules')")}
     </div>`;
 }
@@ -370,5 +372,41 @@ async function dhFnmApply() {
     upd.forEach(r => { try { logAction('edit', r.p, [{ f: 'الاسم (إزالة الشكل المكرر)', from: r.old, to: r.nn }]); } catch (e) { /* تجاهل */ } });
     try { renderAll(); } catch (e) { /* تجاهل */ }
     Swal.fire({ icon: 'success', title: 'تم تنظيف ' + fmtNum(upd.length) + ' اسماً', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    dhRender();
+}
+
+
+// ---------- حجم الجزء التلقائي: عدد حبات العبوة ÷ عدد الأجزاء (للمواد بلا حجم جزء فقط) ----------
+let dhPszOff = new Set();
+function dhPszPlan() {
+    const out = [];
+    products.forEach(p => {
+        if (!hasRetail(p) || String(p.subType || '').trim()) return;
+        const v = partSizeCalc(p.meta, p.subCount); if (v) out.push({ p, v });
+    });
+    return out.sort((a, b) => String(a.p.name).localeCompare(String(b.p.name)));
+}
+function dhRenderPsz(el) {
+    const plan = dhPszPlan(), on = plan.filter(r => !dhPszOff.has(r.p.id)).length;
+    const row = r => `<div class="dh-row"><div class="dh-sub" dir="ltr"><b>${dhEsc(r.p.name)}</b> <span style="opacity:.7">| ${dhEsc(r.p.meta)} ÷ ${fmtNum(subCountOf(r.p))}</span></div>
+        <div class="dh-sub" dir="ltr">← <b>${dhEsc(r.v)}</b></div>
+        <div class="qk-row"><div><small>تطبيق على هذه المادة</small></div><label class="setup-sw"><input type="checkbox" ${dhPszOff.has(r.p.id) ? '' : 'checked'} onchange="dhPszPick(${r.p.id},this.checked)"><i></i></label></div></div>`;
+    el.innerHTML = `${dhHead('🧩 حجم الجزء التلقائي', true)}
+    <div class="tr-prog">يُحسب حجم الجزء من عدد حبات العبوة مقسوماً على عدد الأجزاء، للمواد التي حجم الجزء فيها فارغ فقط. لا تتغير القيم الموجودة. راجع القائمة وعطّل ما لا تريد، ثم اضغط حفظ.</div>
+    <div class="tr-list">${plan.length ? plan.slice(0, 300).map(row).join('') : '<div class="dh-sub" style="padding:16px">لا توجد مواد تحتاج حجم جزء.</div>'}</div>
+    <div class="tr-foot"><button type="button" class="tr-apply" id="dhPszBtn" onclick="dhPszApply()">💾 حفظ (${fmtNum(Math.min(on, 300))})</button></div>`;
+}
+function dhPszPick(id, v) { if (v) dhPszOff.delete(id); else dhPszOff.add(id); const b = document.getElementById('dhPszBtn'); if (b) b.textContent = `💾 حفظ (${fmtNum(dhPszPlan().slice(0, 300).filter(r => !dhPszOff.has(r.p.id)).length)})`; }
+async function dhPszApply() {
+    if (!writesAllowed()) return;
+    const upd = dhPszPlan().slice(0, 300).filter(r => !dhPszOff.has(r.p.id));
+    if (!upd.length) { Swal.fire({ icon: 'info', title: 'لا توجد تعديلات للحفظ', timer: 1600, showConfirmButton: false }); return; }
+    if (!(await askSure('تعبئة حجم الجزء لـ ' + fmtNum(upd.length) + ' مادة؟', 'يُملأ حجم الجزء فقط للمواد المحددة التي حقله فارغ.', 'نعم، عبّئ'))) return;
+    upd.forEach(r => { r.p.subType = r.v; });
+    const ok = await saveProductsBatch(upd.map(r => r.p));
+    if (!ok) { upd.forEach(r => { r.p.subType = ''; }); return; }
+    upd.forEach(r => { try { logAction('edit', r.p, [{ f: 'حجم الجزء (تعبئة تلقائية)', from: '', to: r.v }]); } catch (e) { /* تجاهل */ } });
+    try { renderAll(); } catch (e) { /* تجاهل */ }
+    Swal.fire({ icon: 'success', title: 'تمت تعبئة ' + fmtNum(upd.length) + ' مادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     dhRender();
 }

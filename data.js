@@ -1335,7 +1335,7 @@ function getBaseFilteredByTab() {
 // ---------------- نافذة التصفية الموحدة ----------------
 function brandOf(p) { return (p.brand || 'GENERIC').trim(); }
 function formOf(p) { return getFormBadge(p).txt; }
-// الاسم المعروض الموحّد: «الاسم التجاري والتركيز  العبوة  الشكل الدوائي | الشركة»؛ وعند البيع بالجزء: «الاسم  الشكل الدوائي  نوع الجزء | الشركة».
+// الاسم المعروض الموحّد: «الاسم التجاري والتركيز  العبوة  الشكل الدوائي | الشركة»؛ وعند البيع بالجزء: «الاسم  الشكل الدوائي  حجم الجزء | الشركة».
 // الشكل الدوائي يُؤخذ فقط إن حُدِّد صراحةً في المادة (لا نخمّنه). الحقول الفارغة تُتخطّى.
 function dispForm(p) {
     if (!p || !p.form) return '';
@@ -1349,9 +1349,9 @@ function packLine(p) {
     return m ? m + ' | ' + f : f;
 }
 function dispParts(p, part) {
-    // ثلاث مجموعات: «الاسم والتركيز | حجم العبوة (أو نوع الجزء عند البيع بالجزء) والشكل الدوائي | الشركة»
+    // ثلاث مجموعات: «الاسم والتركيز | حجم العبوة (أو حجم الجزء عند البيع بالجزء) والشكل الدوائي | الشركة»
     const asPart = !!part && hasRetail(p);
-    return { name: String(p.name || '').trim(), mid: [asPart ? subTypeOf(p) : fixMetaOrder(p.meta || '').trim(), dispForm(p)].filter(Boolean), brand: String(p.brand || '').trim() };
+    return { name: String(p.name || '').trim(), mid: [asPart ? subSizeOf(p) : fixMetaOrder(p.meta || '').trim(), dispForm(p)].filter(Boolean), brand: String(p.brand || '').trim() };
 }
 function dispName(p, part) { const d = dispParts(p, part); return [d.name, d.mid.join(' '), d.brand].filter(Boolean).join(' | '); }
 function dispNameHtml(p, part) {
@@ -2124,11 +2124,11 @@ async function uploadImgBase64(event) {
 // 3. دالة زر "حفظ" داخل نافذة إضافة/تعديل الصنف
 async function saveFormProduct() {
     if (!writesAllowed()) return;
-    {   // المادة التي تُباع بالتجزئة (عدد الأجزاء > 1) لا تُحفظ دون تحديد نوع الجزء
+    {   // المادة التي تُباع بالتجزئة (عدد الأجزاء > 1) لا تُحفظ دون تحديد حجم الجزء
         const sc = parseInt((document.getElementById('fSubCount') || {}).value) || 0, st = document.getElementById('fSubType');
         if (sc > 1 && st && !st.value) {
             if (typeof fsMark === 'function') fsMark('fSubType');
-            return Swal.fire({ icon: 'warning', title: 'حدّد نوع الجزء', text: 'هذه المادة تُباع بالتجزئة، فيلزم اختيار نوع الجزء (شريط، كيس...) قبل الحفظ.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+            return Swal.fire({ icon: 'warning', title: 'حدّد حجم الجزء', text: 'هذه المادة تُباع بالتجزئة، فيلزم اختيار حجم الجزء (مثل 8 أو شريط) قبل الحفظ.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         }
     }
     const imgVal = document.getElementById('fImg').value.trim();
@@ -4469,7 +4469,7 @@ async function openTrashModal() {
 }
 
 // ---------------- سجل التعديلات ----------------
-const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', form: 'الشكل الدوائي', formOther: 'الشكل (أخرى)', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'نوع الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة', sellPri: 'أولوية البيع', costPrice: 'سعر الشراء' };
+const LOG_FIELDS = { name: 'الاسم', brand: 'الشركة', qty: 'الكمية', price: 'السعر', category: 'التصنيف', department: 'القسم', meta: 'العبوة', form: 'الشكل الدوائي', formOther: 'الشكل (أخرى)', activeIngredient: 'المادة الفعالة', minQty: 'حد التنبيه', details: 'التفاصيل', keywords: 'الكلمات', img: 'الصورة', barcode: 'الباركود', subCount: 'أجزاء العبوة', subType: 'حجم الجزء', subPrice: 'سعر الجزء', loose: 'أجزاء مفتوحة', sellPri: 'أولوية البيع', costPrice: 'سعر الشراء' };
 
 function diffProduct(a, b) {
     const out = [];
@@ -4790,7 +4790,7 @@ function invRowHtml(p) {
                 <div class="inv-rtbar" onclick="invRtToggle(${p.id})"><span class="inv-chev">${open ? '▾' : '▸'}</span><span>🧩 التجزئة</span><small>${sum}</small>
                     <label class="inv-sw" onclick="event.stopPropagation()"><input type="checkbox" ${on || (e.on && !on) ? 'checked' : ''} onchange="invRtSwitch(${p.id}, this.checked)"><i></i></label></div>
                 <div class="inv-rtbody" style="display:${open ? 'grid' : 'none'}">
-                    <label><span>نوع الجزء</span><select onchange="invRtSet(${p.id}, 'type', this.value)">${types.map(t => `<option value="${escapeHtml(t)}" ${t === e.type ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
+                    <label><span>حجم الجزء</span><select onchange="invRtSet(${p.id}, 'type', this.value)">${types.map(t => `<option value="${escapeHtml(t)}" ${t === e.type ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
                     <label><span>عدد الأجزاء بالعبوة</span><input type="number" inputmode="numeric" min="0" placeholder="مثال: 10" value="${e.cnt || ''}" onchange="invRtSet(${p.id}, 'cnt', this.value)"></label>
                 </div>
             </div>
@@ -5327,12 +5327,30 @@ async function migrateStockPrivate() {
 
 
 // ============================================================================
-// البيع بالتجزئة: عدد الأجزاء في العبوة + نوع الجزء + سعر الجزء
+// البيع بالتجزئة: عدد الأجزاء في العبوة + حجم الجزء + سعر الجزء
 // المخزون = عبوات كاملة (qty) + أجزاء مفتوحة من عبوة (loose)
 // ============================================================================
 function subCountOf(p) { const n = parseInt(p && p.subCount); return n > 1 ? n : 0; }
 function hasRetail(p) { return subCountOf(p) > 1; }
-function subTypeOf(p) { return (p && p.subType) || 'جزء'; }
+// حجم الجزء: رقم (مثل 8 حبات بالشريط) أو نص قديم (Strip). للأسماء نعرض القيمة كما هي، وللوحدات («3 جزء») نستعمل كلمة «جزء» إن كانت القيمة رقماً.
+function subSizeOf(p) { return (p && p.subType) || 'جزء'; }
+function subTypeOf(p) { const v = subSizeOf(p); return /^\d+(\.\d+)?$/.test(String(v).trim()) ? 'جزء' : v; }
+// حجم الجزء التلقائي = عدد حبات العبوة ÷ عدد الأجزاء (يُعاد النص أو '' إن لم يتوفر قسمة صحيحة)
+function partSizeCalc(meta, cnt) {
+    cnt = parseInt(cnt) || 0; if (cnt < 2) return '';
+    const m = String(meta || '').trim().match(/^(\d+)\s*(?:tablets?|tabs?|caps?|capsules?|حبة|حبات|قرص|اقراص|أقراص|كبسولة|كبسولات)?$/i);
+    const n = m ? parseInt(m[1]) : 0;
+    return n >= cnt && n % cnt === 0 ? String(n / cnt) : '';
+}
+function partAutoSize() {
+    const sel = document.getElementById('fSubType'), mt = document.getElementById('fMeta'), sc = document.getElementById('fSubCount');
+    if (!sel || !mt || !sc) return;
+    if (!sel.dataset.fx) { sel.dataset.fx = '1'; sel.addEventListener('change', () => { sel.dataset.auto = ''; }); }
+    if (!mt.dataset.fxAuto) { mt.dataset.fxAuto = '1'; mt.addEventListener('input', partAutoSize); }
+    const v = partSizeCalc(mt.value, sc.value);
+    if (!v || (sel.value && sel.dataset.auto !== '1')) return;
+    renderSubTypeSelect(v); sel.dataset.auto = '1';
+}
 function subPriceOf(p) {
     const sp = parseFloat(p && p.subPrice);
     if (sp > 0) return sp;
@@ -5363,11 +5381,11 @@ function renderSubTypeSelect(selected) {
     if (!sel) return;
     const list = subTypes.slice();
     if (selected && !list.includes(selected)) list.push(selected);
-    sel.innerHTML = '<option value="">— اختر نوع الجزء —</option>' + list.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+    sel.innerHTML = '<option value="">— اختر حجم الجزء —</option>' + list.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
     sel.value = selected || '';
 }
 async function addSubType() {
-    const r = await Swal.fire({ title: 'نوع جزء جديد', input: 'text', inputPlaceholder: 'مثال: Sachet أو Pen', showCancelButton: true, confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+    const r = await Swal.fire({ title: 'حجم جزء جديد', input: 'text', inputPlaceholder: 'مثال: 8 أو Sachet', showCancelButton: true, confirmButtonText: 'إضافة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
     const v = r && r.value ? String(r.value).trim() : '';
     if (!v) return;
     if (!subTypes.some(t => t.toLowerCase() === v.toLowerCase())) { subTypes.push(v); saveLocal(); pushToCloud(true); }
@@ -5395,12 +5413,12 @@ async function addSubTypeInline() {
 async function deleteSubType(i) {
     const old = subTypes[i], n = products.filter(p => p.subType === old).length;
     if (n) { Swal.fire({ icon: 'warning', title: 'لا يمكن الحذف', text: 'النوع مستخدم في ' + n + ' مادة. غيّر اسمه أو غيّر نوع تلك المواد أولاً.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-    const c = await Swal.fire({ icon: 'warning', title: 'حذف نوع الجزء؟', text: old, showCancelButton: true, confirmButtonText: 'نعم، احذف', cancelButtonText: 'رجوع', confirmButtonColor: '#b91c1c' });
+    const c = await Swal.fire({ icon: 'warning', title: 'حذف حجم الجزء؟', text: old, showCancelButton: true, confirmButtonText: 'نعم، احذف', cancelButtonText: 'رجوع', confirmButtonColor: '#b91c1c' });
     if (c.isConfirmed) { subTypes.splice(i, 1); saveLocal(); pushToCloud(true); renderSubTypeSelect(); renderPartManager(); }
 }
 async function renameSubType(i) {
     const old = subTypes[i], n = products.filter(p => p.subType === old).length;
-    const r = await Swal.fire({ title: 'تغيير اسم نوع الجزء', input: 'text', inputValue: old, showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', text: n ? 'سيتغيّر الاسم في ' + n + ' مادة.' : '' });
+    const r = await Swal.fire({ title: 'تغيير اسم حجم الجزء', input: 'text', inputValue: old, showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', text: n ? 'سيتغيّر الاسم في ' + n + ' مادة.' : '' });
     const v = r && r.value ? String(r.value).trim() : '';
     if (!v || v === old) return;
     const dup = subTypes.findIndex((t, k) => k !== i && t.toLowerCase() === v.toLowerCase());
@@ -5418,6 +5436,7 @@ function manageSubTypes() { openCategoryManager(); setTimeout(() => { if (typeof
 const SUB_ROUND = 250;
 function subPriceCalc(price, cnt) { price = parseFloat(price) || 0; cnt = parseInt(cnt) || 0; return cnt > 1 && price > 0 ? Math.ceil(price / cnt / SUB_ROUND) * SUB_ROUND : 0; }
 function retailAutoPrice() {
+    try { partAutoSize(); } catch (e) { /* تجاهل */ }
     const sp = document.getElementById('fSubPrice'), cnt = parseInt(document.getElementById('fSubCount').value) || 0;
     if (!sp || sp.dataset.manual === '1') return;
     const price = parseFloat(document.getElementById('fPrice').value) || 0;
@@ -5427,12 +5446,14 @@ function fillRetailForm(p) {
     const cnt = document.getElementById('fSubCount'); if (!cnt) return;
     cnt.value = p && subCountOf(p) ? subCountOf(p) : '';
     renderSubTypeSelect(p && p.subType);
+    { const st0 = document.getElementById('fSubType'); if (st0) st0.dataset.auto = ''; }
     { const sv = document.getElementById('fSellPri'); if (sv) sv.value = (p && p.sellPri) || 'pack'; }
     const sp = document.getElementById('fSubPrice');
     const auto = p && hasRetail(p) && (Math.round((parseFloat(p.price) || 0) / subCountOf(p)) === (parseFloat(p.subPrice) || 0) || subPriceCalc(p.price, subCountOf(p)) === (parseFloat(p.subPrice) || 0));
     sp.dataset.manual = (p && p.subPrice && !auto) ? '1' : '';
     sp.value = p && parseFloat(p.subPrice) ? p.subPrice : '';
     document.getElementById('fLoose').value = p && p.loose ? p.loose : 0;
+    try { partAutoSize(); } catch (e) { /* تجاهل */ }
     if (p && hasRetail(p) && !sp.value) retailAutoPrice();
     else if (auto && sp.dataset.manual !== '1') sp.value = subPriceCalc(p.price, subCountOf(p)) || sp.value;   // قيمة تلقائية قديمة ← تُحدَّث للتقريب الجديد
 }

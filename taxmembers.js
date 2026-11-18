@@ -6,7 +6,7 @@ const TM = {
     dept: { t: 'القسم', f: 'department', ex: 'extraDepartments', name: r => departments[r], list: () => departments.map(d => [d, d]), has: (p, k) => p.department === k || extrasOf(p.extraDepartments).includes(k) },
     cat: { t: 'التصنيف', f: 'category', ex: 'extraCategories', name: r => subCategories[r], list: () => subCategories.map(d => [d, d]), has: (p, k) => p.category === k || extrasOf(p.extraCategories).includes(k) },
     form: { t: 'الشكل الدوائي', name: r => { const f = FORMS.find(x => x.id === r); return f ? f.txt : ''; }, list: () => FORMS.filter(f => f.id !== 'other' && !f.hidden).map(f => [f.id, f.txt]), has: (p, k) => { const f = FORMS.find(x => x.id === k); return !!f && fmOwns(p, f); } },
-    part: { t: 'نوع الجزء', f: 'subType', name: r => subTypes[r], list: () => subTypes.map(d => [d, d]), has: (p, k) => p.subType === k }
+    part: { t: 'حجم الجزء', f: 'subType', name: r => subTypes[r], list: () => subTypes.map(d => [d, d]), has: (p, k) => p.subType === k }
 };
 // المفتاح الداخلي للعنصر: الاسم للأقسام والتصنيفات وأنواع الجزء، والمعرّف للأشكال والتبويبات
 function tmKey(kind, ref) { return (kind === 'dept' || kind === 'cat') ? TM[kind].name(ref) : kind === 'part' ? TM.part.name(ref) : ref; }

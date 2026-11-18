@@ -209,7 +209,7 @@
                 <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> أسماء الأجزاء التي تُباع بها العبوة بالتجزئة (شريط، حبة، مل…). تعديل الاسم يشمل كل المواد.</p>
                 <div id="partListManager" class="manager-list" style="max-height:260px;"></div>
                 <div class="add-inline-row">
-                    <input type="text" id="newPartInput" placeholder="اسم نوع جزء جديد..." dir="ltr" onkeydown="if(event.key==='Enter'){event.preventDefault();addSubTypeInline();}">
+                    <input type="text" id="newPartInput" placeholder="اسم حجم جزء جديد..." dir="ltr" onkeydown="if(event.key==='Enter'){event.preventDefault();addSubTypeInline();}">
                     <button class="icon-btn primary-btn" onclick="addSubTypeInline()">+ إضافة</button>
                 </div>
             </div>
@@ -456,7 +456,7 @@
                 <label>🧩 البيع بالتجزئة (اختياري)</label>
                 <div class="retail-grid">
                     <div><small>عدد الأجزاء في العبوة</small><input type="number" id="fSubCount" min="0" placeholder="مثال: 10" oninput="retailAutoPrice()"></div>
-                    <div><small>نوع الجزء</small>
+                    <div><small>حجم الجزء</small>
                         <div class="retail-type"><select id="fSubType"></select><button type="button" class="xc-mini" onclick="addSubType()" aria-label="إضافة نوع">＋</button><button type="button" class="xc-mini" onclick="manageSubTypes()" aria-label="إدارة الأنواع">✎</button></div>
                     </div>
                     <div><small>سعر الجزء (يُحسب تلقائياً)</small><input type="number" id="fSubPrice" min="0" oninput="this.dataset.manual='1'"></div>

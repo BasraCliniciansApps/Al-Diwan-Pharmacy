@@ -321,7 +321,7 @@ function puRetailHtml(it, i) {
         <div class="pu-rbar" onclick="puRToggle(${i})"><span class="pu-chev">${it.ropen ? '▾' : '▸'}</span><span>🧩 التجزئة وتسعيرها</span><small id="puRs-${i}" dir="rtl">${on ? puRetailSumHtml(c, puRT(it), puRetailPrice(it)) : 'غير مفعّلة'}</small></div>
         <div class="pu-rbody" style="display:${it.ropen ? 'grid' : 'none'}">
             <label><span>عدد الأجزاء في العبوة</span><input type="number" min="0" inputmode="numeric" placeholder="مثال: 10" value="${escapeHtml(String(puRC(it)))}" oninput="puRetailEdit(${i},'rsc',this.value)"></label>
-            <label><span>نوع الجزء</span><select onchange="puRetailEdit(${i},'rst',this.value)">${types.map(t => `<option value="${escapeHtml(t)}" ${t === puRT(it) ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
+            <label><span>حجم الجزء</span><select onchange="puRetailEdit(${i},'rst',this.value)">${types.map(t => `<option value="${escapeHtml(t)}" ${t === puRT(it) ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
             <label><span>سعر الجزء (فارغ = يُحسب تلقائياً)</span><input type="number" min="0" inputmode="decimal" placeholder="تلقائي" value="${escapeHtml(String(puRP(it)))}" oninput="puRetailEdit(${i},'rsp',this.value)"></label>
             <div class="pu-syn" id="puRh-${i}">${on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' + puRetailWarn(it) : 'اتركه فارغاً إذا كانت المادة لا تُباع بالتجزئة.'}</div>
         </div></div>`;

@@ -67,7 +67,7 @@ function plRow(p, owner) {
             <label class="pl-f" data-mkw style="${mode === 'percent' ? '' : 'display:none'}"><span>نسبة الإضافة ٪</span>${inp('mk', p.markupPct != null ? p.markupPct : '')}</label>
             ${owner ? `<div class="pl-f"><span>الربح</span><b class="pl-prof ${profit === null ? '' : profit < 0 ? 'bad' : 'good'}" data-prof>${profit === null ? '—' : fmtNum(profit)}</b></div>` : ''}
             <label class="pl-f"><span>عدد الأجزاء</span>${inp('sc', sc || '', 'step="1"')}</label>
-            <label class="pl-f"><span>نوع الجزء</span><select class="pl-in" data-f="st" onchange="plSave(${id})"><option value=""></option>${types.map(t => `<option value="${escapeHtml(t)}"${t === curT ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
+            <label class="pl-f"><span>حجم الجزء</span><select class="pl-in" data-f="st" onchange="plSave(${id})"><option value=""></option>${types.map(t => `<option value="${escapeHtml(t)}"${t === curT ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
             <label class="pl-f"><span>سعر الجزء</span>${inp('sp', sp || '')}</label>
         </div></div>`;
 }
@@ -124,7 +124,7 @@ function plRender() {
 }
 function plCsv() {
     const { arr, owner } = plData();
-    const H = ['المادة', 'الشركة', 'طريقة التسعير'].concat(owner ? ['سعر الشراء'] : [], ['سعر البيع'], owner ? ['الربح'] : [], ['تجزئة: عدد الأجزاء', 'نوع الجزء', 'سعر الجزء']);
+    const H = ['المادة', 'الشركة', 'طريقة التسعير'].concat(owner ? ['سعر الشراء'] : [], ['سعر البيع'], owner ? ['الربح'] : [], ['تجزئة: عدد الأجزاء', 'حجم الجزء', 'سعر الجزء']);
     const rows = arr.map(p => {
         const price = parseFloat(p.price) || 0, cost = parseFloat(p.costPrice) || 0, r = hasRetail(p);
         return [dispName(p), p.brand || '', plMethodName(plMethodOf(p))].concat(owner ? [cost || ''] : [], [price || ''], owner ? [price > 0 && cost > 0 ? price - cost : ''] : [], [r ? subCountOf(p) : '', r ? (subTypeOf(p) || '') : '', r ? (Number(p.subPrice) || subPriceCalc(price, subCountOf(p)) || '') : '']);
