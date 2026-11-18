@@ -5338,7 +5338,9 @@ function subTypeOf(p) { const v = subSizeOf(p); return /^\d+(\.\d+)?$/.test(Stri
 // حجم الجزء التلقائي = عدد حبات العبوة ÷ عدد الأجزاء (يُعاد النص أو '' إن لم يتوفر قسمة صحيحة)
 function partSizeCalc(meta, cnt) {
     cnt = parseInt(cnt) || 0; if (cnt < 2) return '';
-    const m = String(meta || '').trim().match(/^(\d+)\s*(?:tablets?|tabs?|caps?|capsules?|حبة|حبات|قرص|اقراص|أقراص|كبسولة|كبسولات)?$/i);
+    const t = String(meta || '').trim();
+    // رقم في البداية يليه وصف (Tablet, Film-coated Tablet...) وليس تركيزاً أو حجماً (mg, ml, %, /)
+    const m = /(?:\d\s*(?:mg|mcg|µg|ml|g|iu|%|cm|mm|l)\b|[\/%])/i.test(t) ? null : t.match(/^(\d+)(?:\s+[A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF\- ]*)?$/);
     const n = m ? parseInt(m[1]) : 0;
     return n >= cnt && n % cnt === 0 ? String(n / cnt) : '';
 }
