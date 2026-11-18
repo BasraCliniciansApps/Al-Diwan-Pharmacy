@@ -2127,9 +2127,10 @@ async function saveFormProduct() {
     if (!writesAllowed()) return;
     {   // المادة التي تُباع بالتجزئة (عدد الأجزاء > 1) لا تُحفظ دون تحديد حجم الجزء
         const sc = parseInt((document.getElementById('fSubCount') || {}).value) || 0, st = document.getElementById('fSubType');
+        if (sc > 1 && st && !st.value) { try { partAutoSize(); } catch (e) { /* تجاهل */ } }
         if (sc > 1 && st && !st.value) {
             if (typeof fsMark === 'function') fsMark('fSubType');
-            return Swal.fire({ icon: 'warning', title: 'حدّد حجم الجزء', text: 'هذه المادة تُباع بالتجزئة، فيلزم اختيار حجم الجزء (مثل 8 أو شريط) قبل الحفظ.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+            return Swal.fire({ icon: 'warning', title: 'حدّد حجم الجزء', text: 'هذه المادة تُباع بالتجزئة، فيلزم اختيار حجم الجزء (مثل 8) قبل الحفظ. يُحسب تلقائياً إذا كانت العبوة رقماً.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         }
     }
     const imgVal = document.getElementById('fImg').value.trim();
@@ -2951,6 +2952,7 @@ function refreshActiveDatalist() {
 
 // حفظ عدة أصناف دفعة واحدة في السحابة
 async function saveProductsBatch(list) {
+    try { (list || []).forEach(partNorm); } catch (e) { /* تجاهل */ }
     saveLocal();
     if (!isFirebaseReady || !currentUser) {
         await Swal.fire({ icon: 'error', title: 'أنت غير مسجل الدخول!', text: 'سجّل دخول الصيدلي أولاً ليتم الحفظ في الإنترنت.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
@@ -3002,6 +3004,7 @@ async function saveProductsDelta(entries, op) {
     try { if (window.WA && !window.__waImporting) WA.noteCount(entries); } catch (e) { /* تجاهل */ }   // وقت الجرد: لتجاهل مبيعات أقدم منه عند الاستيراد
     if (window.LAN && LAN.active() && entries.some(e => e.dq || e.dl || (op && op.key))) return LAN.captureStock(entries, op);   // المزامنة عبر الحاسوب: تُرسل العملية للحاسوب بدل السحابة
     entries.forEach(btPrepare);
+    try { entries.forEach(e => partNorm(e.p)); } catch (e) { /* تجاهل */ }
     saveLocal();
     if (!isFirebaseReady || !currentUser) {
         await Swal.fire({ icon: 'error', title: 'أنت غير مسجل الدخول!', text: 'سجّل دخول الصيدلي أولاً ليتم الحفظ في الإنترنت.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
@@ -5340,10 +5343,18 @@ function subTypeOf(p) { const v = subSizeOf(p); return /^\d+(\.\d+)?$/.test(Stri
 function partSizeCalc(meta, cnt) {
     cnt = parseInt(cnt) || 0; if (cnt < 2) return '';
     const t = String(meta || '').trim();
-    // رقم في البداية يليه وصف (Tablet, Film-coated Tablet...) وليس تركيزاً أو حجماً (mg, ml, %, /)
-    const m = /(?:\d\s*(?:mg|mcg|µg|ml|g|iu|%|cm|mm|l)\b|[\/%])/i.test(t) ? null : t.match(/^(\d+)(?:\s+[A-Za-z\u0600-\u06FF][A-Za-z\u0600-\u06FF\- ]*)?$/);
-    const n = m ? parseInt(m[1]) : 0;
+    // رقم واحد فقط في العبوة (مثل 16 أو 30 Tablet أو Strip 10 أو x10) وليس تركيزاً أو حجماً (mg, ml, %, /) أو أكثر من رقم
+    if (!t || /(?:\d\s*(?:mg|mcg|µg|ml|g|iu|%|cm|mm|l|kg)\b|[\/%+×*])/i.test(t) || /\d\s*x\s*\d/i.test(t)) return '';
+    const nums = t.match(/\d+/g); if (!nums || nums.length !== 1) return '';
+    const n = parseInt(nums[0]);
     return n >= cnt && n % cnt === 0 ? String(n / cnt) : '';
+}
+// تطبيع المادة: حجم الجزء يُحسب تلقائياً إن كان فارغاً أو نصاً قديماً (Strip...) وكان ممكناً حسابه. يعيد true إن تغيّر.
+function partNorm(p) {
+    if (!p || !hasRetail(p)) return false;
+    const cur = String(p.subType || '').trim(); if (/^\d+(\.\d+)?$/.test(cur)) return false;
+    const v = partSizeCalc(p.meta, p.subCount); if (!v || cur === v) return false;
+    p.subType = v; return true;
 }
 // نافذة التسعير السريع / تبويب الإدخال السريع: يملأ #qpSt من العبوة ÷ عدد الأجزاء إن لم يختر المستخدم قيمة بنفسه
 function qpAutoSize(meta) {

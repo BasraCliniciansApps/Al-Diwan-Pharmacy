@@ -65,7 +65,7 @@ async function pzDetail(i) {
             if (mode === 'percent' && (!(cost > 0) || !(mk >= 0))) { Swal.showValidationMessage('التسعير بنسبة يحتاج سعر الشراء ونسبة الإضافة'); return false; }
             if (mode === 'syndicate' && !(cost > 0)) { Swal.showValidationMessage('أدخل سعر الشراء (سعر المذخر) لحساب السعر'); return false; }
             const sc = parseInt($('qpSc').value) || 0, sp = parseFloat($('qpSp').value);
-            return { pricing: mode, costPrice: cost, price, markupPct: mode === 'percent' ? mk : null, retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || 'جزء', subPrice: sp > 0 ? sp : subPriceCalc(price, sc) } };
+            return { pricing: mode, costPrice: cost, price, markupPct: mode === 'percent' ? mk : null, retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || partSizeCalc((typeof p !== 'undefined' && p) ? p.meta : '', sc) || 'جزء', subPrice: sp > 0 ? sp : subPriceCalc(price, sc) } };
         } });
     if (r.isConfirmed && r.value) {
         const v = r.value, old = JSON.parse(JSON.stringify(p));

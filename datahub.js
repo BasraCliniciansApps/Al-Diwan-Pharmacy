@@ -419,3 +419,27 @@ async function dhPszApply() {
     try { renderAll(); } catch (e) { /* تجاهل */ }
     dhRender();
 }
+
+
+// تحويل رجعي تلقائي لحجم الجزء (يعمل مرة عند فتح التطبيق للمدير إن وُجدت مواد قابلة للحساب)
+let _pszAuto = false;
+async function partRetroRun() {
+    if (_pszAuto) return; _pszAuto = true;
+    if (typeof userRole === 'undefined' || userRole !== 'owner' || !cloudReady() || !products.length) { _pszAuto = false; return; }
+    if (!writesAllowed()) { _pszAuto = false; return; }
+    const upd = []; products.forEach(p => { if (!hasRetail(p)) return; const old = String(p.subType || '').trim(); if (partNorm(p)) upd.push({ p, old, v: p.subType }); });
+    if (!upd.length) return;
+    const h = Prog.open('تحويل حجم الجزء تلقائياً', { text: fmtNum(upd.length) + ' مادة' });
+    let done = 0;
+    try {
+        for (let i = 0; i < upd.length; i += 300) {
+            const part = upd.slice(i, i + 300), ok = await saveProductsBatch(part.map(r => r.p));
+            if (!ok) { part.forEach(r => { r.p.subType = r.old; }); break; }
+            part.forEach(r => { try { logAction('edit', r.p, [{ f: 'حجم الجزء (تحويل تلقائي)', from: r.old, to: r.v }]); } catch (e) { /* تجاهل */ } });
+            done += part.length;
+        }
+    } catch (e) { /* تجاهل */ }
+    Prog.end(h, done === upd.length ? 'ok' : 'err', done === upd.length ? 'تم تحويل ' + fmtNum(done) + ' مادة' : 'تعذر إكمال التحويل');
+    try { renderAll(); } catch (e) { /* تجاهل */ }
+}
+{ let tries = 0; const iv = setInterval(() => { tries++; if (tries > 40) return clearInterval(iv); if (typeof cloudReady === 'function' && cloudReady() && typeof products !== 'undefined' && products.length && typeof userRole !== 'undefined' && userRole === 'owner') { clearInterval(iv); setTimeout(partRetroRun, 4000); } }, 3000); }

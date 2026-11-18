@@ -482,7 +482,7 @@ function catPriceRead() {
     const rowsAll = [...document.querySelectorAll('#qpBt .qp-bt')].map(r => ({ e: r.querySelector('.qb-e').value || '', q: parseInt(r.querySelector('.qb-q').value) || 0, pr: Math.round(parseFloat(r.querySelector('.qb-p').value) || 0) })), bts = rowsAll.filter(b => b.q > 0), dateOnly = [...new Set(rowsAll.filter(b => b.q <= 0 && b.e).map(b => b.e))];   // صف بتاريخ بلا عدد: يُحفظ التاريخ فقط
     const btBox = $('qpBt'), btsChanged = !!btBox && btBox.dataset.init !== undefined && btBox.dataset.init !== JSON.stringify(rowsAll.filter(b => b.q > 0 || b.e).map(b => ({ e: b.e, q: b.q, pr: b.pr })));
     return { name, bts, dateOnly, btsChanged, qty: Math.max(0, bts.length ? bts.reduce((s, b) => s + b.q, 0) : (parseInt($('qpQty').value) || 0)), loose: Math.max(0, parseInt($('qpLoose').value) || 0), bc: cleanBarcode($('qpBc').value), pricing: mode, costPrice: cost, price, markupPct: mode === 'percent' ? mk : null,
-        retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || 'جزء', subPrice: sp > 0 ? sp : subPriceCalc(price, sc) } };
+        retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || partSizeCalc((typeof p !== 'undefined' && p) ? p.meta : '', sc) || 'جزء', subPrice: sp > 0 ? sp : subPriceCalc(price, sc) } };
 }
 async function catPrice(id, pre, cb) {
     const p = id ? products.find(x => x.id === id) : null; if (id && !p) return;
