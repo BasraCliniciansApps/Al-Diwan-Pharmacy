@@ -170,6 +170,7 @@ function cnDdRender() {
 // مزامنة: كل مادة فيها أجزاء يجب أن يكون لها سطر جزء بجانب سطر العلبة
 // الترتيب: الأقدم إدخالاً أولاً (رقم 1)، وسطر الجزء يلي سطر علبته مباشرة
 function cnNormalize(l) {
+    { const seen = new Set(); let fx = false; l.rows.forEach(r => { if (!r.id || seen.has(r.id)) { r.id = cnId(); fx = true; } seen.add(r.id); }); if (fx) cnTouch(); }   // سطر بلا معرّف أو مكرر المعرّف: يتعذر حذفه، فنعطيه معرّفاً جديداً
     const pk = new Map(); l.rows.forEach(r => { const t = r.ts || 0; if (!pk.has(r.pid) || t < pk.get(r.pid)) pk.set(r.pid, t); });
     const key = r => pk.has(r.pid) ? pk.get(r.pid) : (r.ts || 0);
     const first = r => { const p = products.find(x => x.id === r.pid); return p ? cnUnits(p)[0] : 'pack'; };
