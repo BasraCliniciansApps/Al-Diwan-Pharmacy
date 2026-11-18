@@ -4871,3 +4871,7 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
     #needPrint th { background: #e5e7eb !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     #needPrint tr { page-break-inside: avoid; }
 }
+
+/* v652: عدّاد النتائج في بحث القوائم لا يتراكب مع النص المكتوب */
+.ss-sr input { padding-left: 74px; }
+.ss-sr span { top: 50%; transform: translateY(-50%); left: 30px; max-width: 56px; overflow: hidden; white-space: nowrap; }
