@@ -24,6 +24,19 @@
             o2.didDestroy = function () { host.classList.remove('sh-subopen'); if (o.didDestroy) return o.didDestroy.apply(this, arguments); };
             return orig(o2);
         }
+        // نوافذ النماذج الثقيلة (3 حقول فأكثر أو محتوى طويل فيه حقول): تُعرض كصفحة كاملة لا كنافذة منبثقة
+        var hs = typeof o.html === 'string' ? o.html : '', ctl = (hs.match(/<(input|select|textarea)\b/gi) || []).length;
+        var page = !o.toast && !o.timer && !o.icon && !o.target && (ctl >= 3 || (ctl >= 1 && hs.length > 1400));
+        if (page) {
+            var ccp = Object.assign({}, o.customClass || {});
+            ccp.popup = 'dw-pop dw-page'; ccp.container = 'dw-cont-page'; ccp.title = 'dw-title'; ccp.htmlContainer = 'dw-text'; ccp.actions = 'dw-actions';
+            ccp.confirmButton = 'dw-btn dw-btn-main' + (/^#(b91c1c|dc2626|ef4444|991b1b|c0392b)/i.test(String(o.confirmButtonColor || '')) ? ' dw-btn-danger' : ''); ccp.cancelButton = (o.customClass && o.customClass.cancelButton) || 'dw-btn dw-btn-ghost'; ccp.denyButton = 'dw-btn dw-btn-ghost';
+            ccp.closeButton = 'dw-page-x';
+            o2.customClass = ccp; o2.position = 'center'; o2.grow = false; o2.width = '100%'; o2.padding = 0; o2.heightAuto = false; o2.backdrop = false; o2.buttonsStyling = false; o2.reverseButtons = false;
+            if (o2.showCloseButton === undefined) o2.showCloseButton = true;
+            o2.showClass = { popup: 'dw-in-page', backdrop: '', icon: '' }; o2.hideClass = { popup: 'dw-out-page', backdrop: '', icon: '' };
+            return orig(o2);
+        }
         var sheet = !!(o.showCancelButton || o.showDenyButton) && !o.input && !o.width;
         var cc = Object.assign({}, o.customClass || {});
         cc.popup = 'dw-pop ' + (sheet ? 'dw-sheet' : 'dw-card');

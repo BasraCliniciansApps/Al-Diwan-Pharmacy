@@ -4797,3 +4797,21 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 #progLine b { border-bottom-width: 5px; }
 #progTxt { position: fixed; z-index: 100001; pointer-events: none; direction: rtl; max-width: min(88vw, 360px); padding: 3px 10px; border-radius: 99px; background: rgba(15, 28, 56, .92); color: #fff; font: 700 .72rem/1.6 inherit; font-family: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; box-shadow: 0 4px 14px -6px rgba(15, 28, 56, .5); }
 #progTxt[hidden] { display: none; }
+
+/* v664: نوافذ النماذج الثقيلة تُعرض كصفحة كاملة */
+.swal2-container.dw-cont-page { padding: 0 !important; align-items: stretch !important; justify-content: stretch !important; background: #eef2f7 !important; z-index: 9600 !important; }
+.swal2-popup.dw-page { display: flex !important; flex-direction: column; width: 100% !important; max-width: none !important; height: 100%; margin: 0 !important; padding: 0 !important; border-radius: 0 !important; background: #eef2f7; box-shadow: none; text-align: right; direction: rtl; }
+.dw-page .swal2-title.dw-title { order: 0; margin: 0; padding: calc(16px + env(safe-area-inset-top)) 60px 16px 16px; background: #0f1c38; color: #f9a825; font-size: 1.05rem; font-weight: 800; text-align: right; border-radius: 0 0 22px 22px; flex: 0 0 auto; }
+.dw-page .swal2-html-container.dw-text { order: 1; flex: 1 1 auto; margin: 0; padding: 14px 16px; overflow-y: auto; overflow-x: hidden; text-align: right; max-height: none; }
+.dw-page .swal2-actions.dw-actions { order: 2; flex: 0 0 auto; margin: 0; width: 100%; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid #e2e8f0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.dw-page .swal2-actions .dw-btn { margin: 0; width: 100%; }
+.dw-page .swal2-close.dw-page-x { position: absolute; top: calc(10px + env(safe-area-inset-top)); left: 12px; right: auto; width: 38px; height: 38px; border-radius: 12px; background: rgba(255, 255, 255, .14); color: #fff; font-size: 1.6rem; line-height: 1; }
+.dw-page .swal2-validation-message { margin: 0 16px 8px; }
+.dw-in-page { animation: dwPageIn .22s ease; } .dw-out-page { animation: dwPageOut .16s ease forwards; }
+@keyframes dwPageIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes dwPageOut { to { opacity: 0; transform: translateY(14px); } }
+.swal2-container.dw-cont-page { display: flex !important; }
+.swal2-popup.dw-page { height: 100% !important; min-height: 100% !important; align-self: stretch !important; grid-column: auto !important; }
+.dw-page .swal2-title.dw-title { padding: calc(16px + env(safe-area-inset-top)) 60px 16px 16px !important; margin: 0 !important; background: #0f1c38 !important; color: #f9a825 !important; width: auto !important; }
+.dw-page .swal2-html-container.dw-text { margin: 0 !important; padding: 14px 16px !important; justify-content: flex-start !important; }
+.dw-page .swal2-actions.dw-actions { margin: 0 !important; padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) !important; }
