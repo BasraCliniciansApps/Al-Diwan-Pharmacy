@@ -5344,6 +5344,16 @@ function partSizeCalc(meta, cnt) {
     const n = m ? parseInt(m[1]) : 0;
     return n >= cnt && n % cnt === 0 ? String(n / cnt) : '';
 }
+// نافذة التسعير السريع / تبويب الإدخال السريع: يملأ #qpSt من العبوة ÷ عدد الأجزاء إن لم يختر المستخدم قيمة بنفسه
+function qpAutoSize(meta) {
+    const sel = document.getElementById('qpSt'), sc = document.getElementById('qpSc'); if (!sel || !sc) return;
+    if (!sel.dataset.fx) { sel.dataset.fx = '1'; sel.addEventListener('change', () => { sel.dataset.auto = ''; sel.dataset.manual = '1'; }); }
+    if (sel.dataset.manual === '1') return;
+    const v = partSizeCalc(meta, sc.value);
+    if (!v) { if (sel.dataset.auto === '1') { sel.dataset.auto = ''; } return; }
+    if (![...sel.options].some(o => o.value === v)) { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.insertBefore(o, sel.firstChild); }
+    sel.value = v; sel.dataset.auto = '1';
+}
 function partAutoSize() {
     const sel = document.getElementById('fSubType'), mt = document.getElementById('fMeta'), sc = document.getElementById('fSubCount');
     if (!sel || !mt || !sc) return;

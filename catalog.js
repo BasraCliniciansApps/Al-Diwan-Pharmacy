@@ -430,6 +430,7 @@ function catPriceWire(p) {
         if (sp.dataset.manual !== '1') sp.value = sc > 1 && price > 0 ? subPriceCalc(price, sc) : '';
     };
     ['qpMode', 'qpCost', 'qpMk', 'qpPrice', 'qpSc'].forEach(id => $(id).addEventListener('input', refresh));
+    { const qm = () => p ? p.meta : ((document.getElementById('fMeta') || {}).value || ''); const qs = $('qpSt'); if (qs) qs.dataset.manual = (p && subCountOf(p) && p.subType) ? '1' : ''; $('qpSc').addEventListener('input', () => qpAutoSize(qm())); qpAutoSize(qm()); }
     mode.addEventListener('change', refresh);
     $('qpSp').addEventListener('input', () => { $('qpSp').dataset.manual = '1'; });
     const qq = $('qpQty'); if (qq) { $('qpMinus').addEventListener('click', () => { qq.value = Math.max(0, (parseInt(qq.value) || 0) - 1); }); $('qpPlus').addEventListener('click', () => { qq.value = (parseInt(qq.value) || 0) + 1; }); }
