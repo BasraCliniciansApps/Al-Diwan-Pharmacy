@@ -285,7 +285,10 @@ function puSubManual(p) {   // سعر الجزء المحفوظ يدوي؟ (ال
     return !(Math.round((parseFloat(p.price) || 0) / c) === sp || subPriceCalc(p.price, c) === sp);
 }
 function puRC(it) { const p = products.find(x => x.id === it.pid); return it.rsc != null ? it.rsc : (p && subCountOf(p) ? subCountOf(p) : ''); }
-function puRT(it) { const p = products.find(x => x.id === it.pid); return it.rst || (p ? subTypeOf(p) : 'جزء'); }
+function puRT(it) {   // حجم الجزء: ما كتبه المستخدم، وإلا عبوة المادة ÷ عدد الأجزاء تلقائياً، وإلا القيمة المحفوظة
+    const p = products.find(x => x.id === it.pid);
+    return it.rst || partSizeCalc(p && p.meta, puRC(it)) || (p && p.subType ? p.subType : '');
+}
 function puRP(it) { const p = products.find(x => x.id === it.pid); return it.rsp != null ? it.rsp : (puSubManual(p) ? p.subPrice : ''); }
 function puRetailWarn(it) {   // تنبيه: سعر جزء يدوي محفوظ يختلف عن المحسوب من السعر الجديد
     if (it.rsp != null) return '';
@@ -313,7 +316,7 @@ function puRetailPrice(it) {   // سعر الجزء المتوقع: اليدوي
     return subPriceCalc(price, puNum(puRC(it)));
 }
 // ملخص التجزئة: كل جزء معزول اتجاهياً حتى لا تختلط الأرقام والكلمات الإنكليزية والعربية
-const puRetailSumHtml = (c, ty, price) => `<bdi>${escapeHtml(String(c))} ${escapeHtml(String(ty))}</bdi> • <bdi>${fmtNum(price)} د.ع</bdi>`;
+const puRetailSumHtml = (c, ty, price) => `<bdi>${escapeHtml(String(c))} أجزاء</bdi> • حجم الجزء <bdi>${escapeHtml(String(ty || '—'))}</bdi> • سعر الجزء <bdi>${fmtNum(price)} د.ع</bdi>`;
 function puRetailHtml(it, i) {
     const c = puNum(puRC(it)), on = c > 1;
     const types = subTypes.slice(); if (!types.includes(puRT(it))) types.push(puRT(it));
@@ -321,7 +324,7 @@ function puRetailHtml(it, i) {
         <div class="pu-rbar" onclick="puRToggle(${i})"><span class="pu-chev">${it.ropen ? '▾' : '▸'}</span><span>🧩 التجزئة وتسعيرها</span><small id="puRs-${i}" dir="rtl">${on ? puRetailSumHtml(c, puRT(it), puRetailPrice(it)) : 'غير مفعّلة'}</small></div>
         <div class="pu-rbody" style="display:${it.ropen ? 'grid' : 'none'}">
             <label><span>عدد الأجزاء في العبوة</span><input type="number" min="0" inputmode="numeric" placeholder="مثال: 10" value="${escapeHtml(String(puRC(it)))}" oninput="puRetailEdit(${i},'rsc',this.value)"></label>
-            <label><span>حجم الجزء</span><input type="text" inputmode="numeric" autocomplete="off" value="${escapeHtml(puRT(it))}" onchange="puRetailEdit(${i},'rst',this.value)"></label>
+            <label><span>حجم الجزء</span><input type="text" id="puRt-${i}" inputmode="numeric" autocomplete="off" placeholder="تلقائي" value="${escapeHtml(puRT(it))}" onchange="puRetailEdit(${i},'rst',this.value)"></label>
             <label><span>سعر الجزء (فارغ = يُحسب تلقائياً)</span><input type="number" min="0" inputmode="decimal" placeholder="تلقائي" value="${escapeHtml(String(puRP(it)))}" oninput="puRetailEdit(${i},'rsp',this.value)"></label>
             <div class="pu-syn" id="puRh-${i}">${on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' + puRetailWarn(it) : 'اتركه فارغاً إذا كانت المادة لا تُباع بالتجزئة.'}</div>
         </div></div>`;
@@ -330,7 +333,8 @@ function puRToggle(i) { const it = pu.items[i]; if (!it) return; it.ropen = !it.
 function puRetailEdit(i, f, v) { const it = pu.items[i]; if (!it) return; it[f] = v; puRetailRefresh(i); puChanged(); }
 function puRetailRefresh(i) {
     const it = pu.items[i]; if (!it) return; const c = puNum(puRC(it)), on = c > 1;
-    const s = $b('puRs-' + i), h = $b('puRh-' + i);
+    const s = $b('puRs-' + i), h = $b('puRh-' + i), ti = $b('puRt-' + i);
+    if (ti && !it.rst && document.activeElement !== ti) ti.value = puRT(it);
     if (s) s.innerHTML = on ? puRetailSumHtml(c, puRT(it), puRetailPrice(it)) : 'غير مفعّلة';
     if (h) h.innerHTML = on ? 'سعر الجزء المتوقع: <b>' + fmtNum(puRetailPrice(it)) + '</b> د.ع' + puRetailWarn(it) : 'اتركه فارغاً إذا كانت المادة لا تُباع بالتجزئة.';
 }
