@@ -59,6 +59,13 @@ function fuBadge() {
     if (!fuAllowed()) { el.style.display = 'none'; return; }
     const n = fuOverdueCount(); el.innerText = n; el.style.display = n ? 'flex' : 'none';
 }
+function fuPoBadge() {
+    try {
+        const el = document.getElementById('homePoCount'); if (!el) return;
+        if (userRole !== 'owner' || currentView !== 'home' || typeof poCandidates !== 'function') { el.style.display = 'none'; return; }
+        const n = poCandidates().length; el.innerText = n; el.style.display = n ? 'flex' : 'none';
+    } catch (e) { /* تجاهل */ }
+}
 function fuRemind() {   // تنبيه مرة باليوم عند فتح التطبيق
     try {
         if (!fuAllowed()) return; const n = fuOverdueCount(); if (!n) return;
@@ -66,9 +73,9 @@ function fuRemind() {   // تنبيه مرة باليوم عند فتح التط
         Swal.fire({ icon: 'warning', title: 'متابعات متأخرة', html: `لديك <b>${fmtNum(n)}</b> من المتابعات تجاوزت مدة التذكير.`, showCancelButton: true, confirmButtonText: 'عرضها', cancelButtonText: 'لاحقاً', confirmButtonColor: '#0f1c38' }).then(r => { if (r.isConfirmed) fuOpen(true); });
     } catch (e) { /* تجاهل */ }
 }
-setTimeout(() => { try { fuLoadLocal(); fuBadge(); } catch (e) { /* تجاهل */ } }, 2500);
+setTimeout(() => { try { fuLoadLocal(); fuBadge(); fuPoBadge(); } catch (e) { /* تجاهل */ } }, 2500);
 setTimeout(() => { try { if (typeof isFirebaseReady !== 'undefined') fuRemind(); } catch (e) { /* تجاهل */ } }, 9000);
-setInterval(() => { try { fuBadge(); } catch (e) { /* تجاهل */ } }, 60000);
+setInterval(() => { try { fuBadge(); fuPoBadge(); } catch (e) { /* تجاهل */ } }, 60000);
 
 // ---------- الإطار ----------
 function fuEnsureDom() {

@@ -4798,7 +4798,8 @@ body.admin-page[data-view="bill"] { padding-bottom: 90px; }
 .ss-cap input { height: var(--field-h, 46px); box-sizing: border-box; width: 100%; text-align: center; border: 1px solid var(--border, #d8e0ec); border-radius: var(--field-r, 12px); font-family: inherit; font-size: .9rem; }
 
 /* v645: المتابعات */
-body.role-staff:not(.can-followups) .home-tile.tile-fu, body.role-staff:not(.can-followups) .home-row6 { display: none !important; }
+body.role-staff:not(.can-followups) .home-tile.tile-fu:not(.tile-po):not(.tile-lbl), body.role-staff .home-tile.tile-po, body.role-staff:not(.can-stockedit) .home-tile.tile-lbl { display: none !important; }
+body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: none !important; }
 .fu-row.fu-late { border-color: #fca5a5; background: #fef2f2; }
 .fu-av { font-size: 1.1rem; }
 .fu-av.wp { background: #e0e7ff; } .fu-av.wb { background: #fef3c7; } .fu-av.ok { background: #d1fae5; } .fu-av.bad { background: #fee2e2; }

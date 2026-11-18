@@ -112,7 +112,8 @@ const ALERT_LABELS = {
     get m1() { return 'تنتهي خلال ' + monthsTxt(alertMonths[0]); },
     get m3() { return 'تنتهي خلال ' + monthsTxt(alertMonths[1]); },
     get m6() { return 'تنتهي خلال ' + monthsTxt(alertMonths[2]); },
-    get low() { return 'مخزون منخفض'; }
+    get low() { return 'مخزون منخفض'; },
+    get dead() { return 'راكدة: بلا مبيعات منذ ' + (typeof deadDays === 'function' ? deadDays() : 90) + ' يوماً'; }
 };
 function expiryDaysOf(dateStr) {   // نفس حساب التطبيق: اعتبار تاريخ النفاذ هو أول يوم من الشهر
     const m = /^(\d{4})-(\d{2})/.exec(dateStr || '');
@@ -121,14 +122,15 @@ function expiryDaysOf(dateStr) {   // نفس حساب التطبيق: اعتبا
     return Math.ceil((new Date(parseInt(m[1]), parseInt(m[2]) - 1, 1) - today) / 864e5);
 }
 // يحدد حالات التنبيه للصنف حسب أقرب تاريخ نفاذ (التصنيف تراكمي: خلال شهر ⊂ خلال 3 أشهر ⊂ خلال 6 أشهر)
-function alertKinds(p) {
-    if (p.arch) return { days: null, date: '', bq: null, expired: false, m1: false, m3: false, m6: false, low: false, any: false };
+function alertKinds(p, wantDead) {
+    if (p.arch) return { days: null, date: '', bq: null, expired: false, m1: false, m3: false, m6: false, low: false, dead: false, any: false };
     let days = null, date = '', bq = null;
     const bts = p.bt ? getBatches(p).filter(b => b.e) : null;
     (bts ? bts.map(b => b.e) : (hasUnits(p) ? getProductExpiryDates(p) : [])).forEach(d => { const n = expiryDaysOf(d); if (n !== null && (days === null || n < days)) { days = n; date = d; } });
     if (bts && date) { const same = bts.filter(b => b.e === date); bq = same.length > 1 ? { e: date, q: same.reduce((s, b) => s + (b.q || 0), 0), l: same.reduce((s, b) => s + (b.l || 0), 0) } : same[0]; }
     const k = { days, date, bq, expired: days !== null && days <= 0, m1: days !== null && days <= alertMonths[0] * 30, m3: days !== null && days <= alertMonths[1] * 30, m6: days !== null && days <= alertMonths[2] * 30, low: isLowStock(p) };
     k.any = k.m6 || k.low;
+    k.dead = wantDead && typeof deadOf === 'function' ? deadOf(p) : false;   // لا تدخل في «الكل» ولا في شارة الرئيسية
     return k;
 }
 // بطاقة الدواء ونافذة التصفية تُرفع إلى مستوى الصفحة لتظهر فوق أي شاشة (كانت داخل شاشة المخزن فتنخفي عند فتحها من التنبيهات وغيرها)
@@ -158,26 +160,31 @@ function alertsToPO() {
 }
 function renderAlerts() {
     const sel = document.getElementById('alertFilter');
-    const all = products.map(p => ({ p, k: alertKinds(p) }));
+    if (typeof deadReset === 'function') deadReset();
+    const all = products.map(p => ({ p, k: alertKinds(p, true) }));
+    const deadOk = typeof deadReady === 'function' && deadReady();
     const cnt = key => all.filter(x => key === 'all' ? x.k.any : x.k[key]).length;
-    const opt = key => `<option value="${key}" ${alertFilterV === key ? 'selected' : ''}>${ALERT_LABELS[key]} (${cnt(key)})</option>`;
-    sel.innerHTML = opt('all') + `<optgroup label="الصلاحية">${opt('expired')}${opt('m1')}${opt('m3')}${opt('m6')}</optgroup><optgroup label="المخزون">${opt('low')}</optgroup>`;
+    const opt = key => `<option value="${key}" ${alertFilterV === key ? 'selected' : ''}>${ALERT_LABELS[key]}${key === 'dead' && !deadOk ? '' : ' (' + cnt(key) + ')'}</option>`;
+    sel.innerHTML = opt('all') + `<optgroup label="الصلاحية">${opt('expired')}${opt('m1')}${opt('m3')}${opt('m6')}</optgroup><optgroup label="المخزون">${opt('low')}${typeof deadOf === 'function' ? opt('dead') : ''}</optgroup>`;
     const q = normSearch(document.getElementById('alertSearch').value);
     const toks = q ? q.split(' ') : [];
     let list = all.filter(x => (alertFilterV === 'all' ? x.k.any : x.k[alertFilterV]) && (!q || searchScore(x.p, q, toks) > 0));
-    list.sort((a, b) => (a.k.days === null ? 1e9 : a.k.days) - (b.k.days === null ? 1e9 : b.k.days) || (parseInt(a.p.qty) || 0) - (parseInt(b.p.qty) || 0));
+    if (alertFilterV === 'dead') list.sort((a, b) => b.k.dead - a.k.dead || (parseInt(b.p.qty) || 0) - (parseInt(a.p.qty) || 0));
+    else list.sort((a, b) => (a.k.days === null ? 1e9 : a.k.days) - (b.k.days === null ? 1e9 : b.k.days) || (parseInt(a.p.qty) || 0) - (parseInt(b.p.qty) || 0));
     alertListIds = list.map(x => x.p.id);
-    document.getElementById('alertPoBtn').style.display = list.length ? '' : 'none';
+    document.getElementById('alertPoBtn').style.display = list.length && alertFilterV !== 'dead' ? '' : 'none';
     document.getElementById('alertTitle').innerText = ALERT_LABELS[alertFilterV];
     document.getElementById('alertCount').innerText = list.length + ' صنف';
     const tag = ({ p, k }) => {
+        if (alertFilterV === 'dead') return `<span class="exp-tag t-low">🕸 ${k.dead >= 99999 ? 'لا مبيعات خلال ' + deadDays() + ' يوماً' : 'بلا مبيعات منذ ' + k.dead + ' يوماً'} · المتوفر: ${escapeHtml(stockLabel(p))}</span>`;
         if (alertFilterV === 'low' || (k.days === null || !k.m6)) return `<span class="exp-tag t-low">📉 كمية قليلة: ${escapeHtml(stockLabel(p))}</span>`;
         if (k.expired) return `<span class="exp-tag t-exp">⛔ منتهية · ${k.date}${k.bq ? ' · ' + btFmt(k.bq, p) : ''}</span>`;
         const cls = k.m1 ? 't-m1' : k.m3 ? 't-m3' : 't-m6';
         return `<span class="exp-tag ${cls}">⏳ ${k.date} · ${k.days} يوم${k.bq ? ' · ' + btFmt(k.bq, p) : ''}</span>`;
     };
     document.getElementById('alertsContainer').innerHTML = list.map(x => productCardHtml(x.p, tag(x))).join('') ||
-        `<div class="empty-state empty-wide"><div class="empty-ico">✅</div><div>لا توجد أصناف ضمن هذا التنبيه</div></div>`;
+        (alertFilterV === 'dead' && !deadOk ? `<div class="empty-state empty-wide"><div class="empty-ico">⏳</div><div>جارٍ تحميل مبيعات الفترة لتحديد المواد الراكدة...</div></div>` : `<div class="empty-state empty-wide"><div class="empty-ico">✅</div><div>لا توجد أصناف ضمن هذا التنبيه</div></div>`);
+    if (alertFilterV === 'dead' && !deadOk && typeof deadEnsure === 'function') deadEnsure();
     alPhN = all.filter(x => x.k.any).length;
     try { if (typeof docRenderAlertBox === 'function') docRenderAlertBox(alTab === 'dr'); } catch (e) { /* تجاهل */ }
     alUpdateTabs();
