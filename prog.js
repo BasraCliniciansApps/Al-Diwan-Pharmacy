@@ -68,6 +68,14 @@ const Prog = {
         }
         let r = 0; try { r = Math.min(40, parseFloat(getComputedStyle(last).borderBottomLeftRadius) || 0); } catch (e) { r = 0; }
         const lr = last.getBoundingClientRect(), bottom = lr.bottom;
+        // الانحناء يُعتمد فقط إن كانت حافة الترويسة منحنية فعلاً: نفحص زاوية الحافة السفلية، فإن كانت كحلية (مستقيمة) فلا انحناء
+        if (r > 0) {
+            if (Math.abs(bottom - y) > r + 6 && y > 0) r = 0;   // العنصر الكحلي حاوية أكبر من الترويسة: انحناؤه لا يخص الترويسة
+            else try {
+                const px = Math.round(Math.max(lr.left, cr ? cr.left : 0)) + 2, py = Math.round(Math.min(bottom, y || bottom)) - 2, pe = document.elementFromPoint(px, py);
+                if (pe) { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(pe).backgroundColor || ''); if (m && (0.299 * m[1] + 0.587 * m[2] + 0.114 * m[3]) < 70) r = 0; }
+            } catch (e) { /* تجاهل */ }
+        }
         return { y: bottom > 0 && bottom < 520 ? bottom : y, r, x0: cr ? Math.max(cr.left, lr.left) : lr.left, x1: cr ? Math.min(cr.right, lr.right) : lr.right };
     },
     // مراقبة موضع النافذة كل إطار: عند فتح النافذة أو إغلاقها أو تحرّكها ينتقل الخط فوراً بدل انتظار الرسم الدوري
@@ -84,14 +92,14 @@ const Prog = {
         };
         Prog.raf = requestAnimationFrame(loop);
     },
-    hide() { if (Prog.raf) { cancelAnimationFrame(Prog.raf); Prog.raf = 0; } if (Prog.el) Prog.el.hidden = true; if (Prog.ln) Prog.ln.hidden = true; clearInterval(Prog.timer); Prog.cur = null; },
+    hide() { const tx = document.getElementById('progTxt'); if (tx) tx.hidden = true; if (Prog.raf) { cancelAnimationFrame(Prog.raf); Prog.raf = 0; } if (Prog.el) Prog.el.hidden = true; if (Prog.ln) Prog.ln.hidden = true; clearInterval(Prog.timer); Prog.cur = null; },
     fmtT(s) { s = Math.max(0, Math.round(s)); return s < 60 ? s + ' ث' : Math.floor(s / 60) + ' د ' + (s % 60) + ' ث'; },
     paint() {
         const h = Prog.cur, el = Prog.el; if (!h || !el) return;
         el.hidden = false;
         {   // الخط الرفيع: يتحرك أثناء العمل ولا يعترض اللمس
             const ln = Prog.ln; if (ln) {
-                const g = Prog.lineY(), r = Math.round(g.r), H = r + 4;
+                const g = Prog.lineY(), r = Math.round(g.r), H = r + 5; Prog.lastG = g;
                 ln.style.top = Math.max(0, g.y - H) + 'px'; ln.style.height = H + 'px'; ln.style.setProperty('--r', r + 'px'); ln.hidden = false;
                 if (g.x1 > g.x0 && (g.x1 - g.x0) < window.innerWidth - 2) { ln.style.left = Math.max(0, g.x0) + 'px'; ln.style.right = Math.max(0, window.innerWidth - g.x1) + 'px'; } else { ln.style.left = ''; ln.style.right = ''; }
                 const det = h.pct !== null;
@@ -99,6 +107,17 @@ const Prog = {
                 const pc = h.state === 'ok' ? 100 : det ? Math.max(3, Math.round(h.pct)) : 100;
                 ln.style.setProperty('--cut', (100 - pc) + '%');
             }
+        }
+        {   // نص التقدّم الصغير تحت الخط للعمليات التي تطول (مثل «حُفظ 40 من 120»)
+            let tx = document.getElementById('progTxt');
+            if (!tx) { tx = document.createElement('div'); tx.id = 'progTxt'; tx.hidden = true; tx.setAttribute('aria-hidden', 'true'); document.body.appendChild(tx); }
+            const g = Prog.lastG || { y: 0 }, show = h.state === 'run' && h.text && (Date.now() - h.t0) > 1200;
+            if (show) {
+                tx.textContent = (h.pct !== null ? Math.round(h.pct) + '% · ' : '') + h.text;
+                tx.style.top = (Math.max(0, g.y) + 8) + 'px';
+                tx.style.right = Math.max(10, window.innerWidth - (g.x1 || window.innerWidth) + 12) + 'px';
+            }
+            tx.hidden = !show;
         }
         const now = Date.now(), el_s = (now - h.t0) / 1000, idle = (now - h.last) / 1000, det = h.pct !== null;
         const pct = det ? Math.round(h.pct) : 0;
