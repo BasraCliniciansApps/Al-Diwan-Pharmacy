@@ -5259,30 +5259,11 @@ window.addEventListener('appinstalled', () => { deferredInstall = null; dismissI
 // ============================================================================
 // 18. المظهر: وضع داكن (يتبع النظام افتراضياً) وأيقونات موحّدة
 // ============================================================================
-const LS_THEME = 'diwanTheme';   // 'light' | 'dark' | (فارغ = حسب النظام)
-
-function currentTheme() {
-    let saved = '';
-    try { saved = localStorage.getItem(LS_THEME) || ''; } catch (e) { /* تجاهل */ }
-    if (saved === 'light' || saved === 'dark') return saved;
-    return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
-}
-
-function applyTheme(t) {
-    document.documentElement.setAttribute('data-theme', t);
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', t === 'dark' ? '#0a1020' : '#0f1c38');
-    // الأيقونة تعكس الوضع الحالي: شمس = نهاري، هلال = ليلي (كل أزرار التبديل في كل الصفحات)
-    document.querySelectorAll('button[onclick="toggleTheme()"]').forEach(btn => {
-        btn.innerHTML = (window.AppIcons && AppIcons.svg) ? AppIcons.svg(t === 'dark' ? 'moon' : 'sun') : (t === 'dark' ? ICONS.moon : ICONS.sun);
-        btn.title = t === 'dark' ? 'الوضع الليلي — اضغط للنهاري' : 'الوضع النهاري — اضغط لليلي';
-    });
-}
-
-function toggleTheme() {
-    const next = currentTheme() === 'dark' ? 'light' : 'dark';
-    try { localStorage.setItem(LS_THEME, next); } catch (e) { /* تجاهل */ }
-    applyTheme(next);
+// المظهر: نهاري ثابت (أُلغي الوضع الداكن)
+function currentTheme() { return 'light'; }
+function applyTheme() {
+    document.documentElement.setAttribute('data-theme', 'light');
+    const meta = document.querySelector('meta[name="theme-color"]'); if (meta) meta.setAttribute('content', '#0f1c38');
 }
 
 const svgIcon = (p) => `<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>`;

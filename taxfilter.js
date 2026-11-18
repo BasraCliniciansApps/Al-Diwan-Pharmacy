@@ -8,14 +8,14 @@
     if (window.tfMount) return;
     const css = `
 .tf-p{background:var(--surface,#fff);color:var(--text,#0f1c38);border:1.5px solid var(--line,#e2e8f0);border-radius:18px;padding:10px;box-shadow:0 14px 36px rgba(8,14,30,.22);direction:rtl;font-family:inherit}
-[data-theme="dark"] .tf-p{background:var(--surface,#1e293b);color:var(--text,#e2e8f0);border-color:var(--line,#334155)}
+
 .tf-q{width:100%;height:42px;border:1.5px solid var(--line,#cbd5e1);border-radius:12px;background:var(--surface-2,#f8fafc);color:inherit;padding:0 12px;font:500 .88rem inherit;font-family:inherit;box-sizing:border-box}
-[data-theme="dark"] .tf-q{background:var(--surface-2,#0f172a);border-color:var(--line,#334155)}
+
 .tf-l{max-height:46vh;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column;gap:4px;overscroll-behavior:contain}
 .tf-d,.tf-c{display:flex;align-items:center;gap:9px;border-radius:12px;padding:4px 6px}
-.tf-d{background:var(--surface-2,#f1f5f9)} [data-theme="dark"] .tf-d{background:var(--surface-2,#0f172a)}
+.tf-d{background:var(--surface-2,#f1f5f9)} 
 .tf-ck{flex:0 0 auto;width:26px;height:26px;border-radius:8px;border:2px solid #94a3b8;background:var(--surface,#fff);color:#fff;font:900 .95rem/1 inherit;cursor:pointer;padding:0;display:grid;place-items:center}
-[data-theme="dark"] .tf-ck{background:transparent}
+
 .tf-ck.on{background:#0f766e;border-color:#0f766e}.tf-ck.part{background:#99d3cb;border-color:#0f766e;color:#0f766e}
 .tf-dn{flex:1;min-width:0;display:flex;align-items:center;gap:8px;border:0;background:transparent;color:inherit;font:800 .86rem inherit;font-family:inherit;text-align:start;cursor:pointer;padding:8px 2px}
 .tf-dn span{flex:1;min-width:0;overflow-wrap:anywhere}.tf-dn svg{width:16px;height:16px;flex:0 0 auto;transition:transform .2s;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
@@ -26,7 +26,7 @@
 .tf-c span.t{flex:1;min-width:0;overflow-wrap:anywhere}
 .tf-f{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:10px}
 .tf-f button{height:44px;border-radius:12px;border:1.5px solid var(--line,#cbd5e1);background:var(--surface,#fff);color:inherit;font:800 .85rem inherit;font-family:inherit;cursor:pointer}
-.tf-f button.go{background:#0f1c38;border-color:#0f1c38;color:#fff}[data-theme="dark"] .tf-f button.go{background:var(--gold,#f9a825);border-color:var(--gold,#f9a825);color:#0f1c38}
+.tf-f button.go{background:#0f1c38;border-color:#0f1c38;color:#fff}
 .tf-f button:disabled{opacity:.45}.tf-none{padding:14px;text-align:center;color:var(--sub,#64748b);font-size:.8rem}`;
     const st = document.createElement('style'); st.textContent = css; document.head.appendChild(st);
     const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

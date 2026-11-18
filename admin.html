@@ -8,11 +8,11 @@
     <!-- إعدادات تثبيت التطبيق على الآيفون والأندرويد (PWA) -->
     <link rel="manifest" href="manifest-admin.json">
     <meta name="color-scheme" content="light dark">
-<style>:root{color-scheme:light}:root[data-theme="dark"]{color-scheme:dark}</style>
+<style>:root{color-scheme:light}</style>
 <meta name="theme-color" content="#0f1c38">
 <script>try{var __m=/[?&]go=(pos|scan)\b/.exec(location.search);if(__m){document.documentElement.classList.add('dw-go');window.__dwGo=__m[1];history.replaceState(null,'',location.pathname+location.hash);}}catch(e){}</script>
 <style>html.dw-go #homeView{visibility:hidden}</style>
-    <script>try{var t=localStorage.getItem("diwanTheme");if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light";document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+    <script>document.documentElement.setAttribute("data-theme","light");</script>
     <link rel="icon" type="image/jpeg" href="icon.jpg">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -44,7 +44,7 @@
         <div class="top-bar-inner">
             
             
-            <div class="brand-bar stk-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية">🏠</button><button class="small-icon-btn bell-btn" onclick="goAlerts('all')" title="التنبيهات" aria-label="التنبيهات">🔔<i id="stockAlertCount" class="bell-badge"></i><i class="bell-badge doc-badge" title="طلبات الأطباء"></i><i class="bell-badge rx-badge" title="وصفات جديدة"></i></button><button class="small-icon-btn" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button><button class="small-icon-btn" id="themeBtn" onclick="toggleTheme()" title="الوضع الداكن" aria-label="الوضع الداكن">🌓</button></div></div>
+            <div class="brand-bar stk-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية">🏠</button><button class="small-icon-btn bell-btn" onclick="goAlerts('all')" title="التنبيهات" aria-label="التنبيهات">🔔<i id="stockAlertCount" class="bell-badge"></i><i class="bell-badge doc-badge" title="طلبات الأطباء"></i><i class="bell-badge rx-badge" title="وصفات جديدة"></i></button><button class="small-icon-btn" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button></div></div>
             <div class="stk-title-row"><span class="stk-pg">🏭 المخزن</span></div>
             <button type="button" id="authBtn" hidden></button>
             
@@ -590,12 +590,12 @@
         <label class="gate-field"><span>كلمة المرور</span><input type="password" id="gatePass" dir="ltr" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')gateLogin()"></label>
         <div id="gateError" class="gate-error" style="display:none;"></div>
         <button type="button" class="gate-btn" id="gateBtn" onclick="gateLogin()">تسجيل الدخول</button>
-        <button type="button" class="gate-theme" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button>
+        
     </div>
 </div>
 
 <div id="homeView" class="app-view home-view">
-    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="toggleTheme()" id="themeBtn2" aria-label="الوضع الداكن">🌓</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button><button type="button" class="small-icon-btn" onclick="gateLogout()" aria-label="تسجيل الخروج" title="تسجيل الخروج">⏻</button></div></div>
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button><button type="button" class="small-icon-btn" onclick="gateLogout()" aria-label="تسجيل الخروج" title="تسجيل الخروج">⏻</button></div></div>
 <div class="page-title">🏠 الرئيسية</div>
     <div id="bkReminder"></div>
     <div class="home-kpis" id="homeKpis"></div>
@@ -700,7 +700,7 @@
 
 <div id="catalogView" class="app-view bill-view cat-view" dir="rtl">
     <div class="bill-top no-print">
-    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
     <div class="page-title">📋 سجل الأدوية</div>
     </div>
     <div class="cat-tabs no-print"><button type="button" class="on" id="catTabList" onclick="plClose()">📋 السجل</button><button type="button" id="catTabPrice" onclick="plShow()">💲 قائمة التسعير</button></div>
@@ -717,7 +717,7 @@
 </div>
 
 <div id="alertsView" class="app-view alerts-view">
-    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
 <div class="page-title">🔔 التنبيهات</div>
     <div class="al-tabs"><button type="button" id="alTabPh" class="ph on" onclick="alSetTab('ph')"><span>💊 تنبيهات الصيدلية</span><i id="alNPh">0</i></button><button type="button" id="alTabDr" class="dr" onclick="alSetTab('dr')"><span>🩺 تنبيهات الأطباء</span><i id="alNDr">0</i></button></div>
     <div id="alPaneDr" style="display:none"><div id="docAlertBox"></div></div>
@@ -736,7 +736,7 @@
 
 <div id="billView" class="app-view bill-view" dir="rtl">
     <div class="bill-top no-print">
-    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
 <div class="page-title">🧾 الفواتير</div>
     </div>
     <div class="bill-tabs no-print" id="billTabs">
@@ -902,7 +902,7 @@
 
 <div id="purchView" class="app-view bill-view" dir="rtl">
     <div class="bill-top no-print">
-    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="toggleTheme()" aria-label="الوضع الداكن">🌓</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
 <div class="page-title">🚚 الوارد من المذاخر</div>
     </div>
     <div class="bill-tabs no-print" id="puTabs">
