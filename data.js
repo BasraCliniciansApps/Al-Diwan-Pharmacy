@@ -1607,9 +1607,7 @@ function openSheet(id) {
     const retailInfo = hasRetail(p)
         ? `<div class="sheet-section" style="font-size:0.84rem; font-weight:700;">🧩 تُباع بالتجزئة: <b><bdi>${escapeHtml(subTypeOf(p))}</bdi></b> بسعر <b><bdi>${fmtMoney(subPriceOf(p))} د.ع</bdi></b> <span style="color:var(--text-sub); font-weight:600;">(العبوة = ${subCountOf(p)} ${escapeHtml(subTypeOf(p))})</span></div>` : '';
     const altHtml = buildAlternativesHtml(p);
-    const activeLine = p.activeIngredient
-        ? `<p dir="ltr" class="sheet-active">${escapeHtml(p.activeIngredient)}</p>`
-        : '';
+    const activeLine = '';   // المادة الفعالة لا تظهر على بطاقة الاسم (تبقى محفوظة وتدخل في البحث)
 
     document.getElementById('sheetContent').innerHTML = `
         <div class="sheet-top"><button type="button" class="sh-back" onclick="closeSheet()"><i>›</i> رجوع</button>${IS_ADMIN_PAGE && typeof catMergeStart === 'function' && (userRole === 'owner' || (typeof can === 'function' && can('stockEdit'))) ? `<button type="button" class="cat-btn cat-merge sheet-merge" onclick="catMergeStart(${p.id})" title="ضم لمادة أخرى" aria-label="ضم لمادة أخرى">⇄</button>` : ''}</div>
