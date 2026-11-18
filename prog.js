@@ -18,7 +18,7 @@ const Prog = {
         h.fail = (msg, why) => { if (h.state !== 'run') return; h.state = 'err'; h.text = msg || 'فشلت العملية'; h.why = why || ''; Prog.paint(); };
         h.drop = () => { h.state = 'drop'; if (Prog.cur === h) { Prog.cur = null; } };
         h.close = () => { if (Prog.cur === h) Prog.hide(); };
-        Prog.cur = h; Prog.paint();
+        Prog.cur = h; h.anch = !!Prog.topCard(); Prog.paint();
         clearInterval(Prog.timer); Prog.timer = setInterval(Prog.paint, 500);
         Prog.watch();
         return h;
@@ -99,6 +99,9 @@ const Prog = {
         el.hidden = false;
         {   // الخط الرفيع: يتحرك أثناء العمل ولا يعترض اللمس
             const ln = Prog.ln; if (ln) {
+                // الخط يتبع النافذة التي بدأت فيها العملية: إن أُغلقت النافذة يختفي الخط معها (العملية تكمل بالخلفية، والخطأ يظهر في الشريط السفلي)
+                if (h.anch && h.state === 'run' && !Prog.topCard()) { ln.hidden = true; const t0 = document.getElementById('progTxt'); if (t0) t0.hidden = true; }
+                else {
                 const g = Prog.lineY(), r = Math.round(g.r), H = r + 5; Prog.lastG = g;
                 ln.style.top = Math.max(0, g.y - H) + 'px'; ln.style.height = H + 'px'; ln.style.setProperty('--r', r + 'px'); ln.hidden = false;
                 if (g.x1 > g.x0 && (g.x1 - g.x0) < window.innerWidth - 2) { ln.style.left = Math.max(0, g.x0) + 'px'; ln.style.right = Math.max(0, window.innerWidth - g.x1) + 'px'; } else { ln.style.left = ''; ln.style.right = ''; }
@@ -106,12 +109,13 @@ const Prog = {
                 ln.className = 'pl-' + (h.state === 'ok' ? 'ok' : h.state === 'err' ? 'err' : (!navigator.onLine || (Date.now() - h.last) / 1000 > 12) ? 'warn' : 'run') + (det || h.state !== 'run' ? '' : ' ind');
                 const pc = h.state === 'ok' ? 100 : det ? Math.max(3, Math.round(h.pct)) : 100;
                 ln.style.setProperty('--cut', (100 - pc) + '%');
+                }
             }
         }
         {   // نص التقدّم الصغير تحت الخط للعمليات التي تطول (مثل «حُفظ 40 من 120»)
             let tx = document.getElementById('progTxt');
             if (!tx) { tx = document.createElement('div'); tx.id = 'progTxt'; tx.hidden = true; tx.setAttribute('aria-hidden', 'true'); document.body.appendChild(tx); }
-            const g = Prog.lastG || { y: 0 }, show = h.state === 'run' && h.text && (Date.now() - h.t0) > 1200;
+            const g = Prog.lastG || { y: 0 }, show = h.state === 'run' && h.text && (Date.now() - h.t0) > 1200 && !(h.anch && !Prog.topCard());
             if (show) {
                 tx.textContent = (h.pct !== null ? Math.round(h.pct) + '% · ' : '') + h.text;
                 tx.style.top = (Math.max(0, g.y) + 8) + 'px';
