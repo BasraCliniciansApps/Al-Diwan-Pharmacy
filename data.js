@@ -51,7 +51,8 @@ function subsFor(dept, keep) {   // تصنيفات القسم المختار + �
 
 // حد تنبيه الكمية القليلة العام (يمكن تخصيصه لكل صنف من نموذج الصنف)
 const DEFAULT_SUB_TYPES = ['Strip', 'Tablet', 'Vial', 'Ampoule'];
-let subTypes = (() => { try { const a = JSON.parse(localStorage.getItem('diwanSubTypes')); return Array.isArray(a) && a.length ? a : DEFAULT_SUB_TYPES.slice(); } catch (e) { return DEFAULT_SUB_TYPES.slice(); } })();
+let subTypes = [];   // قائمة الأنواع القديمة أُلغيت: حجم الجزء يُحسب تلقائياً من العبوة ÷ عدد الأجزاء
+let subTypesOld = (() => { try { const a = JSON.parse(localStorage.getItem('diwanSubTypes')); return Array.isArray(a) && a.length ? a : DEFAULT_SUB_TYPES.slice(); } catch (e) { return DEFAULT_SUB_TYPES.slice(); } })();
 let lowStockThreshold = parseInt(localStorage.getItem('diwanLowThreshold'));
 if (isNaN(lowStockThreshold)) lowStockThreshold = 2;
 let alertMonths = (() => { try { const a = JSON.parse(localStorage.getItem('diwanAlertMonths')); return Array.isArray(a) && a.length === 3 && a.every(n => n > 0) ? a : [1, 3, 6]; } catch (e) { return [1, 3, 6]; } })();
@@ -655,7 +656,7 @@ async function initFirebase() {
                 if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
                 if (Array.isArray(data.alertMonths) && data.alertMonths.length === 3) alertMonths = data.alertMonths;
                 if (data.pricingCfg) pricingCfg = normPricingCfg(data.pricingCfg);
-                if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
+                /* قائمة الأنواع القديمة مُلغاة */
                 if (data.formCfg && typeof formCfgImport === 'function') formCfgImport(data.formCfg);
                 saveLocal();
                 renderAll();
@@ -3479,7 +3480,7 @@ async function applyBackupData(data) {
         if (typeof data.lowStockThreshold === 'number') lowStockThreshold = data.lowStockThreshold;
                 if (Array.isArray(data.alertMonths) && data.alertMonths.length === 3) alertMonths = data.alertMonths;
         if (data.pricingCfg) pricingCfg = normPricingCfg(data.pricingCfg);
-        if (Array.isArray(data.subTypes) && data.subTypes.length) subTypes = data.subTypes;
+        /* قائمة الأنواع القديمة مُلغاة */
         if (data.formCfg && typeof formCfgImport === 'function') formCfgImport(data.formCfg);
 
         if (isImp) {   // الاستيراد: نكتب الأصناف الجديدة فقط ونُظهر أي خطأ من السحابة بوضوح
@@ -4790,7 +4791,7 @@ function invRowHtml(p) {
                 <div class="inv-rtbar" onclick="invRtToggle(${p.id})"><span class="inv-chev">${open ? '▾' : '▸'}</span><span>🧩 التجزئة</span><small>${sum}</small>
                     <label class="inv-sw" onclick="event.stopPropagation()"><input type="checkbox" ${on || (e.on && !on) ? 'checked' : ''} onchange="invRtSwitch(${p.id}, this.checked)"><i></i></label></div>
                 <div class="inv-rtbody" style="display:${open ? 'grid' : 'none'}">
-                    <label><span>حجم الجزء</span><select onchange="invRtSet(${p.id}, 'type', this.value)">${types.map(t => `<option value="${escapeHtml(t)}" ${t === e.type ? 'selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
+                    <label><span>حجم الجزء</span><input type="text" inputmode="numeric" autocomplete="off" value="${escapeHtml(e.type || '')}" onchange="invRtSet(${p.id}, 'type', this.value)"></label>
                     <label><span>عدد الأجزاء بالعبوة</span><input type="number" inputmode="numeric" min="0" placeholder="مثال: 10" value="${e.cnt || ''}" onchange="invRtSet(${p.id}, 'cnt', this.value)"></label>
                 </div>
             </div>
@@ -4800,7 +4801,7 @@ function invRowReplace(p) { const row = document.getElementById('inv_' + p.id); 
 function invRtToggle(id) { const p = products.find(x => x.id === id); if (!p) return; invRtOpen[id] = !invRtOpen[id]; invRowReplace(p); }
 function invRtSwitch(id, v) {
     const p = products.find(x => x.id === id); if (!p) return;
-    const e = invEff(p); invRt[id] = { on: !!v, cnt: e.cnt || '', type: e.type || subTypes[0] || 'Strip' };
+    const e = invEff(p); invRt[id] = { on: !!v, cnt: e.cnt || '', type: e.type || '' };
     if (v) invRtOpen[id] = true;
     invRowReplace(p);
 }
@@ -5351,7 +5352,6 @@ function qpAutoSize(meta) {
     if (sel.dataset.manual === '1') return;
     const v = partSizeCalc(meta, sc.value);
     if (!v) { if (sel.dataset.auto === '1') { sel.dataset.auto = ''; } return; }
-    if (![...sel.options].some(o => o.value === v)) { const o = document.createElement('option'); o.value = v; o.textContent = v; sel.insertBefore(o, sel.firstChild); }
     sel.value = v; sel.dataset.auto = '1';
 }
 function partAutoSize() {
@@ -5391,6 +5391,7 @@ function stockLabel(p) {
 function renderSubTypeSelect(selected) {
     const sel = document.getElementById('fSubType');
     if (!sel) return;
+    if (sel.tagName === 'INPUT') { sel.value = selected || ''; return; }   // حجم الجزء حقل حر يُملأ تلقائياً
     const list = subTypes.slice();
     if (selected && !list.includes(selected)) list.push(selected);
     sel.innerHTML = '<option value="">— اختر حجم الجزء —</option>' + list.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');

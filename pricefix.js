@@ -52,7 +52,7 @@ function pzDetailHtml(x) {
         <div class="qsec"><h4>🧩 البيع بالتجزئة (اختياري)</h4>
             <div class="qg3">
                 <div class="qf"><span>عدد الأجزاء</span><input id="qpSc" type="number" inputmode="numeric" min="0" class="qin ltr" dir="ltr" value="${sub ? subCountOf(sub) : ''}"></div>
-                <div class="qf"><span>حجم الجزء</span><select id="qpSt" class="qin ltr" dir="ltr">${types.map(t => `<option value="${escapeHtml(t)}"${sub && sub.subType === t ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></div>
+                <div class="qf"><span>حجم الجزء</span><input id="qpSt" class="qin ltr" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="تلقائي" value="${sub && sub.subType ? escapeHtml(sub.subType) : ''}"></div>
                 <div class="qf"><span>سعر الجزء</span><input id="qpSp" type="number" inputmode="decimal" min="0" class="qin ltr" dir="ltr" value="${sub && sub.subPrice ? sub.subPrice : ''}" data-manual="${sub && sub.subPrice ? '1' : ''}"></div>
             </div>
         </div></div>`;

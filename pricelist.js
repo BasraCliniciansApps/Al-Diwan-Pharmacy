@@ -67,7 +67,7 @@ function plRow(p, owner) {
             <label class="pl-f" data-mkw style="${mode === 'percent' ? '' : 'display:none'}"><span>نسبة الإضافة ٪</span>${inp('mk', p.markupPct != null ? p.markupPct : '')}</label>
             ${owner ? `<div class="pl-f"><span>الربح</span><b class="pl-prof ${profit === null ? '' : profit < 0 ? 'bad' : 'good'}" data-prof>${profit === null ? '—' : fmtNum(profit)}</b></div>` : ''}
             <label class="pl-f"><span>عدد الأجزاء</span>${inp('sc', sc || '', 'step="1"')}</label>
-            <label class="pl-f"><span>حجم الجزء</span><select class="pl-in" data-f="st" onchange="plSave(${id})"><option value=""></option>${types.map(t => `<option value="${escapeHtml(t)}"${t === curT ? ' selected' : ''}>${escapeHtml(t)}</option>`).join('')}</select></label>
+            <label class="pl-f"><span>حجم الجزء</span><input class="pl-in" data-f="st" inputmode="numeric" autocomplete="off" value="${escapeHtml(curT)}" onchange="plSave(${id})"></label>
             <label class="pl-f"><span>سعر الجزء</span>${inp('sp', sp || '')}</label>
         </div></div>`;
 }
@@ -94,7 +94,7 @@ async function plSave(id) {
     const st = el.querySelector('[data-st]'), say = (t, c) => { if (st) { st.textContent = t; st.className = 'pl-st ' + (c || ''); } };
     if (mode === 'percent' && (!(cost > 0) || !(mk >= 0))) { say('أدخل سعر الشراء والنسبة', 'bad'); return; }
     if (mode === 'syndicate' && !(cost > 0)) { say('أدخل سعر الشراء', 'bad'); return; }
-    const sc = parseInt(plVal(el, 'sc')) || 0, spIn = parseFloat(plVal(el, 'sp')), stype = plVal(el, 'st') || (subTypes[0] || 'جزء');
+    const sc = parseInt(plVal(el, 'sc')) || 0, spIn = parseFloat(plVal(el, 'sp')), stype = plVal(el, 'st') || 'جزء';
     // سعر الجزء: إن لم يُكتب يدوياً (أو كان محسوباً تلقائياً من السعر القديم) يُعاد حسابه من السعر الجديد
     const oldSc = hasRetail(p) ? subCountOf(p) : 0, oldAuto = oldSc > 1 && (!(Number(p.subPrice) > 0) || Number(p.subPrice) === subPriceCalc(p.price, oldSc));
     const retail = sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: stype, subPrice: (spIn > 0 && !(oldAuto && sc === oldSc && price !== (parseFloat(p.price) || 0))) ? spIn : subPriceCalc(price, sc) };

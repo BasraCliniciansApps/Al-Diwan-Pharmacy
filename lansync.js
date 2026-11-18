@@ -297,7 +297,7 @@
         } else if (type === 'cfg' && data.cfg) {
             const c = data.cfg;
             if (c.departments) departments = c.departments; if (c.subCategories) subCategories = c.subCategories; if (c.deptSubs) deptSubs = c.deptSubs; if (c.taxLegacy) taxLegacy = c.taxLegacy;
-            if (c.subTypes) subTypes = c.subTypes; if (c.lowStockThreshold !== undefined) lowStockThreshold = c.lowStockThreshold; if (c.alertMonths) alertMonths = c.alertMonths;
+            if (c.lowStockThreshold !== undefined) lowStockThreshold = c.lowStockThreshold; if (c.alertMonths) alertMonths = c.alertMonths;
             if (c.pricingCfg) pricingCfg = normPricingCfg(c.pricingCfg);
             try { if (c.formCfg && typeof formCfgImport === 'function') formCfgImport(c.formCfg); } catch (e) { /* تجاهل */ }
             t.c = hsh(stable(cfgNow())); changed = true;

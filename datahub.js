@@ -357,7 +357,7 @@ function dhRenderFnm(el) {
         <div class="qk-row"><div><small>تنظيف هذه المادة</small></div><label class="setup-sw"><input type="checkbox" ${dhFnmOff.has(r.p.id) ? '' : 'checked'} onchange="dhFnmPick(${r.p.id},this.checked)"><i></i></label></div></div>`;
     el.innerHTML = `${dhHead('✂️ إزالة الشكل الدوائي من الاسم', true)}
     <div class="tr-prog">تُزال كلمة الشكل الدوائي (مثل Tablet أو Syrup) من الاسم التجاري فقط إذا كان الشكل نفسه مختاراً في حقل «الشكل الدوائي»، ويبقى الشكل في حقله. راجع القائمة وعطّل ما لا تريد تغييره، ثم اضغط حفظ.</div>
-    <div class="tr-list">${plan.length ? plan.slice(0, 300).map(row).join('') + (plan.length > 300 ? `<div class="dh-sub" style="padding:8px 4px">يظهر أول 300 فقط من ${fmtNum(plan.length)}. بعد حفظ هذه الدفعة تظهر البقية.</div>` : '') : '<div class="dh-sub" style="padding:16px">لا توجد مواد فيها شكل دوائي مكرر في الاسم.</div>'}</div>
+    <div class="tr-list">${plan.length ? plan.slice(0, 400).map(row).join('') + (plan.length > 400 ? `<div class="dh-sub" style="padding:8px 4px">تُعرض أول 400 للمراجعة، والتطبيق يشمل كل ${fmtNum(plan.length)} مادة.</div>` : '') + (plan.length > 300 ? `<div class="dh-sub" style="padding:8px 4px">يظهر أول 300 فقط من ${fmtNum(plan.length)}. بعد حفظ هذه الدفعة تظهر البقية.</div>` : '') : '<div class="dh-sub" style="padding:16px">لا توجد مواد فيها شكل دوائي مكرر في الاسم.</div>'}</div>
     <div class="tr-foot"><button type="button" class="tr-apply" id="dhFnmBtn" onclick="dhFnmApply()">💾 حفظ التنظيف (${fmtNum(Math.min(on, 300))})</button></div>`;
 }
 function dhFnmPick(id, v) { if (v) dhFnmOff.delete(id); else dhFnmOff.add(id); const b = document.getElementById('dhFnmBtn'); if (b) b.textContent = `💾 حفظ التنظيف (${fmtNum(dhFnmPlan().slice(0, 300).filter(r => !dhFnmOff.has(r.p.id)).length)})`; }
@@ -378,7 +378,7 @@ async function dhFnmApply() {
 
 // ---------- حجم الجزء التلقائي: عدد حبات العبوة ÷ عدد الأجزاء (للمواد بلا حجم جزء فقط) ----------
 let dhPszOff = new Set(), dhPszOn = new Set();   // المواد التي لها قيمة قديمة (Strip...) لا تُطبَّق إلا إذا فعّلها المستخدم
-function dhPszIs(r) { return r.cur ? dhPszOn.has(r.p.id) : !dhPszOff.has(r.p.id); }
+function dhPszIs(r) { return !dhPszOff.has(r.p.id); }
 function dhPszPlan() {
     const out = [];
     products.forEach(p => {
@@ -395,21 +395,27 @@ function dhRenderPsz(el) {
         <div class="dh-sub" dir="ltr">${r.cur ? dhEsc(r.cur) + ' ' : ''}← <b>${dhEsc(r.v)}</b></div>
         <div class="qk-row"><div><small>تطبيق على هذه المادة</small></div><label class="setup-sw"><input type="checkbox" ${dhPszIs(r) ? 'checked' : ''} onchange="dhPszPick(${r.p.id},this.checked)"><i></i></label></div></div>`;
     el.innerHTML = `${dhHead('🧩 حجم الجزء التلقائي', true)}
-    <div class="tr-prog">يُحسب حجم الجزء من عدد حبات العبوة مقسوماً على عدد الأجزاء، للمواد المقسومة بالتساوي. المواد الفارغة الحجم مفعّلة تلقائياً، أما التي فيها قيمة قديمة (مثل Strip) فتظهر مع القيمة القديمة وهي معطّلة حتى تفعّلها أنت. ثم اضغط حفظ.</div>
-    <div class="tr-list">${plan.length ? plan.slice(0, 300).map(row).join('') : '<div class="dh-sub" style="padding:16px">لا توجد مواد تحتاج حجم جزء.</div>'}</div>
-    <div class="tr-foot"><button type="button" class="tr-apply" id="dhPszBtn" onclick="dhPszApply()">💾 حفظ (${fmtNum(Math.min(on, 300))})</button></div>`;
+    <div class="tr-prog">يُحسب حجم الجزء من عدد حبات العبوة مقسوماً على عدد الأجزاء، للمواد المقسومة بالتساوي. تُستبدل القيم القديمة (مثل Strip وVial) بالحجم المحسوب، والكل مفعّل افتراضياً ويمكنك تعطيل ما لا تريد. المواد التي لا تنقسم عبوتها بالتساوي أو عبوتها نصية تبقى كما هي. ثم اضغط حفظ.</div>
+    <div class="tr-list">${plan.length ? plan.slice(0, 400).map(row).join('') + (plan.length > 400 ? `<div class="dh-sub" style="padding:8px 4px">تُعرض أول 400 للمراجعة، والتطبيق يشمل كل ${fmtNum(plan.length)} مادة.</div>` : '') : '<div class="dh-sub" style="padding:16px">لا توجد مواد تحتاج حجم جزء.</div>'}</div>
+    <div class="tr-foot"><button type="button" class="tr-apply" id="dhPszBtn" onclick="dhPszApply()">💾 تطبيق على ${fmtNum(on)} مادة</button></div>`;
 }
-function dhPszPick(id, v) { if (v) { dhPszOff.delete(id); dhPszOn.add(id); } else { dhPszOff.add(id); dhPszOn.delete(id); } const b = document.getElementById('dhPszBtn'); if (b) b.textContent = `💾 حفظ (${fmtNum(dhPszPlan().slice(0, 300).filter(dhPszIs).length)})`; }
+function dhPszPick(id, v) { if (v) { dhPszOff.delete(id); dhPszOn.add(id); } else { dhPszOff.add(id); dhPszOn.delete(id); } const b = document.getElementById('dhPszBtn'); if (b) b.textContent = `💾 تطبيق على ${fmtNum(dhPszPlan().filter(dhPszIs).length)} مادة`; }
 async function dhPszApply() {
     if (!writesAllowed()) return;
-    const upd = dhPszPlan().slice(0, 300).filter(dhPszIs);
+    const upd = dhPszPlan().filter(dhPszIs);
     if (!upd.length) { Swal.fire({ icon: 'info', title: 'لا توجد تعديلات للحفظ', timer: 1600, showConfirmButton: false }); return; }
-    if (!(await askSure('تعبئة حجم الجزء لـ ' + fmtNum(upd.length) + ' مادة؟', 'يُملأ حجم الجزء فقط للمواد المحددة التي حقله فارغ.', 'نعم، عبّئ'))) return;
-    upd.forEach(r => { r.p.subType = r.v; });   // r.cur = القيمة السابقة
-    const ok = await saveProductsBatch(upd.map(r => r.p));
-    if (!ok) { upd.forEach(r => { r.p.subType = r.cur; }); return; }
-    upd.forEach(r => { try { logAction('edit', r.p, [{ f: 'حجم الجزء (تعبئة تلقائية)', from: r.cur, to: r.v }]); } catch (e) { /* تجاهل */ } });
+    if (!(await askSure('تطبيق حجم الجزء على ' + fmtNum(upd.length) + ' مادة؟', 'يُستبدل حجم الجزء القديم (مثل Strip) بالحجم المحسوب من العبوة ÷ عدد الأجزاء للمواد المحددة فقط.', 'نعم، طبّق'))) return;
+    const h = Prog.open('تطبيق حجم الجزء', { text: fmtNum(upd.length) + ' مادة' });
+    let done = 0, failed = false;
+    for (let i = 0; i < upd.length; i += 300) {
+        const part = upd.slice(i, i + 300);
+        part.forEach(r => { r.p.subType = r.v; });
+        const ok = await saveProductsBatch(part.map(r => r.p));
+        if (!ok) { part.forEach(r => { r.p.subType = r.cur; }); failed = true; break; }
+        part.forEach(r => { try { logAction('edit', r.p, [{ f: 'حجم الجزء (تعبئة تلقائية)', from: r.cur, to: r.v }]); } catch (e) { /* تجاهل */ } });
+        done += part.length;
+    }
+    Prog.end(h, failed ? 'err' : 'ok', failed ? 'توقف بعد ' + fmtNum(done) + ' مادة' : 'تم تطبيق ' + fmtNum(done) + ' مادة');
     try { renderAll(); } catch (e) { /* تجاهل */ }
-    Swal.fire({ icon: 'success', title: 'تمت تعبئة ' + fmtNum(upd.length) + ' مادة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     dhRender();
 }
