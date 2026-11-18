@@ -370,8 +370,10 @@ function cnSetCnt(id, v) { const r = cnRow(id); if (!r) return; r.ov = 1; r.cnt 
 function cnSetPrice(id, v) { const r = cnRow(id); if (!r) return; r.pe = true; r.price = v === '' ? '' : String(cnNum(v)); cnRefreshTotals(r); cnTouch(); }
 async function cnDelRow(id) {
     const r = cnRow(id); if (!r) return; const p = products.find(x => x.id === r.pid);
-    if (!(await askSure('حذف هذا السطر من القائمة؟', (p ? p.name : '') + ' (لا يتأثر المخزن)', 'حذف'))) return;
-    cnTrash(cnCur, [r]); cnCur.rows = cnCur.rows.filter(x => x.id !== id); cnTouch(); cnListRender();
+    // المادة ذات التجزئة لها سطران (علبة وجزء) ويُعيد التطبيق إنشاء الناقص منهما تلقائياً، فالحذف يشملهما معاً
+    const all = cnCur.rows.filter(x => x.pid === r.pid), both = all.length > 1;
+    if (!(await askSure(both ? 'حذف المادة من القائمة (سطر العلبة وسطر الجزء)؟' : 'حذف هذا السطر من القائمة؟', (p ? p.name : '') + ' (لا يتأثر المخزن)', 'حذف'))) return;
+    cnTrash(cnCur, all); const ids = new Set(all.map(x => x.id)); cnCur.rows = cnCur.rows.filter(x => !ids.has(x.id)); cnTouch(); cnListRender();
 }
 
 // ---------- اعتماد العدد/السعر على المخزن ----------
