@@ -4827,3 +4827,8 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 [data-theme="dark"] .fu-in, [data-theme="dark"] .fu-q input, [data-theme="dark"] .fu-days input, [data-theme="dark"] .fu-sw, [data-theme="dark"] .fu-ab { background: #1e293b; border-color: #334155; color: #e2e8f0; }
 [data-theme="dark"] .fu-row.fu-late { background: #3b1d1d; } [data-theme="dark"] .fu-item { background: #12302d; border-color: #115e59; } [data-theme="dark"] .fu-l { color: #cbd5e1; }
 #fuBox .cn-new { font-family: inherit; font-weight: 800; font-size: 1rem; }
+
+/* v648: تعبئة المواد الفعالة تلقائياً */
+.ing-auto-btn { width: 100%; min-height: 44px; margin-bottom: 10px; font-weight: 800; }
+.ing-input.ing-auto { border-color: #16a34a !important; background: #f0fdf4 !important; }
+[data-theme="dark"] .ing-input.ing-auto { background: #12302d !important; }
