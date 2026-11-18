@@ -133,7 +133,7 @@ function fuListRender() {
             <div id="fuRows">${rows.map(fuCardHtml).join('') || '<div class="cu-none">لا توجد عناصر.</div>'}</div>`;
     }
     const days = userRole === 'owner' ? `<div class="fu-days"><span>مدة التذكير (أيام)</span><input type="number" inputmode="numeric" min="1" max="365" value="${fuDays()}" onchange="fuDaysSet(this.value)"></div>` : '';
-    document.getElementById('fuBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="fuBack()" aria-label="رجوع">→</button><b>🔔 المتابعات</b><span>${late ? fmtNum(late) + ' متأخرة' : ''}</span></div><div class="cn-body">${tabs}${body}${days}</div>`;
+    document.getElementById('fuBox').innerHTML = `<div class="cn-head"><b>🔔 المتابعات</b><span>${late ? fmtNum(late) + ' متأخرة' : ''}</span></div><div class="cn-body">${tabs}${body}${days}</div>`;
 }
 function fuListRows() { const b = document.getElementById('fuRows'); if (b) b.innerHTML = fuRows().map(fuCardHtml).join('') || '<div class="cu-none">لا توجد عناصر.</div>'; }
 
@@ -213,7 +213,7 @@ function fuFormRender() {
         <label class="fu-l">التاريخ<input class="fu-in" type="date" value="${fuEsc(d.date)}" onchange="fuFld('date',this.value)"></label>
         ${!locked && d.pid && fuStockOk() ? `<div class="fu-l fu-sw"><span>خصم الكمية من المخزن الآن (وتعود عند الإعادة)</span><label class="setup-sw"><input type="checkbox" ${d.deduct !== false ? 'checked' : ''} onchange="fuFld('deduct',this.checked)"><i></i></label></div>` : ''}`;
     }
-    document.getElementById('fuBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="fuBack()" aria-label="رجوع">→</button><b>${isP ? (edit ? 'تعديل وعد' : 'وعد جديد') : (edit ? 'تعديل مادة مأخوذة' : 'مادة مأخوذة جديدة')}</b><span></span></div>
+    document.getElementById('fuBox').innerHTML = `<div class="cn-head"><b>${isP ? (edit ? 'تعديل وعد' : 'وعد جديد') : (edit ? 'تعديل مادة مأخوذة' : 'مادة مأخوذة جديدة')}</b><span></span></div>
         <div class="cn-body fu-form">${fields}<label class="fu-l">ملاحظة (اختياري)<textarea class="fu-in fu-ta" rows="2" oninput="fuFld('note',this.value)">${fuEsc(d.note)}</textarea></label>
         <button type="button" class="cn-new" id="fuSaveBtn" onclick="fuSave()">حفظ</button></div>`;
 }
