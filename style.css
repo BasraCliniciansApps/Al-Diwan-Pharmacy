@@ -4821,3 +4821,7 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 #catModal .modal-card { max-width: none !important; width: 100% !important; height: 100% !important; max-height: none !important; border-radius: 0 !important; box-shadow: none !important; background: #eef2f7; padding: calc(14px + env(safe-area-inset-top)) 16px calc(16px + env(safe-area-inset-bottom)) !important; box-sizing: border-box; -webkit-overflow-scrolling: touch; }
 #catModal .modal-card { padding-top: 0 !important; }
 #catModal .modal-card > .sh-bar-top, #catModal .modal-card > :first-child { margin-top: 0; }
+
+.dw-page.lbl-pop .swal2-html-container { max-height: none !important; padding: 14px 16px !important; }
+.dw-page.lbl-pop .swal2-actions { padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) !important; flex-direction: row !important; }
+.dw-page.lbl-pop .swal2-actions button { height: 48px; }

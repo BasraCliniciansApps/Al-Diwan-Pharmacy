@@ -5,7 +5,7 @@
     var ICMAP = { question: 'circle-question-mark', warning: 'triangle-alert', error: 'circle-x', success: 'circle-check', info: 'info' };
     var orig = Swal.fire.bind(Swal);
     Swal.fire = function (o) {
-        if (!o || typeof o !== 'object' || o.toast || (o.customClass && o.customClass.popup)) return orig.apply(null, arguments);
+        if (!o || typeof o !== 'object' || o.toast || (o.customClass && o.customClass.popup && o.customClass.popup !== 'lbl-pop')) return orig.apply(null, arguments);
         var o2 = Object.assign({}, o);
         if (o2.confirmButtonText === undefined) o2.confirmButtonText = 'حسناً';   // لا يظهر «OK» الإنجليزي أبداً
         if (o2.cancelButtonText === undefined) o2.cancelButtonText = 'إلغاء';
@@ -29,7 +29,7 @@
         var page = !o.toast && !o.timer && !o.icon && !o.target && (ctl >= 3 || (ctl >= 1 && hs.length > 1400));
         if (page) {
             var ccp = Object.assign({}, o.customClass || {});
-            ccp.popup = 'dw-pop dw-page'; ccp.container = 'dw-cont-page'; ccp.title = 'dw-title'; ccp.htmlContainer = 'dw-text'; ccp.actions = 'dw-actions';
+            ccp.popup = 'dw-pop dw-page' + (o.customClass && o.customClass.popup ? ' ' + o.customClass.popup : ''); ccp.container = 'dw-cont-page'; ccp.title = 'dw-title'; ccp.htmlContainer = 'dw-text'; ccp.actions = 'dw-actions';
             ccp.confirmButton = 'dw-btn dw-btn-main' + (/^#(b91c1c|dc2626|ef4444|991b1b|c0392b)/i.test(String(o.confirmButtonColor || '')) ? ' dw-btn-danger' : ''); ccp.cancelButton = (o.customClass && o.customClass.cancelButton) || 'dw-btn dw-btn-ghost'; ccp.denyButton = 'dw-btn dw-btn-ghost';
             ccp.closeButton = 'dw-page-x';
             o2.customClass = ccp; o2.position = 'center'; o2.grow = false; o2.width = '100%'; o2.padding = 0; o2.heightAuto = false; o2.backdrop = false; o2.buttonsStyling = false; o2.reverseButtons = false;
