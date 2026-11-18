@@ -154,9 +154,9 @@ function setAlertFilter(v) { alertFilterV = v; renderAlerts(); }
 let alertListIds = [];
 function alertsToPO() {
     if (!alertListIds.length) { Swal.fire({ icon: 'info', title: 'القائمة فارغة', confirmButtonColor: '#0f1c38' }); return; }
-    alertListIds.forEach(id => { poExtra.add(id); if (poState[id]) poState[id].on = true; });
-    showView('bill'); billTab('po');
-    Swal.fire({ icon: 'success', title: 'أضيف ' + alertListIds.length + ' صنف إلى طلب الشراء', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    const ns = ndState(); alertListIds.forEach(id => { delete ns.off[id]; delete ns.ordered[id]; if (!ns.extra.includes(id)) ns.extra.push(id); }); ndSave(ns);
+    ndOpen();
+    Swal.fire({ icon: 'success', title: 'أضيف ' + alertListIds.length + ' صنف إلى قائمة النواقص', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
 }
 function renderAlerts() {
     const sel = document.getElementById('alertFilter');

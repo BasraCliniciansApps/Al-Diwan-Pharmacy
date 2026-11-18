@@ -8,7 +8,6 @@
         <button type="button" data-tab="issued" onclick="billTab('issued')">📚 الصادرة</button>
         <button type="button" data-tab="debt" onclick="billTab('debt')">💳 الآجل</button>
         <button type="button" data-tab="reports" onclick="billTab('reports')">📊 التقارير</button>
-        <button type="button" data-tab="po" onclick="billTab('po')">🛒 طلب شراء</button>
         <button type="button" data-tab="settings" onclick="billTab('settings')">⚙️ الإعدادات</button>
     </div>
 

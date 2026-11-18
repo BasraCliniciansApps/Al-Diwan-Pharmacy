@@ -577,9 +577,10 @@ async function puSave0() {
     renderAll();
     const retMap = {}; (pu.items || []).forEach(it => { if (puNum(it.ret) > 0) retMap[it.pid] = puNum(it.ret); });   // مواد علّمتها «مردود» أثناء الإدخال
     pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew();
-    if (gift) { Swal.fire({ icon: 'success', title: editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ البونص وأُضيف للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 }); if (!editing && typeof fuAfterPurchase === 'function') setTimeout(() => fuAfterPurchase(rec), 2700); puTab('bonus'); return; }
+    if (gift) { Swal.fire({ icon: 'success', title: editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ البونص وأُضيف للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 }); if (!editing && typeof fuAfterPurchase === 'function') setTimeout(() => fuAfterPurchase(rec), 2700); if (!editing && typeof ndAfterPurchase === 'function') ndAfterPurchase(rec); puTab('bonus'); return; }
     Swal.fire({ icon: 'success', title: editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ الوارد وأُضيفت الكميات للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
     if (!editing && typeof fuAfterPurchase === 'function') setTimeout(() => fuAfterPurchase(rec), 2700);   // وعود بونص مفتوحة على موادّ هذا الوارد
+    if (!editing && typeof ndAfterPurchase === 'function') ndAfterPurchase(rec);   // خروج المواد الواصلة من «قيد الطلب»
     if (editing) puTab('log');
     if (Object.keys(retMap).length && typeof ptOpenReturnFor === 'function') ptOpenReturnFor(rec, retMap);
 }
