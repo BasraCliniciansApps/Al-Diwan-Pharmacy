@@ -4927,3 +4927,17 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 /* v692: زر إغلاق ماسح الباركود */
 .bc-close-row { display: flex; justify-content: center; margin-top: 10px; }
 .bc-close-row .icon-btn { min-width: 150px; height: 42px; justify-content: center; }
+/* v693: واجهة الموبايل المضغوطة للبيع التجريبي (للرجوع: P2_COMPACT=false في pos2.js) */
+.p2-pills, .p2-fsum { display: none; }
+@media (max-width: 899px) {
+    .p2c .p2-pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0; }
+    .p2c .p2-pill { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; padding: 0 6px; border: 1.5px solid var(--border, #d8dee9); border-radius: 12px; background: #fff; color: #0f1c38; font: inherit; font-weight: 800; font-size: .88rem; cursor: pointer; }
+    .p2c .p2-pill.on { background: #0f1c38; color: #fff; border-color: #0f1c38; }
+    .p2c .p2-bd { font-style: normal; font-size: .72rem; font-weight: 800; padding: 1px 7px; border-radius: 999px; background: #16a34a; color: #fff; }
+    .p2c .p2-bd[hidden] { display: none; }
+    .p2c .p2-hm { display: none !important; }
+    .p2c .p2-acc-b { display: none; }
+    .p2c .p2-acc-b.open { display: block; margin-bottom: 8px; }
+    .p2c .p2-acc-b .pos-more { display: none; }
+    .p2c .p2-fsum { display: block; text-align: center; font-size: .85rem; font-weight: 700; color: #475569; padding: 4px 0 0; }
+}

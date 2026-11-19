@@ -122,6 +122,7 @@ function p2Sync() { const t = billTotals(), a = p2El('p2A'), p = p2El('p2P'); if
 function p2Totals() {   // تحديث الأرقام دون إعادة رسم اللوحة (حتى لا يضيع المؤشر من الحقول)
     const t = billTotals(), L = posLimits(), set = (id, v) => { const e = p2El(id); if (e) e.textContent = v; };
     set('p2Sub', fmtNum(t.sub) + ' د.ع'); set('p2Dsc', t.disc > 0 ? '− ' + fmtNum(t.disc) + ' د.ع' : '0'); set('p2Net', fmtNum(t.total)); set('p2NetBar', fmtNum(t.total));
+    { const bd = p2El('p2BdD'); if (bd) { bd.hidden = !(t.disc > 0); bd.textContent = fmtNum(t.disc); } set('p2FSum', posGroups().length + ' مواد' + (t.disc > 0 ? ' · الخصم ' + fmtNum(t.disc) + ' د.ع' : '')); }
     const mx = p2El('p2Max'); if (mx) mx.textContent = L.unknown && L.own ? 'أعلى خصم غير محسوب لبعض المواد (لا كلفة)' : 'أعلى خصم بدون خسارة: ' + (t.sub > 0 ? Math.floor(L.allow / t.sub * 1000) / 10 : 0) + '٪ (' + fmtNum(L.allow) + ' د.ع)';
     const m = p2El('p2Msg');
     if (m) {
@@ -232,38 +233,49 @@ function p2CardHtml(g) {
 }
 
 // ---------- الرسم ----------
+// ===== واجهة الموبايل المضغوطة (< 900px): أزرار مطوية بدل الأقسام المفتوحة. للرجوع للوضع السابق اجعل P2_COMPACT = false =====
+const P2_COMPACT = true;
+function p2Acc(k) { p2.acc = p2.acc === k ? null : k; if (k === 'ext') p2.extra = p2.acc === 'ext'; p2Render(); }
+function p2Pills(hasRnd) {
+    if (!P2_COMPACT) return '';
+    const bd = (id, on, txt) => `<i class="p2-bd" id="${id}" ${on ? '' : 'hidden'}>${txt || ''}</i>`;
+    const ext = !!(bill.to || bill.customer || bill.doctor || bill.notes);
+    const b = (k, lbl, badge) => `<button type="button" class="p2-pill${p2.acc === k ? ' on' : ''}" onclick="p2Acc('${k}')"><span>${lbl}</span>${badge}</button>`;
+    return `<div class="p2-pills">${b('disc', 'خصم', bd('p2BdD', false))}${hasRnd ? b('rnd', 'تسوية الألف', '') : ''}${b('calc', 'حاسبة الباقي', bd('p2BdC', p2Calc(), '✓'))}${b('cr', 'بيع آجل', bd('p2BdR', p2.credit, '✓'))}${b('ext', 'بيانات الفاتورة', bd('p2BdE', ext, '●'))}</div>`;
+}
 function p2Panel() {
     const el = typeof qiEligible === 'function' ? qiEligible() : [];
     if (!el.includes(p2.rcur)) p2.rcur = el[0];
-    const t = billTotals(), L = posLimits(), showLim = userRole === 'owner' || (typeof can === 'function' && can('scanDisc')), n = posGroups().length;
-    return `<div class="p2-sec">ملخص الفاتورة</div>
-        <div class="p2-row"><span>عدد المواد</span><b>${n}</b></div>
-        <div class="p2-row"><span>المجموع قبل الخصم</span><b id="p2Sub"></b></div>
-        <div class="p2-row"><span>الخصم</span><b id="p2Dsc"></b></div>
-        <div class="p2-sec">الخصم</div>
+    const o = k => p2.acc === k ? ' open' : '', t = billTotals(), L = posLimits(), showLim = userRole === 'owner' || (typeof can === 'function' && can('scanDisc')), n = posGroups().length;
+    return `${p2Pills(el.length > 0)}
+        <div class="p2-sec p2-hm">ملخص الفاتورة</div>
+        <div class="p2-row p2-hm"><span>عدد المواد</span><b>${n}</b></div>
+        <div class="p2-row p2-hm"><span>المجموع قبل الخصم</span><b id="p2Sub"></b></div>
+        <div class="p2-row p2-hm"><span>الخصم</span><b id="p2Dsc"></b></div>
+        <div class="p2-acc-b${o('disc')}"><div class="p2-sec">الخصم</div>
         <div class="px-row"><label><span>نسبة الخصم ٪</span><input id="p2P" type="number" inputmode="decimal" min="0" step="any" oninput="p2DiscPct(this)"></label><label><span>مبلغ الخصم (د.ع)</span><input id="p2A" type="number" inputmode="numeric" min="0" oninput="p2DiscAmt(this)"></label></div>
         <div class="px-chips" id="p2Chips">${[5, 10, 15, 20].map(k => `<button type="button" data-p="${k}" onclick="p2Chip('${k}')">${k}٪</button>`).join('')}${posCostChipOn() ? '<button type="button" data-p="cost" class="cost" onclick="p2Chip(\'cost\')">سعر الكلفة</button>' : ''}<button type="button" data-p="0" class="clr" onclick="p2Chip('0')">بدون خصم</button></div>
         ${showLim ? '<button type="button" class="px-max" id="p2Max" onclick="p2DiscMax()"></button>' : ''}
-        <div id="p2Msg" class="px-msg"></div>
-        ${el.length ? `<div id="p2Round" class="p2-rnd"><div class="px-sec">تسوية المجموع إلى ألف كاملة</div>
+        <div id="p2Msg" class="px-msg"></div></div>
+        <div class="p2-acc-b${o('rnd')}">${el.length ? `<div id="p2Round" class="p2-rnd"><div class="px-sec">تسوية المجموع إلى ألف كاملة</div>
             <div class="px-rl">${el.map(i => `<label class="px-rr"><input type="radio" name="p2RI" value="${i}" ${i === p2.rcur ? 'checked' : ''} onchange="p2.rcur=${i}"><span class="px-rn" dir="ltr">${posEsc(bill.items[i].name)}</span><b id="p2RP${i}"></b></label>`).join('')}</div>
-            <div class="px-st">${[250, 500, 750].map(n => `<div class="px-sc"><button type="button" class="up" onclick="p2RStep(${n})" aria-label="زيادة ${n}">+</button><b>${n}</b><button type="button" class="dn" onclick="p2RStep(-${n})" aria-label="نقص ${n}">−</button></div>`).join('')}</div></div>` : ''}
-        <div class="p2-netbox"><span>الصافي</span><b id="p2Net"></b><i>د.ع</i></div>
-        <div class="p2-sec p2-sec-sw"><span>حاسبة الباقي (بيع نقدي)</span><label class="setup-sw"><input type="checkbox" ${p2Calc() ? 'checked' : ''} onchange="p2CalcToggle(this.checked)" aria-label="حاسبة الباقي"><i></i></label></div>
+            <div class="px-st">${[250, 500, 750].map(n => `<div class="px-sc"><button type="button" class="up" onclick="p2RStep(${n})" aria-label="زيادة ${n}">+</button><b>${n}</b><button type="button" class="dn" onclick="p2RStep(-${n})" aria-label="نقص ${n}">−</button></div>`).join('')}</div></div>` : ''}</div>
+        <div class="p2-netbox p2-hm"><span>الصافي</span><b id="p2Net"></b><i>د.ع</i></div>
+        <div class="p2-acc-b${o('calc')}"><div class="p2-sec p2-sec-sw"><span>حاسبة الباقي (بيع نقدي)</span><label class="setup-sw"><input type="checkbox" ${p2Calc() ? 'checked' : ''} onchange="p2CalcToggle(this.checked)" aria-label="حاسبة الباقي"><i></i></label></div>
         ${p2Calc() ? `<label class="p2-recv"><span>المبلغ المستلم (د.ع)</span><input id="p2R" type="number" inputmode="numeric" min="0" value="${posEsc(p2.recv)}" oninput="p2.recv=this.value;p2CalcRefresh()"></label>
-            <div class="p2-quick" id="p2Quick"></div><div id="p2Chg" class="p2-chg"></div>` : ''}
-        <div class="px-cr"><span>بيع آجل (دفع جزء من المبلغ)</span><label class="setup-sw"><input type="checkbox" ${p2.credit ? 'checked' : ''} onchange="p2CreditToggle(this.checked)" aria-label="بيع آجل"><i></i></label></div>
-        <div id="p2PaidBox" style="display:${p2.credit ? '' : 'none'}"><input id="p2Paid" type="number" inputmode="numeric" min="0" class="px-paid" placeholder="المبلغ المدفوع (0 إن لم يُدفع شيء)" value="${posEsc(p2.paid)}" oninput="p2.paid=this.value"></div>
-        <button type="button" class="pos-more" onclick="p2ToggleExtra()">${p2.extra ? '▲ إخفاء بيانات الفاتورة' : '▼ بيانات الفاتورة (الشركة، الزبون، الطبيب، التاريخ، ملاحظات)'}</button>
+            <div class="p2-quick" id="p2Quick"></div><div id="p2Chg" class="p2-chg"></div>` : ''}</div>
+        <div class="p2-acc-b${o('cr')}"><div class="px-cr"><span>بيع آجل (دفع جزء من المبلغ)</span><label class="setup-sw"><input type="checkbox" ${p2.credit ? 'checked' : ''} onchange="p2CreditToggle(this.checked)" aria-label="بيع آجل"><i></i></label></div>
+        <div id="p2PaidBox" style="display:${p2.credit ? '' : 'none'}"><input id="p2Paid" type="number" inputmode="numeric" min="0" class="px-paid" placeholder="المبلغ المدفوع (0 إن لم يُدفع شيء)" value="${posEsc(p2.paid)}" oninput="p2.paid=this.value"></div></div>
+        <div class="p2-acc-b${o('ext')}"><button type="button" class="pos-more" onclick="p2ToggleExtra()">${p2.extra ? '▲ إخفاء بيانات الفاتورة' : '▼ بيانات الفاتورة (الشركة، الزبون، الطبيب، التاريخ، ملاحظات)'}</button>
         ${p2.extra ? `<div class="pos-fields">
             <label>إلى السيد / الشركة<input list="qiDl_to" autocomplete="off" placeholder="اختياري" value="${posEsc(bill.to || '')}" onchange="p2Field('to', this.value)"></label>
             <label>اسم الزبون<input list="qiDl_customer" autocomplete="off" placeholder="اختياري" value="${posEsc(bill.customer || '')}" onchange="p2Field('customer', this.value)"></label>
             <label>اسم الطبيب المعالج<input list="qiDl_doctor" autocomplete="off" placeholder="اختياري" value="${posEsc(bill.doctor || '')}" onchange="p2Field('doctor', this.value)"></label>
             <label>التاريخ<input type="date" value="${posEsc(bill.date || todayLocalISO())}" onchange="p2Field('date', this.value || todayLocalISO())"></label>
             <label>ملاحظات<textarea rows="2" onchange="p2Field('notes', this.value)">${posEsc(bill.notes || '')}</textarea></label>
-            ${['to', 'customer', 'doctor'].map(k => qiDl(k)).join('')}</div>` : ''}
+            ${['to', 'customer', 'doctor'].map(k => qiDl(k)).join('')}</div>` : ''}</div>
         <div class="p2-act"><div class="px-val" id="p2Val" style="display:none" role="alert"></div>
-            <div class="p2-netbar"><span>الصافي</span><b id="p2NetBar">${fmtNum(t.total)}</b><i>د.ع</i></div>
+            <div class="p2-fsum" id="p2FSum"></div><div class="p2-netbar"><span>الصافي</span><b id="p2NetBar">${fmtNum(t.total)}</b><i>د.ع</i></div>
             <div class="p2-btns"><button type="button" class="pos-big go" onclick="p2Issue(true)">إصدار وطباعة</button><button type="button" class="pos-big alt" onclick="p2Issue(false)">إصدار فقط</button></div></div>`;
 }
 function p2Render() {
@@ -278,6 +290,7 @@ function p2Render() {
     done.style.display = 'none'; main.style.display = '';
     p2El('p2List').innerHTML = posGroups().map(p2CardHtml).join('') || '<div class="pos-empty"><div>🛒</div>امسح باركود أو اكتب اسم المادة للبدء</div>';
     const ex = p2El('p2Extra'); if (ex) ex.innerHTML = '';
+    p2El('p2Panel').classList.toggle('p2c', P2_COMPACT);
     p2El('p2Panel').innerHTML = p2Panel();
     p2Sync();
 }
