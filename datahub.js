@@ -156,10 +156,22 @@ function dhMore() { dhShown += 40; dhRender(true); }
 const DH_STR_RE = /\d+(?:[.,]\d+)?\s*(?:mg|mcg|µg|ug|gm|g|kg|ml|iu|meq|mmol|u|%)(?![a-z])/gi;
 const DH_FORM_RE = /\b(?:tablets?|tabs?|capsules?|caps?|syrup|susp(?:ension)?|inj(?:ection)?|amp(?:oule)?s?|vials?|cream|gel|oint(?:ment)?|drops?|spray|sachets?|supp(?:ository|ositories)?|lotion|solution|soln?|shampoo|film|coated|fc|forte|dt|sr|xr|er|mr|cr|plus)\b/gi;
 function dhBaseKey(name) {
-    return String(name || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(DH_STR_RE, ' ').replace(DH_FORM_RE, ' ').replace(/[^a-z\u0600-\u06ff]+/g, '');
+    return String(name || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/\b(?:[a-z]\.\s?){2,}/g, ' ').replace(DH_STR_RE, ' ').replace(DH_FORM_RE, ' ').replace(/[^a-z\u0600-\u06ff]+/g, '');
 }
 const DH_NUM_RE = /\d+(?:[.,]\d+)?\s*(?:(?:mg|mcg|µg|ug|gm|g|kg|ml|iu|meq|mmol|u|%)(?![a-z]))?(?:\s*\/\s*\d+(?:[.,]\d+)?\s*(?:(?:mg|mcg|µg|ug|gm|g|kg|ml|iu|meq|mmol|u|%)(?![a-z]))?)*/gi;   // يزيل التركيز حتى لو مكتوب 500/125 بلا وحدات
 const dhStripStr = s => String(s || '').replace(DH_NUM_RE, ' ').replace(/\s{2,}/g, ' ').replace(/\s+\+/g, ' +').replace(/^[\s+/\-]+|[\s+/\-]+$/g, '').trim();
+let dhDbP = null, dhDbSet = null;
+function dhDbLoad() {   // القاعدة المرجعية (محلية ومخزّنة بالجهاز) تُحمَّل عند أول استعمال فقط
+    if (window.DRUGDB) return Promise.resolve(window.DRUGDB);
+    if (!dhDbP) dhDbP = new Promise(res => { const s = document.createElement('script'); s.src = 'drugdb.js'; s.onload = () => res(window.DRUGDB || null); s.onerror = () => { dhDbP = null; res(null); }; document.head.appendChild(s); });
+    return dhDbP;
+}
+const dhIngParts = s => dhStripStr(String(s || '').replace(/\([^)]*\)/g, ' ')).toLowerCase().split('+').map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+function dhDbKnown(ai) {   // كل مكوّنات الاسم يجب أن تكون معروفة بالقاعدة المرجعية (يمنع الأسماء الملفقة)
+    if (!window.DRUGDB) return true;
+    if (!dhDbSet) { dhDbSet = new Set(); Object.values(DRUGDB.m).forEach(v => dhIngParts(v).forEach(x => dhDbSet.add(x))); }
+    const ps = dhIngParts(ai); return ps.length > 0 && ps.every(x => dhDbSet.has(x));
+}
 function dhMemMap() {
     const map = new Map();
     products.forEach(p => {
@@ -175,7 +187,8 @@ function dhMemFill() {   // يملأ المواد الناقصة من منتجا
     const map = dhMemMap(); let n = 0;
     products.forEach(p => {
         if (dhHas(p) || String((dhEdits.get(p.id) || {}).ai || '').trim()) return;
-        const c = map.get(dhBaseKey(p.name)); if (!c || c.bad) return;
+        const k0 = dhBaseKey(p.name); let c = map.get(k0); if (!c && window.DRUGDB && DRUGDB.m[k0]) c = { ai: dhStripStr(DRUGDB.m[k0]), bad: false };
+        if (!c || c.bad || !c.ai) return;
         const strs = (String(p.name || '').replace(/,/g, '.').match(DH_STR_RE) || []).map(x => x.replace(/\s+/g, ' ').trim());
         const parts = c.ai.split('+').length;
         const s = strs.length === parts ? strs.join(parts > 1 ? ' / ' : '') : '';
@@ -193,6 +206,7 @@ const DH_TRIED = 'diwanDhAiTried';
 const dhTriedGet = () => { try { return new Set(JSON.parse(localStorage.getItem(DH_TRIED)) || []); } catch (e) { return new Set(); } };
 const dhTriedSave = s => { try { localStorage.setItem(DH_TRIED, JSON.stringify([...s].slice(-5000))); } catch (e) { /* تجاهل */ } };
 async function dhAiSuggest() {
+    if (!window.DRUGDB) { const hp = Prog.start('تحميل القاعدة المرجعية', { text: 'جارٍ التحميل...' }); const ok = await dhDbLoad(); ok ? hp.ok('تم تحميل القاعدة') : hp.fail('تعذّر تحميل القاعدة المرجعية', 'سيُكمل الاقتراح بدونها'); }
     const memN = dhMemFill();   // أولاً من بياناتك (مجاناً وبدون ذكاء)
     if (memN) dhRender();
     const eng = typeof getAiEngine === 'function' ? getAiEngine() : 'local';
@@ -210,7 +224,7 @@ async function dhAiSuggest() {
     if (!pool.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد ظاهرة تحتاج اقتراحاً', timer: 1800, showConfirmButton: false }); return; }
     const BATCH = 25, MAXB = 4, total = Math.min(pool.length, BATCH * MAXB);   // حتى 100 مادة في الضغطة الواحدة، والتي لم يعرفها لا تُكرَّر
     const h = Prog.start('اقتراح المواد الفعالة', { text: fmtNum(total) + ' مادة...', indeterminate: false });
-    let n = memN, done = 0;
+    let n = memN, done = 0, rej = 0;
     try {
         for (let bi = 0; bi < MAXB && done < total; bi++) {
             const todo = pool.slice(done, done + BATCH); if (!todo.length) break;
@@ -219,14 +233,14 @@ async function dhAiSuggest() {
             const txt = await callAiEngine(eng, { prompt, json: false });
             const m = String(txt).match(/\[[\s\S]*\]/); if (!m) throw new Error('رد غير مفهوم من النموذج');
             const arr = JSON.parse(m[0]);
-        arr.forEach(o => { const p = todo[(parseInt(o.i) || 0) - 1], a = String(o.a || '').trim(); if (p && a && String(o.c || '').toLowerCase() === 'high') { const e = dhEdits.get(p.id) || {};
+        arr.forEach(o => { const p = todo[(parseInt(o.i) || 0) - 1], a = String(o.a || '').trim(); if (p && a && String(o.c || '').toLowerCase() === 'high') { if (!dhDbKnown(a)) { rej++; return; } const e = dhEdits.get(p.id) || {};
             let s = String(o.s || '').replace(/\s+/g, ' ').trim();   // التركيز يُقبل فقط إن كانت كل أرقامه مكتوبة فعلاً في نص المنتج
             if (s) { const src = (p.name + ' ' + (p.meta || '')).replace(/,/g, '.'); const nums = s.replace(/,/g, '.').match(/\d+(?:\.\d+)?/g) || []; if (!nums.length || s.length > 40 || !nums.every(x => new RegExp('(^|[^\\d.])' + x.replace('.', '\\.') + '(?![\\d])').test(src))) s = ''; }
             e.ai = s ? a + ' ' + s : a; e.aiGen = true; dhEdits.set(p.id, e); n++; } });
             todo.forEach(p => tried.add(p.id)); dhTriedSave(tried);   // نجحت أم لا: لا تُعاد في الدفعة التالية
             done += todo.length; h.tick(done, total, fmtNum(done) + ' من ' + fmtNum(total));
         }
-        h.ok(n ? 'اقتُرحت ' + n + ' مادة فعالة — راجعها ثم احفظ' : 'لم يتعرّف النموذج على مواد');
+        h.ok((n ? 'اقتُرحت ' + n + ' مادة فعالة — راجعها ثم احفظ' : 'لم يتعرّف النموذج على مواد') + (rej ? ' · رُفض ' + rej + ' اسم غير معروف بالقاعدة المرجعية' : ''));
         dhRender();
     } catch (err) { h.fail('تعذّر الاقتراح', err && err.message + (n ? ' — اقتُرحت ' + n + ' قبل التوقف' : '')); if (n) dhRender(); }
 }
