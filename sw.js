@@ -6,7 +6,7 @@
    - طلبات Firebase وGitHub API لا يتدخل فيها أبداً
    لإجبار كل الأجهزة على تحديث الكاش: غيّر رقم VERSION
    ===================================================== */
-const VERSION = 'diwan-v712';
+const VERSION = 'diwan-v713';
 const SHELL_CACHE = VERSION + '-shell';
 const LIB_CACHE = VERSION + '-lib';
 const IMG_CACHE = 'diwan-keep-img';   // كاش الصور دائم: لا يُحذف عند تحديث الإصدار (يحمل صور المواد على الجهاز لتعمل بدون نت)

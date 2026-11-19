@@ -152,11 +152,51 @@ function dhSetF(f) { dhFilter = f; dhShown = 40; dhRender(); }
 function dhSearch(v) { dhQ = v; dhShown = 40; dhRender(true); }
 function dhMore() { dhShown += 40; dhRender(true); }
 
+// ---------- ذاكرة تجارية مشتقة من بياناتك: اسم تجاري ← مادة فعالة (بدون تخزين منفصل ولا ذكاء) ----------
+const DH_STR_RE = /\d+(?:[.,]\d+)?\s*(?:mg|mcg|µg|ug|gm|g|kg|ml|iu|meq|mmol|u|%)(?![a-z])/gi;
+const DH_FORM_RE = /\b(?:tablets?|tabs?|capsules?|caps?|syrup|susp(?:ension)?|inj(?:ection)?|amp(?:oule)?s?|vials?|cream|gel|oint(?:ment)?|drops?|spray|sachets?|supp(?:ository|ositories)?|lotion|solution|soln?|shampoo|film|coated|fc|forte|dt|sr|xr|er|mr|cr|plus)\b/gi;
+function dhBaseKey(name) {
+    return String(name || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(DH_STR_RE, ' ').replace(DH_FORM_RE, ' ').replace(/[^a-z\u0600-\u06ff]+/g, '');
+}
+const DH_NUM_RE = /\d+(?:[.,]\d+)?\s*(?:(?:mg|mcg|µg|ug|gm|g|kg|ml|iu|meq|mmol|u|%)(?![a-z]))?(?:\s*\/\s*\d+(?:[.,]\d+)?\s*(?:(?:mg|mcg|µg|ug|gm|g|kg|ml|iu|meq|mmol|u|%)(?![a-z]))?)*/gi;   // يزيل التركيز حتى لو مكتوب 500/125 بلا وحدات
+const dhStripStr = s => String(s || '').replace(DH_NUM_RE, ' ').replace(/\s{2,}/g, ' ').replace(/\s+\+/g, ' +').replace(/^[\s+/\-]+|[\s+/\-]+$/g, '').trim();
+function dhMemMap() {
+    const map = new Map();
+    products.forEach(p => {
+        const ai = dhStripStr(p.activeIngredient); if (!ai) return;
+        const k = dhBaseKey(p.name); if (k.length < 3) return;
+        const c = map.get(k); const norm = ai.toLowerCase();
+        if (!c) map.set(k, { ai, norm, bad: false, n: 1 }); else if (c.norm !== norm) c.bad = true; else c.n++;
+    });
+    return map;
+}
+function dhMemFill() {   // يملأ المواد الناقصة من منتجات عندك بنفس الاسم التجاري (تركيز آخر أو شكل آخر)
+    if (dhFilter === 'done') return 0;
+    const map = dhMemMap(); let n = 0;
+    products.forEach(p => {
+        if (dhHas(p) || String((dhEdits.get(p.id) || {}).ai || '').trim()) return;
+        const c = map.get(dhBaseKey(p.name)); if (!c || c.bad) return;
+        const strs = (String(p.name || '').replace(/,/g, '.').match(DH_STR_RE) || []).map(x => x.replace(/\s+/g, ' ').trim());
+        const parts = c.ai.split('+').length;
+        const s = strs.length === parts ? strs.join(parts > 1 ? ' / ' : '') : '';
+        const e = dhEdits.get(p.id) || {}; e.ai = s ? c.ai + ' ' + s : c.ai; e.aiGen = true; dhEdits.set(p.id, e); n++;
+    });
+    return n;
+}
+function dhMemExamples(todo) {   // أمثلة من كتالوجك ترافق طلب الذكاء ليلتزم بصيغتك
+    const seen = new Set(), out = [], first = new Set(todo.map(p => dhBaseKey(p.name).slice(0, 2)));
+    const pick = [...products].filter(p => dhStripStr(p.activeIngredient)).sort((a, b) => (first.has(dhBaseKey(b.name).slice(0, 2)) ? 1 : 0) - (first.has(dhBaseKey(a.name).slice(0, 2)) ? 1 : 0));
+    for (const p of pick) { const k = dhBaseKey(p.name); if (seen.has(k) || k.length < 3) continue; seen.add(k); out.push(p.name + ' => ' + dhStripStr(p.activeIngredient)); if (out.length >= 8) break; }
+    return out;
+}
 const DH_TRIED = 'diwanDhAiTried';
 const dhTriedGet = () => { try { return new Set(JSON.parse(localStorage.getItem(DH_TRIED)) || []); } catch (e) { return new Set(); } };
 const dhTriedSave = s => { try { localStorage.setItem(DH_TRIED, JSON.stringify([...s].slice(-5000))); } catch (e) { /* تجاهل */ } };
 async function dhAiSuggest() {
+    const memN = dhMemFill();   // أولاً من بياناتك (مجاناً وبدون ذكاء)
+    if (memN) dhRender();
     const eng = typeof getAiEngine === 'function' ? getAiEngine() : 'local';
+    if (memN && (eng === 'local' || !aiEngineOrder(eng, {}).length)) { Swal.fire({ icon: 'success', title: 'اقتُرحت ' + fmtNum(memN) + ' مادة من بياناتك', text: 'راجعها ثم احفظ.', timer: 2400, showConfirmButton: false }); return; }
     if (eng === 'local' || !aiEngineOrder(eng, {}).length) { Swal.fire({ icon: 'info', title: 'الذكاء الاصطناعي غير مفعّل', text: 'فعّل محرك الذكاء الاصطناعي من الإعدادات (مفتاح Groq أو Gemini المجاني) ثم أعد المحاولة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     const need = () => dhIngList().filter(p => dhFilter !== 'done' && !String((dhEdits.get(p.id) || {}).ai || '').trim() && !dhHas(p));
     let tried = dhTriedGet();
@@ -166,14 +206,15 @@ async function dhAiSuggest() {
         if (!r.isConfirmed) return;
         tried = new Set(); dhTriedSave(tried); pool = need();
     }
+    if (!pool.length && memN) { Swal.fire({ icon: 'success', title: 'اقتُرحت ' + fmtNum(memN) + ' مادة من بياناتك', text: 'راجعها ثم احفظ.', timer: 2400, showConfirmButton: false }); return; }
     if (!pool.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد ظاهرة تحتاج اقتراحاً', timer: 1800, showConfirmButton: false }); return; }
     const BATCH = 25, MAXB = 4, total = Math.min(pool.length, BATCH * MAXB);   // حتى 100 مادة في الضغطة الواحدة، والتي لم يعرفها لا تُكرَّر
     const h = Prog.start('اقتراح المواد الفعالة', { text: fmtNum(total) + ' مادة...', indeterminate: false });
-    let n = 0, done = 0;
+    let n = memN, done = 0;
     try {
         for (let bi = 0; bi < MAXB && done < total; bi++) {
             const todo = pool.slice(done, done + BATCH); if (!todo.length) break;
-            const list = todo.map((p, i) => `${i + 1}. ${p.name}${p.brand ? ' (' + p.brand + ')' : ''}${p.meta ? ' [' + p.meta + ']' : ''}`).join('\n');
+            const ex = dhMemExamples(todo), list = (ex.length ? 'Examples already confirmed in this pharmacy catalog (same naming style):\n' + ex.join('\n') + '\n\nProducts:\n' : '') + todo.map((p, i) => `${i + 1}. ${p.name}${p.brand ? ' (' + p.brand + ')' : ''}${p.meta ? ' [' + p.meta + ']' : ''}`).join('\n');
             const prompt = 'You are a senior clinical pharmacist. For each product below (trade name as sold in Iraq, possibly with strength), give the generic active ingredient(s) in English WITHOUT strength or form, joined by " + " for combinations. STRICT RULES: answer ONLY if you are highly certain (well-known international brand or the generic name is written in the product name). Many names are local/obscure brands or cosmetics: for those you MUST answer with an empty string. A wrong answer is far worse than an empty one; never guess from similar-sounding names. ALSO give the potency "s" (strength of the active ingredient) ONLY if it is written in the product text itself (e.g. "120mg", "500mg/125mg", "0.1%"), copied exactly in the same order as the ingredients; otherwise "s" must be an empty string. Never use your own knowledge for "s". Reply with ONLY a JSON array like [{"i":1,"a":"Etoricoxib","s":"120 mg","c":"high"}] where c is "high" only if certain, otherwise omit the item or use "".\n\n' + list;
             const txt = await callAiEngine(eng, { prompt, json: false });
             const m = String(txt).match(/\[[\s\S]*\]/); if (!m) throw new Error('رد غير مفهوم من النموذج');
