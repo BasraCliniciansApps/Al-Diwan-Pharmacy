@@ -4985,3 +4985,8 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .p2-acc-b .p2-chg { margin-top: 2px; }
 .p2-acc-b .p2-chg small { flex-basis: 100%; font-weight: 700; }
 @media (max-width: 899px) { .p2c .p2-acc-b.open { display: flex; flex-direction: column; gap: 12px; padding: 14px 14px 16px; } }
+/* v703: ترويسة شاشة البيع بنفس ترويسة بقية الشاشات (brand-bar + page-title) */
+.p2-top { flex: none; }
+.p2-top::before { content: ''; display: block; height: env(safe-area-inset-top, 0px); background: #0f1c38; }
+.p2-top .page-title { display: flex; align-items: center; justify-content: space-between; }
+.p2-top .p2-no { font-family: inherit; font-size: .8rem; font-weight: 700; color: #94a3b8; opacity: 1; }
