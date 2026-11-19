@@ -111,14 +111,10 @@ function p2SetDisc(v) { bill.discount = v ? String(v) : ''; writeInvoiceFields()
 function p2DiscPct(el) { const S = billTotals().sub, pc = parseFloat(el.value) || 0; p2SetDisc(posDiscForPct(S, pc)); const a = p2El('p2A'); if (a) a.value = bill.discount; }
 function p2DiscAmt(el) { p2SetDisc(Math.max(0, parseFloat(el.value) || 0)); const S = billTotals().sub, d = billTotals().disc, p = p2El('p2P'); if (p) p.value = S > 0 && d > 0 ? Math.round(d / S * 1000) / 10 : ''; }
 const p2ChipD = (k, S) => k === 'cost' ? posDiscForCost(S) : k === '0' ? 0 : k[0] === 'a' ? (+k.slice(1) < S ? +k.slice(1) : 0) : posDiscForPct(S, +k);   // 'aN' = خصم مبلغ ثابت N
-const p2IsMin = p => !(p.pricing === 'syndicate' || p.pricing === 'percent' || p.pricing === 'free');   // مسعّرة بملصق وزارة الصحة
-function p2FreeSub() {   // مجموع المواد غير المسعّرة بملصق الوزارة (التي يجوز الخصم منها بالأزرار الثابتة)
-    return bill.items.reduce((s, it) => { const p = it.pid ? products.find(x => x.id === it.pid) : null; return s + (p && p2IsMin(p) ? 0 : (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0)); }, 0);
-}
-function p2DiscStep(k, d) {   // جمع/طرح مبلغ ثابت من الخصم الحالي
-    const t = billTotals(), L = posLimits(), fs = p2FreeSub(), nv = Math.max(0, Math.min(t.sub, t.disc + d * k));
-    if (nv === t.disc || (d > 0 && nv > fs) || (d > 0 && !L.own && nv > L.allow)) return;
-    p2SetDisc(nv); p2Sync();
+function p2RStep(n) {   // نفس تسوية الألف في البيع السابق: تعديل سعر المادة المختارة بمقدار n موزعاً على كميتها
+    const it = bill.items[p2.rcur]; if (!it) return;
+    const np = (parseFloat(it.price) || 0) + n / (parseFloat(it.qty) || 1); if (np <= 0) return;
+    it.price = np; billChanged(); p2Render();
 }
 function p2Chip(k) { const S = billTotals().sub; p2SetDisc(p2ChipD(k, S)); p2Sync(); }
 function p2DiscMax() { p2SetDisc(posDiscForMax(billTotals().sub, posLimits().allow)); p2Sync(); }
@@ -131,8 +127,8 @@ function p2Totals() {   // تحديث الأرقام دون إعادة رسم ا
     if (m) {
         if (t.disc > 0) { if (t.disc > L.allow && !(L.own && L.unknown)) { m.className = 'px-msg bad'; m.textContent = L.own ? '🔴 خسارة: الخصم أعلى من الحد الآمن' : '🔴 يتجاوز الحد المسموح'; } else { m.className = 'px-msg ok'; m.textContent = '🟢 خصم آمن'; } } else { m.className = 'px-msg'; m.textContent = ''; }
     }
-    const fs = p2FreeSub(), nt = p2El('p2StpNote'); if (nt) nt.textContent = fs > 0 ? 'الخصم بهذه الأزرار يُحتسب من المواد غير المسعّرة بملصق الوزارة فقط (حتى ' + fmtNum(fs) + ' د.ع)' : 'غير متاح: جميع المواد مسعّرة بملصق الوزارة';
-    document.querySelectorAll('#p2Stps .p2-stp button').forEach(b => { const k = +b.parentNode.parentNode.dataset.k, d = +b.dataset.d, nv = t.disc + d * k; b.disabled = d > 0 ? (nv > t.sub || nv > fs || (!L.own && nv > L.allow)) : t.disc <= 0; });
+    document.querySelectorAll('#p2Round input[name=p2RI]').forEach(x => { const e = p2El('p2RP' + x.value); if (e && bill.items[x.value]) e.textContent = fmtNum(bill.items[x.value].price); });
+    { const rd = p2El('p2Round'); if (rd) rd.style.display = Math.round(t.sub - t.disc) % 1000 === 0 ? 'none' : ''; }
     document.querySelectorAll('#p2Chips > button').forEach(b => { const k = b.dataset.p, cd = p2ChipD(k, t.sub); b.disabled = k !== '0' && (cd <= 0 || (!L.own && cd > L.allow)); b.classList.toggle('on', k === '0' ? t.disc === 0 : cd > 0 && t.disc === cd); });
     p2CalcRefresh();
 }
@@ -238,6 +234,8 @@ function p2CardHtml(g) {
 
 // ---------- الرسم ----------
 function p2Panel() {
+    const el = typeof qiEligible === 'function' ? qiEligible() : [];
+    if (!el.includes(p2.rcur)) p2.rcur = el[0];
     const t = billTotals(), L = posLimits(), showLim = userRole === 'owner' || (typeof can === 'function' && can('scanDisc')), n = posGroups().length;
     return `<div class="p2-sec">ملخص الفاتورة</div>
         <div class="p2-row"><span>عدد المواد</span><b>${n}</b></div>
@@ -245,10 +243,12 @@ function p2Panel() {
         <div class="p2-row"><span>الخصم</span><b id="p2Dsc"></b></div>
         <div class="p2-sec">الخصم</div>
         <div class="px-row"><label><span>نسبة الخصم ٪</span><input id="p2P" type="number" inputmode="decimal" min="0" step="any" oninput="p2DiscPct(this)"></label><label><span>مبلغ الخصم (د.ع)</span><input id="p2A" type="number" inputmode="numeric" min="0" oninput="p2DiscAmt(this)"></label></div>
-        <div class="p2-stps" id="p2Stps">${[250, 500, 750].map(k => `<div class="p2-stp" data-k="${k}"><button type="button" data-d="1" onclick="p2DiscStep(${k},1)" aria-label="زيادة الخصم ${k}">+</button><span>${k}</span><button type="button" data-d="-1" onclick="p2DiscStep(${k},-1)" aria-label="إنقاص الخصم ${k}">−</button></div>`).join('')}</div><div class="px-hint" id="p2StpNote"></div>
         <div class="px-chips" id="p2Chips">${[5, 10, 15, 20].map(k => `<button type="button" data-p="${k}" onclick="p2Chip('${k}')">${k}٪</button>`).join('')}${posCostChipOn() ? '<button type="button" data-p="cost" class="cost" onclick="p2Chip(\'cost\')">سعر الكلفة</button>' : ''}<button type="button" data-p="0" class="clr" onclick="p2Chip('0')">بدون خصم</button></div>
         ${showLim ? '<button type="button" class="px-max" id="p2Max" onclick="p2DiscMax()"></button>' : ''}
         <div id="p2Msg" class="px-msg"></div>
+        ${el.length ? `<div id="p2Round" class="p2-rnd"><div class="px-sec">تسوية المجموع إلى ألف كاملة</div>
+            <div class="px-rl">${el.map(i => `<label class="px-rr"><input type="radio" name="p2RI" value="${i}" ${i === p2.rcur ? 'checked' : ''} onchange="p2.rcur=${i}"><span class="px-rn" dir="ltr">${posEsc(bill.items[i].name)}</span><b id="p2RP${i}"></b></label>`).join('')}</div>
+            <div class="px-st">${[250, 500, 750].map(n => `<div class="px-sc"><button type="button" class="up" onclick="p2RStep(${n})" aria-label="زيادة ${n}">+</button><b>${n}</b><button type="button" class="dn" onclick="p2RStep(-${n})" aria-label="نقص ${n}">−</button></div>`).join('')}</div></div>` : ''}
         <div class="p2-netbox"><span>الصافي</span><b id="p2Net"></b><i>د.ع</i></div>
         <div class="p2-sec p2-sec-sw"><span>حاسبة الباقي (بيع نقدي)</span><label class="setup-sw"><input type="checkbox" ${p2Calc() ? 'checked' : ''} onchange="p2CalcToggle(this.checked)" aria-label="حاسبة الباقي"><i></i></label></div>
         ${p2Calc() ? `<label class="p2-recv"><span>المبلغ المستلم (د.ع)</span><input id="p2R" type="number" inputmode="numeric" min="0" value="${posEsc(p2.recv)}" oninput="p2.recv=this.value;p2CalcRefresh()"></label>
