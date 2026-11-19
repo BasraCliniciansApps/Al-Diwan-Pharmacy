@@ -4952,3 +4952,20 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .p2-pm { display: flex; align-items: center; gap: 12px; text-align: right; width: 100%; padding: 12px 14px; border: 1.5px solid #d8dee9; border-radius: 14px; background: #fff; color: #0f1c38; font: inherit; cursor: pointer; }
 .p2-pm b { display: block; font-size: 1rem; font-weight: 800; } .p2-pm small { display: block; font-size: .78rem; color: #64748b; margin-top: 2px; }
 .p2-pm-i { display: inline-flex; width: 40px; height: 40px; border-radius: 12px; background: #0f1c38; color: #fff; align-items: center; justify-content: center; flex: none; } .p2-pm-i .ic, .p2-pm-i svg { width: 22px; height: 22px; }
+/* v697: شريط الصافي فوق التذييل والقسم المفتوح، بيع آجل بلا توگل، حاسبة الباقي زر طويل */
+.p2-sumbar { display: none; }
+.p2-crfull { width: 100%; min-height: 44px; margin: 6px 0 10px; border: 1.5px solid #d8dee9; border-radius: 12px; background: #fff; color: #0f1c38; font: inherit; font-weight: 800; font-size: .95rem; cursor: pointer; }
+.p2-crfull.on { background: #0f1c38; color: #fff; border-color: #0f1c38; }
+.p2-crinfo { margin-top: 6px; font-size: .85rem; font-weight: 700; color: #b45309; }
+@media (max-width: 899px) {
+    .p2c .p2-pills { display: flex; flex-direction: column; gap: 6px; }
+    .p2c .p2-pr { display: flex; gap: 6px; }
+    .p2c .p2-pr .p2-pill { flex: 1; }
+    .p2c .p2-pill-wide { width: 100%; }
+    .p2c .p2-netbar, .p2c .p2-fsum { display: none; }
+    .p2c .p2-sumbar { display: flex; align-items: baseline; justify-content: space-between; position: fixed; left: 0; right: 0; bottom: calc(var(--p2fh, 150px) + var(--p2oh, 0px)); z-index: 3; background: #fff; border-top: 1px solid #e2e8f0; padding: 6px 14px; font-weight: 800; color: #334155; }
+    .p2c .p2-sumbar small { font-size: .78rem; font-weight: 700; color: #64748b; margin-inline-start: 6px; }
+    .p2c .p2-sumbar b { font-size: 1.4rem; color: #0f1c38; }
+    .p2c .p2-sumbar i { font-style: normal; font-size: .8rem; color: #64748b; }
+    .p2-main { padding-bottom: calc(var(--p2fh, 150px) + var(--p2sh, 44px) + 12px); }
+}

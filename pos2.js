@@ -48,7 +48,7 @@ function p2Close() {
 }
 function p2Focus() { const q = p2El('p2Q'); if (q && !(window.matchMedia && matchMedia('(pointer: coarse)').matches)) q.focus(); }
 function p2New() {
-    bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); p2.done = false; p2.extra = false; p2.recv = ''; p2.credit = false; p2.paid = '';
+    bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); p2.done = false; p2.extra = false; p2.recv = ''; p2.credit = false; p2.zero = false; p2.paid = '';
     try { initBillEditor(); } catch (e) { /* تجاهل */ }
     p2El('p2No').textContent = bill.no || ''; p2Render(); p2Focus();
 }
@@ -121,7 +121,7 @@ function p2DiscMax() { p2SetDisc(posDiscForMax(billTotals().sub, posLimits().all
 function p2Sync() { const t = billTotals(), a = p2El('p2A'), p = p2El('p2P'); if (a) a.value = t.disc || ''; if (p) p.value = t.sub > 0 && t.disc > 0 ? Math.round(t.disc / t.sub * 1000) / 10 : ''; p2Totals(); }
 function p2Totals() {   // تحديث الأرقام دون إعادة رسم اللوحة (حتى لا يضيع المؤشر من الحقول)
     const t = billTotals(), L = posLimits(), set = (id, v) => { const e = p2El(id); if (e) e.textContent = v; };
-    set('p2Sub', fmtNum(t.sub) + ' د.ع'); set('p2Dsc', t.disc > 0 ? '− ' + fmtNum(t.disc) + ' د.ع' : '0'); set('p2Net', fmtNum(t.total)); set('p2NetBar', fmtNum(t.total));
+    set('p2Sub', fmtNum(t.sub) + ' د.ع'); set('p2Dsc', t.disc > 0 ? '− ' + fmtNum(t.disc) + ' د.ع' : '0'); set('p2Net', fmtNum(t.total)); set('p2NetBar', fmtNum(t.total)); set('p2NetBar2', fmtNum(t.total)); p2CrSync();
     { const bd = p2El('p2BdD'); if (bd) { bd.hidden = !(t.disc > 0); bd.textContent = fmtNum(t.disc); } set('p2FSum', posGroups().length + ' مواد' + (t.disc > 0 ? ' · الخصم ' + fmtNum(t.disc) + ' د.ع' : '')); }
     const mx = p2El('p2Max'); if (mx) mx.textContent = L.unknown && L.own ? 'أعلى خصم غير محسوب لبعض المواد (لا كلفة)' : 'أعلى خصم بدون خسارة: ' + (t.sub > 0 ? Math.floor(L.allow / t.sub * 1000) / 10 : 0) + '٪ (' + fmtNum(L.allow) + ' د.ع)';
     const m = p2El('p2Msg');
@@ -145,7 +145,15 @@ function p2CalcRefresh() {
     else { box.className = 'p2-chg bad'; box.innerHTML = `<span>ناقص</span><b>${fmtNum(net - r)} د.ع</b><small>فعّل «بيع آجل» لتسجيل المتبقي ديناً.</small>`; }
 }
 function p2CalcToggle(on) { try { localStorage.setItem(P2_CALC_LS, on ? '1' : '0'); } catch (e) { /* تجاهل */ } p2.recv = ''; p2Render(); }
-function p2CreditToggle(on) { p2.credit = !!on; const b = p2El('p2PaidBox'); if (b) b.style.display = on ? '' : 'none'; }
+// البيع الآجل: يتفعّل تلقائياً عند الضغط على «لم يُدفع شيء» أو كتابة مبلغ مدفوع أقل من الصافي، ويُلغى بإزالتهما
+function p2CrSync() {
+    const tot = billTotals().total, pd = parseFloat(p2.paid);
+    p2.credit = !!p2.zero || (p2.paid !== '' && pd >= 0 && pd < tot);
+    const inf = p2El('p2CrInfo'); if (inf) inf.textContent = p2.zero ? 'المتبقي آجل: ' + fmtNum(tot) + ' د.ع' : p2.paid === '' ? '' : pd >= tot ? 'المبلغ المدفوع يغطي الصافي كاملاً، فلا يُعدّ البيع آجلاً' : 'المتبقي آجل: ' + fmtNum(tot - (pd || 0)) + ' د.ع';
+    const bd = p2El('p2BdR'); if (bd) bd.hidden = !p2.credit;
+}
+function p2CrZero() { p2.zero = !p2.zero; if (p2.zero) { p2.paid = ''; const f = p2El('p2Paid'); if (f) f.value = ''; } const z = p2El('p2CrZ'); if (z) z.classList.toggle('on', p2.zero); p2CrSync(); }
+function p2CrPaid(v) { p2.paid = v; if (v !== '') { p2.zero = false; const z = p2El('p2CrZ'); if (z) z.classList.remove('on'); } p2CrSync(); }
 
 // ---------- الإصدار (نفس منطق التحقق في posIssue) ----------
 async function p2Issue(print) {
@@ -159,7 +167,7 @@ async function p2Issue(print) {
         const w = await Swal.fire({ icon: 'warning', title: 'تحذير: بيع بخسارة', html: `الخصم <b>${fmtNum(d)} د.ع</b> أعلى من الحد الآمن <b>${fmtNum(L.allow)} د.ع</b>.<br>هذه الفاتورة ستُباع <b style="color:#b91c1c">بخسارة تقارب ${fmtNum(d - L.allow)} د.ع</b>.<br>هل تريد إصدارها رغم ذلك؟`, showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، إصدار بخسارة', cancelButtonText: 'رجوع' });
         if (!w.isConfirmed) return;
     }
-    const t = billTotals(), paidIn = parseFloat((p2El('p2Paid') || {}).value) || 0;
+    p2CrSync(); const t = billTotals(), paidIn = p2.zero ? 0 : (parseFloat(p2.paid) || 0);
     bill.paid = p2.credit ? String(Math.min(paidIn, t.total)) : '';
     writeInvoiceFields(); billChanged(); try { qiRemember(); } catch (e) { /* تجاهل */ }
     let mode = '';
@@ -278,17 +286,19 @@ function p2CardHtml(g) {
 // ---------- الرسم ----------
 // ===== واجهة الموبايل المضغوطة (< 900px): أزرار مطوية بدل الأقسام المفتوحة. للرجوع للوضع السابق اجعل P2_COMPACT = false =====
 const P2_COMPACT = true;
-function p2Acc(k) { p2.acc = p2.acc === k ? null : k; if (k === 'ext') p2.extra = p2.acc === 'ext'; p2Render(); }
+function p2Acc(k) { p2.acc = p2.acc === k ? null : k; p2Render(); }
 function p2Pills(hasRnd) {
     if (!P2_COMPACT) return '';
     const bd = (id, on, txt) => `<i class="p2-bd" id="${id}" ${on ? '' : 'hidden'}>${txt || ''}</i>`;
-    const ext = !!(bill.to || bill.customer || bill.doctor || bill.notes);
-    const b = (k, lbl, badge) => `<button type="button" class="p2-pill${p2.acc === k ? ' on' : ''}" onclick="p2Acc('${k}')"><span>${lbl}</span>${badge}</button>`;
-    return `<div class="p2-pills">${b('disc', 'خصم', bd('p2BdD', false))}${hasRnd ? b('rnd', 'تسوية الألف', '') : ''}${b('calc', 'حاسبة الباقي', bd('p2BdC', p2Calc(), '✓'))}${b('cr', 'بيع آجل', bd('p2BdR', p2.credit, '✓'))}${b('ext', 'بيانات الفاتورة', bd('p2BdE', ext, '●'))}</div>`;
+    const b = (k, lbl, badge, cls) => `<button type="button" class="p2-pill${cls || ''}${p2.acc === k ? ' on' : ''}" onclick="p2Acc('${k}')"><span>${lbl}</span>${badge}</button>`;
+    return `<div class="p2-pills"><div class="p2-pr">${b('disc', 'خصم', bd('p2BdD', false))}${hasRnd ? b('rnd', 'تسوية الألف', '') : ''}${b('cr', 'بيع آجل', bd('p2BdR', p2.credit, '✓'))}</div>${b('calc', 'حاسبة الباقي', bd('p2BdC', p2Calc(), '✓'), ' p2-pill-wide')}</div>`;
 }
-function p2Fit() {   // ارتفاع التذييل الثابت: يُستعمل لإزاحة المحتوى وموضع القسم المفتوح فوقه
+function p2Fit() {   // ارتفاع التذييل الثابت والقسم المفتوح: لإزاحة المحتوى ووضع شريط الصافي فوقهما
     const ov = p2El('p2Ov'), a = ov && ov.querySelector('.p2-act'); if (!a) return;
-    ov.style.setProperty('--p2fh', a.offsetHeight + 'px');
+    const op = ov.querySelector('.p2-acc-b.open'), sb = ov.querySelector('.p2-sumbar');
+    const set = () => { ov.style.setProperty('--p2fh', a.offsetHeight + 'px'); ov.style.setProperty('--p2oh', (op && getComputedStyle(op).position === 'fixed' ? op.offsetHeight : 0) + 'px'); ov.style.setProperty('--p2sh', (sb ? sb.offsetHeight : 44) + 'px'); };
+    set();
+    if (window.ResizeObserver) { if (p2.ro) p2.ro.disconnect(); p2.ro = new ResizeObserver(set); p2.ro.observe(a); if (op) p2.ro.observe(op); }
 }
 window.addEventListener('resize', () => { try { p2Fit(); } catch (e) { /* */ } });
 function p2Panel() {
@@ -311,18 +321,13 @@ function p2Panel() {
         <div class="p2-acc-b${o('calc')}"><div class="p2-sec p2-sec-sw"><span>حاسبة الباقي (بيع نقدي)</span><label class="setup-sw"><input type="checkbox" ${p2Calc() ? 'checked' : ''} onchange="p2CalcToggle(this.checked)" aria-label="حاسبة الباقي"><i></i></label></div>
         ${p2Calc() ? `<label class="p2-recv"><span>المبلغ المستلم (د.ع)</span><input id="p2R" type="number" inputmode="numeric" min="0" value="${posEsc(p2.recv)}" oninput="p2.recv=this.value;p2CalcRefresh()"></label>
             <div class="p2-quick" id="p2Quick"></div><div id="p2Chg" class="p2-chg"></div>` : ''}</div>
-        <div class="p2-acc-b${o('cr')}"><div class="px-cr"><span>بيع آجل (دفع جزء من المبلغ)</span><label class="setup-sw"><input type="checkbox" ${p2.credit ? 'checked' : ''} onchange="p2CreditToggle(this.checked)" aria-label="بيع آجل"><i></i></label></div>
-        <div id="p2PaidBox" style="display:${p2.credit ? '' : 'none'}"><input id="p2Paid" type="number" inputmode="numeric" min="0" class="px-paid" placeholder="المبلغ المدفوع (0 إن لم يُدفع شيء)" value="${posEsc(p2.paid)}" oninput="p2.paid=this.value"></div></div>
-        <div class="p2-acc-b${o('ext')}"><button type="button" class="pos-more" onclick="p2ToggleExtra()">${p2.extra ? '▲ إخفاء بيانات الفاتورة' : '▼ بيانات الفاتورة (الشركة، الزبون، الطبيب، التاريخ، ملاحظات)'}</button>
-        ${p2.extra ? `<div class="pos-fields">
-            <label>إلى السيد / الشركة<input list="qiDl_to" autocomplete="off" placeholder="اختياري" value="${posEsc(bill.to || '')}" onchange="p2Field('to', this.value)"></label>
-            <label>اسم الزبون<input list="qiDl_customer" autocomplete="off" placeholder="اختياري" value="${posEsc(bill.customer || '')}" onchange="p2Field('customer', this.value)"></label>
-            <label>اسم الطبيب المعالج<input list="qiDl_doctor" autocomplete="off" placeholder="اختياري" value="${posEsc(bill.doctor || '')}" onchange="p2Field('doctor', this.value)"></label>
-            <label>التاريخ<input type="date" value="${posEsc(bill.date || todayLocalISO())}" onchange="p2Field('date', this.value || todayLocalISO())"></label>
-            <label>ملاحظات<textarea rows="2" onchange="p2Field('notes', this.value)">${posEsc(bill.notes || '')}</textarea></label>
-            ${['to', 'customer', 'doctor'].map(k => qiDl(k)).join('')}</div>` : ''}</div>
+        <div class="p2-acc-b${o('cr')}"><div class="p2-sec">بيع آجل</div>
+            <button type="button" id="p2CrZ" class="p2-crfull${p2.zero ? ' on' : ''}" onclick="p2CrZero()">لم يُدفع شيء (كامل المبلغ آجل)</button>
+            <label class="p2-recv"><span>المبلغ المدفوع (د.ع)</span><input id="p2Paid" type="number" inputmode="numeric" min="0" value="${posEsc(p2.paid)}" placeholder="اتركه فارغاً إن لم يكن البيع آجلاً" oninput="p2CrPaid(this.value)"></label>
+            <div id="p2CrInfo" class="p2-crinfo"></div></div>
+        <div class="p2-sumbar" id="p2SumBar"><span class="p2-sb-l">الصافي <small id="p2FSum"></small></span><b><span id="p2NetBar2"></span> <i>د.ع</i></b></div>
         <div class="p2-act"><div class="px-val" id="p2Val" style="display:none" role="alert"></div>
-            ${p2Pills(el.length > 0)}<div class="p2-fsum" id="p2FSum"></div><div class="p2-netbar"><span>الصافي</span><b id="p2NetBar">${fmtNum(t.total)}</b><i>د.ع</i></div>
+            ${p2Pills(el.length > 0)}<div class="p2-netbar"><span>الصافي</span><b id="p2NetBar">${fmtNum(t.total)}</b><i>د.ع</i></div>
             <div class="p2-btns"><button type="button" class="pos-big alt" onclick="p2Issue(false)">إصدار فقط</button><button type="button" class="pos-big go" onclick="p2Issue(true)">إصدار وطباعة</button></div></div>`;
 }
 function p2Render() {
