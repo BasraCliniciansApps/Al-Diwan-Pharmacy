@@ -4977,3 +4977,8 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
     .p2c .p2-sumbar b { color: #f5b83d; font-size: 1.7rem; letter-spacing: .3px; }
     .p2c .p2-sumbar i { color: #f5d98a; }
 }
+/* v699: صف خصم واحد (0٪ أحمر أولاً)، والقسم المفتوح بزوايا مستقيمة تحت شريط الصافي */
+.p2-chips1 { flex-wrap: nowrap; gap: 5px; }
+.p2-chips1 button { flex: 1 1 0; min-width: 0; padding: 0 2px; min-height: 40px; font-size: .88rem; }
+.p2-chips1 button.cost { flex: 1.7 1 0; font-size: .8rem; }
+@media (max-width: 899px) { .p2c .p2-acc-b.open { border-radius: 0 !important; } }

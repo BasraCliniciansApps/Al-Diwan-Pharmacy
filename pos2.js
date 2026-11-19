@@ -311,7 +311,7 @@ function p2Panel() {
         <div class="p2-row p2-hm"><span>الخصم</span><b id="p2Dsc"></b></div>
         <div class="p2-acc-b${o('disc')}"><div class="p2-sec">الخصم</div>
         <div class="px-row"><label><span>نسبة الخصم ٪</span><input id="p2P" type="number" inputmode="decimal" min="0" step="any" oninput="p2DiscPct(this)"></label><label><span>مبلغ الخصم (د.ع)</span><input id="p2A" type="number" inputmode="numeric" min="0" oninput="p2DiscAmt(this)"></label></div>
-        <div class="px-chips" id="p2Chips">${[5, 10, 15, 20].map(k => `<button type="button" data-p="${k}" onclick="p2Chip('${k}')">${k}٪</button>`).join('')}${posCostChipOn() ? '<button type="button" data-p="cost" class="cost" onclick="p2Chip(\'cost\')">سعر الكلفة</button>' : ''}<button type="button" data-p="0" class="clr" onclick="p2Chip('0')">بدون خصم</button></div>
+        <div class="px-chips p2-chips1" id="p2Chips"><button type="button" data-p="0" class="clr" onclick="p2Chip('0')" aria-label="بدون خصم">0٪</button>${[5, 10, 15, 20].map(k => `<button type="button" data-p="${k}" onclick="p2Chip('${k}')">${k}٪</button>`).join('')}${posCostChipOn() ? '<button type="button" data-p="cost" class="cost" onclick="p2Chip(\'cost\')">سعر الكلفة</button>' : ''}</div>
         ${showLim ? '<button type="button" class="px-max" id="p2Max" onclick="p2DiscMax()"></button>' : ''}
         <div id="p2Msg" class="px-msg"></div></div>
         <div class="p2-acc-b${o('rnd')}">${el.length ? `<div id="p2Round" class="p2-rnd"><div class="px-sec">تسوية المجموع إلى ألف كاملة</div>
