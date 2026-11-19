@@ -4924,3 +4924,6 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .p2-rnd .px-sc button.up { background: #15803d; } .p2-rnd .px-sc button.dn { background: #b91c1c; }
 .p2-rnd .px-sc button:active { filter: brightness(.88); transform: scale(.98); }
 .p2-rnd { margin-top: 6px; } .p2-rnd .px-sec { margin: 6px 2px 8px; font-size: .8rem; font-weight: 800; color: #64748b; }
+/* v692: زر إغلاق ماسح الباركود */
+.bc-close-row { display: flex; justify-content: center; margin-top: 10px; }
+.bc-close-row .icon-btn { min-width: 150px; height: 42px; justify-content: center; }
