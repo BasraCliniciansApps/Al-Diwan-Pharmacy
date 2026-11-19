@@ -159,12 +159,15 @@ async function dhAiSuggest() {
     if (!todo.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد ظاهرة تحتاج اقتراحاً', timer: 1800, showConfirmButton: false }); return; }
     const h = Prog.start('اقتراح المواد الفعالة', { text: fmtNum(todo.length) + ' مادة...' });
     try {
-        const list = todo.map((p, i) => `${i + 1}. ${p.name}${p.brand ? ' (' + p.brand + ')' : ''}`).join('\n');
-        const prompt = 'You are a senior clinical pharmacist. For each product below (trade name as sold in Iraq, possibly with strength), give the generic active ingredient(s) in English WITHOUT strength or form, joined by " + " for combinations. STRICT RULES: answer ONLY if you are highly certain (well-known international brand or the generic name is written in the product name). Many names are local/obscure brands or cosmetics: for those you MUST answer with an empty string. A wrong answer is far worse than an empty one; never guess from similar-sounding names. Reply with ONLY a JSON array like [{"i":1,"a":"Ciprofloxacin","c":"high"}] where c is "high" only if certain, otherwise omit the item or use "".\n\n' + list;
+        const list = todo.map((p, i) => `${i + 1}. ${p.name}${p.brand ? ' (' + p.brand + ')' : ''}${p.meta ? ' [' + p.meta + ']' : ''}`).join('\n');
+        const prompt = 'You are a senior clinical pharmacist. For each product below (trade name as sold in Iraq, possibly with strength), give the generic active ingredient(s) in English WITHOUT strength or form, joined by " + " for combinations. STRICT RULES: answer ONLY if you are highly certain (well-known international brand or the generic name is written in the product name). Many names are local/obscure brands or cosmetics: for those you MUST answer with an empty string. A wrong answer is far worse than an empty one; never guess from similar-sounding names. ALSO give the potency "s" (strength of the active ingredient) ONLY if it is written in the product text itself (e.g. "120mg", "500mg/125mg", "0.1%"), copied exactly in the same order as the ingredients; otherwise "s" must be an empty string. Never use your own knowledge for "s". Reply with ONLY a JSON array like [{"i":1,"a":"Etoricoxib","s":"120 mg","c":"high"}] where c is "high" only if certain, otherwise omit the item or use "".\n\n' + list;
         const txt = await callAiEngine(eng, { prompt, json: false });
         const m = String(txt).match(/\[[\s\S]*\]/); if (!m) throw new Error('رد غير مفهوم من النموذج');
         const arr = JSON.parse(m[0]); let n = 0;
-        arr.forEach(o => { const p = todo[(parseInt(o.i) || 0) - 1], a = String(o.a || '').trim(); if (p && a && String(o.c || '').toLowerCase() === 'high') { const e = dhEdits.get(p.id) || {}; e.ai = a; e.aiGen = true; dhEdits.set(p.id, e); n++; } });
+        arr.forEach(o => { const p = todo[(parseInt(o.i) || 0) - 1], a = String(o.a || '').trim(); if (p && a && String(o.c || '').toLowerCase() === 'high') { const e = dhEdits.get(p.id) || {};
+            let s = String(o.s || '').replace(/\s+/g, ' ').trim();   // التركيز يُقبل فقط إن كانت كل أرقامه مكتوبة فعلاً في نص المنتج
+            if (s) { const src = (p.name + ' ' + (p.meta || '')).replace(/,/g, '.'); const nums = s.replace(/,/g, '.').match(/\d+(?:\.\d+)?/g) || []; if (!nums.length || s.length > 40 || !nums.every(x => new RegExp('(^|[^\\d.])' + x.replace('.', '\\.') + '(?![\\d])').test(src))) s = ''; }
+            e.ai = s ? a + ' ' + s : a; e.aiGen = true; dhEdits.set(p.id, e); n++; } });
         h.ok(n ? 'اقتُرحت ' + n + ' مادة فعالة — راجعها ثم احفظ' : 'لم يتعرّف النموذج على مواد');
         dhRender();
     } catch (err) { h.fail('تعذّر الاقتراح', err && err.message); }
