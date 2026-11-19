@@ -4830,3 +4830,6 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 #progLine.pl-topm b { border-radius: var(--r, 0px) var(--r, 0px) 0 0; border-bottom: 0; border-top: 4px solid transparent; }
 #progLine.pl-topm .pl-track { border-top-color: rgba(148,163,184,.28); }
 #progLine.pl-topm .pl-fill { border-top-color: #f9a825; }
+
+.bill-older { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; } .bill-older small { color: #64748b; font-weight: 700; }
+.bill-older-row { display: flex; gap: 8px; align-items: center; } .bill-older-row input { flex: 1; min-width: 0; height: 44px; box-sizing: border-box; border: 2px solid #cbd5e1; border-radius: 12px; padding: 0 10px; font-family: inherit; } .bill-older-row button { flex: 0 0 auto; height: 44px; }

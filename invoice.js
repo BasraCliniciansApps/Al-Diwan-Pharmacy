@@ -682,9 +682,11 @@ async function pushLocalInvoices() {
 }
 async function loadInvoices() {
     const map = new Map();
+    (billAll || []).forEach(x => x && x.id && map.set(x.id, x));   // ما حُمّل سابقاً (مثل الأقدم من تاريخ) لا يُفقد عند التحديث
     try { (JSON.parse(lsGet(BILL_LS.list)) || []).forEach(x => x && x.id && map.set(x.id, x)); } catch (e) { /* تجاهل */ }
+    // الترتيب بالتاريخ: كل فاتورة لها تاريخ، أما الفاتورة بلا issuedTs فكانت تُستبعد من الاستعلام
     if (cloudReady() && navigator.onLine) {
-        try { const r1 = await cloudDelta('inv', 'pharmacy_invoices', map.size > 0, 3, 24, c => c.orderBy('issuedTs', 'desc').limit(300)); if (r1) r1.snap.forEach(d => { const x = d.data(); if (x && x.id) map.set(x.id, x); }); } catch (e) { /* تجاهل */ }
+        try { const r1 = await cloudDelta('inv', 'pharmacy_invoices', map.size > 0, 3, 24, c => c.orderBy('date', 'desc').limit(300)); if (r1) r1.snap.forEach(d => { const x = d.data(); if (x && x.id) map.set(x.id, x); }); } catch (e) { /* تجاهل */ }
     }
     billAll = [...map.values()].sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
     return billAll;
@@ -705,6 +707,7 @@ function renderIssuedList() {
     const q = ($b('billListSearch').value || '').trim().toLowerCase();
     const arr = billAll.filter(b => !q || [b.no, b.to, b.customer, b.doctor].some(x => String(x || '').toLowerCase().includes(q)) || (b.items || []).some(l => String(l.name || '').toLowerCase().includes(q)));
     $b('billList').innerHTML = arr.map(b => billCardHtml(b)).join('') || '<div class="bill-none">لا توجد فواتير صادرة بعد.</div>';
+    const nt = document.getElementById('billOlderNote'); if (nt) nt.textContent = 'المعروض ' + arr.length + ' فاتورة' + (billAll.length >= 300 ? ' — القائمة الافتراضية آخر 300 فاتورة، ولعرض الأقدم اختر تاريخاً.' : '.');
 }
 function billOpenSaved(id) {
     const b = billAll.find(x => x.id === id); if (!b) return;
@@ -806,4 +809,12 @@ function poShareWhatsApp() {
     const sup = ($b('poSupplier').value || '').trim();
     const txt = `طلب شراء — صيدلية الديوان${sup ? '\nإلى: ' + sup : ''}\n${fmtDateDMY(todayLocalISO())}\n\n` + sel.map((x, i) => `${i + 1}) ${x.p.name}${x.p.brand ? ' (' + x.p.brand + ')' : ''} × ${x.qty}`).join('\n');
     window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+}
+
+// تحميل الفواتير الأقدم من تاريخ يختاره المدير (القائمة الافتراضية آخر 300 فاتورة فقط)
+async function billLoadOlder() {
+    const inp = document.getElementById('billOlderFrom'), from = inp && inp.value;
+    if (!from) { Swal.fire({ icon: 'info', title: 'اختر التاريخ أولاً', toast: true, position: 'top', showConfirmButton: false, timer: 1600 }); return; }
+    const h = Prog.start('تحميل الفواتير', { text: 'من ' + fmtDateDMY(from) + '...' });
+    try { await invEnsureSince(from); renderIssuedList(); h.ok('تم التحميل'); } catch (e) { h.fail('تعذر التحميل', e && e.message); }
 }

@@ -100,6 +100,7 @@
             <div class="bill-panel no-print">
                 <input type="search" class="bill-list-search" id="billListSearch" placeholder="🔍 ابحث برقم الفاتورة أو الاسم أو اسم المادة..." oninput="renderIssuedList()">
                 <div class="bill-list" id="billList"></div>
+                <div class="bill-older"><small id="billOlderNote"></small><div class="bill-older-row"><input type="date" id="billOlderFrom"><button type="button" class="bill-tb-btn" onclick="billLoadOlder()">تحميل الفواتير من هذا التاريخ</button></div></div>
             </div>
         </section>
 
