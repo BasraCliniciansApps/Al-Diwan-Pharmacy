@@ -18,7 +18,7 @@ const Prog = {
         h.fail = (msg, why) => { if (h.state !== 'run') return; h.state = 'err'; h.text = msg || 'فشلت العملية'; h.why = why || ''; Prog.paint(); };
         h.drop = () => { h.state = 'drop'; if (Prog.cur === h) { Prog.cur = null; } };
         h.close = () => { if (Prog.cur === h) Prog.hide(); };
-        Prog.cur = h; h.anch = !!Prog.topCard(); Prog.paint();
+        Prog.cur = h; h.anchEl = Prog.topCard(true); Prog.paint();
         clearInterval(Prog.timer); Prog.timer = setInterval(Prog.paint, 500);
         Prog.watch();
         return h;
@@ -33,15 +33,15 @@ const Prog = {
         const ln = document.createElement('div'); ln.id = 'progLine'; ln.hidden = true; ln.innerHTML = '<b class="pl-track"></b><b class="pl-fill"></b>'; document.body.appendChild(ln); Prog.ln = ln;
     },
     // موضع الخط: الحد الفاصل بين الترويسة الكحلية والمحتوى تحتها. داخل النوافذ المنبثقة يلتزم بحدود النافذة نفسها لا بعرض الشاشة
-    topCard() {
+    topCard(any) {
         let best = null;
         try {
             document.querySelectorAll('.swal2-popup, .px-sheet, .modal-overlay .modal-card, .pos-ov').forEach(e => {
-                if (e.classList.contains('swal2-hide') || (e.closest && e.closest('.swal2-container.swal2-backdrop-hide'))) return;   // نافذة قيد الإغلاق: لا يلتزم الخط بها
+                if (e.classList.contains('swal2-hide') || e.classList.contains('dw-out-page') || e.closest('.dw-out-page, .swal2-hide') || +getComputedStyle(e).opacity < 0.05 || (e.closest && e.closest('.swal2-container.swal2-backdrop-hide'))) return;   // نافذة قيد الإغلاق: لا يلتزم الخط بها
                 const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
                 if (r.width < 60 || r.height < 60 || cs.visibility === 'hidden' || cs.display === 'none') return;
                 const ov = e.closest('.modal-overlay'); if (ov && getComputedStyle(ov).display === 'none') return;
-                if (r.width >= window.innerWidth - 2 && r.top <= 1 && r.height >= window.innerHeight - 2) return;   // شاشة كاملة: ليست نافذة منبثقة
+                if (!any && r.width >= window.innerWidth - 2 && r.top <= 1 && r.height >= window.innerHeight - 2) return;   // شاشة كاملة: ليست نافذة منبثقة
                 best = e;
             });
         } catch (e) { return null; }
@@ -105,7 +105,8 @@ const Prog = {
         {   // الخط الرفيع: يتحرك أثناء العمل ولا يعترض اللمس
             const ln = Prog.ln; if (ln) {
                 // الخط يتبع النافذة التي بدأت فيها العملية: إن أُغلقت النافذة يختفي الخط معها (العملية تكمل بالخلفية، والخطأ يظهر في الشريط السفلي)
-                if (h.anch && h.state === 'run' && !Prog.topCard()) { ln.hidden = true; const t0 = document.getElementById('progTxt'); if (t0) t0.hidden = true; }
+                const tcNow = Prog.topCard(true); if (tcNow) h.anchEl = tcNow; h.orph = !tcNow && !!h.anchEl;
+                if (h.orph) { ln.hidden = true; const t0 = document.getElementById('progTxt'); if (t0) t0.hidden = true; }
                 else {
                 const g = Prog.lineY(), r = Math.round(g.r), H = r + (g.top ? 4 : 5); Prog.lastG = g;
                                 ln.style.top = (g.top ? Math.max(0, g.y) : Math.max(0, g.y - H)) + 'px'; ln.style.height = H + 'px'; ln.style.setProperty('--r', r + 'px'); ln.hidden = false;
@@ -120,7 +121,7 @@ const Prog = {
         {   // نص التقدّم الصغير تحت الخط للعمليات التي تطول (مثل «حُفظ 40 من 120»)
             let tx = document.getElementById('progTxt');
             if (!tx) { tx = document.createElement('div'); tx.id = 'progTxt'; tx.hidden = true; tx.setAttribute('aria-hidden', 'true'); document.body.appendChild(tx); }
-            const g = Prog.lastG || { y: 0 }, show = h.state === 'run' && h.text && (Date.now() - h.t0) > 1200 && !(h.anch && !Prog.topCard());
+            const g = Prog.lastG || { y: 0 }, show = h.state === 'run' && h.text && (Date.now() - h.t0) > 1200 && !h.orph;
             if (show) {
                 tx.textContent = (h.pct !== null ? Math.round(h.pct) + '% · ' : '') + h.text;
                 tx.style.top = (Math.max(0, g.y) + 8) + 'px';
