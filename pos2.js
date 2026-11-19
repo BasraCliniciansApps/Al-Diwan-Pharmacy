@@ -169,7 +169,15 @@ function p2CrZero() { p2.zero = !p2.zero; if (p2.zero) { p2.paid = ''; const f =
 function p2CrPaid(v) { p2.paid = v; if (v !== '') { p2.zero = false; const z = p2El('p2CrZ'); if (z) z.classList.remove('on'); } p2CrSync(); }
 
 // ---------- الإصدار (نفس منطق التحقق في posIssue) ----------
+// منع الضغط المزدوج: لا يبدأ إصدار جديد قبل انتهاء الحالي (بما فيه النوافذ)، ولا بعد صدور الفاتورة
 async function p2Issue(print) {
+    if (p2.busy || p2.done || (bill && bill.issued && !bill.editing)) return;
+    p2.busy = true;
+    const bs = [...document.querySelectorAll('.p2-btns .pos-big')]; bs.forEach(b => { b.disabled = true; });
+    try { await p2Issue_(print); }
+    finally { p2.busy = false; document.querySelectorAll('.p2-btns .pos-big').forEach(b => { b.disabled = false; }); }
+}
+async function p2Issue_(print) {
     if (!bill.items.length) { Swal.fire({ icon: 'info', title: 'أضف مادة أولاً', toast: true, position: 'top', showConfirmButton: false, timer: 1500 }); return; }
     if (typeof billHasExpired === 'function' && billHasExpired()) return;
     writeInvoiceFields();

@@ -4990,3 +4990,4 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .p2-top::before { content: ''; display: block; height: env(safe-area-inset-top, 0px); background: #0f1c38; }
 .p2-top .page-title { display: flex; align-items: center; justify-content: space-between; }
 .p2-top .p2-no { font-family: inherit; font-size: .8rem; font-weight: 700; color: #94a3b8; opacity: 1; }
+.p2-btns .pos-big:disabled { opacity: .55; pointer-events: none; }
