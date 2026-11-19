@@ -5319,7 +5319,14 @@ function subCountOf(p) { const n = parseInt(p && p.subCount); return n > 1 ? n :
 function hasRetail(p) { return subCountOf(p) > 1; }
 // حجم الجزء: رقم (مثل 8 حبات بالشريط) أو نص قديم (Strip). للأسماء نعرض القيمة كما هي، وللوحدات («3 جزء») نستعمل كلمة «جزء» إن كانت القيمة رقماً.
 function subSizeOf(p) { return (p && p.subType) || 'جزء'; }
-function subTypeOf(p) { const v = subSizeOf(p); return /^\d+(\.\d+)?$/.test(String(v).trim()) ? 'جزء' : v; }
+// اسم الوحدة الصغرى عند كون الحجم رقماً: نأخذه من الشكل الدوائي أو من نص العبوة (مثل 10 Capsule ← Capsule)، وإلا «جزء»
+function partWordOf(p) {
+    const f = dispForm(p); if (f) return f;
+    const m = String((p && p.meta) || '').replace(/\d+(?:\.\d+)?\s*(?:mg|mcg|µg|ml|g|iu|%|cm|mm|l|kg)\b/ig, ' ').match(/[A-Za-z][A-Za-z\-]{2,}/g);
+    const w = m && m.find(x => !/^(x|box|pack|strip|blister|bottle|tube)$/i.test(x));
+    return w || '';
+}
+function subTypeOf(p) { const v = subSizeOf(p); return /^\d+(\.\d+)?$/.test(String(v).trim()) ? (partWordOf(p) || 'جزء') : v; }
 // حجم الجزء التلقائي = عدد حبات العبوة ÷ عدد الأجزاء (يُعاد النص أو '' إن لم يتوفر قسمة صحيحة)
 function partSizeCalc(meta, cnt) {
     cnt = parseInt(cnt) || 0; if (cnt < 2) return '';
