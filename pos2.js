@@ -126,16 +126,12 @@ function p2Totals() {   // تحديث الأرقام دون إعادة رسم ا
 }
 
 // ---------- حاسبة الباقي (للعرض فقط، لا تُخزَّن في الفاتورة) ----------
-function p2Quick(net) {   // مطابق + أقرب ثلاث فئات أعلى من الصافي
-    const up = P2_NOTES.filter(n => n >= net).slice(0, 3);
-    if (!up.length) { const m = Math.ceil(net / 50000) * 50000; up.push(m, m + 50000); }
-    return up;
-}
+function p2RecvAdd(n) { p2RecvSet((parseFloat(p2.recv) || 0) + n); }   // كل ضغطة تضيف الفئة إلى المبلغ المستلم
 function p2RecvSet(v) { p2.recv = v === '' ? '' : String(v); const i = p2El('p2R'); if (i) i.value = p2.recv; p2CalcRefresh(); }
 function p2CalcRefresh() {
     const box = p2El('p2Chg'); if (!box) return;
     const net = p2Net(), r = parseFloat(p2.recv);
-    const q = p2El('p2Quick'); if (q) q.innerHTML = (net > 0 ? `<button type="button" onclick="p2RecvSet(${Math.round(net)})">مطابق</button>` : '') + (net > 0 ? p2Quick(net).map(n => `<button type="button" onclick="p2RecvSet(${n})">${fmtNum(n)}</button>`).join('') : '');
+    const q = p2El('p2Quick'); if (q && !q.dataset.r) { q.dataset.r = '1'; q.innerHTML = P2_NOTES.map(n => `<button type="button" onclick="p2RecvAdd(${n})">${fmtNum(n)}</button>`).join('') + '<button type="button" class="m" onclick="p2RecvSet(Math.round(p2Net()))">مطابق</button><button type="button" class="c" onclick="p2RecvSet(\'\')">مسح</button>'; }
     if (!(r >= 0) || p2.recv === '') { box.className = 'p2-chg'; box.innerHTML = '<span>الباقي للزبون</span><b>—</b>'; return; }
     if (r >= net) { box.className = 'p2-chg ok'; box.innerHTML = `<span>الباقي للزبون</span><b>${fmtNum(r - net)} د.ع</b>`; }
     else { box.className = 'p2-chg bad'; box.innerHTML = `<span>ناقص</span><b>${fmtNum(net - r)} د.ع</b><small>فعّل «بيع آجل» لتسجيل المتبقي ديناً.</small>`; }
