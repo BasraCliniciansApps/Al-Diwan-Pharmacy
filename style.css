@@ -4894,3 +4894,9 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .p2-chip .ic { width: 18px; height: 18px; flex: none; } .p2-chip .p2-cq { font-size: .82rem; font-weight: 700; opacity: .85; } .p2-chip .p2-cd { overflow: hidden; text-overflow: ellipsis; }
 .p2-arr { flex: none; width: 44px; height: 44px; border: 0; border-radius: 12px; background: #0f1c38; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
 .p2-arr .ic { width: 22px; height: 22px; } .p2-arr:disabled { background: #cbd5e1; color: #94a3b8; cursor: default; }
+/* v681: تاريخ النفاذ أكبر وأوضح (الاختصار font مع inherit كان يُهمَل فيرجع الحجم الافتراضي) */
+.p2-chip { font-family: inherit; font-weight: 800; font-size: 1.3rem; height: 52px; }
+.p2-chip .p2-cd { font-size: 1.35rem; font-weight: 900; letter-spacing: .2px; }
+.p2-chip .p2-cq { font-size: .95rem; font-weight: 700; }
+.p2-chip .ic { width: 22px; height: 22px; }
+.p2-arr { width: 52px; height: 52px; }
