@@ -311,11 +311,11 @@
         const shown = id => { const e = document.getElementById(id); return !!e && getComputedStyle(e).display !== 'none'; };
         const check = tgt => setTimeout(() => {
             if (window.__dwDirect !== tgt || window.__dwNav) return;
-            const open = tgt === 'pos' ? shown('posOv') : (shown('scanView') || shown('barcodeModal'));
+            const open = tgt === 'pos' ? (shown('posOv') || shown('p2Ov')) : (shown('scanView') || shown('barcodeModal'));
             if (!open) { window.__dwDirect = ''; NAT.exit(); }
         }, 350);
         const wrap = (name, tgt) => { const o = window[name]; if (typeof o !== 'function') return; window[name] = function () { const r = o.apply(this, arguments); check(tgt); return r; }; };
-        wrap('posClose', 'pos'); wrap('scClose', 'scan'); wrap('closeBarcodeScanner', 'scan');
+        wrap('posClose', 'pos'); wrap('p2Close', 'pos'); wrap('scClose', 'scan'); wrap('closeBarcodeScanner', 'scan');
         const ca = window.__closeAllLayers;
         if (typeof ca === 'function') window.__closeAllLayers = function () { window.__dwNav = true; window.__dwDirect = ''; try { return ca.apply(this, arguments); } finally { setTimeout(() => { window.__dwNav = false; }, 0); } };
     });

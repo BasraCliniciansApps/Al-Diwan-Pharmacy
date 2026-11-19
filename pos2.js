@@ -1,5 +1,5 @@
 // =====================================================================
-// واجهة بيع تجريبية (مستقلة عن شاشة البيع الحالية): على الكمبيوتر عمودان (المواد يميناً، ولوحة الملخص والدفع ثابتة يساراً)،
+// شاشة البيع (التصميم الجديد؛ تحل محل شاشة pos.js التي بقيت مكتبة منطق مشتركة): على الكمبيوتر عمودان (المواد يميناً، ولوحة الملخص والدفع ثابتة يساراً)،
 // وعلى الموبايل عمود واحد. تعمل على نفس كائن الفاتورة (bill) ونفس دوال الإضافة والدفعات والتجزئة والخصم والإصدار في pos.js وinvoice.js
 // دون تغيير أي منها؛ هذا الملف يضيف العرض ولوحة الدفع وحاسبة الباقي فقط.
 // =====================================================================
@@ -19,7 +19,7 @@ const p2Net = () => billTotals().total;
 function p2Ensure() {
     if (p2El('p2Ov')) return;
     const d = document.createElement('div'); d.id = 'p2Ov'; d.className = 'p2-ov no-print'; d.setAttribute('dir', 'rtl'); d.style.display = 'none';
-    d.innerHTML = `<div class="p2-head"><button type="button" class="p2-back" onclick="p2Back()" aria-label="رجوع">›</button><b>🧪 واجهة بيع تجريبية</b><span class="p2-no" dir="ltr" id="p2No"></span></div>
+    d.innerHTML = `<div class="p2-head"><button type="button" class="p2-back" onclick="p2Back()" aria-label="رجوع">›</button><b>🛒 شاشة البيع</b><span class="p2-no" dir="ltr" id="p2No"></span></div>
         <div class="p2-main" id="p2Main">
             <section class="p2-items" id="p2Items">
                 <div class="p2-bar"><input id="p2Q" type="search" autocomplete="off" placeholder="امسح الباركود أو اكتب اسم المادة" oninput="p2SearchInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();p2Enter();}"><button type="button" class="p2-cam" onclick="p2Scan()" aria-label="مسح بالكاميرا">📷</button></div>
@@ -360,3 +360,6 @@ function p2Render() {
     p2El('p2Panel').innerHTML = p2Panel();
     p2Sync(); p2Fit();
 }
+
+// كل مداخل شاشة البيع (البطاقة، F2، أيقونة الأندرويد، زر الفاتورة) تفتح هذه الشاشة
+window.posOpen = p2Open; window.posClose = p2Close;
