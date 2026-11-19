@@ -4982,3 +4982,10 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .p2-chips1 button { flex: 1 1 0; min-width: 0; padding: 0 2px; min-height: 40px; font-size: .88rem; }
 .p2-chips1 button.cost { flex: 1.7 1 0; font-size: .8rem; }
 @media (max-width: 899px) { .p2c .p2-acc-b.open { border-radius: 0 !important; } }
+/* v700: تباعد أقسام الأزرار (الحاسبة وغيرها) */
+.p2-acc-b { display: flex; flex-direction: column; gap: 12px; }
+.p2-acc-b .p2-sec, .p2-acc-b .px-sec { margin-top: 0; }
+.p2-acc-b .p2-recv { gap: 8px; }
+.p2-acc-b .p2-chg { margin-top: 2px; }
+.p2-acc-b .p2-chg small { flex-basis: 100%; font-weight: 700; }
+@media (max-width: 899px) { .p2c .p2-acc-b.open { display: flex; flex-direction: column; gap: 12px; padding: 14px 14px 16px; } }

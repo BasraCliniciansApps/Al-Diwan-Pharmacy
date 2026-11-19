@@ -140,16 +140,21 @@ function p2CalcRefresh() {
     const box = p2El('p2Chg'); if (!box) return;
     const net = p2Net(), r = parseFloat(p2.recv);
     const q = p2El('p2Quick'); if (q && !q.dataset.r) { q.dataset.r = '1'; q.innerHTML = P2_NOTES.map(n => `<button type="button" onclick="p2RecvAdd(${n})">${fmtNum(n)}</button>`).join('') + '<button type="button" class="m" onclick="p2RecvSet(Math.round(p2Net()))">مطابق</button><button type="button" class="c" onclick="p2RecvSet(\'\')">مسح</button>'; }
+    p2CrSync();
     if (!(r >= 0) || p2.recv === '') { box.className = 'p2-chg'; box.innerHTML = '<span>الباقي للزبون</span><b>—</b>'; return; }
     if (r >= net) { box.className = 'p2-chg ok'; box.innerHTML = `<span>الباقي للزبون</span><b>${fmtNum(r - net)} د.ع</b>`; }
-    else { box.className = 'p2-chg bad'; box.innerHTML = `<span>ناقص</span><b>${fmtNum(net - r)} د.ع</b><small>فعّل «بيع آجل» لتسجيل المتبقي ديناً.</small>`; }
+    else { box.className = 'p2-chg bad'; box.innerHTML = `<span>ناقص</span><b>${fmtNum(net - r)} د.ع</b><small>سيُسجَّل المتبقي آجلاً عند الإصدار.</small>`; }
 }
 function p2CalcToggle(on) { try { localStorage.setItem(P2_CALC_LS, on ? '1' : '0'); } catch (e) { /* تجاهل */ } p2.recv = ''; p2Render(); }
 // البيع الآجل: يتفعّل تلقائياً عند الضغط على «لم يُدفع شيء» أو كتابة مبلغ مدفوع أقل من الصافي، ويُلغى بإزالتهما
-function p2CrSync() {
-    const tot = billTotals().total, pd = parseFloat(p2.paid);
-    p2.credit = !!p2.zero || (p2.paid !== '' && pd >= 0 && pd < tot);
-    const inf = p2El('p2CrInfo'); if (inf) inf.textContent = p2.zero ? 'المتبقي آجل: ' + fmtNum(tot) + ' د.ع' : p2.paid === '' ? '' : pd >= tot ? 'المبلغ المدفوع يغطي الصافي كاملاً، فلا يُعدّ البيع آجلاً' : 'المتبقي آجل: ' + fmtNum(tot - (pd || 0)) + ' د.ع';
+function p2CrSync() {   // مصادر الآجل: زر «لم يُدفع شيء» ثم حقل المدفوع ثم نقص المبلغ المستلم في الحاسبة
+    const tot = billTotals().total, pd = parseFloat(p2.paid), rv = parseFloat(p2.recv);
+    let src = '', paid = 0;
+    if (p2.zero) src = 'zero';
+    else if (p2.paid !== '' && pd >= 0 && pd < tot) { src = 'paid'; paid = pd; }
+    else if (p2Calc() && p2.recv !== '' && rv >= 0 && rv < tot) { src = 'calc'; paid = rv; }
+    p2.credit = !!src; p2.paidEff = paid; p2.crSrc = src;
+    const inf = p2El('p2CrInfo'); if (inf) inf.textContent = src ? 'المتبقي آجل: ' + fmtNum(tot - paid) + ' د.ع' + (src === 'calc' ? ' (من المبلغ المستلم في الحاسبة)' : '') : (p2.paid !== '' && pd >= tot ? 'المبلغ المدفوع يغطي الصافي كاملاً، فلا يُعدّ البيع آجلاً' : '');
     const bd = p2El('p2BdR'); if (bd) bd.hidden = !p2.credit;
 }
 function p2CrZero() { p2.zero = !p2.zero; if (p2.zero) { p2.paid = ''; const f = p2El('p2Paid'); if (f) f.value = ''; } const z = p2El('p2CrZ'); if (z) z.classList.toggle('on', p2.zero); p2CrSync(); }
@@ -167,33 +172,36 @@ async function p2Issue(print) {
         const w = await Swal.fire({ icon: 'warning', title: 'تحذير: بيع بخسارة', html: `الخصم <b>${fmtNum(d)} د.ع</b> أعلى من الحد الآمن <b>${fmtNum(L.allow)} د.ع</b>.<br>هذه الفاتورة ستُباع <b style="color:#b91c1c">بخسارة تقارب ${fmtNum(d - L.allow)} د.ع</b>.<br>هل تريد إصدارها رغم ذلك؟`, showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، إصدار بخسارة', cancelButtonText: 'رجوع' });
         if (!w.isConfirmed) return;
     }
-    p2CrSync(); const t = billTotals(), paidIn = p2.zero ? 0 : (parseFloat(p2.paid) || 0);
-    bill.paid = p2.credit ? String(Math.min(paidIn, t.total)) : '';
+    p2CrSync(); const t = billTotals();
+    bill.paid = p2.credit ? String(Math.min(p2.paidEff, t.total)) : '';
     writeInvoiceFields(); billChanged(); try { qiRemember(); } catch (e) { /* تجاهل */ }
-    let mode = '';
-    if (print) {   // 1) استكمال بيانات الفاتورة الفارغة  2) اختيار طريقة الطباعة
-        if (!(await p2AskInfo())) return;
-        mode = await p2AskMode(); if (!mode) return;
-        writeInvoiceFields();
+    if (p2.credit) {   // تنبيه: البيع سيُسجَّل آجلاً بالمتبقي
+        const cw = await Swal.fire({ icon: 'warning', title: 'بيع آجل', html: `المبلغ المدفوع: <b>${fmtNum(p2.paidEff)} د.ع</b><br>المتبقي غير المدفوع: <b style="color:#b91c1c">${fmtNum(t.total - p2.paidEff)} د.ع</b><br>سيُسجَّل المتبقي ديناً على الزبون، ويلزم إدخال اسمه.`, showCancelButton: true, confirmButtonText: 'متابعة', cancelButtonText: 'رجوع', confirmButtonColor: '#0f1c38' });
+        if (!cw.isConfirmed) return;
     }
+    let mode = '';
+    const needCu = p2.credit && !bill.customer;
+    if (print || needCu) { if (!(await p2AskInfo(needCu))) return; }   // 1) استكمال بيانات الفاتورة (اسم الزبون إلزامي للآجل)
+    if (print) { mode = await p2AskMode(); if (!mode) return; }
+    writeInvoiceFields();
     await issueInvoice(false, true);
     if (bill.issued) { p2.done = true; if (print) p2PrintBy(mode); }
     p2Render();
 }
 // نافذة بيانات الفاتورة قبل الطباعة: تظهر إن كان أحد حقول (الشركة، الزبون، الطبيب) فارغاً. تُرجع false عند الإلغاء.
-async function p2AskInfo() {
-    if (bill.to && bill.customer && bill.doctor) return true;
+async function p2AskInfo(needCu) {
+    if (!needCu && bill.to && bill.customer && bill.doctor) return true;
     const v = x => posEsc(bill[x] || '');
     const r = await Swal.fire({
-        title: 'بيانات الفاتورة', showCancelButton: true, showDenyButton: true, confirmButtonText: 'متابعة', denyButtonText: 'تخطي', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
+        title: needCu ? 'بيانات الزبون (بيع آجل)' : 'بيانات الفاتورة', showCancelButton: true, showDenyButton: !needCu, confirmButtonText: 'متابعة', denyButtonText: 'تخطي', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
         html: `<div class="pos-fields" style="text-align:right">
             <label>إلى السيد / الشركة<input id="p2qTo" list="qiDl_to" autocomplete="off" placeholder="اختياري" value="${v('to')}"></label>
-            <label>اسم الزبون<input id="p2qCu" list="qiDl_customer" autocomplete="off" placeholder="اختياري" value="${v('customer')}"></label>
+            <label>اسم الزبون<input id="p2qCu" list="qiDl_customer" autocomplete="off" placeholder="${needCu ? 'مطلوب للبيع الآجل' : 'اختياري'}" value="${v('customer')}"></label>
             <label>اسم الطبيب المعالج<input id="p2qDo" list="qiDl_doctor" autocomplete="off" placeholder="اختياري" value="${v('doctor')}"></label>
             <label>التاريخ<input id="p2qDt" type="date" value="${posEsc(bill.date || todayLocalISO())}"></label>
             <label>ملاحظات<textarea id="p2qNo" rows="2">${v('notes')}</textarea></label>
             ${['to', 'customer', 'doctor'].map(k => qiDl(k)).join('')}</div>`,
-        preConfirm: () => { const g = id => document.getElementById(id); return { to: g('p2qTo').value.trim(), customer: g('p2qCu').value.trim(), doctor: g('p2qDo').value.trim(), date: g('p2qDt').value, notes: g('p2qNo').value.trim() }; }
+        preConfirm: () => { const g = id => document.getElementById(id); if (needCu && !g('p2qCu').value.trim()) { Swal.showValidationMessage('اسم الزبون مطلوب للبيع الآجل'); return false; } return { to: g('p2qTo').value.trim(), customer: g('p2qCu').value.trim(), doctor: g('p2qDo').value.trim(), date: g('p2qDt').value, notes: g('p2qNo').value.trim() }; }
     });
     if (r.isDismissed) return false;
     if (r.isConfirmed && r.value) { const o = r.value; bill.to = o.to; bill.customer = o.customer; bill.doctor = o.doctor; bill.notes = o.notes; bill.date = o.date || todayLocalISO(); try { qiRemember(); } catch (e) { /* */ } }
