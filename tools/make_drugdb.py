@@ -25,7 +25,7 @@ for k, r in zip(keys, rows):
     s = title(r['scientific_name'])
     if len(k) < 3 or not s: continue
     m.setdefault(k, set()).add(s)
-out = {k: next(iter(v)) for k, v in m.items() if len(v) == 1}
+out = {k: (next(iter(v)) if len(v) == 1 else sorted(v)[:6]) for k, v in m.items()}   # الملتبس: قائمة احتمالات يختار منها المستخدم
 body = 'window.DRUGDB={v:1,src:"Egyptian Drug Database (CC0)",m:' + json.dumps(out, ensure_ascii=False, separators=(',', ':')) + '};'
 open(os.path.join(root, 'drugdb.js'), 'w', encoding='utf-8').write(body)
-print('keys', len(out), 'dropped ambiguous', len(m) - len(out), 'bytes', len(body.encode()))
+print('keys', len(out), 'ambiguous', sum(1 for v in out.values() if isinstance(v, list)), 'bytes', len(body.encode()))

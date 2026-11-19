@@ -114,6 +114,7 @@ function dhIngRow(p) {
         <div class="dh-sub" dir="ltr">${dhEsc(p.brand || '')}${p.brand && p.meta ? ' | ' : ''}${dhEsc(fixMetaOrder(p.meta || ''))}</div>
         <label><span>الاسم التجاري</span><input type="text" dir="ltr" value="${dhEsc(name)}" oninput="dhEdit(${p.id},'name',this.value)"></label>
         <label><span>الاسم العلمي (المادة الفعالة)</span><input type="text" dir="ltr" list="activeList" value="${dhEsc(ai)}" placeholder="مثال: Ciprofloxacin — للمركّب افصل بـ +" oninput="dhEdit(${p.id},'ai',this.value)"></label>
+        ${dhOpts.has(p.id) && !String(ai).trim() ? `<div class="dh-opts"><span>اختر المادة الفعالة الصحيحة:</span>${dhOpts.get(p.id).map((o, i) => `<button type="button" dir="ltr" onclick="dhPickOpt(${p.id},${i})">${dhEsc(o)}</button>`).join('')}</div>` : ''}
         <label><span>الشركة</span><input type="text" dir="ltr" list="dhBrandList" value="${dhEsc(br)}" placeholder="اسم الشركة المصنّعة" oninput="dhEdit(${p.id},'br',this.value)"></label>
     </div>`;
 }
@@ -154,7 +155,7 @@ function dhMore() { dhShown += 40; dhRender(true); }
 
 // ---------- ذاكرة تجارية مشتقة من بياناتك: اسم تجاري ← مادة فعالة (بدون تخزين منفصل ولا ذكاء) ----------
 const DH_STR_RE = /\d+(?:[.,]\d+)?\s*(?:mg|mcg|µg|ug|gm|g|kg|ml|iu|meq|mmol|u|%)(?![a-z])/gi;
-const DH_FORM_RE = /\b(?:tablets?|tabs?|capsules?|caps?|syrup|susp(?:ension)?|inj(?:ection)?|amp(?:oule)?s?|vials?|cream|gel|oint(?:ment)?|drops?|spray|sachets?|supp(?:ository|ositories)?|lotion|solution|soln?|shampoo|film|coated|fc|forte|dt|sr|xr|er|mr|cr|plus)\b/gi;
+const DH_FORM_RE = /\b(?:tablets?|tabs?|capsules?|caps?|syrup|susp(?:ension)?|inj(?:ection)?|amp(?:oule)?s?|vials?|cream|gel|oint(?:ment)?|drops?|spray|sachets?|supp(?:ository|ositories)?|lotion|solution|soln?|shampoo|film|coated|fc|dt|sr|xr|er|mr|cr)\b/gi;
 function dhBaseKey(name) {
     return String(name || '').toLowerCase().replace(/\([^)]*\)/g, ' ').replace(/\b(?:[a-z]\.\s?){2,}/g, ' ').replace(DH_STR_RE, ' ').replace(DH_FORM_RE, ' ').replace(/[^a-z\u0600-\u06ff]+/g, '');
 }
@@ -169,32 +170,46 @@ function dhDbLoad() {   // القاعدة المرجعية (محلية ومخز�
 const dhIngParts = s => dhStripStr(String(s || '').replace(/\([^)]*\)/g, ' ')).toLowerCase().split('+').map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
 function dhDbKnown(ai) {   // كل مكوّنات الاسم يجب أن تكون معروفة بالقاعدة المرجعية (يمنع الأسماء الملفقة)
     if (!window.DRUGDB) return true;
-    if (!dhDbSet) { dhDbSet = new Set(); Object.values(DRUGDB.m).forEach(v => dhIngParts(v).forEach(x => dhDbSet.add(x))); }
+    if (!dhDbSet) { dhDbSet = new Set(); Object.values(DRUGDB.m).flat().forEach(v => dhIngParts(v).forEach(x => dhDbSet.add(x))); }
     const ps = dhIngParts(ai); return ps.length > 0 && ps.every(x => dhDbSet.has(x));
 }
-function dhMemMap() {
+function dhMemMap() {   // مفتاح ← { مادة منطبعة: {ai, n} }: بياناتك أنت أولاً
     const map = new Map();
     products.forEach(p => {
         const ai = dhStripStr(p.activeIngredient); if (!ai) return;
         const k = dhBaseKey(p.name); if (k.length < 3) return;
-        const c = map.get(k); const norm = ai.toLowerCase();
-        if (!c) map.set(k, { ai, norm, bad: false, n: 1 }); else if (c.norm !== norm) c.bad = true; else c.n++;
+        let m = map.get(k); if (!m) map.set(k, m = new Map());
+        const norm = ai.toLowerCase(), c = m.get(norm); if (c) c.n++; else m.set(norm, { ai, n: 1 });
     });
     return map;
 }
-function dhMemFill() {   // يملأ المواد الناقصة من منتجات عندك بنفس الاسم التجاري (تركيز آخر أو شكل آخر)
-    if (dhFilter === 'done') return 0;
-    const map = dhMemMap(); let n = 0;
+function dhWithStr(p, ai) {   // التركيز يؤخذ من اسم المنتج فقط، وبشرط تطابق عدد المكوّنات
+    const strs = (String(p.name || '').replace(/,/g, '.').match(DH_STR_RE) || []).map(x => x.replace(/\s+/g, ' ').trim());
+    const parts = ai.split('+').length, s = strs.length === parts ? strs.join(parts > 1 ? ' / ' : '') : '';
+    return s ? ai + ' ' + s : ai;
+}
+const dhOpts = new Map();   // id ← خيارات المادة الفعالة للأسماء الملتبسة (تظهر أزراراً في الصف)
+function dhMemFill() {   // يرجع {n: ما مُلئ تلقائياً، amb: ما يحتاج اختيارك}
+    dhOpts.clear(); if (dhFilter === 'done') return { n: 0, amb: 0 };
+    const map = dhMemMap(); let n = 0, amb = 0;
     products.forEach(p => {
         if (dhHas(p) || String((dhEdits.get(p.id) || {}).ai || '').trim()) return;
-        const k0 = dhBaseKey(p.name); let c = map.get(k0); if (!c && window.DRUGDB && DRUGDB.m[k0]) c = { ai: dhStripStr(DRUGDB.m[k0]), bad: false };
-        if (!c || c.bad || !c.ai) return;
-        const strs = (String(p.name || '').replace(/,/g, '.').match(DH_STR_RE) || []).map(x => x.replace(/\s+/g, ' ').trim());
-        const parts = c.ai.split('+').length;
-        const s = strs.length === parts ? strs.join(parts > 1 ? ' / ' : '') : '';
-        const e = dhEdits.get(p.id) || {}; e.ai = s ? c.ai + ' ' + s : c.ai; e.aiGen = true; dhEdits.set(p.id, e); n++;
+        const k = dhBaseKey(p.name); if (k.length < 3) return;
+        let cands = [];   // [{ai, w}] الأثقل أولاً
+        const own = map.get(k);
+        if (own && own.size) cands = [...own.values()].sort((x, y) => y.n - x.n).map(c => ({ ai: c.ai }));
+        else if (window.DRUGDB && DRUGDB.m[k]) { const v = DRUGDB.m[k]; cands = (Array.isArray(v) ? v : [v]).map(x => ({ ai: dhStripStr(x) })).filter(c => c.ai); }
+        const seen = new Set(); cands = cands.filter(c => { const q = c.ai.toLowerCase(); if (seen.has(q) || q.length > 90) return false; seen.add(q); return true; });
+        if (!cands.length) return;
+        if (cands.length === 1) { const e = dhEdits.get(p.id) || {}; e.ai = dhWithStr(p, cands[0].ai); e.aiGen = true; dhEdits.set(p.id, e); n++; }
+        else { dhOpts.set(p.id, cands.slice(0, 6).map(c => dhWithStr(p, c.ai))); amb++; }
     });
-    return n;
+    return { n, amb };
+}
+function dhPickOpt(id, i) {
+    const o = (dhOpts.get(id) || [])[i]; if (o == null) return;
+    const e = dhEdits.get(id) || {}; e.ai = o; e.aiGen = false; dhEdits.set(id, e); dhOpts.delete(id);   // اختيارك أنت: لا يحتاج تأكيد الاقتراح
+    dhFootRefresh(); dhRender();
 }
 function dhMemExamples(todo) {   // أمثلة من كتالوجك ترافق طلب الذكاء ليلتزم بصيغتك
     const seen = new Set(), out = [], first = new Set(todo.map(p => dhBaseKey(p.name).slice(0, 2)));
@@ -207,12 +222,13 @@ const dhTriedGet = () => { try { return new Set(JSON.parse(localStorage.getItem(
 const dhTriedSave = s => { try { localStorage.setItem(DH_TRIED, JSON.stringify([...s].slice(-5000))); } catch (e) { /* تجاهل */ } };
 async function dhAiSuggest() {
     if (!window.DRUGDB) { const hp = Prog.start('تحميل القاعدة المرجعية', { text: 'جارٍ التحميل...' }); const ok = await dhDbLoad(); ok ? hp.ok('تم تحميل القاعدة') : hp.fail('تعذّر تحميل القاعدة المرجعية', 'سيُكمل الاقتراح بدونها'); }
-    const memN = dhMemFill();   // أولاً من بياناتك (مجاناً وبدون ذكاء)
-    if (memN) dhRender();
+    const mr = dhMemFill(), memN = mr.n, ambN = mr.amb;   // أولاً من بياناتك ثم القاعدة المرجعية (مجاناً وبدون ذكاء)
+    if (memN || ambN) dhRender();
+    const ambTxt = ambN ? ' · ' + fmtNum(ambN) + ' اسم ملتبس يحتاج اختيارك من الأزرار تحت الحقل' : '';
     const eng = typeof getAiEngine === 'function' ? getAiEngine() : 'local';
-    if (memN && (eng === 'local' || !aiEngineOrder(eng, {}).length)) { Swal.fire({ icon: 'success', title: 'اقتُرحت ' + fmtNum(memN) + ' مادة من بياناتك', text: 'راجعها ثم احفظ.', timer: 2400, showConfirmButton: false }); return; }
+    if (memN && (eng === 'local' || !aiEngineOrder(eng, {}).length)) { Swal.fire({ icon: 'success', title: 'اقتُرحت ' + fmtNum(memN) + ' مادة من بياناتك' + ambTxt, text: 'راجعها ثم احفظ.', timer: 3200, showConfirmButton: false }); return; }
     if (eng === 'local' || !aiEngineOrder(eng, {}).length) { Swal.fire({ icon: 'info', title: 'الذكاء الاصطناعي غير مفعّل', text: 'فعّل محرك الذكاء الاصطناعي من الإعدادات (مفتاح Groq أو Gemini المجاني) ثم أعد المحاولة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-    const need = () => dhIngList().filter(p => dhFilter !== 'done' && !String((dhEdits.get(p.id) || {}).ai || '').trim() && !dhHas(p));
+    const need = () => dhIngList().filter(p => dhFilter !== 'done' && !String((dhEdits.get(p.id) || {}).ai || '').trim() && !dhHas(p) && !dhOpts.has(p.id));
     let tried = dhTriedGet();
     let pool = need().filter(p => !tried.has(p.id));
     if (!pool.length && need().length && tried.size) {
@@ -220,7 +236,7 @@ async function dhAiSuggest() {
         if (!r.isConfirmed) return;
         tried = new Set(); dhTriedSave(tried); pool = need();
     }
-    if (!pool.length && memN) { Swal.fire({ icon: 'success', title: 'اقتُرحت ' + fmtNum(memN) + ' مادة من بياناتك', text: 'راجعها ثم احفظ.', timer: 2400, showConfirmButton: false }); return; }
+    if (!pool.length && (memN || ambN)) { Swal.fire({ icon: 'success', title: memN ? 'اقتُرحت ' + fmtNum(memN) + ' مادة من بياناتك' : 'أسماء ملتبسة', text: (ambN ? fmtNum(ambN) + ' اسم ملتبس: اختر المادة من الأزرار تحت الحقل. ' : '') + 'راجع ثم احفظ.', timer: 3200, showConfirmButton: false }); return; }
     if (!pool.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد ظاهرة تحتاج اقتراحاً', timer: 1800, showConfirmButton: false }); return; }
     const BATCH = 25, MAXB = 4, total = Math.min(pool.length, BATCH * MAXB);   // حتى 100 مادة في الضغطة الواحدة، والتي لم يعرفها لا تُكرَّر
     const h = Prog.start('اقتراح المواد الفعالة', { text: fmtNum(total) + ' مادة...', indeterminate: false });

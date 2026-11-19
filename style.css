@@ -5003,3 +5003,8 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .lbl-iin small { color: #64748b; font-size: .72rem; }
 .lbl-del { background: #b91c1c !important; color: #fff !important; }
 .lbl-del:disabled { opacity: .45; }
+
+/* v715: خيارات المادة الفعالة للأسماء الملتبسة */
+.dh-opts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 2px 0 6px; }
+.dh-opts > span { flex: 1 0 100%; font-size: .74rem; font-weight: 800; color: #b45309; text-align: right; }
+.dh-opts button { border: 1px solid #f5b83d; background: #fffbeb; color: #0f1c38; border-radius: 999px; padding: 6px 12px; font-size: .8rem; font-weight: 700; cursor: pointer; font-family: inherit; }
