@@ -192,16 +192,23 @@ function p2BatchStep(key, idx, d) {
     if (cur < 0 || !nx) return;
     const q = parseFloat(it.qty) || 0;
     const twin = g.lines.find(o => o !== it && spKey(o.exp, o.bpr) === spKey(nx.e, nx.pr));   // سطر آخر على نفس الدفعة الهدف
-    const need = q + (twin ? (parseFloat(twin.qty) || 0) : 0);
-    if (nx.av < need) { Swal.fire({ icon: 'warning', title: 'الدفعة لا تكفي الكمية (المتاح ' + nx.av + ')', toast: true, position: 'top', showConfirmButton: false, timer: 2000 }); return; }
-    const hadBatchPrice = it.bpr > 0;
-    if (nx.e) it.exp = nx.e; else delete it.exp;
-    if (nx.pr) it.bpr = nx.pr; else delete it.bpr;
-    if (nx.pr > 0) it.price = g.unit === 'part' ? (subPriceCalc(nx.pr, btSc(p)) || 0) : nx.pr;
-    else if (hadBatchPrice) it.price = g.unit === 'part' ? subPriceOf(p) : (parseFloat(p.price) || 0);   // رجوع للسعر العادي بعد سعر دفعة خاص
-    if (twin) {   // دمج تلقائي: السطران صارا على دفعة واحدة
-        it.qty = need;
-        bill.items = bill.items.filter(x => x !== twin);
+    const cap = nx.av - (twin ? (parseFloat(twin.qty) || 0) : 0);   // المتاح فعلياً في الدفعة الهدف
+    if (cap <= 0) { Swal.fire({ icon: 'warning', title: 'لا يوجد متاح في هذه الدفعة', toast: true, position: 'top', showConfirmButton: false, timer: 2000 }); return; }
+    const take = Math.min(q, cap);   // الكمية المنقولة؛ والباقي يبقى على الدفعة الحالية (توزيع تلقائي)
+    const apply = o => {   // ضبط دفعة وسعر السطر على الدفعة الهدف
+        const hadBP = o.bpr > 0;
+        if (nx.e) o.exp = nx.e; else delete o.exp;
+        if (nx.pr) o.bpr = nx.pr; else delete o.bpr;
+        if (nx.pr > 0) o.price = g.unit === 'part' ? (subPriceCalc(nx.pr, btSc(p)) || 0) : nx.pr;
+        else if (hadBP) o.price = g.unit === 'part' ? subPriceOf(p) : (parseFloat(p.price) || 0);   // رجوع للسعر العادي بعد سعر دفعة خاص
+    };
+    if (take >= q) {   // نقل كامل
+        apply(it);
+        if (twin) { it.qty = q + (parseFloat(twin.qty) || 0); bill.items = bill.items.filter(x => x !== twin); }
+    } else {   // نقل جزئي: يبقى الباقي على الدفعة الحالية
+        it.qty = q - take;
+        if (twin) twin.qty = (parseFloat(twin.qty) || 0) + take;
+        else { const n = { ...it, qty: take }; apply(n); bill.items.splice(bill.items.indexOf(it) + 1, 0, n); }
     }
     posBeep(true); billChanged(); p2Render();
 }
