@@ -125,8 +125,8 @@ function updateIssuedUI() {
 }
 function autoGrow(el) { if (!el) return; el.style.height = 'auto'; el.style.height = Math.max(el.scrollHeight, 28) + 'px'; }
 
-// وحدة الجزء المعروضة: الفواتير القديمة المخزّنة «جزء» تُحدَّث من المادة (مثل Capsule)
-function billPartLbl(it) { if (it.partType && it.partType !== 'جزء') return it.partType; const p = it.pid && products.find(x => x.id === it.pid); return p ? subTypeOf(p) : it.partType; }
+// وحدة الجزء المعروضة في الفاتورة: إن كان حجم الجزء رقماً فاسم المادة يحمله أصلاً (مثل 10 Capsule) فيُكتب العدد وحده كالعبوة الكاملة
+function billPartLbl(it) { const p = it.pid && products.find(x => x.id === it.pid); if (p && /^\d+(\.\d+)?$/.test(String(subSizeOf(p)).trim())) return ''; return it.partType === 'جزء' && !p ? '' : (it.partType || ''); }
 function billTotals() {
     const sub = bill.items.reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), 0);
     let disc = parseFloat(bill.discount) || 0;
@@ -148,7 +148,7 @@ function recalcInvoice() {
         const el = $b('billSum' + i);
         if (el) el.innerText = fmtNum((parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0));
         const pv = $b('billPv' + i); if (pv) pv.innerText = it.price === '' ? '' : fmtNum(it.price);
-        const qv = $b('billQv' + i); if (qv) qv.innerText = fmtNum(it.qty) + (it.unit === 'part' && it.partType ? ' ' + billPartLbl(it) : '');
+        const qv = $b('billQv' + i); if (qv) qv.innerText = fmtNum(it.qty) + (it.unit === 'part' && billPartLbl(it) ? ' ' + billPartLbl(it) : '');
     });
     $b('billDiscTxt').innerText = t.disc ? fmtNum(t.disc) + ' د.ع' : '';
     $b('billPaidTxt').innerText = t.paid === null ? '' : fmtNum(t.paid) + ' د.ع';
@@ -756,7 +756,7 @@ function renderReport() {
         const t = invTotalOf(b); gross += sub; disc += sub - t; net += t; owed += invRemaining(b);
         days.set(b.date, (days.get(b.date) || 0) + t);
         (b.items || []).forEach(it => { if (it.cost > 0) { const q = parseFloat(it.qty) || 0; cost += it.cost * q; costRev += q * (parseFloat(it.price) || 0) * (sub > 0 ? t / sub : 1); } else noCost++; });
-        (b.items || []).forEach(it => { const k = (it.name || '—') + (it.unit === 'part' && it.partType ? ' (' + billPartLbl(it) + ')' : ''); const e = items.get(k) || { q: 0, v: 0 }; e.q += parseFloat(it.qty) || 0; e.v += (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0); items.set(k, e); });
+        (b.items || []).forEach(it => { const k = (it.name || '—') + (it.unit === 'part' && billPartLbl(it) ? ' (' + billPartLbl(it) + ')' : ''); const e = items.get(k) || { q: 0, v: 0 }; e.q += parseFloat(it.qty) || 0; e.v += (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0); items.set(k, e); });
     });
     const top = [...items.entries()].sort((a, b) => b[1].v - a[1].v).slice(0, 10);
     const dayRows = [...days.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 14);
