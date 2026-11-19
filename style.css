@@ -4969,3 +4969,11 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
     .p2c .p2-sumbar i { font-style: normal; font-size: .8rem; color: #64748b; }
     .p2-main { padding-bottom: calc(var(--p2fh, 150px) + var(--p2sh, 44px) + 12px); }
 }
+/* v698: شريط الصافي بارز (كحلي مع مبلغ ذهبي) */
+@media (max-width: 899px) {
+    .p2c .p2-sumbar { background: #0f1c38; border-top: 2px solid #f5b83d; padding: 8px 16px; color: #fff; box-shadow: 0 -6px 14px rgba(15, 28, 56, .18); }
+    .p2c .p2-sumbar .p2-sb-l { color: #fff; font-size: 1.05rem; }
+    .p2c .p2-sumbar small { color: #cbd5e1; }
+    .p2c .p2-sumbar b { color: #f5b83d; font-size: 1.7rem; letter-spacing: .3px; }
+    .p2c .p2-sumbar i { color: #f5d98a; }
+}
