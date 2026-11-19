@@ -128,7 +128,6 @@ function p2Totals() {   // تحديث الأرقام دون إعادة رسم ا
         if (t.disc > 0) { if (t.disc > L.allow && !(L.own && L.unknown)) { m.className = 'px-msg bad'; m.textContent = L.own ? '🔴 خسارة: الخصم أعلى من الحد الآمن' : '🔴 يتجاوز الحد المسموح'; } else { m.className = 'px-msg ok'; m.textContent = '🟢 خصم آمن'; } } else { m.className = 'px-msg'; m.textContent = ''; }
     }
     document.querySelectorAll('#p2Round input[name=p2RI]').forEach(x => { const e = p2El('p2RP' + x.value); if (e && bill.items[x.value]) e.textContent = fmtNum(bill.items[x.value].price); });
-    { const rd = p2El('p2Round'); if (rd) rd.style.display = Math.round(t.sub - t.disc) % 1000 === 0 ? 'none' : ''; }
     document.querySelectorAll('#p2Chips > button').forEach(b => { const k = b.dataset.p, cd = p2ChipD(k, t.sub); b.disabled = k !== '0' && (cd <= 0 || (!L.own && cd > L.allow)); b.classList.toggle('on', k === '0' ? t.disc === 0 : cd > 0 && t.disc === cd); });
     p2CalcRefresh();
 }
