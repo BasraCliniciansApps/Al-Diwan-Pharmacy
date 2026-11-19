@@ -681,6 +681,7 @@ async function pushLocalInvoices() {
     return n;
 }
 async function loadInvoices() {
+    try { if (lsGet('diwanInvFix') !== '675') { lsDel('diwanFull_inv'); lsDel('diwanLd_inv'); lsSet('diwanInvFix', '675'); } } catch (e) { /* تجاهل */ }   // مرة واحدة: تحميل كامل بالاستعلام الجديد (بالتاريخ) بدل انتظار الدورة الكاملة كل 24 ساعة
     const map = new Map();
     (billAll || []).forEach(x => x && x.id && map.set(x.id, x));   // ما حُمّل سابقاً (مثل الأقدم من تاريخ) لا يُفقد عند التحديث
     try { (JSON.parse(lsGet(BILL_LS.list)) || []).forEach(x => x && x.id && map.set(x.id, x)); } catch (e) { /* تجاهل */ }
