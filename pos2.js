@@ -162,9 +162,52 @@ async function p2Issue(print) {
     const t = billTotals(), paidIn = parseFloat((p2El('p2Paid') || {}).value) || 0;
     bill.paid = p2.credit ? String(Math.min(paidIn, t.total)) : '';
     writeInvoiceFields(); billChanged(); try { qiRemember(); } catch (e) { /* تجاهل */ }
-    await issueInvoice(!!print, true);
-    if (bill.issued) { p2.done = true; }
+    let mode = '';
+    if (print) {   // 1) استكمال بيانات الفاتورة الفارغة  2) اختيار طريقة الطباعة
+        if (!(await p2AskInfo())) return;
+        mode = await p2AskMode(); if (!mode) return;
+        writeInvoiceFields();
+    }
+    await issueInvoice(false, true);
+    if (bill.issued) { p2.done = true; if (print) p2PrintBy(mode); }
     p2Render();
+}
+// نافذة بيانات الفاتورة قبل الطباعة: تظهر إن كان أحد حقول (الشركة، الزبون، الطبيب) فارغاً. تُرجع false عند الإلغاء.
+async function p2AskInfo() {
+    if (bill.to && bill.customer && bill.doctor) return true;
+    const v = x => posEsc(bill[x] || '');
+    const r = await Swal.fire({
+        title: 'بيانات الفاتورة', showCancelButton: true, showDenyButton: true, confirmButtonText: 'متابعة', denyButtonText: 'تخطي', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
+        html: `<div class="pos-fields" style="text-align:right">
+            <label>إلى السيد / الشركة<input id="p2qTo" list="qiDl_to" autocomplete="off" placeholder="اختياري" value="${v('to')}"></label>
+            <label>اسم الزبون<input id="p2qCu" list="qiDl_customer" autocomplete="off" placeholder="اختياري" value="${v('customer')}"></label>
+            <label>اسم الطبيب المعالج<input id="p2qDo" list="qiDl_doctor" autocomplete="off" placeholder="اختياري" value="${v('doctor')}"></label>
+            <label>التاريخ<input id="p2qDt" type="date" value="${posEsc(bill.date || todayLocalISO())}"></label>
+            <label>ملاحظات<textarea id="p2qNo" rows="2">${v('notes')}</textarea></label>
+            ${['to', 'customer', 'doctor'].map(k => qiDl(k)).join('')}</div>`,
+        preConfirm: () => { const g = id => document.getElementById(id); return { to: g('p2qTo').value.trim(), customer: g('p2qCu').value.trim(), doctor: g('p2qDo').value.trim(), date: g('p2qDt').value, notes: g('p2qNo').value.trim() }; }
+    });
+    if (r.isDismissed) return false;
+    if (r.isConfirmed && r.value) { const o = r.value; bill.to = o.to; bill.customer = o.customer; bill.doctor = o.doctor; bill.notes = o.notes; bill.date = o.date || todayLocalISO(); try { qiRemember(); } catch (e) { /* */ } }
+    return true;
+}
+// نافذة اختيار طريقة الطباعة: pdf / normal / thermal. تُرجع '' عند الإلغاء.
+async function p2AskMode() {
+    window.__p2pm = '';
+    const b = (k, ic, t, d) => `<button type="button" class="p2-pm" onclick="window.__p2pm='${k}';Swal.clickConfirm()"><span class="p2-pm-i">${p2Ic(ic)}</span><span><b>${t}</b><small>${d}</small></span></button>`;
+    const r = await Swal.fire({
+        title: 'طريقة الطباعة', showConfirmButton: false, showCancelButton: true, cancelButtonText: 'إلغاء',
+        html: `<div class="p2-pms">${b('pdf', 'file-text', 'ملف PDF', 'حفظ الفاتورة كملف PDF')}${b('normal', 'printer', 'طابعة عادية', 'طباعة A4 عبر نافذة الطباعة')}${b('thermal', 'receipt-text', 'طابعة حرارية', 'طباعة إيصال عبر البلوتوث')}</div>`
+    });
+    return r.isConfirmed ? window.__p2pm : '';
+}
+function p2PrintBy(mode) {
+    if (mode === 'thermal') {
+        if (window.NAT && NAT.is && typeof NAT.printBill === 'function') { try { readInvoiceFields(); } catch (e) { /* */ } NAT.printBill(); }
+        else Swal.fire({ icon: 'info', title: 'الطباعة الحرارية تعمل داخل تطبيق الأندرويد فقط', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        return;
+    }
+    printInvoice();
 }
 
 
@@ -243,12 +286,16 @@ function p2Pills(hasRnd) {
     const b = (k, lbl, badge) => `<button type="button" class="p2-pill${p2.acc === k ? ' on' : ''}" onclick="p2Acc('${k}')"><span>${lbl}</span>${badge}</button>`;
     return `<div class="p2-pills">${b('disc', 'خصم', bd('p2BdD', false))}${hasRnd ? b('rnd', 'تسوية الألف', '') : ''}${b('calc', 'حاسبة الباقي', bd('p2BdC', p2Calc(), '✓'))}${b('cr', 'بيع آجل', bd('p2BdR', p2.credit, '✓'))}${b('ext', 'بيانات الفاتورة', bd('p2BdE', ext, '●'))}</div>`;
 }
+function p2Fit() {   // ارتفاع التذييل الثابت: يُستعمل لإزاحة المحتوى وموضع القسم المفتوح فوقه
+    const ov = p2El('p2Ov'), a = ov && ov.querySelector('.p2-act'); if (!a) return;
+    ov.style.setProperty('--p2fh', a.offsetHeight + 'px');
+}
+window.addEventListener('resize', () => { try { p2Fit(); } catch (e) { /* */ } });
 function p2Panel() {
     const el = typeof qiEligible === 'function' ? qiEligible() : [];
     if (!el.includes(p2.rcur)) p2.rcur = el[0];
     const o = k => p2.acc === k ? ' open' : '', t = billTotals(), L = posLimits(), showLim = userRole === 'owner' || (typeof can === 'function' && can('scanDisc')), n = posGroups().length;
-    return `${p2Pills(el.length > 0)}
-        <div class="p2-sec p2-hm">ملخص الفاتورة</div>
+    return `<div class="p2-sec p2-hm">ملخص الفاتورة</div>
         <div class="p2-row p2-hm"><span>عدد المواد</span><b>${n}</b></div>
         <div class="p2-row p2-hm"><span>المجموع قبل الخصم</span><b id="p2Sub"></b></div>
         <div class="p2-row p2-hm"><span>الخصم</span><b id="p2Dsc"></b></div>
@@ -275,8 +322,8 @@ function p2Panel() {
             <label>ملاحظات<textarea rows="2" onchange="p2Field('notes', this.value)">${posEsc(bill.notes || '')}</textarea></label>
             ${['to', 'customer', 'doctor'].map(k => qiDl(k)).join('')}</div>` : ''}</div>
         <div class="p2-act"><div class="px-val" id="p2Val" style="display:none" role="alert"></div>
-            <div class="p2-fsum" id="p2FSum"></div><div class="p2-netbar"><span>الصافي</span><b id="p2NetBar">${fmtNum(t.total)}</b><i>د.ع</i></div>
-            <div class="p2-btns"><button type="button" class="pos-big go" onclick="p2Issue(true)">إصدار وطباعة</button><button type="button" class="pos-big alt" onclick="p2Issue(false)">إصدار فقط</button></div></div>`;
+            ${p2Pills(el.length > 0)}<div class="p2-fsum" id="p2FSum"></div><div class="p2-netbar"><span>الصافي</span><b id="p2NetBar">${fmtNum(t.total)}</b><i>د.ع</i></div>
+            <div class="p2-btns"><button type="button" class="pos-big alt" onclick="p2Issue(false)">إصدار فقط</button><button type="button" class="pos-big go" onclick="p2Issue(true)">إصدار وطباعة</button></div></div>`;
 }
 function p2Render() {
     const ov = p2El('p2Ov'); if (!ov || !bill) return;
@@ -292,5 +339,5 @@ function p2Render() {
     const ex = p2El('p2Extra'); if (ex) ex.innerHTML = '';
     p2El('p2Panel').classList.toggle('p2c', P2_COMPACT);
     p2El('p2Panel').innerHTML = p2Panel();
-    p2Sync();
+    p2Sync(); p2Fit();
 }
