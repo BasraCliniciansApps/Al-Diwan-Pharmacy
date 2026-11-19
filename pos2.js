@@ -172,26 +172,37 @@ function p2ChipHtml(it, av, key, clickable) {
     const date = it.exp ? posFmtExp(it.exp) : 'بدون تاريخ';
     return `<button type="button" class="p2-chip ${t.c}" onclick="posBatch('${key}')" title="تغيير الدفعة" aria-label="تغيير الدفعة">${warn ? p2Ic('triangle-alert') : ''}<span class="p2-cd">${posEsc(date)}</span>${av !== null ? `<span class="p2-cq">متاح ${posEsc(av)}</span>` : `<span class="p2-cq">× ${posEsc(it.qty)}</span>`}${p2Ic('pencil')}</button>`;
 }
-function p2BatchRow(g, p) {
+function p2BatchRow(g, p) {   // كل دفعة في سطر مستقل بكامل العرض، ولكل سطر أسهمه
     if (!g.pid || !p) return '';
-    const bats = p2Batches(p, g.unit);
-    if (g.lines.length !== 1) return `<div class="p2-batches">${g.lines.map(it => p2ChipHtml(it, null, g.key, true)).join('')}</div>`;   // الكمية موزّعة على أكثر من دفعة: بلا أسهم
-    const it = g.lines[0], cur = bats.findIndex(b => spKey(b.e, b.pr) === spKey(it.exp, it.bpr)), av = cur >= 0 ? bats[cur].av : null;
-    const arrows = bats.length > 1 && cur >= 0;
-    return `<div class="p2-batches">${arrows ? `<button type="button" class="p2-arr" onclick="p2BatchStep('${g.key}',-1)" ${cur <= 0 ? 'disabled' : ''} aria-label="الدفعة السابقة">${p2Ic('chevron-right')}</button>` : ''}${p2ChipHtml(it, av, g.key, true)}${arrows ? `<button type="button" class="p2-arr" onclick="p2BatchStep('${g.key}',1)" ${cur >= bats.length - 1 ? 'disabled' : ''} aria-label="الدفعة التالية">${p2Ic('chevron-left')}</button>` : ''}</div>`;
+    const bats = p2Batches(p, g.unit), multi = g.lines.length > 1;
+    const rows = g.lines.map((it, i) => {
+        const cur = bats.findIndex(b => spKey(b.e, b.pr) === spKey(it.exp, it.bpr)), av = cur >= 0 ? bats[cur].av : null;
+        const arrows = bats.length > 1 && cur >= 0;
+        const prev = arrows ? `<button type="button" class="p2-arr" onclick="p2BatchStep('${g.key}',${i},-1)" ${cur <= 0 ? 'disabled' : ''} aria-label="الدفعة السابقة">${p2Ic('chevron-right')}</button>` : '';
+        const next = arrows ? `<button type="button" class="p2-arr" onclick="p2BatchStep('${g.key}',${i},1)" ${cur >= bats.length - 1 ? 'disabled' : ''} aria-label="الدفعة التالية">${p2Ic('chevron-left')}</button>` : '';
+        return `<div class="p2-brow">${prev}${p2ChipHtml(it, multi ? null : av, g.key, true)}${next}</div>`;
+    }).join('');
+    return `<div class="p2-batches">${rows}</div>`;
 }
-function p2BatchStep(key, d) {
-    const g = posGroup(key); if (!g || g.lines.length !== 1) return;
+function p2BatchStep(key, idx, d) {
+    const g = posGroup(key); if (!g) return;
     const p = products.find(x => x.id === g.pid); if (!p) return;
-    const it = g.lines[0], bats = p2Batches(p, g.unit), cur = bats.findIndex(b => spKey(b.e, b.pr) === spKey(it.exp, it.bpr)), nx = bats[cur + d];
+    const it = g.lines[idx]; if (!it) return;
+    const bats = p2Batches(p, g.unit), cur = bats.findIndex(b => spKey(b.e, b.pr) === spKey(it.exp, it.bpr)), nx = bats[cur + d];
     if (cur < 0 || !nx) return;
     const q = parseFloat(it.qty) || 0;
-    if (nx.av < q) { Swal.fire({ icon: 'warning', title: 'الدفعة لا تكفي الكمية (المتاح ' + nx.av + ')', toast: true, position: 'top', showConfirmButton: false, timer: 2000 }); return; }
+    const twin = g.lines.find(o => o !== it && spKey(o.exp, o.bpr) === spKey(nx.e, nx.pr));   // سطر آخر على نفس الدفعة الهدف
+    const need = q + (twin ? (parseFloat(twin.qty) || 0) : 0);
+    if (nx.av < need) { Swal.fire({ icon: 'warning', title: 'الدفعة لا تكفي الكمية (المتاح ' + nx.av + ')', toast: true, position: 'top', showConfirmButton: false, timer: 2000 }); return; }
     const hadBatchPrice = it.bpr > 0;
     if (nx.e) it.exp = nx.e; else delete it.exp;
     if (nx.pr) it.bpr = nx.pr; else delete it.bpr;
     if (nx.pr > 0) it.price = g.unit === 'part' ? (subPriceCalc(nx.pr, btSc(p)) || 0) : nx.pr;
     else if (hadBatchPrice) it.price = g.unit === 'part' ? subPriceOf(p) : (parseFloat(p.price) || 0);   // رجوع للسعر العادي بعد سعر دفعة خاص
+    if (twin) {   // دمج تلقائي: السطران صارا على دفعة واحدة
+        it.qty = need;
+        bill.items = bill.items.filter(x => x !== twin);
+    }
     posBeep(true); billChanged(); p2Render();
 }
 function p2CardHtml(g) {

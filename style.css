@@ -4900,3 +4900,13 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .p2-chip .p2-cq { font-size: .95rem; font-weight: 700; }
 .p2-chip .ic { width: 22px; height: 22px; }
 .p2-arr { width: 52px; height: 52px; }
+/* v682: كل دفعة في سطر مستقل (مدمج 40px) مع أسهمها */
+.p2-batches { display: flex; flex-direction: column; gap: 6px; }
+.p2-brow { display: flex; align-items: center; gap: 6px; }
+.p2-brow .p2-chip { height: 40px; font-size: 1.1rem; padding: 0 10px; }
+.p2-brow .p2-chip .p2-cd { font-size: 1.15rem; font-weight: 900; }
+.p2-brow .p2-chip .p2-cq { font-size: .85rem; }
+.p2-brow .p2-chip .ic { width: 18px; height: 18px; }
+.p2-brow .p2-arr { width: 40px; height: 40px; border-radius: 10px; }
+.p2-brow .p2-arr .ic { width: 20px; height: 20px; }
+.p2-batches { align-items: stretch; } .p2-brow { width: 100%; }
