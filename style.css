@@ -4886,3 +4886,11 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .p2-quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } .p2-quick button { flex: none; height: 46px; font-size: 1rem; }
 .p2-quick button.m { background: #dcfce7; color: #166534; } .p2-quick button.c { background: #fee2e2; color: #b91c1c; } .p2-quick button:first-child { background: #e0f2fe; color: #075985; }
 .pos-chip { font-size: 1.05rem; padding: 7px 14px; }
+
+/* v680: شريحة الدفعة مع أسهم التنقل (واجهة البيع التجريبية) */
+.p2-batches { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.p2-chip { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px; height: 44px; padding: 0 10px; border: 0; border-radius: 999px; background: #e2e8f0; color: #334155; font: 800 1.05rem inherit; font-family: inherit; white-space: nowrap; cursor: pointer; overflow: hidden; }
+.p2-chip.ok { background: #dcfce7; color: #166534; } .p2-chip.warn { background: #fef3c7; color: #92400e; } .p2-chip.bad { background: #fee2e2; color: #b91c1c; } .p2-chip.nd { background: #e2e8f0; color: #334155; }
+.p2-chip .ic { width: 18px; height: 18px; flex: none; } .p2-chip .p2-cq { font-size: .82rem; font-weight: 700; opacity: .85; } .p2-chip .p2-cd { overflow: hidden; text-overflow: ellipsis; }
+.p2-arr { flex: none; width: 44px; height: 44px; border: 0; border-radius: 12px; background: #0f1c38; color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.p2-arr .ic { width: 22px; height: 22px; } .p2-arr:disabled { background: #cbd5e1; color: #94a3b8; cursor: default; }

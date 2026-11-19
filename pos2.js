@@ -159,6 +159,53 @@ async function p2Issue(print) {
     p2Render();
 }
 
+
+// ---------- بطاقة المادة: شريحة الدفعة (تاريخ + المتاح) مع أسهم للتنقل بين الدفعات عند وجود دفعة واحدة في السطر ----------
+const p2Ic = n => (window.AppIcons ? AppIcons.svg(n) : '');
+function p2Batches(p, unit) {   // الدفعات الصالحة للبيع (غير منتهية ولها متاح) مرتبة بالأقرب انتهاءً، بعد استثناء سطور هذه المادة
+    const sim = spSim(p, unit, true);
+    return sim.bat.filter(b => !billExpired(b.e) && spAvail(b, p, unit) > 0).map(b => ({ e: b.e || '', pr: b.pr || 0, av: spAvail(b, p, unit) }))
+        .sort((a, b) => (a.e ? 0 : 1) - (b.e ? 0 : 1) || String(a.e).localeCompare(String(b.e)) || a.pr - b.pr);
+}
+function p2ChipHtml(it, av, key, clickable) {
+    const t = posExpTag(it.exp), warn = t.c === 'warn' || t.c === 'bad';
+    const date = it.exp ? posFmtExp(it.exp) : 'بدون تاريخ';
+    return `<button type="button" class="p2-chip ${t.c}" onclick="posBatch('${key}')" title="تغيير الدفعة" aria-label="تغيير الدفعة">${warn ? p2Ic('triangle-alert') : ''}<span class="p2-cd">${posEsc(date)}</span>${av !== null ? `<span class="p2-cq">متاح ${posEsc(av)}</span>` : `<span class="p2-cq">× ${posEsc(it.qty)}</span>`}${p2Ic('pencil')}</button>`;
+}
+function p2BatchRow(g, p) {
+    if (!g.pid || !p) return '';
+    const bats = p2Batches(p, g.unit);
+    if (g.lines.length !== 1) return `<div class="p2-batches">${g.lines.map(it => p2ChipHtml(it, null, g.key, true)).join('')}</div>`;   // الكمية موزّعة على أكثر من دفعة: بلا أسهم
+    const it = g.lines[0], cur = bats.findIndex(b => spKey(b.e, b.pr) === spKey(it.exp, it.bpr)), av = cur >= 0 ? bats[cur].av : null;
+    const arrows = bats.length > 1 && cur >= 0;
+    return `<div class="p2-batches">${arrows ? `<button type="button" class="p2-arr" onclick="p2BatchStep('${g.key}',-1)" ${cur <= 0 ? 'disabled' : ''} aria-label="الدفعة السابقة">${p2Ic('chevron-right')}</button>` : ''}${p2ChipHtml(it, av, g.key, true)}${arrows ? `<button type="button" class="p2-arr" onclick="p2BatchStep('${g.key}',1)" ${cur >= bats.length - 1 ? 'disabled' : ''} aria-label="الدفعة التالية">${p2Ic('chevron-left')}</button>` : ''}</div>`;
+}
+function p2BatchStep(key, d) {
+    const g = posGroup(key); if (!g || g.lines.length !== 1) return;
+    const p = products.find(x => x.id === g.pid); if (!p) return;
+    const it = g.lines[0], bats = p2Batches(p, g.unit), cur = bats.findIndex(b => spKey(b.e, b.pr) === spKey(it.exp, it.bpr)), nx = bats[cur + d];
+    if (cur < 0 || !nx) return;
+    const q = parseFloat(it.qty) || 0;
+    if (nx.av < q) { Swal.fire({ icon: 'warning', title: 'الدفعة لا تكفي الكمية (المتاح ' + nx.av + ')', toast: true, position: 'top', showConfirmButton: false, timer: 2000 }); return; }
+    const hadBatchPrice = it.bpr > 0;
+    if (nx.e) it.exp = nx.e; else delete it.exp;
+    if (nx.pr) it.bpr = nx.pr; else delete it.bpr;
+    if (nx.pr > 0) it.price = g.unit === 'part' ? (subPriceCalc(nx.pr, btSc(p)) || 0) : nx.pr;
+    else if (hadBatchPrice) it.price = g.unit === 'part' ? subPriceOf(p) : (parseFloat(p.price) || 0);   // رجوع للسعر العادي بعد سعر دفعة خاص
+    posBeep(true); billChanged(); p2Render();
+}
+function p2CardHtml(g) {
+    const p = g.pid ? products.find(x => x.id === g.pid) : null, first = g.lines[0], qty = posTotalQty(g);
+    const tot = g.lines.reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), 0);
+    const unit = p && hasRetail(p) && !sellLocked(p) ? `<div class="pos-unit"><button type="button" class="${g.unit === 'pack' ? 'on' : ''}" onclick="posSetUnit('${g.key}','pack')">علبة</button><button type="button" class="${g.unit === 'part' ? 'on' : ''}" onclick="posSetUnit('${g.key}','part')">${posEsc(subTypeOf(p))}</button></div>` : '';
+    const prices = [...new Set(g.lines.map(it => parseFloat(it.price) || 0))];
+    const cnt = g.pid && posNeedsCount(p) ? `<button type="button" class="pos-cnt" onclick="posCountOpen(${g.pid})">⚠️ المادة لم تُجرد بعد — اضغط لإدخال العدد والسعر</button>` : '';
+    return `<div class="pos-card"><div class="pos-top"><b dir="ltr">${posEsc(first.name)}</b><button type="button" class="pos-x" onclick="posDel('${g.key}')" aria-label="حذف">✕</button></div>
+        ${p ? posStockLine(p) : ''}${cnt}${p2BatchRow(g, p)}
+        <div class="pos-mid">${unit}<div class="pos-st"><button type="button" onclick="posQtyStep('${g.key}',-1)" aria-label="إنقاص">−</button><input type="number" inputmode="numeric" min="1" value="${posEsc(qty)}" onchange="posQtySet('${g.key}',this.value)" aria-label="العدد"><button type="button" onclick="posQtyStep('${g.key}',1)" aria-label="زيادة">+</button></div>
+        <div class="pos-sum">${prices.length === 1 && prices[0] ? `<small>${fmtNum(prices[0])} ×</small>` : ''}<b>${fmtNum(tot)}</b></div></div></div>`;
+}
+
 // ---------- الرسم ----------
 function p2Panel() {
     const t = billTotals(), L = posLimits(), showLim = userRole === 'owner' || (typeof can === 'function' && can('scanDisc')), n = posGroups().length;
@@ -199,7 +246,7 @@ function p2Render() {
         return;
     }
     done.style.display = 'none'; main.style.display = '';
-    p2El('p2List').innerHTML = posGroups().map(posCardHtml).join('') || '<div class="pos-empty"><div>🛒</div>امسح باركود أو اكتب اسم المادة للبدء</div>';
+    p2El('p2List').innerHTML = posGroups().map(p2CardHtml).join('') || '<div class="pos-empty"><div>🛒</div>امسح باركود أو اكتب اسم المادة للبدء</div>';
     const ex = p2El('p2Extra'); if (ex) ex.innerHTML = '';
     p2El('p2Panel').innerHTML = p2Panel();
     p2Sync();
