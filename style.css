@@ -4825,3 +4825,8 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .dw-page.lbl-pop .swal2-html-container { max-height: none !important; padding: 14px 16px !important; }
 .dw-page.lbl-pop .swal2-actions { padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) !important; flex-direction: row !important; }
 .dw-page.lbl-pop .swal2-actions button { height: 48px; }
+
+/* v670: خط التقدّم يتبع الحافة العلوية المقوسة للنافذة (بلا ترويسة كحلية) */
+#progLine.pl-topm b { border-radius: var(--r, 0px) var(--r, 0px) 0 0; border-bottom: 0; border-top: 4px solid transparent; }
+#progLine.pl-topm .pl-track { border-top-color: rgba(148,163,184,.28); }
+#progLine.pl-topm .pl-fill { border-top-color: #f9a825; }

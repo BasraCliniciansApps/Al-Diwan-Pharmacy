@@ -63,18 +63,23 @@ const Prog = {
             for (let yy = y0; yy <= y1; yy += 3) { const e = document.elementFromPoint(x, yy); if (e && dark(e)) y = yy; else { hit = true; break; } }
         } catch (e) { return { y: 0, r: 0 }; }
         if (!hit || !last || y === 0) {
-            if (cr) { let R = 0; try { R = parseFloat(getComputedStyle(card).borderTopLeftRadius) || 0; } catch (e) { R = 0; } const ins = Math.max(20, Math.min(R + 4, 40)); return { y: cr.top + 8, r: 0, x0: cr.left + ins, x1: cr.right - ins }; }   // نافذة بلا ترويسة كحلية: خط قصير أعلى النافذة
+            if (cr) { let R = 0; try { R = Math.min(40, parseFloat(getComputedStyle(card).borderTopLeftRadius) || 0); } catch (e) { R = 0; } return { y: cr.top, r: R, top: true, x0: cr.left, x1: cr.right }; }   // نافذة بلا ترويسة كحلية: الخط يتبع الحافة العلوية المقوسة للنافذة نفسها
             return { y: 0, r: 0 };
         }
         let r = 0; try { r = Math.min(40, parseFloat(getComputedStyle(last).borderBottomLeftRadius) || 0); } catch (e) { r = 0; }
         const lr = last.getBoundingClientRect(), bottom = lr.bottom;
-        // الانحناء يُعتمد فقط إن كانت حافة الترويسة منحنية فعلاً: نفحص زاوية الحافة السفلية، فإن كانت كحلية (مستقيمة) فلا انحناء
+        // لون الخلفية الفعلي عند نقطة (يتجاوز الشفاف): يرجع سطوع اللون أو -1 إن لم يوجد
+        const lum = el => { for (let n = el; n && n.nodeType === 1; n = n.parentElement) { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/.exec(getComputedStyle(n).backgroundColor || ''); if (m && (m[4] === undefined || parseFloat(m[4]) > 0.6)) return 0.299 * m[1] + 0.587 * m[2] + 0.114 * m[3]; } return -1; };
         if (r > 0) {
             if (Math.abs(bottom - y) > r + 6 && y > 0) r = 0;   // العنصر الكحلي حاوية أكبر من الترويسة: انحناؤه لا يخص الترويسة
             else try {
+                // نلغي التقويس فقط إذا كانت الزاوية السفلية كحلية فعلاً (مستقيمة)؛ الشفاف أو غير المعروف لا يلغيه
                 const px = Math.round(Math.max(lr.left, cr ? cr.left : 0)) + 2, py = Math.round(Math.min(bottom, y || bottom)) - 2, pe = document.elementFromPoint(px, py);
-                if (pe) { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(getComputedStyle(pe).backgroundColor || ''); if (m && (0.299 * m[1] + 0.587 * m[2] + 0.114 * m[3]) < 70) r = 0; }
+                if (pe) { const L = lum(pe); if (L >= 0 && L < 70 && (pe === last || last.contains(pe))) r = 0; }
             } catch (e) { /* تجاهل */ }
+        } else if (cr) {
+            // الترويسة بلا تقويس لكنها ملاصقة لزاوية النافذة السفلية المقوسة: نأخذ تقويس النافذة الأب بديلاً
+            try { const R = Math.min(40, parseFloat(getComputedStyle(card).borderBottomLeftRadius) || 0); if (R > 0 && Math.abs(cr.bottom - bottom) <= 2) r = R; } catch (e) { /* تجاهل */ }
         }
         return { y: bottom > 0 && bottom < 520 ? bottom : y, r, x0: cr ? Math.max(cr.left, lr.left) : lr.left, x1: cr ? Math.min(cr.right, lr.right) : lr.right };
     },
@@ -102,11 +107,11 @@ const Prog = {
                 // الخط يتبع النافذة التي بدأت فيها العملية: إن أُغلقت النافذة يختفي الخط معها (العملية تكمل بالخلفية، والخطأ يظهر في الشريط السفلي)
                 if (h.anch && h.state === 'run' && !Prog.topCard()) { ln.hidden = true; const t0 = document.getElementById('progTxt'); if (t0) t0.hidden = true; }
                 else {
-                const g = Prog.lineY(), r = Math.round(g.r), H = r + 5; Prog.lastG = g;
-                ln.style.top = Math.max(0, g.y - H) + 'px'; ln.style.height = H + 'px'; ln.style.setProperty('--r', r + 'px'); ln.hidden = false;
+                const g = Prog.lineY(), r = Math.round(g.r), H = r + (g.top ? 4 : 5); Prog.lastG = g;
+                                ln.style.top = (g.top ? Math.max(0, g.y) : Math.max(0, g.y - H)) + 'px'; ln.style.height = H + 'px'; ln.style.setProperty('--r', r + 'px'); ln.hidden = false;
                 if (g.x1 > g.x0 && (g.x1 - g.x0) < window.innerWidth - 2) { ln.style.left = Math.max(0, g.x0) + 'px'; ln.style.right = Math.max(0, window.innerWidth - g.x1) + 'px'; } else { ln.style.left = ''; ln.style.right = ''; }
                 const det = h.pct !== null;
-                ln.className = 'pl-' + (h.state === 'ok' ? 'ok' : h.state === 'err' ? 'err' : (!navigator.onLine || (Date.now() - h.last) / 1000 > 12) ? 'warn' : 'run') + (det || h.state !== 'run' ? '' : ' ind');
+                ln.className = 'pl-' + (h.state === 'ok' ? 'ok' : h.state === 'err' ? 'err' : (!navigator.onLine || (Date.now() - h.last) / 1000 > 12) ? 'warn' : 'run') + (det || h.state !== 'run' ? '' : ' ind') + (g.top ? ' pl-topm' : '');
                 const pc = h.state === 'ok' ? 100 : det ? Math.max(3, Math.round(h.pct)) : 100;
                 ln.style.setProperty('--cut', (100 - pc) + '%');
                 }
