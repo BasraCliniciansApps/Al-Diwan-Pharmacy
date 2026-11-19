@@ -3840,12 +3840,12 @@ async function loadOaiModels() {
 }
 function onOaiProviderChange() { /* مزوّدان مجانيان فقط */ }
 
-// الترتيب الذكي: الصور → Gemini المجاني فقط؛ النص → Groq ثم Gemini (أو المحرك المختار صراحةً)، ويجرّب التالي عند الفشل
+// الترتيب الذكي: الصور → Gemini المجاني فقط؛ النص → Gemini ثم Groq (أو المحرك المختار صراحةً)، ويجرّب التالي عند الفشل
 function aiEngineOrder(engine, opts) {
     if (opts && opts.img) return aiHasGemini() ? ['gemini'] : [];
     if (engine === 'gemini') return ['gemini'];
     if (engine === 'openai') return ['openai'];
-    const o = []; if (aiHasOai()) o.push('openai'); if (aiHasGemini()) o.push('gemini'); return o;
+    const o = []; if (aiHasGemini()) o.push('gemini'); if (aiHasOai()) o.push('openai'); return o;   // Gemini أدق في معرفة الأدوية؛ Groq احتياطي
 }
 async function callAiEngine(engine, opts) {
     const order = aiEngineOrder(engine, opts);

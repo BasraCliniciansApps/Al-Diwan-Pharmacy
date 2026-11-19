@@ -160,11 +160,11 @@ async function dhAiSuggest() {
     const h = Prog.start('اقتراح المواد الفعالة', { text: fmtNum(todo.length) + ' مادة...' });
     try {
         const list = todo.map((p, i) => `${i + 1}. ${p.name}${p.brand ? ' (' + p.brand + ')' : ''}`).join('\n');
-        const prompt = 'You are a pharmacist assistant for an Iraqi pharmacy. For each product below (brand/trade name as sold in Iraq), give the generic active ingredient(s) in English WITHOUT strength or form, joined by " + " for combinations. If the product is not a drug/supplement with a clear active ingredient, or you are not sure, use an empty string. Reply with ONLY a JSON array like [{"i":1,"a":"Ciprofloxacin"}], no extra text.\n\n' + list;
+        const prompt = 'You are a senior clinical pharmacist. For each product below (trade name as sold in Iraq, possibly with strength), give the generic active ingredient(s) in English WITHOUT strength or form, joined by " + " for combinations. STRICT RULES: answer ONLY if you are highly certain (well-known international brand or the generic name is written in the product name). Many names are local/obscure brands or cosmetics: for those you MUST answer with an empty string. A wrong answer is far worse than an empty one; never guess from similar-sounding names. Reply with ONLY a JSON array like [{"i":1,"a":"Ciprofloxacin","c":"high"}] where c is "high" only if certain, otherwise omit the item or use "".\n\n' + list;
         const txt = await callAiEngine(eng, { prompt, json: false });
         const m = String(txt).match(/\[[\s\S]*\]/); if (!m) throw new Error('رد غير مفهوم من النموذج');
         const arr = JSON.parse(m[0]); let n = 0;
-        arr.forEach(o => { const p = todo[(parseInt(o.i) || 0) - 1], a = String(o.a || '').trim(); if (p && a) { const e = dhEdits.get(p.id) || {}; e.ai = a; e.aiGen = true; dhEdits.set(p.id, e); n++; } });
+        arr.forEach(o => { const p = todo[(parseInt(o.i) || 0) - 1], a = String(o.a || '').trim(); if (p && a && String(o.c || '').toLowerCase() === 'high') { const e = dhEdits.get(p.id) || {}; e.ai = a; e.aiGen = true; dhEdits.set(p.id, e); n++; } });
         h.ok(n ? 'اقتُرحت ' + n + ' مادة فعالة — راجعها ثم احفظ' : 'لم يتعرّف النموذج على مواد');
         dhRender();
     } catch (err) { h.fail('تعذّر الاقتراح', err && err.message); }
