@@ -5551,6 +5551,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         ['fuOv', () => vis('fuOv'), () => { if (typeof fuBack === 'function') fuBack(); else fuClose(); }],
         ['cnOv', () => vis('cnOv'), () => { if (typeof cnBack === 'function') cnBack(); else cnClose(); }],
         ['posOv', () => vis('posOv'), () => { if (typeof posClose === 'function') posClose(); }],
+        ['p2Ov', () => vis('p2Ov'), () => { if (typeof p2Close === 'function') p2Close(); }],
         ['docHub', () => vis('docHub'), () => docClose()],
         ['drHub', () => vis('drHub'), () => drClose()],
         ['qiPanel', () => vis('qiPanel') && typeof qiAbandon === 'function', () => qiAbandon()],
