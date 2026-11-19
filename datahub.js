@@ -161,12 +161,8 @@ function dhBaseKey(name) {
 }
 const DH_NUM_RE = /\d+(?:[.,]\d+)?\s*(?:(?:mg|mcg|µg|ug|gm|g|kg|ml|iu|meq|mmol|u|%)(?![a-z]))?(?:\s*\/\s*\d+(?:[.,]\d+)?\s*(?:(?:mg|mcg|µg|ug|gm|g|kg|ml|iu|meq|mmol|u|%)(?![a-z]))?)*/gi;   // يزيل التركيز حتى لو مكتوب 500/125 بلا وحدات
 const dhStripStr = s => String(s || '').replace(DH_NUM_RE, ' ').replace(/\s{2,}/g, ' ').replace(/\s+\+/g, ' +').replace(/^[\s+/\-]+|[\s+/\-]+$/g, '').trim();
-let dhDbP = null, dhDbSet = null;
-function dhDbLoad() {   // القاعدة المرجعية (محلية ومخزّنة بالجهاز) تُحمَّل عند أول استعمال فقط
-    if (window.DRUGDB) return Promise.resolve(window.DRUGDB);
-    if (!dhDbP) dhDbP = new Promise(res => { const s = document.createElement('script'); s.src = 'drugdb.js'; s.onload = () => res(window.DRUGDB || null); s.onerror = () => { dhDbP = null; res(null); }; document.head.appendChild(s); });
-    return dhDbP;
-}
+let dhDbSet = null;
+const dhDbLoad = () => drugDbLoad();   // نفس القاعدة المشتركة مع البحث
 const dhIngParts = s => dhStripStr(String(s || '').replace(/\([^)]*\)/g, ' ')).toLowerCase().split('+').map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
 function dhDbKnown(ai) {   // كل مكوّنات الاسم يجب أن تكون معروفة بالقاعدة المرجعية (يمنع الأسماء الملفقة)
     if (!window.DRUGDB) return true;
@@ -534,3 +530,6 @@ async function partRetroRun() {
     try { renderAll(); } catch (e) { /* تجاهل */ }
 }
 { let tries = 0; const iv = setInterval(() => { tries++; if (tries > 40) return clearInterval(iv); if (typeof cloudReady === 'function' && cloudReady() && typeof products !== 'undefined' && products.length && typeof userRole !== 'undefined' && userRole === 'owner') { clearInterval(iv); setTimeout(partRetroRun, 4000); } }, 3000); }
+
+// تحميل قاعدة الأدوية المرجعية بصمت بعد فتح التطبيق (للبحث بالأسماء العربية وبالمرض)
+setTimeout(() => { try { (window.requestIdleCallback || (f => setTimeout(f, 800)))(() => drugDbLoad()); } catch (e) { /* تجاهل */ } }, 4000);

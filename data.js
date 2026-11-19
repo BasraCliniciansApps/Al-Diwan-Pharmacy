@@ -1051,11 +1051,24 @@ function normSearch(s) {
         .trim();
 }
 
-const SEARCH_IDX = new WeakMap();
+let SEARCH_IDX = new WeakMap();
+// قاعدة الأدوية المرجعية المحلية (drugdb.js): أسماء عربية وكلمات استطباب للبحث، تُحمَّل بعد فتح التطبيق وتُخزَّن بالجهاز
+let drugDbP = null;
+function drugDbLoad() {
+    if (window.DRUGDB) return Promise.resolve(window.DRUGDB);
+    if (!drugDbP) drugDbP = new Promise(res => { const s = document.createElement('script'); s.src = 'drugdb.js'; s.onload = () => { SEARCH_IDX = new WeakMap(); res(window.DRUGDB || null); try { if (typeof renderAll === 'function') renderAll(); } catch (e) { /* تجاهل */ } }; s.onerror = () => { drugDbP = null; res(null); }; document.head.appendChild(s); });
+    return drugDbP;
+}
+function drugDbExtra(p) {   // أسماء عربية + كلمات المرض/الاستطباب لهذا الصنف إن وُجد بالقاعدة
+    const D = window.DRUGDB; if (!D || !D.a || typeof dhBaseKey !== 'function') return '';
+    const k = dhBaseKey(p.name); if (!k) return '';
+    const t = D.t && D.t[k] !== undefined ? D.tg[D.t[k]] : '';
+    return (D.a[k] || '') + ' ' + t;
+}
 function searchIndexOf(p) {
     let x = SEARCH_IDX.get(p);
     if (!x) {
-        const all = normSearch(`${p.name} ${p.brand} ${p.details} ${p.meta} ${catsOf(p).join(' ')} ${p.keywords || ''} ${p.activeIngredient || ''} ${barcodesOf(p).join(' ')}`);
+        const all = normSearch(`${p.name} ${p.brand} ${p.details} ${p.meta} ${catsOf(p).join(' ')} ${p.keywords || ''} ${p.activeIngredient || ''} ${barcodesOf(p).join(' ')} ${drugDbExtra(p)}`);
         x = { name: normSearch(p.name), all, words: all.split(' ').filter(Boolean) };
         SEARCH_IDX.set(p, x);
     }
