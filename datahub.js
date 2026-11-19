@@ -154,7 +154,7 @@ function dhMore() { dhShown += 40; dhRender(true); }
 
 async function dhAiSuggest() {
     const eng = typeof getAiEngine === 'function' ? getAiEngine() : 'local';
-    if (eng === 'local') { Swal.fire({ icon: 'info', title: 'الذكاء الاصطناعي غير مفعّل', text: 'فعّل محرك الذكاء الاصطناعي من الإعدادات (مفتاح Gemini أو مزوّد آخر) ثم أعد المحاولة.', confirmButtonColor: '#0f1c38' }); return; }
+    if (eng === 'local' || !aiEngineOrder(eng, {}).length) { Swal.fire({ icon: 'info', title: 'الذكاء الاصطناعي غير مفعّل', text: 'فعّل محرك الذكاء الاصطناعي من الإعدادات (مفتاح Groq أو Gemini المجاني) ثم أعد المحاولة.', confirmButtonColor: '#0f1c38' }); return; }
     const todo = dhIngList().filter(p => dhFilter !== 'done' && !String((dhEdits.get(p.id) || {}).ai || '').trim() && !dhHas(p)).slice(0, 25);
     if (!todo.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد ظاهرة تحتاج اقتراحاً', timer: 1800, showConfirmButton: false }); return; }
     const h = Prog.start('اقتراح المواد الفعالة', { text: fmtNum(todo.length) + ' مادة...' });

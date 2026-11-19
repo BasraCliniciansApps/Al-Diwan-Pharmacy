@@ -3515,17 +3515,17 @@ async function applyBackupData(data) {
 // 15. مسح العبوة بالذكاء الصناعي: Gemini API أو Firebase AI Logic (مع رجوع احتياطي للقارئ العادي)
 // ============================================================================
 // ---- إعدادات Firebase AI Logic (تُضبط مرة واحدة هنا، وليست أسراراً) ----
-const FIREBASE_MODULAR_VERSION = '13.0.0';   // نسخة مكتبة Firebase التي تحمّل AI Logic
-const APP_CHECK_SITE_KEY = '';               // مفتاح reCAPTCHA للويب (عام وليس سرياً) — مطلوب لـ Firebase AI Logic
-const APP_CHECK_PROVIDER = 'enterprise';     // 'enterprise' (reCAPTCHA Enterprise) أو 'v3' (reCAPTCHA v3)
-
 const AI_DEFAULT_MODEL = 'gemini-3.8-flash';
 const AI_TIMEOUT_MS = 90000;
-const AI_ENGINES = { local: 'قراءة عادية (بدون ذكاء)', gemini: 'Gemini API', firebase: 'Firebase AI Logic', openai: 'مزوّد مجاني (Groq / OpenRouter)' };
+// كل المحركات مجانية 100%: Gemini (باقة AI Studio المجانية) + Groq/OpenRouter (:free فقط) + Tesseract محلي. لا Firebase ولا بحث جوجل (يحتاجان فوترة)
+const AI_ENGINES = { auto: 'تلقائي ذكي (مجاني)', gemini: 'Gemini مجاني (صور + نص)', openai: 'Groq / OpenRouter مجاني (نص فقط)', local: 'قراءة عادية بدون إنترنت (Tesseract)' };
+const GEMINI_FREE_RE = /^gemini-\d+(\.\d+)?-flash(-lite)?$/;   // Flash فقط (لا Pro ولا preview)
+const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 // إعدادات المحرك تُحفظ على هذا الجهاز فقط (لا تُرفع للسحابة ولا تدخل النسخة الاحتياطية)
 const AI_LS = { engine: 'diwanAiEngine', key: 'diwanGeminiKey', gModel: 'diwanGeminiModel', fModel: 'diwanFbAiModel', web: 'diwanAiWebSearch', oaiProv: 'diwanOaiProv', oaiKey: 'diwanOaiKey', oaiModel: 'diwanOaiModel', oaiBase: 'diwanOaiBase' };
 const OAI_PRESETS = { groq: 'https://api.groq.com/openai/v1', openrouter: 'https://openrouter.ai/api/v1' };
-function oaiBase() { const p = aiGet('oaiProv', 'groq'); return String(OAI_PRESETS[p] || aiGet('oaiBase') || '').replace(/\/+$/, ''); }
+function oaiProv() { const p = aiGet('oaiProv', 'groq'); return OAI_PRESETS[p] ? p : 'groq'; }
+function oaiBase() { return OAI_PRESETS[oaiProv()]; }
 
 function aiGet(k, d) {
     const def = (d === undefined) ? '' : d;
@@ -3539,7 +3539,9 @@ function aiSet(k, v) {
 }
 function aiVal(id) { const el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; }
 function aiSetVal(id, v) { const el = document.getElementById(id); if (el) el.value = v; }
-function getAiEngine() { const eng = aiGet('engine', 'local'); return AI_ENGINES[eng] ? eng : 'local'; }
+function getAiEngine() { const eng = aiGet('engine', 'auto'); return AI_ENGINES[eng] ? eng : 'auto'; }
+const aiHasGemini = () => !!cleanAiKey(aiGet('key'));
+const aiHasOai = () => !!cleanAiKey(aiGet('oaiKey'));
 function cleanAiModel(v) { return String(v || '').trim().replace(/^models\//, '').replace(/[^A-Za-z0-9._\-]/g, ''); }
 function cleanAiKey(v) { return String(v || '').replace(/\s+/g, ''); }
 
@@ -3709,7 +3711,7 @@ function extractGeminiText(data) {
 // عند ازدحام النموذج (503) نعيد المحاولة ثم ننتقل لنماذج بديلة أخف
 const AI_KNOWN_MODELS = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];   // المتاحة في الطبقة المجانية
 const AI_FALLBACK_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-3.6-flash'];
-const aiWebOn = () => aiGet('web') === '1';
+const aiWebOn = () => false;   // بحث جوجل يحتاج فوترة: معطّل نهائياً
 function isBusyAiError(e) {
     return !!e && (e.status === 503 || /high demand|overloaded|unavailable/i.test(String(e.message || '')));
 }
@@ -3727,7 +3729,8 @@ async function callGeminiRest(opts) {
     return callGeminiChain(opts);
 }
 async function callGeminiChain(opts) {
-    const first = cleanAiModel(aiGet('gModel', AI_DEFAULT_MODEL)) || AI_DEFAULT_MODEL;
+    let first = cleanAiModel(aiGet('gModel', AI_DEFAULT_MODEL)) || AI_DEFAULT_MODEL;
+    if (!GEMINI_FREE_RE.test(first)) first = AI_DEFAULT_MODEL;   // لا نرسل إلا لنماذج Flash المجانية
     const models = [first].concat(AI_FALLBACK_MODELS.filter(m => m !== first));
     let lastErr = null;
     for (let i = 0; i < models.length; i++) {
@@ -3789,57 +3792,15 @@ async function callGeminiRestOnce(opts, modelName) {
 }
 
 // ---------------------------------------------------------------------------
-// المحرك 2: Firebase AI Logic (بدون مفتاح داخل التطبيق)
-// ---------------------------------------------------------------------------
-let fbSdkPromise = null;
-function aiImport(url) { return import(url); }   // غلاف بسيط ليسهل اختبار التحميل
-
-function loadFirebaseAiSdk() {
-    if (!fbSdkPromise) {
-        fbSdkPromise = (async () => {
-            const base = 'https://www.gstatic.com/firebasejs/' + FIREBASE_MODULAR_VERSION + '/';
-            const mods = await Promise.all([aiImport(base + 'firebase-app.js'), aiImport(base + 'firebase-ai.js')]);
-            const appMod = mods[0];
-            const aiMod = mods[1];
-            const NAME = 'diwan-ai';   // نسخة مستقلة عن تطبيق Firebase القديم الذي يخدم قاعدة البيانات
-            const app = appMod.getApps().find(a => a.name === NAME) || appMod.initializeApp(firebaseConfig, NAME);
-            if (APP_CHECK_SITE_KEY) {
-                if (['localhost', '127.0.0.1'].includes(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-                const ac = await aiImport(base + 'firebase-app-check.js');
-                const provider = APP_CHECK_PROVIDER === 'v3'
-                    ? new ac.ReCaptchaV3Provider(APP_CHECK_SITE_KEY)
-                    : new ac.ReCaptchaEnterpriseProvider(APP_CHECK_SITE_KEY);
-                ac.initializeAppCheck(app, { provider: provider, isTokenAutoRefreshEnabled: true });
-            }
-            const ai = aiMod.getAI(app, { backend: new aiMod.GoogleAIBackend() });
-            return { aiMod, ai };
-        })().catch(err => { fbSdkPromise = null; throw err; });
-    }
-    return fbSdkPromise;
-}
-
-async function callFirebaseAi(opts) {
-    const modelName = cleanAiModel(aiGet('fModel', AI_DEFAULT_MODEL)) || AI_DEFAULT_MODEL;
-    const sdk = await loadFirebaseAiSdk();
-    const cfg = { model: modelName };
-    if (opts.json) {
-        cfg.generationConfig = { responseMimeType: 'application/json', responseSchema: buildAiSchema(sdk.aiMod.Schema), temperature: 0.1 };
-    }
-    const model = sdk.aiMod.getGenerativeModel(sdk.ai, cfg);
-    const parts = [opts.prompt];
-    // الشكل مطابق لمثال توثيق Firebase الحالي لإرسال الصور
-    if (opts.img) parts.push({ type: 'inlineData', inlineData: { data: opts.img.data, mimeType: opts.img.mimeType } });
-    const result = await withTimeout(model.generateContent(parts), AI_TIMEOUT_MS);
-    return result.response.text();
-}
-
-// المحرك 3: أي مزوّد متوافق مع OpenAI (Groq / OpenRouter المجانيان) — نص فقط، مناسب للبحث بالاسم
+// Groq / OpenRouter (المجانيان فقط) — نص فقط، مناسب للبحث بالاسم واقتراح المادة الفعالة
 async function callOpenAiCompat(opts) {
     const key = cleanAiKey(aiGet('oaiKey'));
     if (!key) { const e = new Error('NO_KEY'); e.code = 'NO_KEY'; throw e; }
-    const base = oaiBase(); if (!/^https:\/\//.test(base)) throw new Error('عنوان المزوّد غير صحيح (يجب أن يبدأ بـ https://).');
+    const base = oaiBase();
     let model = String(aiGet('oaiModel') || '').trim();
+    if (!model && oaiProv() === 'groq') model = GROQ_DEFAULT_MODEL;
     if (!model) throw new Error('اختر النموذج: اضغط «جلب القائمة» في إعدادات الذكاء الصناعي.');
+    if (oaiProv() === 'openrouter' && !/:free$/.test(model)) throw new Error('OpenRouter: مسموح فقط بالنماذج المجانية التي تنتهي بـ :free حتى لا يُستهلك رصيد مدفوع.');
     if (opts.img) { const e = new Error('هذا المحرك يقرأ النص فقط. لقراءة الصور استعمل Gemini.'); e.code = 'NO_IMG'; throw e; }
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
@@ -3868,7 +3829,7 @@ async function loadOaiModels() {
         if (!res.ok) throw await aiHttpError(res);
         const data = await res.json();
         let ids = (data.data || []).map(m => String(m.id || '')).filter(Boolean);
-        if (aiGet('oaiProv', 'groq') === 'openrouter') ids = ids.filter(n => /:free$/.test(n));
+        if (oaiProv() === 'openrouter') ids = ids.filter(n => /:free$/.test(n));
         ids = ids.filter(n => !/(whisper|tts|guard|embed|orpheus|playai|image|audio|moderation|safeguard)/i.test(n));
         ids.sort((a, b) => (/gpt-oss|llama-3\.3|qwen|deepseek|gemma|llama/i.test(b) ? 1 : 0) - (/gpt-oss|llama-3\.3|qwen|deepseek|gemma|llama/i.test(a) ? 1 : 0) || a.localeCompare(b));
         const pick = document.getElementById('aiOaiPick');
@@ -3877,11 +3838,24 @@ async function loadOaiModels() {
         setAiTestMsg('✅ تم جلب ' + ids.length + ' نموذجاً. اختر من القائمة ثم احفظ واضغط «اختبار».');
     } catch (err) { setAiTestMsg('❌ ' + friendlyAiError(err), true); }
 }
-function onOaiProviderChange() { const c = document.getElementById('aiOaiCustom'); if (c) c.style.display = aiVal('aiOaiProv') === 'custom' ? '' : 'none'; }
+function onOaiProviderChange() { /* مزوّدان مجانيان فقط */ }
 
-function callAiEngine(engine, opts) {
-    if (engine === 'openai') return callOpenAiCompat(opts);
-    return engine === 'firebase' ? callFirebaseAi(opts) : callGeminiRest(opts);
+// الترتيب الذكي: الصور → Gemini المجاني فقط؛ النص → Groq ثم Gemini (أو المحرك المختار صراحةً)، ويجرّب التالي عند الفشل
+function aiEngineOrder(engine, opts) {
+    if (opts && opts.img) return aiHasGemini() ? ['gemini'] : [];
+    if (engine === 'gemini') return ['gemini'];
+    if (engine === 'openai') return ['openai'];
+    const o = []; if (aiHasOai()) o.push('openai'); if (aiHasGemini()) o.push('gemini'); return o;
+}
+async function callAiEngine(engine, opts) {
+    const order = aiEngineOrder(engine, opts);
+    if (!order.length) { const e = new Error('NO_KEY'); e.code = 'NO_KEY'; throw e; }
+    let last = null;
+    for (let i = 0; i < order.length; i++) {
+        try { return await (order[i] === 'openai' ? callOpenAiCompat(opts) : callGeminiRest(opts)); }
+        catch (e) { last = e; if (i < order.length - 1) setScanStatusText('ℹ️ تعذّر المحرك الأول — تجربة محرك مجاني آخر...'); }
+    }
+    throw last;
 }
 
 // ---------------------------------------------------------------------------
@@ -4116,7 +4090,7 @@ async function scanProductImage(event) {
 
     try {
         if (engine === 'local') { await scanWithOcr(event); return; }
-        if (engine === 'openai') { setScanStatusText('ℹ️ هذا المحرك للبحث بالاسم فقط — قراءة عادية للصورة'); await scanWithOcr(event); return; }
+        if (!aiHasGemini()) { setScanStatusText('ℹ️ قراءة الصور بالذكاء تحتاج مفتاح Gemini المجاني — قراءة عادية'); await scanWithOcr(event); return; }
         if (!navigator.onLine) {
             setScanStatusText('📴 بدون إنترنت — قراءة عادية');
             await scanWithOcr(event);
@@ -4128,8 +4102,8 @@ async function scanProductImage(event) {
         try {
             setScanStatusText('⏳ جاري تجهيز الصورة...');
             const img = await prepareImageForAi(file);
-            setScanStatusText('🤖 ' + AI_ENGINES[engine] + ' يقرأ العبوة...'); h.set(null, AI_ENGINES[engine] + ' يقرأ العبوة (قد تأخذ حتى دقيقة)...');
-            const text = await callAiEngine(engine, { prompt: buildAiPrompt(), img, json: true });
+            setScanStatusText('🤖 Gemini المجاني يقرأ العبوة...'); h.set(null, 'Gemini المجاني يقرأ العبوة (قد تأخذ حتى دقيقة)...');
+            const text = await callAiEngine('gemini', { prompt: buildAiPrompt(), img, json: true });
             res = normalizeAiResult(parseAiJson(text));
             h.ok('تمت القراءة');
         } catch (err) {
@@ -4179,7 +4153,7 @@ async function handleAiScanError(err, file) {
 // الإعدادات (⚙️ → 6. الذكاء الصناعي) — تُحفظ على هذا الجهاز فقط
 // ---------------------------------------------------------------------------
 function setAiEngine(v) {
-    const eng = AI_ENGINES[v] ? v : 'local';
+    const eng = AI_ENGINES[v] ? v : 'auto';
     aiSet('engine', eng);
     aiSetVal('scanEngineSelect', eng);
     aiSetVal('aiEngineSelect', eng);
@@ -4190,10 +4164,8 @@ function setAiEngine(v) {
 function updateAiSettingsVisibility() {
     const eng = getAiEngine();
     const g = document.getElementById('aiGeminiBox');
-    const f = document.getElementById('aiFirebaseBox');
-    if (g) g.style.display = eng === 'gemini' ? '' : 'none';
-    if (f) f.style.display = eng === 'firebase' ? '' : 'none';
-    const o = document.getElementById('aiOpenAiBox'); if (o) o.style.display = eng === 'openai' ? '' : 'none';
+    if (g) g.style.display = (eng === 'gemini' || eng === 'auto') ? '' : 'none';
+    const o = document.getElementById('aiOpenAiBox'); if (o) o.style.display = (eng === 'openai' || eng === 'auto') ? '' : 'none';
 }
 
 function refreshScanEngineLabel() {
@@ -4207,30 +4179,15 @@ function refreshScanEngineLabel() {
     }
 }
 
-function renderAppCheckNote() {
-    const el = document.getElementById('aiAppCheckNote');
-    if (!el) return;
-    if (APP_CHECK_SITE_KEY) {
-        el.innerText = '✅ App Check مضبوط (' + (APP_CHECK_PROVIDER === 'v3' ? 'reCAPTCHA v3' : 'reCAPTCHA Enterprise') + ').';
-        el.style.color = '#15803d';
-    } else {
-        el.innerText = '⚠️ APP_CHECK_SITE_KEY فارغ في data.js. تفعيل App Check مطلوب لـ Firebase AI Logic، وبدونه قد يرفض Firebase الطلب (403).';
-        el.style.color = '#b45309';
-    }
-}
-
 function loadAiSettingsToForm() {
     aiSetVal('aiEngineSelect', getAiEngine());
     aiSetVal('aiGeminiKey', aiGet('key'));
     aiSetVal('aiGeminiModel', aiGet('gModel', AI_DEFAULT_MODEL));
-    aiSetVal('aiFbModel', aiGet('fModel', AI_DEFAULT_MODEL));
-    { const w = document.getElementById('aiWebSearch'); if (w) w.checked = aiWebOn(); }
-    aiSetVal('aiOaiProv', aiGet('oaiProv', 'groq')); aiSetVal('aiOaiKey', aiGet('oaiKey')); aiSetVal('aiOaiModel', aiGet('oaiModel')); aiSetVal('aiOaiBase', aiGet('oaiBase')); onOaiProviderChange();
+    aiSetVal('aiOaiProv', aiGet('oaiProv', 'groq')); aiSetVal('aiOaiKey', aiGet('oaiKey')); aiSetVal('aiOaiModel', aiGet('oaiModel')); aiSetVal('aiOaiProv', oaiProv());
     const keyEl = document.getElementById('aiGeminiKey');
     if (keyEl) keyEl.type = 'password';
     setAiTestMsg('');
     updateAiSettingsVisibility();
-    renderAppCheckNote();
 }
 
 function setAiTestMsg(msg, isErr) {
@@ -4242,14 +4199,12 @@ function setAiTestMsg(msg, isErr) {
 
 function saveAiSettings(silent) {
     const key = cleanAiKey(aiVal('aiGeminiKey'));
-    const gModel = cleanAiModel(aiVal('aiGeminiModel')) || AI_DEFAULT_MODEL;
-    const fModel = cleanAiModel(aiVal('aiFbModel')) || AI_DEFAULT_MODEL;
-    const webEl = document.getElementById('aiWebSearch');
-    const ok = aiSet('key', key) && aiSet('gModel', gModel) && aiSet('fModel', fModel) && aiSet('web', webEl && webEl.checked ? '1' : '')
-        && aiSet('oaiProv', aiVal('aiOaiProv') || aiGet('oaiProv', 'groq')) && aiSet('oaiKey', cleanAiKey(aiVal('aiOaiKey'))) && aiSet('oaiModel', String(aiVal('aiOaiModel')).replace(/\s+/g, '')) && aiSet('oaiBase', aiVal('aiOaiBase'));
+    let gModel = cleanAiModel(aiVal('aiGeminiModel')) || AI_DEFAULT_MODEL;
+    if (!GEMINI_FREE_RE.test(gModel)) gModel = AI_DEFAULT_MODEL;
+    const ok = aiSet('key', key) && aiSet('gModel', gModel)
+        && aiSet('oaiProv', aiVal('aiOaiProv') || aiGet('oaiProv', 'groq')) && aiSet('oaiKey', cleanAiKey(aiVal('aiOaiKey'))) && aiSet('oaiModel', String(aiVal('aiOaiModel')).replace(/\s+/g, ''));
     aiSetVal('aiGeminiKey', key);
     aiSetVal('aiGeminiModel', gModel);
-    aiSetVal('aiFbModel', fModel);
     if (!ok) {
         Swal.fire({ icon: 'error', title: 'تعذر الحفظ على هذا الجهاز', text: 'المتصفح يمنع التخزين (ربما وضع التصفح الخاص).', confirmButtonColor: '#0f1c38' });
         return false;
@@ -4293,8 +4248,9 @@ async function loadGeminiModels() {
 // اختبار حقيقي: يرسل صورة صغيرة فيها كلمة ويتأكد أن النموذج يقرؤها (يختبر المفتاح والنموذج ودعم الصور)
 async function testAiConnection() {
     if (!saveAiSettings(true)) return;
-    const eng = aiVal('aiEngineSelect') || getAiEngine();
+    let eng = aiVal('aiEngineSelect') || getAiEngine();
     if (eng === 'local') { setAiTestMsg('القراءة العادية لا تحتاج اختباراً.'); return; }
+    if (eng === 'auto') eng = aiHasGemini() ? 'gemini' : (aiHasOai() ? 'openai' : 'gemini');
     if (!navigator.onLine) { setAiTestMsg('لا يوجد اتصال بالإنترنت.', true); return; }
     setAiTestMsg('⏳ جاري الاختبار...');
     const t0 = Date.now();
@@ -4333,15 +4289,15 @@ async function fillFromTypedName() {
     const name = ((box && box.value) || '').trim();
     if (!name) { setScanStatusText('اكتب اسم المنتج أولاً.'); if (box) box.focus(); return; }
     const engine = getAiEngine();
-    if (engine === 'local') {
-        await Swal.fire({ icon: 'info', title: 'اختر محركاً ذكياً', html: '<div style="font-size:0.9rem; line-height:1.8;">البحث بالاسم يحتاج Gemini API أو Firebase AI Logic. اخترهما من القائمة المجاورة لزر الكاميرا.</div>', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' });
+    if (engine === 'local' || !aiEngineOrder(engine, {}).length) {
+        await Swal.fire({ icon: 'info', title: 'يحتاج مفتاحاً مجانياً', html: '<div style="font-size:0.9rem; line-height:1.8;">البحث بالاسم يحتاج مفتاح Groq المجاني أو Gemini المجاني. أدخله من ⚙️ إعدادات الذكاء الصناعي (ولا حاجة لبطاقة دفع).</div>', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' });
         return;
     }
     if (!navigator.onLine) { setScanStatusText('📴 يحتاج إنترنت'); return; }
     let res;
     try {
-        setScanStatusText('🤖 ' + AI_ENGINES[engine] + ' يبحث عن المنتج...');
-        const useWeb = engine === 'gemini' && aiWebOn();
+        setScanStatusText('🤖 ' + AI_ENGINES[engine === 'local' ? 'auto' : engine] + ' يبحث عن المنتج...');
+        const useWeb = false;
         const text = await callAiEngine(engine, { prompt: buildAiPrompt(name) + (useWeb ? '\n\nابحث في الإنترنت (مواقع الشركة المصنّعة ومراجع الأدوية) عن هذا المنتج بدقة قبل تعبئة الحقول، وأعد كائن JSON فقط بلا أي نص آخر.' : ''), json: true, search: useWeb });
         res = normalizeAiResult(parseAiJson(text));
         // التركيز والعبوة والصلاحية لا تُؤخذ إلا مما كتبه الصيدلاني
@@ -4352,7 +4308,7 @@ async function fillFromTypedName() {
     } catch (err) {
         setScanStatusText('');
         if (err && err.code === 'NO_KEY') {
-            const r = await Swal.fire({ icon: 'info', title: 'مفتاح Gemini API غير مُدخل', html: '<div style="font-size:0.9rem;">أدخله من ⚙️ الإعدادات ← قسم الذكاء الصناعي.</div>', showCancelButton: true, confirmButtonText: '⚙️ فتح الإعدادات', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
+            const r = await Swal.fire({ icon: 'info', title: 'المفتاح المجاني غير مُدخل', html: '<div style="font-size:0.9rem;">أدخل مفتاح Groq أو Gemini المجاني من ⚙️ الإعدادات ← قسم الذكاء الصناعي.</div>', showCancelButton: true, confirmButtonText: '⚙️ فتح الإعدادات', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
             if (r.isConfirmed) openAiSettingsOverForm();
         } else {
             await Swal.fire({ icon: 'error', title: 'تعذر البحث بالذكاء الصناعي', html: `<div style="font-size:0.9rem; line-height:1.8;">${escapeHtml(friendlyAiError(err))}</div>`, confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
