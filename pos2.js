@@ -19,7 +19,7 @@ const p2Net = () => billTotals().total;
 function p2Ensure() {
     if (p2El('p2Ov')) return;
     const d = document.createElement('div'); d.id = 'p2Ov'; d.className = 'p2-ov no-print'; d.setAttribute('dir', 'rtl'); d.style.display = 'none';
-    d.innerHTML = `<div class="p2-head"><button type="button" class="p2-back" onclick="p2Close()" aria-label="رجوع">›</button><b>🧪 واجهة بيع تجريبية</b><span class="p2-no" dir="ltr" id="p2No"></span></div>
+    d.innerHTML = `<div class="p2-head"><button type="button" class="p2-back" onclick="p2Back()" aria-label="رجوع">›</button><b>🧪 واجهة بيع تجريبية</b><span class="p2-no" dir="ltr" id="p2No"></span></div>
         <div class="p2-main" id="p2Main">
             <section class="p2-items" id="p2Items">
                 <div class="p2-bar"><input id="p2Q" type="search" autocomplete="off" placeholder="امسح الباركود أو اكتب اسم المادة" oninput="p2SearchInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();p2Enter();}"><button type="button" class="p2-cam" onclick="p2Scan()" aria-label="مسح بالكاميرا">📷</button></div>
@@ -41,7 +41,13 @@ function p2Open() {
     p2El('p2Ov').style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open');
     const q = p2El('p2Q'); if (q) q.value = ''; p2Results(); p2Render(); p2Focus();
 }
+// الرجوع: يغلق القسم المفتوح (خصم، آجل...) أولاً على الموبايل، ثم يخرج من نافذة البيع
+function p2Back() {
+    if (p2.acc && window.matchMedia && matchMedia('(max-width: 899px)').matches && P2_COMPACT) { p2.acc = null; p2Render(); return; }
+    p2Close();
+}
 function p2Close() {
+    p2.acc = null;
     const ov = p2El('p2Ov'); if (ov) ov.style.display = 'none';
     document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); p2.open = false;
     try { writeInvoiceFields(); renderInvoiceRows(); recalcInvoice(); updateIssuedUI(); } catch (e) { /* تجاهل */ }
