@@ -63,7 +63,7 @@ const Prog = {
             for (let yy = y0; yy <= y1; yy += 3) { const e = document.elementFromPoint(x, yy); if (e && dark(e)) y = yy; else { hit = true; break; } }
         } catch (e) { return { y: 0, r: 0 }; }
         if (!hit || !last || y === 0) {
-            if (cr) return { y: cr.top + 4, r: 0, x0: cr.left + 20, x1: cr.right - 20 };   // نافذة بلا ترويسة كحلية: خط قصير أعلى النافذة
+            if (cr) { let R = 0; try { R = parseFloat(getComputedStyle(card).borderTopLeftRadius) || 0; } catch (e) { R = 0; } const ins = Math.max(20, Math.min(R + 4, 40)); return { y: cr.top + 8, r: 0, x0: cr.left + ins, x1: cr.right - ins }; }   // نافذة بلا ترويسة كحلية: خط قصير أعلى النافذة
             return { y: 0, r: 0 };
         }
         let r = 0; try { r = Math.min(40, parseFloat(getComputedStyle(last).borderBottomLeftRadius) || 0); } catch (e) { r = 0; }
