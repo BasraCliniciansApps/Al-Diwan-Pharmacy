@@ -132,8 +132,8 @@ function lblOpen(arg, opt) {   // arg: مصفوفة مواد/عناصر، أو �
     const picker = !arg;
     lblSt = { cfg: lblCfg(), items: picker ? [] : (arg[0] && arg[0].id !== undefined && arg[0].bc === undefined ? lblItemsOf(arg) : arg), picker, src: 'nobc', picked: [] };
     if (picker) lblPickRecalc();
-    Swal.fire({ title: '🏷️ ملصقات الباركود', html: lblDlgHtml(), width: 560, showCancelButton: true, confirmButtonText: '🖨️ طباعة', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { popup: 'lbl-pop' },
-        didOpen: lblWire, preConfirm: () => { lblRead(); const ok = lblSt.items.filter(i => i.bc); if (!ok.length) { Swal.showValidationMessage('لا توجد مواد بباركود للطباعة'); return false; } lblCfgSave(lblSt.cfg); lblPrint(lblSt.cfg, ok); return false; } });
+    Swal.fire({ title: '🏷️ ملصقات الباركود', html: lblTabsHtml(opt.tab) + '<div id="lbPane1"' + (opt.tab === 2 ? ' hidden' : '') + '>' + lblDlgHtml() + '</div><div id="lbPane2"' + (opt.tab === 2 ? '' : ' hidden') + '></div>', width: 560, showCancelButton: true, confirmButtonText: '🖨️ طباعة', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { popup: 'lbl-pop' },
+        didOpen: () => { lblWire(); lblTabWire(opt.tab === 2 ? 2 : 1); }, preConfirm: () => { lblRead(); const ok = lblSt.items.filter(i => i.bc); if (!ok.length) { Swal.showValidationMessage('لا توجد مواد بباركود للطباعة'); return false; } lblCfgSave(lblSt.cfg); lblPrint(lblSt.cfg, ok); return false; } });
 }
 function lblPickRecalc() {
     const act = products.filter(p => !p.arch);
@@ -229,4 +229,62 @@ function lblFormPrint() {
     const bc = (formBarcodes && formBarcodes[0]) || '';
     if (!bc) { Swal.fire({ icon: 'info', title: 'أضف باركوداً أولاً', text: 'اضغط «توليد» أو اكتب باركوداً ثم اطبع الملصق.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     lblOpen([{ name: name.trim(), price, bc }]);
+}
+
+// ---------- تبويب «الباركودات الداخلية»: كشفها وإلغاؤها ----------
+const lblIsInternal = b => /^2\d{12}$/.test(String(b || '')) && lblEanCheck(String(b).slice(0, 12)) === +String(b)[12];
+function lblTabsHtml(t) {
+    return `<div class="lbl-tabs"><button type="button" id="lbT1" class="${t === 2 ? '' : 'on'}">🖨️ الطباعة</button><button type="button" id="lbT2" class="${t === 2 ? 'on' : ''}">🔢 الباركودات الداخلية</button></div>`;
+}
+function lblTabWire(t) {
+    const $ = id => document.getElementById(id);
+    const go = n => {
+        $('lbT1').classList.toggle('on', n === 1); $('lbT2').classList.toggle('on', n === 2);
+        $('lbPane1').hidden = n !== 1; $('lbPane2').hidden = n !== 2;
+        const cb = Swal.getConfirmButton(); if (cb) cb.style.display = n === 1 ? '' : 'none';
+        if (n === 2) lblIntRender();
+    };
+    $('lbT1').onclick = () => go(1); $('lbT2').onclick = () => go(2); go(t);
+}
+function lblIntList() {
+    const out = [];
+    products.forEach(p => { const codes = barcodesOf(p).filter(lblIsInternal); if (codes.length) out.push({ p, codes, others: barcodesOf(p).length - codes.length }); });
+    return out;
+}
+let lblIntSel = new Set(), lblIntQ = '';
+function lblIntRender() {
+    const box = document.getElementById('lbPane2'); if (!box) return;
+    const all = lblIntList(), q = normSearch(lblIntQ || ''), toks = q.split(' ');
+    const list = (q ? all.filter(x => searchScore(x.p, q, toks) > 0 || x.codes.some(c => c.includes(lblIntQ.trim()))) : all).slice(0, 150);
+    lblIntSel.forEach(id => { if (!all.some(x => x.p.id === id)) lblIntSel.delete(id); });
+    const allOn = list.length && list.every(x => lblIntSel.has(x.p.id));
+    box.innerHTML = `<div class="lbl-box">
+        <div class="lbl-sum">مواد لها باركود مولَّد داخلياً: <b>${all.length}</b>${all.length > list.length ? ' · المعروض ' + list.length : ''}</div>
+        <small class="lbl-gen-n">الباركود الداخلي رقم من 13 خانة يبدأ بـ 2 وقد ولّده التطبيق. الباركود الخارجي (الأصلي) لا يُمسّ.</small>
+        <input id="lbIq" type="search" placeholder="ابحث بالاسم أو الرقم..." autocomplete="off" value="${escapeHtml(lblIntQ)}">
+        <div class="lbl-row"><span>تحديد كل المعروض</span><label class="setup-sw"><input type="checkbox" id="lbIall" ${allOn ? 'checked' : ''}><i></i></label></div>
+        <div class="lbl-ilist">${list.map(x => `<div class="lbl-irow"><div class="lbl-iin"><span dir="auto">${escapeHtml(x.p.name)}</span><small dir="ltr">${x.codes.join(' · ')}${x.others ? ' (+' + x.others + ' باركود آخر محفوظ)' : ''}</small></div><label class="setup-sw"><input type="checkbox" data-i="${x.p.id}" ${lblIntSel.has(x.p.id) ? 'checked' : ''}><i></i></label></div>`).join('') || '<div class="lbl-info">لا توجد باركودات داخلية.</div>'}</div>
+        <button type="button" class="lbl-gen lbl-del" id="lbIdel" ${lblIntSel.size ? '' : 'disabled'}>🗑 إلغاء الباركود الداخلي للمحدد<b class="lbl-bdg">${lblIntSel.size}</b></button>
+    </div>`;
+    const $ = id => document.getElementById(id);
+    $('lbIq').oninput = e => { lblIntQ = e.target.value; const pos = e.target.selectionStart; lblIntRender(); const n = $('lbIq'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (er) { /* تجاهل */ } } };
+    $('lbIall').onchange = e => { list.forEach(x => e.target.checked ? lblIntSel.add(x.p.id) : lblIntSel.delete(x.p.id)); lblIntRender(); };
+    box.querySelectorAll('input[data-i]').forEach(c => c.onchange = () => { c.checked ? lblIntSel.add(+c.dataset.i) : lblIntSel.delete(+c.dataset.i); lblIntRender(); });
+    $('lbIdel').onclick = lblIntDelete;
+}
+async function lblIntDelete() {
+    if (!writesAllowed() || !lblCan()) return;
+    const ids = [...lblIntSel]; if (!ids.length) return;
+    const r = await Swal.fire({ icon: 'warning', title: 'إلغاء الباركودات الداخلية', html: `<div style="font-size:.9rem;line-height:1.8">سيُحذف الباركود الداخلي من <b>${ids.length}</b> مادة، ولن يُحذف أي باركود أصلي للمادة.<br>إن كانت ملصقاتها مطبوعة ومُلصقة فلن تُقرأ بعد الحذف.</div>`, showCancelButton: true, confirmButtonText: 'نعم، ألغِ الباركود', cancelButtonText: 'رجوع', confirmButtonColor: '#b91c1c' });
+    if (r.isConfirmed) {
+        const ps = ids.map(id => products.find(p => p.id === id)).filter(Boolean);
+        const old = ps.map(p => ({ b: p.barcode, bs: p.barcodes, was: barcodesOf(p).join(' · ') }));
+        ps.forEach(p => { const keep = barcodesOf(p).filter(b => !lblIsInternal(b)); p.barcode = keep[0] || ''; p.barcodes = keep; });
+        const ok = typeof catSaveMany === 'function' ? await catSaveMany(ps.map(p => ({ p, dq: 0, dl: 0 })), 'إلغاء الباركودات الداخلية', 'تم إلغاء الباركودات الداخلية') : 0;
+        ps.forEach((p, i) => { if (i >= ok) { p.barcode = old[i].b; p.barcodes = old[i].bs; } });
+        ps.slice(0, ok).forEach((p, i) => { try { logAction('edit', p, [{ f: 'الباركود', from: old[i].was, to: barcodesOf(p).join(' · ') }]); } catch (e) { /* تجاهل */ } });
+        lblIntSel = new Set();
+        if (typeof renderCatalog === 'function' && document.getElementById('catList')) renderCatalog();
+    }
+    lblOpen(null, { tab: 2 });
 }
