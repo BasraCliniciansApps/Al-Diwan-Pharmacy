@@ -497,7 +497,7 @@ function cancelInvoiceEditNow() {
 }
 async function saveInvoiceEdit(doPrintAfter) {
     if (!bill || !bill.issued || !bill.editing) return;
-    if (userRole !== 'owner' && bill.byUid && typeof currentUser !== 'undefined' && currentUser && bill.byUid !== currentUser.uid) { Swal.fire({ icon: 'info', title: 'لا يمكن تعديل هذه الفاتورة', text: 'هذه الفاتورة أصدرها مستخدم آخر. يعدّلها صاحبها أو المدير.', confirmButtonColor: '#0f1c38' }); return; }
+    if (userRole !== 'owner' && bill.byUid && typeof currentUser !== 'undefined' && currentUser && bill.byUid !== ((window.__actAs && window.__actAs.uid) || currentUser.uid)) { Swal.fire({ icon: 'info', title: 'لا يمكن تعديل هذه الفاتورة', text: 'هذه الفاتورة أصدرها مستخدم آخر. يعدّلها صاحبها أو المدير.', confirmButtonColor: '#0f1c38' }); return; }
     readInvoiceFields();
     if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'لا يمكن حفظ فاتورة بلا مواد. استعمل «إلغاء الفاتورة» بدلاً من ذلك.', confirmButtonColor: '#0f1c38' }); return; }
     if (billHasExpired()) return;
@@ -561,7 +561,7 @@ async function invAdoptFresh(b, fr) {   // يحدّث النسخة المحلي�
 // صلاحية البائع على فاتورة: يلزم تفعيلها من المدير وأن تكون فاتورته هو
 function invCanOwn(b, perm) {
     if (userRole === 'owner') return true;
-    return can(perm) && !!b && !!b.byUid && typeof currentUser !== 'undefined' && !!currentUser && b.byUid === currentUser.uid;
+    return can(perm) && !!b && !!b.byUid && typeof currentUser !== 'undefined' && !!currentUser && b.byUid === ((window.__actAs && window.__actAs.uid) || currentUser.uid);
 }
 async function cancelInvoice(target) {
     const b = target || bill;
@@ -636,7 +636,7 @@ function invTotalOf(b) {
 }
 async function saveInvoiceRecord(b) {
     const rec = JSON.parse(JSON.stringify({ ...b, total: invTotalOf(b) }));
-    if (!rec.byUid && typeof currentUser !== 'undefined' && currentUser) { rec.byUid = currentUser.uid; rec.by = (typeof userName !== 'undefined' && userName) || (userRole === 'owner' ? 'المدير' : ''); }
+    if (!rec.byUid && typeof currentUser !== 'undefined' && currentUser) { rec.byUid = (window.__actAs && window.__actAs.uid) || currentUser.uid; rec.by = (typeof userName !== 'undefined' && userName) || (userRole === 'owner' ? 'المدير' : ''); }
     let list = [];
     try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
     list = list.filter(x => x.id !== rec.id); list.unshift(rec);

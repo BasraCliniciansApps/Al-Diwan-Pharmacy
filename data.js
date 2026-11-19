@@ -4377,7 +4377,7 @@ const LS_AUTOBK = 'diwanLastAutoBackup';
 
 function lsJson(k, d) { try { const v = JSON.parse(localStorage.getItem(k)); return v === null || v === undefined ? d : v; } catch (e) { return d; } }
 function lsPut(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ممتلئ أو ممنوع */ } }
-function actorName() { return (currentUser && currentUser.email) || 'غير معروف'; }
+function actorName() { const a = (currentUser && currentUser.email) || 'غير معروف'; return window.__actAs ? a + ' (بحساب ' + window.__actAs.name + ')' : a; }
 function cloudReady() { return !!(isFirebaseReady && db && currentUser); }
 function fmtDateTime(iso) {
     const d = new Date(iso);

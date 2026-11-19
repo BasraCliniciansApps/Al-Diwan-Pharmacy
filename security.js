@@ -197,7 +197,7 @@ function usForm_(u) {
         <div class="us-presets"><button type="button" class="icon-btn" data-preset="seller">بائع</button><button type="button" class="icon-btn" data-preset="manager">مدير مخزن</button></div>
         ${usPermRows(u ? u.perms : PERM_PRESETS.seller)}
         <div class="us-actions"><button type="button" class="icon-btn primary-btn" onclick="userSave()">${isNew ? 'إنشاء المستخدم' : 'حفظ'}</button>
-        ${isNew ? '' : `<button type="button" class="icon-btn" onclick="userPreview('${u.uid}')"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg> معاينة صفحة هذا المستخدم</button><button type="button" class="icon-btn us-del" onclick="userDelete('${u.uid}')">حذف المستخدم</button>`}</div>`;
+        ${isNew ? '' : `<button type="button" class="icon-btn" onclick="userPreview('${u.uid}')"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.06 12.35a1 1 0 0 1 0-.7 10.75 10.75 0 0 1 19.88 0 1 1 0 0 1 0 .7 10.75 10.75 0 0 1-19.88 0"/><circle cx="12" cy="12" r="3"/></svg> معاينة صفحة هذا المستخدم</button><button type="button" class="icon-btn" onclick="userEnter('${u.uid}')">🔑 دخول للحساب</button><button type="button" class="icon-btn us-del" onclick="userDelete('${u.uid}')">حذف المستخدم</button>`}</div>`;
     usForm = { uid: u ? u.uid : null, dirty: false };
     if (typeof shScreen === 'function' && shScreen('userFormScr', isNew ? 'مستخدم جديد' : escapeHtml(u.name), html)) {
         const bk = document.querySelector('#userFormScr .sh-back'); if (bk) { bk.removeAttribute('onclick'); bk.onclick = usBack; }
@@ -283,22 +283,28 @@ function pvBlock(on) {
         }));
     } catch (e) { /* تجاهل */ }
 }
-function userPreview(uid) {
+// دخول المدير لحساب مستخدم: نفس المعاينة لكن العمليات فعلية (حفظ وبيع وتعديل) وتُنسب لهذا المستخدم، مع بقاء جلسة المدير الحقيقية (بلا رمز سري)
+async function userEnter(uid) {
     const u = usersCache.find(x => x.uid === uid); if (!u || pvSaved) return;
-    pvSaved = { role: userRole, perms: userPerms, name: userName, sh: window.__shSnap ? window.__shSnap() : null, edit: uid };
+    const r = await Swal.fire({ icon: 'question', title: 'الدخول إلى حساب «' + escapeHtml(u.name || '') + '»؟', html: 'ستعمل بصلاحيات هذا المستخدم وبصفحاته، وكل عملية تُنفَّذ ستُحفظ فعلياً وتُنسب إليه.<br><small>للعرض فقط دون تنفيذ استعمل «معاينة».</small>', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'دخول', cancelButtonText: 'إلغاء' });
+    if (r.isConfirmed) userPreview(uid, true);
+}
+function userPreview(uid, act) {
+    const u = usersCache.find(x => x.uid === uid); if (!u || pvSaved) return;
+    pvSaved = { role: userRole, perms: userPerms, name: userName, ord: window.userOrd, act: !!act, sh: window.__shSnap ? window.__shSnap() : null, edit: uid };
     if (window.__shRetClear) window.__shRetClear();   // لا نعيد الإعدادات أثناء المعاينة
     try { ['usersScr', 'userFormScr', 'trashScr', 'cloudScr'].forEach(i => { if (typeof shScreenClose === 'function') shScreenClose(i); }); closeCategoryManager(); } catch (e) { /* تجاهل */ }   // تُغلق الإعدادات كاملة: المعاينة تعرض التطبيق كما يراه المستخدم
     userRole = 'staff'; userPerms = Object.assign({}, u.perms || {}); userName = u.name || '';
-    pvBlock(true); window.__pvOn = true;
+    if (act) { window.__actAs = { uid: u.uid, name: u.name || '' }; window.userOrd = parseInt(u.ord) || 0; } else { pvBlock(true); window.__pvOn = true; }
     const d = document.createElement('div'); d.id = 'pvBar'; d.className = 'pv-bar'; d.dir = 'rtl';
-    d.innerHTML = `<span>👁 معاينة: <b>${escapeHtml(u.name || '')}</b></span><button type="button" onclick="userPreviewExit()">خروج من المعاينة</button>`;
+    d.innerHTML = act ? `<span>🔑 تعمل بحساب: <b>${escapeHtml(u.name || '')}</b></span><button type="button" onclick="userPreviewExit()">خروج من الحساب</button>` : `<span>👁 معاينة: <b>${escapeHtml(u.name || '')}</b></span><button type="button" onclick="userPreviewExit()">خروج من المعاينة</button>`;
     document.body.appendChild(d); document.body.classList.add('pv-on');
     try { applyRoleUI(); } catch (e) { /* تجاهل */ }
     showView('home'); try { renderAll(); } catch (e) { /* تجاهل */ }
 }
 function userPreviewExit() {
     if (!pvSaved) return;
-    const pvSaved0 = pvSaved.sh, pvBack = pvSaved.edit; userRole = pvSaved.role; userPerms = pvSaved.perms; userName = pvSaved.name; pvSaved = null; window.__pvOn = false;
+    const pvSaved0 = pvSaved.sh, pvBack = pvSaved.edit; userRole = pvSaved.role; userPerms = pvSaved.perms; userName = pvSaved.name; window.userOrd = pvSaved.ord; pvSaved = null; window.__pvOn = false; window.__actAs = null;
     pvBlock(false);
     const d = document.getElementById('pvBar'); if (d) d.remove(); document.body.classList.remove('pv-on');
     try { applyRoleUI(); } catch (e) { /* تجاهل */ }
