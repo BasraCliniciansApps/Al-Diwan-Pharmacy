@@ -357,7 +357,7 @@ function dhRenderFnm(el) {
     const plan = dhFnmPlan(), on = plan.filter(r => !dhFnmOff.has(r.p.id)).length;
     const row = r => `<div class="dh-row"><div class="dh-sub" dir="ltr"><span style="text-decoration:line-through;opacity:.65">${dhEsc(r.old)}</span></div>
         <div class="dh-sub" dir="ltr"><b>${dhEsc(r.nn)}</b> <span style="opacity:.7">| ${dhEsc(r.f)}</span></div>
-        <div class="qk-row"><div><small>تنظيف هذه المادة</small></div><label class="setup-sw"><input type="checkbox" ${dhFnmOff.has(r.p.id) ? '' : 'checked'} onchange="dhFnmPick(${r.p.id},this.checked)"><i></i></label></div></div>`;
+        <div class="qk-row"><div><small>تنظيف هذه المادة</small></div><label class="nd-chk"><input type="checkbox" ${dhFnmOff.has(r.p.id) ? '' : 'checked'} onchange="dhFnmPick(${r.p.id},this.checked)"><i></i></label></div></div>`;
     el.innerHTML = `${dhHead('✂️ إزالة الشكل الدوائي من الاسم', true)}
     <div class="tr-prog">تُزال كلمة الشكل الدوائي (مثل Tablet أو Syrup) من الاسم التجاري فقط إذا كان الشكل نفسه مختاراً في حقل «الشكل الدوائي»، ويبقى الشكل في حقله. راجع القائمة وعطّل ما لا تريد تغييره، ثم اضغط حفظ.</div>
     <div class="tr-list">${plan.length ? plan.slice(0, 400).map(row).join('') + (plan.length > 400 ? `<div class="dh-sub" style="padding:8px 4px">تُعرض أول 400 للمراجعة، والتطبيق يشمل كل ${fmtNum(plan.length)} مادة.</div>` : '') + (plan.length > 300 ? `<div class="dh-sub" style="padding:8px 4px">يظهر أول 300 فقط من ${fmtNum(plan.length)}. بعد حفظ هذه الدفعة تظهر البقية.</div>` : '') : '<div class="dh-sub" style="padding:16px">لا توجد مواد فيها شكل دوائي مكرر في الاسم.</div>'}</div>
@@ -396,7 +396,7 @@ function dhRenderPsz(el) {
     const plan = dhPszPlan(), on = plan.filter(dhPszIs).length;
     const row = r => `<div class="dh-row"><div class="dh-sub" dir="ltr"><b>${dhEsc(r.p.name)}</b> <span style="opacity:.7">| ${dhEsc(r.p.meta)} ÷ ${fmtNum(subCountOf(r.p))}</span></div>
         <div class="dh-sub" dir="ltr">${r.cur ? dhEsc(r.cur) + ' ' : ''}← <b>${dhEsc(r.v)}</b></div>
-        <div class="qk-row"><div><small>تطبيق على هذه المادة</small></div><label class="setup-sw"><input type="checkbox" ${dhPszIs(r) ? 'checked' : ''} onchange="dhPszPick(${r.p.id},this.checked)"><i></i></label></div></div>`;
+        <div class="qk-row"><div><small>تطبيق على هذه المادة</small></div><label class="nd-chk"><input type="checkbox" ${dhPszIs(r) ? 'checked' : ''} onchange="dhPszPick(${r.p.id},this.checked)"><i></i></label></div></div>`;
     el.innerHTML = `${dhHead('🧩 حجم الجزء التلقائي', true)}
     <div class="tr-prog">يُحسب حجم الجزء من عدد حبات العبوة مقسوماً على عدد الأجزاء، للمواد المقسومة بالتساوي. تُستبدل القيم القديمة (مثل Strip وVial) بالحجم المحسوب، والكل مفعّل افتراضياً ويمكنك تعطيل ما لا تريد. المواد التي لا تنقسم عبوتها بالتساوي أو عبوتها نصية تبقى كما هي. ثم اضغط حفظ.</div>
     <div class="tr-list">${plan.length ? plan.slice(0, 400).map(row).join('') + (plan.length > 400 ? `<div class="dh-sub" style="padding:8px 4px">تُعرض أول 400 للمراجعة، والتطبيق يشمل كل ${fmtNum(plan.length)} مادة.</div>` : '') : '<div class="dh-sub" style="padding:16px">لا توجد مواد تحتاج حجم جزء.</div>'}</div>

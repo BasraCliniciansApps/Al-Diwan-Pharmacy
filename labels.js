@@ -262,8 +262,8 @@ function lblIntRender() {
         <div class="lbl-sum">مواد لها باركود مولَّد داخلياً: <b>${all.length}</b>${all.length > list.length ? ' · المعروض ' + list.length : ''}</div>
         <small class="lbl-gen-n">الباركود الداخلي رقم من 13 خانة يبدأ بـ 2 وقد ولّده التطبيق. الباركود الخارجي (الأصلي) لا يُمسّ.</small>
         <input id="lbIq" type="search" placeholder="ابحث بالاسم أو الرقم..." autocomplete="off" value="${escapeHtml(lblIntQ)}">
-        <div class="lbl-row"><span>تحديد كل المعروض</span><label class="setup-sw"><input type="checkbox" id="lbIall" ${allOn ? 'checked' : ''}><i></i></label></div>
-        <div class="lbl-ilist">${list.map(x => `<div class="lbl-irow"><div class="lbl-iin"><span dir="auto">${escapeHtml(x.p.name)}</span><small dir="ltr">${x.codes.join(' · ')}${x.others ? ' (+' + x.others + ' باركود آخر محفوظ)' : ''}</small></div><label class="setup-sw"><input type="checkbox" data-i="${x.p.id}" ${lblIntSel.has(x.p.id) ? 'checked' : ''}><i></i></label></div>`).join('') || '<div class="lbl-info">لا توجد باركودات داخلية.</div>'}</div>
+        <div class="lbl-row"><span>تحديد كل المعروض</span><label class="nd-chk"><input type="checkbox" id="lbIall" ${allOn ? 'checked' : ''}><i></i></label></div>
+        <div class="lbl-ilist">${list.map(x => `<div class="lbl-irow"><div class="lbl-iin"><span dir="auto">${escapeHtml(x.p.name)}</span><small dir="ltr">${x.codes.join(' · ')}${x.others ? ' (+' + x.others + ' باركود آخر محفوظ)' : ''}</small></div><label class="nd-chk"><input type="checkbox" data-i="${x.p.id}" ${lblIntSel.has(x.p.id) ? 'checked' : ''}><i></i></label></div>`).join('') || '<div class="lbl-info">لا توجد باركودات داخلية.</div>'}</div>
         <button type="button" class="lbl-gen lbl-del" id="lbIdel" ${lblIntSel.size ? '' : 'disabled'}>🗑 إلغاء الباركود الداخلي للمحدد<b class="lbl-bdg">${lblIntSel.size}</b></button>
     </div>`;
     const $ = id => document.getElementById(id);
