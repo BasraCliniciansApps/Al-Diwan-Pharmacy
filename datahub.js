@@ -245,12 +245,12 @@ async function dhAiSuggest() {
             let arr = null;
             for (let tr = 0; tr < 2 && !arr; tr++) {   // محاولتان للدفعة؛ إن فشلت تُتخطّى وتكمل الدفعات الباقية
                 try {
-                    const txt = await callAiEngine(eng, { prompt, json: false });
+                    const txt = await Promise.race([callAiEngine(eng, { prompt, json: false }), new Promise((_, rj) => setTimeout(() => rj(new Error('انتهت مهلة محرك الذكاء الاصطناعي (30 ثانية) — الاتصال ضعيف أو المحرك مشغول')), 30000))]);
                     const m = String(txt).match(/\[[\s\S]*\]/); if (!m) throw new Error('رد غير مفهوم من النموذج');
                     arr = JSON.parse(m[0]);
                 } catch (e1) { lastErr = e1; if (tr === 0) await new Promise(r => setTimeout(r, 1500)); }
             }
-            if (!arr) { failed++; done += todo.length; h.tick(done, total, fmtNum(done) + ' من ' + fmtNum(total)); continue; }   // لا نعلّمها «مجرَّبة» لتُعاد لاحقاً
+            if (!arr) { failed++; if (failed >= 2) break; done += todo.length; h.tick(done, total, fmtNum(done) + ' من ' + fmtNum(total)); continue; }   // لا نعلّمها «مجرَّبة» لتُعاد لاحقاً
         arr.forEach(o => { const p = todo[(parseInt(o.i) || 0) - 1], a = String(o.a || '').trim(); if (p && a && String(o.c || '').toLowerCase() === 'high') { if (!dhDbKnown(a)) { rej++; return; } const e = dhEdits.get(p.id) || {};
             let s = String(o.s || '').replace(/\s+/g, ' ').trim();   // التركيز يُقبل فقط إن كانت كل أرقامه مكتوبة فعلاً في نص المنتج
             if (s) { const src = (p.name + ' ' + (p.meta || '')).replace(/,/g, '.'); const nums = s.replace(/,/g, '.').match(/\d+(?:\.\d+)?/g) || []; if (!nums.length || s.length > 40 || !nums.every(x => new RegExp('(^|[^\\d.])' + x.replace('.', '\\.') + '(?![\\d])').test(src))) s = ''; }
