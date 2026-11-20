@@ -20,4 +20,9 @@ def build(mode):
     return s.replace('__TITLE__', title).replace('__BODYCLASS__', cls).replace('__MODE__', mode)
 open(os.path.join(root, 'index.html'), 'w', encoding='utf-8').write('<!doctype html><html lang="ar"><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=admin.html"><title>صيدلية الديوان</title><script>location.replace("admin.html"+location.search+location.hash)</script>')
 open(os.path.join(root, 'admin.html'), 'w', encoding='utf-8').write(build('admin'))
-print('built admin.html (+ index.html redirect)')
+# نسخة شاشة البيع المستقلة (PWA بأيقونة ونافذة منفصلتين): نفس الصفحة بملف manifest خاص وتفتح مباشرة على البيع
+pos = build('admin').replace('href="manifest-admin.json"', 'href="manifest-pos.json"').replace('لوحة الصيدلي | صيدلية الديوان', 'الديوان - البيع')
+pos = pos.replace('<head>', "<head><script>document.documentElement.classList.add('dw-go');window.__dwGo='pos';</script>", 1)
+pos = pos.replace('</body>', '<script src="poswin.js"></script></body>', 1)
+open(os.path.join(root, 'pos.html'), 'w', encoding='utf-8').write(pos)
+print('built admin.html + pos.html (+ index.html redirect)')

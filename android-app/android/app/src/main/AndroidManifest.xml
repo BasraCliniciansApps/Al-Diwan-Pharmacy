@@ -28,31 +28,38 @@
 
         </activity>
 
-        <!-- أيقونتان إضافيتان على الشاشة تفتحان التطبيق نفسه على شاشة البيع وفاحص المادة -->
-        <activity-alias
+        <!-- أيقونتا البيع والفاحص: كل واحدة نشاط (Activity) مستقل بمهمة (Task) خاصة، فتفتح بنافذة منفصلة ولا تبدّل شاشة التطبيق الرئيسي.
+             أسماء الصنفين PosAlias وScanAlias محفوظة كي تبقى الأيقونات المثبتة سابقاً تعمل. -->
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
             android:name=".PosAlias"
-            android:targetActivity=".MainActivity"
             android:label="@string/app_name_pos"
             android:icon="@mipmap/ic_pos"
             android:roundIcon="@mipmap/ic_pos_round"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:taskAffinity="iq.aldiwan.pharmacy.pos"
+            android:launchMode="singleTask"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity-alias>
-        <activity-alias
+        </activity>
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
             android:name=".ScanAlias"
-            android:targetActivity=".MainActivity"
             android:label="@string/app_name_scan"
             android:icon="@mipmap/ic_scan"
             android:roundIcon="@mipmap/ic_scan_round"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:taskAffinity="iq.aldiwan.pharmacy.scan"
+            android:launchMode="singleTask"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity-alias>
+        </activity>
 
         <provider
             android:name="androidx.core.content.FileProvider"

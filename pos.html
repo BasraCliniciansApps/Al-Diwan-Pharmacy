@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head><script>document.documentElement.classList.add('dw-go');window.__dwGo='pos';</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>الديوان - البيع</title>
+    
+    <!-- إعدادات تثبيت التطبيق على الآيفون والأندرويد (PWA) -->
+    <link rel="manifest" href="manifest-pos.json">
+    <meta name="color-scheme" content="light dark">
+<style>:root{color-scheme:light}</style>
+<meta name="theme-color" content="#0f1c38">
+<script>try{var __m=/[?&]go=(pos|scan)\b/.exec(location.search);if(__m){document.documentElement.classList.add('dw-go');window.__dwGo=__m[1];history.replaceState(null,'',location.pathname+location.hash);}}catch(e){}</script>
+<style>html.dw-go #homeView{visibility:hidden}</style>
+    <script>document.documentElement.setAttribute("data-theme","light");</script>
+    <link rel="icon" type="image/jpeg" href="icon.jpg">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <meta name="application-name" content="صيدلية الديوان">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="صيدلية الديوان">
+
+    <!-- خطوط عربية فخمة: خط عارف رقعة للاسم + خط تجوال للنصوص -->
+    <link rel="preload" href="fonts/aref-ruqaa-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="fonts/tajawal-arabic-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="fonts/tajawal-arabic-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="fonts/tajawal-arabic-800-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="fonts/tajawal-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="style.css">
+    <!-- مكتبة النوافذ المنبثقة الأنيقة (SweetAlert2) -->
+<script src="vendor/sweetalert2.all.min.js"></script>
+    <!-- مكتبات Firebase الرسمية -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="admin-page" data-view="splash">
+
+<div id="splashView" class="splash-view"><img src="icon.jpg" alt=""><div class="splash-t">صيدلية الديوان</div></div>
+
+<div id="stockView">
+    <header class="top-bar">
+        <div class="top-bar-inner">
+            
+            
+            <div class="brand-bar stk-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button class="small-icon-btn" onclick="showView('home')" title="الرئيسية" aria-label="الرئيسية">🏠</button><button class="small-icon-btn bell-btn" onclick="goAlerts('all')" title="التنبيهات" aria-label="التنبيهات">🔔<i id="stockAlertCount" class="bell-badge"></i><i class="bell-badge doc-badge" title="طلبات الأطباء"></i><i class="bell-badge rx-badge" title="وصفات جديدة"></i></button><button class="small-icon-btn" onclick="openFormModal()" title="إضافة صنف" aria-label="إضافة صنف" id="addBtn">➕</button></div></div>
+            <div class="stk-title-row"><span class="stk-pg">🏭 المخزن</span></div>
+            <button type="button" id="authBtn" hidden></button>
+            
+
+            <!-- شريط الأقسام أُزيل: تصفية الأقسام صارت داخل زر الفلتر بجانب البحث -->
+            <!-- شريط البحث -->
+            <div class="search-row">
+                <div class="search-input-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="search" id="searchInput" name="drug_search_query" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" placeholder="ابحث بالاسم التجاري، المادة الفعالة، أو الاستخدام..." oninput="handleSearch()">
+                    <button class="clear-search" id="clearSearchBtn" onclick="clearSearch()">✕</button>
+                    <button type="button" class="bc-search-btn" onclick="scanBarcodeToSearch()" title="مسح باركود" aria-label="مسح باركود">▦</button>
+                </div>
+                <button type="button" class="filter-btn sort-open-btn" id="sortBtn" onclick="openSortSheet()" aria-label="ترتيب المواد" title="ترتيب المواد">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M3.5 16.5 7 20l3.5-3.5M17 20V4M13.5 7.5 17 4l3.5 3.5"/></svg>
+                    <span class="fb-t">ترتيب</span>
+                </button>
+                <button type="button" class="filter-btn" onclick="openFilterSheet()" aria-label="تصفية">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M7 12h10M10 18h4"/></svg>
+                    <span class="fb-t">تصفية</span><b id="filterBtnCount" style="display:none;">0</b>
+                </button>
+                </div>
+
+            <!-- الفلاتر المفعّلة (تظهر فقط عند وجود فلتر) -->
+            <div class="active-filters" id="activeFilters" style="display:none;"></div>
+        </div>
+    </header>
+
+    <div class="info-strip">
+        <span id="sectionLabel">قسم الجلدية - جميع الأصناف</span>
+        <span id="countLabel">0 صنف</span>
+    </div>
+
+    <!-- شبكة المنتجات -->
+    <main class="content-area">
+        <div id="itemsContainer" class="grid-layout"></div>
+    </main>
+
+    <!-- نافذة التفاصيل السفلية (Bottom Sheet) -->
+    <div class="sheet-backdrop" id="sheetBackdrop" onclick="closeSheet()"></div>
+    <div class="bottom-sheet" id="bottomSheet">
+        <div class="sheet-handle"></div>
+        <div id="sheetContent"></div>
+    </div>
+
+    <!-- نافذة التصفية الموحدة -->
+    <div class="sheet-backdrop" id="filterBackdrop" onclick="closeFilterSheet()"></div>
+    <div class="bottom-sheet filter-sheet" id="filterSheet" role="dialog" aria-label="تصفية الأصناف">
+        <div class="sheet-handle"></div>
+        <div id="filterContent"></div>
+    </div>
+
+</div><!-- /stockView -->
+
+    <!-- نافذة تسجيل دخول الصيدلي (Firebase Auth) -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal-card" style="max-width: 380px;">
+            <h3 style="margin-bottom:8px; color:var(--primary-dark);">🔐 تسجيل دخول الصيدلي</h3>
+            <p style="font-size:0.82rem; color:var(--text-sub); margin-bottom:16px;">بيانات الدخول مشفرة عبر Firebase وتُحفظ تلقائياً على جهازك.</p>
+            <div class="form-group">
+                <label>البريد الإلكتروني:</label>
+                <input type="email" id="loginEmail" dir="ltr" placeholder="admin@diwan.com">
+            </div>
+            <div class="form-group">
+                <label>كلمة المرور:</label>
+                <input type="password" id="loginPass" dir="ltr" placeholder="••••••••">
+            </div>
+            <div id="loginError" style="color:var(--danger); font-size:0.8rem; margin-bottom:10px; display:none;"></div>
+            <div class="modal-actions-row">
+                <button class="icon-btn" onclick="closeLoginModal()">إلغاء</button>
+                <button class="icon-btn primary-btn" id="loginSubmitBtn" onclick="performLogin()">تسجيل الدخول</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إدارة وتعديل الأقسام والتصنيفات -->
+    <div class="modal-overlay" id="catModal">
+        <div class="modal-card">
+            <h3 style="margin-bottom:14px; color:var(--primary-dark);">🗂️ إدارة الأقسام والتصنيفات</h3>
+            
+            <!-- ===== صناديق الإعدادات: كل صندوق له معرّف ثابت data-k، والصفحات تُعرَّف في settings.js بهذه المعرّفات ===== -->
+            <div class="cat-manager-box" data-k="invoice" id="invSetBox">
+                <h4>🧾 بيانات الفاتورة</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> ما يظهر على الفاتورة المطبوعة وشاشة البيع.</p>
+                <div class="bill-settings" data-inv-set="1"></div>
+                <div id="devPrintRows"></div>
+            </div>
+
+            <div class="cat-manager-box" data-k="alerts">
+                <h4>حدود التنبيه</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> متى يُنبَّه إلى قلة الكمية وقرب انتهاء الصلاحية. تُحفظ التغييرات تلقائياً.</p>
+                <div class="form-group">
+                    <label>حد الكمية القليلة</label>
+                    <small class="set-hint">يُنبَّه إلى الصنف عندما تصل كميته إلى هذا الرقم أو أقل.</small>
+                    <input type="number" id="lowThresholdInput" min="0">
+                </div>
+                <div class="form-group">
+                    <label>مدد تنبيه الصلاحية (بالأشهر)</label>
+                    <small class="set-hint">ثلاث مراحل مرتبة من الأقصر إلى الأطول، مثال: 1 ثم 3 ثم 6.</small>
+                    <div class="add-inline-row"><input type="number" id="alertM1" min="1"><input type="number" id="alertM2" min="1"><input type="number" id="alertM3" min="1"></div>
+                </div>
+                <div class="form-group">
+                    <label>مدة قراءة تواريخ النفاذ من الوارد (بالأشهر)</label>
+                    <small class="set-hint"><i class="set-scope">هذا الجهاز</i> عمر فواتير الوارد التي تؤخذ منها تواريخ الانتهاء.</small>
+                    <input type="number" id="puWindowInput" min="1" max="60" placeholder="12">
+                </div>
+            </div>
+
+            <div class="cat-manager-box" data-k="pricing" id="pricingBox">
+                <h4>التسعير حسب كتاب النقابة</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> كيف يُحسب سعر البيع من سعر المذخر بالدولار. تُحفظ التغييرات تلقائياً، ولا تتغير أسعار المواد حتى تضغط «تطبيق الأسعار على المواد».</p>
+                <div class="set-sec">سعر الصرف والتقريب</div>
+                <div class="form-group"><label>سعر الصرف (دينار لكل 1 دولار)</label><input type="number" id="pcRate" min="1" inputmode="decimal"></div>
+                <div class="form-group"><label>تقريب السعر لأقرب (دينار)</label><small class="set-hint">اكتب 0 لإلغاء التقريب.</small><input type="number" id="pcRound" min="0" inputmode="numeric"></div>
+                <div class="set-sec">شرائح الإضافة</div>
+                <div class="form-group"><label>الشرائح (سعر المذخر بالدولار ← نسبة الإضافة)</label><div id="pcRows"></div></div>
+                <div class="form-group"><label>إذا ساوى السعر حد الشريحة بالضبط</label><small class="set-hint">مثال: سعر 5$ يقع بين شريحتين.</small><select id="pcBoundary"><option value="upper">يدخل الشريحة الأعلى (مثلاً 5$ بنسبة 30%)</option><option value="lower">يدخل الشريحة الأدنى (مثلاً 5$ بنسبة 40%)</option></select></div>
+                <div class="set-sec">مرجع كتاب النقابة</div>
+                <div class="form-group"><label>رقم الكتاب النقابي</label><small class="set-hint">للتوثيق فقط.</small><input type="text" id="pcBookNo" dir="ltr"></div>
+                <div class="form-group"><label>تاريخ الكتاب</label><input type="date" id="pcBookDate"></div>
+                <div class="set-sec">التطبيق على المواد</div>
+                <small class="set-hint">يعيد حساب أسعار كل المواد المسعّرة «حسب كتاب النقابة» دفعة واحدة بعد تأكيدك، والمواد اليدوية لا تتأثر.</small>
+                <button type="button" class="icon-btn primary-btn" onclick="savePricingSettings()">تطبيق الأسعار على المواد</button>
+            </div>
+
+            <div class="cat-manager-box" data-k="depts">
+                <h4>الأقسام الرئيسية</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> الأقسام الكبرى التي تجمع التصنيفات، مثل قسم الجلدية.</p>
+                <div id="deptListManager" class="manager-list"></div>
+                <div class="add-inline-row">
+                    <input type="text" id="newDeptInput" placeholder="اسم قسم رئيسي جديد...">
+                    <button class="icon-btn primary-btn" onclick="addDepartment()">+ إضافة</button>
+                </div>
+            </div>
+
+            <div class="cat-manager-box" data-k="cats">
+                <h4>التصنيفات الفرعية</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> تفصّل كل قسم إلى تصنيفات تُسند إليها المواد. يمكن تعديل الاسم أو النقل أو الحذف.</p>
+                <div id="subCatListManager" class="manager-list"></div>
+                <div class="add-inline-row" style="flex-wrap:wrap;">
+                    <select id="newSubCatDept" aria-label="القسم الرئيسي للتصنيف" style="flex:1 1 100%;"></select>
+                    <input type="text" id="newSubCatInput" placeholder="اسم تصنيف فرعي جديد...">
+                    <button class="icon-btn primary-btn" onclick="addSubCategory()">+ إضافة</button>
+                </div>
+            </div>
+
+            <div class="cat-manager-box" data-k="forms">
+                <h4>الأشكال الدوائية</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> أقراص وشراب وحقن وغيرها، وتُستعمل في الفلاتر وإدخال المواد.</p>
+                <input type="search" class="bill-list-search" placeholder="🔍 ابحث عن شكل..." oninput="fmSearch(this.value)" style="margin-bottom:8px;">
+                <div id="formListManager" class="manager-list" style="max-height:320px;"></div>
+                <div class="add-inline-row" style="flex-wrap:wrap;">
+                    <select id="newFormGroup" aria-label="مجموعة الشكل" style="flex:1 1 100%;"></select>
+                    <input type="text" id="newFormInput" placeholder="اسم شكل دوائي جديد..." dir="ltr">
+                    <button class="icon-btn primary-btn" onclick="fmAdd()">+ إضافة</button>
+                </div>
+                <button type="button" class="icon-btn" onclick="fmAddGroup()" style="margin-top:8px;width:100%">＋ إضافة مجموعة أشكال</button>
+            </div>
+
+            <div class="cat-manager-box" data-k="parts">
+                <h4>أنواع الجزء</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> أسماء الأجزاء التي تُباع بها العبوة بالتجزئة (شريط، حبة، مل…). تعديل الاسم يشمل كل المواد.</p>
+                <div id="partListManager" class="manager-list" style="max-height:260px;"></div>
+                <div class="add-inline-row">
+                    <input type="text" id="newPartInput" placeholder="اسم حجم جزء جديد..." dir="ltr" onkeydown="if(event.key==='Enter'){event.preventDefault();addSubTypeInline();}">
+                    <button class="icon-btn primary-btn" onclick="addSubTypeInline()">+ إضافة</button>
+                </div>
+            </div>
+
+            <div class="cat-manager-box" data-k="seed" id="taxSeedBox"></div>
+
+            <div class="cat-manager-box" data-k="ai" id="aiSettingsBox">
+                <h4>الذكاء الصناعي لمسح العبوة</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> محرك قراءة العبوة والبحث بالاسم. المفتاح لا يُرفع للسحابة ولا يدخل النسخة الاحتياطية. تُحفظ التغييرات تلقائياً.</p>
+                <div class="form-group">
+                    <label>محرك القراءة:</label>
+                    <select id="aiEngineSelect" onchange="setAiEngine(this.value)">
+                        <option value="auto">تلقائي ذكي — مجاني (الصور: Gemini ثم Tesseract · النص: Groq ثم Gemini)</option>
+                        <option value="gemini">Gemini — مجاني (صور + نص)</option>
+                        <option value="openai">Groq / OpenRouter — مجاني (نص فقط - سريع جداً)</option>
+                        <option value="local">Tesseract — مجاني بدون إنترنت (قراءة عادية)</option>
+                    </select>
+                </div>
+
+                <div id="aiGeminiBox" style="display:none;">
+                    <div class="form-group">
+                        <label>مفتاح Gemini API (من aistudio.google.com):</label>
+                        <div class="add-inline-row">
+                            <input type="password" id="aiGeminiKey" dir="ltr" autocomplete="off" spellcheck="false" placeholder="الصق المفتاح هنا">
+                            <button type="button" class="icon-btn" onclick="toggleAiKeyVisible()" title="إظهار / إخفاء">👁</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>النموذج:</label>
+                        <div class="add-inline-row">
+                            <input type="text" id="aiGeminiModel" dir="ltr" list="aiModelList" placeholder="gemini-3.8-flash">
+                            <button type="button" class="icon-btn" onclick="loadGeminiModels()">جلب القائمة</button>
+                        </div>
+                        <select id="aiModelPick" style="display:none;margin-top:8px;width:100%;" dir="ltr" onchange="if(this.value){document.getElementById('aiGeminiModel').value=this.value;}">
+                        </select>
+                        <small style="display:block;margin-top:6px;color:#64748b;line-height:1.7;">مجاني (باقة AI Studio، بدون بطاقة) — نماذج Flash فقط. الموصى به: <b dir="ltr">gemini-3.8-flash</b>. عند فشله يجرّب التطبيق تلقائياً <b dir="ltr">gemini-3.5-flash-lite</b> ثم <b dir="ltr">gemini-3.1-flash-lite</b>.</small>
+                    </div>
+                </div>
+
+                <div id="aiOpenAiBox" style="display:none;">
+                    <div class="form-group">
+                        <label>المزوّد:</label>
+                        <select id="aiOaiProv" onchange="onOaiProviderChange()">
+                            <option value="groq">Groq — مجاني بدون بطاقة (console.groq.com)</option>
+                            <option value="openrouter">OpenRouter — النماذج :free فقط (openrouter.ai)</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>المفتاح:</label><input type="password" id="aiOaiKey" dir="ltr" autocomplete="off" spellcheck="false" placeholder="الصق المفتاح هنا"></div>
+                    <div class="form-group">
+                        <label>النموذج:</label>
+                        <div class="add-inline-row"><input type="text" id="aiOaiModel" dir="ltr" placeholder="اضغط جلب القائمة"><button type="button" class="icon-btn" onclick="loadOaiModels()">جلب القائمة</button></div>
+                        <select id="aiOaiPick" style="display:none;margin-top:8px;width:100%;" dir="ltr" onchange="if(this.value){document.getElementById('aiOaiModel').value=this.value;}"></select>
+                        <small style="display:block;margin-top:6px;color:#64748b;line-height:1.7;">مجاني 100% — للنص فقط (اسم الدواء ← الحقول، واقتراح المادة الفعالة). إن تركت النموذج فارغاً مع Groq يُستعمل llama-3.3-70b-versatile. مع OpenRouter يُقبل فقط ما ينتهي بـ :free. راجع الحقول قبل الحفظ.</small>
+                    </div>
+                </div>
+
+                <div class="tools-grid">
+                    <button type="button" class="icon-btn" onclick="testAiConnection()" style="grid-column:1/-1;">🧪 اختبار الاتصال</button>
+                </div>
+                <p id="aiTestResult" class="ai-test-result"></p>
+                <p class="ai-note">الإعدادات والمفتاح يُحفظان على هذا الجهاز فقط، ولا يُرفعان للسحابة ولا يدخلان النسخة الاحتياطية. عند استعمال الذكاء الصناعي تُرسل صورة العبوة إلى جوجل (والطبقة المجانية قد تُستخدم لتحسين منتجاتها)، فلا تصوّر أي شيء يخص الزبائن. الذكاء الصناعي قد يخطئ، فراجع الاسم والتركيز والمادة الفعالة قبل الحفظ.</p>
+            </div>
+
+            <div class="cat-manager-box" data-k="docs" id="docSetBox">
+                <h4>إعدادات صفحة الأطباء</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> ما يراه الطبيب في صفحته وكيف تُحدَّث حالة المواد.</p>
+                <div class="doc-set-host" data-doc-set="1"><div class="dh-note">جارٍ التحميل…</div></div>
+            </div>
+
+            <div class="cat-manager-box" data-k="install">
+                <h4>تثبيت التطبيق</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> يضيف التطبيق إلى شاشة الجهاز ليعمل بملء الشاشة وبدون شريط المتصفح.</p>
+                <button type="button" class="set-nav" onclick="installApp()"><div><b>تثبيت التطبيق على الجهاز</b><small>إضافة التطبيق إلى الشاشة الرئيسية.</small></div><i>‹</i></button>
+            </div>
+
+            <div class="cat-manager-box" data-k="device">
+                <h4>القفل والتذكيرات</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> خيارات تخص هذا الجهاز وحده ولا تنتقل إلى غيره.</p>
+                <div id="devNativeRows"></div>
+            </div>
+
+            <div class="cat-manager-box" data-k="desk">
+                <h4>برنامج الحاسوب (الحاسبة)</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> خيارات برنامج الحاسوب: النسخة الاحتياطية التلقائية على القرص ووضع الاستقبال فقط.</p>
+                <div id="dsHost"></div>
+            </div>
+
+            <div class="cat-manager-box" data-k="about" id="aboutBox">
+                <h4>ℹ️ عن التطبيق</h4>
+                <div id="aboutRows"></div>
+            </div>
+            <div class="cat-manager-box" data-k="wa">
+                <h4>المبيعات عبر واتساب</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> طريقة للمستخدم الذي لا يتصل بالسحابة ولا بالحاسوب: يرسل مبيعاته كملف على واتساب ويستورده المدير.</p>
+                <div id="waHost"></div>
+            </div>
+
+            <div class="cat-manager-box" data-k="lan">
+                <h4>المزامنة عبر الحاسوب</h4>
+                <p class="set-desc"><i class="set-scope">هذا الجهاز</i> طريقة بديلة عن السحابة: تُرسل الهواتف عملياتها إلى برنامج الحاسوب على الشبكة المحلية. تعمل إحدى الطريقتين فقط في الوقت نفسه.</p>
+                <div id="lanHost"></div>
+            </div>
+
+            <div class="cat-manager-box" data-k="protect" id="dataProtectBox">
+                <h4>الأمان والخصوصية</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> إخفاء البيانات الحساسة عمّن لا يملك صلاحيتها. كل أداة تُنفَّذ مرة واحدة ثم تبقى مفعّلة.</p>
+                <button type="button" class="set-nav" onclick="migrateStockPrivate()"><div><b>حماية بيانات المخزون</b><small>فصل الكميات عن البيانات العامة.</small></div><i>‹</i></button>
+                <button type="button" class="set-nav" onclick="openCostSplit()"><div><b>فصل سعر الشراء</b><small>إخفاء الكلفة عن البائعين.</small></div><i>‹</i></button>
+            </div>
+
+            <div class="cat-manager-box" data-k="backup">
+                <h4>النسخ الاحتياطي والتصدير</h4>
+                <p class="set-desc"><i class="set-scope all">كل الأجهزة</i> النسخة الكاملة تحفظ الأصناف والمخزون والوارد والمذاخر والفواتير وكل السجلات والإعدادات.</p>
+                <button type="button" class="set-nav set-act" onclick="exportFullBackup()"><div><b>نسخة احتياطية كاملة</b><small>كل البيانات والإعدادات في ملف واحد.</small></div><i class="set-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></i></button>
+                <button type="button" class="set-nav set-act" onclick="exportBackupJson()"><div><b>الأصناف فقط</b><small>ملف JSON بالأصناف دون السجلات.</small></div><i class="set-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></i></button>
+                <button type="button" class="set-nav set-act" onclick="exportCsv()"><div><b>تصدير Excel (CSV)</b><small>جدول الأصناف لفتحه في Excel.</small></div><i class="set-ico"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg></i></button>
+                <div class="qk-row"><div><b>نسختان تلقائيتان بالتناوب</b><small id="abInfo">نسختان بالتناوب، واحدة لكل يوم، وتبقى نسخة الأمس سليمة.</small></div><label class="setup-sw"><input type="checkbox" id="abOn" checked onchange="abToggle(this)"><i></i></label></div>
+                <button type="button" class="set-nav set-act" onclick="abNow()"><div><b>حفظ النسخة التلقائية الآن</b><small>تُحفظ في نسخة اليوم وتستبدل ما قبلها.</small></div><i class="set-ico">💾</i></button>
+                <button type="button" class="set-nav set-act" onclick="abRestore()"><div><b>استرجاع نسخة تلقائية</b><small>اختيار النسخة A أو B واسترجاعها بعد معاينة.</small></div><i class="set-ico">♻️</i></button>
+                <div class="qk-row"><div><b>صور المواد على الجهاز</b><small id="imgBkInfo">تُحفظ صور المواد على الجهاز وتُرفع بالخلفية، وتُحفظ في ملف خاص مخفي عن معرض الصور مع النسخ الاحتياطية.</small></div></div>
+                <button type="button" class="set-nav set-act" onclick="imgSaveBackup()"><div><b>حفظ ملف الصور الآن</b><small>ملف واحد (JSON) في مجلد النسخ الاحتياطية، ولا يظهر في معرض الصور.</small></div><i class="set-ico">🖼️</i></button>
+                <button type="button" class="set-nav set-act" onclick="document.getElementById('imgRestoreIn').click()"><div><b>استرجاع الصور من ملف</b><small>يعيد الصور إلى الجهاز، وتُرفع المفقودة منها إلى الإنترنت بالخلفية.</small></div><i class="set-ico">♻️</i></button>
+                <input type="file" id="imgRestoreIn" accept=".json,application/json" hidden onchange="imgRestoreFromFile(event)">
+            </div>
+
+            <div class="cat-manager-box" data-k="restore">
+                <h4>الاسترجاع من نسخة احتياطية</h4>
+                <p class="set-desc">الحذف ينقل الصنف إلى سلة المحذوفات 30 يوماً. الاسترجاع من نسخة احتياطية يعرض معاينة قبل التطبيق ولا يستبدل سجلاً أحدث.</p>
+                <label class="icon-btn" for="restoreInput" hidden>استرجاع</label>
+                <input type="file" id="restoreInput" accept=".json,application/json" hidden onchange="restoreBackup(event)">
+            </div>
+
+            <div class="modal-actions-row" style="margin-top:18px;">
+                <button class="icon-btn" onclick="closeCategoryManager()">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة / تعديل منتج -->
+    <div class="modal-overlay" id="formModal">
+        <div class="modal-card">
+            <div class="fm-top"><h3 id="formModalTitle">➕ إضافة / تعديل صنف</h3></div>
+            <input type="hidden" id="editId">
+            <div class="fm-tabs"><button type="button" onclick="fmGoQuick()">سريع</button><button type="button" class="on">مفصل</button></div>
+            <div class="fm-imgrow"><div class="fm-img" onclick="formImgPick()" role="button" aria-label="صورة الصنف"><img id="fImgPrev" alt="" style="display:none"><span id="fImgPh">📷<small>صورة</small></span></div>
+                <input type="file" id="fImgFile" accept="image/*" hidden onchange="uploadImgBase64(event)"><input type="text" id="fImg" dir="ltr" hidden></div>
+            <div class="scan-box">
+                <div class="scan-head">
+                    <span class="scan-title">✨ تعبئة سريعة</span>
+                    <div class="scan-engine">
+                        <select id="scanEngineSelect" class="scan-engine-select" onchange="setAiEngine(this.value)" title="محرك القراءة">
+                            <option value="auto">تلقائي (مجاني)</option>
+                            <option value="gemini">Gemini - مجاني</option>
+                            <option value="openai">Groq - مجاني (نص)</option>
+                            <option value="local">قراءة عادية</option>
+                        </select>
+                        <button type="button" class="scan-gear" onclick="openAiSettingsOverForm()" title="إعدادات الذكاء الصناعي" aria-label="إعدادات الذكاء الصناعي">⚙️</button>
+                    </div>
+                </div>
+                <div class="scan-actions">
+                    <label class="scan-act" for="scanInput"><span class="scan-ico">📷</span><span>كاميرا</span></label>
+                    <label class="scan-act" for="scanGalleryInput"><span class="scan-ico">🖼️</span><span>الاستوديو</span></label>
+                </div>
+                <input type="file" id="scanInput" accept="image/*" capture="environment" hidden onchange="scanProductImage(event)">
+                <input type="file" id="scanGalleryInput" accept="image/*" hidden onchange="scanProductImage(event)">
+                <div class="name-lookup-row">
+                    <input type="text" id="nameLookupInput" dir="ltr" placeholder="أو اكتب اسم المنتج: Differin 0.1%" onkeydown="if(event.key==='Enter'){event.preventDefault();fillFromTypedName();}">
+                    <button type="button" class="scan-go" onclick="fillFromTypedName()">🔎 املأ</button>
+                </div>
+                <div id="scanStatus" class="scan-status"></div>
+                <small class="scan-hint" id="scanHint">صوّر واجهة العبوة بإضاءة جيدة. راجع القيم قبل الحفظ.</small>
+            </div>
+            <div class="form-group">
+                <label>القسم الرئيسي</label>
+                <select id="fDepartment" onchange="onDeptChanged()"></select>
+                <div class="extra-group"><small>يظهر أيضاً في قسم:</small><div id="fExtraDepts" class="xc"></div></div>
+            </div>
+            <div class="form-group">
+                <label>التصنيف الفرعي</label>
+                <select id="fCategory" onchange="refreshExtraChips('cat')"></select>
+                <div class="extra-group"><small>ويظهر أيضاً في تصنيف:</small><div id="fExtraCats" class="xc"></div></div>
+            </div>
+            <div class="form-group"><label>الشركة</label><input type="text" id="fBrand"></div>
+            <div class="form-group"><label>الاسم التجاري والتركيز</label><input type="text" id="fName"></div>
+            <div class="form-group">
+                <label>المادة الفعالة</label>
+                <input type="text" id="fActive" dir="ltr" list="activeList" placeholder="مثال: Tretinoin  — للمركّب: Clindamycin + Benzoyl peroxide">
+            </div>
+            <div class="form-group"><label>المادة الفعالة والاستخدام</label><textarea id="fDetails" rows="3"></textarea></div>
+            <!-- ... الحقول السابقة ... -->
+            <div class="form-group"><label>حجم العبوة</label><input type="text" id="fMeta" dir="ltr" placeholder="30 أو 50 ml"></div>
+            <div class="form-group"><label>الشكل الدوائي</label><select id="fForm" onchange="onFormChange()"></select></div>
+            <div class="form-group" id="fFormOtherWrap" style="display:none"><label>الشكل الدوائي الجديد <small class="fld-hint">يُضاف للقائمة عند الحفظ</small></label><input type="text" id="fFormOther" placeholder="مثال: لبخة، علكة، مسحوق للفم..."><label style="margin-top:10px">قسم هذا الشكل (يمكن تغييره لاحقاً من إدارة الأشكال):</label><select id="fFormOtherGroup"></select></div>
+            <div class="form-group">
+                <label>الباركودات</label>
+                <div class="add-inline-row">
+                    <input type="text" id="fBarcode" dir="ltr" inputmode="numeric" autocomplete="off" placeholder="امسح أو اكتب الرقم" onkeydown="if(event.key==='Enter'){event.preventDefault();addFormBarcode();}">
+                    <button type="button" class="icon-btn" onclick="addFormBarcode()">＋</button>
+                    <button type="button" class="icon-btn" onclick="scanBarcodeToForm()">▦ مسح</button>
+                </div>
+                <div class="add-inline-row" style="margin-top:6px">
+                    <button type="button" class="icon-btn" onclick="lblGenForm()">⚙ توليد باركود داخلي</button>
+                    <button type="button" class="icon-btn" onclick="lblFormPrint()">🏷️ طباعة ملصق</button>
+                </div>
+                <div id="fBarcodeChips" class="bc-chips"></div>
+            </div>
+            <div class="form-group">
+                <label class="fs-hide-lbl">الدفعات وتواريخ النفاذ</label>
+                <div id="expiryDatesWrap"></div>
+                <button type="button" class="icon-btn" onclick="addExpiryRow()" style="margin-top:6px;">+ إضافة دفعة</button>
+            </div>
+            <div class="form-group"><label>طريقة التسعير</label>
+                <select id="fPriceMode" onchange="onPriceModeChange()">
+                    <option value="manual">تسعيرة وزارة الصحة (الملصق)</option>
+                    <option value="free">يدوي</option>
+                    <option value="syndicate">حسب كتاب نقابة الصيادلة (سعر المذخر + نسبة)</option>
+                    <option value="percent">بنسبة مئوية أدخلها أنا (سعر الشراء + %)</option>
+                </select>
+                <div id="fMarkupWrap" style="display:none;margin-top:8px;"><label>نسبة الإضافة على سعر الشراء (%)</label><input type="number" id="fMarkup" min="0" step="any" inputmode="decimal" placeholder="مثال: 25" oninput="onPriceModeChange()"></div>
+                <small id="fPriceHint" style="display:block;margin-top:6px;color:#64748b;line-height:1.7;"></small>
+            </div>
+            <div class="form-group"><label>سعر البيع (د.ع)</label><input type="number" id="fPrice" min="0" value="0" oninput="retailAutoPrice()"></div>
+            <div class="form-group"><label>سعر الشراء <span class="fs-priv">🔒 خاص</span></label><input type="number" id="fCost" min="0" oninput="onPriceModeChange()" placeholder="لحساب الربح"></div>
+            <div class="form-group"><label>العدد المتوفر (علب)</label><input type="number" id="fQty" min="0" value="5"></div>
+            <div class="form-group retail-box">
+                <label>🧩 البيع بالتجزئة (اختياري)</label>
+                <div class="retail-grid">
+                    <div><small>عدد الأجزاء في العبوة</small><input type="number" id="fSubCount" min="0" placeholder="مثال: 10" oninput="retailAutoPrice()"></div>
+                    <div><small>حجم الجزء</small>
+                        <div class="retail-type"><input type="text" id="fSubType" inputmode="numeric" placeholder="يُحسب تلقائياً (مثال: 8)" autocomplete="off"></div>
+                    </div>
+                    <div><small>سعر الجزء (يُحسب تلقائياً)</small><input type="number" id="fSubPrice" min="0" oninput="this.dataset.manual='1'"></div>
+                    <div><small>أجزاء مفتوحة من عبوة</small><input type="number" id="fLoose" min="0" value="0" onchange="formNormLoose()"></div>
+                    <div><small>أولوية البيع</small><select id="fSellPri"><option value="pack">العلبة أولاً</option><option value="part">الجزء أولاً</option><option value="packOnly">العلبة فقط</option><option value="partOnly">الجزء فقط</option></select></div>
+                </div>
+            </div>
+            <div class="form-group"><label>تنبيه عند (علب)</label><input type="number" id="fMinQty" min="0" placeholder="الحد العام"></div>
+            <div class="form-group"><label>كلمات مفتاحية</label><input type="text" id="fKeywords" placeholder="مثال: مسكن، ألم رأس، بديل كذا..."></div>
+            <!-- ... أزرار الإلغاء والحفظ ... -->
+            <div class="modal-actions-row">
+                <button class="icon-btn" onclick="requestCloseForm()">إلغاء</button>
+                <button class="icon-btn primary-btn" onclick="saveFormProduct()">حفظ في السحابة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- تكبير الصورة -->
+    <div class="img-zoom-modal" id="zoomModal" onclick="this.style.display='none'">
+        <img id="zoomImg" src="" alt="">
+        <div class="zoom-bar" id="zoomBar" style="display:none" onclick="event.stopPropagation()"><button type="button" class="zoom-btn" onclick="sheetImgPick(window.__zoomPid)">🔄 تبديل الصورة</button><button type="button" class="zoom-btn danger" onclick="sheetImgDelete(window.__zoomPid)">🗑️ حذف الصورة</button><button type="button" class="zoom-btn ghost" onclick="document.getElementById('zoomModal').style.display='none'">إغلاق</button></div>
+        <input type="file" id="quickImgInput" accept="image/*" hidden>
+    </div>
+
+    <!-- نافذة تنبيهات صلاحية الأدوية (خاصة بالصيدلي فقط) -->
+    <div class="modal-overlay" id="expiryModal">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="mc-hd">
+                <button type="button" class="sh-back" onclick="closeExpiryModal()"><i>›</i> رجوع</button>
+                <h3 style="color:var(--primary-dark);">🔔 التنبيهات</h3>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:12px;">المواد التي تنتهي صلاحيتها خلال 6 أشهر، والأصناف التي وصلت كميتها للحد الأدنى.</p>
+            <div id="expiryListContainer" style="max-height: 60vh; overflow-y: auto; display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+    </div>
+
+    <!-- وضع الجرد -->
+    <div class="modal-overlay" id="inventoryModal">
+        <div class="modal-card inv-card">
+            <div class="inv-head">
+                <button type="button" class="sh-back" onclick="closeInventory()"><i>›</i> رجوع</button>
+                <h3>📋 وضع الجرد</h3>
+            </div>
+            <p class="inv-hint">يعرض أصناف القسم والتبويب المحدَّدين حالياً. اكتب الكمية الفعلية (أو استعمل + و −)، ثم اضغط «تطبيق».</p>
+            <input type="search" id="invSearch" class="inv-search" placeholder="🔍 ابحث داخل الجرد..." oninput="invFilter(this.value)" autocomplete="off">
+            <div id="invList" class="inv-list"></div>
+            <div class="inv-foot">
+                <span id="invCount">لا تغييرات بعد</span>
+                <button type="button" id="invSaveBtn" class="inv-save" onclick="saveInventory()" disabled>تطبيق</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ماسح الباركود -->
+    <div class="modal-overlay" id="barcodeModal" onclick="if(event.target===this)closeBarcodeScanner()">
+        <div class="modal-card bc-card">
+            <div class="inv-head bc-head">
+                <h3>▦ مسح الباركود</h3>
+            </div>
+            <div class="bc-video-wrap"><video id="bcVideo" playsinline muted></video><div class="bc-frame"></div></div>
+            <div id="bcStatus" class="bc-status"></div>
+            <div class="bc-manual" id="bcManualRow">
+                <input type="text" id="bcManual" dir="ltr" inputmode="numeric" placeholder="أو اكتب رقم الباركود" onkeydown="if(event.key==='Enter'){event.preventDefault();submitManualBarcode();}">
+                <button type="button" class="icon-btn" onclick="submitManualBarcode()">بحث</button>
+            </div>
+            <div id="bcSearchBox" style="display:none;"><input type="search" id="bcName" class="bill-list-search" placeholder="بحث يدوي (اكتب اسم المادة)" autocomplete="off" oninput="scModalSearch(this.value)"><div id="bcRes" class="sc-reslist"></div></div>
+            <label class="icon-btn bc-photo" for="bcPhoto">🖼️ قراءة من صورة</label>
+            <input type="file" id="bcPhoto" accept="image/*" capture="environment" hidden onchange="barcodeFromPhoto(event)">
+            <div class="bc-close-row"><button type="button" class="icon-btn" onclick="closeBarcodeScanner()">إغلاق</button></div>
+        </div>
+    </div>
+
+    <!-- شريط تثبيت التطبيق -->
+    <div id="installBanner" class="install-banner" style="display:none;">
+        <span>📲 ثبّت تطبيق صيدلية الديوان على شاشتك</span>
+        <button type="button" onclick="installApp()">تثبيت</button>
+        <button type="button" class="install-x" onclick="dismissInstallBanner()" aria-label="إغلاق">✕</button>
+    </div>
+
+    <datalist id="activeList"></datalist>
+    <datalist id="aiModelList">
+        <option value="gemini-3.8-flash"></option>
+        <option value="gemini-3.6-flash"></option>
+        <option value="gemini-3.5-flash-lite"></option>
+        <option value="gemini-3.1-flash-lite"></option>
+    </datalist>
+
+    <!-- نافذة إكمال المواد الفعالة -->
+    <div class="modal-overlay" id="ingModal">
+        <div class="modal-card" style="max-width: 520px;">
+            <div class="mc-hd">
+                <button type="button" class="sh-back" onclick="closeIngredientModal()"><i>›</i> رجوع</button>
+                <h3 style="color:var(--primary-dark);">🧪 إكمال المواد الفعالة</h3>
+            </div>
+            <p id="ingSummary" style="font-size:0.8rem; color:var(--text-sub); margin-bottom:10px;"></p>
+            <button type="button" class="icon-btn ing-auto-btn" onclick="ingAutoFill()">⚡ تعبئة تلقائية من الأسماء (للمراجعة)</button>
+            <div class="form-group" style="margin-bottom:10px;">
+                <input type="search" id="ingFilter" placeholder="ابحث عن صنف..." oninput="filterIngredientRows()">
+            </div>
+            <div id="ingListContainer" class="ing-list"></div>
+            <div class="modal-actions-row">
+                <button class="icon-btn" onclick="closeIngredientModal()">إلغاء</button>
+                <button class="icon-btn primary-btn" onclick="saveIngredients()">حفظ في السحابة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة سجل البحث الفاشل -->
+    <div class="modal-overlay" id="missModal">
+        <div class="modal-card" style="max-width: 480px;">
+            <div class="mc-hd">
+                <button type="button" class="sh-back" onclick="closeMissModal()"><i>›</i> رجوع</button>
+                <h3 style="color:var(--primary-dark);">🔍 سجل البحث الفاشل</h3>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-sub); margin-bottom:10px;">أسماء بحث عنها الزبائن ولم تُوجد في أي قسم، الأكثر تكراراً أولاً. مفيدة لمعرفة ما تحتاج توفيره.</p>
+            <div id="missListContainer" class="miss-list"></div>
+            <div class="modal-actions-row">
+                <button class="icon-btn" onclick="clearMissList()" style="color:#b91c1c;">🗑️ مسح</button>
+                <button class="icon-btn" onclick="copyMissList()">📋 نسخ</button>
+                <button class="icon-btn primary-btn" onclick="closeMissModal()">إغلاق</button>
+            </div>
+        </div>
+    </div>
+
+
+<div id="loginGate" class="app-view login-gate">
+    <div class="gate-card">
+        <img src="icon.jpg" alt="" class="gate-logo">
+        <h1 class="ruqaa-title gate-title">صيدلية الديوان</h1>
+        <p class="gate-sub">لوحة الصيدلي — سجّل دخولك للمتابعة</p>
+        <label class="gate-field"><span>اسم المستخدم أو البريد</span><input type="text" id="gateEmail" dir="ltr" autocomplete="username" placeholder="admin@diwan.com" onkeydown="if(event.key==='Enter')document.getElementById('gatePass').focus()"></label>
+        <label class="gate-field"><span>كلمة المرور</span><input type="password" id="gatePass" dir="ltr" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')gateLogin()"></label>
+        <div id="gateError" class="gate-error" style="display:none;"></div>
+        <button type="button" class="gate-btn" id="gateBtn" onclick="gateLogin()">تسجيل الدخول</button>
+        
+    </div>
+</div>
+
+<div id="homeView" class="app-view home-view">
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button><button type="button" class="small-icon-btn" onclick="gateLogout()" aria-label="تسجيل الخروج" title="تسجيل الخروج">⏻</button></div></div>
+<div class="page-title">🏠 الرئيسية</div>
+    <div id="bkReminder"></div>
+    <div class="home-kpis" id="homeKpis"></div>
+    <div class="home-grid">
+    <div class="home-tiles">
+        <button type="button" class="home-tile tile-pos" onclick="posOpen()">
+            <svg viewBox="0 0 24 24" width="54" height="54" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><path d="M5 10v9a2 2 0 002 2h10a2 2 0 002-2v-9"/><path d="M8 14h2M12 14h2M8 17.5h2M12 17.5h2M16 14v3.5"/></svg>
+            <b>شاشة البيع</b><small>بيع سريع</small>
+        </button>
+        <button type="button" class="home-tile tile-bill" onclick="showView('bill')">
+            <svg viewBox="0 0 24 24" width="54" height="54" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6M9 15h4"/></svg>
+            <b>فاتورة</b><small>إصدار وإدارة الفواتير</small>
+        </button>
+    </div>
+    <div class="home-sq">
+        <button type="button" class="home-tile tile-sq tile-purch" onclick="showView('purch')">
+            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg>
+            <span class="tile-txt"><b>الوارد</b><small id="homePuOwed">فواتير المذاخر</small></span>
+        </button>
+        <button type="button" class="home-tile tile-sq tile-stock" onclick="showView('stock')">
+            <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect width="12" height="12" x="6" y="10"/></svg>
+            <b>مخزن</b><small>الأصناف والكميات</small>
+        </button>
+    </div>
+    <div class="home-tiles3">
+        <button type="button" class="home-tile tile-sm tile-scan" onclick="scGo()">
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><circle cx="12" cy="12" r="3"/></svg>
+            <b>فاحص المادة</b>
+        </button>
+        <button type="button" class="home-tile tile-sm tile-cus" onclick="cuOpen()">
+            <span class="tile-badge" id="homeCusCount" style="display:none;">0</span>
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"/><path d="M16 4.6a3.5 3.5 0 010 6.8M18 14.3c2 .8 3.5 2.6 3.5 5.7"/></svg>
+            <b>الزبائن</b>
+        </button>
+        <button type="button" class="home-tile tile-sm tile-rxh" onclick="drOpen()">
+            <span class="tile-badge rx-badge" style="display:none;">0</span>
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg>
+            <b>ركن الأطباء</b>
+        </button>
+    </div>
+    <div class="home-tiles3">
+        <button type="button" class="home-tile tile-sm tile-inv" onclick="openInventory()">
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9z"/><path d="M9 13l2 2 4-4"/></svg>
+            <b>الجرد</b>
+        </button>
+        <button type="button" class="home-tile tile-sm tile-alert" onclick="goAlerts('all')">
+            <span class="tile-badge" id="homeAlertCount" style="display:none;">0</span>
+            <span class="tile-badge doc-badge" style="display:none;">0</span>
+            <span class="tile-badge rx-badge" style="display:none;">0</span>
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 01-3.4 0"/></svg>
+            <b>التنبيهات</b>
+        </button>
+        <button type="button" class="home-tile tile-sm tile-gear" onclick="openCategoryManager()">
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>
+            <b>الإعدادات</b>
+        </button>
+    </div>
+    <div class="home-tiles3 home-row5">
+        <button type="button" class="home-tile tile-sm tile-calc" onclick="pcOpen()">
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><rect x="8" y="5.5" width="8" height="3.5" rx=".8"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 17h.01M12 17h.01M15.5 17h.01"/></svg>
+            <b>حاسبة الأسعار</b>
+        </button>
+        <button type="button" class="home-tile tile-sm tile-cat" onclick="openCatalog()">
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A1.5 1.5 0 015.5 3H19v15H5.5A1.5 1.5 0 004 19.5z"/><path d="M4 19.5A1.5 1.5 0 005.5 21H19v-3"/><path d="M9 8h6M9 11.5h4"/></svg>
+            <b>سجل الأدوية</b>
+        </button>
+        <button type="button" class="home-tile tile-sm tile-exp ex-q" onclick="exOpen('rep')">
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg>
+            <b>المصروفات والأرباح</b>
+        </button>
+    </div>
+    <div class="home-tiles3 home-row6">
+        <button type="button" class="home-tile tile-sm tile-fu" onclick="fuOpen()">
+            <span class="tile-badge" id="homeFuCount" style="display:none;">0</span>
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg>
+            <b>المتابعات</b>
+        </button>
+        <button type="button" class="home-tile tile-sm tile-fu tile-po" onclick="ndOpen()">
+            <span class="tile-badge" id="homePoCount" style="display:none;">0</span>
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.4 11.2a1.6 1.6 0 001.6 1.3h8.6a1.6 1.6 0 001.6-1.2L21 7H6"/></svg>
+            <b>النواقص والطلبية</b>
+        </button>
+        <button type="button" class="home-tile tile-sm tile-fu tile-lbl" onclick="lblOpen()">
+            <svg viewBox="0 0 24 24" width="38" height="38" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M21 5v14"/></svg>
+            <b>الملصقات</b>
+        </button>
+    </div>
+    </div>
+</div>
+
+<div id="scanView" class="sc-ov" dir="rtl">
+    <div class="tr-head"><button type="button" class="tr-back" onclick="scClose()"><i>›</i> رجوع</button><b>🔎 فاحص المادة</b></div>
+    <div class="sc-ovb">
+        <div class="bill-panel">
+            <button type="button" class="sc-scanbtn" onclick="scScanTimed()"><svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3M16 4h3a1 1 0 011 1v3M20 16v3a1 1 0 01-1 1h-3M8 20H5a1 1 0 01-1-1v-3"/><path d="M7 12h10"/></svg><span>مسح باركود</span></button>
+            <input type="search" class="bill-list-search" id="scQ" placeholder="🔍 أو ابحث باسم المادة..." autocomplete="off" oninput="scSearch(this.value)">
+            <div id="scRes" class="sc-reslist"></div>
+            <div id="scCard" class="sc-card"></div>
+        </div>
+    </div>
+</div>
+
+<div id="catalogView" class="app-view bill-view cat-view" dir="rtl">
+    <div class="bill-top no-print">
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
+    <div class="page-title">📋 سجل الأدوية</div>
+    </div>
+    <div class="cat-tabs no-print"><button type="button" class="on" id="catTabList" onclick="plClose()">📋 السجل</button><button type="button" id="catTabPrice" onclick="plShow()">💲 قائمة التسعير</button></div>
+    <div class="bill-scroll">
+        <div class="bill-panel">
+            <button type="button" class="cat-add" onclick="catPrice(0)">➕ مادة جديدة (اسم + عدد + باركود + تسعير)</button>
+            <input type="search" class="bill-list-search" id="catSearch" placeholder="🔍 ابحث باسم الدواء أو الشركة أو الباركود..." oninput="catInput()">
+            <div id="catSetup"></div>
+            <div class="cat-sum" id="catSum"></div>
+            <div class="cat-list" id="catList"></div>
+        </div>
+        <div class="bill-panel pl-inline" id="plPane" style="display:none"></div>
+    </div>
+</div>
+
+<div id="alertsView" class="app-view alerts-view">
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
+<div class="page-title">🔔 التنبيهات</div>
+    <div class="al-tabs"><button type="button" id="alTabPh" class="ph on" onclick="alSetTab('ph')"><span>💊 تنبيهات الصيدلية</span><i id="alNPh">0</i></button><button type="button" id="alTabDr" class="dr" onclick="alSetTab('dr')"><span>🩺 تنبيهات الأطباء</span><i id="alNDr">0</i></button></div>
+    <div id="alPaneDr" style="display:none"><div id="docAlertBox"></div></div>
+    <div id="alPanePh">
+    <div class="alerts-controls">
+        <label class="alerts-select"><span>تصفية التنبيهات</span>
+            <select id="alertFilter" onchange="setAlertFilter(this.value)"></select>
+        </label>
+        <input type="search" id="alertSearch" class="alerts-search" placeholder="🔍 ابحث داخل التنبيهات..." oninput="renderAlerts()">
+    </div>
+    <div class="info-strip alerts-info"><span id="alertTitle">كل التنبيهات</span><span id="alertCount">0 صنف</span></div>
+    <button type="button" class="alerts-po-btn" id="alertPoBtn" onclick="alertsToPO()">🛒 أضف أصناف هذه القائمة إلى قائمة النواقص</button>
+    <div class="grid-layout alerts-grid" id="alertsContainer"></div>
+    </div>
+</div>
+
+<div id="billView" class="app-view bill-view" dir="rtl">
+    <div class="bill-top no-print">
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
+<div class="page-title">🧾 الفواتير</div>
+    </div>
+    <div class="bill-tabs no-print" id="billTabs">
+        <button type="button" data-tab="new" class="active" onclick="billTab('new')">➕ فاتورة جديدة</button>
+        <button type="button" data-tab="issued" onclick="billTab('issued')">📚 الصادرة</button>
+        <button type="button" data-tab="debt" onclick="billTab('debt')">💳 الآجل</button>
+        <button type="button" data-tab="reports" onclick="billTab('reports')">📊 التقارير</button>
+        <button type="button" data-tab="settings" onclick="billTab('settings')">⚙️ الإعدادات</button>
+    </div>
+
+    <div class="bill-scroll">
+        <!-- ===== فاتورة جديدة ===== -->
+        <section class="bill-pane active print-active" id="billPane-new">
+            <div class="bill-actions no-print">
+                <button type="button" class="bill-tb-btn" id="billNewBtn" onclick="newInvoice()">＋ جديدة</button>
+                <button type="button" class="bill-tb-btn" id="billWaBtn" onclick="billSharePdf()" aria-label="مشاركة الفاتورة PDF عبر واتساب" title="مشاركة عبر واتساب"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 20.8l1.5-4.6A8.6 8.6 0 1 1 8 19.5z"/><path d="M9.2 8.2c-.3.9-.1 2 .9 3.4 1.1 1.5 2.4 2.4 3.6 2.7.7.2 1.3-.2 1.6-.9l-1.6-.9-.7.6c-.8-.3-1.7-1.2-2-2l.6-.7-.8-1.6c-.7 0-1.3.4-1.6 1.4z"/></svg></button>
+                <button type="button" class="bill-tb-btn" id="billPrintOnlyBtn" onclick="printInvoice(true)">🖨️ طباعة فقط</button>
+                <button type="button" class="bill-tb-btn" id="billIssueOnlyBtn" onclick="issueInvoice(false)">✅ إصدار فقط</button>
+                <button type="button" class="bill-tb-btn bill-tb-primary" id="billIssueBtn" onclick="issueInvoice(true)">🖨️ إصدار وطباعة</button>
+                <button type="button" class="bill-tb-btn" id="billReprintBtn" onclick="printInvoice()" style="display:none;">🖨️ طباعة نسخة</button>
+                <button type="button" class="bill-tb-btn" id="billEditBtn" onclick="editIssuedInvoice()" style="display:none;">✏️ تعديل الفاتورة</button>
+                <button type="button" class="bill-tb-btn bill-danger" id="billCancelBtn" onclick="cancelInvoice()" style="display:none;">✖ إلغاء الفاتورة</button>
+                <button type="button" class="bill-tb-btn bill-danger" id="billDeleteBtn" onclick="deleteInvoicePermanently()" style="display:none;">🗑 حذف نهائي</button>
+                <button type="button" class="bill-tb-btn" id="billEditBackBtn" onclick="cancelInvoiceEdit()" style="display:none;">↩️ رجوع</button>
+                <button type="button" class="bill-tb-btn" id="billSaveEditBtn" onclick="saveInvoiceEdit(false)" style="display:none;">💾 حفظ التعديل فقط</button>
+                <button type="button" class="bill-tb-btn bill-tb-primary" id="billSaveEditPrintBtn" onclick="saveInvoiceEdit(true)" style="display:none;">🖨️ حفظ التعديل وطباعة</button>
+            </div>
+            <div class="bill-sheet" id="billSheet">
+                <div class="bill-letterhead">
+                    <img src="icon.jpg" alt="" class="bill-logo">
+                    <div class="bill-ph">
+                        <div class="bill-ph-name">صيدلية الديوان</div>
+                        <div class="bill-ph-line" id="billPhLine1"></div>
+                        <div class="bill-ph-line" id="billPhLine2"></div>
+                    </div>
+                    <div class="bill-title-box">
+                        <div class="bill-title">فاتورة بيع</div>
+                        <label class="bill-no">رقم: <input id="billNo" dir="ltr" oninput="billChanged()"></label>
+                    </div>
+                </div>
+
+                <div class="bill-meta">
+                    <label class="bill-field bill-to"><span>إلى السيد / الشركة:</span><input id="billTo" placeholder="اكتب اسم الشركة" oninput="billChanged()"></label>
+                    <label class="bill-field bill-date"><span>التاريخ:</span>
+                        <input type="date" id="billDate" class="bill-date-input" oninput="billChanged()">
+                        <span class="bill-date-txt" id="billDateTxt"></span>
+                    </label>
+                </div>
+
+                <div class="bill-parties">
+                    <label class="bill-field"><span>اسم الزبون:</span><input id="billCustomer" oninput="billChanged()"></label>
+                    <label class="bill-field"><span>اسم الطبيب المعالج:</span><input id="billDoctor" oninput="billChanged()"></label>
+                </div>
+
+                <table class="bill-table">
+                    <thead><tr><th class="c-n">#</th><th class="c-name">اسم المادة</th><th class="c-qty">العدد</th><th class="c-price">السعر</th><th class="c-sum">المجموع</th><th class="c-del no-print"></th></tr></thead>
+                    <tbody id="billRows"></tbody>
+                </table>
+
+                <div class="bill-issued no-print" id="billIssuedNote" style="display:none;"></div>
+                <div class="bill-add no-print">
+                    <div class="bill-search-wrap">
+                        <input type="search" id="billSearch" autocomplete="off" placeholder="🔍 ابحث بالاسم أو امسح الباركود..." oninput="billSearchInput()" onkeydown="if(event.key==='Enter'){billSearchEnter();}">
+                        <div class="bill-results" id="billResults" style="display:none;"></div>
+                    </div>
+                    <button type="button" class="bill-tb-btn bill-scan" onclick="billScan()" aria-label="مسح باركود">▦ باركود</button>
+                    <button type="button" class="bill-tb-btn" onclick="billAddBlank()">＋ سطر</button>
+                </div>
+
+                <div class="bill-bottom">
+                    <div class="bill-totals">
+                        <div class="bill-trow"><span>مجموع المواد</span><b id="billSub">0</b></div>
+                        <div class="bill-trow bill-disc has-pv" id="billDiscRow"><span>الخصم</span><input type="number" min="0" inputmode="decimal" id="billDiscount" oninput="billChanged()" placeholder="0"><span class="bill-pv" id="billDiscTxt"></span></div>
+                        <div class="bill-trow bill-grand"><span>المبلغ الكلي</span><b id="billTotal">0</b></div>
+                        <div class="bill-trow bill-paid has-pv" id="billPaidRow"><span>المبلغ المدفوع</span><input type="number" min="0" inputmode="decimal" id="billPaid" oninput="billChanged()" placeholder="—"><span class="bill-pv" id="billPaidTxt"></span></div>
+                        <div class="bill-trow bill-rem" id="billRemRow"><span>المتبقي (آجل)</span><b id="billRem">0</b></div>
+                    </div>
+                </div>
+                <div class="bill-words" id="billWords"></div>
+                <div class="bill-opts no-print">
+                    <label class="bill-check"><input type="checkbox" id="billDeduct" checked onchange="billChanged()"> خصم الكميات من المخزن عند الإصدار</label>
+                </div>
+
+                <label class="bill-field bill-notes"><span>ملاحظات:</span><textarea id="billNotes" rows="1" oninput="billChanged(); autoGrow(this)"></textarea></label>
+
+                <div class="bill-signs">
+                    <div class="bill-sign"><div class="bill-sign-box" id="billSigBox"></div><div class="bill-sign-label">توقيع الصيدلاني</div></div>
+                    <div class="bill-sign"><div class="bill-sign-box" id="billStampBox"></div><div class="bill-sign-label">ختم الصيدلية</div></div>
+                </div>
+                <div class="bill-ret" id="billRetTxt"></div>
+                <div class="bill-foot" id="billFootTxt"></div>
+            </div>
+        </section>
+
+        <!-- ===== الفواتير الصادرة ===== -->
+        <section class="bill-pane" id="billPane-issued">
+            <div class="bill-panel no-print">
+                <input type="search" class="bill-list-search" id="billListSearch" placeholder="🔍 ابحث برقم الفاتورة أو الاسم أو اسم المادة..." oninput="renderIssuedList()">
+                <div class="bill-list" id="billList"></div>
+                <div class="bill-older"><small id="billOlderNote"></small><div class="bill-older-row"><input type="date" id="billOlderFrom"><button type="button" class="bill-tb-btn" onclick="billLoadOlder()">تحميل الفواتير من هذا التاريخ</button></div></div>
+            </div>
+        </section>
+
+        <!-- ===== الآجل ===== -->
+        <section class="bill-pane" id="billPane-debt">
+            <div class="bill-panel no-print">
+                <div class="bill-sum-card" id="debtSummary"></div>
+                <div class="bill-list" id="debtList"></div>
+            </div>
+        </section>
+
+        <!-- ===== التقارير ===== -->
+        <section class="bill-pane" id="billPane-reports">
+            <div class="bill-panel no-print">
+                <div class="bill-range" id="reportRange">
+                    <button type="button" data-r="today" class="active" onclick="setReportRange('today')">اليوم</button>
+                    <button type="button" data-r="week" onclick="setReportRange('week')">7 أيام</button>
+                    <button type="button" data-r="month" onclick="setReportRange('month')">هذا الشهر</button>
+                    <button type="button" data-r="all" onclick="setReportRange('all')">الكل</button>
+                </div>
+                <div id="reportBody"></div>
+                <div class="rep-sys owner-only-rep" id="repSys" hidden>
+                    <h4>سجلات وتقارير النظام</h4>
+                    <button type="button" class="set-nav" onclick="openRecon()"><div><b>تقرير تطابق المخزون</b><small>يقارن الكميات الحالية بحركات البيع والإدخال ويكشف الفروقات.</small></div><i>‹</i></button>
+                    <button type="button" class="set-nav" onclick="openLogModal()"><div><b>سجل الإجراءات</b><small>من أضاف أو عدّل أو حذف، ومتى.</small></div><i>‹</i></button>
+                    <button type="button" class="set-nav" onclick="openMissModal()"><div><b>سجل البحث الفاشل</b><small>كلمات بحث لم تجد نتيجة، لتعرف المواد المطلوبة وغير المتوفرة.</small></div><i>‹</i></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== طلب شراء ===== -->
+        <section class="bill-pane" id="billPane-po">
+            <div class="bill-actions no-print">
+                <button type="button" class="bill-tb-btn" onclick="poSelectAll(true)">تحديد الكل</button>
+                <button type="button" class="bill-tb-btn" onclick="poShareWhatsApp()">💬 واتساب</button>
+                <button type="button" class="bill-tb-btn bill-tb-primary" onclick="poPrint()">🖨️ طباعة</button>
+            </div>
+            <div class="bill-sheet" id="poSheet">
+                <div class="bill-letterhead">
+                    <img src="icon.jpg" alt="" class="bill-logo">
+                    <div class="bill-ph"><div class="bill-ph-name">صيدلية الديوان</div><div class="bill-ph-line" id="poPhLine"></div></div>
+                    <div class="bill-title-box"><div class="bill-title">طلب شراء</div></div>
+                </div>
+                <div class="bill-meta">
+                    <label class="bill-field bill-to"><span>إلى المذخر / الشركة:</span><input id="poSupplier" placeholder="اسم المذخر" oninput="poSaveSupplier()"></label>
+                    <label class="bill-field bill-date"><span>التاريخ:</span><span class="bill-date-txt" id="poDateTxt" style="display:inline;"></span></label>
+                </div>
+                <table class="bill-table">
+                    <thead><tr><th class="c-n no-print">✓</th><th class="c-name">المادة</th><th class="c-qty">المتوفر</th><th class="c-qty">المطلوب</th></tr></thead>
+                    <tbody id="poRows"></tbody>
+                </table>
+                <div class="bill-foot" id="poFoot"></div>
+            </div>
+        </section>
+
+        <!-- ===== الإعدادات ===== -->
+        <section class="bill-pane" id="billPane-settings">
+            <div class="bill-settings no-print" data-inv-set="1">
+                <!-- يُرسم من invSettingsHtml() في invoice.js: مصدر واحد لنسختي إعدادات الفواتير (هنا وفي الإعدادات) -->
+            </div>
+        </section>
+    </div>
+</div>
+
+<div id="purchView" class="app-view bill-view" dir="rtl">
+    <div class="bill-top no-print">
+    <div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="showView('home')" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
+<div class="page-title">🚚 الوارد من المذاخر</div>
+    </div>
+    <div class="bill-tabs no-print" id="puTabs">
+        <button type="button" data-tab="new" class="active" onclick="puTab('new')">➕ وارد جديد</button>
+        <button type="button" data-tab="log" onclick="puTab('log')">🧾 فواتير الوارد</button>
+        <button type="button" data-tab="debt" onclick="puTab('debt')">💳 مستحقات المذاخر</button>
+        <button type="button" data-tab="hub" onclick="puTab('hub')" id="puTabHub">🗂️ السجلات والكشوف</button>
+        <button type="button" data-tab="sup" onclick="puTab('sup')">🏭 المذاخر والأسعار</button>
+    </div>
+
+    <div class="bill-scroll">
+        <!-- ===== وارد جديد ===== -->
+        <section class="pu-pane active" id="puPane-new">
+            <div class="pu-card">
+                <div class="pu-form">
+                    <label><span>المذخر المجهز</span><input id="puSupplier" list="puSupList" autocomplete="off" placeholder="اسم المذخر" oninput="puChanged()"><datalist id="puSupList"></datalist></label>
+                    <label><span>رقم فاتورة المذخر</span><input id="puNo" dir="ltr" autocomplete="off" oninput="puChanged()"></label>
+                    <label><span>تاريخ فاتورة المذخر</span><input type="date" id="puDate" oninput="puChanged()"></label>
+                    <label class="pu-chk pu-nogift"><input type="checkbox" id="puStmt" onchange="puChanged()"><span>✓ استلمتُ كشف المذخر لهذه القائمة</span></label>
+                    <label class="pu-chk pu-nogift"><input type="checkbox" id="puUseEntry" onchange="puChanged()"><span>اعتماد تاريخ الإدخال (اليوم) لتحديد شهرها بدل تاريخ القائمة</span></label>
+                </div>
+            </div>
+            <div class="bill-add">
+                <div class="bill-search-wrap">
+                    <input type="search" id="puSearch" autocomplete="off" placeholder="🔍 ابحث عن الدواء أو امسح الباركود..." oninput="puSearchInput()" onkeydown="if(event.key==='Enter'){puSearchEnter();}">
+                    <div class="bill-results" id="puResults" style="display:none;"></div>
+                </div>
+                <button type="button" class="bill-tb-btn bill-scan" onclick="puScan()" aria-label="مسح باركود">▦ باركود</button>
+            </div>
+            <div class="pu-hint" id="puPendingHint" style="display:none;"></div>
+            <div class="pu-count" id="puCount"></div>
+            <div class="pu-giftbar" id="puGiftBar" style="display:none;"><span>🎁 قائمة بونص مجاني من مذخر — تُضاف للمخزن ولا تدخل سجل الوارد ولا حساباته.</span><button type="button" onclick="puGiftToNormal()">وارد عادي</button><button type="button" id="puGiftDel" class="danger" style="display:none" onclick="puGiftCancel()">🗑 حذف القائمة</button></div>
+            <div class="pu-editbar" id="puEditBar" style="display:none;"><span>✏️ أنت تعدّل فاتورة مسجّلة — سيُصحَّح المخزن تلقائياً بالفرق.</span><button type="button" onclick="puCancelEdit()">إلغاء التعديل</button></div>
+            <div class="pu-viewbar no-print pu-nogift" id="puViewBar"><button type="button" data-v="table" onclick="puSetView('table')">⚡ جدول سريع</button><button type="button" data-v="cards" onclick="puSetView('cards')">🗂️ بطاقات</button></div>
+            <div id="puFast" class="pt-wrap">
+                <div class="pt-add">
+                    <div class="pt-namewrap"><input id="ptName" placeholder="اسم المادة..." autocomplete="off" oninput="ptNameInput()" onkeydown="ptKey(event,'name')"><div id="ptRes" class="bill-results" style="display:none;"></div></div>
+                    <input id="ptBrand" placeholder="الشركة (للمادة الجديدة)" autocomplete="off" style="display:none" onkeydown="ptKey(event,'brand')">
+                    <div class="pt-in">
+                        <label><span>عدد</span><input id="ptQty" type="number" min="1" inputmode="numeric" onkeydown="ptKey(event,'qty')"></label>
+                        <label><span>بونص</span><input id="ptBonus" type="number" min="0" inputmode="numeric" placeholder="0" onkeydown="ptKey(event,'bonus')"></label>
+                        <label><span>سعر الشراء</span><input id="ptCost" type="number" min="0" inputmode="decimal" onkeydown="ptKey(event,'cost')"></label>
+                        <label><span>انتهاء</span><input id="ptExp" type="text" inputmode="numeric" dir="ltr" placeholder="MMYY" onkeydown="ptKey(event,'exp')"></label>
+                    </div>
+                    <button type="button" class="pt-addbtn" onclick="ptCommit()">＋ أضف للقائمة</button>
+                </div>
+                <div id="puTable"></div>
+            </div>
+            <div id="puItems"></div>
+            <div class="pu-card pu-totals pu-nogift">
+                <div class="pu-trow"><span>مجموع الفاتورة</span><b id="puTotal">0</b></div>
+                <label class="pu-trow"><span>مبلغ الاسترجاع</span><input type="number" min="0" inputmode="decimal" id="puReturn" placeholder="0" oninput="puChanged()"></label>
+                <div class="pu-trow pu-net"><span>الصافي بعد الاسترجاع</span><b id="puNet">0</b></div>
+                <label class="pu-trow"><span>المبلغ المدفوع الآن</span><input type="number" min="0" inputmode="decimal" id="puPaid" placeholder="0" oninput="puChanged()"></label>
+                <div class="pu-trow pu-rem"><span>المتبقي للمذخر (دين)</span><b id="puRem">0</b></div>
+            </div>
+            <label class="pu-notes"><span>ملاحظات</span><textarea id="puNotes" rows="2" oninput="puChanged()"></textarea></label>
+            <div class="bill-actions">
+                <button type="button" class="bill-tb-btn" onclick="puNew()">＋ جديد</button>
+                <button type="button" class="bill-tb-btn bill-tb-primary" id="puSaveBtn" onclick="puSave()">✅ حفظ الوارد وإضافته للمخزن</button>
+            </div>
+        </section>
+
+        <!-- ===== السجل ===== -->
+        <section class="pu-pane" id="puPane-log">
+            <div class="bill-panel">
+                <div class="pu-logbar"><select id="puLogMonth" onchange="renderPuLog()" aria-label="الشهر"></select>
+                <input type="search" class="bill-list-search" id="puLogSearch" placeholder="🔍 ابحث باسم المذخر أو رقم الفاتورة أو اسم المادة..." oninput="renderPuLog()"></div>
+                <div class="pu-selbar no-print" id="puSelBar"></div>
+                <div class="bill-list" id="puLogList"></div>
+            </div>
+        </section>
+        <section class="pu-pane" id="puPane-sel"><div class="bill-sheet" id="puSelSheet"></div></section>
+
+        <!-- ===== المستحقات ===== -->
+        <section class="pu-pane" id="puPane-debt">
+            <div class="bill-panel">
+                <div class="bill-sum-card" id="puDebtSummary"></div>
+                <div id="puDebtList"></div>
+            </div>
+        </section>
+
+        <!-- ===== سجل الطلبيات (شهري/سنوي) ===== -->
+        <section class="pu-pane" id="puPane-month">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الفترة</span><select id="puPType" onchange="puInitMonth(true)"><option value="month">شهر</option><option value="year">سنة كاملة</option></select></label>
+                <label class="pu-mfield" id="puMonthWrap"><span>الشهر</span><input type="month" id="puMonth" oninput="renderPuMonth()"></label>
+                <label class="pu-mfield" id="puYearWrap" style="display:none"><span>السنة</span><input type="number" id="puYear" min="2000" max="2100" oninput="renderPuMonth()"></label>
+                <label class="pu-mfield"><span>المذخر</span><select id="puMonthSup" onchange="renderPuMonth()"></select></label>
+                <label class="pu-mfield"><span>ترتيب القوائم</span><select id="puOrd" onchange="puOrdSave();renderPuMonth()"><option value="manual">ترتيبي اليدوي (الحالي)</option><option value="date">حسب التاريخ</option><option value="seq">حسب تسلسل سجل الوارد</option></select></label>
+                <label class="pu-chk"><input type="checkbox" id="puDetail" checked onchange="renderPuMonth()"><span>تفصيل القوائم</span></label>
+                <label class="pu-chk"><input type="checkbox" id="puGroup" onchange="renderPuMonth()"><span>تجميع حسب المذخر</span></label>
+            </div>
+            <div class="bill-actions no-print">
+                <button type="button" class="bill-tb-btn" onclick="puMonthCsv()">⬇️ Excel</button>
+                <button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-month')">🖨️ طباعة</button>
+            </div>
+            <div class="no-print" id="puCloseBar"></div>
+            <div class="bill-sheet" id="puMonthSheet"></div>
+        </section>
+
+        <!-- ===== سجل المردود ===== -->
+        <section class="pu-pane" id="puPane-ret">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>المذخر</span><select id="lgret-sup" onchange="lgRenderRet('ret')"></select></label>
+                <label class="pu-mfield"><span>بحث باسم المادة</span><input type="search" id="lgret-q" autocomplete="off" placeholder="🔍 اسم المادة أو رقم القائمة..." oninput="lgRenderRet('ret')"></label>
+                <label class="pu-mfield"><span>الحالة</span><select id="lgret-st" onchange="lgRenderRet('ret')"><option value="">الكل</option><option value="pending">بانتظار فاتورة المردود</option><option value="done">صدرت فاتورة المردود</option><option value="nostmt">بدون كشف</option></select></label>
+                <label class="pu-mfield"><span>الشهر (اختياري)</span><input type="month" id="lgret-m" oninput="lgRenderRet('ret')"></label>
+                <label class="pu-mfield"><span>تنبيه بعد (يوم)</span><input type="number" id="lgret-days" min="1" oninput="lgSaveDays(this.value)"></label>
+            </div>
+            <div class="bill-actions no-print">
+                <button type="button" class="bill-tb-btn bill-tb-primary" onclick="lgOpenReturn({})">＋ تسجيل مردود</button>
+                <button type="button" class="bill-tb-btn" onclick="lgRetCsv('ret')">⬇️ Excel</button>
+                <button type="button" class="bill-tb-btn" onclick="puPrint('puPane-ret')">🖨️ طباعة</button>
+            </div>
+            <div id="lgret-sum" class="bill-sum-card no-print"></div>
+            <div id="lgret-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lgret-sheet"></div>
+        </section>
+
+        <!-- ===== المردود غير المقطوع ===== -->
+        <section class="pu-pane" id="puPane-unrec">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>المذخر</span><select id="lgunrec-sup" onchange="lgRenderRet('unrec')"></select></label>
+                <label class="pu-mfield"><span>بحث باسم المادة</span><input type="search" id="lgunrec-q" autocomplete="off" placeholder="🔍 اسم المادة أو رقم القائمة..." oninput="lgRenderRet('unrec')"></label>
+                <label class="pu-mfield"><span>السنة (اختياري)</span><input type="number" id="lgunrec-y" min="2000" max="2100" oninput="lgRenderRet('unrec')"></label>
+            </div>
+            <div class="bill-actions no-print">
+                <button type="button" class="bill-tb-btn" onclick="lgRetCsv('unrec')">⬇️ Excel</button>
+                <button type="button" class="bill-tb-btn" onclick="puPrint('puPane-unrec')">🖨️ طباعة</button>
+            </div>
+            <div id="lgunrec-sum" class="bill-sum-card no-print"></div>
+            <div id="lgunrec-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lgunrec-sheet"></div>
+        </section>
+
+        <!-- ===== التسديد والحسابات ===== -->
+        <section class="pu-pane" id="puPane-pay">
+            <div class="lg-seg no-print" id="lgpSeg">
+                <button type="button" data-seg="recv" onclick="lgPaySegSet('recv')">🏛️ مقبوض من الحسابات</button>
+                <button type="button" data-seg="sup" onclick="lgPaySegSet('sup')">🏭 مسدَّد للمذاخر والخصم</button>
+                <button type="button" data-seg="bal" onclick="lgPaySegSet('bal')">⚖️ أرصدة المذاخر</button>
+            </div>
+            <div class="lg-filters no-print" id="lgpFilters">
+                <label class="pu-mfield"><span>الفترة</span><select id="lgpType" onchange="lgPayRender()"><option value="month">شهر</option><option value="year">سنة</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield" id="lgpMW"><span>الشهر</span><input type="month" id="lgpMonth" oninput="lgPayRender()"></label>
+                <label class="pu-mfield" id="lgpYW" style="display:none"><span>السنة</span><input type="number" id="lgpYear" min="2000" max="2100" oninput="lgPayRender()"></label>
+                <label class="pu-mfield" id="lgpSW"><span>المذخر</span><select id="lgpSup" onchange="lgPayRender()"></select></label>
+            </div>
+            <div class="bill-actions no-print">
+                <button type="button" class="bill-tb-btn bill-tb-primary" id="lgpAdd" onclick="lgPayAdd()">＋ إضافة</button>
+                <button type="button" class="bill-tb-btn" onclick="lgPayCsv()">⬇️ Excel</button>
+                <button type="button" class="bill-tb-btn" onclick="puPrint('puPane-pay')">🖨️ طباعة</button>
+            </div>
+            <div id="lgp-sum" class="bill-sum-card no-print"></div>
+            <div id="lgp-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lgp-sheet"></div>
+        </section>
+
+
+        <section class="pu-pane" id="puPane-bonus">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الفترة</span><select id="lgbType" onchange="lgRenderBonus()"><option value="month">شهر</option><option value="year">سنة</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield" id="lgbMW"><span>الشهر</span><input type="month" id="lgbMonth" oninput="lgRenderBonus()"></label>
+                <label class="pu-mfield" id="lgbYW" style="display:none"><span>السنة</span><input type="number" id="lgbYear" min="2000" max="2100" oninput="lgRenderBonus()"></label>
+                <label class="pu-mfield"><span>المذخر</span><select id="lgbSup" onchange="lgRenderBonus()"></select></label>
+            </div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="puGiftNew()">🎁 قائمة بونص (إدخال كامل)</button><button type="button" class="bill-tb-btn" onclick="lgBreqAdd()">＋ بونص من مندوب / عرض</button><button type="button" class="bill-tb-btn" onclick="lgBreqDelImported()">🗑 حذف الطلبات المستوردة</button><button type="button" class="bill-tb-btn" onclick="lgBonusCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-bonus')">🖨️ طباعة</button></div>
+            <div id="lgb-sum" class="bill-sum-card no-print"></div>
+            <div id="lgb-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lgb-sheet"></div>
+        </section>
+
+        <section class="pu-pane" id="puPane-blink">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الحالة</span><select id="blSt" onchange="lgRenderBlink()"><option value="unlinked">غير مربوط</option><option value="linked">مربوط</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield"><span>المذخر</span><select id="blSup" onchange="lgRenderBlink()"></select></label>
+                <label class="pu-mfield"><span>بحث</span><input id="blQ" type="search" placeholder="اسم المادة" oninput="lgRenderBlink()"></label>
+            </div>
+            <div id="bl-sum" class="bill-sum-card no-print"></div>
+            <div id="bl-list" class="no-print"></div>
+        </section>
+
+        <section class="pu-pane" id="puPane-unify">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الحالة</span><select id="unSt" onchange="unLimit=200;lgRenderUnify()"><option value="todo">بحاجة لربط أو توحيد</option><option value="done">مربوطة</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield"><span>بحث</span><input id="unQ" type="search" placeholder="اسم المادة أو الشركة" oninput="unLimit=200;lgRenderUnify()"></label>
+            </div>
+            <div id="un-sum" class="bill-sum-card no-print"></div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="unSelAll()">تحديد كل المعروض</button></div>
+            <div id="un-list" class="no-print"></div>
+            <div id="un-bar" class="no-print un-bar" style="display:none"></div>
+        </section>
+
+        <section class="pu-pane" id="puPane-xfer">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الفترة</span><select id="lgfType" onchange="lgRenderXfer()"><option value="month">شهر</option><option value="year">سنة</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield" id="lgfMW"><span>الشهر</span><input type="month" id="lgfMonth" oninput="lgRenderXfer()"></label>
+                <label class="pu-mfield" id="lgfYW" style="display:none"><span>السنة</span><input type="number" id="lgfYear" min="2000" max="2100" oninput="lgRenderXfer()"></label>
+                <label class="pu-mfield lg-wide"><span>الصيدلية (اختر لفتح سجلها)</span><select id="lgxfSel" onchange="lgRenderXfer()"></select></label>
+            </div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn bill-tb-primary" onclick="lgxOpen('xfer',{pharmacy:$b('lgxfSel').value})">＋ مناقلة</button><button type="button" class="bill-tb-btn" onclick="lgAddPharmacy()">＋ صيدلية</button><button type="button" class="bill-tb-btn" onclick="lgXpayForm()">💵 دفعة</button><button type="button" class="bill-tb-btn" onclick="lgXferCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn" onclick="puPrint('puPane-xfer')">🖨️ طباعة</button></div>
+            <div id="lgxf-sum" class="bill-sum-card no-print"></div>
+            <div id="lgxf-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lgxf-sheet"></div>
+        </section>
+
+        <section class="pu-pane" id="puPane-exp">
+            <div class="lg-filters no-print">
+                <label class="pu-mfield"><span>الفترة</span><select id="lgeType" onchange="lgRenderExp()"><option value="month">شهر</option><option value="year">سنة</option><option value="all">الكل</option></select></label>
+                <label class="pu-mfield" id="lgeMW"><span>الشهر</span><input type="month" id="lgeMonth" oninput="lgRenderExp()"></label>
+                <label class="pu-mfield" id="lgeYW" style="display:none"><span>السنة</span><input type="number" id="lgeYear" min="2000" max="2100" oninput="lgRenderExp()"></label>
+                <label class="pu-mfield"><span>السبب</span><select id="lgeWhy" onchange="lgRenderExp()"><option value="">الكل</option><option>منتهي الصلاحية</option><option>تالف</option><option>كسر</option><option>تلف تخزين</option><option>أخرى</option></select></label>
+            </div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn bill-tb-primary" onclick="lgxOpen('exp',{})">＋ تسجيل منتهي / تالف</button><button type="button" class="bill-tb-btn" onclick="lgExpCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn" onclick="puPrint('puPane-exp')">🖨️ طباعة</button></div>
+            <div id="lge-sum" class="bill-sum-card no-print"></div>
+            <div id="lge-list" class="no-print"></div>
+            <div class="bill-sheet print-only" id="lge-sheet"></div>
+        </section>
+
+        <!-- ===== السجلات (الرئيسية) ===== -->
+        <section class="pu-pane" id="puPane-hub"><div class="lg-hub" id="lgHub"></div></section>
+
+        <!-- ===== الملخص المالي ===== -->
+        <section class="pu-pane" id="puPane-sum">
+            <div class="lg-filters no-print"><label class="pu-mfield"><span>السنة</span><input type="number" id="lgsYear" min="2000" max="2100" oninput="lgRenderSum()"></label></div>
+            <div class="bill-actions no-print"><button type="button" class="bill-tb-btn" onclick="lgSumCsv()">⬇️ Excel</button><button type="button" class="bill-tb-btn bill-tb-primary" onclick="puPrint('puPane-sum')">🖨️ طباعة</button></div>
+            <div class="pu-card no-print" id="lgsSet"></div>
+            <div class="bill-sheet" id="lgsBody"></div>
+        </section>
+
+        <!-- ===== المذاخر والأسعار ===== -->
+        <section class="pu-pane" id="puPane-sup">
+            <div class="bill-panel">
+                <button type="button" class="bill-tb-btn" onclick="puEditSupplier('')">＋ إضافة مذخر</button>
+                <button type="button" class="bill-tb-btn" onclick="puBackfill()">🔄 تحديث المواد من سجل الوارد</button>
+                <div id="puSupList2"></div>
+                <h4 class="rep-h">🔎 مقارنة أسعار الشراء لدواء</h4>
+                <input type="search" class="bill-list-search" id="puCmpSearch" placeholder="اكتب اسم الدواء..." oninput="puCmpInput()">
+                <div class="bill-results pu-cmp-results" id="puCmpResults" style="display:none;"></div>
+                <div id="puCmpBody"></div>
+            </div>
+        </section>
+    </div>
+</div>
+
+
+    <script>window.APP_MODE='admin';</script>
+    <script src="icons.js"></script>
+    <script src="swal-skin.js"></script>
+    <script src="seed.js"></script>
+    <script src="prog.js"></script>
+    <script src="data.js"></script>
+<script src="invoice.js"></script><script src="sellpop.js"></script><script src="quickinv.js"></script><script src="pos.js"></script><script src="pos2.js"></script><script src="formsmgr.js"></script><script src="pricelist.js"></script><script src="purchase-xlsx.js"></script><script src="desktop.js"></script><script src="desktopui.js"></script><script src="lansync.js"></script><script src="wasync.js"></script><script src="perfdiag.js"></script><script src="purchase.js"></script><script src="purchase2.js"></script><script src="ledger.js"></script><script src="ledger2.js"></script><script src="ledger3.js"></script><script src="ledger4.js"></script><script src="ledger5.js"></script><script src="blink.js"></script><script src="unify.js"></script><script src="catalog.js"></script><script src="taxmap.js"></script><script src="taxonomy.js"></script><script src="datahub.js"></script><script src="taxfilter.js"></script><script src="docpage.js"></script><script src="rxprint.js"></script><script src="rx.js"></script><script src="quick.js"></script><script src="learn.js"></script><script src="settings.js"></script><script src="sselect.js"></script><script src="scanner.js"></script><script src="formsec.js"></script><script src="security.js"></script><script src="backup.js"></script><script src="admin.js"></script><script src="progsave.js"></script><script src="pricefix.js"></script><script src="labels.js"></script><script src="help.js"></script><script src="navtabs.js"></script><script src="count.js"></script><script src="formtabs.js"></script><script src="expenses.js"></script><script src="followups.js"></script><script src="deadstock.js"></script><script src="ingauto.js"></script><script src="needs.js"></script><script src="smartpo.js"></script><script src="customers.js"></script><script src="recon.js"></script><script src="taxmembers.js"></script><script src="formx.js"></script><script src="homeplus.js"></script>
+<script src="bidi.js"></script>
+<script src="autobackup.js"></script>
+<script src="imgstore.js"></script><script src="native.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            const hadCtl = !!navigator.serviceWorker.controller;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {   // نسخة جديدة فعّلت نفسها → أعد التحميل تلقائياً (بعد إغلاق أي نافذة مفتوحة)
+                if (!hadCtl || window.__swReloaded) return;
+                const busy = () => document.querySelector('.swal2-container') || ['formModal', 'barcodeModal'].some(i => { const m = document.getElementById(i); return m && m.style.display && m.style.display !== 'none'; }) || /INPUT|TEXTAREA|SELECT/.test((document.activeElement || {}).tagName || '');
+                const go = () => { if (busy()) return setTimeout(go, 4000); window.__swReloaded = 1; location.reload(); };
+                go();
+            });
+            navigator.serviceWorker.register('sw.js').then(r => { try { r.update(); } catch (e) { /* تجاهل */ } }).catch(() => {});
+        }
+    </script>
+<script src="poswin.js"></script></body>
+</html>

@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
     <shortcut android:shortcutId="pos" android:enabled="true" android:icon="@mipmap/ic_pos" android:shortcutShortLabel="@string/shortcut_pos_short" android:shortcutLongLabel="@string/shortcut_pos_long">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="iq.aldiwan.pharmacy" android:targetClass="iq.aldiwan.pharmacy.MainActivity">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="iq.aldiwan.pharmacy" android:targetClass="iq.aldiwan.pharmacy.PosAlias">
             <extra android:name="dwTarget" android:value="pos" />
         </intent>
     </shortcut>
     <shortcut android:shortcutId="scan" android:enabled="true" android:icon="@mipmap/ic_scan" android:shortcutShortLabel="@string/shortcut_scan_short" android:shortcutLongLabel="@string/shortcut_scan_long">
-        <intent android:action="android.intent.action.VIEW" android:targetPackage="iq.aldiwan.pharmacy" android:targetClass="iq.aldiwan.pharmacy.MainActivity">
+        <intent android:action="android.intent.action.VIEW" android:targetPackage="iq.aldiwan.pharmacy" android:targetClass="iq.aldiwan.pharmacy.ScanAlias">
             <extra android:name="dwTarget" android:value="scan" />
         </intent>
     </shortcut>
