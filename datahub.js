@@ -236,15 +236,21 @@ async function dhAiSuggest() {
     if (!pool.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد ظاهرة تحتاج اقتراحاً', timer: 1800, showConfirmButton: false }); return; }
     const BATCH = 25, MAXB = 4, total = Math.min(pool.length, BATCH * MAXB);   // حتى 100 مادة في الضغطة الواحدة، والتي لم يعرفها لا تُكرَّر
     const h = Prog.start('اقتراح المواد الفعالة', { text: fmtNum(total) + ' مادة...', indeterminate: false });
-    let n = memN, done = 0, rej = 0;
+    let n = memN, done = 0, rej = 0, failed = 0, lastErr = null;
     try {
         for (let bi = 0; bi < MAXB && done < total; bi++) {
             const todo = pool.slice(done, done + BATCH); if (!todo.length) break;
             const ex = dhMemExamples(todo), list = (ex.length ? 'Examples already confirmed in this pharmacy catalog (same naming style):\n' + ex.join('\n') + '\n\nProducts:\n' : '') + todo.map((p, i) => `${i + 1}. ${p.name}${p.brand ? ' (' + p.brand + ')' : ''}${p.meta ? ' [' + p.meta + ']' : ''}`).join('\n');
             const prompt = 'You are a senior clinical pharmacist. For each product below (trade name as sold in Iraq, possibly with strength), give the generic active ingredient(s) in English WITHOUT strength or form, joined by " + " for combinations. STRICT RULES: answer ONLY if you are highly certain (well-known international brand or the generic name is written in the product name). Many names are local/obscure brands or cosmetics: for those you MUST answer with an empty string. A wrong answer is far worse than an empty one; never guess from similar-sounding names. ALSO give the potency "s" (strength of the active ingredient) ONLY if it is written in the product text itself (e.g. "120mg", "500mg/125mg", "0.1%"), copied exactly in the same order as the ingredients; otherwise "s" must be an empty string. Never use your own knowledge for "s". Reply with ONLY a JSON array like [{"i":1,"a":"Etoricoxib","s":"120 mg","c":"high"}] where c is "high" only if certain, otherwise omit the item or use "".\n\n' + list;
-            const txt = await callAiEngine(eng, { prompt, json: false });
-            const m = String(txt).match(/\[[\s\S]*\]/); if (!m) throw new Error('رد غير مفهوم من النموذج');
-            const arr = JSON.parse(m[0]);
+            let arr = null;
+            for (let tr = 0; tr < 2 && !arr; tr++) {   // محاولتان للدفعة؛ إن فشلت تُتخطّى وتكمل الدفعات الباقية
+                try {
+                    const txt = await callAiEngine(eng, { prompt, json: false });
+                    const m = String(txt).match(/\[[\s\S]*\]/); if (!m) throw new Error('رد غير مفهوم من النموذج');
+                    arr = JSON.parse(m[0]);
+                } catch (e1) { lastErr = e1; if (tr === 0) await new Promise(r => setTimeout(r, 1500)); }
+            }
+            if (!arr) { failed++; done += todo.length; h.tick(done, total, fmtNum(done) + ' من ' + fmtNum(total)); continue; }   // لا نعلّمها «مجرَّبة» لتُعاد لاحقاً
         arr.forEach(o => { const p = todo[(parseInt(o.i) || 0) - 1], a = String(o.a || '').trim(); if (p && a && String(o.c || '').toLowerCase() === 'high') { if (!dhDbKnown(a)) { rej++; return; } const e = dhEdits.get(p.id) || {};
             let s = String(o.s || '').replace(/\s+/g, ' ').trim();   // التركيز يُقبل فقط إن كانت كل أرقامه مكتوبة فعلاً في نص المنتج
             if (s) { const src = (p.name + ' ' + (p.meta || '')).replace(/,/g, '.'); const nums = s.replace(/,/g, '.').match(/\d+(?:\.\d+)?/g) || []; if (!nums.length || s.length > 40 || !nums.every(x => new RegExp('(^|[^\\d.])' + x.replace('.', '\\.') + '(?![\\d])').test(src))) s = ''; }
@@ -252,7 +258,8 @@ async function dhAiSuggest() {
             todo.forEach(p => tried.add(p.id)); dhTriedSave(tried);   // نجحت أم لا: لا تُعاد في الدفعة التالية
             done += todo.length; h.tick(done, total, fmtNum(done) + ' من ' + fmtNum(total));
         }
-        h.ok((n ? 'اقتُرحت ' + n + ' مادة فعالة — راجعها ثم احفظ' : 'لم يتعرّف النموذج على مواد') + (rej ? ' · رُفض ' + rej + ' اسم غير معروف بالقاعدة المرجعية' : ''));
+        if (failed && !n) { h.fail('تعذّر الاقتراح', (lastErr && lastErr.message) || 'فشل الاتصال بمحرك الذكاء الاصطناعي'); dhRender(); return; }
+        h.ok((n ? 'اقتُرحت ' + n + ' مادة فعالة — راجعها ثم احفظ' : 'لم يتعرّف النموذج على مواد') + (rej ? ' · رُفض ' + rej + ' اسم غير معروف بالقاعدة المرجعية' : '') + (failed ? ' · تعذّرت ' + failed + ' دفعة (أعد المحاولة)' : ''));
         dhRender();
     } catch (err) { h.fail('تعذّر الاقتراح', err && err.message + (n ? ' — اقتُرحت ' + n + ' قبل التوقف' : '')); if (n) dhRender(); }
 }
