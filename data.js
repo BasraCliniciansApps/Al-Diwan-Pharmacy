@@ -316,6 +316,7 @@ function syncRefresh() {
     else { state = 'ok'; txt = 'متزامن'; }
     if (usagePaused === 'lan' && window.LAN && !window.diwanDesktop && LAN.err && LAN.err()) { state = 'err'; txt = 'الحاسوب غير متصل: ' + LAN.err(); }
     syncState = state;
+    if (window.__ssOpen && typeof ssLive === 'function') { try { ssLive(); } catch (e) { /* تجاهل */ } }
     document.querySelectorAll('.sync-dot').forEach(d => { d.dataset.state = state; d.dataset.pend = (pendingOps || startupPending) ? '1' : '0'; d.title = txt + ' — اضغط للتفاصيل'; });
 }
 function asyncWriteFailed(e) {
@@ -430,8 +431,8 @@ function syncAgo(iso) {   // «قبل كذا» بدل التاريخ الكام�
     const d = Math.round(h / 24); return un(d, 'قبل يوم', 'قبل يومين', 'أيام', 'يوماً');
 }
 const opsTxt = n => n === 1 ? 'عملية واحدة' : n === 2 ? 'عمليتان' : n <= 10 ? n + ' عمليات' : n + ' عملية';
-function showSyncStatus() {
-    if (!IS_ADMIN_PAGE) return;
+// حالة المزامنة كقيم (تُستعمل للعرض الأول وللتحديث الحي أثناء فتح النافذة)
+function ssState() {
     const online = navigator.onLine, native = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform());
     const dups = (typeof billDuplicateNumbers === 'function') ? billDuplicateNumbers() : [];
     const lan = usagePaused === 'lan', lanErr = (lan && window.LAN && !window.diwanDesktop && LAN.err) ? LAN.err() : '';
@@ -451,6 +452,23 @@ function showSyncStatus() {
     else if (syncErrMsg) { tone = 'err'; head = 'تعذّر الحفظ'; sub = escapeHtml(syncErrMsg); }
     else if (window.INV_UNSENT && window.INV_UNSENT.length) { tone = 'err'; head = 'فواتير لم تصل'; sub = fmtNum(window.INV_UNSENT.length) + ' فاتورة محفوظة على هذا الجهاز فقط'; }
     else if (pend > 0 || startupPending) { tone = 'busy'; head = 'جارٍ الإرسال'; sub = pend ? opsTxt(pend) + ' بانتظار الإرسال' : 'عمليات من جلسة سابقة بانتظار الإرسال'; }
+    return { tone, head, sub, dups, native };
+}
+let ssTimer = null;
+function ssLive() {   // يحدّث بطاقة الحالة والعدّادات والنافذة مفتوحة دون إعادة فتحها
+    const hero = document.querySelector('.ss-wrap .ss-hero'); if (!hero) return;
+    const S = ssState();
+    hero.className = 'ss-hero ss-' + S.tone;
+    const b = hero.querySelector('b'), sm = hero.querySelector('small');
+    if (b && b.textContent !== S.head) b.textContent = S.head;
+    if (sm && sm.innerHTML !== S.sub) sm.innerHTML = S.sub;
+    const u = usageGet(), cw = usageCap('w'), cr = usageCap('r');
+    const bars = document.querySelectorAll('.ss-wrap .ss-use');
+    [[u.w, cw], [u.r, cr]].forEach(([n, cap], i) => { const el = bars[i]; if (!el) return; const t = el.querySelector('.ss-ut b'), f = el.querySelector('.ss-bar i'); if (t) t.textContent = n + ' من ' + cap; if (f) { const pc = Math.min(100, Math.round(n / Math.max(1, cap) * 100)); f.style.width = pc + '%'; f.className = pc >= 90 ? 'hi' : pc >= 70 ? 'mid' : ''; } });
+}
+function showSyncStatus() {
+    if (!IS_ADMIN_PAGE) return;
+    const { tone, head, sub, dups, native } = ssState();
     const u = usageGet(), cw = usageCap('w'), cr = usageCap('r');
     const bar = (label, n, cap) => { const pc = Math.min(100, Math.round(n / Math.max(1, cap) * 100)); return `<div class="ss-use"><div class="ss-ut"><span>${label}</span><b>${n} من ${cap}</b></div><div class="ss-bar"><i class="${pc >= 90 ? 'hi' : pc >= 70 ? 'mid' : ''}" style="width:${pc}%"></i></div></div>`; };
     const nearCap = u.w / Math.max(1, cw) >= .7 || u.r / Math.max(1, cr) >= .7;
@@ -467,7 +485,7 @@ function showSyncStatus() {
         `<button type="button" class="ss-link" onclick="Swal.close();WA.open()">📲 المبيعات عبر واتساب<small>${userRole === 'owner' ? 'إرسال لقطة المخزون إلى المستخدم واستيراد مبيعاته' : 'إرسال المبيعات إلى المدير واستيراد لقطة المخزون'}</small></button>` +
         `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}</details></div>`;
     const waM = usagePaused === 'wa';
-    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' } })      .then(r => { if (r.isConfirmed) { if (waM && window.WA) WA.exportSales(); else syncNow(); } else if (r.isDenied) hardRefresh(); });
+    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' }, didOpen: () => { window.__ssOpen = true; clearInterval(ssTimer); ssTimer = setInterval(ssLive, 1500); }, willClose: () => { window.__ssOpen = false; clearInterval(ssTimer); } })      .then(r => { if (r.isConfirmed) { if (waM && window.WA) WA.exportSales(); else syncNow(); } else if (r.isDenied) hardRefresh(); });
 }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
 
