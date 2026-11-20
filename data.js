@@ -1412,8 +1412,35 @@ function getFiltered(skipFilters) {
         if (s > 0) scored.push([p, s]);
     });
     if (qTokens.length) scored.sort((a, b) => b[1] - a[1]);
-    return scored.map(x => x[0]);
+    const out = scored.map(x => x[0]);
+    if (!qTokens.length && stockSort) { const f = SORTS[stockSort]; if (f) out.sort(f.cmp); }
+    return out;
 }
+// ترتيب قائمة المخزن (زر الترتيب بجانب البحث)
+const _sn = v => parseFloat(v) || 0;
+const SORTS = {
+    alpha: { t: 'أبجدي (أ - ي)', cmp: (a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'ar') },
+    alphaR: { t: 'أبجدي عكسي (ي - أ)', cmp: (a, b) => String(b.name || '').localeCompare(String(a.name || ''), 'ar') },
+    newest: { t: 'الأحدث إضافة', cmp: (a, b) => _sn(b.id) - _sn(a.id) },
+    oldest: { t: 'الأقدم إضافة', cmp: (a, b) => _sn(a.id) - _sn(b.id) },
+    qtyLow: { t: 'الأقل كمية', cmp: (a, b) => _sn(a.qty) - _sn(b.qty) },
+    qtyHigh: { t: 'الأكثر كمية', cmp: (a, b) => _sn(b.qty) - _sn(a.qty) },
+    priceHigh: { t: 'الأعلى سعراً', cmp: (a, b) => _sn(b.price) - _sn(a.price) },
+    priceLow: { t: 'الأقل سعراً', cmp: (a, b) => _sn(a.price) - _sn(b.price) },
+    expiry: { t: 'الأقرب نفاذاً', cmp: (a, b) => { const x = getProductExpiryDates(a)[0] || '9999', y = getProductExpiryDates(b)[0] || '9999'; return x.localeCompare(y); } }
+};
+let stockSort = ''; try { stockSort = localStorage.getItem('diwanStockSort') || ''; if (!SORTS[stockSort]) stockSort = ''; } catch (e) { /* تجاهل */ }
+function sortBtnMark() { const b = document.getElementById('sortBtn'); if (b) b.classList.toggle('on', !!stockSort); }
+function setStockSort(k) { stockSort = SORTS[k] ? k : ''; try { localStorage.setItem('diwanStockSort', stockSort); } catch (e) { /* تجاهل */ } sortBtnMark(); renderAll(); }
+function openSortSheet() {
+    const row = (k, t) => `<label class="sort-row ${stockSort === k ? 'on' : ''}"><input type="radio" name="stSort" value="${k}" ${stockSort === k ? 'checked' : ''}><span>${t}</span></label>`;
+    Swal.fire({
+        title: 'ترتيب المواد', confirmButtonColor: '#0f1c38', showConfirmButton: false, showCloseButton: true,
+        html: '<div class="sort-list">' + Object.keys(SORTS).map(k => row(k, SORTS[k].t)).join('') + row('', 'الترتيب الافتراضي') + '</div>',
+        didOpen: el => el.querySelectorAll('input[name="stSort"]').forEach(i => i.addEventListener('change', () => { setStockSort(i.value); Swal.close(); }))
+    });
+}
+setTimeout(sortBtnMark, 0);
 
 function renderFilterChips() {
     const wrap = document.getElementById('activeFilters');

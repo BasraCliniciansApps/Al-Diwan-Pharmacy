@@ -4378,8 +4378,8 @@ html, body { overscroll-behavior-y: none; }
 #stockView .search-row { display: flex; align-items: center; gap: 8px; }
 #stockView .search-row .search-input-wrap { flex: 1 1 auto; min-width: 0; }
 #stockView .search-row .filter-btn { flex: 0 0 auto; width: 44px; height: 44px; padding: 0; }
-#stockView .search-row .filter-btn:not(.lbl-open-btn) { order: 2; }
-#stockView .search-row .lbl-open-btn { order: 3; }
+#stockView .search-row .filter-btn:not(.sort-open-btn) { order: 2; }
+#stockView .search-row .sort-open-btn { order: 3; }
 #stockView .search-row .fb-t { display: none; }
 .top-bar { padding-top: 0; }
 .stk-title-row { margin-top: 3px; }
@@ -5008,3 +5008,8 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .dh-opts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 2px 0 6px; }
 .dh-opts > span { flex: 1 0 100%; font-size: .74rem; font-weight: 800; color: #b45309; text-align: right; }
 .dh-opts button { border: 1px solid #f5b83d; background: #fffbeb; color: #0f1c38; border-radius: 999px; padding: 6px 12px; font-size: .8rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+.sort-list{display:flex;flex-direction:column;gap:6px;text-align:start}
+.sort-row{display:flex;align-items:center;gap:10px;padding:11px 12px;border:1.5px solid #e2e8f0;border-radius:12px;cursor:pointer;font-weight:700;color:#0f1c38}
+.sort-row input{accent-color:#0f1c38;width:18px;height:18px;margin:0}
+.sort-row.on{border-color:#0f1c38;background:#f1f5f9}
