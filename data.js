@@ -312,6 +312,7 @@ function syncRefresh() {
     else if (!navigator.onLine) { state = 'off'; txt = 'بدون إنترنت' + (pendingOps ? ' — ' + pendingOps + ' بانتظار الإرسال' : '') + ' (يُحفظ على الجهاز وسيُرسل عند الاتصال)'; }
     else if (pendingOps > 0 || startupPending) { state = 'busy'; txt = 'جاري الإرسال للسحابة' + (pendingOps ? ' (' + pendingOps + ')' : '') + '...'; }
     else if (syncErrMsg) { state = 'err'; txt = 'خطأ في الحفظ: ' + syncErrMsg; }
+    else if (window.INV_UNSENT && window.INV_UNSENT.length) { state = 'err'; txt = window.INV_UNSENT.length + ' فاتورة لم تصل للسحابة'; }
     else { state = 'ok'; txt = 'متزامن'; }
     if (usagePaused === 'lan' && window.LAN && !window.diwanDesktop && LAN.err && LAN.err()) { state = 'err'; txt = 'الحاسوب غير متصل: ' + LAN.err(); }
     syncState = state;
@@ -406,6 +407,7 @@ async function syncNow() {
     h.set(null, 'رفع السجلات المحفوظة محلياً...');
     window.__forceCloud++;
     try { if (typeof syncLocalRecords === 'function') n = await syncLocalRecords(false); } catch (e) { window.__forceCloud = Math.max(0, window.__forceCloud - 1); h.fail('تعذرت المزامنة', e && e.message); return; }
+    try { if (typeof invCheckUnsent === 'function') await invCheckUnsent(); } catch (e) { /* تجاهل */ }
     h.set(null, 'تحديث السجلات من السحابة...');
     try {   // جلب الجديد فقط من الواردات والدفتر والفواتير والمصروفات والجرد (تجاوز مدة الانتظار)
         const jobs = [];
@@ -447,6 +449,7 @@ function showSyncStatus() {
     else if (usagePaused) { tone = 'warn'; head = 'الإرسال متوقف'; sub = usagePaused === 'cap' ? 'بلغ هذا الجهاز الحد اليومي' : 'بانتظار موافقتك'; }
     else if (!online) { tone = 'err'; head = 'بدون إنترنت'; sub = 'تُحفظ العمليات على الجهاز وتُرسل عند عودة الاتصال' + (pend ? ' (' + opsTxt(pend) + ' بانتظار الإرسال)' : ''); }
     else if (syncErrMsg) { tone = 'err'; head = 'تعذّر الحفظ'; sub = escapeHtml(syncErrMsg); }
+    else if (window.INV_UNSENT && window.INV_UNSENT.length) { tone = 'err'; head = 'فواتير لم تصل'; sub = fmtNum(window.INV_UNSENT.length) + ' فاتورة محفوظة على هذا الجهاز فقط'; }
     else if (pend > 0 || startupPending) { tone = 'busy'; head = 'جارٍ الإرسال'; sub = pend ? opsTxt(pend) + ' بانتظار الإرسال' : 'عمليات من جلسة سابقة بانتظار الإرسال'; }
     const u = usageGet(), cw = usageCap('w'), cr = usageCap('r');
     const bar = (label, n, cap) => { const pc = Math.min(100, Math.round(n / Math.max(1, cap) * 100)); return `<div class="ss-use"><div class="ss-ut"><span>${label}</span><b>${n} من ${cap}</b></div><div class="ss-bar"><i class="${pc >= 90 ? 'hi' : pc >= 70 ? 'mid' : ''}" style="width:${pc}%"></i></div></div>`; };
@@ -459,6 +462,7 @@ function showSyncStatus() {
         (!native && !persistenceOn ? '<div class="ss-note">الحفظ دون إنترنت غير مدعوم في هذا المتصفح، فلا تُحفظ العمليات إن انقطع الاتصال.</div>' : '');
     const html = `<div class="ss-wrap">
         <div class="ss-hero ss-${tone}"><span class="ss-dot"></span><div class="ss-ht"><b>${head}</b><small>${sub}</small></div></div>` +
+        (typeof invUnsentHtml === 'function' ? invUnsentHtml() : '') +
         (dups.length ? `<div class="ss-warn">أرقام فواتير مكررة (أُصدرت من أجهزة مختلفة بدون إنترنت):<br>${dups.map(escapeHtml).join('، ')}</div>` : '') +
         `<button type="button" class="ss-link" onclick="Swal.close();WA.open()">📲 المبيعات عبر واتساب<small>${userRole === 'owner' ? 'إرسال لقطة المخزون إلى المستخدم واستيراد مبيعاته' : 'إرسال المبيعات إلى المدير واستيراد لقطة المخزون'}</small></button>` +
         `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}</details></div>`;

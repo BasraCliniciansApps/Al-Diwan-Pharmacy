@@ -646,8 +646,8 @@ async function saveInvoiceRecord(b) {
     billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec);
     if (window.LAN && LAN.active()) { LAN.captureRecord('invoice', rec); return; }
     if (cloudReady() && (navigator.onLine || persistenceOn)) {
-        try { await fsSet(db.collection('pharmacy_invoices').doc(rec.id), rec); }
-        catch (e) { lsSet('diwanNeedsPush', '1'); Swal.fire({ icon: 'warning', title: 'حُفظت الفاتورة على هذا الجهاز فقط', text: 'أضف قاعدة pharmacy_invoices إلى قواعد Firestore لتُحفظ في السحابة أيضاً. ستُعاد المحاولة تلقائياً.', confirmButtonColor: '#0f1c38' }); }
+        try { await fsSet(db.collection('pharmacy_invoices').doc(rec.id), rec); setTimeout(invCheckUnsent, 7000); }
+        catch (e) { window.INV_ERR = (e && (e.code || e.message)) || 'خطأ'; setTimeout(invCheckUnsent, 1500); lsSet('diwanNeedsPush', '1'); Swal.fire({ icon: 'warning', title: 'حُفظت الفاتورة على هذا الجهاز فقط', text: 'أضف قاعدة pharmacy_invoices إلى قواعد Firestore لتُحفظ في السحابة أيضاً. ستُعاد المحاولة تلقائياً.', confirmButtonColor: '#0f1c38' }); }
     } else lsSet('diwanNeedsPush', '1');
 }
 // ---------- إعادة إرسال ما حُفظ محلياً فقط + ترقيم فريد ----------
@@ -678,7 +678,7 @@ async function pushLocalInvoices() {
     for (const r of local) {
         const c = cloud.get(r.id);
         const newer = !c || String(r.editedAt || r.cancelledAt || '') > String(c.editedAt || c.cancelledAt || '') || (!!r.cancelled && !c.cancelled);
-        if (newer) { await fsSet(db.collection('pharmacy_invoices').doc(r.id), r); n++; }
+        if (newer) { try { await fsSet(db.collection('pharmacy_invoices').doc(r.id), r); n++; } catch (e) { window.INV_ERR = (e && (e.code || e.message)) || 'خطأ'; } }
     }
     return n;
 }
@@ -821,3 +821,56 @@ async function billLoadOlder() {
     const h = Prog.start('تحميل الفواتير', { text: 'من ' + fmtDateDMY(from) + '...' });
     try { await invEnsureSince(from); renderIssuedList(); h.ok('تم التحميل'); } catch (e) { h.fail('تعذر التحميل', e && e.message); }
 }
+
+// ---------- فواتير لم تصل للسحابة: عدّاد وإعادة إرسال وتشخيص ----------
+window.INV_UNSENT = [];
+const INV_SENT_K = 'diwanInvSent';
+const invSig = r => String(r.editedAt || r.cancelledAt || r.issuedTs || '') + '|' + (r.cancelled ? 1 : 0);
+let invChecking = false;
+async function invCheckUnsent() {
+    if (invChecking || typeof IS_ADMIN_PAGE === 'undefined' || !IS_ADMIN_PAGE || !cloudReady() || !navigator.onLine || usagePaused) return;
+    invChecking = true;
+    try {
+        let list = []; try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
+        let sent = {}; try { sent = JSON.parse(lsGet(INV_SENT_K)) || {}; } catch (e) { sent = {}; }
+        const cand = list.filter(r => r && r.id && r.issued && sent[r.id] !== invSig(r)).slice(0, 40);
+        const bad = []; let firstErr = '';
+        for (const r of cand) {
+            try {
+                const d = await Promise.race([db.collection('pharmacy_invoices').doc(r.id).get({ source: 'server' }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 6000))]);
+                const c = d.exists ? d.data() : null;
+                if (c && invSig(c) >= invSig(r)) sent[r.id] = invSig(r); else bad.push(r);
+            } catch (e) { if (!firstErr) firstErr = (e && (e.code || e.message)) || 'خطأ'; bad.push(r); }
+        }
+        const keep = {}; list.forEach(r => { if (sent[r.id]) keep[r.id] = sent[r.id]; });
+        lsSet(INV_SENT_K, JSON.stringify(keep));
+        window.INV_UNSENT = bad.map(r => ({ id: r.id, no: r.no, total: invTotalOf(r) }));
+        if (firstErr) window.INV_ERR = firstErr;
+        if (!bad.length) window.INV_ERR = '';
+        syncRefresh();
+    } finally { invChecking = false; }
+}
+function invUnsentHtml() {
+    const u = window.INV_UNSENT || []; if (!u.length) return '';
+    const e = String(window.INV_ERR || '');
+    const hint = /permission|denied/i.test(e) ? 'قواعد Firestore ترفض حفظ الفواتير: انشر آخر نسخة من firestore.rules وتأكد أن صلاحية «المبيعات» مفعّلة لهذا المستخدم.' : /timeout|unavailable|network/i.test(e) ? 'الاتصال ضعيف أو متقطع.' : e ? 'سبب الخطأ: ' + escapeHtml(e) : '';
+    return `<div class="ss-warn"><b>${fmtNum(u.length)} فاتورة لم تصل إلى السحابة</b> (محفوظة على هذا الجهاز فقط):<br>${u.slice(0, 12).map(x => escapeHtml(String(x.no)) + ' (' + fmtNum(x.total) + ')').join('، ')}${u.length > 12 ? ' ...' : ''}${hint ? '<br><small>' + hint + '</small>' : ''}<br><button type="button" class="ss-link" style="margin-top:8px" onclick="Swal.close();invResendUnsent()">إعادة إرسال الفواتير الآن</button></div>`;
+}
+async function invResendUnsent() {
+    if (!writesAllowed() || !cloudReady()) return;
+    const h = Prog.start('إعادة إرسال الفواتير', { text: 'جارٍ الإرسال...', indeterminate: false });
+    let list = []; try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
+    const ids = new Set((window.INV_UNSENT || []).map(x => x.id)); const todo = list.filter(r => ids.has(r.id));
+    let ok = 0, err = '';
+    for (let i = 0; i < todo.length; i++) {
+        try { await fsSet(db.collection('pharmacy_invoices').doc(todo[i].id), todo[i]); ok++; } catch (e) { err = (e && (e.code || e.message)) || 'خطأ'; }
+        h.tick(i + 1, todo.length, fmtNum(i + 1) + ' من ' + fmtNum(todo.length));
+    }
+    if (err) window.INV_ERR = err;
+    await invCheckUnsent();
+    const left = (window.INV_UNSENT || []).length;
+    left ? h.fail('تعذّر إرسال ' + fmtNum(left) + ' فاتورة', window.INV_ERR || '') : h.ok('وصلت كل الفواتير (' + fmtNum(ok) + ')');
+}
+window.addEventListener('online', () => setTimeout(invCheckUnsent, 3000));
+setTimeout(invCheckUnsent, 9000);
+setInterval(invCheckUnsent, 5 * 60000);
