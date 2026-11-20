@@ -90,7 +90,7 @@ async function refreshHome() {
     let exp = 0; try { exp = getExpiringProducts().length; } catch (e) { /* تجاهل */ }
     const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}" onclick="${onclick}"><b>${val}</b><span>${label}</span></button>`;
     const alertsTotal = products.filter(p => alertKinds(p).any).length;
-    if (typeof puLoad === 'function' && can('purchases')) puLoad().then(puHomeBadge).catch(() => {});
+    if (typeof puLoad === 'function' && can('purchases')) Promise.all([puLoad(), typeof lgLoad === 'function' ? lgLoad() : null]).then(puHomeBadge).catch(() => {});   // المردود المرتبط يأتي من دفتر الحسابات: ننتظره قبل حساب المستحق
     const hb = document.getElementById('homeAlertCount');
     if (hb) { hb.innerText = alertsTotal; hb.style.display = alertsTotal ? 'flex' : 'none'; }
     const sb = document.getElementById('stockAlertCount');
