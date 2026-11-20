@@ -5029,3 +5029,7 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .srt-row.on{background:#fff8e1;font-weight:800}
 .srt-def{margin-top:14px}
 .srt-def .srt-row{color:#b91c1c;justify-content:center}
+
+/* وارد جديد: شريط البحث والباركود ثابت تحت التبويبات، وقائمة المواد لها تمرير خاص */
+#puPane-new .bill-add { position: sticky; top: var(--pu-stk, 158px); z-index: 25; margin-top: 0; padding: 8px 0; background: var(--bg); }
+#puPane-new #puItems { max-height: 52vh; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
