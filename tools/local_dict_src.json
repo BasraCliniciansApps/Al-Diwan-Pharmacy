@@ -11482,11 +11482,13 @@
 {
 "key": "ahaalphahydroxyacid",
 "name": "AHA 12% Alpha-Hydroxy Acid",
-"ing": "",
+"ing": "Alpha Hydroxy Acids",
 "kw": [
 "تقشير",
-"AHA",
-"تفتيح"
+"كريم تقشير",
+"peeling",
+"aha",
+"بشرة"
 ]
 },
 {
@@ -12292,6 +12294,56 @@
 "واقي شمس",
 "SPF",
 "sunscreen"
+]
+},
+{
+"key": "ritrom",
+"name": "Ritrom 125mg/5ml",
+"ing": "Erythromycin",
+"kw": [
+"مضاد حيوي",
+"antibiotic",
+"macrolide"
+]
+},
+{
+"key": "flutan",
+"name": "Flutan 75mg",
+"ing": "Oseltamivir",
+"kw": [
+"انفلونزا",
+"influenza",
+"antiviral",
+"مضاد فيروسات"
+]
+},
+{
+"key": "difenb",
+"name": "DIFEN B12",
+"ing": "",
+"kw": []
+},
+{
+"key": "difenmlx",
+"name": "Difen 10mg/ml x5",
+"ing": "Diphenhydramine",
+"kw": [
+"حساسية",
+"antihistamine",
+"مضاد هستامين",
+"نعاس",
+"سعال"
+]
+},
+{
+"key": "detronin",
+"name": "DETRONIN 120ml",
+"ing": "Oxybutynin",
+"kw": [
+"مثانة",
+"فرط نشاط المثانة",
+"سلس البول",
+"antimuscarinic"
 ]
 }
 ]
