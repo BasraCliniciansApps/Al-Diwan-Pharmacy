@@ -336,3 +336,9 @@ if (typeof closeCategoryManager === 'function') {
     const _cc = closeCategoryManager;
     closeCategoryManager = function () { ['userFormScr', 'usersScr', 'trashScr', 'cloudScr'].forEach(i => { const e = document.getElementById(i); if (e) shScreenClose(i); }); return _cc.apply(this, arguments); };
 }
+
+// الشاشات المفتوحة داخل الإعدادات (سجل المادة الفعالة وغيره) مثبّتة بأعلى النافذة: إن حرّكها المتصفح بسبب تركيز زر أو إغلاق رسالة نعيدها مكانها
+document.addEventListener('scroll', e => {
+    const t = e.target; if (!t || !t.classList) return;
+    if ((t.classList.contains('sh-subopen') || (t.classList.contains('tax-rv') && t.classList.contains('in-settings'))) && (t.scrollTop || t.scrollLeft)) t.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+}, true);
