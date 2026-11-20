@@ -1432,13 +1432,21 @@ const SORTS = {
 let stockSort = ''; try { stockSort = localStorage.getItem('diwanStockSort') || ''; if (!SORTS[stockSort]) stockSort = ''; } catch (e) { /* تجاهل */ }
 function sortBtnMark() { const b = document.getElementById('sortBtn'); if (b) b.classList.toggle('on', !!stockSort); }
 function setStockSort(k) { stockSort = SORTS[k] ? k : ''; try { localStorage.setItem('diwanStockSort', stockSort); } catch (e) { /* تجاهل */ } sortBtnMark(); renderAll(); }
+const SORT_GROUPS = [['الاسم', ['alpha', 'alphaR']], ['تاريخ الإضافة', ['newest', 'oldest']], ['الكمية', ['qtyLow', 'qtyHigh']], ['السعر', ['priceHigh', 'priceLow']], ['الصلاحية', ['expiry']]];
+function closeSortSheet() { const e = document.getElementById('sortSheetWrap'); if (!e) return; e.classList.remove('open'); setTimeout(() => e.remove(), 200); }
 function openSortSheet() {
-    const row = (k, t) => `<label class="sort-row ${stockSort === k ? 'on' : ''}"><input type="radio" name="stSort" value="${k}" ${stockSort === k ? 'checked' : ''}><span>${t}</span></label>`;
-    Swal.fire({
-        title: 'ترتيب المواد', confirmButtonColor: '#0f1c38', showConfirmButton: false, showCloseButton: true,
-        html: '<div class="sort-list">' + Object.keys(SORTS).map(k => row(k, SORTS[k].t)).join('') + row('', 'الترتيب الافتراضي') + '</div>',
-        didOpen: el => el.querySelectorAll('input[name="stSort"]').forEach(i => i.addEventListener('change', () => { setStockSort(i.value); Swal.close(); }))
-    });
+    closeSortSheet();
+    const chk = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+    const row = k => `<button type="button" class="srt-row ${stockSort === k ? 'on' : ''}" data-k="${k}"><span>${SORTS[k].t}</span><i>${stockSort === k ? chk : ''}</i></button>`;
+    const w = document.createElement('div'); w.id = 'sortSheetWrap'; w.className = 'srt-wrap';
+    w.innerHTML = `<div class="srt-bd"></div><div class="srt-sheet" role="dialog" aria-label="ترتيب المواد"><div class="srt-grab"></div>
+        <div class="srt-head"><b>ترتيب المواد</b><button type="button" class="srt-x" aria-label="إغلاق">✕</button></div>
+        <div class="srt-body">${SORT_GROUPS.map(([g, ks]) => `<div class="srt-gt">${g}</div><div class="srt-card">${ks.map(row).join('')}</div>`).join('')}
+        <div class="srt-card srt-def">${stockSort ? `<button type="button" class="srt-row" data-k="">إلغاء الترتيب (الافتراضي)</button>` : ''}</div></div></div>`;
+    document.body.appendChild(w);
+    w.querySelector('.srt-bd').onclick = w.querySelector('.srt-x').onclick = closeSortSheet;
+    w.querySelectorAll('.srt-row').forEach(r => r.onclick = () => { setStockSort(r.dataset.k); closeSortSheet(); });
+    requestAnimationFrame(() => w.classList.add('open'));
 }
 setTimeout(sortBtnMark, 0);
 
