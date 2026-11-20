@@ -12320,15 +12320,16 @@
 {
 "key": "difenb",
 "name": "DIFEN B12",
-"ing": "Diclofenac + Betamethasone + Vitamin B12",
+"ing": "Diclofenac + Prednisolone + Hydroxocobalamin",
 "kw": [
 "الم",
 "التهاب",
 "مسكن",
 "عصب",
+"حقنة",
 "NSAID",
 "steroid",
-"cyanocobalamin"
+"vitamin b12"
 ]
 },
 {
