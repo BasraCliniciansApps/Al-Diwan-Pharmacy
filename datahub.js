@@ -147,7 +147,7 @@ function dhRenderIng(el, keep) {
     <div class="tr-chips">${chip('miss', 'ناقصة', products.length - has)}${chip('done', 'مكتملة', has)}${chip('all', 'الكل', products.length)}</div>
     <input type="search" class="tr-search" placeholder="🔍 ابحث باسم المادة..." value="${dhEsc(dhQ)}" oninput="dhSearch(this.value)">
     <div class="tr-list" id="dhList">${listHtml}</div>
-    <div class="tr-foot"><button type="button" onclick="dhAiSuggest()">🤖 اقترح بالذكاء الاصطناعي</button><button type="button" class="tr-apply" id="dhSaveBtn" onclick="dhSaveIng()">💾 حفظ (${fmtNum(dhChanged().length)})</button></div>`;
+    <div class="tr-foot"><button type="button" onclick="dhQualityScan()">🔍 فحص الجودة</button><button type="button" onclick="dhAiSuggest()">🤖 اقترح بالذكاء الاصطناعي</button><button type="button" class="tr-apply" id="dhSaveBtn" onclick="dhSaveIng()">💾 حفظ (${fmtNum(dhChanged().length)})</button></div>`;
 }
 function dhSetF(f) { dhFilter = f; dhShown = 40; dhRender(); }
 function dhSearch(v) { dhQ = v; dhShown = 40; dhRender(true); }
@@ -533,3 +533,34 @@ async function partRetroRun() {
 
 // تحميل قاعدة الأدوية المرجعية بصمت بعد فتح التطبيق (للبحث بالأسماء العربية وبالمرض)
 setTimeout(() => { try { (window.requestIdleCallback || (f => setTimeout(f, 800)))(() => drugDbLoad()); } catch (e) { /* تجاهل */ } }, 4000);
+
+// ---------- فحص جودة المواد الفعالة: إملاء متعدد للمادة نفسها + أسماء غير معروفة قريبة من اسم معروف ----------
+async function dhQualityScan() {
+    const hp = Prog.start('فحص جودة المواد الفعالة', { text: 'تحميل القاعدة المرجعية...' });
+    await dhDbLoad(); dhDbSet = null; if (window.DRUGDB) dhDbKnown('x');
+    hp.set(null, 'جارٍ الفحص...');
+    const fixes = [];   // {p, from, to, why}
+    // 1) تعدد الإملاء/الحالة لنفس المادة: نعتمد الأكثر استعمالاً
+    const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]+/g, '');
+    const groups = new Map();
+    products.forEach(p => { const a = dhStripStr(p.activeIngredient); if (!a) return; const k = norm(a); let g = groups.get(k); if (!g) groups.set(k, g = new Map()); g.set(a, (g.get(a) || 0) + 1); });
+    const canon = new Map();
+    groups.forEach((g, k) => { if (g.size > 1) canon.set(k, [...g.entries()].sort((x, y) => y[1] - x[1])[0][0]); });
+    products.forEach(p => { const a = dhStripStr(p.activeIngredient); if (!a) return; const c = canon.get(norm(a)); if (c && c !== a) fixes.push({ p, from: a, to: c, why: 'إملاء مختلف' }); });
+    // 2) أجزاء غير معروفة بالقاعدة المرجعية وقريبة (حرفان كحد أقصى) من اسم معروف
+    const known = dhDbSet ? [...dhDbSet] : [], cache = new Map();
+    const near = w => { if (cache.has(w)) return cache.get(w); let best = null, bd = 3; if (w.length >= 5) for (const k of known) { const d = editDistanceWithin(w, k, 2); if (d < bd) { bd = d; best = k; if (d === 1) break; } } cache.set(w, best); return best; };
+    if (known.length) products.forEach(p => {
+        const a = dhStripStr(p.activeIngredient); if (!a || fixes.some(f => f.p === p)) return;
+        let out = a, changed = false;
+        a.split('+').forEach(part => { const w = part.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim(); const lw = w.toLowerCase(); if (!lw || dhDbSet.has(lw)) return; const b = near(lw); if (b) { out = out.replace(part.trim(), b.charAt(0).toUpperCase() + b.slice(1)); changed = true; } });
+        if (changed) fixes.push({ p, from: a, to: out, why: 'قريب من اسم معروف' });
+    });
+    hp.ok(fixes.length ? 'وُجد ' + fmtNum(fixes.length) + ' تصحيح مقترح' : 'لا توجد أخطاء ظاهرة');
+    if (!fixes.length) { Swal.fire({ icon: 'success', title: 'لا توجد أخطاء ظاهرة', text: 'المواد الفعالة متسقة مع القاعدة المرجعية.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+    const rows = fixes.slice(0, 40).map(f => `<div class="lbl-irow"><div class="lbl-iin"><span dir="auto">${escapeHtml(f.p.name)}</span><small dir="ltr">${escapeHtml(f.from)} ← ${escapeHtml(f.to)} · ${f.why}</small></div></div>`).join('');
+    const r = await Swal.fire({ title: 'فحص الجودة', html: `<div style="text-align:right;font-size:.85rem">وُجد <b>${fmtNum(fixes.length)}</b> تصحيح مقترح${fixes.length > 40 ? ' (المعروض 40)' : ''}. تُجهَّز التصحيحات للمراجعة ولا تُحفظ إلا بعد ضغط «حفظ».</div><div class="lbl-ilist" style="margin-top:10px">${rows}</div>`, showCancelButton: true, confirmButtonText: 'تجهيز التصحيحات', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
+    if (!r.isConfirmed) return;
+    fixes.forEach(f => { const e = dhEdits.get(f.p.id) || {}; e.ai = f.to; e.aiGen = true; dhEdits.set(f.p.id, e); });
+    dhRender();
+}
