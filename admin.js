@@ -8,11 +8,14 @@ const VIEW_PERM = { bill: 'sell', stock: 'stockView', purch: 'purchases', alerts
 function showView(v) {
     if (VIEW_PERM[v] && typeof can === 'function' && !can(VIEW_PERM[v])) v = 'home';
     const _vs = window.__viewStack = window.__viewStack || [];
+    const _vsc = window.__viewScroll = window.__viewScroll || {};
+    if (currentView && currentView !== v) _vsc[currentView] = window.scrollY;   // موضع التمرير يُحفظ لكل شاشة
     if (v === 'home') { _vs.length = 0; try { const hv = document.getElementById('homeView'); if (hv) { hv.classList.remove('tiles-in'); void hv.offsetWidth; hv.classList.add('tiles-in'); setTimeout(() => hv.classList.remove('tiles-in'), 900); } } catch (e) { /* تجاهل */ } }
     else if (!window.__navBack && currentView && currentView !== v && !['splash', 'login', 'home'].includes(currentView)) { if (_vs[_vs.length - 1] !== currentView) _vs.push(currentView); }
     currentView = v;
     document.body.dataset.view = v;
-    window.scrollTo(0, 0);
+    const _back = !!window.__navBack && _vsc[v] > 0;
+    window.scrollTo({ top: _back ? _vsc[v] : 0, behavior: 'instant' });
     if (v === 'home') refreshHome();
     else if (v === 'stock') { renderAll(); }
     else if (v === 'bill') { onShowBill(); }
@@ -20,6 +23,7 @@ function showView(v) {
     else if (v === 'alerts') { renderAlerts(); }
     else if (v === 'catalog') { renderCatalog(); }
     else if (v === 'scan') { if (typeof scInit === 'function') scInit(); }
+    if (_back) { const y = _vsc[v]; [0, 90, 280].forEach(ms => setTimeout(() => { if (currentView === v) window.scrollTo({ top: y, behavior: 'instant' }); }, ms)); }   // الرجوع: نعود لنفس الموضع
 }
 
 // يُستدعى من data.js عند تغيّر حالة الدخول

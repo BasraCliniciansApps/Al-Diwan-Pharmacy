@@ -66,7 +66,7 @@ async function shAboutFill() {
 }
 setInterval(() => { const m = document.getElementById('catModal'); if (m && m.style.display && m.style.display !== 'none') shAboutFill(); }, 2500);
 window.addEventListener('load', () => setTimeout(shAboutFill, 2000));
-let shCur = null;
+let shCur = null, shHubY = 0, shHubQ = '';
 const shNorm = s => String(s || '').toLowerCase().replace(/[ً-ٟ]/g, '').replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه');
 // الصناديق تُعرَّف بمعرّف ثابت data-k (لا بأرقام ترتيب)، فلا تنزاح الصفحات مهما تغيّرت المحتويات
 function shBoxes() { return [...document.querySelectorAll('#catModal .cat-manager-box[data-k]')]; }
@@ -137,6 +137,7 @@ function shHome(anim) {
     const hub = document.getElementById('shHub'); hub.hidden = false; hub.innerHTML = shHubHtml();
     if (anim) { hub.classList.remove('sh-in-back'); void hub.offsetWidth; hub.classList.add('sh-in-back'); }
     card.scrollTop = 0;
+    if (anim && (shHubY > 0 || shHubQ)) { const y = shHubY, q = shHubQ; shHubY = 0; shHubQ = ''; if (q) { const i = document.getElementById('shQ'); if (i) { i.value = q; shSearch(q); } } [0, 60, 200].forEach(ms => setTimeout(() => { if (!shCur) card.scrollTo({ top: y, behavior: 'instant' }); }, ms)); } else { shHubY = 0; shHubQ = ''; }
 }
 // صفوف الجهاز: خيارات التطبيق الأصلي (أندرويد) فقط
 function shDeviceRows() {
@@ -174,6 +175,7 @@ function shScopeOnce(els) {
     const bar = document.getElementById('shBar'); if (bar) bar.insertAdjacentHTML('afterend', `<div id="shScopeTop" class="sh-scope-top"><i class="${cls}">${txt}</i> ينطبق على كل خيارات هذه الصفحة.</div>`);
 }
 function shOpen(id, boxKey) {
+    if (!shCur) { const c0 = shCard(); if (c0) { shHubY = c0.scrollTop; const q0 = document.getElementById('shQ'); shHubQ = q0 ? q0.value : ''; } }   // نتذكر مكانك في قائمة الإعدادات
     if (id === 'invset') { try { initBillSettings(); } catch (e) { /* تجاهل */ } }
     if (id === 'docset') { try { docSetMount(); } catch (e) { /* تجاهل */ } }
     if (id === 'wa' && window.WA) { try { WA.render(); WA.loadUsers(); } catch (e) { /* تجاهل */ } }

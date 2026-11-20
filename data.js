@@ -1608,6 +1608,12 @@ function renderAll() {
     document.getElementById('sectionLabel').innerText = `${activeDept === ALL_DEPTS ? ALL_DEPTS_LABEL : activeDept} • ${tabTitle}`;
 
     const filtered = getFiltered();
+    // نفس البحث والتصفية والترتيب = تحديث للبيانات فقط (حفظ تعديل، كمية...): نبقى على نفس الموضع ولا نعود لأول القائمة
+    const _sig = JSON.stringify([document.getElementById('searchInput').value, [...filCats], [...filDepts], [...filBrands], [...filForms], filInStock, mainTab, activeDept, stockSort]);
+    const _box = document.getElementById('itemsContainer');
+    const _same = window.__rsig === _sig && _box && _box.children.length > 1;
+    const keepY = _same ? window.scrollY : 0, keepN = _same ? _box.querySelectorAll(':scope > :not(.lz-sentinel)').length : 0;
+    window.__rsig = _sig;
 
     document.getElementById('countLabel').innerText = `${filtered.length} صنف`;
     const container = document.getElementById('itemsContainer');
@@ -1623,13 +1629,14 @@ function renderAll() {
         return;
     }
 
-    lazyFill(container, filtered, p => productCardHtml(p), 48, 'div');
+    lazyFill(container, filtered, p => productCardHtml(p), 48, 'div', keepN);
+    if (keepY > 0) window.scrollTo({ top: keepY, behavior: 'instant' });
 }
 // عرض تدريجي: تُرسم أول دفعة فقط، وتُضاف البقية عند الاقتراب من نهاية القائمة (يمنع تجمّد الصفحة مع آلاف الأصناف)
-function lazyFill(container, list, htmlFn, size, kind) {
+function lazyFill(container, list, htmlFn, size, kind, initial) {
     if (container.__lz) { container.__lz.disconnect(); container.__lz = null; }
     size = size || 48;
-    let n = Math.min(size, list.length);
+    let n = Math.min(Math.max(size, initial || 0), list.length);
     const head = list.slice(0, n).map(htmlFn).join('');
     if (kind === 'tbody') { container.innerHTML = head; } else { container.innerHTML = head; }
     if (n >= list.length) return;
