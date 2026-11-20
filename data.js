@@ -1078,14 +1078,20 @@ let SEARCH_IDX = new WeakMap();
 let drugDbP = null;
 function drugDbLoad() {
     if (window.DRUGDB) return Promise.resolve(window.DRUGDB);
-    if (!drugDbP) drugDbP = new Promise(res => { const s = document.createElement('script'); s.src = 'drugdb.js'; s.onload = () => { SEARCH_IDX = new WeakMap(); res(window.DRUGDB || null); try { if (typeof renderAll === 'function') renderAll(); } catch (e) { /* تجاهل */ } }; s.onerror = () => { drugDbP = null; res(null); }; document.head.appendChild(s); });
+    if (!drugDbP) drugDbP = new Promise(res => { const s = document.createElement('script'); s.src = 'drugdb.js'; s.onload = () => { const s2 = document.createElement('script'); s2.src = 'drugdb_local.js'; const fin = () => { drugDbMerge(); SEARCH_IDX = new WeakMap(); res(window.DRUGDB || null); try { if (typeof renderAll === 'function') renderAll(); } catch (e) { /* تجاهل */ } }; s2.onload = fin; s2.onerror = fin; document.head.appendChild(s2); }; s.onerror = () => { drugDbP = null; res(null); }; document.head.appendChild(s); });
     return drugDbP;
+}
+// دمج القاموس المحلي (drugdb_local.js) فوق القاعدة المصرية: مواده الفعالة تتقدّم، وكلماته المفتاحية تدخل البحث
+function drugDbMerge() {
+    const D = window.DRUGDB, L = window.DRUGDB_LOCAL; if (!D || !L || D.lk) return;
+    D.lk = L.k || {};
+    Object.keys(L.m || {}).forEach(k => { D.m[k] = L.m[k]; });
 }
 function drugDbExtra(p) {   // أسماء عربية + كلمات المرض/الاستطباب لهذا الصنف إن وُجد بالقاعدة
     const D = window.DRUGDB; if (!D || !D.a || typeof dhBaseKey !== 'function') return '';
     const k = dhBaseKey(p.name); if (!k) return '';
     const t = D.t && D.t[k] !== undefined ? D.tg[D.t[k]] : '';
-    return (D.a[k] || '') + ' ' + t;
+    return (D.a[k] || '') + ' ' + t + ' ' + ((D.lk && D.lk[k]) || '');
 }
 function searchIndexOf(p) {
     let x = SEARCH_IDX.get(p);

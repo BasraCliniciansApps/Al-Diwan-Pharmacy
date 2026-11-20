@@ -278,6 +278,8 @@ function puRenderItems() {
             </div>
         </div>`).join('') || '<div class="bill-none">ابحث عن دواء أو امسح باركوده لإضافته إلى الفاتورة الواردة.</div>';
     puRecalc();
+    _lb.scrollTop = _grew ? _lb.scrollHeight : _st;   // القائمة لها تمرير خاص: تبقى مكانها، وعند إضافة مادة تنزل لآخرها
+    puStkSet();
 }
 // ---- التجزئة داخل بطاقة الوارد (قابلة للطي) ----
 function puSubManual(p) {   // سعر الجزء المحفوظ يدوي؟ (العلامة إن وُجدت، وإلا مقارنة بالمحسوب من سعر البيع المخزون)
@@ -358,8 +360,6 @@ function puXbAdd(i) { const it = pu.items[i]; if (!it) return; if (!puHasX(it)) 
 function puXbEdit(i, j, f, v) { const it = pu.items[i]; if (!it || !it.xb || !it.xb[j]) return; it.xb[j][f] = v; puSyncQty(it); puRecalc(); puChanged(); }
 async function puXbDel(i, j) { const it = pu.items[i]; if (!it || !it.xb) return; const b = it.xb[j]; if (b && (parseInt(b.q) > 0 || b.expiry || b.batch) && !(await askSure('حذف هذه الدفعة؟', 'دفعة ' + (j + 2), 'حذف'))) return; it.xb.splice(j, 1); puSyncQty(it); puRenderItems(); puChanged(); }
 const puXbHtml = (it, i) => (it.xb || []).map((b, j) => `<div class="pu-xb"><div class="pu-xb-h"><b>دفعة ${j + 2}</b><button type="button" class="pu-x" onclick="puXbDel(${i},${j})" aria-label="حذف الدفعة">✕</button></div><div class="pu-grid"><label><span>العدد (عبوة)</span><input type="number" min="0" inputmode="numeric" value="${escapeHtml(String(b.q))}" oninput="puXbEdit(${i},${j},'q',this.value)"></label><label><span>تاريخ الانتهاء</span><input type="month" dir="ltr" value="${escapeHtml(b.expiry || '')}" oninput="puXbEdit(${i},${j},'expiry',this.value)"></label><label class="pu-xb-b"><span>رقم الدفعة (اختياري)</span><input dir="ltr" value="${escapeHtml(b.batch || '')}" oninput="puXbEdit(${i},${j},'batch',this.value)"></label></div></div>`).join('');
-    _lb.scrollTop = _grew ? _lb.scrollHeight : _st;   // القائمة لها تمرير خاص: تبقى مكانها، وعند إضافة مادة تنزل لآخرها
-    puStkSet();
 
 async function puRemoveItem(i) { const it = pu.items[i]; if (!it) return; if (!(await askSure('حذف هذه المادة من الفاتورة؟', it.name, 'حذف'))) return; pu.items.splice(i, 1); puRenderItems(); puChanged(); }
 // اسم المادة بسطر الوارد بنفس صيغة فاتورة البيع: الاسم التجاري والتركيز | العبوة الشكل الدوائي | الشركة
