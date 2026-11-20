@@ -5020,10 +5020,24 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .hd-prog.pl-ok b { background: #16a34a; } .hd-prog.pl-err b { background: #dc2626; } .hd-prog.pl-warn b { background: #ea580c; }
 .hd-prog.ind b { width: 32%; animation: hdInd 1.2s ease-in-out infinite; }
 @keyframes hdInd { 0%, 100% { right: 0; } 50% { right: 68%; } }
-#progChip { position: fixed; z-index: 100002; top: calc(env(safe-area-inset-top, 0px) + 12px); left: 142px; max-width: calc(100vw - 142px - 165px); min-width: 34px; height: 28px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0 10px; border-radius: 999px; direction: rtl; background: rgba(249,168,37,.16); border: 1px solid rgba(249,168,37,.55); color: #f9a825; font: 800 .76rem 'Tajawal', sans-serif; white-space: nowrap; overflow: hidden; }
+#progChip { position: fixed; z-index: 100002; width: 52px; height: 52px; pointer-events: none; --p: 0; }
 #progChip[hidden] { display: none; }
-#progChip span { overflow: hidden; text-overflow: ellipsis; font-weight: 600; opacity: .9; }
-#progChip.pc-ok { background: rgba(22,163,74,.2); border-color: #16a34a; color: #86efac; }
-#progChip.pc-err { background: rgba(220,38,38,.22); border-color: #dc2626; color: #fecaca; cursor: pointer; }
-#progChip.pc-warn { background: rgba(234,88,12,.2); border-color: #ea580c; color: #fdba74; }
-.pc-spin { flex: 0 0 12px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid currentColor; border-top-color: transparent; animation: pgSpin .8s linear infinite; }
+#progChip svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); filter: drop-shadow(0 0 4px rgba(249,168,37,.55)); }
+#progChip circle { fill: none; stroke-width: 3; }
+#progChip .pc-tr { stroke: rgba(249,168,37,.2); }
+#progChip .pc-fg { stroke: #f9a825; stroke-linecap: round; stroke-dasharray: 119.38; stroke-dashoffset: calc(119.38px * (100 - var(--p)) / 100); transition: stroke-dashoffset .35s ease, stroke .3s; }
+#progChip.pc-ind svg { animation: pcRot 1s linear infinite; }
+#progChip.pc-ind .pc-fg { stroke-dashoffset: 84; }
+@keyframes pcRot { to { transform: rotate(270deg); } }
+#progChip.pc-warn .pc-fg { stroke: #ea580c; } #progChip.pc-err .pc-fg { stroke: #dc2626; } #progChip.pc-err { pointer-events: auto; cursor: pointer; }
+#progChip u { position: absolute; left: 50%; top: 50%; border-radius: 50%; opacity: 0; text-decoration: none; transform: translate(-50%, -50%) scale(0); }
+#progChip .pc-dot { width: 11px; height: 11px; background: radial-gradient(circle, #ffe08a, #f9a825 70%); box-shadow: 0 0 10px 2px rgba(249,168,37,.75); }
+#progChip .pc-r { width: 11px; height: 11px; border: 2px solid #f9a825; box-sizing: border-box; }
+/* الاكتمال: الحلقة تمتلئ ثم تنكمش إلى نقطة ذهبية ثم تشعّ بموجتين في كل الاتجاهات وتختفي */
+#progChip.pc-ok svg { animation: pcToDot .4s ease-in .3s forwards; }
+#progChip.pc-ok .pc-dot { animation: pcDot 1.25s ease-out .55s forwards; }
+#progChip.pc-ok .pc-r1 { animation: pcRipple .85s ease-out .95s forwards; }
+#progChip.pc-ok .pc-r2 { animation: pcRipple .85s ease-out 1.2s forwards; }
+@keyframes pcToDot { to { transform: rotate(-90deg) scale(.2); opacity: 0; } }
+@keyframes pcDot { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.2); } 25% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 55% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(1.8); } }
+@keyframes pcRipple { 0% { opacity: .85; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -50%) scale(7); } }

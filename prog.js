@@ -79,13 +79,31 @@ const Prog = {
         ln.innerHTML = '<b></b>'; ed.el.appendChild(ln); h.line = ln;
     },
     detach(h) { if (h.line) { try { h.line.remove(); } catch (e) { /* تجاهل */ } h.line = null; } },
+    // القرص: حلقة تقدم ذهبية تحيط بشعار التطبيق في الترويسة (موضع ثابت). عند الاكتمال تتحول لنقطة ثم تشع وتختفي
     chip() {
         let c = document.getElementById('progChip');
-        if (!c) { c = document.createElement('div'); c.id = 'progChip'; c.hidden = true; c.setAttribute('role', 'status'); c.addEventListener('click', () => { const h = Prog.cur; if (h && h.state !== 'run') Prog.hide(); }); document.body.appendChild(c); }
+        if (!c) {
+            c = document.createElement('div'); c.id = 'progChip'; c.hidden = true; c.setAttribute('role', 'status');
+            c.innerHTML = '<svg viewBox="0 0 44 44" aria-hidden="true"><circle class="pc-tr" cx="22" cy="22" r="19"/><circle class="pc-fg" cx="22" cy="22" r="19"/></svg><u class="pc-dot"></u><u class="pc-r pc-r1"></u><u class="pc-r pc-r2"></u>';
+            c.addEventListener('click', () => { const h = Prog.cur; if (h && h.state !== 'run') Prog.hide(); });
+            document.body.appendChild(c);
+        }
         return c;
     },
+    // مرساة القرص: شعار الترويسة الظاهر (نفس المكان بكل النوافذ)، وإلا أعلى يمين الشاشة
+    chipPos(c) {
+        let best = null;
+        try {
+            const L = [...document.querySelectorAll('.brand-logo')].filter(e => { const r = e.getBoundingClientRect(); return r.width > 10 && r.top >= -2 && r.bottom < 220 && r.right > 0 && r.left < window.innerWidth && getComputedStyle(e).visibility !== 'hidden' && !e.closest('[hidden]') && +getComputedStyle(e).opacity > 0.05; });
+            best = L.find(e => { const r = e.getBoundingClientRect(), t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return t && (t === e || e.contains(t)); }) || L[0] || null;
+        } catch (e) { best = null; }
+        let cx, cy, d = 52;
+        if (best) { const r = best.getBoundingClientRect(); cx = r.left + r.width / 2; cy = r.top + r.height / 2; d = Math.round(Math.max(r.width, r.height) + 12); }
+        else { cx = window.innerWidth - 36; cy = 36; }
+        c.style.width = c.style.height = d + 'px'; c.style.left = Math.round(cx - d / 2) + 'px'; c.style.top = Math.round(cy - d / 2) + 'px';
+    },
     hide() { const h = Prog.cur; if (h) Prog.detach(h); if (Prog.el) Prog.el.hidden = true; Prog.chipHide(); clearInterval(Prog.timer); Prog.cur = null; },
-    chipHide() { const c = document.getElementById('progChip'); if (c) c.hidden = true; },
+    chipHide() { const c = document.getElementById('progChip'); if (c) { c.hidden = true; c.dataset.m = ''; c.className = ''; } clearInterval(Prog.posTimer); Prog.posTimer = 0; },
     fmtT(s) { s = Math.max(0, Math.round(s)); return s < 60 ? s + ' ث' : Math.floor(s / 60) + ' د ' + (s % 60) + ' ث'; },
     paint() {
         const h = Prog.cur, el = Prog.el; if (!h || !el) return;
@@ -96,12 +114,12 @@ const Prog = {
             const cls = h.state === 'ok' ? 'ok' : h.state === 'err' ? 'err' : stale ? 'warn' : 'run';
             const pc = h.state === 'ok' ? 100 : det ? Math.max(3, Math.round(h.pct)) : 100;
             if (h.line) { h.line.className = 'hd-prog pl-' + cls + (det || h.state !== 'run' ? '' : ' ind') + (h.line.classList.contains('at-top') ? ' at-top' : ''); h.line.style.setProperty('--w', pc + '%'); }
-            const c = Prog.chip();
-            const lbl = h.state === 'ok' ? '✓' : h.state === 'err' ? '!' : (det ? Math.round(h.pct) + '٪' : '');
-            const tx = (h.state === 'run' && h.text && (Date.now() - h.t0) > 1200) ? ' · ' + h.text : '';
-            c.className = 'pc-' + cls;
-            c.innerHTML = (h.state === 'run' ? '<i class="pc-spin"></i>' : '') + '<b>' + escapeHtml(lbl) + '</b>' + '';
-            c.title = h.title + (h.text ? ' — ' + h.text : ''); c.hidden = (Date.now() - h.t0) < 500 && h.state === 'run';
+            const c = Prog.chip(), mode = cls + (det || h.state !== 'run' ? '' : ' ind');
+            if (c.dataset.m !== mode) { c.dataset.m = mode; c.className = 'pc-' + cls + (mode.endsWith('ind') ? ' pc-ind' : ''); }   // لا نعيد الرسم كل مرة حتى لا تُعاد حركة الاكتمال
+            c.style.setProperty('--p', h.state === 'ok' ? 100 : det ? Math.max(3, Math.round(h.pct)) : 0);
+            c.title = h.title + (h.text ? ' — ' + h.text : '');
+            const was = c.hidden; c.hidden = (Date.now() - h.t0) < 500 && h.state === 'run';
+            if (!c.hidden) { Prog.chipPos(c); if (!Prog.posTimer) Prog.posTimer = setInterval(() => { const cc = document.getElementById('progChip'); if (cc && !cc.hidden) Prog.chipPos(cc); }, 150); }
         }
         const now = Date.now(), el_s = (now - h.t0) / 1000, idle = (now - h.last) / 1000, det = h.pct !== null;
         const pct = det ? Math.round(h.pct) : 0;
