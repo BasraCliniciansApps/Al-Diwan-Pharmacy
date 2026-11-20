@@ -5342,7 +5342,9 @@ function stockAfterSale(p, n, unit) {
 }
 // أولوية البيع للمواد المتجزئة: pack (علبة أولاً) | part (جزء أولاً) | packOnly | partOnly
 function sellMode(p) { const m = p && hasRetail(p) ? (p.sellPri || 'pack') : 'pack'; return ['pack', 'part', 'packOnly', 'partOnly'].includes(m) ? m : 'pack'; }
-function sellDefUnit(p) { const m = sellMode(p); return m === 'part' || m === 'partOnly' ? 'part' : 'pack'; }
+// «العلبة أولاً» ينتقل تلقائياً إلى الجزء حين تنفد العبوات الكاملة ويبقى أجزاء فقط، ويعود للعلبة بمجرد دخول وارد يزيد العبوات (بلا حالة مخزّنة)
+const sellAutoPart = p => !!p && hasRetail(p) && sellMode(p) === 'pack' && (parseInt(p.qty) || 0) <= 0 && (parseInt(p.loose) || 0) > 0;
+function sellDefUnit(p) { const m = sellMode(p); return m === 'part' || m === 'partOnly' || sellAutoPart(p) ? 'part' : 'pack'; }
 function sellLocked(p) { const m = sellMode(p); return m === 'packOnly' || m === 'partOnly'; }
 function stockLabel(p) {
     const q = parseInt(p.qty) || 0, l = parseInt(p.loose) || 0;

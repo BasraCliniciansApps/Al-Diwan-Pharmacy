@@ -193,7 +193,7 @@ function cnSyncParts(l) {
 }
 
 // ---------- الإضافة والبحث ----------
-function cnUnits(p) { const m = sellMode(p); return m === 'partOnly' ? ['part'] : m === 'packOnly' || !hasRetail(p) ? ['pack'] : m === 'part' ? ['part', 'pack'] : ['pack', 'part']; }
+function cnUnits(p) { const m = sellMode(p); return m === 'partOnly' ? ['part'] : m === 'packOnly' || !hasRetail(p) ? ['pack'] : m === 'part' || sellAutoPart(p) ? ['part', 'pack'] : ['pack', 'part']; }
 function cnDefPrice(p, unit) { return unit === 'part' ? subPriceOf(p) : (parseFloat(p.price) || 0); }
 function cnAddProduct(pid) {
     const p = products.find(x => x.id === pid); if (!p || !cnCur) return;
