@@ -68,9 +68,11 @@ function fsRefresh() {
 function fsApply(id) {
     fsBuild(); if (!fsBuilt) return;
     const sb = document.querySelector('#formModal .scan-box'); if (sb) sb.classList.remove('fs-open');
-    const isNew = !id; fsQuick = !!(isNew && typeof puAwaiting !== 'undefined' && puAwaiting);
-    FS_DEF.forEach(s => { const e = fsEl('fs-' + s.id); if (!e) return; e.classList.toggle('open', s.open); (s.subs || []).forEach(u => { const x = fsEl('fs-' + u.id); if (!x) return; let o = u.open; x.classList.toggle('open', o); x.classList.toggle('fs-hide', fsQuick && u.id !== 'price'); }); });
-    let n = fsEl('fsQuickNote'); if (fsQuick) { if (!n) { n = document.createElement('div'); n.id = 'fsQuickNote'; n.className = 'fs-note'; n.innerHTML = '⚡ <b>إضافة سريعة من الوارد</b> — الكمية والنفاذ وسعر الشراء تُسجَّل من الوارد نفسه. أكمل الاسم والتصنيف والسعر فقط.'; fsEl('fsSections').insertAdjacentElement('beforebegin', n); } n.style.display = 'block'; } else if (n) n.style.display = 'none';
+    const isNew = !id;
+    if (typeof puAwaiting !== 'undefined' && puAwaiting && currentView !== 'purch') puAwaiting = false;   // علَم قديم لإضافة سريعة لم تكتمل
+    fsQuick = !!(isNew && typeof puAwaiting !== 'undefined' && puAwaiting);
+    FS_DEF.forEach(s => { const e = fsEl('fs-' + s.id); if (!e) return; e.classList.toggle('open', s.open); (s.subs || []).forEach(u => { const x = fsEl('fs-' + u.id); if (!x) return; let o = u.open; x.classList.toggle('open', o); x.classList.toggle('fs-hide', fsQuick && (u.id === 'stock' || u.id === 'exp')); }); });
+    let n = fsEl('fsQuickNote'); if (fsQuick) { if (!n) { n = document.createElement('div'); n.id = 'fsQuickNote'; n.className = 'fs-note'; n.innerHTML = '⚡ <b>إضافة سريعة من الوارد</b> — الكمية والنفاذ وسعر الشراء تُسجَّل من الوارد نفسه. أكمل الاسم والتصنيف والسعر والتجزئة.'; fsEl('fsSections').insertAdjacentElement('beforebegin', n); } n.style.display = 'block'; } else if (n) n.style.display = 'none';
     fsRefresh(); clearInterval(fsTimer); fsTimer = setInterval(() => { const m = fsEl('formModal'); if (!m || m.style.display === 'none') { clearInterval(fsTimer); return; } fsRefresh(); }, 700);
     const card = document.querySelector('#formModal .modal-card'); if (card) card.scrollTop = 0;
 }
