@@ -129,10 +129,11 @@ async function openUsers() {
     shScreen('usersScr', 'المستخدمون والصلاحيات', usersCache.length ? usersHtml() : '<div class="bill-none">جاري تحميل المستخدمين...</div>');
     const h = Prog.start('تحميل المستخدمين', { text: 'جاري القراءة من السحابة...' });
     try {
-        const snap = await db.collection('pharmacy_users').get(); usersCache = [];
+        let snap; try { snap = await db.collection('pharmacy_users').get(); } catch (e1) { snap = await db.collection('pharmacy_users').get({ source: 'server' }); }   // خلل داخلي عابر في ذاكرة Firestore المحلية: نقرأ من الخادم مباشرة
+        usersCache = [];
         snap.forEach(d => usersCache.push({ uid: d.id, ...d.data() }));
         h.ok('تم التحميل');
-    } catch (e) { h.fail('تعذر القراءة'); shScreenClose('usersScr'); Swal.fire({ icon: 'error', title: 'تعذر قراءة المستخدمين', html: 'أضف قواعد المستخدمين في Firebase أولاً (ملف firestore.rules).<br><small>' + escapeHtml(e.message || '') + '</small>', confirmButtonColor: '#0f1c38' }); return; }
+    } catch (e) { h.fail('تعذر القراءة'); shScreenClose('usersScr'); Swal.fire({ icon: 'error', title: 'تعذر قراءة المستخدمين', html: ((e && e.code === 'permission-denied') ? 'أضف قواعد المستخدمين في Firebase أولاً (ملف firestore.rules).' : 'تعذّرت القراءة من السحابة. تحقق من الاتصال ثم أعد المحاولة، وإن تكرر أغلق التطبيق وافتحه من جديد.') + '<br><small>' + escapeHtml(e.message || '') + '</small>', confirmButtonColor: '#0f1c38' }); return; }
     shScreen('usersScr', 'المستخدمون والصلاحيات', usersHtml());
 }
 function usersHtml() {
