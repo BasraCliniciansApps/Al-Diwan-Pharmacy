@@ -5075,3 +5075,8 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .p2-top .brand-bar,.p2-top .brand-id,.p2-top .brand-logo{overflow:visible}.p2-top .brand-logo{position:relative;z-index:3}.p2-top .brand-logo .sync-dot{z-index:4}
 
 .hdt-i{display:inline-flex}
+
+/* نوافذ الصفحة الكاملة: ترويسة موحدة وأزرار سفلية متساوية بسطر واحد */
+.dw-page .swal2-title.dw-title{min-height:58px;box-sizing:border-box;display:flex!important;align-items:center;justify-content:flex-start;box-shadow:inset 0 -1px 0 rgba(244,183,63,.7)}
+.dw-page .swal2-actions.dw-actions .dw-btn{display:inline-flex!important;align-items:center;justify-content:center;gap:4px;white-space:nowrap;font-size:.82rem!important;padding:0 6px!important;line-height:1.2;height:48px!important;min-width:0}
+.dw-page .swal2-actions.dw-actions .dw-btn svg,.dw-page .swal2-actions.dw-actions .dw-btn img{flex:0 0 auto;width:18px;height:18px}

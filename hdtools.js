@@ -51,12 +51,7 @@
     }
     if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
 
-    // الشعار يرجع للرئيسية (باستثناء نقطة المزامنة)
-    document.addEventListener('click', e => {
-        const l = e.target.closest && e.target.closest('.brand-logo'); if (!l || e.target.closest('.sync-dot') || l.closest('#progChip')) return;
-        if (typeof currentView !== 'undefined' && currentView === 'home' && !document.querySelector('.tax-rv, .cn-ov, .help-hub, .lg-ov')) return;
-        if (typeof hdGo === 'function') hdGo('home');
-    });
+    // الشعار يفتح حالة المزامنة (سلوك قائم في data.js)؛ الرئيسية من قائمة المزيد
 
     // ===== مسار الرجوع =====
     // زر الرجوع = خطوة للخلف إلى المكان الذي كنت فيه قبل الدخول للمكان الحالي (حتى لو كان نافذة منبثقة كشاشة البيع)
