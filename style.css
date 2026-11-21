@@ -5083,3 +5083,4 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 
 /* ترويسة الإعدادات: لا فاصل بين الترويسة وشريط البحث (نفس الكتلة) */
 #catModal .sh-sbar{margin-top:-2px!important;padding-top:2px!important}
+.dw-page .swal2-actions.dw-actions .dw-btn[style*="display: none"]{display:none!important}

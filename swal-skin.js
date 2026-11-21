@@ -3,9 +3,9 @@
     'use strict';
     if (!window.Swal || !Swal.fire || Swal.__dw) return;
     var ICMAP = { question: 'circle-question-mark', warning: 'triangle-alert', error: 'circle-x', success: 'circle-check', info: 'info' };
-    var orig = Swal.fire.bind(Swal);
+    var orig = Swal.fire.bind(Swal);   // ملاحظة: التسعير السريع (qp-pop) يمر عبر الغلاف ليُعرض كصفحة كاملة مثل المفصل
     Swal.fire = function (o) {
-        if (!o || typeof o !== 'object' || o.toast || (o.customClass && o.customClass.popup && o.customClass.popup !== 'lbl-pop')) return orig.apply(null, arguments);
+        if (!o || typeof o !== 'object' || o.toast || (o.customClass && o.customClass.popup && o.customClass.popup !== 'lbl-pop' && o.customClass.popup !== 'dw-pop qp-pop')) return orig.apply(null, arguments);
         var o2 = Object.assign({}, o);
         if (o2.confirmButtonText === undefined) o2.confirmButtonText = 'حسناً';   // لا يظهر «OK» الإنجليزي أبداً
         if (o2.cancelButtonText === undefined) o2.cancelButtonText = 'إلغاء';
