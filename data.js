@@ -649,7 +649,7 @@ async function initFirebase() {
                     if (snap.empty && products.length > 0 && navigator.onLine && userRole === 'owner') pushToCloud(false);
                 } catch (e) { /* بدون اتصال: نكمل من النسخة المحلية */ }
                 if (can('stockView') || can('sell')) startStockListener();
-                if (userRole === 'owner') startCostListener();
+                if (userRole === 'owner' || can('scanCost')) startCostListener();
                 checkPending();
                 if (userRole === 'owner') setTimeout(() => { if (typeof syncLocalRecords === 'function') syncLocalRecords(true).catch(() => {}); }, 4000);
                 if (userRole === 'owner') setTimeout(autoMaintenance, 9000);   // نسخة احتياطية أسبوعية + تنظيف السلة والسجل

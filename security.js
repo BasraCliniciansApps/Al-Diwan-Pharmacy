@@ -1,6 +1,7 @@
 // الأمان: فصل التكلفة إلى مجموعة pharmacy_cost المقفلة على المدير (ثم الأدوار والمستخدمون)
 const COST_RULE = `match /pharmacy_cost/{id} {
-  allow read, write: if request.auth != null && request.auth.uid == "VrZUN6AMvTPMklvhlZcwKlqJciY2";
+  allow read: if request.auth != null && (request.auth.uid == "VrZUN6AMvTPMklvhlZcwKlqJciY2" || get(/databases/$(database)/documents/pharmacy_users/$(request.auth.uid)).data.perms.get("scanCost", false) == true);
+  allow write: if request.auth != null && request.auth.uid == "VrZUN6AMvTPMklvhlZcwKlqJciY2";
 }`;
 function costLeftovers() { return Object.entries(stockMap).filter(([, s]) => s && COST_FIELDS.some(f => f in s)).map(([id]) => id); }
 async function openCostSplit() {
@@ -66,7 +67,7 @@ async function costSplitStep2() {
 // كل موظف حساب Firebase حقيقي (بريد داخلي + رمز سري)، وصلاحياته في pharmacy_users/{uid}،
 // وقواعد Firestore (firestore.rules) هي التي تفرضها فعلاً، والواجهة تُخفي الأزرار فقط.
 // ============================================================================
-const PERM_LABELS = { sell: 'إصدار الفواتير (البيع)', stockView: 'عرض المخزن والكميات', stockEdit: 'تعديل المواد والكميات والجرد', purchases: 'الوارد والمذاخر والسجلات', catalog: 'سجل الأدوية (تسعير وكميات وإضافة سريعة — يشمل تعديل المواد)', scan: 'فاحص المادة (سعر البيع وتواريخ الانتهاء)', scanDisc: 'فاحص المادة: حد الخصم وحاسبة الخصم', scanDel: 'فاحص المادة: حذف تواريخ الانتهاء (يحتاج تعديل المواد)', newItem: 'إضافة صنف جديد أو ربط باركود عند مسح باركود غير مسجّل', invList: 'قوائم الجرد (إدخال الأعداد والأسعار وتحديث المخزن منها)', cancelOwn: 'إلغاء فواتيره هو (تُرجَع الكميات إلى المخزن)', deleteOwn: 'حذف فواتيره الملغاة نهائياً', followups: 'المتابعات (وعود المندوبين والمواد المأخوذة)' };
+const PERM_LABELS = { sell: 'إصدار الفواتير (البيع)', stockView: 'عرض المخزن والكميات', stockEdit: 'تعديل المواد والكميات والجرد', purchases: 'الوارد والمذاخر والسجلات', catalog: 'سجل الأدوية (تسعير وكميات وإضافة سريعة — يشمل تعديل المواد)', scan: 'فاحص المادة (سعر البيع وتواريخ الانتهاء)', scanDisc: 'فاحص المادة: حد الخصم وحاسبة الخصم', scanDel: 'فاحص المادة: حذف تواريخ الانتهاء (يحتاج تعديل المواد)', scanCost: 'فاحص المادة: إظهار سعر الشراء (الكلفة) والربح', newItem: 'إضافة صنف جديد أو ربط باركود عند مسح باركود غير مسجّل', invList: 'قوائم الجرد (إدخال الأعداد والأسعار وتحديث المخزن منها)', cancelOwn: 'إلغاء فواتيره هو (تُرجَع الكميات إلى المخزن)', deleteOwn: 'حذف فواتيره الملغاة نهائياً', followups: 'المتابعات (وعود المندوبين والمواد المأخوذة)' };
 const PERM_PRESETS = { seller: { sell: true, stockView: true }, manager: { sell: true, stockView: true, stockEdit: true, catalog: true } };
 function loginKey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/[\/#?\[\]\.]/g, ''); }
 
@@ -148,7 +149,7 @@ const PERM_GROUPS = [
     ['المبيعات', ['sell', 'cancelOwn', 'deleteOwn']],
     ['المخزن', ['stockView', 'stockEdit', 'catalog', 'newItem', 'invList']],
     ['الوارد والسجلات', ['purchases']],
-    ['فاحص المادة', ['scan', 'scanDisc', 'scanDel']],
+    ['فاحص المادة', ['scan', 'scanDisc', 'scanCost', 'scanDel']],
     ['المتابعات', ['followups']]
 ];
 const PERM_TXT = {
@@ -163,6 +164,7 @@ const PERM_TXT = {
     purchases: ['الوارد والمذاخر والسجلات', 'فواتير الوارد والمذاخر وسجلاتها.'],
     scan: ['فاحص المادة', 'سعر البيع وتواريخ الانتهاء.'],
     scanDisc: ['حد الخصم وحاسبة الخصم', 'داخل فاحص المادة.'],
+    scanCost: ['إظهار سعر الشراء (الكلفة)', 'داخل فاحص المادة: أقل وأعلى وآخر سعر شراء والربح. مغلق افتراضياً، ويحتاج نشر قواعد Firebase المحدّثة.'],
     scanDel: ['حذف تواريخ الانتهاء', 'داخل فاحص المادة، ويتطلب تعديل المواد.'],
     followups: ['المتابعات', 'تسجيل وعود المندوبين والمواد المأخوذة ومتابعتها. خصم الكميات من المخزن يتطلب صلاحية البيع أو تعديل المواد.']
 };

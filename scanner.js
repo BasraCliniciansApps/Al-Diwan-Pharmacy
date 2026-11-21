@@ -63,7 +63,7 @@ function scRender() {
     let h = `<div class="sc-head">${p.img ? `<img src="${escapeHtml(p.img)}" alt="" onerror="this.style.display='none'">` : '<span class="sc-noimg">💊</span>'}<div><b dir="ltr">${dispNameHtml(p)}</b><small>بالمخزن: ${escapeHtml(stockLabel(p))}</small></div></div>`;
     if (sh.price) h += `<div class="sc-sec sc-price"><span>سعر البيع</span><b>${price > 0 ? fmtNum(price) + ' د.ع' : '— غير مسعّرة'}</b>${hasRetail(p) ? `<small>سعر <bdi>${escapeHtml(subTypeOf(p))}</bdi>: <bdi>${fmtNum(subPriceOf(p))} د.ع</bdi></small>` : ''}</div>`;
     let refCost = Number(p.costPrice) || 0;
-    if (own && sh.cost) {
+    if ((own || can('scanCost')) && sh.cost) {
         const L = scBuyLines(p);
         if (L.length || refCost > 0) {
             const cs = L.map(x => x.c), lo = L.length ? L.reduce((a, b) => b.c < a.c ? b : a) : null, hi = L.length ? L.reduce((a, b) => b.c > a.c ? b : a) : null, last = L[0];

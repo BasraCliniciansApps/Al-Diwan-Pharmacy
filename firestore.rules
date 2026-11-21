@@ -40,7 +40,8 @@ service cloud.firestore {
 
     // ---- سعر الشراء وآخر وارد: للمالك فقط ----
     match /pharmacy_cost/{id} {
-      allow read, write: if isOwner();
+      allow read: if isOwner() || perm('scanCost');   // سعر الشراء داخل فاحص المادة لمن منحه المدير الصلاحية
+      allow write: if isOwner();
     }
 
     // ---- المصروفات (للمالك فقط) ----
