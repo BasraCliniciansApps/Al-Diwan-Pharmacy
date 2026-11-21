@@ -20,10 +20,10 @@
     const ok = k => { try { return typeof can !== 'function' || can(k); } catch (e) { return true; } };
     window.hdAlertN = window.hdAlertN || 0;
 
-    function toolsHtml(noSearch, noScan) {
+    function toolsHtml(noSearch, noScan, noBell) {
         const b = (cls, on, ic, label, extra) => '<button type="button" class="hdt ' + cls + '" onclick="' + on + '" aria-label="' + label + '" title="' + label + '">' + ic + (extra || '') + '</button>';
         return (noSearch ? '' : b('hdt-s', 'hdSearch()', IC.search, 'بحث شامل')) + (noScan ? '' : b('hdt-c', 'hdScan()', IC.scan, 'مسح باركود')) +
-            b('hdt-b bell-btn', "goAlerts('all')", IC.bell, 'التنبيهات', '<i class="bell-badge hd-alert-n"></i><i class="bell-badge doc-badge" title="طلبات الأطباء"></i><i class="bell-badge rx-badge" title="وصفات جديدة"></i>') +
+            (noBell ? '' : b('hdt-b bell-btn', "goAlerts('all')", IC.bell, 'التنبيهات', '<i class="bell-badge hd-alert-n"></i><i class="bell-badge doc-badge" title="طلبات الأطباء"></i><i class="bell-badge rx-badge" title="وصفات جديدة"></i>')) +
             b('hdt-m', 'hdMore()', IC.more, 'القائمة');
     }
     function refresh() {
@@ -39,7 +39,7 @@
             if (el.dataset.hdt || el.closest('.pos-head')) return;   // شاشة البيع تبقى بأزرارها
             el.dataset.hdt = '1';
             const keep = el.classList.contains('hd-nav') ? [] : [...el.children].filter(c => !KEEP_OUT.test(c.getAttribute('onclick') || ''));
-            const own = !!el.closest('.stk-bar, .p2-top'); el.innerHTML = toolsHtml(own, own); keep.forEach(k => el.appendChild(k));
+            const own = !!el.closest('.stk-bar, .p2-top'); el.innerHTML = toolsHtml(own, own, !!el.closest('#alertsView')); keep.forEach(k => el.appendChild(k));
         });
         refresh();
     }
