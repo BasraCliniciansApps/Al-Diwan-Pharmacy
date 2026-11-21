@@ -58,8 +58,48 @@
         if (typeof hdGo === 'function') hdGo('home');
     });
 
+    // ===== مسار الرجوع =====
+    // زر الرجوع = خطوة للخلف إلى المكان الذي كنت فيه قبل الدخول للمكان الحالي (حتى لو كان نافذة منبثقة كشاشة البيع)
+    const REOPEN = [['p2Ov', 'posOpen'], ['posOv', 'posOpen'], ['cnOv', 'cnHub'], ['cuOv', 'cuOpen'], ['exOv', 'exOpen'], ['fuOv', 'fuOpen'], ['ndOv', 'ndOpen'], ['rxHub', 'rxOpen'], ['dataHub', 'dhOpen'], ['helpHub', 'helpOpen']];
+    const shownEl = id => { const e = document.getElementById(id); return !!e && !!e.style.display && e.style.display !== 'none'; };
+    function originEntry() {
+        const cv = (typeof currentView !== 'undefined') ? currentView : 'home';
+        for (const [id, fn] of REOPEN) if (shownEl(id) && typeof window[fn] === 'function') return '@' + fn + '|' + cv;
+        return null;
+    }
+    window.__reopenEntry = function (ent) {
+        const m = /^@(\w+)\|(\w*)$/.exec(String(ent)); if (!m) return false;
+        window.__navBack = true; try { if (m[2] && currentView !== m[2]) showView(m[2]); } finally { window.__navBack = false; }
+        setTimeout(() => { try { if (m[1] === 'posOpen') window.__dwDirect = window.__dwGo === 'pos' ? 'pos' : window.__dwDirect; window[m[1]](); if (window.__syncBackGuards) window.__syncBackGuards(); } catch (e) { /* تجاهل */ } }, 30);
+        return true;
+    };
+    window.hdGo = function (view) {
+        const cv = (typeof currentView !== 'undefined') ? currentView : 'home';
+        const ent = originEntry();
+        try { if (window.__closeAllLayers && !window.__closeAllLayers()) return; } catch (e) { /* تجاهل */ }
+        if (view === 'home') { window.__viewStack = []; try { showView('home'); } catch (e) { /* تجاهل */ } }
+        else {
+            const st = window.__viewStack = window.__viewStack || [];
+            if (cv === view && !ent) return;
+            window.__navBack = true; try { showView(view); } finally { window.__navBack = false; }
+            if (ent) st.push(ent); else if (cv && cv !== view && !['splash', 'login', 'home'].includes(cv) && st[st.length - 1] !== cv) st.push(cv);
+        }
+        setTimeout(() => { try { window.__syncBackGuards && window.__syncBackGuards(); } catch (e) { /* تجاهل */ } }, 50);
+    };
+
     // ===== مسح باركود =====
-    window.hdScan = function () { try { if (window.__closeAllLayers) window.__closeAllLayers(); window.__dwDirect = ''; scGo(); } catch (e) { /* تجاهل */ } };
+    window.hdScan = function () {
+        try {
+            const ent = originEntry(), cv = (typeof currentView !== 'undefined') ? currentView : 'home';
+            if (window.__closeAllLayers) window.__closeAllLayers();
+            window.__dwDirect = ''; window.__scReturn = ent;
+            scGo();
+        } catch (e) { /* تجاهل */ }
+    };
+    window.addEventListener('load', () => {
+        const o = window.scClose; if (typeof o !== 'function') return;
+        window.scClose = function () { const r = o.apply(this, arguments); const ent = window.__scReturn; if (ent) { window.__scReturn = null; setTimeout(() => window.__reopenEntry(ent), 60); } return r; };
+    });
 
     // ===== بحث شامل =====
     let hsT = 0;

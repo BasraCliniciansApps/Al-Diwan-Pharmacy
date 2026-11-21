@@ -5627,10 +5627,11 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
     function backView() {
         if (!(IS_ADMIN_PAGE && typeof currentView !== 'undefined' && !['home', 'login', 'splash'].includes(currentView))) return false;
         if (currentView === 'bill' && typeof bill !== 'undefined' && bill && bill.editing) {   // فاتورة قيد التعديل: لا نخرج بصمت، نسأل أولاً
-            (async () => { let ok = false; try { ok = await askSure('إلغاء التعديل؟', 'ستضيع كل التغييرات غير المحفوظة على هذه الفاتورة.', 'إلغاء التعديل'); } catch (e) { /* تجاهل */ } if (!ok) return; try { cancelInvoiceEditNow(); } catch (e) { /* تجاهل */ } const prev = (window.__viewStack || []).pop(); window.__navBack = true; try { showView(prev && prev !== currentView ? prev : 'home'); } finally { window.__navBack = false; } })();
+            (async () => { let ok = false; try { ok = await askSure('إلغاء التعديل؟', 'ستضيع كل التغييرات غير المحفوظة على هذه الفاتورة.', 'إلغاء التعديل'); } catch (e) { /* تجاهل */ } if (!ok) return; try { cancelInvoiceEditNow(); } catch (e) { /* تجاهل */ } const prev = (window.__viewStack || []).pop(); if (prev && String(prev)[0] === '@' && window.__reopenEntry && window.__reopenEntry(prev)) return; window.__navBack = true; try { showView(prev && prev !== currentView ? prev : 'home'); } finally { window.__navBack = false; } })();
             return true;
         }
         const prev = (window.__viewStack || []).pop();
+        if (prev && String(prev)[0] === '@' && window.__reopenEntry && window.__reopenEntry(prev)) return true;   // العودة إلى نافذة كانت مفتوحة (مثل شاشة البيع)
         window.__navBack = true; try { showView(prev && prev !== currentView ? prev : 'home'); } finally { window.__navBack = false; }
         return true;
     }
