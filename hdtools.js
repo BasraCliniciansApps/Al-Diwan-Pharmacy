@@ -40,7 +40,7 @@
             if (el.dataset.hdt || el.closest('.pos-head')) return;   // شاشة البيع تبقى بأزرارها
             el.dataset.hdt = '1';
             const keep = el.classList.contains('hd-nav') ? [] : [...el.children].filter(c => !KEEP_OUT.test(c.getAttribute('onclick') || ''));
-            const own = !!el.closest('.stk-bar, .p2-top'); el.innerHTML = toolsHtml(own, own, !!el.closest('#alertsView'), !!el.closest('.p2-top')); keep.forEach(k => el.appendChild(k));
+            const own = !!el.closest('.stk-bar, .p2-top'); el.innerHTML = toolsHtml(own, own, !!el.closest('#alertsView'), false); keep.forEach(k => el.appendChild(k));
         });
         refresh();
     }
