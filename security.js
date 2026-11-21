@@ -169,7 +169,7 @@ const PERM_TXT = {
     scanDel: ['حذف تواريخ الانتهاء', 'داخل فاحص المادة، ويتطلب تعديل المواد.'],
     followups: ['المتابعات', 'تسجيل وعود المندوبين والمواد المأخوذة ومتابعتها. خصم الكميات من المخزن يتطلب صلاحية البيع أو تعديل المواد.']
 };
-const PERM_REQ = { cancelOwn: ['sell'], deleteOwn: ['cancelOwn'], catalog: ['stockEdit'], sell: ['stockView'], stockEdit: ['stockView'], purchases: ['stockView'], invList: ['stockView'], scanDel: ['stockEdit'] };
+const PERM_REQ = { scanCost: ['scan'], cancelOwn: ['sell'], deleteOwn: ['cancelOwn'], catalog: ['stockEdit'], sell: ['stockView'], stockEdit: ['stockView'], purchases: ['stockView'], invList: ['stockView'], scanDel: ['stockEdit'] };
 let usForm = null;   // { uid, dirty }
 function usPermRows(cur) {
     return PERM_GROUPS.map(([g, keys]) => `<h5 class="set-sec">${g}</h5>` + keys.map(k => `<div class="qk-row"><div><b>${PERM_TXT[k][0]}</b><small>${PERM_TXT[k][1]}</small></div><label class="setup-sw"><input type="checkbox" class="uPerm" data-p="${k}" ${cur && cur[k] ? 'checked' : ''}><i></i></label></div>`).join('')).join('');
@@ -225,17 +225,20 @@ async function userSave() {
         if (await userCreate(name, pin, perms)) { usForm = null; shScreenClose('userFormScr'); }
         return openUsers();
     }
-    const u = usersCache.find(x => x.uid === f.uid); if (!u) return;
+    const u = usersCache.find(x => x.uid === f.uid); if (!u) { Swal.fire({ icon: 'warning', title: 'تعذّر تحديد المستخدم', text: 'أعد فتح قائمة المستخدمين ثم حاول مرة أخرى.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     const active = document.getElementById('uActive').checked;
     if (pin && pin.length < 6) { Swal.fire({ icon: 'warning', title: 'الرمز 6 خانات على الأقل', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+    const hp = Prog.start('حفظ المستخدم', { text: 'جاري الحفظ في السحابة...' });
     try {
         if (pin) { await userCreate(u.name, pin, perms, f.uid); }
         else {
-            await db.collection('pharmacy_users').doc(f.uid).update({ perms, active });
+            const sv = h2 => Promise.race([h2, new Promise((_, rej) => setTimeout(() => rej(new Error('انتهت مهلة الحفظ: تحقق من الاتصال بالإنترنت ثم أعد المحاولة.')), 20000))]);
+            try { await sv(db.collection('pharmacy_users').doc(f.uid).update({ perms, active })); }
+            catch (e1) { if (!/INTERNAL ASSERTION|Unexpected state/i.test((e1 && e1.message) || '')) throw e1; await sv(db.collection('pharmacy_users').doc(f.uid).set({ perms, active }, { merge: true })); }
             if (u.login) { if (active) await db.collection('pharmacy_logins').doc(u.login).set({ email: u.email }); else await db.collection('pharmacy_logins').doc(u.login).delete(); }
         }
-        usForm = null; shScreenClose('userFormScr'); shToast('تم الحفظ ✓');
-    } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحفظ', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); return; }
+        hp.ok('تم الحفظ'); usForm = null; shScreenClose('userFormScr'); shToast('تم الحفظ ✓');
+    } catch (e) { hp.fail('تعذر الحفظ'); Swal.fire({ icon: 'error', title: 'تعذر الحفظ', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); return; }
     openUsers();
 }
 async function userDelete(uid) {
