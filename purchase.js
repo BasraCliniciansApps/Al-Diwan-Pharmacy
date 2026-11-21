@@ -31,7 +31,10 @@ function puTotalOf(r) { return (r.items || []).reduce((s, it) => s + puNum(it.qt
 function puNetOf(r) { return Math.max(puTotalOf(r) - puNum(r.returnAmt) - (typeof lgLinkedRet === 'function' ? lgLinkedRet(r.id, 'all') : 0), 0); }
 function puRemaining(r) { return r.cancelled ? 0 : Math.max(puNetOf(r) - puNum(r.paid), 0); }
 // وارد «بونص فقط» مستورد: يظهر في سجل البونص ولا يظهر كقائمة شراء عادية
-const puIsBonusOnly = r => !!(r && (r.bonusOnly || String(r.no || '').startsWith('BONUS-')));
+// قائمة «بونص فقط» بالمحتوى: كل موادها بلا كمية مشتراة (بونص مجاني فقط) وليس فيها مردود ولا كشف حساب؛ فقيمتها صفر وتُسجَّل في سجل البونص فقط.
+// أما القائمة التي فيها مردود أو مادة مشتراة فتبقى وارداً عادياً حتى لو كانت قيمتها صفراً.
+const puLooksBonus = r => !!(r && !r.gift && !r.stmt && !(puNum(r.returnAmt) > 0) && (r.items || []).length > 0 && r.items.every(l => (parseInt(l.qty) || 0) === 0 && (parseInt(l.bonus) || 0) > 0 && !(puNum(l.ret) > 0)));
+const puIsBonusOnly = r => !!(r && (r.bonusOnly || String(r.no || '').startsWith('BONUS-') || puLooksBonus(r)));
 const puKey = s => String(s || '').trim().toLowerCase();
 
 // ---------- التخزين (محلي + سحابة) ----------
@@ -579,6 +582,9 @@ async function puSave0() {
         rec = { id: recId, seq: puNextSeq((pu.useEntry ? todayLocalISO() : String(pu.date)).slice(0, 7)), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
     }
     if (gift) { rec.gift = true; rec.bonusOnly = true; delete rec.seq; }
+    else if (puLooksBonus(rec) && !(pu.items || []).some(it => puNum(it.ret) > 0)) { rec.bonusOnly = true; rec.autoBonus = true; delete rec.seq; }   // قائمة كلها بونص: لا تدخل سجل الوارد ولا الطلبيات
+    else if (rec.autoBonus) { rec.bonusOnly = false; rec.autoBonus = false; if (!rec.seq) rec.seq = puNextSeq(puMonthOf(rec), rec.id); }
+    const autoBo = !gift && !!rec.autoBonus;
     puSaveRecord(rec).catch(() => {});   // محلي فوراً، والسحابة بالخلفية
     try { if (typeof docOnArrive === 'function') docOnArrive((rec.items || []).map(l => l.pid), rec.id); } catch (e) { /* تجاهل */ }
     puUpsertSupplier(supplier).catch(() => {});
@@ -586,7 +592,7 @@ async function puSave0() {
     const retMap = {}; (pu.items || []).forEach(it => { if (puNum(it.ret) > 0) retMap[it.pid] = puNum(it.ret); });   // مواد علّمتها «مردود» أثناء الإدخال
     pu = emptyPurchase(); lsSet(PU_LS.draft, JSON.stringify(pu)); puInitNew();
     if (gift) { Swal.fire({ icon: 'success', title: editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ البونص وأُضيف للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 }); if (!editing && typeof fuAfterPurchase === 'function') setTimeout(() => fuAfterPurchase(rec), 2700); if (!editing && typeof ndAfterPurchase === 'function') ndAfterPurchase(rec); puTab('bonus'); return; }
-    Swal.fire({ icon: 'success', title: editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ الوارد وأُضيفت الكميات للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
+    Swal.fire({ icon: 'success', title: autoBo ? 'حُفظت كقائمة بونص وأُضيفت للمخزن (سجل البونص فقط)' : editing ? 'حُفظت التعديلات وصُحّح المخزن' : 'حُفظ الوارد وأُضيفت الكميات للمخزن', toast: true, position: 'bottom', showConfirmButton: false, timer: 2500 });
     if (!editing && typeof fuAfterPurchase === 'function') setTimeout(() => fuAfterPurchase(rec), 2700);   // وعود بونص مفتوحة على موادّ هذا الوارد
     if (!editing && typeof ndAfterPurchase === 'function') ndAfterPurchase(rec);   // خروج المواد الواصلة من «قيد الطلب»
     if (editing) puTab('log');
