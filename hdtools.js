@@ -34,19 +34,23 @@
     }
     window.hdToolsRefresh = refresh;
     const KEEP_OUT = /showView\('home'\)|helpOpen|gateLogout|goAlerts|p2Home/;
-    function mount(root) {
-        if (!root.querySelectorAll) return;
-        root.querySelectorAll('.hd-nav, .brand-actions').forEach(el => {
-            if (el.dataset.hdt || el.closest('.pos-head')) return;   // شاشة البيع تبقى بأزرارها
+    function mount() {
+        const list = document.querySelectorAll('.hd-nav:not([data-hdt]), .brand-actions:not([data-hdt])');
+        if (!list.length) return;
+        list.forEach(el => {
             el.dataset.hdt = '1';
+            if (el.closest('.pos-head')) return;   // ترويسة بيع قديمة تبقى بأزرارها
             const keep = el.classList.contains('hd-nav') ? [] : [...el.children].filter(c => !KEEP_OUT.test(c.getAttribute('onclick') || ''));
             const own = !!el.closest('.stk-bar, .p2-top'); el.innerHTML = toolsHtml(own, own, !!el.closest('#alertsView'), false); keep.forEach(k => el.appendChild(k));
         });
         refresh();
     }
+    let mq = 0;
+    const sched = () => { if (mq) return; mq = requestAnimationFrame(() => { mq = 0; mount(); }); };
     function start() {
-        mount(document.body);
-        new MutationObserver(ms => { ms.forEach(m => m.addedNodes.forEach(n => { if (n.nodeType === 1) mount(n); })); }).observe(document.body, { childList: true, subtree: true });
+        mount();
+        // مراقبة خفيفة: لا نفحص العقد المضافة، بل نجدول مسحاً واحداً لكل إطار، ونتجاهل تغييرات أزرارنا نفسها
+        new MutationObserver(ms => { for (const m of ms) { if (m.target && m.target.closest && m.target.closest('.hdt')) continue; if (m.addedNodes.length) { sched(); return; } } }).observe(document.body, { childList: true, subtree: true });
         setInterval(refresh, 3000);
     }
     if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);

@@ -204,7 +204,7 @@ function shOpen(id, boxKey) {
     if (tb) { tb.classList.add('open'); setTimeout(() => { tb.scrollIntoView({ behavior: 'smooth', block: 'start' }); tb.classList.add('sh-flash'); setTimeout(() => tb.classList.remove('sh-flash'), 1600); }, 120); }
     else card.scrollTop = 0;
 }
-function shSbarPos() { try { const h = document.getElementById('shTitle'), sb = document.getElementById('shSBar'); if (h && sb) sb.style.top = h.offsetHeight + 'px'; } catch (e) { /* تجاهل */ } }
+function shSbarPos() { try { const h = document.getElementById('shTitle'), sb = document.getElementById('shSBar'); if (h && sb) { const hh = h.getBoundingClientRect().height; sb.style.top = Math.floor(hh) + 'px'; sb.style.backgroundPosition = '0 ' + (-Math.round(hh) - 2) + 'px'; } } catch (e) { /* تجاهل */ } }
 function shSearch(v) {
     const q = shNorm(v).trim(), grid = document.getElementById('shGrid'), res = document.getElementById('shRes');
     grid.hidden = false;
