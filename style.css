@@ -5073,3 +5073,5 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 
 .hdt svg{display:block;stroke:currentColor}.hdt:hover{background:rgba(255,255,255,.24)}
 .p2-top .brand-bar,.p2-top .brand-id,.p2-top .brand-logo{overflow:visible}.p2-top .brand-logo{position:relative;z-index:3}.p2-top .brand-logo .sync-dot{z-index:4}
+
+.hdt-i{display:inline-flex}
