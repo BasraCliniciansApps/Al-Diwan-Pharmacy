@@ -80,6 +80,7 @@ function kpiPaint(c) {
     el.innerHTML = kpi('k-out', 'غير متوفر', c.out, "goStock('out')") + kpi('k-low', 'كمية قليلة', c.low, "goAlerts('low')") +
         kpi('k-exp', 'قريب الانتهاء', c.exp, "goAlerts('m6')") + kpi('k-sales', 'مبيعات اليوم', c.sales, "showView('bill'); billTab('reports')");
     ['homeAlertCount', 'stockAlertCount'].forEach(id => { const b = document.getElementById(id); if (b) { b.innerText = c.alerts; b.style.display = c.alerts ? 'flex' : 'none'; } });
+    window.hdAlertN = Number(c.alerts) || 0; if (window.hdToolsRefresh) window.hdToolsRefresh();
 }
 try { const c = JSON.parse(localStorage.getItem(KPI_KEY) || 'null'); if (c) { if (c.day !== new Date().toDateString()) c.sales = '0'; kpiPaint(c); } } catch (e) { /* تجاهل */ }
 
@@ -93,6 +94,7 @@ async function refreshHome() {
     if (typeof puLoad === 'function' && can('purchases')) Promise.all([puLoad(), typeof lgLoad === 'function' ? lgLoad() : null]).then(puHomeBadge).catch(() => {});   // المردود المرتبط يأتي من دفتر الحسابات: ننتظره قبل حساب المستحق
     const hb = document.getElementById('homeAlertCount');
     if (hb) { hb.innerText = alertsTotal; hb.style.display = alertsTotal ? 'flex' : 'none'; }
+    window.hdAlertN = alertsTotal; if (window.hdToolsRefresh) window.hdToolsRefresh();
     const sb = document.getElementById('stockAlertCount');
     if (sb) { sb.innerText = alertsTotal; sb.style.display = alertsTotal ? 'flex' : 'none'; }
     const render = (sales) => {

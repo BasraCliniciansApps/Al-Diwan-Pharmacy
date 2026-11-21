@@ -31,7 +31,7 @@ const Prog = {
         document.body.appendChild(el); Prog.el = el;
     },
     // ===== ربط الشريط بالنافذة: الشريط عنصر داخل ترويسة النافذة نفسها فيتحرك ويختفي معها =====
-    LAYERS: '.swal2-popup, .px-sheet, .modal-overlay .modal-card, .tax-rv, .cn-ov, .p2-ov, .pos-ov, .help-hub, .lg-ov, .wa-ov, .qi-ov, .srt-sheet, .bottom-sheet.open, .app-view, #stockView',
+    LAYERS: '.swal2-popup, .px-sheet, .modal-overlay .modal-card, .tax-rv, .cn-ov, .p2-ov, .pos-ov, .help-hub, .lg-ov, .wa-ov, .qi-ov, .srt-sheet, .bottom-sheet.open, .hm-sheet, .hs-panel, .app-view, #stockView',
     HDR: '.hd-2, .tr-head, .cn-head, .pos-head, .p2-head, .fm-top, .sh-bar, .sh-sbar, .rv-top, .lg-title, .px-hd, .help-top, .mc-hd, .inv-head, .dw-title, .top-bar, .bill-top, .page-title',
     shown(e) {
         if (!e || !e.isConnected) return false;
