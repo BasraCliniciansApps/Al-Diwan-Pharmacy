@@ -67,7 +67,7 @@ async function costSplitStep2() {
 // كل موظف حساب Firebase حقيقي (بريد داخلي + رمز سري)، وصلاحياته في pharmacy_users/{uid}،
 // وقواعد Firestore (firestore.rules) هي التي تفرضها فعلاً، والواجهة تُخفي الأزرار فقط.
 // ============================================================================
-const PERM_LABELS = { sell: 'إصدار الفواتير (البيع)', stockView: 'عرض المخزن والكميات', stockEdit: 'تعديل المواد والكميات والجرد', purchases: 'الوارد والمذاخر والسجلات', catalog: 'سجل الأدوية (تسعير وكميات وإضافة سريعة — يشمل تعديل المواد)', scan: 'فاحص المادة (سعر البيع وتواريخ الانتهاء)', scanDisc: 'فاحص المادة: حد الخصم وحاسبة الخصم', scanDel: 'فاحص المادة: حذف تواريخ الانتهاء (يحتاج تعديل المواد)', scanCost: 'فاحص المادة: إظهار سعر الشراء (الكلفة) والربح', newItem: 'إضافة صنف جديد أو ربط باركود عند مسح باركود غير مسجّل', invList: 'قوائم الجرد (إدخال الأعداد والأسعار وتحديث المخزن منها)', cancelOwn: 'إلغاء فواتيره هو (تُرجَع الكميات إلى المخزن)', deleteOwn: 'حذف فواتيره الملغاة نهائياً', followups: 'المتابعات (وعود المندوبين والمواد المأخوذة)' };
+const PERM_LABELS = { posCost: 'شاشة البيع: خصم بسعر الكلفة', sell: 'إصدار الفواتير (البيع)', stockView: 'عرض المخزن والكميات', stockEdit: 'تعديل المواد والكميات والجرد', purchases: 'الوارد والمذاخر والسجلات', catalog: 'سجل الأدوية (تسعير وكميات وإضافة سريعة — يشمل تعديل المواد)', scan: 'فاحص المادة (سعر البيع وتواريخ الانتهاء)', scanDisc: 'فاحص المادة: حد الخصم وحاسبة الخصم', scanDel: 'فاحص المادة: حذف تواريخ الانتهاء (يحتاج تعديل المواد)', scanCost: 'فاحص المادة: سعر الشراء والربح', newItem: 'إضافة صنف جديد أو ربط باركود عند مسح باركود غير مسجّل', invList: 'قوائم الجرد (إدخال الأعداد والأسعار وتحديث المخزن منها)', cancelOwn: 'إلغاء فواتيره هو (تُرجَع الكميات إلى المخزن)', deleteOwn: 'حذف فواتيره الملغاة نهائياً', followups: 'المتابعات (وعود المندوبين والمواد المأخوذة)' };
 const PERM_PRESETS = { seller: { sell: true, stockView: true }, manager: { sell: true, stockView: true, stockEdit: true, catalog: true } };
 function loginKey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/[\/#?\[\]\.]/g, ''); }
 
@@ -132,6 +132,14 @@ async function openUsers() {
         let snap; try { snap = await db.collection('pharmacy_users').get(); } catch (e1) { snap = await db.collection('pharmacy_users').get({ source: 'server' }); }   // خلل داخلي عابر في ذاكرة Firestore المحلية: نقرأ من الخادم مباشرة
         usersCache = [];
         snap.forEach(d => usersCache.push({ uid: d.id, ...d.data() }));
+        // ترحيل لمرة واحدة: الخيار العام القديم «سعر الكلفة» يصير صلاحية لكل مستخدم بيع
+        try {
+            const c = typeof scCfg === 'function' ? scCfg() : null;
+            if (c && c.posCostChip) {
+                for (const u of usersCache) if (u.perms && u.perms.sell && !u.perms.posCost) { u.perms.posCost = true; await db.collection('pharmacy_users').doc(u.uid).update({ 'perms.posCost': true }); }
+                c.posCostChip = false; scSave(c);
+            }
+        } catch (e2) { /* تجاهل */ }
         h.ok('تم التحميل');
     } catch (e) { h.fail('تعذر القراءة'); shScreenClose('usersScr'); Swal.fire({ icon: 'error', title: 'تعذر قراءة المستخدمين', html: ((e && e.code === 'permission-denied') ? 'أضف قواعد المستخدمين في Firebase أولاً (ملف firestore.rules).' : 'تعذّرت القراءة من السحابة. تحقق من الاتصال ثم أعد المحاولة، وإن تكرر أغلق التطبيق وافتحه من جديد.') + '<br><small>' + escapeHtml(e.message || '') + '</small>', confirmButtonColor: '#0f1c38' }); return; }
     shScreen('usersScr', 'المستخدمون والصلاحيات', usersHtml());
@@ -139,15 +147,13 @@ async function openUsers() {
 function usersHtml() {
     const chev = '<i>‹</i>';
     const list = usersCache.map(u => `<button type="button" class="set-nav" onclick="userEdit('${u.uid}')"><div><b>${escapeHtml(u.name)}${u.active === false ? ' <em class="tg bad">معطّل</em>' : ''}</b><small>${Object.keys(u.perms || {}).filter(p => PERM_LABELS[p] && p !== 'stockView').map(p => PERM_LABELS[p]).join(' • ') || 'عرض فقط'}</small></div>${chev}</button>`).join('') || '<div class="bill-none">لا يوجد مستخدمون بعد.</div>';
-    const chk = (typeof scCfg === 'function' && scCfg().posCostChip) ? 'checked' : '';
-    const html = `<div class="qk-row"><div><b>إظهار خيار الخصم «سعر الكلفة»</b><small>لمستخدمي شاشة البيع، ويكشف لهم سعر الشراء مقرّباً.</small></div><label class="setup-sw"><input type="checkbox" ${chk} onchange="posCostChipSet(this.checked)"><i></i></label></div>
-        <h5 class="set-sec">المستخدمون</h5><div class="us-list">${list}</div>
+    const html = `<h5 class="set-sec">المستخدمون</h5><div class="us-list">${list}</div>
         <button type="button" class="icon-btn primary-btn us-add" onclick="userAdd()">+ إضافة مستخدم</button>`;
     return html;
 }
 // ---------- نموذج المستخدم (إضافة / تعديل) كشاشة داخل الإعدادات ----------
 const PERM_GROUPS = [
-    ['المبيعات', ['sell', 'cancelOwn', 'deleteOwn']],
+    ['المبيعات', ['sell', 'cancelOwn', 'deleteOwn', 'posCost']],
     ['المخزن', ['stockView', 'stockEdit', 'catalog', 'newItem', 'invList']],
     ['الوارد والسجلات', ['purchases']],
     ['فاحص المادة', ['scan', 'scanDisc', 'scanCost', 'scanDel']],
@@ -155,6 +161,7 @@ const PERM_GROUPS = [
 ];
 const PERM_TXT = {
     sell: ['إصدار الفواتير', 'البيع من شاشة البيع.'],
+    posCost: ['شاشة البيع: خصم بسعر الكلفة', 'يظهر له زر «سعر الكلفة» في شاشة البيع، ويكشف له سعر الشراء مقرّباً. مغلق افتراضياً.'],
     cancelOwn: ['إلغاء فواتيره', 'يلغي فواتيره هو وتُرجَع الكميات إلى المخزن. يتطلب صلاحية البيع.'],
     deleteOwn: ['حذف فواتيره الملغاة نهائياً', 'يتطلب صلاحية إلغاء الفواتير.'],
     stockView: ['عرض المخزن والكميات', 'رؤية الأصناف وكمياتها.'],
@@ -165,11 +172,11 @@ const PERM_TXT = {
     purchases: ['الوارد والمذاخر والسجلات', 'فواتير الوارد والمذاخر وسجلاتها.'],
     scan: ['فاحص المادة', 'سعر البيع وتواريخ الانتهاء.'],
     scanDisc: ['حد الخصم وحاسبة الخصم', 'داخل فاحص المادة.'],
-    scanCost: ['إظهار سعر الشراء (الكلفة)', 'داخل فاحص المادة: أقل وأعلى وآخر سعر شراء والربح. مغلق افتراضياً، ويحتاج نشر قواعد Firebase المحدّثة.'],
+    scanCost: ['فاحص المادة: سعر الشراء والربح', 'يظهر له داخل فاحص المادة أقل وأعلى وآخر سعر شراء والربح. مغلق افتراضياً، ويحتاج نشر قواعد Firebase المحدّثة.'],
     scanDel: ['حذف تواريخ الانتهاء', 'داخل فاحص المادة، ويتطلب تعديل المواد.'],
     followups: ['المتابعات', 'تسجيل وعود المندوبين والمواد المأخوذة ومتابعتها. خصم الكميات من المخزن يتطلب صلاحية البيع أو تعديل المواد.']
 };
-const PERM_REQ = { scanCost: ['scan'], cancelOwn: ['sell'], deleteOwn: ['cancelOwn'], catalog: ['stockEdit'], sell: ['stockView'], stockEdit: ['stockView'], purchases: ['stockView'], invList: ['stockView'], scanDel: ['stockEdit'] };
+const PERM_REQ = { posCost: ['sell'], scanCost: ['scan'], cancelOwn: ['sell'], deleteOwn: ['cancelOwn'], catalog: ['stockEdit'], sell: ['stockView'], stockEdit: ['stockView'], purchases: ['stockView'], invList: ['stockView'], scanDel: ['stockEdit'] };
 let usForm = null;   // { uid, dirty }
 function usPermRows(cur) {
     return PERM_GROUPS.map(([g, keys]) => `<h5 class="set-sec">${g}</h5>` + keys.map(k => `<div class="qk-row"><div><b>${PERM_TXT[k][0]}</b><small>${PERM_TXT[k][1]}</small></div><label class="setup-sw"><input type="checkbox" class="uPerm" data-p="${k}" ${cur && cur[k] ? 'checked' : ''}><i></i></label></div>`).join('')).join('');

@@ -254,7 +254,7 @@ function posDiscForPct(S, pc) {
 function posDiscForMax(S, allow) { const st = posStepFor(S), net = Math.ceil((S - allow) / st - 1e-9) * st; return Math.max(0, Math.min(Math.floor(allow), Math.floor(S - net))); }
 function posCostNet() { return Math.ceil(posCostRaw() / 1000 - 1e-9) * 1000; }
 function posDiscForCost(S) { return Math.max(0, Math.floor(S - posCostNet())); }
-function posCostChipOn() { try { return userRole === 'owner' || !!scCfg().posCostChip; } catch (e) { return false; } }
+function posCostChipOn() { try { return userRole === 'owner' || (typeof can === 'function' && can('posCost')); } catch (e) { return false; } }
 function posCostChipSet(v) { try { const c = scCfg(); c.posCostChip = !!v; scSave(c); } catch (e) { /* تجاهل */ } }
 // نافذة إتمام البيع: ورقة بنفس ستايل التطبيق (ترويسة كحلية + أزرار الإصدار ثابتة أسفل الشاشة لسرعة البيع)
 function pxShowVal(msg) { const e = document.getElementById('pxVal'); if (e) { e.textContent = msg || ''; e.style.display = msg ? '' : 'none'; } }
