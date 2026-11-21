@@ -5604,6 +5604,9 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         ['cloudScr', () => vis('cloudScr'), () => shScreenClose('cloudScr')],
         ['catModal', () => vis('catModal'), () => { if (typeof shCur !== 'undefined' && shCur) shHome(true); else closeCategoryManager(); }],
         ['loginModal', () => vis('loginModal'), () => closeLoginModal()],
+        ['sortSheetWrap', () => { const e = document.getElementById('sortSheetWrap'); return !!e && e.classList.contains('open'); }, () => closeSortSheet()],
+        ['hmWrap', () => { const e = document.getElementById('hmWrap'); return !!e && e.classList.contains('open'); }, () => { if (window.hdMoreClose) hdMoreClose(); }],
+        ['hsWrap', () => { const e = document.getElementById('hsWrap'); return !!e && e.classList.contains('open'); }, () => { if (window.hdSearchClose) hdSearchClose(); }],
         ['bottomSheet', () => { const sb = document.getElementById('sheetBackdrop'); return !!sb && sb.classList.contains('open'); }, () => closeSheet()],
         ['filterSheet', () => { const fs = document.getElementById('filterSheet'); return !!fs && fs.classList.contains('open'); }, () => closeFilterSheet()]
     ];
