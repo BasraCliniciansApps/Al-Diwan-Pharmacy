@@ -35,7 +35,7 @@ function lgBonusRows() {
         const q0 = parseInt(l.bonus) || 0, cost = puNum(l.cost);
         const bk = r.id + '|' + l.pid; if (!(bk in bpool)) bpool[bk] = lgReturnedBonus(r.id, l.pid);
         const take = Math.min(bpool[bk], q0); bpool[bk] -= take; const q = q0 - take; if (q <= 0) return;   // يُنقص البونص المُرجَع إلى المذخر
-        rows.push({ date: r.date, sup: r.supplier, no: r.no, name: l.name, qty: q, cost, vCost: q * cost, rid: r.id, li, bo: puIsBonusOnly(r) && !r.gift, vSale: puNum(l.bonusSale) ? puNum(l.bonusSale) * q / q0 : (q * (Number((products.find(x => x.id === l.pid) || products.find(x => puKey(x.name) === puKey(l.name)) || {}).price) || 0)), createdTs: r.createdTs });
+        rows.push({ date: r.date, sup: r.supplier, no: r.no, name: l.name, qty: q, cost, vCost: q * cost, rid: r.id, li, bo: !!(r.bonusOnly || String(r.no || '').startsWith('BONUS-')) && !r.gift && !r.autoBonus, vSale: puNum(l.bonusSale) ? puNum(l.bonusSale) * q / q0 : (q * (Number((products.find(x => x.id === l.pid) || products.find(x => puKey(x.name) === puKey(l.name)) || {}).price) || 0)), createdTs: r.createdTs });
     }));
     lgAll.filter(e => e.kind === 'breq' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.supplier || (e.rep ? 'مندوب ' + e.rep : 'بدون مذخر'), no: e.listNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: puNum(e.sale), createdTs: e.createdTs, xid: e.id, rep: e.rep }));
     lgAll.filter(e => e.kind === 'bimp' && !e.del && (!sup || puKey(e.supplier) === puKey(sup)) && (e.date ? lgInR(rg, e.date) : rg.all)).forEach(e => rows.push({ date: e.date || '', sup: e.rep ? 'مندوب ' + e.rep : (e.supplier || 'بدون مذخر'), no: e.linkNo || '', name: e.name, qty: puNum(e.qty), cost: 0, vCost: 0, vSale: puNum(e.sale), createdTs: e.createdTs, xid: e.id, bi: true }));
@@ -65,7 +65,7 @@ function lgRenderBonus() {
 // تعديل سطر بونص داخل وارد: سعر البيع الإجمالي، وحذف السطر إن كان وارد بونص فقط (مستورد) دون أي أثر على المخزن
 async function lgBonusLine(rid, li) {
     const r = puAll.find(x => x.id === rid), l = r && (r.items || [])[li]; if (!l) return;
-    const bo = puIsBonusOnly(r), q = parseInt(l.bonus) || 0;
+    const bo = !!(r.bonusOnly || String(r.no || '').startsWith('BONUS-')) && !r.gift && !r.autoBonus, q = parseInt(l.bonus) || 0;
     const res = await Swal.fire({ title: escapeHtml(l.name), showCancelButton: true, showDenyButton: bo, denyButtonText: 'حذف هذا السطر', denyButtonColor: '#b91c1c', confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء',
         html: `<div style="text-align:right;font-size:.85rem;line-height:1.8">${bo ? 'وارد بونص مستورد' : 'قائمة ' + escapeHtml(r.no || '')} — ${fmtNum(q)} مجاني</div><label style="display:block;text-align:right;font-size:.8rem;font-weight:800;margin-top:8px">سعر البيع الإجمالي لهذا البونص (د.ع)<input id="swBP" type="number" inputmode="numeric" min="0" class="swal2-input" style="margin:4px 0 0;width:100%" value="${puNum(l.bonusSale) || ''}"></label>`,
         preConfirm: () => Number(document.getElementById('swBP').value) || 0 });
