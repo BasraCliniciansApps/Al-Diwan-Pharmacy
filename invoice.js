@@ -733,14 +733,29 @@ async function pushLocalInvoices() {
     }
     return n;
 }
-async function loadInvoices() {
+// فواتير السحابة (فواتير المستخدمين) تُحفظ محلياً في مفتاح مستقل diwanInvCloud (لا تُدمج في قائمة فواتير الجهاز حتى لا يُعاد رفع نسخة قديمة منها)
+const INV_CK = 'diwanInvCloud';
+async function loadInvoices(ttl) {   // ttl: مهلة إعادة الجلب بالدقائق (الافتراضي 3، و0 يفرض الجلب)
     try { if (lsGet('diwanInvFix') !== '675') { lsDel('diwanFull_inv'); lsDel('diwanLd_inv'); lsSet('diwanInvFix', '675'); } } catch (e) { /* تجاهل */ }   // مرة واحدة: تحميل كامل بالاستعلام الجديد (بالتاريخ) بدل انتظار الدورة الكاملة كل 24 ساعة
+    let cached = [], own = []; const hasCache = lsGet(INV_CK) != null;
+    try { cached = (JSON.parse(lsGet(INV_CK)) || []).filter(x => x && x.id); } catch (e) { cached = []; }
+    try { own = (JSON.parse(lsGet(BILL_LS.list)) || []).filter(x => x && x.id); } catch (e) { own = []; }
     const map = new Map();
+    cached.forEach(x => map.set(x.id, x));   // ما حُمّل سابقاً من السحابة يبقى بعد إغلاق التطبيق
     (billAll || []).forEach(x => x && x.id && map.set(x.id, x));   // ما حُمّل سابقاً (مثل الأقدم من تاريخ) لا يُفقد عند التحديث
-    try { (JSON.parse(lsGet(BILL_LS.list)) || []).forEach(x => x && x.id && map.set(x.id, x)); } catch (e) { /* تجاهل */ }
+    own.forEach(x => map.set(x.id, x));
     // الترتيب بالتاريخ: كل فاتورة لها تاريخ، أما الفاتورة بلا issuedTs فكانت تُستبعد من الاستعلام
     if (cloudReady() && navigator.onLine) {
-        try { const r1 = await cloudDelta('inv', 'pharmacy_invoices', map.size > 0, 3, 24, c => c.orderBy('date', 'desc').limit(300)); if (r1) r1.snap.forEach(d => { const x = d.data(); if (x && x.id) map.set(x.id, x); }); } catch (e) { /* تجاهل */ }
+        try {
+            const r1 = await cloudDelta('inv', 'pharmacy_invoices', map.size > 0 && hasCache, ttl == null ? 3 : ttl, 24, c => c.orderBy('date', 'desc').limit(300));
+            if (r1) {
+                const ids = new Set(); let minD = '9999';
+                r1.snap.forEach(d => { const x = d.data(); if (x && x.id) { map.set(x.id, x); ids.add(x.id); if (String(x.date || '') < minD) minD = String(x.date || ''); } });
+                if (r1.full) { const ownIds = new Set(own.map(x => x.id)); cached.forEach(c => { if (!ids.has(c.id) && !ownIds.has(c.id) && (r1.snap.size < 300 || String(c.date || '') >= minD)) map.delete(c.id); }); }   // حُذفت من السحابة
+                billAll = [...map.values()].sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
+                try { lsSet(INV_CK, JSON.stringify(billAll.slice(0, 300))); lsSet('diwanInvAt', String(Date.now())); } catch (e) { /* تجاهل */ }
+            }
+        } catch (e) { /* تجاهل */ }
     }
     billAll = [...map.values()].sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
     return billAll;

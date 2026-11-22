@@ -106,7 +106,24 @@ async function refreshHome() {
     };
     const save = (sales) => { try { localStorage.setItem(KPI_KEY, JSON.stringify({ out, low, exp, alerts: alertsTotal, sales: fmtNum(sales), day: new Date().toDateString() })); } catch (e) { /* تجاهل */ } };
     render(salesTodayTotal()); save(salesTodayTotal());
-    try { await loadInvoices(); render(salesTodayTotal()); save(salesTodayTotal()); } catch (e) { /* تجاهل */ }
+    homeUpdPaint();
+    try { await loadInvoices(0.5); render(salesTodayTotal()); save(salesTodayTotal()); } catch (e) { /* تجاهل */ }
+    homeUpdPaint();
+}
+// سطر «آخر تحديث» تحت الأرقام: وقت آخر جلب ناجح لفواتير السحابة (فواتير المستخدمين)، مع زر تحديث يدوي
+function homeUpdPaint() {
+    const el = document.getElementById('homeUpdT'); if (!el) return;
+    const ic = document.querySelector('.home-upd-i'); if (ic && !ic.innerHTML && window.AppIcons) ic.innerHTML = AppIcons.svg('refresh-cw');
+    let t = 0; try { t = +localStorage.getItem('diwanInvAt') || 0; } catch (e) { /* تجاهل */ }
+    el.textContent = t ? 'آخر تحديث للمبيعات: ' + new Date(t).toLocaleTimeString('ar-IQ', { hour: 'numeric', minute: '2-digit' }) : 'آخر تحديث للمبيعات: غير متوفر';
+}
+async function homeRefreshSales() {
+    const h = Prog.start('تحديث المبيعات', { text: 'قراءة الفواتير من السحابة...' });
+    try {
+        if (!(cloudReady() && navigator.onLine)) { h.fail('لا يوجد اتصال', 'يُعرض ما هو محفوظ على الجهاز'); homeUpdPaint(); return; }
+        h.set(40, 'قراءة الفواتير...'); await loadInvoices(0); h.set(90, 'تحديث الأرقام...'); await refreshHome(); h.ok('تم تحديث المبيعات');
+    } catch (e) { h.fail('تعذّر التحديث', (e && e.message) || ''); }
+    homeUpdPaint();
 }
 
 // ---------------- شاشة التنبيهات ----------------

@@ -622,6 +622,30 @@
     }
     // المدير (الجوال) ← الحاسوب: ملف واحد فيه حركات المخزون والفواتير والوارد وتغييرات المواد (بالكلفة) والإعدادات والمذاخر والدفتر
     const mgSent = () => ls.get(MG.sent, { p: {}, r: {}, c: '' });
+    // قبل التصدير للحاسوب: تحديث فواتير السحابة (فواتير المستخدمين). بلا اتصال أو عند البطء (8 ثوانٍ) يُتخطى ويُصدَّر الموجود محلياً
+    async function pullInvoicesForExport() {
+        try {
+            if (!(typeof cloudReady === 'function' && cloudReady() && navigator.onLine) || typeof loadInvoices !== 'function') return 'offline';
+            let to; const tm = new Promise(res => { to = setTimeout(() => res('timeout'), 8000); });
+            const r = await Promise.race([loadInvoices(0).then(() => 'ok'), tm]); clearTimeout(to);
+            return r === 'ok' ? 'ok' : 'offline';
+        } catch (e) { return 'offline'; }
+    }
+    // فواتير وصلت المدير عبر السحابة أو الاستيراد (لم تُسجَّل كحركات) تُضاف لسجل الحاسوب؛ الحاسوب يتخطى المكرر ويقارن الأحدث بالختم
+    function addCloudInvoiceOps() {
+        try {
+            if (!shLogOn() || L.active() || typeof billAll === 'undefined') return 0;
+            const cut = new Date(Date.now() - 14 * 86400000).toISOString(); let n = 0;
+            billAll.forEach(rec => {
+                if (!rec || !rec.id || !rec.issued || !Array.isArray(rec.items)) return;
+                const st = String(I.recStamp(rec)); if (!st || st < cut) return;
+                const id = 'inv:' + rec.id + ':' + st.replace(/[^\w]/g, '').slice(-14);
+                if (ls.get(MG.ops, []).some(x => x.id === id)) return;
+                addMg({ id, type: 'invoice', ts: nowIso(), data: { rec: JSON.parse(JSON.stringify(rec)) } }); n++;
+            });
+            return n;
+        } catch (e) { return 0; }
+    }
     async function exportDesktop(opts) {
         opts = opts || {}; const onlyIds = Array.isArray(opts.ids) ? new Set(opts.ids) : null, wantInfo = !onlyIds || opts.withInfo;
         if (!isOwner()) { Swal.fire({ icon: 'info', title: 'للمدير فقط', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
@@ -635,8 +659,9 @@
             }
         }
         const h = Prog.start('تجهيز ملف الحاسوب', { text: 'جمع التغييرات...' });
-        let text, name, sum, mark; const xid = strGet('d').n + 1;
+        let text, name, sum, mark, offline = false; const xid = strGet('d').n + 1;
         try {
+            if (!onlyIds) { h.set(5, 'تحديث الفواتير من السحابة...'); offline = (await pullInvoicesForExport()) !== 'ok'; addCloudInvoiceOps(); }
             const sent = mgSent(), em = ls.get(MG.exp, {}), ops = ls.get(MG.ops, []).filter(o => onlyIds ? onlyIds.has(o.id) : !em[o.id]);
             const info = { p: [], rec: [] }; mark = { p: {}, r: {}, c: sent.c, ids: ops.map(o => o.id) };
             if (wantInfo) products.forEach(p => {
@@ -671,6 +696,7 @@
         if (res === 'saved') await Swal.fire({ icon: 'success', title: 'حُفظ الملف على الجهاز', html: 'أرسله من واتساب: <b>📎 ← مستند</b>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else toast('success', 'جُهّز الملف للحاسوب');
+        if (offline) setTimeout(() => toast('warning', 'تم التصدير بدون تحديث السحابة لانقطاع الاتصال'), 2800);
         refresh();
     }
     // ---------------- سجل التبادل (للمدير): ما أُرسل وما لم يُرسل، مع اختيار عمليات وفترة زمنية ----------------
@@ -757,7 +783,7 @@
         const h = Prog.start('تجهيز النسخة الكاملة للحاسوب', { text: 'جمع البيانات...' });
         let text, name, cnt;
         try {
-            if (typeof cloudReady === 'function' && cloudReady() && navigator.onLine && typeof bkRefresh === 'function') { h.set(10, 'قراءة أحدث نسخة من السحابة...'); try { await bkRefresh(); } catch (e) { /* نكمل بالمحلي */ } }
+            if (typeof cloudReady === 'function' && cloudReady() && navigator.onLine && typeof bkRefresh === 'function') { h.set(10, 'قراءة أحدث نسخة من السحابة...'); try { let to; await Promise.race([bkRefresh(), new Promise(res => { to = setTimeout(res, 20000); })]); clearTimeout(to); } catch (e) { /* نكمل بالمحلي */ } }
             h.set(60, 'تحويل الملف...');
             const data = buildFullBackup(); cnt = data.counts || {};
             text = sealText({ diwan: 1, kind: 'full', share: 1, kid: 'f' + devId(), at: nowIso(), from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, backup: data, extras: fullExtras() });
@@ -780,6 +806,7 @@
         if (res === 'saved') await Swal.fire({ icon: 'success', title: 'حُفظ الملف على الجهاز', html: 'أرسله من واتساب: <b>📎 ← مستند</b>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else toast('success', 'جُهّزت النسخة الكاملة: ' + num(cnt.products || 0) + ' صنف');
+        if (!(typeof cloudReady === 'function' && cloudReady() && navigator.onLine)) setTimeout(() => toast('warning', 'تم التصدير بدون تحديث السحابة لانقطاع الاتصال'), 2800);
         refresh();
     }
     async function importFull(f) {
