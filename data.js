@@ -3159,7 +3159,10 @@ async function saveProductsDelta(entries, op) {
             };
             try { await fsCommit(build(useMoves)); }
             catch (e1) {
-                if (useMoves && e1 && e1.code === 'permission-denied') { useMoves = false; try { localStorage.setItem('diwanMovesOff', String(Date.now())); } catch (x) { /* تجاهل */ } await fsCommit(build(false)); }   // قواعد حركات المخزون لم تُنشر بعد: نكمل بدونها
+                if (useMoves && e1 && e1.code === 'permission-denied') {
+                    // رفض الإذن قد يعني أن الحركة موجودة أصلاً (القواعد تمنع تعديلها): تحقق قبل أن نكتب بلا سجل حتى لا يتضاعف الخصم
+                    try { const d1 = await db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#' + (i / 15) : '')).get(); if (d1 && d1.exists) { const ae = new Error('already-exists'); ae.code = 'already-exists'; throw ae; } } catch (e2) { if (e2 && e2.code === 'already-exists') throw e2; }
+                    useMoves = false; try { localStorage.setItem('diwanMovesOff', String(Date.now())); } catch (x) { /* تجاهل */ } await fsCommit(build(false)); }   // قواعد حركات المخزون لم تُنشر بعد: نكمل بدونها
                 else throw e1;
             }
             progTick(Math.min(i + 15, entries.length), entries.length, 'حُفظ ' + fmtNum(Math.min(i + 15, entries.length)) + ' من ' + fmtNum(entries.length));

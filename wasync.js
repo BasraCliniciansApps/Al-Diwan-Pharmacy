@@ -112,6 +112,8 @@
     const unconfirmed = () => { const s = seenSet(); return ops().filter(o => allowedOp(o) && !s.has(o.id)); };
     const groups = list => { const g = new Set(); list.forEach(o => g.add(groupKey(o))); return g.size; };
     function pendingCount() { return groups(unsent()); }
+    const unsentBytes = () => { try { return JSON.stringify(unsent()).length; } catch (e) { return 0; } };
+    const kb = n => num(Math.round(n / 1024)) + ' ك.ب';
     function opsBlocked() { return ops().filter(o => !allowedOp(o)).length; }
     function summarize(list) {   // ملخص عمليات: عدد الفواتير ومبلغها
         const last = {}; list.filter(o => o.type === 'invoice').forEach(o => { const id = String(o.data.rec.id); if (!last[id] || last[id].ts < o.ts) last[id] = o; });
@@ -645,10 +647,15 @@
             pc = sd.c !== I.hsh(I.stable(I.cfgNow()));
         } catch (e) { /* تجاهل */ }
         const nSent = all.filter(o => em[o.id]).length, nUn = all.length - nSent;
+        const sz = a => { try { return JSON.stringify(a || []).length; } catch (e) { return 0; } };
+        const dat = [['أصناف', products], ['فواتير', typeof billAll !== 'undefined' ? billAll : []], ['واردات', typeof puAll !== 'undefined' ? puAll : []], ['مذاخر', puSuppliers || []], ['دفتر', lgAll || []]].map(([n, a]) => ({ n, c: (a || []).length, b: sz(a) }));
+        let lsTot = 0; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); lsTot += k.length + (localStorage.getItem(k) || '').length; } } catch (e) { /* تجاهل */ }
+        const opsB = sz(all);
         const imp = ls.get(K.log, []).slice(0, 8);
         const sel = new Set();
         const st = 'width:100%;margin:2px 0;padding:6px;border:1px solid #cbd5e1;border-radius:8px;font:inherit';
         const html = '<div class="wa-pv">' +
+            '<div class="wa-li mut"><span>📊 الأحجام: ' + dat.map(x => x.n + ' <b>' + num(x.c) + '</b> (' + kb(x.b) + ')').join(' · ') + ' · سجل العمليات ' + kb(opsB) + ' · كل مخزن الجهاز ~' + kb(lsTot) + ' من ~5000 ك.ب</span></div>' +
             '<div class="wa-li"><span>🖥️ إلى الحاسوب: <b>' + num(nUn) + '</b> عملية لم تُرسل · <b>' + num(nSent) + '</b> أُرسلت</span></div>' +
             '<div class="wa-li"><span>💊 مواد تغيّرت: للحاسوب <b>' + num(pd) + '</b>' + (pr ? ' · مذاخر ودفتر <b>' + num(pr) + '</b>' : '') + (pc ? ' · الإعدادات' : '') + ' · للمستخدمين (النقطة المشتركة) <b>' + num(pu) + '</b></span></div>' +
             '<div class="wa-li mut"><span>المواد والأسعار والإعدادات تُقارَن بآخر إرسال ولا يُحفظ لكل تعديل تاريخ، لذلك تُرسل كاملة من «إرسال التحديثات». الاختيار هنا للعمليات (مخزون وفواتير ووارد).</span></div>' +
@@ -903,6 +910,7 @@
         const lk = link(), on = waOn(), un = unsent(), sm = summarize(un), conf = groups(unconfirmed()), le = ls.get('diwanWaLastExp', null), sa = ls.get(K.snapAt, '');
         if (!on) {   // التبادل الموازي للسحابة: بلا ربط ولا إيقاف للسحابة
             let g = '<p class="set-desc wa-intro">تبادل عبر واتساب بالتوازي مع السحابة: يُرسل ملف صغير فيه ما لا يملكه الطرف الآخر فقط، وعند فتحه من واتساب يُستورد تلقائياً. لا يتعارض مع السحابة؛ ما وصل منها مسبقاً لا يتكرر.</p>';
+            if (unsentBytes() > 750000) g += '<div class="wa-li warn"><span>لديك مبيعات كثيرة غير مُرسَلة (' + kb(unsentBytes()) + ')، أرسلها للمدير الآن حتى لا يمتلئ مخزن الجهاز.</span></div>';
             g += btn('set-act wa-main', 'WA.exportSales()', '📤 إرسال مبيعاتي للمدير', un.length ? num(un.length) + ' عملية لم تُرسل.' : 'لا توجد مبيعات جديدة.');
             g += btn('set-act', 'WA.exportSales({all:true})', '🔁 إعادة إرسال ما لم يؤكده المدير', 'التكرار آمن ولا يضاعف شيئاً.');
             g += btn('set-act', 'WA.importFlow()', '📥 استيراد ملف', sa ? 'آخر تحديث: ' + esc(ago(sa)) : 'اختر الملف الذي وصلك على واتساب.');
