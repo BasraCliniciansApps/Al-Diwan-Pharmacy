@@ -581,24 +581,25 @@
     }
     // المدير (الجوال) ← الحاسوب: ملف واحد فيه حركات المخزون والفواتير والوارد وتغييرات المواد (بالكلفة) والإعدادات والمذاخر والدفتر
     const mgSent = () => ls.get(MG.sent, { p: {}, r: {}, c: '' });
-    async function exportDesktop() {
+    async function exportDesktop(opts) {
+        opts = opts || {}; const onlyIds = Array.isArray(opts.ids) ? new Set(opts.ids) : null, wantInfo = !onlyIds || opts.withInfo;
         if (!isOwner()) { Swal.fire({ icon: 'info', title: 'للمدير فقط', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const h = Prog.start('تجهيز ملف الحاسوب', { text: 'جمع التغييرات...' });
         let text, name, sum, mark;
         try {
-            const sent = mgSent(), em = ls.get(MG.exp, {}), ops = ls.get(MG.ops, []).filter(o => !em[o.id]);
+            const sent = mgSent(), em = ls.get(MG.exp, {}), ops = ls.get(MG.ops, []).filter(o => onlyIds ? onlyIds.has(o.id) : !em[o.id]);
             const info = { p: [], rec: [] }; mark = { p: {}, r: {}, c: sent.c, ids: ops.map(o => o.id) };
-            products.forEach(p => {
+            if (wantInfo) products.forEach(p => {
                 const s = I.pSplit(p), hh = I.hsh(I.stable({ i: s.info, c: s.cost }));
                 if (sent.p[p.id] === hh) return;
                 mark.p[p.id] = hh; info.p.push({ pid: p.id, info: s.info, cost: s.cost, init: s.init });
             });
             const rs = []; try { rs.push(['suppliers', puSuppliers || []]); rs.push(['ledger', lgAll || []]); } catch (e) { /* تجاهل */ }
-            rs.forEach(([coll, arr]) => arr.forEach(r => { if (!r || !r.id) return; const k = coll + ':' + r.id, hh = I.hsh(I.stable(r)); if (sent.r[k] === hh) return; mark.r[k] = hh; info.rec.push({ coll, rec: r }); }));
-            const cf = I.cfgNow(), ch = I.hsh(I.stable(cf)); if (sent.c !== ch) { info.cfg = cf; mark.c = ch; }
+            if (wantInfo) rs.forEach(([coll, arr]) => arr.forEach(r => { if (!r || !r.id) return; const k = coll + ':' + r.id, hh = I.hsh(I.stable(r)); if (sent.r[k] === hh) return; mark.r[k] = hh; info.rec.push({ coll, rec: r }); }));
+            const cf = I.cfgNow(), ch = I.hsh(I.stable(cf)); if (wantInfo && sent.c !== ch) { info.cfg = cf; mark.c = ch; }
             // محذوفات: ما كان في نقطة المقارنة ولم يعد موجوداً
-            const live = new Set(products.map(p => String(p.id))); info.delP = Object.keys(sent.p).filter(k => !live.has(String(k)));
-            const liveR = new Set(rs.reduce((a, [c, arr]) => a.concat(arr.filter(r => r && r.id).map(r => c + ':' + r.id)), [])); info.delR = Object.keys(sent.r).filter(k => !liveR.has(k)); mark.delP = info.delP; mark.delR = info.delR;
+            const live = new Set(products.map(p => String(p.id))); info.delP = wantInfo ? Object.keys(sent.p).filter(k => !live.has(String(k))) : [];
+            const liveR = new Set(rs.reduce((a, [c, arr]) => a.concat(arr.filter(r => r && r.id).map(r => c + ':' + r.id)), [])); info.delR = wantInfo ? Object.keys(sent.r).filter(k => !liveR.has(k)) : []; mark.delP = info.delP; mark.delR = info.delR;
             // حالة المخزون الدقيقة للمواد التي لمسها جرد/ضبط (دفعات وصلاحية وعلامة الجرد) لأن حركات الجرد تحمل الكمية فقط
             const touched = new Set(); ops.forEach(o => { if (o.type === 'stock' && o.data && o.data.op && o.data.op.nk) (o.data.entries || []).forEach(e => { if (e && e.pid !== undefined) touched.add(String(e.pid)); }); });
             if (touched.size) { info.sf = {}; products.forEach(p => { if (touched.has(String(p.id))) { const st = {}; ['bt', 'expiryDate', 'expiryDates', 'counted'].forEach(k => { if (p[k] !== undefined) st[k] = p[k]; }); info.sf[p.id] = st; } }); }
@@ -620,6 +621,54 @@
         else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else toast('success', 'جُهّز الملف للحاسوب');
         refresh();
+    }
+    // ---------------- سجل التبادل (للمدير): ما أُرسل وما لم يُرسل، مع اختيار عمليات وفترة زمنية ----------------
+    function opLabel(o) {
+        try {
+            const d = o.data || {};
+            if (o.type === 'stock') { const en = d.entries || [], nm = en.slice(0, 2).map(e => e.name).filter(Boolean).join('، '); const k = d.op && d.op.nk ? 'جرد/ضبط كمية' : ({ sale: 'بيع', sell: 'بيع', purchase: 'وارد', adjust: 'ضبط كمية', ret: 'إرجاع' }[(d.op && d.op.kind) || ''] || 'حركة مخزون'); return k + ': ' + (nm || '—') + (en.length > 2 ? ' +' + (en.length - 2) : ''); }
+            const r = d.rec || {};
+            if (o.type === 'invoice') return 'فاتورة ' + (r.no || r.number || r.id || '') + (r.total !== undefined ? ' · ' + num(r.total) : '');
+            if (o.type === 'purchase') return 'وارد ' + (r.no || r.id || '') + (r.supplierName || r.supplier ? ' · ' + (r.supplierName || (r.supplier && r.supplier.name) || r.supplier) : '');
+        } catch (e) { /* تجاهل */ }
+        return o.type || 'عملية';
+    }
+    const toLocalInput = t => { const d = new Date(t); const p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()); };
+    async function showLog() {
+        if (!isOwner()) { Swal.fire({ icon: 'info', title: 'للمدير فقط', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        const all = ls.get(MG.ops, []).slice().sort((a, b) => String(b.ts).localeCompare(String(a.ts))), em = ls.get(MG.exp, {});
+        let pu = 0, pr = 0, pc = false, pd = 0;
+        try {   // تغييرات المواد والإعدادات التي لم تُرسل بعد (مقارنة بنقطتي الإرسال)
+            const su = shSent(''), sd = mgSent();
+            products.forEach(p => { const x = I.pSplit(p); if (su[p.id] !== I.hsh(I.stable({ i: x.info, st: SNAP_ST.reduce((o, k) => { if (p[k] !== undefined) o[k] = p[k]; return o; }, {}) }))) pu++; if (sd.p[p.id] !== I.hsh(I.stable({ i: x.info, c: x.cost }))) pd++; });
+            [['suppliers', puSuppliers || []], ['ledger', lgAll || []]].forEach(([c, arr]) => arr.forEach(r => { if (r && r.id && sd.r[c + ':' + r.id] !== I.hsh(I.stable(r))) pr++; }));
+            pc = sd.c !== I.hsh(I.stable(I.cfgNow()));
+        } catch (e) { /* تجاهل */ }
+        const nSent = all.filter(o => em[o.id]).length, nUn = all.length - nSent;
+        const imp = ls.get(K.log, []).slice(0, 8);
+        const sel = new Set();
+        const st = 'width:100%;margin:2px 0;padding:6px;border:1px solid #cbd5e1;border-radius:8px;font:inherit';
+        const html = '<div class="wa-pv">' +
+            '<div class="wa-li"><span>🖥️ إلى الحاسوب: <b>' + num(nUn) + '</b> عملية لم تُرسل · <b>' + num(nSent) + '</b> أُرسلت</span></div>' +
+            '<div class="wa-li"><span>💊 مواد تغيّرت: للحاسوب <b>' + num(pd) + '</b>' + (pr ? ' · مذاخر ودفتر <b>' + num(pr) + '</b>' : '') + (pc ? ' · الإعدادات' : '') + ' · للمستخدمين (النقطة المشتركة) <b>' + num(pu) + '</b></span></div>' +
+            '<div class="wa-li mut"><span>المواد والأسعار والإعدادات تُقارَن بآخر إرسال ولا يُحفظ لكل تعديل تاريخ، لذلك تُرسل كاملة من «إرسال التحديثات». الاختيار هنا للعمليات (مخزون وفواتير ووارد).</span></div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><label><small>من</small><input type="datetime-local" id="waLgFrom" style="' + st + '"></label><label><small>إلى</small><input type="datetime-local" id="waLgTo" style="' + st + '"></label></div>' +
+            '<select id="waLgSt" style="' + st + '"><option value="all">كل العمليات</option><option value="un" selected>لم تُرسل</option><option value="sent">أُرسلت</option></select>' +
+            '<div id="waLgList" style="max-height:34vh;overflow:auto;display:flex;flex-direction:column;gap:4px"></div>' +
+            '<div class="qk-row"><div><b>تضمين تغييرات المواد والإعدادات</b><small>تُضاف إلى الملف كل تغييرات المواد والمذاخر والإعدادات غير المرسلة.</small></div><label class="setup-sw"><input type="checkbox" id="waLgInfo"><i></i></label></div>' +
+            (imp.length ? '<h5 class="wa-h">آخر عمليات الاستيراد</h5>' + imp.map(x => '<div class="wa-log"><b>' + esc(x.label) + '</b><span>' + esc(ago(x.at)) + '</span><small>' + num(x.inv) + ' فاتورة · ' + num(x.stock) + ' حركة' + (x.fail ? ' · ' + num(x.fail) + ' خطأ' : '') + '</small></div>').join('') : '') + '</div>';
+        const draw = () => {
+            const q = id => document.getElementById(id); if (!q('waLgList')) return;
+            const f = q('waLgFrom').value ? Date.parse(q('waLgFrom').value) : 0, t = q('waLgTo').value ? Date.parse(q('waLgTo').value) : Infinity, s2 = q('waLgSt').value;
+            const rows = all.filter(o => { const ms = Date.parse(o.ts); return ms >= f && ms <= t && (s2 === 'all' || (s2 === 'sent') === !!em[o.id]); });
+            sel.clear(); if (s2 !== 'sent') rows.forEach(o => { if (!em[o.id]) sel.add(o.id); });
+            q('waLgList').innerHTML = rows.length ? rows.slice(0, 300).map(o => '<div class="qk-row"><div><b>' + esc(opLabel(o)) + '</b><small>' + esc(new Date(o.ts).toLocaleString('ar-IQ')) + ' · ' + (em[o.id] ? 'أُرسلت ' + esc(ago(em[o.id])) : 'لم تُرسل') + '</small></div><label class="setup-sw"><input type="checkbox" data-id="' + esc(o.id) + '"' + (sel.has(o.id) ? ' checked' : '') + '><i></i></label></div>').join('') + (rows.length > 300 ? '<div class="wa-li mut"><span>يُعرض أحدث 300 فقط، ضيّق الفترة لرؤية الباقي.</span></div>' : '') : '<div class="wa-empty">لا توجد عمليات ضمن هذا الاختيار.</div>';
+            q('waLgList').querySelectorAll('input[data-id]').forEach(i => { i.onchange = () => { if (i.checked) sel.add(i.dataset.id); else sel.delete(i.dataset.id); }; });
+        };
+        const r = await Swal.fire({ title: 'سجل التبادل', html, width: 560, showCancelButton: true, confirmButtonText: 'إرسال المحدد إلى الحاسوب', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', didOpen: () => { draw(); ['waLgFrom', 'waLgTo', 'waLgSt'].forEach(id => { document.getElementById(id).onchange = draw; }); }, preConfirm: () => ({ ids: [...sel], info: !!(document.getElementById('waLgInfo') || {}).checked }) });
+        if (!r.isConfirmed) return;
+        if (!r.value.ids.length && !r.value.info) { toast('info', 'لم تُحدَّد أي عملية'); return; }
+        await exportDesktop({ ids: r.value.ids, withInfo: r.value.info });
     }
     // نسخة كاملة من جوال المدير إلى الحاسوب: كل ما في النسخة الاحتياطية الكاملة للتطبيق (أصناف بكمياتها وكلفها وفواتير وواردات ومذاخر ودفتر وإعدادات)
     // ما لا تشمله النسخة الاحتياطية العادية: المصروفات وفئاتها والمتابعات وقوائم الجرد (تُنقل كما هي)
@@ -837,7 +886,7 @@
     // ---------------- الواجهة ----------------
     const sw = (id, chk, fn) => '<label class="setup-sw"><input type="checkbox" id="' + id + '" ' + (chk ? 'checked' : '') + ' onchange="' + fn + '"><i></i></label>';
     const btn = (cls, fn, t, sub) => '<button type="button" class="set-nav ' + cls + '" onclick="' + fn + '"><div><b>' + t + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div><i>‹</i></button>';
-    function html(emb) { let o = html0(); if (emb) o = o.replace(/onclick="WA\.(exportShare|exportSales|importFlow|exportDesktop|exportFull)\(([^"]*)\)"/g, (m, f, a) => 'onclick="WA.act(\'' + f + '\',' + (a || 'undefined') + ')"'); return o; }
+    function html(emb) { let o = html0(); if (emb) o = o.replace(/onclick="WA\.(exportShare|exportSales|importFlow|exportDesktop|exportFull|showLog)\(([^"]*)\)"/g, (m, f, a) => 'onclick="WA.act(\'' + f + '\',' + (a || 'undefined') + ')"'); return o; }
     function html0() {
         if (isOwner()) {
             const lg = ls.get(K.log, []);
@@ -846,6 +895,7 @@
             if (!window.diwanDesktop) h += btn('set-act wa-main', 'WA.exportFull()', '🖥️ نسخة كاملة إلى الحاسوب', 'كل ما في جوالك: الأصناف بكمياتها وكلفها، الفواتير، الواردات، المذاخر، الدفتر، الإعدادات. تظهر على الحاسوب بالضبط.');
             if (!window.diwanDesktop) h += btn('set-act', 'WA.exportDesktop()', '🖥️ إرسال التحديثات إلى الحاسوب', 'ملف للحاسوب فيه حركات المخزون والفواتير والوارد والمواد (بالكلفة) والإعدادات. يُفتح في تطبيق المدير على الحاسوب فقط.');
             h += btn('set-act', 'WA.exportShare({full:true})', '📦 إرسال ملف كامل', 'كل المواد والإعدادات (لمستخدم جديد).');
+            h += btn('set-act', 'WA.showLog()', '📋 سجل التبادل', 'ما أُرسل وما لم يُرسل، مع اختيار عمليات وفترة زمنية.');
             h += btn('set-act wa-main', 'WA.importFlow()', '📥 استيراد ملف', 'اختر ملفاً وصلك على واتساب إن لم يُفتح تلقائياً.');
             if (lg.length) { h += '<h5 class="wa-h">آخر عمليات الاستيراد</h5>'; lg.slice(0, 5).forEach(x => { h += '<div class="wa-log"><b>' + esc(x.label) + '</b><span>' + esc(ago(x.at)) + '</span><small>' + num(x.inv) + ' فاتورة · ' + num(x.stock) + ' حركة' + (x.fail ? ' · ' + num(x.fail) + ' خطأ' : '') + '</small></div>'; }); }
             return h;
@@ -890,7 +940,7 @@
     async function toggleMode(cb) { const want = cb.checked; const ok = await setMode(want); if (!ok) cb.checked = !want; refresh(); }
     setInterval(() => { const ov = document.getElementById('waOv'); if ((ov && ov.style.display !== 'none') || document.getElementById('waHost')) { if (!document.querySelector('.swal2-container')) refresh(); } }, 20000);
 
-    window.WA = { exportFull, exportDesktop, act: async (f, a) => { try { await WA[f](a); } finally { setTimeout(() => { try { if (document.getElementById('waHostSs') === null && typeof showSyncStatus === 'function') showSyncStatus(); } catch (e) { /* تجاهل */ } }, 200); } }, hostHtml: () => html(true), tapStock, tapRecord, exportShare, quickSend, openText, loadUsers, renewKey, add, noteCount, pendingCount, open, close, render: refresh, exportSales, importFlow, exportSnapshot, setLink, unlink, toggleMode, addDevice, showCode, delDevice, on: waOn, _skip: null, _t: { sha256, hmacHex, sign, parseCode, codeOf, planSales, cleanStock, devs, impSet, link, ops, unsent, unconfirmed, summarize, applySales, importSnapshot, parseFile, K } };
+    window.WA = { showLog, exportFull, exportDesktop, act: async (f, a) => { try { await WA[f](a); } finally { setTimeout(() => { try { if (document.getElementById('waHostSs') === null && typeof showSyncStatus === 'function') showSyncStatus(); } catch (e) { /* تجاهل */ } }, 200); } }, hostHtml: () => html(true), tapStock, tapRecord, exportShare, quickSend, openText, loadUsers, renewKey, add, noteCount, pendingCount, open, close, render: refresh, exportSales, importFlow, exportSnapshot, setLink, unlink, toggleMode, addDevice, showCode, delDevice, on: waOn, _skip: null, _t: { sha256, hmacHex, sign, parseCode, codeOf, planSales, cleanStock, devs, impSet, link, ops, unsent, unconfirmed, summarize, applySales, importSnapshot, parseFile, K } };
     window.addEventListener('load', () => setTimeout(refresh, 1500));
     try {   // الحاسوب: ملف .dwsync فُتح بالنقر المزدوج
         const DD = window.diwanDesktop;
