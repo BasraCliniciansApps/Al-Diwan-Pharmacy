@@ -520,6 +520,7 @@ let _pszAuto = false;
 async function partRetroRun() {
     if (_pszAuto) return; _pszAuto = true;
     if (typeof userRole === 'undefined' || userRole !== 'owner' || !cloudReady() || !products.length) { _pszAuto = false; return; }
+    if (typeof recvOnly === 'function' && recvOnly()) { _pszAuto = false; return; }   // الحاسبة لا تكتب في السحابة
     if (!writesAllowed()) { _pszAuto = false; return; }
     const upd = []; products.forEach(p => { if (!hasRetail(p)) return; const old = String(p.subType || '').trim(); if (partNorm(p)) upd.push({ p, old, v: p.subType }); });
     if (!upd.length) return;
