@@ -143,7 +143,7 @@ class DiwanHeader extends StatelessWidget implements PreferredSizeWidget {
                 Text(title,
                     style: ruqaa(size: 16.8, color: DiwanColors.slateText)),
                 const Spacer(),
-                if (sideWidget != null) sideWidget!,
+                ?sideWidget,
                 if (sideLabel != null) _UserPill(sideLabel!),
               ],
             ),
