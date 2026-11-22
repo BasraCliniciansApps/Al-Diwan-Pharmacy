@@ -66,7 +66,8 @@ service cloud.firestore {
     match /pharmacy_moves/{id} {
       allow read: if isOwner();
       allow create: if isOwner() || isStaff();
-      allow update, delete: if isOwner();
+      allow update: if false;   // لا يُعدَّل سجل حركة أبداً: كتابة مؤجلة بنفس المفتاح تفشل كاملة فلا يتضاعف الخصم ولا الإضافة
+      allow delete: if isOwner();
     }
 
     // ---- الوارد والمذاخر والسجلات المالية ----

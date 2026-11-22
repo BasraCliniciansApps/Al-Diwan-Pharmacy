@@ -55,6 +55,10 @@
     const b64d = s => decodeURIComponent(escape(atob(String(s).replace(/-/g, '+').replace(/_/g, '/'))));
     const sign = (secret, o) => { const c = Object.assign({}, o); delete c.sig; return hmacHex(secret, I.stable(c)); };
 
+    // بصمة تحقق (SHA-256 بلا مفتاح ولا تشفير): تكشف تلف الملف أو انقطاعه أثناء النقل
+    function sealText(obj) { const c = Object.assign({}, obj); delete c.chk; const body = JSON.stringify(c); c.chk = hex(sha256(te.encode(body))); return JSON.stringify(c); }
+    function chkOk(f) { if (!f || typeof f.chk !== 'string') return true; const c = Object.assign({}, f), k = c.chk; delete c.chk; try { return hex(sha256(te.encode(JSON.stringify(c)))) === k; } catch (e) { return false; } }
+
     // ---------------- أدوات عامة ----------------
     const devId = () => { let d = ls.raw(K.dev); if (!d) { d = 'w' + Date.now().toString(36) + rid(4).toLowerCase(); try { localStorage.setItem(K.dev, d); } catch (e) { /* تجاهل */ } } return d; };
     const safeId = s => typeof s === 'string' && /^[\w\-:.#]{2,120}$/.test(s);
@@ -87,6 +91,11 @@
     }
 
     // ---------------- جهاز المستخدم: سجل الحركات ----------------
+    // سقف حجم السجل (localStorage محدود ~5 ميغا ويشاركه التطبيق): تُحذف أقدم العمليات المُرسَلة/المؤكَّدة أولاً، ولا تُحذف عملية لم تُرسل أبداً
+    function capOps(list, done, maxBytes) {
+        maxBytes = maxBytes || 1200000; let sz = 0; try { sz = JSON.stringify(list).length; } catch (e) { return; }
+        for (let i = 0; i < list.length && sz > maxBytes;) { if (done(list[i])) { try { sz -= JSON.stringify(list[i]).length + 1; } catch (e) { /* تجاهل */ } list.splice(i, 1); } else i++; }
+    }
     const ops = () => ls.get(K.ops, []);
     const expMap = () => ls.get(K.exp, {});
     const seenSet = () => new Set(ls.get(K.seen, []));
@@ -95,7 +104,7 @@
         const all = ops(); if (all.some(x => x.id === op.id)) return;
         const lim = Date.now() - OPS_KEEP_DAYS * 86400000, e = expMap(), s = seenSet();
         const keep = all.filter(x => !(s.has(x.id) && Date.parse(x.ts) < lim));   // ما أكّده المدير وقدُم يُحذف
-        keep.push(op); ls.set(K.ops, keep);
+        keep.push(op); capOps(keep, o => s.has(o.id) || !!e[o.id]); ls.set(K.ops, keep);
         const em = {}; keep.forEach(x => { if (e[x.id]) em[x.id] = e[x.id]; }); ls.set(K.exp, em);
         refresh(); try { syncRefresh(); } catch (x) { /* تجاهل */ }
     }
@@ -185,7 +194,7 @@
         let text, name;
         try {
             const payload = { diwan: 1, kind: 'sales', kid: lk.k, at: nowIso(), from: { name: (typeof userName !== 'undefined' && userName) || lk.n || '', dev: devId() }, n: list.length, ops: list.map(o => ({ id: o.id, type: o.type, ts: o.ts, data: stripCost(o.data) })) };
-            const rt = JSON.parse(JSON.stringify(payload)); if (shared) { rt.share = 1; rt.from.uid = (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) || ''; } else rt.sig = sign(lk.s, rt); text = JSON.stringify(rt); name = fileName(shared ? 'share' : 'sales', lk.k);   // التوقيع على الشكل المسلسل نفسه (بدون الحقول غير المعرّفة)
+            const rt = JSON.parse(JSON.stringify(payload)); if (shared) { rt.share = 1; rt.from.uid = (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) || ''; text = sealText(rt); } else { rt.sig = sign(lk.s, rt); text = JSON.stringify(rt); } name = fileName(shared ? 'share' : 'sales', lk.k);   // التوقيع على الشكل المسلسل نفسه (بدون الحقول غير المعرّفة)
             h.set(70, 'فتح واتساب...'); h.ok('الملف جاهز: ' + num(list.length) + ' عملية');
         } catch (e) { h.fail('تعذّر تجهيز الملف', (e && e.message) || ''); return; }
         const msg = 'مبيعات ' + ((typeof userName !== 'undefined' && userName) || lk.n || '') + ' — ' + num(sm.n) + ' فاتورة';
@@ -280,6 +289,7 @@
     }
     function parseFile(text) {
         let f; try { f = JSON.parse(text); } catch (e) { return { err: 'الملف ليس ملف الديوان (تعذّرت قراءته).' }; }
+        if (f && f.diwan === 1 && !chkOk(f)) return { err: 'الملف تالف أو لم يكتمل نقله (فشل فحص البصمة). اطلب إعادة إرساله.' };
         if (!f || f.diwan !== 1 || (f.kind !== 'sales' && f.kind !== 'snap' && f.kind !== 'mgr' && f.kind !== 'full') || !safeId(f.kid) || (typeof f.sig !== 'string' && f.share !== 1)) return { err: 'هذا ليس ملفاً صادراً من تطبيق الديوان.' };
         return { f };
     }
@@ -453,11 +463,11 @@
         const seen = new Set(Array.isArray(f.seen) ? f.seen : []);
         const pend = ops().filter(o => o.type === 'stock' && allowedOp(o) && !seen.has(o.id)).sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
         const pc = new Set(); pend.forEach(o => pc.add(groupKey(o)));
-        const r = await Swal.fire({ icon: 'question', title: 'استيراد لقطة المخزون', html: '<div class="wa-pv"><div class="wa-li"><span>📦 <b>' + num((f.products || []).length) + '</b> مادة بأرصدتها وأسعارها · أُعدّت ' + esc(ago(f.at)) + '</span></div>' + (pend.length ? '<div class="wa-li warn"><span>مبيعاتك التي لم يؤكدها المدير (' + num(pc.size) + ') ستُحسب فوق الرصيد الجديد، فلا يضيع شيء.</span></div>' : '') + '</div>', showCancelButton: true, confirmButtonText: 'استيراد', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+        const r = await Swal.fire({ icon: 'question', title: 'استيراد لقطة المخزون', html: '<div class="wa-pv"><div class="wa-li"><span>📦 <b>' + num((f.products || []).length) + '</b> مادة بأرصدتها وأسعارها' + (Array.isArray(f.del) && f.del.length ? ' · <b>' + num(f.del.length) + '</b> محذوفة' : '') + ' · أُعدّت ' + esc(ago(f.at)) + '</span></div>' + (pend.length ? '<div class="wa-li warn"><span>مبيعاتك التي لم يؤكدها المدير (' + num(pc.size) + ') ستُحسب فوق الرصيد الجديد، فلا يضيع شيء.</span></div>' : '') + '</div>', showCancelButton: true, confirmButtonText: 'استيراد', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
         if (!r.isConfirmed) return;
         const h = Prog.start('تحديث المخزون من المدير', { text: 'جاري التطبيق...' });
         try {
-            const arr = Array.isArray(f.products) ? f.products : []; let added = 0, upd = 0, i = 0;
+            const arr = Array.isArray(f.products) ? f.products : []; let added = 0, upd = 0, i = 0, delN = 0;
             const cloudLive = SH && !waOn() && typeof cloudReady === 'function' && cloudReady() && navigator.onLine;   // السحابة متصلة: هي المرجع للأرصدة، فلا نكتب فوقها
 
             arr.forEach(it => {
@@ -470,6 +480,7 @@
                 const st = it.st || {}; if (!cloudLive || isNew) SNAP_ST.forEach(k => { if (st[k] !== undefined) p[k] = st[k]; else delete p[k]; });
                 if (++i % 200 === 0) h.set(Math.round(i / arr.length * 60), 'تحديث الأصناف...');
             });
+            if (!cloudLive && Array.isArray(f.del) && f.del.length) { const ds = new Set(f.del.map(String)); const b4 = products.length; products = products.filter(p => !ds.has(String(p.id))); delN = b4 - products.length; }
             h.set(65, 'إعادة مبيعاتك غير المؤكدة...');
             const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() };
             if (!cloudLive) pend.forEach(o => { try { I.applyStockOp(o.data, rep, o.ts); } catch (e) { /* عملية تالفة: تُتخطّى */ } });
@@ -478,7 +489,7 @@
             if (f.cfg) { try { I.trackIngest('cfg', { cfg: f.cfg }); } catch (e) { /* تجاهل */ } }
             const ns = seenSet(); seen.forEach(x => ns.add(x)); ls.set(K.seen, [...ns].slice(-6000)); ls.set(K.snapAt, f.at || nowIso());
             saveLocal(); try { renderAll(); } catch (e) { /* تجاهل */ }
-            h.ok('تم التحديث: ' + num(upd) + ' مادة' + (added ? ' و' + num(added) + ' جديدة' : ''));
+            h.ok('تم التحديث: ' + num(upd) + ' مادة' + (added ? ' و' + num(added) + ' جديدة' : '') + (delN ? ' وحُذف ' + num(delN) : ''));
         } catch (e) { h.fail('تعذّر تحديث المخزون', (e && e.message) || ''); }
         refresh(); try { syncRefresh(); } catch (e) { /* تجاهل */ }
     }
@@ -492,7 +503,7 @@
     const MG = { ops: 'diwanMgOps', exp: 'diwanMgExp', sent: 'diwanMgSent' };
     function addMg(op) {   // سجل حركات المدير (تُرسل للحاسوب كملف)
         const all = ls.get(MG.ops, []); if (all.some(x => x.id === op.id)) return;
-        const lim = Date.now() - 60 * 86400000, keep = all.filter(x => Date.parse(x.ts) >= lim); keep.push(op); ls.set(MG.ops, keep.slice(-3000));
+        const em = ls.get(MG.exp, {}), keep = all.filter(x => !em[x.id] || Date.now() - Date.parse(x.ts) < 14 * 86400000); keep.push(op); capOps(keep, o => !!em[o.id]); ls.set(MG.ops, keep);
     }
     function tapStock(entries, op) {   // يُستدعى قبل btPrepare (يقرأ _badd) ولا يغيّر شيئاً
         try {
@@ -520,15 +531,28 @@
             if (own) addMg(o); else add(o);
         } catch (e) { /* تجاهل */ }
     }
-    const shSent = () => ls.get(SHK.sent, {});
+    const shSent = uid => ls.get(uid ? SHK.sent + '_' + uid : SHK.sent, {});
+    const shCfgKey = uid => uid ? SHK.cfg + '_' + uid : SHK.cfg;
+    // اختيار المستخدم المستلم: لكل مستخدم نقطة مقارنة خاصة به، فلا يفوته تغيير أُرسل لغيره
+    async function pickRecipient() {
+        const us = (typeof usersCache !== 'undefined' ? usersCache : []).filter(u => u && u.uid && u.active !== false && u.role !== 'owner' && u.role !== 'manager');
+        if (!us.length) return { uid: '', name: '' };
+        const opt = '<option value="">كل المستخدمين (نقطة مقارنة مشتركة)</option>' + us.map(u => '<option value="' + esc(u.uid) + '">' + esc(u.name || 'مستخدم') + '</option>').join('');
+        const r = await Swal.fire({ title: 'لمن الملف؟', html: '<div class="wa-pv"><select id="waRcpt" class="swal2-select" style="display:flex;width:100%;margin:6px 0">' + opt + '</select><div class="wa-li mut"><span>اختر مستخدماً بعينه ليصله كل ما تغيّر منذ آخر ملف أُرسل له هو. الاختيار العام مناسب إذا أرسلت الملف نفسه للجميع دائماً.</span></div></div>', showCancelButton: true, confirmButtonText: 'متابعة', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', preConfirm: () => { const el = document.getElementById('waRcpt'); return el ? el.value : ''; } });
+        if (!r.isConfirmed) return null;
+        const u = us.find(x => x.uid === r.value); return { uid: r.value || '', name: u ? (u.name || '') : '' };
+    }
     // المدير: ملف التحديثات (الفرق فقط) ← المستخدمين
     async function exportShare(opts) {
         opts = opts || {};
         if (!isOwner()) { Swal.fire({ icon: 'info', title: 'للمدير فقط', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        const rc = opts.to !== undefined ? { uid: opts.to } : await pickRecipient(); if (!rc) return; const rUid = rc.uid || '';
         const h = Prog.start('تجهيز تحديثات المستخدمين', { text: 'مقارنة مع آخر إرسال...' });
-        let text, name, nP = 0, hashes = {}, cfgH = '', withCfg = false;
+        let text, name, nP = 0, hashes = {}, cfgH = '', withCfg = false, dels = [];
         try {
-            const sent = opts.full ? {} : shSent(), items = [];
+            const sent = opts.full ? {} : shSent(rUid), items = [];
+            const live = new Set(products.map(p => String(p.id)));
+            if (!opts.full) Object.keys(sent).forEach(k => { if (!live.has(String(k))) dels.push(k); });
             products.forEach(p => {
                 const s = I.pSplit(p), st = {}; SNAP_ST.forEach(k => { if (p[k] !== undefined) st[k] = p[k]; });
                 const hh = I.hsh(I.stable({ i: s.info, st }));
@@ -536,12 +560,12 @@
                 hashes[p.id] = hh; items.push({ pid: p.id, info: s.info, st });
             });
             nP = items.length;
-            const cf = I.cfgNow(); cfgH = I.hsh(I.stable(cf)); withCfg = opts.full || ls.get(SHK.cfg, '') !== cfgH;
-            if (!nP && !withCfg) { h.ok('لا توجد تغييرات جديدة'); await Swal.fire({ icon: 'info', title: 'لا توجد تحديثات جديدة', text: 'كل ما تغيّر أُرسل سابقاً. لإرسال كل شيء من جديد اختر «ملف كامل».', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+            const cf = I.cfgNow(); cfgH = I.hsh(I.stable(cf)); withCfg = opts.full || ls.get(shCfgKey(rUid), '') !== cfgH;
+            if (!nP && !withCfg && !dels.length) { h.ok('لا توجد تغييرات جديدة'); await Swal.fire({ icon: 'info', title: 'لا توجد تحديثات جديدة', text: 'كل ما تغيّر أُرسل سابقاً. لإرسال كل شيء من جديد اختر «ملف كامل».', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
             const seen = []; const m = impAll(); Object.keys(m).forEach(k => (m[k] || []).forEach(x => seen.push(x)));
-            const payload = { diwan: 1, kind: 'snap', share: 1, kid: 'm' + devId(), at: nowIso(), delta: !opts.full, from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, products: items, cfg: withCfg ? cf : undefined, seen: seen.slice(-6000) };
-            text = JSON.stringify(payload); name = fileName('shsnap', 'upd');
-            h.ok('الملف جاهز: ' + num(nP) + ' مادة' + (withCfg ? ' + الإعدادات' : ''));
+            const payload = { diwan: 1, kind: 'snap', share: 1, kid: 'm' + devId(), at: nowIso(), delta: !opts.full, from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, products: items, del: dels.length ? dels : undefined, cfg: withCfg ? cf : undefined, seen: seen.slice(-6000) };
+            text = sealText(payload); name = fileName('shsnap', 'upd');
+            h.ok('الملف جاهز: ' + num(nP) + ' مادة' + (dels.length ? ' + حذف ' + num(dels.length) : '') + (withCfg ? ' + الإعدادات' : ''));
         } catch (e) { h.fail('تعذّر تجهيز الملف', (e && e.message) || ''); return; }
         let res = await shareText(name, text, 'تحديثات صيدلية الديوان');
         if (res === 'blocked') {
@@ -549,7 +573,7 @@
             res = r.isConfirmed ? r.value : 'cancelled';
         }
         if (!res || res === 'cancelled' || res === 'blocked') { toast('info', 'لم يُرسل الملف'); return; }
-        const sent = opts.full ? {} : shSent(); Object.assign(sent, hashes); ls.set(SHK.sent, sent); if (withCfg) ls.set(SHK.cfg, cfgH);
+        const sent = opts.full ? {} : shSent(rUid); Object.assign(sent, hashes); dels.forEach(k => { delete sent[k]; }); ls.set(rUid ? SHK.sent + '_' + rUid : SHK.sent, sent); if (withCfg) ls.set(shCfgKey(rUid), cfgH);
         if (res === 'saved') await Swal.fire({ icon: 'success', title: 'حُفظ الملف على الجهاز', html: 'أرسله من واتساب: <b>📎 ← مستند</b>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else toast('success', 'جُهّز الملف: ' + num(nP) + ' مادة');
@@ -572,10 +596,16 @@
             const rs = []; try { rs.push(['suppliers', puSuppliers || []]); rs.push(['ledger', lgAll || []]); } catch (e) { /* تجاهل */ }
             rs.forEach(([coll, arr]) => arr.forEach(r => { if (!r || !r.id) return; const k = coll + ':' + r.id, hh = I.hsh(I.stable(r)); if (sent.r[k] === hh) return; mark.r[k] = hh; info.rec.push({ coll, rec: r }); }));
             const cf = I.cfgNow(), ch = I.hsh(I.stable(cf)); if (sent.c !== ch) { info.cfg = cf; mark.c = ch; }
-            sum = { ops: ops.length, p: info.p.length, rec: info.rec.length, cfg: !!info.cfg };
-            if (!sum.ops && !sum.p && !sum.rec && !sum.cfg) { h.ok('لا توجد تغييرات جديدة'); await Swal.fire({ icon: 'info', title: 'لا توجد تغييرات جديدة للحاسوب', text: 'كل ما تغيّر أُرسل سابقاً.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+            // محذوفات: ما كان في نقطة المقارنة ولم يعد موجوداً
+            const live = new Set(products.map(p => String(p.id))); info.delP = Object.keys(sent.p).filter(k => !live.has(String(k)));
+            const liveR = new Set(rs.reduce((a, [c, arr]) => a.concat(arr.filter(r => r && r.id).map(r => c + ':' + r.id)), [])); info.delR = Object.keys(sent.r).filter(k => !liveR.has(k)); mark.delP = info.delP; mark.delR = info.delR;
+            // حالة المخزون الدقيقة للمواد التي لمسها جرد/ضبط (دفعات وصلاحية وعلامة الجرد) لأن حركات الجرد تحمل الكمية فقط
+            const touched = new Set(); ops.forEach(o => { if (o.type === 'stock' && o.data && o.data.op && o.data.op.nk) (o.data.entries || []).forEach(e => { if (e && e.pid !== undefined) touched.add(String(e.pid)); }); });
+            if (touched.size) { info.sf = {}; products.forEach(p => { if (touched.has(String(p.id))) { const st = {}; ['bt', 'expiryDate', 'expiryDates', 'counted'].forEach(k => { if (p[k] !== undefined) st[k] = p[k]; }); info.sf[p.id] = st; } }); }
+            sum = { ops: ops.length, p: info.p.length, rec: info.rec.length, cfg: !!info.cfg, del: info.delP.length + info.delR.length };
+            if (!sum.ops && !sum.p && !sum.rec && !sum.cfg && !sum.del) { h.ok('لا توجد تغييرات جديدة'); await Swal.fire({ icon: 'info', title: 'لا توجد تغييرات جديدة للحاسوب', text: 'كل ما تغيّر أُرسل سابقاً.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
             const payload = { diwan: 1, kind: 'mgr', share: 1, kid: 'g' + devId(), at: nowIso(), from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, ops: ops.map(o => ({ id: o.id, type: o.type, ts: o.ts, data: o.data })), info };
-            text = JSON.stringify(payload); name = fileName('share', 'pc');
+            text = sealText(payload); name = fileName('share', 'pc');
             h.ok('الملف جاهز (' + (typeof fmtBytes === 'function' ? fmtBytes(text.length) : Math.round(text.length / 1024) + ' ك.ب') + ')');
         } catch (e) { h.fail('تعذّر تجهيز الملف', (e && e.message) || ''); return; }
         let res = await shareText(name, text, 'تحديثات صيدلية الديوان للحاسوب');
@@ -584,7 +614,7 @@
             res = r.isConfirmed ? r.value : 'cancelled';
         }
         if (!res || res === 'cancelled' || res === 'blocked') { toast('info', 'لم يُرسل الملف'); return; }
-        const sent = mgSent(); Object.assign(sent.p, mark.p); Object.assign(sent.r, mark.r); sent.c = mark.c; ls.set(MG.sent, sent);
+        const sent = mgSent(); Object.assign(sent.p, mark.p); Object.assign(sent.r, mark.r); sent.c = mark.c; (mark.delP || []).forEach(k => { delete sent.p[k]; }); (mark.delR || []).forEach(k => { delete sent.r[k]; }); ls.set(MG.sent, sent);
         const em = ls.get(MG.exp, {}); mark.ids.forEach(i => { em[i] = nowIso(); }); ls.set(MG.exp, em);
         if (res === 'saved') await Swal.fire({ icon: 'success', title: 'حُفظ الملف على الجهاز', html: 'أرسله من واتساب: <b>📎 ← مستند</b>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
@@ -592,6 +622,24 @@
         refresh();
     }
     // نسخة كاملة من جوال المدير إلى الحاسوب: كل ما في النسخة الاحتياطية الكاملة للتطبيق (أصناف بكمياتها وكلفها وفواتير وواردات ومذاخر ودفتر وإعدادات)
+    // ما لا تشمله النسخة الاحتياطية العادية: المصروفات وفئاتها والمتابعات وقوائم الجرد (تُنقل كما هي)
+    const EXTRA_KEYS = ['diwanExpenses', 'diwanExpCats', 'diwanFollowups', 'diwanCountLists'];
+    function fullExtras() { const o = {}; EXTRA_KEYS.forEach(k => { try { const v = lsGet(k); if (v) o[k] = JSON.parse(v); } catch (e) { /* تجاهل */ } }); return o; }
+    function applyExtras(x, exact) {
+        if (!x || typeof x !== 'object') return 0; let n = 0;
+        EXTRA_KEYS.forEach(k => {
+            const inc = x[k]; if (inc === undefined || inc === null) return;
+            try {
+                if (exact || !Array.isArray(inc)) { lsSet(k, JSON.stringify(inc)); n++; return; }
+                let cur = []; try { cur = JSON.parse(lsGet(k) || '[]'); } catch (e) { cur = []; } if (!Array.isArray(cur)) cur = [];
+                const m = new Map(cur.map(r => [String(r && r.id), r])); inc.forEach(r => { if (r && r.id !== undefined) m.set(String(r.id), r); });
+                lsSet(k, JSON.stringify([...m.values()])); n++;
+            } catch (e) { /* تجاهل */ }
+        });
+        try { if (typeof exLocal === 'function') exAll = exLocal(); } catch (e) { /* تجاهل */ }
+        try { if (typeof cnLocal === 'function') cnLists = cnLocal(); } catch (e) { /* تجاهل */ }
+        return n;
+    }
     async function exportFull() {
         if (!isOwner() || window.diwanDesktop) { Swal.fire({ icon: 'info', title: 'من جوال المدير فقط', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const h = Prog.start('تجهيز النسخة الكاملة للحاسوب', { text: 'جمع البيانات...' });
@@ -600,7 +648,7 @@
             if (typeof cloudReady === 'function' && cloudReady() && navigator.onLine && typeof bkRefresh === 'function') { h.set(10, 'قراءة أحدث نسخة من السحابة...'); try { await bkRefresh(); } catch (e) { /* نكمل بالمحلي */ } }
             h.set(60, 'تحويل الملف...');
             const data = buildFullBackup(); cnt = data.counts || {};
-            text = JSON.stringify({ diwan: 1, kind: 'full', share: 1, kid: 'f' + devId(), at: nowIso(), from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, backup: data });
+            text = sealText({ diwan: 1, kind: 'full', share: 1, kid: 'f' + devId(), at: nowIso(), from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, backup: data, extras: fullExtras() });
             name = fileName('share', 'full');
             h.ok('الملف جاهز (' + (typeof fmtBytes === 'function' ? fmtBytes(text.length) : Math.round(text.length / 1024) + ' ك.ب') + ')');
         } catch (e) { h.fail('تعذّر تجهيز الملف', (e && e.message) || ''); return; }
@@ -662,6 +710,7 @@
             if (d.formCfg && typeof formCfgImport === 'function') { try { formCfgImport(d.formCfg); } catch (e) { /* تجاهل */ } }
             if (Array.isArray(d.trash)) { try { lsPut(LS_TRASH, d.trash); } catch (e) { /* تجاهل */ } }
             try { bkApplyExtras(d); } catch (e) { /* تجاهل */ }
+            try { applyExtras(f.extras, exact); } catch (e) { /* تجاهل */ }
             h.set(90, 'حفظ على الجهاز...');
             try { syncStockLocal(products); } catch (e) { /* تجاهل */ }
             saveLocal(); try { renderAll(); } catch (e) { /* تجاهل */ }
@@ -683,7 +732,10 @@
         const pch = (inf.p || []).filter(x => { if (!x || x.pid === undefined || !x.info) return false; const p = loc.get(String(x.pid)); if (!p) return true; const s = I.pSplit(p); return I.hsh(I.stable({ i: s.info, c: s.cost })) !== I.hsh(I.stable({ i: x.info, c: x.cost || {} })); });
         const rch = (inf.rec || []).filter(x => { if (!x || !x.rec || !x.rec.id || (x.coll !== 'suppliers' && x.coll !== 'ledger')) return false; const arr = x.coll === 'suppliers' ? puSuppliers : lgAll; const o = (arr || []).find(y => y.id === x.rec.id); return !o || I.stable(o) !== I.stable(x.rec); });
         const cfgCh = !!inf.cfg && I.stable(inf.cfg) !== I.stable(I.cfgNow());
-        if (!stockOps.length && !recOps.length && !pch.length && !rch.length && !cfgCh) { await Swal.fire({ icon: 'info', title: dup ? 'استُورد هذا الملف سابقاً' : 'لا توجد تغييرات', text: dup ? 'كل حركاته موجودة عندك.' : 'بياناتك مطابقة لما في الملف.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        const cloudLiveD = typeof cloudReady === 'function' && cloudReady() && navigator.onLine;   // الحاسوب متصل بالسحابة: لا نحذف ولا نغيّر الأرصدة محلياً (السحابة هي المرجع)
+        const dP = cloudLiveD ? [] : (inf.delP || []).filter(k => loc.has(String(k)));
+        const dR = cloudLiveD ? [] : (inf.delR || []).filter(k => { const i2 = String(k).indexOf(':'), c = k.slice(0, i2), id = k.slice(i2 + 1), arr = c === 'suppliers' ? puSuppliers : c === 'ledger' ? lgAll : null; return arr && arr.some(y => String(y.id) === id); });
+        if (!stockOps.length && !recOps.length && !pch.length && !rch.length && !cfgCh && !dP.length && !dR.length) { await Swal.fire({ icon: 'info', title: dup ? 'استُورد هذا الملف سابقاً' : 'لا توجد تغييرات', text: dup ? 'كل حركاته موجودة عندك.' : 'بياناتك مطابقة لما في الملف.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const li = (t, c) => '<div class="wa-li ' + (c || '') + '"><span>' + t + '</span></div>';
         const nInv = recOps.filter(o => o.type === 'invoice').length, nPur = recOps.length - nInv;
         let body = '<div class="wa-pv"><div class="wa-pv-h"><b>' + esc((f.from && f.from.name) || 'المدير') + '</b><small>أُرسل ' + esc(ago(f.at)) + '</small></div>';
@@ -692,6 +744,7 @@
         if (pch.length) body += li('💊 مواد وأسعار تغيّرت: <b>' + num(pch.length) + '</b>');
         if (rch.length) body += li('📒 مذاخر ودفتر: <b>' + num(rch.length) + '</b>');
         if (cfgCh) body += li('⚙️ الإعدادات ستُحدَّث');
+        if (dP.length || dR.length) body += li('🗑️ محذوفات ستُحذف أيضاً: <b>' + num(dP.length + dR.length) + '</b>', 'warn');
         if (dup) body += li('♻️ مستوردة سابقاً (ستُتخطى): ' + num(dup), 'mut'); if (bad) body += li('🚫 غير صالحة: ' + num(bad), 'bad');
         body += li('ستُحفظ نسخة احتياطية قبل التطبيق.', 'mut') + '</div>';
         const r = await Swal.fire({ title: 'استيراد تحديثات من الجوال', html: body, showCancelButton: true, confirmButtonText: 'تطبيق', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
@@ -708,6 +761,9 @@
             if (cfgCh) { try { L._i.trackIngest('cfg', { cfg: inf.cfg }); } catch (e) { rep.fail.push('cfg'); } }
             for (const x of rch) { try { L._i.trackIngest('rec', { coll: x.coll, rec: x.rec }); } catch (e) { rep.fail.push(x.coll); } tick(); }
             tick();
+            if (dP.length) { const ds = new Set(dP.map(String)); products = products.filter(p => !ds.has(String(p.id))); }
+            dR.forEach(k => { const i2 = k.indexOf(':'), c = k.slice(0, i2), id = k.slice(i2 + 1); if (c === 'suppliers') puSuppliers = puSuppliers.filter(y => String(y.id) !== id); else lgAll = lgAll.filter(y => String(y.id) !== id); });
+            if (dR.length) { try { lsSet(PU_LS.sup, JSON.stringify(puSuppliers)); lsSet(LG_LS.list, JSON.stringify(lgAll)); } catch (e) { /* تجاهل */ } }
             const all = stockOps.concat(recOps).sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
             for (const op of all) {
                 try {
@@ -718,6 +774,7 @@
                 } catch (e) { rep.fail.push(op.id + ': ' + ((e && e.message) || e)); }
                 tick();
             }
+            if (!cloudLiveD && inf.sf && typeof inf.sf === 'object') Object.keys(inf.sf).forEach(pid => { const p = loc.get(String(pid)) || products.find(x => String(x.id) === String(pid)); if (!p) return; const st = inf.sf[pid] || {}; ['bt', 'expiryDate', 'expiryDates', 'counted'].forEach(k => { if (st[k] !== undefined) p[k] = st[k]; else if (k !== 'counted') delete p[k]; }); });
             try { if (typeof L.pushDirty === 'function') await L.pushDirty(); } catch (e) { /* يبقى معلّماً للرفع لاحقاً */ }
             try { saveLocal(); } catch (e) { /* تجاهل */ } try { renderAll(); } catch (e) { /* تجاهل */ }
             const lg = ls.get(K.log, []); lg.unshift({ at: nowIso(), kid, label: dev.label, inv: rep.inv, stock: rep.stock, missing: rep.missing, counted: 0, over: [...rep.over].slice(0, 8), fail: rep.fail.length }); ls.set(K.log, lg.slice(0, 30));
