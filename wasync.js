@@ -496,14 +496,18 @@
     function tapStock(entries, op) {   // يُستدعى قبل btPrepare (يقرأ _badd) ولا يغيّر شيئاً
         try {
             if (!shLogOn() || L.active() || window.__waImporting) return;
-            if (!op || !op.key) return;   // بلا مفتاح لا يمكن منع التكرار مع السحابة، فلا تُنقل (الجرد وضبط الكمية يدوياً)
             const own = isOwner();
+            let nk = false;
+            if (!op || !op.key) {   // جرد أو ضبط كمية يدوي: بلا مفتاح تعرفه السحابة. يُنقل للحاسوب بمفتاح خاص بالملف، ويُطبَّق هناك محلياً فقط (السحابة تنقله إن كان متصلاً)
+                if (!own) return;
+                op = Object.assign({}, op || {}, { key: 'g' + Date.now().toString(36) + rid(4).toLowerCase(), kind: (op && op.kind) || 'adjust' }); nk = true;
+            }
             if (!own && STAFF_KINDS.indexOf(op.kind) < 0) return;
             const list = (entries || []).filter(Boolean).filter(e => e.dq || e.dl || e.expChanged || (e.expAdd && e.expAdd.length) || (e.expRemove && e.expRemove.length));
             if (!list.length) return;
             const sn = I.snapNum;
             const pack = list.map(e => ({ pid: e.p.id, name: e.p.name, dq: sn(e.dq), dl: sn(e.dl), abs: (e.mark && (sn(e.dq) || sn(e.dl))) ? { q: sn(e.p.qty), l: sn(e.p.loose) } : undefined, hints: Array.isArray(e.p._badd) && e.p._badd.length ? JSON.parse(JSON.stringify(e.p._badd)) : null, expAdd: e.expAdd || [], expRemove: e.expRemove || [], expChanged: !!e.expChanged, lastSet: !!e.lastSet, last: e.last, mark: !!e.mark, unmark: !!e.unmark }));
-            const o = { id: 'stk:' + op.key, type: 'stock', ts: nowIso(), data: { op: { key: op.key, kind: op.kind || '', inv: op.inv || '', no: op.no || '' }, entries: pack } };
+            const o = { id: 'stk:' + op.key, type: 'stock', ts: nowIso(), data: { op: { key: op.key, kind: op.kind || '', inv: op.inv || '', no: op.no || '', nk: nk || undefined }, entries: pack } };
             if (own) addMg(o); else add(o);
         } catch (e) { /* التسجيل لا يعطّل البيع */ }
     }
@@ -592,7 +596,7 @@
         const stockOps = [], recOps = []; let dup = 0, bad = 0;
         ops0.forEach(o => {
             if (imp.has(o.id)) { dup++; return; }
-            if (o.type === 'stock' && o.data && Array.isArray(o.data.entries) && o.data.op && o.data.op.key) stockOps.push({ id: o.id, type: 'stock', ts: o.ts, clean: cleanStock(o) });
+            if (o.type === 'stock' && o.data && Array.isArray(o.data.entries) && o.data.op && o.data.op.key) stockOps.push({ id: o.id, type: 'stock', ts: o.ts, clean: cleanStock(o), nk: !!o.data.op.nk, raw: o.data.entries });
             else if ((o.type === 'invoice' || o.type === 'purchase') && o.data && o.data.rec && safeId(String(o.data.rec.id)) && Array.isArray(o.data.rec.items)) recOps.push({ id: o.id, type: o.type, ts: o.ts, rec: o.data.rec });
             else bad++;
         });
@@ -628,7 +632,7 @@
             const all = stockOps.concat(recOps).sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
             for (const op of all) {
                 try {
-                    if (op.type === 'stock') { if (await applyStock(op, false, rep)) rep.stock++; }
+                    if (op.type === 'stock') { if (op.nk ? applyLocalAdj(op, rep) : await applyStock(op, false, rep)) rep.stock++; }
                     else if (op.type === 'invoice') await applyInvoice(op, f, dev, rep);
                     else await applyPurchase(op, rep);
                     markImp(kid, op.id);
@@ -644,10 +648,25 @@
         finally { busy = false; window.__waImporting = false; refresh(); }
         let b2 = li('💊 مواد وإعدادات طُبّقت: <b>' + num(pi) + '</b>') + li('📦 حركات مخزون: <b>' + num(rep.stock) + '</b>') + li('🧾 فواتير ووارد: <b>' + num(rep.inv + (rep.pur || 0)) + '</b>');
         if (pSkip) b2 += li('مواد عندك فيها تعديل غير مرسل فلم تُستبدل: ' + num(pSkip), 'warn');
+        if (rep.viaCloud) b2 += li('جرد وتعديلات كمية تنتقل عبر السحابة (تصل عند المزامنة): ' + num(rep.viaCloud), 'mut');
         if (rep.already) b2 += li('حركات سُجّلت سابقاً في السحابة: ' + num(rep.already), 'mut');
         if (rep.missing) b2 += li('مواد غير موجودة (لم تُخصم): ' + num(rep.missing), 'warn');
         if (rep.over.size) b2 += li('رصيد غير كافٍ (صار صفراً): ' + esc([...rep.over].slice(0, 6).join('، ')), 'warn');
         await Swal.fire({ icon: rep.fail.length ? 'warning' : 'success', title: rep.fail.length ? 'اكتمل جزئياً' : 'تم الاستيراد', html: '<div class="wa-pv">' + b2 + '</div>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+    }
+    // جرد/ضبط كمية من الجوال: يُطبَّق محلياً فقط. إن كان الحاسوب متصلاً بالسحابة فهي تنقله (الجوال كتبه فيها) فلا نكتب مرة ثانية.
+    function applyLocalAdj(op, rep) {
+        if (typeof cloudReady === 'function' && cloudReady() && navigator.onLine) { rep.viaCloud = (rep.viaCloud || 0) + 1; return false; }
+        let n = 0;
+        (op.raw || []).forEach(en => {
+            const p = products.find(x => String(x.id) === String(en && en.pid)); if (!p) { rep.missing++; return; }
+            const sc = btSc(p), dq = iso(en.dq), dl = iso(en.dl), cur = (parseInt(p.qty) || 0) * sc + (sc > 1 ? (parseInt(p.loose) || 0) : 0), nt = Math.max(0, cur + dq * sc + (sc > 1 ? dl : 0));
+            p.qty = Math.floor(nt / sc); p.loose = sc > 1 ? nt % sc : 0;
+            if (en.mark) p.counted = true; if (en.unmark) p.counted = false;
+            p.inStock = !p.arch && (p.qty > 0 || p.loose > 0);
+            try { syncStockLocal([p]); } catch (e) { /* تجاهل */ } n++;
+        });
+        return n > 0;
     }
     async function applyPurchase(op, rep) {
         const rec = JSON.parse(JSON.stringify(op.rec)), r0 = { inv: 0, pur: 0, stale: 0, renum: 0, stock: 0, skipped: [], touched: new Set() };
