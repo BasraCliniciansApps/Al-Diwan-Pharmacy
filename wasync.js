@@ -11,7 +11,7 @@
     const L = window.LAN; if (!L || !L._i) return;
     const I = L._i, ls = L._ls;
     const K = { mode: 'diwanWaMode', link: 'diwanWaLink', ops: 'diwanWaOps', exp: 'diwanWaExp', seen: 'diwanWaSeen', devs: 'diwanWaDevices', imp: 'diwanWaImp', cnt: 'diwanWaCnt', log: 'diwanWaLog', snapAt: 'diwanWaSnapAt', dev: 'diwanWaDev' };
-    const STAFF_KINDS = ['sale', 'cancel', 'edit', 'ret'];
+    const STAFF_KINDS = ['sale', 'cancel', 'edit', 'ret', 'count'];
     const SNAP_ST = ['qty', 'loose', 'counted', 'bt', 'expiryDate', 'expiryDates'];
     const OPS_KEEP_DAYS = 75, MAX_FILE = 12 * 1024 * 1024;
     const nowIso = () => new Date().toISOString();

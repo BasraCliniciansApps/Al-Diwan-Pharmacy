@@ -32,7 +32,7 @@ async function openRecon() {
     const neg = [];
     (products || []).forEach(p => { const s = stockMap[String(p.id)]; if (s && (parseInt(s.qty) || 0) < 0) neg.push(p); });
     const nm = id => { const p = (products || []).find(x => String(x.id) === String(id)); return p ? dispName(p) : id; };
-    const kindT = k => k === 'sale' ? 'بيع' : k === 'cancel' ? 'إلغاء' : k === 'purchase' ? 'وارد' : 'تعديل';
+    const kindT = k => k === 'sale' ? 'بيع' : k === 'cancel' ? 'إلغاء' : k === 'purchase' ? 'وارد' : k === 'count' ? 'جرد' : 'تعديل';
     const esc = s => escapeHtml(String(s));
     let h = '<div style="text-align:right;font-size:.85rem;line-height:1.9">'
         + '<div>آخر ' + days + ' أيام: <b>' + fmtNum(sales) + '</b> بيع، <b>' + fmtNum(cancels) + '</b> إلغاء، <b>' + fmtNum(edits) + '</b> تعديل.</div>';

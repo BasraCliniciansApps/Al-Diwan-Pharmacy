@@ -3084,9 +3084,14 @@ function pubDiff(pub, base, F) {   // الحقول التي تغيّرت عن ن
 async function saveProductsDelta(entries, op) {
     window.__opAlready = false;
     entries = (entries || []).filter(Boolean);
+    // جرد أو ضبط كمية يدوي (بلا مفتاح): نعطيه مفتاح حركة حقيقياً فيُسجَّل في pharmacy_moves بالدفعة نفسها ويتشاركه الملف والسحابة (للأمام فقط)
+    const op0 = op;
+    if ((!op || !op.key) && !window.__waImporting && entries.some(e => e.dq || e.dl || e.mark || e.unmark) && (userRole === 'owner' || can('stockEdit') || can('invList'))) {
+        op = Object.assign({}, op || {}, { key: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), kind: (op && op.kind) || 'count', gen: true });
+    }
     try { if (window.WA && !window.__waImporting) WA.noteCount(entries); } catch (e) { /* تجاهل */ }   // وقت الجرد: لتجاهل مبيعات أقدم منه عند الاستيراد
     try { if (window.WA && WA.tapStock) WA.tapStock(entries, op); } catch (e) { /* تجاهل */ }   // سجل تبادل واتساب الموازي للسحابة
-    if (window.LAN && LAN.active() && entries.some(e => e.dq || e.dl || (op && op.key))) return LAN.captureStock(entries, op);   // المزامنة عبر الحاسوب: تُرسل العملية للحاسوب بدل السحابة
+    if (window.LAN && LAN.active() && entries.some(e => e.dq || e.dl || (op0 && op0.key))) return LAN.captureStock(entries, op0);   // المزامنة عبر الحاسوب: تُرسل العملية للحاسوب بدل السحابة
     entries.forEach(btPrepare);
     try { entries.forEach(e => partNorm(e.p)); } catch (e) { /* تجاهل */ }
     saveLocal();
@@ -3103,7 +3108,7 @@ async function saveProductsDelta(entries, op) {
         try { const off = +localStorage.getItem('diwanMovesOff') || 0; if (off && Date.now() - off < 3600000) useMoves = false; } catch (e) { /* تجاهل */ }
         const nChunks = Math.ceil(entries.length / 15);
         const cpm = new Map((cloudPub || []).map(d => [String(d.id), d]));   // آخر نسخة عامة للمواد من السحابة (أساس المقارنة)
-        if (useMoves) {   // نسخة firebase compat لا تدعم batch.create: نتحقق من وجود سجل العملية قبل الكتابة (المدير فقط يقرأ السجل، وغيره يتخطى الفحص)
+        if (useMoves && !op.gen) {   // (المفتاح المُولَّد حديثاً لا يمكن أن يكون موجوداً فنتخطى الفحص) نسخة firebase compat لا تدعم batch.create: نتحقق من وجود سجل العملية قبل الكتابة (المدير فقط يقرأ السجل، وغيره يتخطى الفحص)
             try { const d0 = await Promise.race([db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#0' : '')).get(), new Promise(res => setTimeout(() => res(null), 2000))]); if (d0 && d0.exists) { const ae = new Error('already-exists'); ae.code = 'already-exists'; throw ae; } }
             catch (e0) { if (e0 && e0.code === 'already-exists') throw e0; }
         }
@@ -3154,7 +3159,7 @@ async function saveProductsDelta(entries, op) {
                 }
                 batch.set(ref, u, { merge: true });
             });
-            if (withMove) batch.set(db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#' + (i / 15) : '')), { key: op.key, kind: op.kind || '', inv: op.inv || '', no: op.no || '', by: userName || (userRole === 'owner' ? 'المدير' : ''), uid: currentUser.uid, ts: new Date().toISOString(), lines: slice.map(e => ({ p: e.p.id, dq: e.dq || 0, dl: e.dl || 0, q: parseInt(e.p.qty) || 0, l: parseInt(e.p.loose) || 0 })) });
+            if (withMove) batch.set(db.collection('pharmacy_moves').doc(op.key + (nChunks > 1 ? '#' + (i / 15) : '')), { key: op.key, kind: op.kind || '', inv: op.inv || '', no: op.no || '', by: userName || (userRole === 'owner' ? 'المدير' : ''), uid: currentUser.uid, ts: new Date().toISOString(), lines: slice.map(e => ({ p: e.p.id, dq: e.dq || 0, dl: e.dl || 0, q: parseInt(e.p.qty) || 0, l: parseInt(e.p.loose) || 0, countedQty: parseInt(e.p.qty) || 0, systemQtyAtCount: (parseInt(e.p.qty) || 0) - (e.dq || 0) })) });
             return batch;
             };
             try { await fsCommit(build(useMoves)); }
