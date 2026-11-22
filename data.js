@@ -730,6 +730,15 @@ function stampMeta() {
             } else if (p.metaUpdatedAt !== _msMu.get(p.id)) _msMu.set(p.id, p.metaUpdatedAt);
         }
     } catch (e) { /* تجاهل */ }
+    // ختم آخر تعديل للإعدادات العامة (أقسام وأنواع وتسعير...) لحماية الأحدث من ملف أقدم
+    try {
+        const I = window.LAN && window.LAN._i;
+        if (I && I.cfgNow) {
+            const cs = JSON.stringify(I.cfgNow());
+            if (window.__cfgSig === undefined) window.__cfgSig = cs;
+            else if (window.__cfgSig !== cs) { window.__cfgSig = cs; if (!window.__waImporting) localStorage.setItem('diwanCfgAt', String(Date.now())); }
+        }
+    } catch (e) { /* تجاهل */ }
 }
 function saveLocal() {
     try { stampMeta(); } catch (e) { /* تجاهل */ }

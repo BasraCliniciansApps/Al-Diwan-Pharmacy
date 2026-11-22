@@ -190,12 +190,14 @@
         const lk = shared ? { k: 'u' + devId(), s: '', n: (typeof userName !== 'undefined' && userName) || '' } : lk0;
         if (!lk) { await Swal.fire({ icon: 'info', title: 'اربط الجهاز بالمدير أولاً', text: 'اضغط «ربط بالمدير» وألصق الرمز الذي أرسله لك.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const list = (opts.all ? unconfirmed() : unsent()).sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
-        if (!list.length) { await Swal.fire({ icon: 'info', title: opts.all ? 'لا توجد مبيعات غير مؤكدة' : 'لا توجد مبيعات جديدة للإرسال', text: opts.all ? 'المدير أكّد كل مبيعاتك.' : 'كل مبيعاتك أُرسلت سابقاً. إن لم يصل شيء للمدير استعمل «إعادة إرسال ما لم يؤكده المدير».', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        const got = ls.get(GOT, {}), gotSent = ls.get(GOTSENT, {}), ackNew = shared && Object.keys(got).some(k => (got[k] || 0) > (gotSent[k] || 0));
+        if (!list.length && !ackNew) { await Swal.fire({ icon: 'info', title: opts.all ? 'لا توجد مبيعات غير مؤكدة' : 'لا توجد مبيعات جديدة للإرسال', text: opts.all ? 'المدير أكّد كل مبيعاتك.' : 'كل مبيعاتك أُرسلت سابقاً. إن لم يصل شيء للمدير استعمل «إعادة إرسال ما لم يؤكده المدير».', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const sm = summarize(list);
         const h = Prog.start('تجهيز ملف المبيعات', { text: 'جمع الحركات...' });
         let text, name;
         try {
             const payload = { diwan: 1, kind: 'sales', kid: lk.k, at: nowIso(), from: { name: (typeof userName !== 'undefined' && userName) || lk.n || '', dev: devId() }, n: list.length, ops: list.map(o => ({ id: o.id, type: o.type, ts: o.ts, data: stripCost(o.data) })) };
+            if (shared && Object.keys(got).length) payload.ack = got;   // تأكيد استلام تحديثات المدير
             const rt = JSON.parse(JSON.stringify(payload)); if (shared) { rt.share = 1; rt.from.uid = (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) || ''; text = sealText(rt); } else { rt.sig = sign(lk.s, rt); text = JSON.stringify(rt); } name = fileName(shared ? 'share' : 'sales', lk.k);   // التوقيع على الشكل المسلسل نفسه (بدون الحقول غير المعرّفة)
             h.set(70, 'فتح واتساب...'); h.ok('الملف جاهز: ' + num(list.length) + ' عملية');
         } catch (e) { h.fail('تعذّر تجهيز الملف', (e && e.message) || ''); return; }
@@ -206,7 +208,7 @@
             res = r.isConfirmed ? r.value : 'cancelled';
         }
         if (res === 'cancelled' || res === 'blocked' || !res) { toast('info', 'لم يُرسل الملف. تبقى المبيعات بانتظار الإرسال'); refresh(); return; }
-        const em = expMap(); list.forEach(o => { em[o.id] = nowIso(); }); ls.set(K.exp, em); ls.set('diwanWaLastExp', { at: nowIso(), n: list.length });
+        const em = expMap(); list.forEach(o => { em[o.id] = nowIso(); }); ls.set(K.exp, em); ls.set('diwanWaLastExp', { at: nowIso(), n: list.length }); if (shared) ls.set(GOTSENT, got);
         if (res === 'saved') await Swal.fire({ icon: 'success', title: 'حُفظ الملف على الجهاز', html: 'أرسله للمدير من واتساب: <b>📎 ← مستند</b> ثم اختر الملف<br><small dir="ltr">' + esc(window._natSavedPath || name) + '</small>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب وأرسله للمدير.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else toast('success', 'جُهّز الملف: ' + num(list.length) + ' عملية');
@@ -340,6 +342,10 @@
         if (!dev) { await Swal.fire({ icon: 'error', title: 'جهاز غير مسجَّل', html: 'هذا الملف من جهاز لم تضفه في «أجهزة المستخدمين»، أو حُذف.<br><small>أضف الجهاز وأرسل له رمز الربط ثم ليعد الإرسال.</small>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         if (dev.off) { await Swal.fire({ icon: 'error', title: 'حساب المستخدم معطّل', text: 'فعّل حساب «' + dev.label + '» من المستخدمين والصلاحيات ثم أعد المحاولة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         if (f.share !== 1 && sign(dev.secret, f) !== f.sig) { await Swal.fire({ icon: 'error', title: 'الملف غير موثوق', text: 'التوقيع لا يطابق: الملف مُعدَّل أو تالف، فلم يُقبل. اطلب من المستخدم إعادة الإرسال.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (f.share === 1 && f.ack && typeof f.ack === 'object') {   // تأكيد استلام المستخدم لتحديثاتي: تتقدم نقطة المقارنة
+            try { const fu = (f.from && f.from.uid) || ''; Object.keys(f.ack).forEach(xs => { const n = parseInt(f.ack[xs]) || 0; if (n && (xs === '' || (fu && xs === fu))) strAck(xs, n); }); refresh(); } catch (e) { /* تجاهل */ }
+            if (!(Array.isArray(f.ops) && f.ops.length)) { await Swal.fire({ icon: 'success', title: 'تأكيد استلام', text: 'وصل «' + dev.label + '» ما أرسلتَه من تحديثات، وسُجّل ذلك.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        }
         let skipCounted = true, P = planSales(f, dev, skipCounted);
         if (!P.ops.length) { await Swal.fire({ icon: 'info', title: P.dup ? 'استُورد هذا الملف سابقاً' : 'لا توجد حركات صالحة', text: P.dup ? 'كل عملياته موجودة عندك، فلم يتغيّر شيء.' : '', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const html = () => {
@@ -469,7 +475,7 @@
         if (!r.isConfirmed) return;
         const h = Prog.start('تحديث المخزون من المدير', { text: 'جاري التطبيق...' });
         try {
-            const arr = Array.isArray(f.products) ? f.products : []; let added = 0, upd = 0, i = 0, delN = 0, stampSkip = 0;
+            const arr = Array.isArray(f.products) ? f.products : []; let added = 0, upd = 0, i = 0, delN = 0, stampSkip = 0, tombSkip = 0, cfgSkip = false;
             const cloudLive = SH && !waOn() && typeof cloudReady === 'function' && cloudReady() && navigator.onLine;   // السحابة متصلة: هي المرجع للأرصدة، فلا نكتب فوقها
 
             arr.forEach(it => {
@@ -477,22 +483,23 @@
                 const info = {}; Object.keys(it.info).forEach(k => { if (k.charAt(0) !== '_' && SINFO_DROP.indexOf(k) < 0) info[k] = it.info[k]; });
                 let p = products.find(x => String(x.id) === String(it.pid));
                 let isNew = false;
-                if (!p) { p = Object.assign({}, info); p.id = it.pid; products.push(p); added++; isNew = true; }
+                if (!p) { if (tombNewer(it.pid, f.at)) { tombSkip++; return; } p = Object.assign({}, info); p.id = it.pid; products.push(p); added++; isNew = true; }
                 else if (p.metaUpdatedAt && info.metaUpdatedAt && p.metaUpdatedAt > info.metaUpdatedAt) { stampSkip++; }   // نسخة الجهاز أحدث (معلومات وأسعار): لا نكتب فوقها
                 else { Object.keys(p).forEach(k => { if (k.charAt(0) !== '_' && STOCK_FIELDS.indexOf(k) < 0 && k !== 'inStock' && k !== 'dlim' && !(k in info)) delete p[k]; }); Object.assign(p, info); upd++; }
                 const st = it.st || {}; if (!cloudLive || isNew) SNAP_ST.forEach(k => { if (st[k] !== undefined) p[k] = st[k]; else delete p[k]; });
                 if (++i % 200 === 0) h.set(Math.round(i / arr.length * 60), 'تحديث الأصناف...');
             });
-            if (!cloudLive && Array.isArray(f.del) && f.del.length) { const ds = new Set(f.del.map(String)); const b4 = products.length; products = products.filter(p => !ds.has(String(p.id))); delN = b4 - products.length; }
+            if (!cloudLive && Array.isArray(f.del) && f.del.length) { const ds = new Set(f.del.map(String)); const b4 = products.length, gone = products.filter(p => ds.has(String(p.id))).map(p => p.id); products = products.filter(p => !ds.has(String(p.id))); delN = b4 - products.length; if (gone.length) addTomb(gone); }
             h.set(65, 'إعادة مبيعاتك غير المؤكدة...');
             const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() };
             if (!cloudLive) pend.forEach(o => { try { I.applyStockOp(o.data, rep, o.ts); } catch (e) { /* عملية تالفة: تُتخطّى */ } });
             products.forEach(p => { p.inStock = !p.arch && ((parseInt(p.qty) || 0) > 0 || (parseInt(p.loose) || 0) > 0); });
             try { syncStockLocal(products); } catch (e) { /* تجاهل */ }
-            if (f.cfg) { try { I.trackIngest('cfg', { cfg: f.cfg }); } catch (e) { /* تجاهل */ } }
+            if (f.cfg) { if (f.cfgAt && cfgAtNow() > f.cfgAt) cfgSkip = true; else { try { I.trackIngest('cfg', { cfg: f.cfg }); setCfgAt(f.cfgAt); } catch (e) { /* تجاهل */ } } }
+            if (SH && f.xid !== undefined) setGot(f.xs || '', f.xid);   // لتأكيد الاستلام للمدير مع ملف مبيعاتك التالي
             const ns = seenSet(); seen.forEach(x => ns.add(x)); ls.set(K.seen, [...ns].slice(-6000)); ls.set(K.snapAt, f.at || nowIso());
             saveLocal(); try { renderAll(); } catch (e) { /* تجاهل */ }
-            h.ok('تم التحديث: ' + num(upd) + ' مادة' + (added ? ' و' + num(added) + ' جديدة' : '') + (delN ? ' وحُذف ' + num(delN) : '') + (stampSkip ? ' · تُخطّيت ' + num(stampSkip) + ' مادة نسخة جهازك أحدث' : ''));
+            h.ok('تم التحديث: ' + num(upd) + ' مادة' + (added ? ' و' + num(added) + ' جديدة' : '') + (delN ? ' وحُذف ' + num(delN) : '') + (stampSkip ? ' · تُخطّيت ' + num(stampSkip) + ' مادة نسخة جهازك أحدث' : '') + (tombSkip ? ' · تُخطّيت ' + num(tombSkip) + ' مادة محذوفة' : '') + (cfgSkip ? ' · الإعدادات عندك أحدث' : ''));
         } catch (e) { h.fail('تعذّر تحديث المخزون', (e && e.message) || ''); }
         refresh(); try { syncRefresh(); } catch (e) { /* تجاهل */ }
     }
@@ -534,6 +541,36 @@
             if (own) addMg(o); else add(o);
         } catch (e) { /* تجاهل */ }
     }
+    // ---- تأكيد الاستلام: كل ملف يحمل رقماً (xid) ضمن مجرى (xs: معرّف المستخدم، أو '' للمشترك، أو 'd' للحاسوب).
+    // نقطة المقارنة المؤكَّدة لا تتقدم عند الإرسال بل عند وصول التأكيد (ack)، فما ضاع ملفه يُعاد في الملف التالي ولا يُفقد.
+    const STR = 'diwanWaStr_';
+    const strGet = k => ls.get(STR + k, { n: 0, acked: 0, pend: [] });
+    function strPush(k, e) { const s = strGet(k); s.n = Math.max(s.n, e.n); s.pend.push(e); if (s.pend.length > 30) s.pend = s.pend.slice(-30); ls.set(STR + k, s); }
+    function applyPend(k, p) {
+        if (k === 'd') {
+            const sent = mgSent(); if (p.full) { sent.p = {}; sent.r = {}; }
+            Object.assign(sent.p, p.p || {}); Object.assign(sent.r, p.r || {}); if (p.c) sent.c = p.c;
+            (p.delP || []).forEach(x => { delete sent.p[x]; }); (p.delR || []).forEach(x => { delete sent.r[x]; }); ls.set(MG.sent, sent);
+        } else {
+            const sent = p.full ? {} : shSent(k); Object.assign(sent, p.h || {}); (p.dels || []).forEach(x => { delete sent[x]; });
+            ls.set(k ? SHK.sent + '_' + k : SHK.sent, sent); if (p.cfgH) ls.set(shCfgKey(k), p.cfgH);
+        }
+    }
+    function strAck(k, n) {   // تأكيد تراكمي: ack رقم n يؤكد كل ما قبله
+        const s = strGet(k); if (!n || n <= s.acked) return 0;
+        const due = s.pend.filter(p => p.n <= n).sort((a, b) => a.n - b.n); due.forEach(p => applyPend(k, p));
+        s.pend = s.pend.filter(p => p.n > n); s.acked = Math.max(s.acked, n); ls.set(STR + k, s); return due.length;
+    }
+    function strAll() { const o = []; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.indexOf(STR) === 0) { const s = ls.get(k, null); if (s && s.pend && s.pend.length) o.push({ k: k.slice(STR.length), s }); } } } catch (e) { /* تجاهل */ } return o; }
+    const GOT = 'diwanWaGot', GOTSENT = 'diwanWaGotSent';
+    function setGot(xs, n) { const g = ls.get(GOT, {}); if ((g[xs] || 0) < n) { g[xs] = n; ls.set(GOT, g); } }
+    // ---- شواهد الحذف (عند المستلم): ملف أقدم من الحذف لا يعيد المادة
+    const TOMB = 'diwanWaTomb';
+    function addTomb(ids) { const t = ls.get(TOMB, {}), now = nowIso(), lim = Date.now() - 180 * 86400000; ids.forEach(i => { t[String(i)] = now; }); Object.keys(t).forEach(k => { if (Date.parse(t[k]) < lim) delete t[k]; }); ls.set(TOMB, t); }
+    const tombNewer = (pid, fileAt) => { const t = ls.get(TOMB, {})[String(pid)]; return !!(t && String(t) > String(fileAt || '')); };
+    // ---- ختم الإعدادات
+    const cfgAtNow = () => ls.get('diwanCfgAt', 0) || 0;
+    function setCfgAt(v) { if (!v) return; ls.set('diwanCfgAt', v); try { window.__cfgSig = JSON.stringify(I.cfgNow()); } catch (e) { /* تجاهل */ } }
     const shSent = uid => ls.get(uid ? SHK.sent + '_' + uid : SHK.sent, {});
     const shCfgKey = uid => uid ? SHK.cfg + '_' + uid : SHK.cfg;
     // اختيار المستخدم المستلم: لكل مستخدم نقطة مقارنة خاصة به، فلا يفوته تغيير أُرسل لغيره
@@ -552,6 +589,7 @@
         const rc = opts.to !== undefined ? { uid: opts.to } : await pickRecipient(); if (!rc) return; const rUid = rc.uid || '';
         const h = Prog.start('تجهيز تحديثات المستخدمين', { text: 'مقارنة مع آخر إرسال...' });
         let text, name, nP = 0, hashes = {}, cfgH = '', withCfg = false, dels = [];
+        const xid = strGet(rUid).n + 1;
         try {
             const sent = opts.full ? {} : shSent(rUid), items = [];
             const live = new Set(products.map(p => String(p.id)));
@@ -566,7 +604,7 @@
             const cf = I.cfgNow(); cfgH = I.hsh(I.stable(cf)); withCfg = opts.full || ls.get(shCfgKey(rUid), '') !== cfgH;
             if (!nP && !withCfg && !dels.length) { h.ok('لا توجد تغييرات جديدة'); await Swal.fire({ icon: 'info', title: 'لا توجد تحديثات جديدة', text: 'كل ما تغيّر أُرسل سابقاً. لإرسال كل شيء من جديد اختر «ملف كامل».', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
             const seen = []; const m = impAll(); Object.keys(m).forEach(k => (m[k] || []).forEach(x => seen.push(x)));
-            const payload = { diwan: 1, kind: 'snap', share: 1, kid: 'm' + devId(), at: nowIso(), delta: !opts.full, from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, products: items, del: dels.length ? dels : undefined, cfg: withCfg ? cf : undefined, seen: seen.slice(-6000) };
+            const payload = { diwan: 1, kind: 'snap', share: 1, kid: 'm' + devId(), at: nowIso(), delta: !opts.full, xid, xs: rUid, cfgAt: withCfg ? cfgAtNow() : undefined, from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, products: items, del: dels.length ? dels : undefined, cfg: withCfg ? cf : undefined, seen: seen.slice(-6000) };
             text = sealText(payload); name = fileName('shsnap', 'upd');
             h.ok('الملف جاهز: ' + num(nP) + ' مادة' + (dels.length ? ' + حذف ' + num(dels.length) : '') + (withCfg ? ' + الإعدادات' : ''));
         } catch (e) { h.fail('تعذّر تجهيز الملف', (e && e.message) || ''); return; }
@@ -576,7 +614,7 @@
             res = r.isConfirmed ? r.value : 'cancelled';
         }
         if (!res || res === 'cancelled' || res === 'blocked') { toast('info', 'لم يُرسل الملف'); return; }
-        const sent = opts.full ? {} : shSent(rUid); Object.assign(sent, hashes); dels.forEach(k => { delete sent[k]; }); ls.set(rUid ? SHK.sent + '_' + rUid : SHK.sent, sent); if (withCfg) ls.set(shCfgKey(rUid), cfgH);
+        strPush(rUid, { n: xid, at: nowIso(), h: hashes, dels, cfgH: withCfg ? cfgH : undefined, full: !!opts.full });   // لا تتقدم نقطة المقارنة إلا بوصول التأكيد
         if (res === 'saved') await Swal.fire({ icon: 'success', title: 'حُفظ الملف على الجهاز', html: 'أرسله من واتساب: <b>📎 ← مستند</b>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else toast('success', 'جُهّز الملف: ' + num(nP) + ' مادة');
@@ -587,8 +625,17 @@
     async function exportDesktop(opts) {
         opts = opts || {}; const onlyIds = Array.isArray(opts.ids) ? new Set(opts.ids) : null, wantInfo = !onlyIds || opts.withInfo;
         if (!isOwner()) { Swal.fire({ icon: 'info', title: 'للمدير فقط', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (!onlyIds) {   // هل وصل الملف السابق؟ (الحاسوب لا يرد تلقائياً)
+            const sd = strGet('d');
+            if (sd.pend.length) {
+                const last = sd.pend[sd.pend.length - 1];
+                const q = await Swal.fire({ icon: 'question', title: 'هل وصل الملف السابق إلى الحاسوب؟', html: 'آخر ملف أُرسل ' + esc(ago(last.at)) + '.<br><small>إن كان الحاسوب قد استورده اضغط «نعم، وصل». وإن لم تكن متأكداً اضغط «لا أدري» فتُعاد تلك التغييرات مع هذا الملف (لا يتضاعف شيء).</small>', showDenyButton: true, showCancelButton: true, confirmButtonText: 'نعم، وصل', denyButtonText: 'لا أدري', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+                if (q.isDismissed) return;
+                if (q.isConfirmed) strAck('d', last.n);
+            }
+        }
         const h = Prog.start('تجهيز ملف الحاسوب', { text: 'جمع التغييرات...' });
-        let text, name, sum, mark;
+        let text, name, sum, mark; const xid = strGet('d').n + 1;
         try {
             const sent = mgSent(), em = ls.get(MG.exp, {}), ops = ls.get(MG.ops, []).filter(o => onlyIds ? onlyIds.has(o.id) : !em[o.id]);
             const info = { p: [], rec: [] }; mark = { p: {}, r: {}, c: sent.c, ids: ops.map(o => o.id) };
@@ -608,7 +655,8 @@
             if (touched.size) { info.sf = {}; products.forEach(p => { if (touched.has(String(p.id))) { const st = {}; ['bt', 'expiryDate', 'expiryDates', 'counted'].forEach(k => { if (p[k] !== undefined) st[k] = p[k]; }); info.sf[p.id] = st; } }); }
             sum = { ops: ops.length, p: info.p.length, rec: info.rec.length, cfg: !!info.cfg, del: info.delP.length + info.delR.length };
             if (!sum.ops && !sum.p && !sum.rec && !sum.cfg && !sum.del) { h.ok('لا توجد تغييرات جديدة'); await Swal.fire({ icon: 'info', title: 'لا توجد تغييرات جديدة للحاسوب', text: 'كل ما تغيّر أُرسل سابقاً.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-            const payload = { diwan: 1, kind: 'mgr', share: 1, kid: 'g' + devId(), at: nowIso(), from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, ops: ops.map(o => ({ id: o.id, type: o.type, ts: o.ts, data: o.data })), info };
+            if (info.cfg) info.cfgAt = cfgAtNow();
+            const payload = { diwan: 1, kind: 'mgr', share: 1, kid: 'g' + devId(), at: nowIso(), xid, xs: 'd', from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, ops: ops.map(o => ({ id: o.id, type: o.type, ts: o.ts, data: o.data })), info };
             text = sealText(payload); name = fileName('share', 'pc');
             h.ok('الملف جاهز (' + (typeof fmtBytes === 'function' ? fmtBytes(text.length) : Math.round(text.length / 1024) + ' ك.ب') + ')');
         } catch (e) { h.fail('تعذّر تجهيز الملف', (e && e.message) || ''); return; }
@@ -618,7 +666,7 @@
             res = r.isConfirmed ? r.value : 'cancelled';
         }
         if (!res || res === 'cancelled' || res === 'blocked') { toast('info', 'لم يُرسل الملف'); return; }
-        const sent = mgSent(); Object.assign(sent.p, mark.p); Object.assign(sent.r, mark.r); sent.c = mark.c; (mark.delP || []).forEach(k => { delete sent.p[k]; }); (mark.delR || []).forEach(k => { delete sent.r[k]; }); ls.set(MG.sent, sent);
+        if (wantInfo) strPush('d', { n: xid, at: nowIso(), p: mark.p, r: mark.r, c: mark.c !== mgSent().c ? mark.c : undefined, delP: mark.delP || [], delR: mark.delR || [] });   // تتقدم نقطة المقارنة عند التأكيد
         const em = ls.get(MG.exp, {}); mark.ids.forEach(i => { em[i] = nowIso(); }); ls.set(MG.exp, em);
         if (res === 'saved') await Swal.fire({ icon: 'success', title: 'حُفظ الملف على الجهاز', html: 'أرسله من واتساب: <b>📎 ← مستند</b>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
@@ -653,10 +701,12 @@
         let lsTot = 0; try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); lsTot += k.length + (localStorage.getItem(k) || '').length; } } catch (e) { /* تجاهل */ }
         const opsB = sz(all);
         const imp = ls.get(K.log, []).slice(0, 8);
+        const strs = strAll(), nm = k => k === 'd' ? 'الحاسوب' : k === '' ? 'المستخدمون (مشترك)' : (((typeof usersCache !== 'undefined' ? usersCache : []).find(u => u.uid === k) || {}).name || 'مستخدم');
         const sel = new Set();
         const st = 'width:100%;margin:2px 0;padding:6px;border:1px solid #cbd5e1;border-radius:8px;font:inherit';
         const html = '<div class="wa-pv">' +
             '<div class="wa-li mut"><span>📊 الأحجام: ' + dat.map(x => x.n + ' <b>' + num(x.c) + '</b> (' + kb(x.b) + ')').join(' · ') + ' · سجل العمليات ' + kb(opsB) + ' · كل مخزن الجهاز ~' + kb(lsTot) + ' من ~5000 ك.ب</span></div>' +
+            (strs.length ? '<div class="wa-li warn"><span>⏳ ملفات لم يصل تأكيد استلامها: ' + strs.map(x => esc(nm(x.k)) + ' <b>' + num(x.s.pend.length) + '</b>').join(' · ') + '<br><small>ما فيها من تغييرات يُعاد مع الملف التالي إلى أن يصل التأكيد. التأكيد يصل تلقائياً مع ملف مبيعات المستخدم، وللحاسوب يدوياً من الزر أدناه.</small></span></div>' : '') +
             '<div class="wa-li"><span>🖥️ إلى الحاسوب: <b>' + num(nUn) + '</b> عملية لم تُرسل · <b>' + num(nSent) + '</b> أُرسلت</span></div>' +
             '<div class="wa-li"><span>💊 مواد تغيّرت: للحاسوب <b>' + num(pd) + '</b>' + (pr ? ' · مذاخر ودفتر <b>' + num(pr) + '</b>' : '') + (pc ? ' · الإعدادات' : '') + ' · للمستخدمين (النقطة المشتركة) <b>' + num(pu) + '</b></span></div>' +
             '<div class="wa-li mut"><span>المواد والأسعار والإعدادات تُقارَن بآخر إرسال ولا يُحفظ لكل تعديل تاريخ، لذلك تُرسل كاملة من «إرسال التحديثات». الاختيار هنا للعمليات (مخزون وفواتير ووارد).</span></div>' +
@@ -673,7 +723,12 @@
             q('waLgList').innerHTML = rows.length ? rows.slice(0, 300).map(o => '<div class="qk-row"><div><b>' + esc(opLabel(o)) + '</b><small>' + esc(new Date(o.ts).toLocaleString('ar-IQ')) + ' · ' + (em[o.id] ? 'أُرسلت ' + esc(ago(em[o.id])) : 'لم تُرسل') + '</small></div><label class="setup-sw"><input type="checkbox" data-id="' + esc(o.id) + '"' + (sel.has(o.id) ? ' checked' : '') + '><i></i></label></div>').join('') + (rows.length > 300 ? '<div class="wa-li mut"><span>يُعرض أحدث 300 فقط، ضيّق الفترة لرؤية الباقي.</span></div>' : '') : '<div class="wa-empty">لا توجد عمليات ضمن هذا الاختيار.</div>';
             q('waLgList').querySelectorAll('input[data-id]').forEach(i => { i.onchange = () => { if (i.checked) sel.add(i.dataset.id); else sel.delete(i.dataset.id); }; });
         };
-        const r = await Swal.fire({ title: 'سجل التبادل', html, width: 560, showCancelButton: true, confirmButtonText: 'إرسال المحدد إلى الحاسوب', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', didOpen: () => { draw(); ['waLgFrom', 'waLgTo', 'waLgSt'].forEach(id => { document.getElementById(id).onchange = draw; }); }, preConfirm: () => ({ ids: [...sel], info: !!(document.getElementById('waLgInfo') || {}).checked }) });
+        const r = await Swal.fire({ title: 'سجل التبادل', html, width: 560, showCancelButton: true, showDenyButton: strs.length > 0, denyButtonText: 'تأكيد وصول الملفات', confirmButtonText: 'إرسال المحدد إلى الحاسوب', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', didOpen: () => { draw(); ['waLgFrom', 'waLgTo', 'waLgSt'].forEach(id => { document.getElementById(id).onchange = draw; }); }, preConfirm: () => ({ ids: [...sel], info: !!(document.getElementById('waLgInfo') || {}).checked }) });
+        if (r.isDenied) {
+            const c = await Swal.fire({ icon: 'question', title: 'تأكيد وصول الملفات؟', text: 'اضغط «نعم» فقط إذا كنت متأكداً أن كل الملفات المرسلة استُوردت عند الطرف الآخر.', showCancelButton: true, confirmButtonText: 'نعم، وصلت', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+            if (c.isConfirmed) { strs.forEach(x => strAck(x.k, x.s.n)); toast('success', 'سُجّل التأكيد'); refresh(); }
+            return;
+        }
         if (!r.isConfirmed) return;
         if (!r.value.ids.length && !r.value.info) { toast('info', 'لم تُحدَّد أي عملية'); return; }
         await exportDesktop({ ids: r.value.ids, withInfo: r.value.info });
@@ -786,9 +841,9 @@
             else bad++;
         });
         const inf = f.info || {}, loc = new Map(products.map(p => [String(p.id), p]));
-        const pch = (inf.p || []).filter(x => { if (!x || x.pid === undefined || !x.info) return false; const p = loc.get(String(x.pid)); if (!p) return true; if (p.metaUpdatedAt && x.info.metaUpdatedAt && p.metaUpdatedAt > x.info.metaUpdatedAt) return false; const s = I.pSplit(p); return I.hsh(I.stable({ i: s.info, c: s.cost })) !== I.hsh(I.stable({ i: x.info, c: x.cost || {} })); });
+        const pch = (inf.p || []).filter(x => { if (!x || x.pid === undefined || !x.info) return false; const p = loc.get(String(x.pid)); if (!p) return !tombNewer(x.pid, f.at); if (p.metaUpdatedAt && x.info.metaUpdatedAt && p.metaUpdatedAt > x.info.metaUpdatedAt) return false; const s = I.pSplit(p); return I.hsh(I.stable({ i: s.info, c: s.cost })) !== I.hsh(I.stable({ i: x.info, c: x.cost || {} })); });
         const rch = (inf.rec || []).filter(x => { if (!x || !x.rec || !x.rec.id || (x.coll !== 'suppliers' && x.coll !== 'ledger')) return false; const arr = x.coll === 'suppliers' ? puSuppliers : lgAll; const o = (arr || []).find(y => y.id === x.rec.id); return !o || I.stable(o) !== I.stable(x.rec); });
-        const cfgCh = !!inf.cfg && I.stable(inf.cfg) !== I.stable(I.cfgNow());
+        const cfgCh = !!inf.cfg && !(inf.cfgAt && cfgAtNow() > inf.cfgAt) && I.stable(inf.cfg) !== I.stable(I.cfgNow());
         const cloudLiveD = typeof cloudReady === 'function' && cloudReady() && navigator.onLine;   // الحاسوب متصل بالسحابة: لا نحذف ولا نغيّر الأرصدة محلياً (السحابة هي المرجع)
         const dP = cloudLiveD ? [] : (inf.delP || []).filter(k => loc.has(String(k)));
         const dR = cloudLiveD ? [] : (inf.delR || []).filter(k => { const i2 = String(k).indexOf(':'), c = k.slice(0, i2), id = k.slice(i2 + 1), arr = c === 'suppliers' ? puSuppliers : c === 'ledger' ? lgAll : null; return arr && arr.some(y => String(y.id) === id); });
@@ -815,10 +870,10 @@
             const tick = () => { i++; if (i % 5 === 0 || i === total) h.set(Math.round(i / total * 100), 'طُبّق ' + i + ' من ' + total); };
             // المعلومات أولاً: مادة جديدة يجب أن تُنشأ قبل أن تصلها حركاتها
             for (const x of pch) { try { if (L._i.trackIngest('pinfo', { pid: x.pid, info: x.info, cost: x.cost, init: x.init })) pi++; else pSkip++; } catch (e) { rep.fail.push('p' + x.pid); } tick(); }
-            if (cfgCh) { try { L._i.trackIngest('cfg', { cfg: inf.cfg }); } catch (e) { rep.fail.push('cfg'); } }
+            if (cfgCh) { try { L._i.trackIngest('cfg', { cfg: inf.cfg }); setCfgAt(inf.cfgAt); } catch (e) { rep.fail.push('cfg'); } }
             for (const x of rch) { try { L._i.trackIngest('rec', { coll: x.coll, rec: x.rec }); } catch (e) { rep.fail.push(x.coll); } tick(); }
             tick();
-            if (dP.length) { const ds = new Set(dP.map(String)); products = products.filter(p => !ds.has(String(p.id))); }
+            if (dP.length) { const ds = new Set(dP.map(String)); products = products.filter(p => !ds.has(String(p.id))); addTomb(dP); }
             dR.forEach(k => { const i2 = k.indexOf(':'), c = k.slice(0, i2), id = k.slice(i2 + 1); if (c === 'suppliers') puSuppliers = puSuppliers.filter(y => String(y.id) !== id); else lgAll = lgAll.filter(y => String(y.id) !== id); });
             if (dR.length) { try { lsSet(PU_LS.sup, JSON.stringify(puSuppliers)); lsSet(LG_LS.list, JSON.stringify(lgAll)); } catch (e) { /* تجاهل */ } }
             const all = stockOps.concat(recOps).sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
