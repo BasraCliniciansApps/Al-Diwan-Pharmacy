@@ -79,7 +79,7 @@ function qiStep1() {
 }
 function qiNext() {
     const g = id => qiClean(document.getElementById(id).value);
-    bill.to = g('qiTo'); bill.customer = g('qiCust'); bill.doctor = g('qiDoc'); bill.date = document.getElementById('qiDate').value || todayLocalISO();
+    bill.to = g('qiTo'); bill.customer = g('qiCust'); bill.doctor = fmtDoctor(g('qiDoc')); bill.date = document.getElementById('qiDate').value || todayLocalISO();
     writeInvoiceFields(); billChanged(); qiRemember();
     qiStep2(); qiScan();
 }

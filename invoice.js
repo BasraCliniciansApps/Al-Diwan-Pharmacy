@@ -87,11 +87,17 @@ function billChanged() {
     clearTimeout(billSaveTimer);
     billSaveTimer = setTimeout(() => lsSet(BILL_LS.draft, JSON.stringify(bill)), 300);
 }
+// اسم الطبيب المعالج: تُضاف «د. » تلقائياً أمام الاسم (ويُوحَّد «د» و«دكتور» و«Dr» إلى «د. »)
+function fmtDoctor(v) {
+    v = String(v == null ? '' : v).trim().replace(/\s+/g, ' '); if (!v || v === 'د') return '';
+    const rest = v.replace(/^(?:د\.\s*|د\s+|(?:ال)?دكتور\s+|dr\.?\s+)/i, '');
+    return rest ? 'د. ' + rest : '';
+}
 function readInvoiceFields() {
     const v = id => $b(id).value;
     bill.no = v('billNo'); bill.to = v('billTo'); bill.date = v('billDate');
     bill.discount = v('billDiscount'); bill.paid = v('billPaid');
-    bill.customer = v('billCustomer'); bill.doctor = v('billDoctor'); bill.notes = v('billNotes');
+    bill.customer = v('billCustomer'); bill.doctor = fmtDoctor(v('billDoctor')); bill.notes = v('billNotes');
     bill.deduct = $b('billDeduct').checked;
 }
 function writeInvoiceFields() {
@@ -527,7 +533,7 @@ async function quickEditInvoice() {
     const o = r.value, fr = await invFresh(bill);
     if (fr && fr.cancelled) { await invAdoptFresh(bill, fr); lsSet(BILL_LS.draft, JSON.stringify(bill)); try { writeInvoiceFields(); updateIssuedUI(); } catch (e) { /* تجاهل */ } Swal.fire({ icon: 'warning', title: 'الفاتورة ملغاة', text: 'أُلغيت هذه الفاتورة من جهاز آخر، فلم يُحفظ التعديل.', confirmButtonColor: '#0f1c38' }); return; }
     const oldPaid = (bill.paid === '' || bill.paid == null) ? null : (parseFloat(bill.paid) || 0);
-    bill.to = o.to; bill.customer = o.customer; bill.doctor = o.doctor; bill.notes = o.notes; bill.discount = o.disc ? String(o.disc) : '';
+    bill.to = o.to; bill.customer = o.customer; bill.doctor = fmtDoctor(o.doctor); bill.notes = o.notes; bill.discount = o.disc ? String(o.disc) : '';
     bill.paid = o.paid === null ? '' : String(o.paid);
     if (oldPaid !== null && o.paid !== null && Math.abs(o.paid - oldPaid) > 0.001) (bill.payments = bill.payments || []).push({ at: todayLocalISO(), amount: o.paid - oldPaid, adj: true });
     bill.editedAt = new Date().toISOString();

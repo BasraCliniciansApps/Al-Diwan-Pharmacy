@@ -53,7 +53,7 @@
 
                 <div class="bill-parties">
                     <label class="bill-field"><span>اسم الزبون:</span><input id="billCustomer" oninput="billChanged()"></label>
-                    <label class="bill-field"><span>اسم الطبيب المعالج:</span><input id="billDoctor" oninput="billChanged()"></label>
+                    <label class="bill-field"><span>اسم الطبيب المعالج:</span><input id="billDoctor" oninput="billChanged()" onchange="this.value=fmtDoctor(this.value);billChanged()"></label>
                 </div>
 
                 <table class="bill-table">

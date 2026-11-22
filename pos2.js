@@ -121,7 +121,7 @@ function p2Scan() {   // كاميرا: تستمر بعد كل قراءة لحي�
 }
 
 // ---------- بيانات الفاتورة الإضافية ----------
-function p2Field(k, v) { bill[k] = v; writeInvoiceFields(); recalcInvoice(); billChanged(); p2Totals(); }
+function p2Field(k, v) { bill[k] = k === 'doctor' ? fmtDoctor(v) : v; writeInvoiceFields(); recalcInvoice(); billChanged(); p2Totals(); }
 function p2ToggleExtra() { p2.extra = !p2.extra; p2Render(); }
 
 // ---------- الخصم والصافي (بنفس دوال pos.js دون تغيير) ----------
@@ -221,7 +221,7 @@ function p2EditFold() {
     return `<button type="button" class="pos-more p2-fold" onclick="p2ToggleExtra()">${open ? '▲ إخفاء بيانات الفاتورة' : '▼ بيانات الفاتورة'}</button>` + (open ? `<div class="pos-fields">
         <label>إلى السيد / الشركة<input list="qiDl_to" autocomplete="off" placeholder="اختياري" value="${v('to')}" onchange="p2Field('to', this.value)"></label>
         <label>اسم الزبون<input list="qiDl_customer" autocomplete="off" placeholder="اختياري" value="${v('customer')}" onchange="p2Field('customer', this.value)"></label>
-        <label>اسم الطبيب المعالج<input list="qiDl_doctor" autocomplete="off" placeholder="اختياري" value="${v('doctor')}" onchange="p2Field('doctor', this.value)"></label>
+        <label>اسم الطبيب المعالج<input list="qiDl_doctor" autocomplete="off" placeholder="اختياري" value="${v('doctor')}" onchange="p2Field('doctor', this.value); this.value = bill.doctor"></label>
         <label>التاريخ (ثابت)<input type="date" value="${posEsc(bill.date || todayLocalISO())}" disabled></label>
         <label>ملاحظات<textarea rows="2" onchange="p2Field('notes', this.value)">${v('notes')}</textarea></label>
         ${['to', 'customer', 'doctor'].map(k => qiDl(k)).join('')}</div>` : `<div class="p2-fsm">${sm || 'لا توجد بيانات'}</div>`);
@@ -265,7 +265,7 @@ async function p2AskInfo(needCu) {
         preConfirm: () => { const g = id => document.getElementById(id); if (needCu && !g('p2qCu').value.trim()) { Swal.showValidationMessage('اسم الزبون مطلوب للبيع الآجل'); return false; } return { to: g('p2qTo').value.trim(), customer: g('p2qCu').value.trim(), doctor: g('p2qDo').value.trim(), date: g('p2qDt').value, notes: g('p2qNo').value.trim() }; }
     });
     if (r.isDismissed) return false;
-    if (r.isConfirmed && r.value) { const o = r.value; bill.to = o.to; bill.customer = o.customer; bill.doctor = o.doctor; bill.notes = o.notes; bill.date = o.date || todayLocalISO(); try { qiRemember(); } catch (e) { /* */ } }
+    if (r.isConfirmed && r.value) { const o = r.value; bill.to = o.to; bill.customer = o.customer; bill.doctor = fmtDoctor(o.doctor); bill.notes = o.notes; bill.date = o.date || todayLocalISO(); try { qiRemember(); } catch (e) { /* */ } }
     return true;
 }
 // نافذة اختيار طريقة الطباعة: pdf / normal / thermal. تُرجع '' عند الإلغاء.
