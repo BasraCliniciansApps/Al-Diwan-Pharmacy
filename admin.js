@@ -76,9 +76,9 @@ function goAddProduct() { openFormModal(); }   // تُفتح فوق الشاشة
 const KPI_KEY = 'diwanKpiCache';
 function kpiPaint(c) {
     const el = document.getElementById('homeKpis'); if (!el || !c) return;
-    const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}" onclick="${onclick}"><b>${val}</b><span>${label}</span></button>`;
+    const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}${cls === 'k-sales' && window.__salesBusy ? ' busy' : ''}" onclick="${onclick}"><b>${val}</b><span>${label}</span>${cls === 'k-sales' ? kpiRingHtml : ''}</button>`;
     el.innerHTML = kpi('k-out', 'غير متوفر', c.out, "goStock('out')") + kpi('k-low', 'كمية قليلة', c.low, "goAlerts('low')") +
-        kpi('k-exp', 'قريب الانتهاء', c.exp, "goAlerts('m6')") + kpi('k-sales', 'مبيعات اليوم', c.sales, "showView('bill'); billTab('reports')");
+        kpi('k-exp', 'قريب الانتهاء', c.exp, "goAlerts('m6')") + kpi('k-sales', 'مبيعات اليوم', c.sales, 'homeSalesTap()');
     ['homeAlertCount', 'stockAlertCount'].forEach(id => { const b = document.getElementById(id); if (b) { b.innerText = c.alerts; b.style.display = c.alerts ? 'flex' : 'none'; } });
     window.hdAlertN = Number(c.alerts) || 0; if (window.hdToolsRefresh) window.hdToolsRefresh();
 }
@@ -89,7 +89,7 @@ async function refreshHome() {
     const out = products.filter(p => !p.arch && !isInStock(p)).length;
     const low = products.filter(isLowStock).length;
     let exp = 0; try { exp = getExpiringProducts().length; } catch (e) { /* تجاهل */ }
-    const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}" onclick="${onclick}"><b>${val}</b><span>${label}</span></button>`;
+    const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}${cls === 'k-sales' && window.__salesBusy ? ' busy' : ''}" onclick="${onclick}"><b>${val}</b><span>${label}</span>${cls === 'k-sales' ? kpiRingHtml : ''}</button>`;
     const alertsTotal = products.filter(p => alertKinds(p).any).length;
     if (typeof puLoad === 'function' && can('purchases')) Promise.all([puLoad(), typeof lgLoad === 'function' ? lgLoad() : null]).then(puHomeBadge).catch(() => {});   // المردود المرتبط يأتي من دفتر الحسابات: ننتظره قبل حساب المستحق
     const hb = document.getElementById('homeAlertCount');
@@ -102,28 +102,32 @@ async function refreshHome() {
             kpi('k-out', 'غير متوفر', out, "goStock('out')") +
             kpi('k-low', 'كمية قليلة', low, "goAlerts('low')") +
             kpi('k-exp', 'قريب الانتهاء', exp, "goAlerts('m6')") +
-            kpi('k-sales', 'مبيعات اليوم', fmtNum(sales), "showView('bill'); billTab('reports')");
+            kpi('k-sales', 'مبيعات اليوم', fmtNum(sales), 'homeSalesTap()');
     };
     const save = (sales) => { try { localStorage.setItem(KPI_KEY, JSON.stringify({ out, low, exp, alerts: alertsTotal, sales: fmtNum(sales), day: new Date().toDateString() })); } catch (e) { /* تجاهل */ } };
     render(salesTodayTotal()); save(salesTodayTotal());
-    homeUpdPaint();
     try { await loadInvoices(0.5); render(salesTodayTotal()); save(salesTodayTotal()); } catch (e) { /* تجاهل */ }
-    homeUpdPaint();
 }
-// سطر «آخر تحديث» تحت الأرقام: وقت آخر جلب ناجح لفواتير السحابة (فواتير المستخدمين)، مع زر تحديث يدوي
-function homeUpdPaint() {
-    const el = document.getElementById('homeUpdT'); if (!el) return;
-    const ic = document.querySelector('.home-upd-i'); if (ic && !ic.innerHTML && window.AppIcons) ic.innerHTML = AppIcons.svg('refresh-cw');
-    let t = 0; try { t = +localStorage.getItem('diwanInvAt') || 0; } catch (e) { /* تجاهل */ }
-    el.textContent = t ? 'آخر تحديث للمبيعات: ' + new Date(t).toLocaleTimeString('ar-IQ', { hour: 'numeric', minute: '2-digit' }) : 'آخر تحديث للمبيعات: غير متوفر';
+// مبيعات اليوم: الضغطة الأولى تحدّث الرقم من السحابة وتدور حلقة ذهبية حول الزر (كحلقة الشعار)، والضغطة الثانية (خلال 20 ثانية) تفتح التفاصيل
+let homeSalesBusy = false, homeSalesArm = 0;
+const kpiRingHtml = '<svg class="kpi-ring" aria-hidden="true"><rect class="kr-tr" x="1.5" y="1.5" rx="16" ry="16" pathLength="100"/><rect class="kr-fg" x="1.5" y="1.5" rx="16" ry="16" pathLength="100"/></svg>';
+function kpiRing(on, done) {
+    const b = document.querySelector('.kpi.k-sales'); if (!b) return;
+    b.classList.toggle('busy', !!on);
+    if (done) { b.classList.add('done'); setTimeout(() => { const x = document.querySelector('.kpi.k-sales'); if (x) x.classList.remove('done'); }, 800); }
 }
-async function homeRefreshSales() {
-    const h = Prog.start('تحديث المبيعات', { text: 'قراءة الفواتير من السحابة...' });
+async function homeSalesTap() {
+    if (homeSalesBusy) return;
+    if (Date.now() < homeSalesArm) { homeSalesArm = 0; showView('bill'); billTab('reports'); return; }
+    homeSalesBusy = true; window.__salesBusy = true; kpiRing(true);
+    let off = false;
     try {
-        if (!(cloudReady() && navigator.onLine)) { h.fail('لا يوجد اتصال', 'يُعرض ما هو محفوظ على الجهاز'); homeUpdPaint(); return; }
-        h.set(40, 'قراءة الفواتير...'); await loadInvoices(0); h.set(90, 'تحديث الأرقام...'); await refreshHome(); h.ok('تم تحديث المبيعات');
-    } catch (e) { h.fail('تعذّر التحديث', (e && e.message) || ''); }
-    homeUpdPaint();
+        if (!(typeof cloudReady === 'function' && cloudReady() && navigator.onLine)) off = true; else await loadInvoices(0);
+        await refreshHome();
+    } catch (e) { /* تجاهل */ }
+    homeSalesBusy = false; window.__salesBusy = false; homeSalesArm = Date.now() + 20000;
+    kpiRing(false, !off);
+    if (off) { try { Swal.fire({ icon: 'warning', title: 'لا يوجد اتصال: يُعرض ما هو محفوظ على الجهاز', toast: true, position: 'bottom', showConfirmButton: false, timer: 2600 }); } catch (e) { /* تجاهل */ } }
 }
 
 // ---------------- شاشة التنبيهات ----------------
