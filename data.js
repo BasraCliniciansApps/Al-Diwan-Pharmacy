@@ -712,7 +712,27 @@ function flushProductsLocal() {
 function saveProductsLocalSoon() { if (_plTimer) clearTimeout(_plTimer); _plTimer = setTimeout(flushProductsLocal, 1000); }
 ['pagehide', 'beforeunload'].forEach(ev => window.addEventListener(ev, () => { if (_plTimer) flushProductsLocal(); }));
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && _plTimer) flushProductsLocal(); });
+// ختم «آخر تعديل للمعلومات والأسعار» لكل مادة (metaUpdatedAt): يتغيّر فقط عند تعديل الاسم أو السعر أو الباركود أو القسم أو الصورة...
+// ولا يتأثر أبداً بالبيع أو الجرد أو الكميات (حقول المخزون مستثناة من البصمة). يُستعمل عند استيراد ملفات واتساب حتى لا تغلب نسخة أقدم نسخة أحدث.
+const _msSig = new Map(), _msMu = new Map();
+function stampMeta() {
+    try {
+        const now = Date.now();
+        for (let i = 0; i < products.length; i++) {
+            const p = products[i], o = {};
+            for (const k in p) { if (k.charAt(0) === '_' || k === 'metaUpdatedAt' || k === 'inStock' || k === 'dlim' || STOCK_FIELDS.indexOf(k) >= 0) continue; o[k] = p[k]; }
+            const sig = JSON.stringify(o), prevSig = _msSig.get(p.id);
+            if (prevSig === undefined) { _msSig.set(p.id, sig); _msMu.set(p.id, p.metaUpdatedAt); continue; }
+            if (prevSig !== sig) {
+                // تغيّرت المعلومات: إن جاء الختم معها (من السحابة أو من ملف) نقبله، وإلا فهو تعديل محلي فنختمه بالوقت الحالي
+                if (!window.__waImporting && p.metaUpdatedAt === _msMu.get(p.id)) p.metaUpdatedAt = now;   // أثناء استيراد ملف لا نختم (يحمل ختمه)
+                _msSig.set(p.id, sig); _msMu.set(p.id, p.metaUpdatedAt);
+            } else if (p.metaUpdatedAt !== _msMu.get(p.id)) _msMu.set(p.id, p.metaUpdatedAt);
+        }
+    } catch (e) { /* تجاهل */ }
+}
 function saveLocal() {
+    try { stampMeta(); } catch (e) { /* تجاهل */ }
     try {
         localStorage.setItem('diwanDepts', JSON.stringify(departments));
         localStorage.setItem('diwanSubCats', JSON.stringify(subCategories));

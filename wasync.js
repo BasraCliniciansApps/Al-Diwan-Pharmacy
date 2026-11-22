@@ -469,7 +469,7 @@
         if (!r.isConfirmed) return;
         const h = Prog.start('تحديث المخزون من المدير', { text: 'جاري التطبيق...' });
         try {
-            const arr = Array.isArray(f.products) ? f.products : []; let added = 0, upd = 0, i = 0, delN = 0;
+            const arr = Array.isArray(f.products) ? f.products : []; let added = 0, upd = 0, i = 0, delN = 0, stampSkip = 0;
             const cloudLive = SH && !waOn() && typeof cloudReady === 'function' && cloudReady() && navigator.onLine;   // السحابة متصلة: هي المرجع للأرصدة، فلا نكتب فوقها
 
             arr.forEach(it => {
@@ -478,6 +478,7 @@
                 let p = products.find(x => String(x.id) === String(it.pid));
                 let isNew = false;
                 if (!p) { p = Object.assign({}, info); p.id = it.pid; products.push(p); added++; isNew = true; }
+                else if (p.metaUpdatedAt && info.metaUpdatedAt && p.metaUpdatedAt > info.metaUpdatedAt) { stampSkip++; }   // نسخة الجهاز أحدث (معلومات وأسعار): لا نكتب فوقها
                 else { Object.keys(p).forEach(k => { if (k.charAt(0) !== '_' && STOCK_FIELDS.indexOf(k) < 0 && k !== 'inStock' && k !== 'dlim' && !(k in info)) delete p[k]; }); Object.assign(p, info); upd++; }
                 const st = it.st || {}; if (!cloudLive || isNew) SNAP_ST.forEach(k => { if (st[k] !== undefined) p[k] = st[k]; else delete p[k]; });
                 if (++i % 200 === 0) h.set(Math.round(i / arr.length * 60), 'تحديث الأصناف...');
@@ -491,7 +492,7 @@
             if (f.cfg) { try { I.trackIngest('cfg', { cfg: f.cfg }); } catch (e) { /* تجاهل */ } }
             const ns = seenSet(); seen.forEach(x => ns.add(x)); ls.set(K.seen, [...ns].slice(-6000)); ls.set(K.snapAt, f.at || nowIso());
             saveLocal(); try { renderAll(); } catch (e) { /* تجاهل */ }
-            h.ok('تم التحديث: ' + num(upd) + ' مادة' + (added ? ' و' + num(added) + ' جديدة' : '') + (delN ? ' وحُذف ' + num(delN) : ''));
+            h.ok('تم التحديث: ' + num(upd) + ' مادة' + (added ? ' و' + num(added) + ' جديدة' : '') + (delN ? ' وحُذف ' + num(delN) : '') + (stampSkip ? ' · تُخطّيت ' + num(stampSkip) + ' مادة نسخة جهازك أحدث' : ''));
         } catch (e) { h.fail('تعذّر تحديث المخزون', (e && e.message) || ''); }
         refresh(); try { syncRefresh(); } catch (e) { /* تجاهل */ }
     }
@@ -785,7 +786,7 @@
             else bad++;
         });
         const inf = f.info || {}, loc = new Map(products.map(p => [String(p.id), p]));
-        const pch = (inf.p || []).filter(x => { if (!x || x.pid === undefined || !x.info) return false; const p = loc.get(String(x.pid)); if (!p) return true; const s = I.pSplit(p); return I.hsh(I.stable({ i: s.info, c: s.cost })) !== I.hsh(I.stable({ i: x.info, c: x.cost || {} })); });
+        const pch = (inf.p || []).filter(x => { if (!x || x.pid === undefined || !x.info) return false; const p = loc.get(String(x.pid)); if (!p) return true; if (p.metaUpdatedAt && x.info.metaUpdatedAt && p.metaUpdatedAt > x.info.metaUpdatedAt) return false; const s = I.pSplit(p); return I.hsh(I.stable({ i: s.info, c: s.cost })) !== I.hsh(I.stable({ i: x.info, c: x.cost || {} })); });
         const rch = (inf.rec || []).filter(x => { if (!x || !x.rec || !x.rec.id || (x.coll !== 'suppliers' && x.coll !== 'ledger')) return false; const arr = x.coll === 'suppliers' ? puSuppliers : lgAll; const o = (arr || []).find(y => y.id === x.rec.id); return !o || I.stable(o) !== I.stable(x.rec); });
         const cfgCh = !!inf.cfg && I.stable(inf.cfg) !== I.stable(I.cfgNow());
         const cloudLiveD = typeof cloudReady === 'function' && cloudReady() && navigator.onLine;   // الحاسوب متصل بالسحابة: لا نحذف ولا نغيّر الأرصدة محلياً (السحابة هي المرجع)

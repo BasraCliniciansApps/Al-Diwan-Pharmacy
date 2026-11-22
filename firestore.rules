@@ -17,7 +17,7 @@ service cloud.firestore {
       allow update: if isOwner() || perm('stockEdit')
                     || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock']))
                     // قوائم الجرد: الأسعار فقط
-                    || (perm('invList') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock', 'price', 'pricing', 'markupPct', 'subPrice', 'subManual']));
+                    || (perm('invList') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock', 'price', 'pricing', 'markupPct', 'subPrice', 'subManual', 'metaUpdatedAt']));
     }
     match /pharmacy/{id} {
       allow read: if true;
