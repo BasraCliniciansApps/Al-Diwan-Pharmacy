@@ -7,6 +7,13 @@ let sp = null;   // { pid, unit, qty, rows:[{e,n}], price, edit, scan, short }
 function spDays(e) { return e && typeof expiryDaysOf === 'function' ? expiryDaysOf(e) : null; }
 function spSim(p, unit, editing) {   // الدفعات المتاحة بعد خصم ما أُضيف أصلاً للفاتورة (عدا السطور قيد التعديل)
     const sc = btSc(p), sim = { bat: getBatches(p).map(b => ({ e: b.e, pr: b.pr || 0, u: b.q * sc + b.l })) };
+    if (bill && bill.editing && typeof billEditBase !== 'undefined' && billEditBase) (billEditBase.deductedLines || []).forEach(l => {   // تعديل فاتورة صادرة: ما خُصم منها يُعدّ متاحاً من جديد
+        if (l.pid !== p.id || l.over || !(l.n > 0)) return;
+        const per = l.unit === 'part' && hasRetail(p) ? 1 : sc, e = l.exp || '', pr = l.pr || 0;
+        let b = sim.bat.find(x => (x.e || '') === e && (x.pr || 0) === pr);
+        if (!b) { b = { e, pr, u: 0 }; sim.bat.push(b); }
+        b.u += l.n * per;
+    });
     (bill ? bill.items : []).forEach(it => {
         if (it.pid !== p.id) return;
         if (editing && (it.unit === 'part' ? 'part' : 'pack') === unit) return;

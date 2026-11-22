@@ -5089,3 +5089,7 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .ss-h { margin: 14px 0 4px; font-size: .92rem; font-weight: 800; color: #0f1c38; text-align: right; }
 .wa-host { text-align: right; border-top: 1px solid #e2e8f0; padding-top: 4px; }
 .wa-host .wa-intro { font-size: .78rem; line-height: 1.8; color: #64748b; }
+
+/* v769: طيّة بيانات الفاتورة في وضع تعديل الفاتورة الصادرة */
+.p2-extra .p2-fold { margin-top: 8px; }
+.p2-extra .p2-fsm { margin: 6px 4px 0; font-size: .82rem; font-weight: 700; color: #64748b; text-align: right; }

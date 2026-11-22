@@ -111,7 +111,7 @@ function updateIssuedUI() {
     sheet.classList.toggle('cancelled', cancelled);
     show('billNewBtn', !editing);
     show('billPrintOnlyBtn', !issued); show('billIssueOnlyBtn', !issued); show('billIssueBtn', !issued);
-    show('billReprintBtn', issued && !editing && !cancelled); show('billEditBtn', issued && !editing && !cancelled); show('billCancelBtn', issued && !editing && !cancelled && invCanOwn(bill, 'cancelOwn')); show('billDeleteBtn', issued && cancelled && invCanOwn(bill, 'deleteOwn'));
+    show('billReprintBtn', issued && !editing && !cancelled); show('billEditBtn', issued && !editing && !cancelled); show('billInfoBtn', issued && !editing && !cancelled); show('billCancelBtn', issued && !editing && !cancelled && invCanOwn(bill, 'cancelOwn')); show('billDeleteBtn', issued && cancelled && invCanOwn(bill, 'deleteOwn'));
     show('billEditBackBtn', editing); show('billSaveEditBtn', editing); show('billSaveEditPrintBtn', editing);
     if (issued) {
         note.style.display = 'block';
@@ -482,11 +482,60 @@ function restoreDeducted(lines, snap) {
         if (l.exp !== undefined && !l.over && (p.bt || !getBatches(p).some(b => b.legacy))) p._badd = (p._badd || []).concat([{ e: l.exp, pr: l.pr, q: l.unit === 'part' ? 0 : l.n, l: l.unit === 'part' ? l.n : 0 }]);   // يرجع للدفعة نفسها
     });
 }
-function editIssuedInvoice() {
-    if (!bill || !bill.issued || bill.cancelled) return;
+function invMayEdit() {   // المدير يعدّل كل الفواتير، وغيره فاتورته فقط
+    if (userRole !== 'owner' && bill.byUid && typeof currentUser !== 'undefined' && currentUser && bill.byUid !== ((window.__actAs && window.__actAs.uid) || currentUser.uid)) { Swal.fire({ icon: 'info', title: 'لا يمكن تعديل هذه الفاتورة', text: 'هذه الفاتورة أصدرها مستخدم آخر. يعدّلها صاحبها أو المدير.', confirmButtonColor: '#0f1c38' }); return false; }
+    return true;
+}
+function editIssuedInvoice() {   // يفتح شاشة البيع بوضع التعديل محمّلةً بمواد الفاتورة
+    if (!bill || !bill.issued || bill.cancelled || bill.editing) return;
+    if (!invMayEdit()) return;
     billEditBase = JSON.parse(JSON.stringify(bill));
     bill.editing = true; $b('billDeduct').checked = bill.deducted !== false;
     updateIssuedUI(); renderInvoiceRows(); recalcInvoice();
+    if (typeof posOpen === 'function') posOpen();
+}
+// تعديل سريع لبيانات الفاتورة الصادرة (الشركة، الزبون، الطبيب، الملاحظات، الخصم، المدفوع) دون المساس بالمواد أو المخزن
+async function quickEditInvoice() {
+    if (!bill || !bill.issued || bill.cancelled || bill.editing) return;
+    if (!invMayEdit()) return;
+    const v = k => escapeHtml(String(bill[k] == null ? '' : bill[k]));
+    const sub = (bill.items || []).reduce((s, it) => s + (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), 0);
+    const credit = !(bill.paid === '' || bill.paid == null);
+    const r = await Swal.fire({
+        title: 'تعديل بيانات الفاتورة ' + escapeHtml(bill.no), showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38',
+        html: `<div class="pos-fields" style="text-align:right">
+            <label>إلى السيد / الشركة<input id="qeTo" list="qiDl_to" autocomplete="off" value="${v('to')}"></label>
+            <label>اسم الزبون<input id="qeCu" list="qiDl_customer" autocomplete="off" value="${v('customer')}"></label>
+            <label>اسم الطبيب المعالج<input id="qeDo" list="qiDl_doctor" autocomplete="off" value="${v('doctor')}"></label>
+            <label>ملاحظات<textarea id="qeNo" rows="2">${v('notes')}</textarea></label>
+            <label>الخصم (د.ع)<input id="qeDi" type="number" inputmode="numeric" min="0" value="${v('discount')}"></label>
+            <label>المبلغ المدفوع (د.ع)<input id="qePa" type="number" inputmode="numeric" min="0" value="${credit ? v('paid') : ''}" placeholder="اتركه فارغاً إن كانت الفاتورة مدفوعة كاملة"></label>
+            ${['to', 'customer', 'doctor'].map(k => (typeof qiDl === 'function' ? qiDl(k) : '')).join('')}</div>
+            <div style="margin-top:8px;font-size:.8rem;color:#64748b;text-align:right">لا يؤثر هذا التعديل على المواد ولا على المخزن. لتعديل المواد أو الكميات استعمل «تعديل الفاتورة».</div>`,
+        preConfirm: () => {
+            const g = id => document.getElementById(id), d = g('qeDi').value.trim(), pa = g('qePa').value.trim();
+            const disc = d === '' ? 0 : parseFloat(d), paid = pa === '' ? null : parseFloat(pa);
+            if (!(disc >= 0) || disc > sub) { Swal.showValidationMessage('الخصم يجب أن يكون بين صفر ومجموع الفاتورة'); return false; }
+            if (paid !== null && !(paid >= 0)) { Swal.showValidationMessage('المبلغ المدفوع غير صالح'); return false; }
+            const total = sub - disc, isCr = paid !== null && paid < total, cu = g('qeCu').value.trim();
+            if (isCr && !cu) { Swal.showValidationMessage('اسم الزبون مطلوب للبيع الآجل'); return false; }
+            if (userRole !== 'owner' && disc > (parseFloat(bill.discount) || 0) && typeof posLimits === 'function') { const L = posLimits(); if (disc > L.allow) { Swal.showValidationMessage(L.allow > 0 ? 'الخصم يتجاوز الحد المسموح' : 'لا يُسمح بخصم على هذه المواد'); return false; } }
+            return { to: g('qeTo').value.trim(), customer: cu, doctor: g('qeDo').value.trim(), notes: g('qeNo').value.trim(), disc, paid: isCr ? paid : null, total };
+        }
+    });
+    if (!r.isConfirmed || !r.value) return;
+    const o = r.value, fr = await invFresh(bill);
+    if (fr && fr.cancelled) { await invAdoptFresh(bill, fr); lsSet(BILL_LS.draft, JSON.stringify(bill)); try { writeInvoiceFields(); updateIssuedUI(); } catch (e) { /* تجاهل */ } Swal.fire({ icon: 'warning', title: 'الفاتورة ملغاة', text: 'أُلغيت هذه الفاتورة من جهاز آخر، فلم يُحفظ التعديل.', confirmButtonColor: '#0f1c38' }); return; }
+    const oldPaid = (bill.paid === '' || bill.paid == null) ? null : (parseFloat(bill.paid) || 0);
+    bill.to = o.to; bill.customer = o.customer; bill.doctor = o.doctor; bill.notes = o.notes; bill.discount = o.disc ? String(o.disc) : '';
+    bill.paid = o.paid === null ? '' : String(o.paid);
+    if (oldPaid !== null && o.paid !== null && Math.abs(o.paid - oldPaid) > 0.001) (bill.payments = bill.payments || []).push({ at: todayLocalISO(), amount: o.paid - oldPaid, adj: true });
+    bill.editedAt = new Date().toISOString();
+    try { qiRemember(); } catch (e) { /* تجاهل */ }
+    lsSet(BILL_LS.draft, JSON.stringify(bill));
+    await saveInvoiceRecord(bill);
+    writeInvoiceFields(); renderInvoiceRows(); recalcInvoice(); updateIssuedUI();
+    Swal.fire({ icon: 'success', title: 'حُفظت بيانات الفاتورة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
 }
 async function cancelInvoiceEdit() {
     if (!(await askSure('إلغاء التعديل؟', 'ستضيع كل التغييرات غير المحفوظة على هذه الفاتورة.', 'إلغاء التعديل'))) return;
@@ -499,7 +548,7 @@ function cancelInvoiceEditNow() {
 }
 async function saveInvoiceEdit(doPrintAfter) {
     if (!bill || !bill.issued || !bill.editing) return;
-    if (userRole !== 'owner' && bill.byUid && typeof currentUser !== 'undefined' && currentUser && bill.byUid !== ((window.__actAs && window.__actAs.uid) || currentUser.uid)) { Swal.fire({ icon: 'info', title: 'لا يمكن تعديل هذه الفاتورة', text: 'هذه الفاتورة أصدرها مستخدم آخر. يعدّلها صاحبها أو المدير.', confirmButtonColor: '#0f1c38' }); return; }
+    if (!invMayEdit()) return;
     readInvoiceFields();
     if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'لا يمكن حفظ فاتورة بلا مواد. استعمل «إلغاء الفاتورة» بدلاً من ذلك.', confirmButtonColor: '#0f1c38' }); return; }
     if (billHasExpired()) return;
@@ -540,6 +589,7 @@ async function saveInvoiceEdit(doPrintAfter) {
     updateIssuedUI(); renderInvoiceRows(); recalcInvoice();
     if (doPrintAfter) printInvoice();
     else Swal.fire({ icon: 'success', title: 'حُفظ تعديل الفاتورة', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
+    return true;
 }
 function billSeqBump(no) {
     const x = billSplitNo(no), k = billSeqKey(x.pre);

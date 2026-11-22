@@ -20,7 +20,7 @@ function p2Ensure() {
     if (p2El('p2Ov')) return;
     const d = document.createElement('div'); d.id = 'p2Ov'; d.className = 'p2-ov no-print'; d.setAttribute('dir', 'rtl'); d.style.display = 'none';
     d.innerHTML = `<div class="bill-top p2-top"><div class="brand-bar"><div class="brand-id"><span class="brand-logo"><img src="icon.jpg" alt=""><i class="sync-dot" data-state="ok"></i></span><span class="brand-name">صيدلية الديوان</span></div><div class="brand-actions"><button type="button" class="small-icon-btn" onclick="p2Home()" aria-label="الرئيسية">🏠</button><button type="button" class="small-icon-btn" onclick="helpOpen()" aria-label="مركز المعلومات" title="مركز المعلومات">ℹ️</button></div></div>
-        <div class="page-title"><span>🛒 شاشة البيع</span><span class="p2-no" dir="ltr" id="p2No"></span></div></div>
+        <div class="page-title"><span id="p2Title">🛒 شاشة البيع</span><span class="p2-no" dir="ltr" id="p2No"></span></div></div>
         <div class="p2-main" id="p2Main">
             <section class="p2-items" id="p2Items">
                 <div class="p2-bar"><input id="p2Q" type="search" autocomplete="off" placeholder="امسح الباركود أو اكتب اسم المادة" oninput="p2SearchInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();p2Enter();}"><button type="button" class="p2-cam" onclick="p2Scan()" aria-label="مسح بالكاميرا">📷</button></div>
@@ -38,6 +38,8 @@ function p2Open() {
     try { initBillEditor(); } catch (e) { /* تجاهل */ }
     if (bill && bill.issued && !bill.editing) { bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); try { initBillEditor(); } catch (e) { /* تجاهل */ } }
     p2Ensure(); p2 = Object.assign(p2, { open: true, done: false, extra: false, recv: '', credit: false, paid: '', found: [] });
+    if (bill && bill.editing) { p2.extra = false; p2.paid = bill.paid === '' || bill.paid == null ? '' : String(bill.paid); }   // تعديل فاتورة صادرة: الآجل والمدفوع من الفاتورة نفسها
+    p2El('p2Title').textContent = bill && bill.editing ? '✏️ تعديل الفاتورة' : '🛒 شاشة البيع';
     p2El('p2No').textContent = bill.no || '';
     p2El('p2Ov').style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open');
     const q = p2El('p2Q'); if (q) q.value = ''; p2Results(); p2Render(); p2Focus();
@@ -45,9 +47,17 @@ function p2Open() {
 // الرجوع: يغلق القسم المفتوح (خصم، آجل...) أولاً على الموبايل، ثم يخرج من نافذة البيع
 function p2Back() {
     if (p2.acc && window.matchMedia && matchMedia('(max-width: 899px)').matches && P2_COMPACT) { p2.acc = null; p2Render(); return; }
+    if (p2EditLive()) { p2EditExit(false); return; }
     p2Close();
 }
-function p2Home() { p2Close(); try { if (typeof currentView !== 'undefined' && currentView !== 'home') showView('home'); } catch (e) { /* تجاهل */ } }
+const p2EditLive = () => !!(bill && bill.issued && bill.editing && typeof billEditBase !== 'undefined' && billEditBase);
+async function p2EditExit(home) {   // الخروج من وضع التعديل دون حفظ: بعد تأكيد
+    if (!(await askSure('إلغاء التعديل؟', 'ستضيع كل التغييرات غير المحفوظة على هذه الفاتورة.', 'إلغاء التعديل'))) return;
+    try { cancelInvoiceEditNow(); } catch (e) { /* تجاهل */ }
+    p2Close();
+    if (home) { try { if (typeof currentView !== 'undefined' && currentView !== 'home') showView('home'); } catch (e) { /* تجاهل */ } }
+}
+function p2Home() { if (p2EditLive()) { p2EditExit(true); return; } p2Close(); try { if (typeof currentView !== 'undefined' && currentView !== 'home') showView('home'); } catch (e) { /* تجاهل */ } }
 function p2Close() {
     p2.acc = null;
     const ov = p2El('p2Ov'); if (ov) ov.style.display = 'none';
@@ -56,7 +66,7 @@ function p2Close() {
 }
 function p2Focus() { const q = p2El('p2Q'); if (q && !(window.matchMedia && matchMedia('(pointer: coarse)').matches)) q.focus(); }
 function p2New() {
-    bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); p2.done = false; p2.extra = false; p2.recv = ''; p2.credit = false; p2.zero = false; p2.paid = '';
+    bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); p2.done = false; p2.extra = false; try { p2El('p2Title').textContent = '🛒 شاشة البيع'; } catch (e) { /* تجاهل */ } p2.recv = ''; p2.credit = false; p2.zero = false; p2.paid = '';
     try { initBillEditor(); } catch (e) { /* تجاهل */ }
     p2El('p2No').textContent = bill.no || ''; p2Render(); p2Focus();
 }
@@ -203,6 +213,41 @@ async function p2Issue_(print) {
     await issueInvoice(false, true);
     if (bill.issued) { p2.done = true; if (print) p2PrintBy(mode); }
     p2Render();
+}
+// ---------- وضع تعديل فاتورة صادرة: طيّة بيانات الفاتورة + الحفظ (التصحيح بالفرق يتولاه saveInvoiceEdit) ----------
+function p2EditFold() {
+    const v = k => posEsc(bill[k] || ''), open = p2.extra;
+    const sm = [bill.customer, bill.to, bill.doctor].filter(Boolean).map(posEsc).join(' · ');
+    return `<button type="button" class="pos-more p2-fold" onclick="p2ToggleExtra()">${open ? '▲ إخفاء بيانات الفاتورة' : '▼ بيانات الفاتورة'}</button>` + (open ? `<div class="pos-fields">
+        <label>إلى السيد / الشركة<input list="qiDl_to" autocomplete="off" placeholder="اختياري" value="${v('to')}" onchange="p2Field('to', this.value)"></label>
+        <label>اسم الزبون<input list="qiDl_customer" autocomplete="off" placeholder="اختياري" value="${v('customer')}" onchange="p2Field('customer', this.value)"></label>
+        <label>اسم الطبيب المعالج<input list="qiDl_doctor" autocomplete="off" placeholder="اختياري" value="${v('doctor')}" onchange="p2Field('doctor', this.value)"></label>
+        <label>التاريخ (ثابت)<input type="date" value="${posEsc(bill.date || todayLocalISO())}" disabled></label>
+        <label>ملاحظات<textarea rows="2" onchange="p2Field('notes', this.value)">${v('notes')}</textarea></label>
+        ${['to', 'customer', 'doctor'].map(k => qiDl(k)).join('')}</div>` : `<div class="p2-fsm">${sm || 'لا توجد بيانات'}</div>`);
+}
+async function p2SaveEdit(print) {
+    if (p2.busy || !p2EditLive()) return;
+    p2.busy = true; document.querySelectorAll('.p2-btns .pos-big').forEach(b => { b.disabled = true; });
+    try { await p2SaveEdit_(print); }
+    finally { p2.busy = false; document.querySelectorAll('.p2-btns .pos-big').forEach(b => { b.disabled = false; }); }
+}
+async function p2SaveEdit_(print) {
+    if (!bill.items.length) { Swal.fire({ icon: 'warning', title: 'القائمة فارغة', text: 'لا يمكن حفظ فاتورة بلا مواد. استعمل «إلغاء الفاتورة» بدلاً من ذلك.', confirmButtonColor: '#0f1c38' }); return; }
+    writeInvoiceFields();
+    const L = posLimits(), d = parseFloat(bill.discount) || 0, msg = t => { const e = p2El('p2Val'); if (e) { e.textContent = t || ''; e.style.display = t ? '' : 'none'; } };
+    msg('');
+    if (userRole !== 'owner' && d > L.allow) { msg(L.allow > 0 ? 'الخصم يتجاوز الحد المسموح' : 'لا يُسمح بخصم على هذه المواد'); return; }
+    if (d > 0 && L.own && !L.unknown && d > L.allow) {
+        const w = await Swal.fire({ icon: 'warning', title: 'تحذير: بيع بخسارة', html: `الخصم <b>${fmtNum(d)} د.ع</b> أعلى من الحد الآمن <b>${fmtNum(L.allow)} د.ع</b>.<br>هذه الفاتورة ستُباع <b style="color:#b91c1c">بخسارة تقارب ${fmtNum(d - L.allow)} د.ع</b>.<br>هل تريد حفظها رغم ذلك؟`, showCancelButton: true, confirmButtonColor: '#b91c1c', confirmButtonText: 'نعم، حفظ بخسارة', cancelButtonText: 'رجوع' });
+        if (!w.isConfirmed) return;
+    }
+    p2CrSync(); const t = billTotals();
+    bill.paid = p2.credit ? String(Math.min(p2.paidEff, t.total)) : '';
+    if (p2.credit && !bill.customer) { msg('اسم الزبون مطلوب للبيع الآجل: أدخله في «بيانات الفاتورة»'); p2.extra = true; p2Render(); return; }
+    writeInvoiceFields(); billChanged(); try { qiRemember(); } catch (e) { /* تجاهل */ }
+    const ok = await saveInvoiceEdit(false);
+    if (!bill.editing) { p2Close(); if (ok && print) printInvoice(); }   // انتهى التعديل (حُفظ أو حُدّثت الفاتورة من السحابة): نعود لعرض الفاتورة
 }
 // نافذة بيانات الفاتورة قبل الطباعة: تظهر إن كان أحد حقول (الشركة، الزبون، الطبيب) فارغاً. تُرجع false عند الإلغاء.
 async function p2AskInfo(needCu) {
@@ -352,7 +397,7 @@ function p2Panel() {
         <div class="p2-sumbar" id="p2SumBar"><span class="p2-sb-l">الصافي <small id="p2FSum"></small></span><b><span id="p2NetBar2"></span> <i>د.ع</i></b></div>
         <div class="p2-act"><div class="px-val" id="p2Val" style="display:none" role="alert"></div>
             ${p2Pills(el.length > 0)}<div class="p2-netbar"><span>الصافي</span><b id="p2NetBar">${fmtNum(t.total)}</b><i>د.ع</i></div>
-            <div class="p2-btns"><button type="button" class="pos-big alt" onclick="p2Issue(false)">إصدار فقط</button><button type="button" class="pos-big go" onclick="p2Issue(true)">إصدار وطباعة</button></div></div>`;
+            <div class="p2-btns">${bill.editing ? '<button type="button" class="pos-big alt" onclick="p2SaveEdit(false)">حفظ التعديل</button><button type="button" class="pos-big go" onclick="p2SaveEdit(true)">حفظ وطباعة</button>' : '<button type="button" class="pos-big alt" onclick="p2Issue(false)">إصدار فقط</button><button type="button" class="pos-big go" onclick="p2Issue(true)">إصدار وطباعة</button>'}</div></div>`;
 }
 function p2Render() {
     const ov = p2El('p2Ov'); if (!ov || !bill) return;
@@ -365,7 +410,7 @@ function p2Render() {
     }
     done.style.display = 'none'; main.style.display = '';
     p2El('p2List').innerHTML = posGroups().map(p2CardHtml).join('') || '<div class="pos-empty"><div>🛒</div>امسح باركود أو اكتب اسم المادة للبدء</div>';
-    const ex = p2El('p2Extra'); if (ex) ex.innerHTML = '';
+    const ex = p2El('p2Extra'); if (ex) ex.innerHTML = bill.editing ? p2EditFold() : '';
     p2El('p2Panel').classList.toggle('p2c', P2_COMPACT);
     p2El('p2Panel').innerHTML = p2Panel();
     p2Sync(); p2Fit();
