@@ -5085,3 +5085,7 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 #catModal .sh-sbar{margin-top:-2px!important;padding-top:2px!important}
 .dw-page .swal2-actions.dw-actions .dw-btn[style*="display: none"]{display:none!important}
 .brand-logo{position:relative;z-index:6}.brand-logo .sync-dot{z-index:7}
+/* لوحة واتساب داخل حالة المزامنة */
+.ss-h { margin: 14px 0 4px; font-size: .92rem; font-weight: 800; color: #0f1c38; text-align: right; }
+.wa-host { text-align: right; border-top: 1px solid #e2e8f0; padding-top: 4px; }
+.wa-host .wa-intro { font-size: .78rem; line-height: 1.8; color: #64748b; }

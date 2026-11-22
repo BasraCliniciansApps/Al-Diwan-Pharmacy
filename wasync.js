@@ -562,16 +562,14 @@
     // ---------------- الواجهة ----------------
     const sw = (id, chk, fn) => '<label class="setup-sw"><input type="checkbox" id="' + id + '" ' + (chk ? 'checked' : '') + ' onchange="' + fn + '"><i></i></label>';
     const btn = (cls, fn, t, sub) => '<button type="button" class="set-nav ' + cls + '" onclick="' + fn + '"><div><b>' + t + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div><i>‹</i></button>';
-    function html() {
+    function html(emb) { let o = html0(); if (emb) o = o.replace(/onclick="WA\.(exportShare|exportSales|importFlow)\(([^"]*)\)"/g, (m, f, a) => 'onclick="WA.act(\'' + f + '\',' + (a || 'undefined') + ')"'); return o; }
+    function html0() {
         if (isOwner()) {
-            mergeUsers(); const dv = devs(), lg = ls.get(K.log, []);
-            let h = '<p class="set-desc wa-intro">يرسل المستخدم مبيعاته كملف عبر واتساب، فتستورده هنا فتتحدّث الأرصدة والفواتير. وترسل له «لقطة مخزون» ليتحدّث رصيده. لا تتكرر الحركات ولا تتداخل مع مبيعاتك.</p>';
+            const lg = ls.get(K.log, []);
+            let h = '<p class="set-desc wa-intro">تبادل موازٍ للسحابة: يرسل المدير ما تغيّر فقط (مواد وأسعار وإعدادات)، ويرسل المستخدم مبيعاته. الملف يُفتح من واتساب فيُستورد تلقائياً، ولا يتكرر ما وصل من السحابة.</p>';
             h += btn('set-act wa-main', 'WA.exportShare()', '📤 إرسال التحديثات للمستخدمين', 'المواد والأسعار والإعدادات التي تغيّرت منذ آخر إرسال فقط.');
             h += btn('set-act', 'WA.exportShare({full:true})', '📦 إرسال ملف كامل', 'كل المواد والإعدادات (لمستخدم جديد).');
-            h += btn('set-act wa-main', 'WA.importFlow()', '📥 استيراد ملف من مستخدم', 'اختر الملف الذي وصلك على واتساب (مبيعات).');
-            h += '<h5 class="wa-h">المستخدمون</h5>';
-            if (!dv.length) h += '<div class="wa-empty">لا يوجد مستخدمون. أضف مستخدماً من «المستخدمون والصلاحيات» فيظهر هنا تلقائياً.</div>';
-            dv.forEach(d => { h += '<div class="wa-dev"><div class="wa-dev-t"><b>' + esc(d.label) + (d.off ? ' <em class="tg bad">معطّل</em>' : '') + '</b><small dir="ltr">' + esc(d.kid) + '</small></div><small>' + (d.last ? 'آخر استيراد ' + esc(ago(d.last)) + ' · ' + num(d.ni || 0) + ' فاتورة' : 'لم يُستورد منه شيء بعد') + '</small><div class="wa-dev-b"><button type="button" onclick="WA.showCode(\'' + esc(d.kid) + '\')">رمز الربط</button><button type="button" onclick="WA.exportSnapshot(\'' + esc(d.kid) + '\')">إرسال لقطة مخزون</button>' + (d.uid ? '<button type="button" class="del" onclick="WA.renewKey(\'' + esc(d.kid) + '\')">تجديد المفتاح</button>' : '<button type="button" class="del" onclick="WA.delDevice(\'' + esc(d.kid) + '\')">حذف</button>') + '</div></div>'; });
+            h += btn('set-act wa-main', 'WA.importFlow()', '📥 استيراد ملف', 'اختر ملفاً وصلك على واتساب إن لم يُفتح تلقائياً.');
             if (lg.length) { h += '<h5 class="wa-h">آخر عمليات الاستيراد</h5>'; lg.slice(0, 5).forEach(x => { h += '<div class="wa-log"><b>' + esc(x.label) + '</b><span>' + esc(ago(x.at)) + '</span><small>' + num(x.inv) + ' فاتورة · ' + num(x.stock) + ' حركة' + (x.fail ? ' · ' + num(x.fail) + ' خطأ' : '') + '</small></div>'; }); }
             return h;
         }
@@ -580,8 +578,8 @@
             let g = '<p class="set-desc wa-intro">تبادل عبر واتساب بالتوازي مع السحابة: يُرسل ملف صغير فيه ما لا يملكه الطرف الآخر فقط، وعند فتحه من واتساب يُستورد تلقائياً. لا يتعارض مع السحابة؛ ما وصل منها مسبقاً لا يتكرر.</p>';
             g += btn('set-act wa-main', 'WA.exportSales()', '📤 إرسال مبيعاتي للمدير', un.length ? num(un.length) + ' عملية لم تُرسل.' : 'لا توجد مبيعات جديدة.');
             g += btn('set-act', 'WA.exportSales({all:true})', '🔁 إعادة إرسال ما لم يؤكده المدير', 'التكرار آمن ولا يضاعف شيئاً.');
-            g += btn('set-act', 'WA.importFlow()', '📥 استيراد ملف من المدير', sa ? 'آخر تحديث: ' + esc(ago(sa)) : 'اختر الملف الذي وصلك على واتساب.');
-            if (!lk) return g + btn('set-act', 'WA.setLink()', '🔗 وضع بلا سحابة: ربط بالمدير', 'للجهاز الذي لا يتصل بالسحابة أبداً: يلزمه رمز من المدير.');
+            g += btn('set-act', 'WA.importFlow()', '📥 استيراد ملف', sa ? 'آخر تحديث: ' + esc(ago(sa)) : 'اختر الملف الذي وصلك على واتساب.');
+            if (!lk) return g;
             let h = g;
             h += '<div class="qk-row"><div><b>وضع واتساب</b><small>' + (on ? 'مفعّل: لا اتصال بالسحابة، والمبيعات تُرسل كملف.' : 'متوقف: الجهاز يعمل مع السحابة كالمعتاد.') + '</small></div>' + sw('waSw', on, 'WA.toggleMode(this)') + '</div>';
             return h;
@@ -598,8 +596,8 @@
         return h;
     }
     function refresh() {
-        const hs = [document.getElementById('waHost'), document.getElementById('waOvBody')];
-        hs.forEach(el => { if (el) { try { el.innerHTML = html(); } catch (e) { el.innerHTML = '<div class="wa-empty">تعذّر العرض</div>'; } } });
+        const hs = [document.getElementById('waHost'), document.getElementById('waOvBody'), document.getElementById('waHostSs')];
+        hs.forEach(el => { if (el) { try { el.innerHTML = html(el.id === 'waHostSs'); } catch (e) { el.innerHTML = '<div class="wa-empty">تعذّر العرض</div>'; } } });
     }
     function open() {
         let ov = document.getElementById('waOv');
@@ -615,6 +613,6 @@
     async function toggleMode(cb) { const want = cb.checked; const ok = await setMode(want); if (!ok) cb.checked = !want; refresh(); }
     setInterval(() => { const ov = document.getElementById('waOv'); if ((ov && ov.style.display !== 'none') || document.getElementById('waHost')) { if (!document.querySelector('.swal2-container')) refresh(); } }, 20000);
 
-    window.WA = { tapStock, tapRecord, exportShare, quickSend, openText, loadUsers, renewKey, add, noteCount, pendingCount, open, close, render: refresh, exportSales, importFlow, exportSnapshot, setLink, unlink, toggleMode, addDevice, showCode, delDevice, on: waOn, _skip: null, _t: { sha256, hmacHex, sign, parseCode, codeOf, planSales, cleanStock, devs, impSet, link, ops, unsent, unconfirmed, summarize, applySales, importSnapshot, parseFile, K } };
+    window.WA = { act: async (f, a) => { try { await WA[f](a); } finally { setTimeout(() => { try { if (document.getElementById('waHostSs') === null && typeof showSyncStatus === 'function') showSyncStatus(); } catch (e) { /* تجاهل */ } }, 200); } }, hostHtml: () => html(true), tapStock, tapRecord, exportShare, quickSend, openText, loadUsers, renewKey, add, noteCount, pendingCount, open, close, render: refresh, exportSales, importFlow, exportSnapshot, setLink, unlink, toggleMode, addDevice, showCode, delDevice, on: waOn, _skip: null, _t: { sha256, hmacHex, sign, parseCode, codeOf, planSales, cleanStock, devs, impSet, link, ops, unsent, unconfirmed, summarize, applySales, importSnapshot, parseFile, K } };
     window.addEventListener('load', () => setTimeout(refresh, 1500));
 })();

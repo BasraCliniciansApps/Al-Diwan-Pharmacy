@@ -136,7 +136,7 @@
         const items = [
             ['الرئيسية', IC.home, "hdGo('home')", true], ['الفواتير', IC.bill, "hdGo('bill')", ok('sell')], ['المخزن', IC.box, "hdGo('stock')", ok('stockView')],
             ['الوارد', IC.cart, "hdGo('purch')", ok('purchases')], ['سجل الأدوية', IC.list, "hdGo('catalog')", ok('catalog')], ['بيع سريع', IC.flash, 'posOpen()', ok('sell')],
-            ['تبادل واتساب', IC.share || IC.info, 'WA.open()', !!window.WA && (ok('sell') || userRole === 'owner')], ['حاسبة الأسعار', IC.calc, 'pcOpen()', true], ['مركز المعلومات', IC.info, 'helpOpen()', true]
+            ['تبادل واتساب', IC.share || IC.info, 'showSyncStatus()', !!window.WA && (ok('sell') || userRole === 'owner')], ['حاسبة الأسعار', IC.calc, 'pcOpen()', true], ['مركز المعلومات', IC.info, 'helpOpen()', true]
         ].filter(x => x[3]);
         const w = document.createElement('div'); w.id = 'hmWrap'; w.className = 'hm-wrap';
         w.innerHTML = '<div class="hm-bd"></div><div class="hm-sheet" role="dialog" aria-label="القائمة"><div class="hm-grab"></div><div class="hm-grid">' +

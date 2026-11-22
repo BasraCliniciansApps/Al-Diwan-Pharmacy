@@ -482,7 +482,7 @@ function showSyncStatus() {
         <div class="ss-hero ss-${tone}"><span class="ss-dot"></span><div class="ss-ht"><b>${head}</b><small>${sub}</small></div></div>` +
         (typeof invUnsentHtml === 'function' ? invUnsentHtml() : '') +
         (dups.length ? `<div class="ss-warn">أرقام فواتير مكررة (أُصدرت من أجهزة مختلفة بدون إنترنت):<br>${dups.map(escapeHtml).join('، ')}</div>` : '') +
-        `<button type="button" class="ss-link" onclick="Swal.close();WA.open()">📲 المبيعات عبر واتساب<small>${userRole === 'owner' ? 'إرسال لقطة المخزون إلى المستخدم واستيراد مبيعاته' : 'إرسال المبيعات إلى المدير واستيراد لقطة المخزون'}</small></button>` +
+        (window.WA ? '<h5 class="ss-h">📲 التبادل عبر واتساب</h5><div id="waHostSs" class="wa-host">' + WA.hostHtml() + '</div>' : '') +
         `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}</details></div>`;
     const waM = usagePaused === 'wa';
     Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' }, didOpen: () => { window.__ssOpen = true; clearInterval(ssTimer); ssTimer = setInterval(ssLive, 1500); }, willClose: () => { window.__ssOpen = false; clearInterval(ssTimer); } })      .then(r => { if (r.isConfirmed) { if (waM && window.WA) WA.exportSales(); else syncNow(); } else if (r.isDenied) hardRefresh(); });
