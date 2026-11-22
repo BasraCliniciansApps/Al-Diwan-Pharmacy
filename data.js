@@ -3085,6 +3085,7 @@ async function saveProductsDelta(entries, op) {
     window.__opAlready = false;
     entries = (entries || []).filter(Boolean);
     try { if (window.WA && !window.__waImporting) WA.noteCount(entries); } catch (e) { /* تجاهل */ }   // وقت الجرد: لتجاهل مبيعات أقدم منه عند الاستيراد
+    try { if (window.WA && WA.tapStock) WA.tapStock(entries, op); } catch (e) { /* تجاهل */ }   // سجل تبادل واتساب الموازي للسحابة
     if (window.LAN && LAN.active() && entries.some(e => e.dq || e.dl || (op && op.key))) return LAN.captureStock(entries, op);   // المزامنة عبر الحاسوب: تُرسل العملية للحاسوب بدل السحابة
     entries.forEach(btPrepare);
     try { entries.forEach(e => partNorm(e.p)); } catch (e) { /* تجاهل */ }

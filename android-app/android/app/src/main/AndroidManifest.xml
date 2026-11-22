@@ -26,6 +26,18 @@
             </intent-filter>
             <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
 
+            <!-- فتح ملفات تبادل واتساب (.dwsync) تلقائياً: يظهر التطبيق في «فتح باستخدام» ويستورد الملف مباشرة -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="application/x-dwsync" />
+                <data android:mimeType="application/json" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
         </activity>
 
         <!-- أيقونتا البيع والفاحص: كل واحدة نشاط (Activity) مستقل بمهمة (Task) خاصة، فتفتح بنافذة منفصلة ولا تبدّل شاشة التطبيق الرئيسي.

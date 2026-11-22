@@ -171,11 +171,12 @@
     }
 
     // ---------------- التصدير (المستخدم → المدير) ----------------
-    function fileName(kind, kid) { const d = new Date(), p = n => String(n).padStart(2, '0'); return 'diwan-' + kind + '-' + kid + '-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + '.json'; }
+    function fileName(kind, kid) { const d = new Date(), p = n => String(n).padStart(2, '0'); return 'diwan-' + kind + '-' + kid + '-' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + (kind === 'share' || kind === 'shsnap' ? '.dwsync' : '.json'); }
     async function exportSales(opts) {
         opts = opts || {};
         if (isOwner()) { Swal.fire({ icon: 'info', title: 'لحساب المستخدم فقط', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-        const lk = link();
+        const lk0 = link(), shared = !waOn();   // خارج وضع واتساب: ملف تبادل موازٍ للسحابة، بلا ربط ولا توقيع
+        const lk = shared ? { k: 'u' + devId(), s: '', n: (typeof userName !== 'undefined' && userName) || '' } : lk0;
         if (!lk) { await Swal.fire({ icon: 'info', title: 'اربط الجهاز بالمدير أولاً', text: 'اضغط «ربط بالمدير» وألصق الرمز الذي أرسله لك.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const list = (opts.all ? unconfirmed() : unsent()).sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
         if (!list.length) { await Swal.fire({ icon: 'info', title: opts.all ? 'لا توجد مبيعات غير مؤكدة' : 'لا توجد مبيعات جديدة للإرسال', text: opts.all ? 'المدير أكّد كل مبيعاتك.' : 'كل مبيعاتك أُرسلت سابقاً. إن لم يصل شيء للمدير استعمل «إعادة إرسال ما لم يؤكده المدير».', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
@@ -184,7 +185,7 @@
         let text, name;
         try {
             const payload = { diwan: 1, kind: 'sales', kid: lk.k, at: nowIso(), from: { name: (typeof userName !== 'undefined' && userName) || lk.n || '', dev: devId() }, n: list.length, ops: list.map(o => ({ id: o.id, type: o.type, ts: o.ts, data: stripCost(o.data) })) };
-            const rt = JSON.parse(JSON.stringify(payload)); rt.sig = sign(lk.s, rt); text = JSON.stringify(rt); name = fileName('sales', lk.k);   // التوقيع على الشكل المسلسل نفسه (بدون الحقول غير المعرّفة)
+            const rt = JSON.parse(JSON.stringify(payload)); if (shared) { rt.share = 1; rt.from.uid = (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) || ''; } else rt.sig = sign(lk.s, rt); text = JSON.stringify(rt); name = fileName(shared ? 'share' : 'sales', lk.k);   // التوقيع على الشكل المسلسل نفسه (بدون الحقول غير المعرّفة)
             h.set(70, 'فتح واتساب...'); h.ok('الملف جاهز: ' + num(list.length) + ' عملية');
         } catch (e) { h.fail('تعذّر تجهيز الملف', (e && e.message) || ''); return; }
         const msg = 'مبيعات ' + ((typeof userName !== 'undefined' && userName) || lk.n || '') + ' — ' + num(sm.n) + ' فاتورة';
@@ -279,7 +280,7 @@
     }
     function parseFile(text) {
         let f; try { f = JSON.parse(text); } catch (e) { return { err: 'الملف ليس ملف الديوان (تعذّرت قراءته).' }; }
-        if (!f || f.diwan !== 1 || (f.kind !== 'sales' && f.kind !== 'snap') || !safeId(f.kid) || typeof f.sig !== 'string') return { err: 'هذا ليس ملفاً صادراً من تطبيق الديوان.' };
+        if (!f || f.diwan !== 1 || (f.kind !== 'sales' && f.kind !== 'snap') || !safeId(f.kid) || (typeof f.sig !== 'string' && f.share !== 1)) return { err: 'هذا ليس ملفاً صادراً من تطبيق الديوان.' };
         return { f };
     }
     // يبني خطة الاستيراد دون تغيير شيء
@@ -316,10 +317,15 @@
         const f = pf.f;
         if (f.kind === 'snap') return importSnapshot(f);
         if (!isOwner()) { await Swal.fire({ icon: 'info', title: 'ملف مبيعات', text: 'هذا الملف يستورده المدير. أنت تستورد «لقطة المخزون» فقط.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-        const dev = devs().find(d => d.kid === f.kid);
+        let dev = f.share === 1 ? null : devs().find(d => d.kid === f.kid);
+        if (f.share === 1) {   // ملف تبادل غير موقّع: نطابق صاحبه بحسابات المستخدمين، والمعاينة تبقى إلزامية
+            const uu = (typeof usersCache !== 'undefined' ? usersCache : []).find(u => u.uid && u.uid === (f.from && f.from.uid));
+            if (uu && uu.active === false) { await Swal.fire({ icon: 'error', title: 'حساب المستخدم معطّل', text: 'فعّل حساب «' + (uu.name || '') + '» ثم أعد المحاولة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+            dev = { kid: f.kid, label: (uu && uu.name) || (f.from && f.from.name) || 'مستخدم', secret: '', share: 1 };
+        }
         if (!dev) { await Swal.fire({ icon: 'error', title: 'جهاز غير مسجَّل', html: 'هذا الملف من جهاز لم تضفه في «أجهزة المستخدمين»، أو حُذف.<br><small>أضف الجهاز وأرسل له رمز الربط ثم ليعد الإرسال.</small>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         if (dev.off) { await Swal.fire({ icon: 'error', title: 'حساب المستخدم معطّل', text: 'فعّل حساب «' + dev.label + '» من المستخدمين والصلاحيات ثم أعد المحاولة.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-        if (sign(dev.secret, f) !== f.sig) { await Swal.fire({ icon: 'error', title: 'الملف غير موثوق', text: 'التوقيع لا يطابق: الملف مُعدَّل أو تالف، فلم يُقبل. اطلب من المستخدم إعادة الإرسال.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (f.share !== 1 && sign(dev.secret, f) !== f.sig) { await Swal.fire({ icon: 'error', title: 'الملف غير موثوق', text: 'التوقيع لا يطابق: الملف مُعدَّل أو تالف، فلم يُقبل. اطلب من المستخدم إعادة الإرسال.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         let skipCounted = true, P = planSales(f, dev, skipCounted);
         if (!P.ops.length) { await Swal.fire({ icon: 'info', title: P.dup ? 'استُورد هذا الملف سابقاً' : 'لا توجد حركات صالحة', text: P.dup ? 'كل عملياته موجودة عندك، فلم يتغيّر شيء.' : '', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const html = () => {
@@ -437,10 +443,10 @@
     const SINFO_DROP = ['costPrice', 'lastPurchase', 'markupPct'];
     async function importSnapshot(f) {
         if (isOwner()) { await Swal.fire({ icon: 'info', title: 'لقطة مخزون', text: 'هذا الملف يستورده المستخدم. أنت تستورد ملفات المبيعات.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-        const lk = link();
-        if (!lk) { await Swal.fire({ icon: 'info', title: 'اربط الجهاز بالمدير أولاً', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-        if (f.kid !== lk.k) { await Swal.fire({ icon: 'error', title: 'الملف لجهاز آخر', text: 'هذه اللقطة أُعدّت لجهاز غير هذا الجهاز.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-        if (sign(lk.s, f) !== f.sig) { await Swal.fire({ icon: 'error', title: 'الملف غير موثوق', text: 'التوقيع لا يطابق: الملف مُعدَّل أو تالف. اطلب من المدير إعادة الإرسال.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        const lk = link(), SH = f.share === 1;
+        if (!lk && !SH) { await Swal.fire({ icon: 'info', title: 'اربط الجهاز بالمدير أولاً', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (!SH && f.kid !== lk.k) { await Swal.fire({ icon: 'error', title: 'الملف لجهاز آخر', text: 'هذه اللقطة أُعدّت لجهاز غير هذا الجهاز.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        if (!SH && sign(lk.s, f) !== f.sig) { await Swal.fire({ icon: 'error', title: 'الملف غير موثوق', text: 'التوقيع لا يطابق: الملف مُعدَّل أو تالف. اطلب من المدير إعادة الإرسال.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
         const last = ls.get(K.snapAt, ''); if (last && f.at && String(f.at) <= String(last)) { const q = await Swal.fire({ icon: 'warning', title: 'لقطة أقدم من المستورَدة', text: 'استوردتَ لقطة أحدث من هذه سابقاً. استيراد الأقدم قد يعيد أرصدة قديمة. المتابعة؟', showCancelButton: true, confirmButtonText: 'متابعة', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c' }); if (!q.isConfirmed) return; }
         const seen = new Set(Array.isArray(f.seen) ? f.seen : []);
         const pend = ops().filter(o => o.type === 'stock' && allowedOp(o) && !seen.has(o.id)).sort((a, b) => String(a.ts).localeCompare(String(b.ts)));
@@ -450,18 +456,21 @@
         const h = Prog.start('تحديث المخزون من المدير', { text: 'جاري التطبيق...' });
         try {
             const arr = Array.isArray(f.products) ? f.products : []; let added = 0, upd = 0, i = 0;
+            const cloudLive = SH && !waOn() && typeof cloudReady === 'function' && cloudReady() && navigator.onLine;   // السحابة متصلة: هي المرجع للأرصدة، فلا نكتب فوقها
+
             arr.forEach(it => {
                 if (!it || it.pid === undefined || !it.info || typeof it.info !== 'object') return;
                 const info = {}; Object.keys(it.info).forEach(k => { if (k.charAt(0) !== '_' && SINFO_DROP.indexOf(k) < 0) info[k] = it.info[k]; });
                 let p = products.find(x => String(x.id) === String(it.pid));
-                if (!p) { p = Object.assign({}, info); p.id = it.pid; products.push(p); added++; }
+                let isNew = false;
+                if (!p) { p = Object.assign({}, info); p.id = it.pid; products.push(p); added++; isNew = true; }
                 else { Object.keys(p).forEach(k => { if (k.charAt(0) !== '_' && STOCK_FIELDS.indexOf(k) < 0 && k !== 'inStock' && k !== 'dlim' && !(k in info)) delete p[k]; }); Object.assign(p, info); upd++; }
-                const st = it.st || {}; SNAP_ST.forEach(k => { if (st[k] !== undefined) p[k] = st[k]; else delete p[k]; });
+                const st = it.st || {}; if (!cloudLive || isNew) SNAP_ST.forEach(k => { if (st[k] !== undefined) p[k] = st[k]; else delete p[k]; });
                 if (++i % 200 === 0) h.set(Math.round(i / arr.length * 60), 'تحديث الأصناف...');
             });
             h.set(65, 'إعادة مبيعاتك غير المؤكدة...');
             const rep = { stock: 0, inv: 0, pur: 0, stale: 0, renum: 0, skipped: [], touched: new Set() };
-            pend.forEach(o => { try { I.applyStockOp(o.data, rep, o.ts); } catch (e) { /* عملية تالفة: تُتخطّى */ } });
+            if (!cloudLive) pend.forEach(o => { try { I.applyStockOp(o.data, rep, o.ts); } catch (e) { /* عملية تالفة: تُتخطّى */ } });
             products.forEach(p => { p.inStock = !p.arch && ((parseInt(p.qty) || 0) > 0 || (parseInt(p.loose) || 0) > 0); });
             try { syncStockLocal(products); } catch (e) { /* تجاهل */ }
             if (f.cfg) { try { I.trackIngest('cfg', { cfg: f.cfg }); } catch (e) { /* تجاهل */ } }
@@ -472,6 +481,84 @@
         refresh(); try { syncRefresh(); } catch (e) { /* تجاهل */ }
     }
 
+    // ---------------- تبادل واتساب الموازي للسحابة (ملف .dwsync بلا تشفير) ----------------
+    // المستخدم: كل بيع يُسجَّل في سجل الحركات حتى والسحابة شغّالة، ويُرسل كملف. بمفتاح الحركة نفسه الذي تعرفه السحابة (pharmacy_moves)،
+    // فإن وصل البيع للسحابة ثم استورد المدير الملف (أو العكس) تُتخطى الحركة ولا تتكرر.
+    // المدير: يرسل «ما تغيّر» فقط (مواد وأسعار وإعدادات) مقارنةً بآخر إرسال.
+    const SHK = { sent: 'diwanShSent', cfg: 'diwanShCfg', opened: 'diwanShOpened' };
+    const shLogOn = () => ls.raw('diwanShOff') !== '1';
+    function tapStock(entries, op) {   // يُستدعى قبل btPrepare (يقرأ _badd) ولا يغيّر شيئاً
+        try {
+            if (isOwner() || !shLogOn() || L.active() || window.__waImporting) return;
+            if (!op || !op.key || STAFF_KINDS.indexOf(op.kind) < 0) return;
+            const list = (entries || []).filter(Boolean).filter(e => e.dq || e.dl || e.expChanged || (e.expAdd && e.expAdd.length) || (e.expRemove && e.expRemove.length));
+            if (!list.length) return;
+            const sn = I.snapNum;
+            const pack = list.map(e => ({ pid: e.p.id, name: e.p.name, dq: sn(e.dq), dl: sn(e.dl), abs: (e.mark && (sn(e.dq) || sn(e.dl))) ? { q: sn(e.p.qty), l: sn(e.p.loose) } : undefined, hints: Array.isArray(e.p._badd) && e.p._badd.length ? JSON.parse(JSON.stringify(e.p._badd)) : null, expAdd: e.expAdd || [], expRemove: e.expRemove || [], expChanged: !!e.expChanged, lastSet: !!e.lastSet, last: e.last, mark: !!e.mark, unmark: !!e.unmark }));
+            add({ id: 'stk:' + op.key, type: 'stock', ts: nowIso(), data: { op: { key: op.key, kind: op.kind || '', inv: op.inv || '', no: op.no || '' }, entries: pack } });
+        } catch (e) { /* التسجيل لا يعطّل البيع */ }
+    }
+    function tapRecord(type, rec) {
+        try {
+            if (type !== 'invoice' || !rec || isOwner() || !shLogOn() || L.active() || window.__waImporting) return;
+            add({ id: 'inv:' + rec.id + ':' + String(I.recStamp(rec)).replace(/[^\w]/g, '').slice(-14), type: 'invoice', ts: nowIso(), data: { rec: JSON.parse(JSON.stringify(rec)) } });
+        } catch (e) { /* تجاهل */ }
+    }
+    const shSent = () => ls.get(SHK.sent, {});
+    // المدير: ملف التحديثات (الفرق فقط) ← المستخدمين
+    async function exportShare(opts) {
+        opts = opts || {};
+        if (!isOwner()) { Swal.fire({ icon: 'info', title: 'للمدير فقط', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        const h = Prog.start('تجهيز تحديثات المستخدمين', { text: 'مقارنة مع آخر إرسال...' });
+        let text, name, nP = 0, hashes = {}, cfgH = '', withCfg = false;
+        try {
+            const sent = opts.full ? {} : shSent(), items = [];
+            products.forEach(p => {
+                const s = I.pSplit(p), st = {}; SNAP_ST.forEach(k => { if (p[k] !== undefined) st[k] = p[k]; });
+                const hh = I.hsh(I.stable({ i: s.info, st }));
+                if (sent[p.id] === hh) return;
+                hashes[p.id] = hh; items.push({ pid: p.id, info: s.info, st });
+            });
+            nP = items.length;
+            const cf = I.cfgNow(); cfgH = I.hsh(I.stable(cf)); withCfg = opts.full || ls.get(SHK.cfg, '') !== cfgH;
+            if (!nP && !withCfg) { h.ok('لا توجد تغييرات جديدة'); await Swal.fire({ icon: 'info', title: 'لا توجد تحديثات جديدة', text: 'كل ما تغيّر أُرسل سابقاً. لإرسال كل شيء من جديد اختر «ملف كامل».', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+            const seen = []; const m = impAll(); Object.keys(m).forEach(k => (m[k] || []).forEach(x => seen.push(x)));
+            const payload = { diwan: 1, kind: 'snap', share: 1, kid: 'm' + devId(), at: nowIso(), delta: !opts.full, from: { name: (typeof userName !== 'undefined' && userName) || 'المدير' }, products: items, cfg: withCfg ? cf : undefined, seen: seen.slice(-6000) };
+            text = JSON.stringify(payload); name = fileName('shsnap', 'upd');
+            h.ok('الملف جاهز: ' + num(nP) + ' مادة' + (withCfg ? ' + الإعدادات' : ''));
+        } catch (e) { h.fail('تعذّر تجهيز الملف', (e && e.message) || ''); return; }
+        let res = await shareText(name, text, 'تحديثات صيدلية الديوان');
+        if (res === 'blocked') {
+            const r = await Swal.fire({ icon: 'success', title: 'الملف جاهز', html: num(nP) + ' مادة<br><small>اضغط «إرسال» واختر واتساب.</small>', showCancelButton: true, confirmButtonText: 'إرسال', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', preConfirm: () => shareText(name, text, 'تحديثات صيدلية الديوان') });
+            res = r.isConfirmed ? r.value : 'cancelled';
+        }
+        if (!res || res === 'cancelled' || res === 'blocked') { toast('info', 'لم يُرسل الملف'); return; }
+        const sent = opts.full ? {} : shSent(); Object.assign(sent, hashes); ls.set(SHK.sent, sent); if (withCfg) ls.set(SHK.cfg, cfgH);
+        if (res === 'saved') await Swal.fire({ icon: 'success', title: 'حُفظ الملف على الجهاز', html: 'أرسله من واتساب: <b>📎 ← مستند</b>', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        else if (res === 'downloaded') await Swal.fire({ icon: 'success', title: 'نُزّل الملف', text: 'أرفقه من التنزيلات في واتساب.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+        else toast('success', 'جُهّز الملف: ' + num(nP) + ' مادة');
+        refresh();
+    }
+    // زر واحد: المدير يرسل التحديثات، والمستخدم يرسل مبيعاته
+    function quickSend() { return isOwner() ? exportShare() : exportSales(); }
+    // فتح ملف وصل من واتساب (من نظام الأندرويد أو من الاستيراد اليدوي): استيراد مباشر بمعاينة
+    let opening = false;
+    async function openText(text) {
+        try {
+            text = String(text || ''); if (!text) return;
+            const key = I.hsh(text.slice(0, 4000) + text.length);
+            if (window.__dwOpenKey === key && Date.now() - (window.__dwOpenAt || 0) < 30000) return;   // المحاولات المتكررة من النظام
+            window.__dwOpenKey = key; window.__dwOpenAt = Date.now();
+            let probe; try { probe = JSON.parse(text); } catch (e) { probe = null; }
+            if (!probe || probe.diwan !== 1) { toast('error', 'هذا الملف ليس من تطبيق الديوان'); return; }
+            const t0 = Date.now();
+            while ((typeof currentUser === 'undefined' || !currentUser || typeof products === 'undefined' || !products.length) && Date.now() - t0 < 90000) await new Promise(r => setTimeout(r, 800));   // ننتظر دخول المستخدم وتحميل البيانات
+            if (opening) return; opening = true;
+            try { await importFlow({ text, name: 'whatsapp' }); } finally { opening = false; }
+        } catch (e) { opening = false; toast('error', 'تعذّر فتح الملف'); }
+    }
+    window.dwOpenFile = openText;
+
     // ---------------- الواجهة ----------------
     const sw = (id, chk, fn) => '<label class="setup-sw"><input type="checkbox" id="' + id + '" ' + (chk ? 'checked' : '') + ' onchange="' + fn + '"><i></i></label>';
     const btn = (cls, fn, t, sub) => '<button type="button" class="set-nav ' + cls + '" onclick="' + fn + '"><div><b>' + t + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div><i>‹</i></button>';
@@ -479,6 +566,8 @@
         if (isOwner()) {
             mergeUsers(); const dv = devs(), lg = ls.get(K.log, []);
             let h = '<p class="set-desc wa-intro">يرسل المستخدم مبيعاته كملف عبر واتساب، فتستورده هنا فتتحدّث الأرصدة والفواتير. وترسل له «لقطة مخزون» ليتحدّث رصيده. لا تتكرر الحركات ولا تتداخل مع مبيعاتك.</p>';
+            h += btn('set-act wa-main', 'WA.exportShare()', '📤 إرسال التحديثات للمستخدمين', 'المواد والأسعار والإعدادات التي تغيّرت منذ آخر إرسال فقط.');
+            h += btn('set-act', 'WA.exportShare({full:true})', '📦 إرسال ملف كامل', 'كل المواد والإعدادات (لمستخدم جديد).');
             h += btn('set-act wa-main', 'WA.importFlow()', '📥 استيراد ملف من مستخدم', 'اختر الملف الذي وصلك على واتساب (مبيعات).');
             h += '<h5 class="wa-h">المستخدمون</h5>';
             if (!dv.length) h += '<div class="wa-empty">لا يوجد مستخدمون. أضف مستخدماً من «المستخدمون والصلاحيات» فيظهر هنا تلقائياً.</div>';
@@ -487,6 +576,16 @@
             return h;
         }
         const lk = link(), on = waOn(), un = unsent(), sm = summarize(un), conf = groups(unconfirmed()), le = ls.get('diwanWaLastExp', null), sa = ls.get(K.snapAt, '');
+        if (!on) {   // التبادل الموازي للسحابة: بلا ربط ولا إيقاف للسحابة
+            let g = '<p class="set-desc wa-intro">تبادل عبر واتساب بالتوازي مع السحابة: يُرسل ملف صغير فيه ما لا يملكه الطرف الآخر فقط، وعند فتحه من واتساب يُستورد تلقائياً. لا يتعارض مع السحابة؛ ما وصل منها مسبقاً لا يتكرر.</p>';
+            g += btn('set-act wa-main', 'WA.exportSales()', '📤 إرسال مبيعاتي للمدير', un.length ? num(un.length) + ' عملية لم تُرسل.' : 'لا توجد مبيعات جديدة.');
+            g += btn('set-act', 'WA.exportSales({all:true})', '🔁 إعادة إرسال ما لم يؤكده المدير', 'التكرار آمن ولا يضاعف شيئاً.');
+            g += btn('set-act', 'WA.importFlow()', '📥 استيراد ملف من المدير', sa ? 'آخر تحديث: ' + esc(ago(sa)) : 'اختر الملف الذي وصلك على واتساب.');
+            if (!lk) return g + btn('set-act', 'WA.setLink()', '🔗 وضع بلا سحابة: ربط بالمدير', 'للجهاز الذي لا يتصل بالسحابة أبداً: يلزمه رمز من المدير.');
+            let h = g;
+            h += '<div class="qk-row"><div><b>وضع واتساب</b><small>' + (on ? 'مفعّل: لا اتصال بالسحابة، والمبيعات تُرسل كملف.' : 'متوقف: الجهاز يعمل مع السحابة كالمعتاد.') + '</small></div>' + sw('waSw', on, 'WA.toggleMode(this)') + '</div>';
+            return h;
+        }
         let h = '<p class="set-desc wa-intro">تُحفظ مبيعاتك على الجهاز وترسلها للمدير كملف عبر واتساب، ويرسل لك المدير «لقطة مخزون» لتحديث الأرصدة.</p>';
         if (!lk) return h + '<div class="wa-empty">الجهاز غير مربوط بالمدير.</div>' + btn('set-act wa-main', 'WA.setLink()', '🔗 ربط بالمدير', 'الصق رمز الربط الذي أرسله لك المدير.');
         h += '<div class="qk-row"><div><b>وضع واتساب</b><small>' + (on ? 'مفعّل: لا اتصال بالسحابة، والمبيعات تُرسل كملف.' : 'متوقف: الجهاز يعمل مع السحابة كالمعتاد.') + '</small></div>' + sw('waSw', on, 'WA.toggleMode(this)') + '</div>';
@@ -516,6 +615,6 @@
     async function toggleMode(cb) { const want = cb.checked; const ok = await setMode(want); if (!ok) cb.checked = !want; refresh(); }
     setInterval(() => { const ov = document.getElementById('waOv'); if ((ov && ov.style.display !== 'none') || document.getElementById('waHost')) { if (!document.querySelector('.swal2-container')) refresh(); } }, 20000);
 
-    window.WA = { loadUsers, renewKey, add, noteCount, pendingCount, open, close, render: refresh, exportSales, importFlow, exportSnapshot, setLink, unlink, toggleMode, addDevice, showCode, delDevice, on: waOn, _skip: null, _t: { sha256, hmacHex, sign, parseCode, codeOf, planSales, cleanStock, devs, impSet, link, ops, unsent, unconfirmed, summarize, applySales, importSnapshot, parseFile, K } };
+    window.WA = { tapStock, tapRecord, exportShare, quickSend, openText, loadUsers, renewKey, add, noteCount, pendingCount, open, close, render: refresh, exportSales, importFlow, exportSnapshot, setLink, unlink, toggleMode, addDevice, showCode, delDevice, on: waOn, _skip: null, _t: { sha256, hmacHex, sign, parseCode, codeOf, planSales, cleanStock, devs, impSet, link, ops, unsent, unconfirmed, summarize, applySales, importSnapshot, parseFile, K } };
     window.addEventListener('load', () => setTimeout(refresh, 1500));
 })();

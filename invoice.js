@@ -644,6 +644,7 @@ async function saveInvoiceRecord(b) {
     list = list.filter(x => x.id !== rec.id); list.unshift(rec);
     lsSet(BILL_LS.list, JSON.stringify(list.slice(0, 300)));
     billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec);
+    try { if (window.WA && WA.tapRecord) WA.tapRecord('invoice', rec); } catch (e) { /* تجاهل */ }
     if (window.LAN && LAN.active()) { LAN.captureRecord('invoice', rec); return; }
     if (cloudReady() && (navigator.onLine || persistenceOn)) {
         try { await fsSet(db.collection('pharmacy_invoices').doc(rec.id), rec); setTimeout(invCheckUnsent, 7000); }
