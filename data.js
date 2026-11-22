@@ -3095,6 +3095,15 @@ async function saveProductsDelta(entries, op) {
     entries.forEach(btPrepare);
     try { entries.forEach(e => partNorm(e.p)); } catch (e) { /* تجاهل */ }
     saveLocal();
+    if (window.__waImporting && typeof recvOnly === 'function' && recvOnly()) {
+        // الحاسبة (وضع الاستقبال فقط) لا تكتب في السحابة: عند استيراد ملف واتساب تُطبَّق الحركة محلياً فقط،
+        // وإن كان مفتاحها مسجلاً في السحابة فهي وصلت أصلاً مع بيانات السحابة فتُتخطى ولا تتضاعف
+        let inCloud = false;
+        if (op && op.key && !op.gen && db && navigator.onLine) { try { const d = await Promise.race([db.collection('pharmacy_moves').doc(op.key + (entries.length > 15 ? '#0' : '')).get(), new Promise(res => setTimeout(() => res(null), 3000))]); inCloud = !!(d && d.exists); } catch (e) { /* تعذّرت القراءة: نطبّق محلياً */ } }
+        if (inCloud) { entries.forEach(e => { e.p.qty = (parseInt(e.p.qty) || 0) - (e.dq || 0); e.p.loose = (parseInt(e.p.loose) || 0) - (e.dl || 0); }); window.__opAlready = true; }
+        saveLocal(); try { syncStockLocal(entries.map(e => e.p)); } catch (e) { /* تجاهل */ }
+        return true;
+    }
     if (!isFirebaseReady || !currentUser) {
         await Swal.fire({ icon: 'error', title: 'أنت غير مسجل الدخول!', text: 'سجّل دخول الصيدلي أولاً ليتم الحفظ في الإنترنت.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
         return false;
@@ -3185,6 +3194,7 @@ async function saveProductsDelta(entries, op) {
             saveLocal(); setSyncText('☁️ تم الحفظ'); Prog.end(PO, 'quiet'); window.__opAlready = true; return true;
         }
         const code = err && err.code || '';
+        if (code === 'receive-only') return false;   // سبق عرض إشعار وضع الاستقبال
         const why = code === 'permission-denied' ? 'لا تملك صلاحية هذه العملية على هذه المادة. راجع المدير لتفعيل صلاحية البيع، أو حدّث التطبيق.' : code === 'not-found' ? 'المادة غير موجودة في مخزون السحابة. يجب أن يضيفها المدير أولاً.' : err.message;
         const names = entries.slice(0, 4).map(e => e.p && e.p.name).filter(Boolean).join('، ');
         try { console.warn('saveProductsDelta', code, err && err.message, entries.map(e => ({ id: e.p && e.p.id, hasStock: !!stockMap[String(e.p && e.p.id)], bt: !!e.btOut, dq: e.dq, dl: e.dl, role: userRole }))); } catch (x) { /* تجاهل */ }
