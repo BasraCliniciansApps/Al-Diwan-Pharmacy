@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('diwanDesktop', {
     chooseBackupDir: () => ipcRenderer.invoke('diwan:chooseBackupDir'),
     openBackupDir: () => ipcRenderer.invoke('diwan:openBackupDir'),
     autostart: { get: () => ipcRenderer.invoke('diwan:autostart:get'), set: (on) => ipcRenderer.invoke('diwan:autostart:set', !!on) },
+    takeFile: () => ipcRenderer.invoke('diwan:takeFile'),
+    onFile: (cb) => { ipcRenderer.on('diwan:fileReady', () => { try { cb(); } catch (e) { /* تجاهل */ } }); },
     lan: {
         digests: () => ipcRenderer.invoke('diwan:lan:digests'),
         info: () => ipcRenderer.invoke('diwan:lan:info'),

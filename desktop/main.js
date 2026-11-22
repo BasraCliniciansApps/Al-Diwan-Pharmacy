@@ -13,6 +13,19 @@ const AUTH_HOSTS = ['accounts.google.com', 'firebaseapp.com', 'googleapis.com', 
 
 if (!app.requestSingleInstanceLock()) { app.quit(); }
 
+// ملفات تبادل واتساب (.dwsync): تُفتح بالنقر المزدوج، فيستوردها التطبيق بمعاينة (حتى 12 ميغابايت)
+let pendingFile = null;
+function fileFromArgv(argv) {
+    try {
+        const a = (argv || []).find(x => typeof x === 'string' && /\.dwsync$/i.test(x)); if (!a) return null;
+        const st = fs.statSync(a); if (!st.isFile() || st.size > 12 * 1024 * 1024) return null;
+        return fs.readFileSync(a, 'utf8');
+    } catch (e) { return null; }
+}
+function deliverFile(t) { if (!t) return; pendingFile = t; try { if (win) win.webContents.send('diwan:fileReady'); } catch (e) { /* تجاهل */ } }
+ipcMain.handle('diwan:takeFile', () => { const t = pendingFile; pendingFile = null; return t; });
+pendingFile = fileFromArgv(process.argv);
+
 let win = null;
 const cfgFile = () => path.join(app.getPath('userData'), 'desktop-config.json');
 function readCfg() { try { return JSON.parse(fs.readFileSync(cfgFile(), 'utf8')) || {}; } catch (e) { return {}; } }
@@ -129,6 +142,6 @@ function createWindow() {
     win.on('closed', () => { win = null; });
 }
 
-app.on('second-instance', () => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } });
+app.on('second-instance', (_e, argv) => { if (win) { if (win.isMinimized()) win.restore(); win.focus(); } deliverFile(fileFromArgv(argv)); });
 app.whenReady().then(() => { Menu.setApplicationMenu(null); createWindow(); if (readCfg().lanOn) lanStart().catch(() => { /* المنفذ مشغول أو الجدار الناري: يظهر الخطأ عند فتح الإعداد */ }); });
 app.on('window-all-closed', () => app.quit());

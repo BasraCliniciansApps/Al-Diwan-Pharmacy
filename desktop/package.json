@@ -21,6 +21,7 @@
     "artifactName": "Al-Diwan-Pharmacy-Setup-${version}.${ext}",
     "directories": { "output": "dist", "buildResources": "build" },
     "files": ["main.js", "preload.js", "lanhub.js", "offline.html", "package.json", "build/icon.png"],
+    "fileAssociations": [{ "ext": "dwsync", "name": "ملف تبادل صيدلية الديوان", "description": "ملف تبادل صيدلية الديوان", "role": "Editor" }],
     "win": { "target": [{ "target": "nsis", "arch": ["x64"] }], "icon": "build/icon.png" },
     "nsis": {
       "oneClick": false,

@@ -67,6 +67,7 @@ async function puLoad() {
 async function puSaveRecord(r) {
     puAll = puAll.filter(x => x.id !== r.id); puAll.unshift(r);
     lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500)));
+    try { if (window.WA && WA.tapRecord) WA.tapRecord('purchase', r); } catch (e) { /* تجاهل */ }
     if (window.LAN && LAN.active()) { LAN.captureRecord('purchase', r); return; }
     if (cloudReady() && (navigator.onLine || persistenceOn)) {
         try { await fsSet(db.collection('pharmacy_purchases').doc(r.id), JSON.parse(JSON.stringify(r))); }
