@@ -8,6 +8,7 @@
         bell: svg('<path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"/><path d="M10.3 20a1.9 1.9 0 0 0 3.4 0"/>'),
         share: svg('<path d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M5 13v6a2 2 0 002 2h10a2 2 0 002-2v-6"/>'),
         more: svg('<circle cx="5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="19" cy="12" r="1.6" fill="currentColor"/>'),
+        inv: svg('<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 3h6v3H9z"/><path d="M9 13l2 2 4-4"/>'),
         home: svg('<path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/>'),
         bill: svg('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>'),
         box: svg('<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'),
@@ -136,7 +137,7 @@
         const items = [
             ['الرئيسية', IC.home, "hdGo('home')", true], ['الفواتير', IC.bill, "hdGo('bill')", ok('sell')], ['المخزن', IC.box, "hdGo('stock')", ok('stockView')],
             ['الوارد', IC.cart, "hdGo('purch')", ok('purchases')], ['سجل الأدوية', IC.list, "hdGo('catalog')", ok('catalog')], ['بيع سريع', IC.flash, 'posOpen()', ok('sell')],
-            ['تبادل واتساب', IC.share || IC.info, 'showSyncStatus()', !!window.WA && (ok('sell') || userRole === 'owner')], ['حاسبة الأسعار', IC.calc, 'pcOpen()', true], ['مركز المعلومات', IC.info, 'helpOpen()', true]
+            ['تبادل واتساب', IC.share || IC.info, 'showSyncStatus()', !!window.WA && (ok('sell') || userRole === 'owner')], ['الجرد', IC.inv, 'openInventory()', typeof openInventory === 'function' && (userRole === 'owner' || ok('invList'))], ['حاسبة الأسعار', IC.calc, 'pcOpen()', true], ['مركز المعلومات', IC.info, 'helpOpen()', true]
         ].filter(x => x[3]);
         const w = document.createElement('div'); w.id = 'hmWrap'; w.className = 'hm-wrap';
         w.innerHTML = '<div class="hm-bd"></div><div class="hm-sheet" role="dialog" aria-label="القائمة"><div class="hm-grab"></div><div class="hm-grid">' +
