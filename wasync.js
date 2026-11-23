@@ -818,7 +818,18 @@
         const cur = { products: products.length, purchases: (puAll || []).length, suppliers: (puSuppliers || []).length, invoices: (billAll || []).length, ledger: (lgAll || []).length };
         const lbl = { products: 'أصناف', purchases: 'واردات', suppliers: 'مذاخر', invoices: 'فواتير', ledger: 'سجل الدفتر' };
         const row = k => '<div class="wa-li"><span>' + lbl[k] + ': <b>' + num(L2[k].length) + '</b> في الملف · عندك الآن ' + num(cur[k]) + '</span></div>';
-        const html = '<div class="wa-pv"><div class="wa-pv-h"><b>' + esc((f.from && f.from.name) || 'المدير') + '</b><small>أُعدّت ' + esc(ago(f.at)) + '</small></div>' + Object.keys(lbl).map(row).join('') +
+        // قوائم الجرد تنتقل ضمن ملحقات الملف (لا ضمن الأصناف): نعرض ما في الملف مقابل ما عندك حتى تتأكد قبل التطبيق
+        const cnSum = a => ({ n: a.length, g: a.reduce((s2, l) => s2 + ((l && l.groups) || []).length, 0), r: a.reduce((s2, l) => s2 + ((l && l.rows) || []).length, 0) });
+        const cnFile = (f.extras && Array.isArray(f.extras.diwanCountLists)) ? f.extras.diwanCountLists.filter(x => x && x.id !== undefined) : null;
+        let cnNow = []; try { cnNow = typeof cnLocal === 'function' ? cnLocal() : []; } catch (e) { cnNow = []; }
+        const cf = cnFile ? cnSum(cnFile) : null, cc = cnSum(cnNow);
+        const cnRow = cf ? '<div class="wa-li"><span>قوائم الجرد: <b>' + num(cf.n) + '</b> في الملف (' + num(cf.g) + ' مجموعة · ' + num(cf.r) + ' سطر) · عندك الآن ' + num(cc.n) + ' (' + num(cc.g) + ' مجموعة · ' + num(cc.r) + ' سطر)</span></div>'
+            : '<div class="wa-li warn"><span>قوائم الجرد: <b>غير موجودة في الملف</b> (عندك الآن ' + num(cc.n) + ')</span></div>';
+        // ما سيُحذف من الحاسوب عند «مطابقة تامة» لأنه ليس في الملف
+        const curOf = k => (k === 'products' ? products : k === 'purchases' ? puAll : k === 'suppliers' ? puSuppliers : k === 'invoices' ? billAll : lgAll) || [];
+        const goneTxt = Object.keys(lbl).map(k => { const inFile = new Set(L2[k].map(x => String(x.id))); const n = curOf(k).filter(x => x && x.id !== undefined && !inFile.has(String(x.id))).length; return n ? num(n) + ' ' + lbl[k] : ''; }).filter(Boolean).join('، ');
+        const goneRow = goneTxt ? '<div class="wa-li warn"><span>⚠️ عند «مطابقة تامة» سيُحذف من الحاسوب لأنه ليس في الملف: <b>' + goneTxt + '</b>. أوقف المطابقة التامة إن أردت الإبقاء عليها (دمج).</span></div>' : '';
+        const html = '<div class="wa-pv"><div class="wa-pv-h"><b>' + esc((f.from && f.from.name) || 'المدير') + '</b><small>أُعدّت ' + esc(ago(f.at)) + '</small></div>' + Object.keys(lbl).map(row).join('') + cnRow + goneRow +
             '<div class="qk-row" style="margin-top:8px"><div><b>مطابقة تامة</b><small>تصبح بيانات الحاسوب نسخة طبق الأصل من الجوال، ويُحذف ما ليس في الملف. عند الإيقاف: دمج (الملف يغلب عند التطابق ولا يُحذف شيء).</small></div><label class="setup-sw"><input type="checkbox" id="waFullExact" checked><i></i></label></div>' +
             '<div class="wa-li mut"><span>تُحفظ نسخة احتياطية على الحاسوب قبل التطبيق، ولا تُكتب أي بيانات في السحابة.</span></div></div>';
         const r = await Swal.fire({ title: 'استيراد نسخة كاملة من الجوال', html, showCancelButton: true, confirmButtonText: 'تطبيق', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', preConfirm: () => { const el = document.getElementById('waFullExact'); return { exact: !el || el.checked }; } });
