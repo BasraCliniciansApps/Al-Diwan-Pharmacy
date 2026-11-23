@@ -477,6 +477,12 @@ function ssLive() {   // يحدّث بطاقة الحالة والعدّادات
     const bars = document.querySelectorAll('.ss-wrap .ss-use');
     [[u.w, cw], [u.r, cr]].forEach(([n, cap], i) => { const el = bars[i]; if (!el) return; const t = el.querySelector('.ss-ut b'), f = el.querySelector('.ss-bar i'); if (t) t.textContent = n + ' من ' + cap; if (f) { const pc = Math.min(100, Math.round(n / Math.max(1, cap) * 100)); f.style.width = pc + '%'; f.className = pc >= 90 ? 'hi' : pc >= 70 ? 'mid' : ''; } });
 }
+async function appVersionTxt() {   // رقم نسخة التطبيق (من كاش الخدمة، وإلا من sw.js)
+    let ver = '';
+    try { const ks = await caches.keys(); const n = ks.map(k => (/^diwan-v(\d+)/.exec(k) || [])[1]).filter(Boolean).map(Number).sort((a, b) => b - a)[0]; if (n) ver = String(n); } catch (e) { /* تجاهل */ }
+    if (!ver) { try { const t = await (await fetch('sw.js', { cache: 'no-store' })).text(); ver = (/diwan-v(\d+)/.exec(t) || [])[1] || ''; } catch (e) { /* تجاهل */ } }
+    return ver;
+}
 function showSyncStatus() {
     if (!IS_ADMIN_PAGE) return;
     const { tone, head, sub, dups, native } = ssState();
@@ -494,9 +500,9 @@ function showSyncStatus() {
         (typeof invUnsentHtml === 'function' ? invUnsentHtml() : '') +
         (dups.length ? `<div class="ss-warn">أرقام فواتير مكررة (أُصدرت من أجهزة مختلفة بدون إنترنت):<br>${dups.map(escapeHtml).join('، ')}</div>` : '') +
         (window.WA ? '<h5 class="ss-h">📲 التبادل عبر واتساب</h5><div id="waHostSs" class="wa-host">' + WA.hostHtml() + '</div>' : '') +
-        `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}</details></div>`;
+        `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}</details><div class="ss-note" id="ssVer"></div></div>`;
     const waM = usagePaused === 'wa';
-    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' }, didOpen: () => { window.__ssOpen = true; clearInterval(ssTimer); ssTimer = setInterval(ssLive, 1500); }, willClose: () => { window.__ssOpen = false; clearInterval(ssTimer); } })      .then(r => { if (r.isConfirmed) { if (waM && window.WA) WA.exportSales(); else syncNow(); } else if (r.isDenied) hardRefresh(); });
+    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' }, didOpen: () => { appVersionTxt().then(v => { const el = document.getElementById('ssVer'); if (el) el.textContent = 'رقم نسخة التطبيق: ' + (v || 'غير معروف'); }).catch(() => { }); window.__ssOpen = true; clearInterval(ssTimer); ssTimer = setInterval(ssLive, 1500); }, willClose: () => { window.__ssOpen = false; clearInterval(ssTimer); } })      .then(r => { if (r.isConfirmed) { if (waM && window.WA) WA.exportSales(); else syncNow(); } else if (r.isDenied) hardRefresh(); });
 }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
 
