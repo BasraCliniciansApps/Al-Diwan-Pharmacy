@@ -54,10 +54,14 @@ service cloud.firestore {
     }
     // ---- الفواتير ----
     match /pharmacy_invoices/{id} {
-      allow read: if isOwner() || perm('sell');
+      allow read: if isOwner() || perm('sell') || perm('customers');
       allow create: if isOwner() || perm('sell');
       // البائع يعدّل فواتيره هو فقط، ولا يحذف
-      allow update: if isOwner() || (perm('sell') && resource.data.byUid == request.auth.uid && request.resource.data.byUid == request.auth.uid);
+      allow update: if isOwner() || (perm('sell') && resource.data.byUid == request.auth.uid && request.resource.data.byUid == request.auth.uid)
+                    // صلاحية «الزبائن»: تسديد دفعة على أي فاتورة، بتغيير المدفوع وسجل الدفعات فقط، وبإضافة دفعة لا بحذفها
+                    || (perm('customers')
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['paid', 'payments', '_u', '_su'])
+                        && request.resource.data.payments.size() > resource.data.get('payments', []).size());
       // الحذف: للمالك، أو للبائع الذي فعّل المالك له «حذف فواتيره» على فواتيره هو
       allow delete: if isOwner() || (perm('deleteOwn') && resource.data.byUid == request.auth.uid);
     }

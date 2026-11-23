@@ -3691,7 +3691,7 @@ body.role-staff:not(.can-scan) .home-search, body.sc-off .home-search { display:
 #homeView .home-tiles { margin-top: 12px; }
 #homeView .home-tile.tile-pos { background: linear-gradient(155deg, #0ea5e9 0%, #0369a1 100%); box-shadow: 0 2px 3px rgba(3,105,161,.3), 0 18px 30px -14px rgba(3,105,161,.75); }
 #homeView .home-tile.tile-cus { background: linear-gradient(155deg, #ec4899 0%, #9d174d 100%); box-shadow: 0 2px 3px rgba(157,23,77,.3), 0 18px 30px -14px rgba(157,23,77,.7); }
-body.role-staff:not(.can-sell) .tile-pos, body.role-staff .tile-cus { display: none !important; }
+body.role-staff:not(.can-sell) .tile-pos, body.role-staff:not(.can-customers) .tile-cus { display: none !important; }
 /* مخزن + وارد مربعان */
 #homeView .home-sq { grid-template-columns: 1fr 1fr !important; }
 #homeView .home-sq .home-tile { aspect-ratio: 1 / 1; min-height: 0; margin: 0; width: auto; flex-direction: column; gap: 6px; justify-content: center; }

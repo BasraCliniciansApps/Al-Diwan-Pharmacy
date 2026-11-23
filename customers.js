@@ -36,7 +36,7 @@ function cuEnsureDom() {
     document.body.appendChild(d);
 }
 async function cuOpen() {
-    if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'صفحة الزبائن للمدير فقط.', confirmButtonColor: '#0f1c38' }); return; }
+    if (typeof userRole === 'undefined' || (userRole !== 'owner' && !(typeof can === 'function' && can('customers')))) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'صفحة الزبائن للمدير ولمن مُنح صلاحيتها.', confirmButtonColor: '#0f1c38' }); return; }
     cuEnsureDom(); cuLoadLocal();
     document.getElementById('cuOv').style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open'); cuOpenFlag = true;
     cuScr = 'list'; cuCur = null; cuSeg = 'owe'; cuQ = ''; cuListRender();
@@ -97,14 +97,14 @@ function cuDetailRender() {
     const g = cuGroups().get(cuCur); if (!g) { cuBack(); return; }
     cuScr = 'detail';
     const debts = g.invs.filter(b => invRemaining(b) > 0), pays = [];
-    g.invs.forEach(b => (b.payments || []).forEach(p => p && pays.push({ at: p.at || b.date, amount: Number(p.amount) || 0, no: b.no })));
+    g.invs.forEach(b => (b.payments || []).forEach(p => p && pays.push({ at: p.at || b.date, amount: Number(p.amount) || 0, no: b.no, by: p.by || '' })));
     pays.sort((a, b) => String(b.at).localeCompare(String(a.at)));
     document.getElementById('cuBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="cuBack()" aria-label="رجوع">→</button><b>${escapeHtml(g.name)}</b><span></span></div>
         <div class="cn-body"><div class="cu-hd"><span>المتبقي على الزبون</span><div class="big ${g.owed > 0 ? '' : 'ok'}">${g.owed > 0 ? fmtNum(g.owed) + ' د.ع' : 'لا يوجد آجل'}</div><small>إجمالي المشتريات ${fmtNum(g.total)} د.ع • ${g.invs.length} فاتورة</small></div>
         <div class="cu-acts"><button type="button" class="pay" onclick="cuPay()" ${g.owed > 0 ? '' : 'disabled'}>تسديد دفعة</button><button type="button" class="prt" onclick="cuPrint()">طباعة كشف الحساب</button></div>
         <div class="cu-h">الفواتير (الأحدث أولاً)</div>
         ${g.invs.slice().reverse().map(b => { const r = invRemaining(b); return `<div class="cu-inv" onclick="cuGoInv('${b.id}')"><div><b dir="ltr">${escapeHtml(b.no || '')}</b><small>${escapeHtml(fmtDateDMY(b.date))} • ${(b.items || []).length} مادة</small></div><div class="cu-amt ${r > 0 ? 'owe' : 'ok'}">${fmtNum(invTotalOf(b))}<small>${r > 0 ? 'متبقٍ ' + fmtNum(r) : 'مسدَّدة'}</small></div></div>`; }).join('')}
-        ${pays.length ? `<div class="cu-h">الدفعات المسجَّلة</div>` + pays.map(p => `<div class="cu-pay"><span>${escapeHtml(fmtDateDMY(p.at))} • فاتورة <bdi dir="ltr">${escapeHtml(p.no || '')}</bdi></span><b>${fmtNum(p.amount)}</b></div>`).join('') : ''}
+        ${pays.length ? `<div class="cu-h">الدفعات المسجَّلة</div>` + pays.map(p => `<div class="cu-pay"><span>${escapeHtml(fmtDateDMY(p.at))} • فاتورة <bdi dir="ltr">${escapeHtml(p.no || '')}</bdi>${p.by ? ' • استلمها: ' + escapeHtml(p.by) : ''}</span><b>${fmtNum(p.amount)}</b></div>`).join('') : ''}
         </div>`;
 }
 function cuGoInv(id) { cuClose(); try { showView('bill'); } catch (e) { /* تجاهل */ } billOpenSaved(id); }
@@ -125,7 +125,7 @@ async function cuPay() {
         for (let i = 0; i < plan.length; i++) {
             const { b, take } = plan[i];
             b.paid = cuR2((parseFloat(b.paid) || 0) + take);
-            (b.payments = b.payments || []).push({ at: todayLocalISO(), amount: take });
+            (b.payments = b.payments || []).push({ at: todayLocalISO(), amount: take, by: (typeof userName !== 'undefined' && userName) || (userRole === 'owner' ? 'المدير' : ''), byUid: (typeof currentUser !== 'undefined' && currentUser && ((window.__actAs && window.__actAs.uid) || currentUser.uid)) || '' });
             await saveInvoiceRecord(b);
             if (bill && bill.id === b.id) bill = JSON.parse(JSON.stringify(b));
             h.tick(i + 1, plan.length);
