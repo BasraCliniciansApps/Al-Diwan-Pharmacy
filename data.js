@@ -1009,22 +1009,31 @@ function setupSettingsAccordion() {
         box.appendChild(body);
         h.classList.add('cmb-head'); h.setAttribute('role', 'button'); h.tabIndex = 0;
         h.innerHTML = '<span>' + h.innerHTML + '</span><i class="cmb-chev">▾</i>';
-        const tog = () => box.classList.toggle('open');
+        const tog = () => { box.classList.toggle('open'); try { if (window.__mlStale) renderManagerLists(); } catch (e) { /* تجاهل */ } };
         h.addEventListener('click', tog);
         h.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tog(); } });
     });
 }
-function openSettingsSection(id) { setupSettingsAccordion(); const b = document.getElementById(id); if (b) b.classList.add('open'); }
+function openSettingsSection(id) { setupSettingsAccordion(); const b = document.getElementById(id); if (b) b.classList.add('open'); try { if (window.__mlStale) renderManagerLists(); } catch (e) { /* تجاهل */ } }
 
 function closeCategoryManager() {
     document.getElementById('catModal').style.display = 'none';
     document.getElementById('catModal').style.zIndex = '';
 }
 
-function renderManagerLists() {
+function renderManagerLists(force) {
     const deptContainer = document.getElementById('deptListManager');
-    const dUsed = taxUsed('department', 'extraDepartments'), cUsed = taxUsed('category', 'extraCategories');
-    const cnt = (f, ex, n) => products.filter(p => p[f] === n || extrasOf(p[ex]).includes(n)).length;
+    // قائمتا الأقسام والتصنيفات ضخمتان (مئات العناصر بأزرارها) وتقعان داخل أقسام مطوية: لا نرسمهما إلا حين تُعرضان (كان الرسم يؤخّر فتح الإعدادات)
+    { const vis = el => !!(el && el.getClientRects().length); if (!force && !vis(deptContainer) && !vis(document.getElementById('subCatListManager'))) { window.__mlStale = true; return; } window.__mlStale = false; }
+    // عدّاد المواد لكل قسم/تصنيف بمرور واحد على المواد (كان يمرّ على كل المواد لكل عنصر قديم: بطء دخول الإعدادات)
+    const cntMap = { department: new Map(), category: new Map() }, dUsed = new Set(), cUsed = new Set();
+    products.forEach(p => {
+        [['department', 'extraDepartments', dUsed], ['category', 'extraCategories', cUsed]].forEach(([f, ex, used]) => {
+            const names = new Set(); if (p[f]) names.add(p[f]); extrasOf(p[ex]).forEach(x => names.add(x));
+            names.forEach(n => { used.add(n); cntMap[f].set(n, (cntMap[f].get(n) || 0) + 1); });
+        });
+    });
+    const cnt = (f, ex, n) => cntMap[f].get(n) || 0;
     deptContainer.innerHTML = departments.map((d, i) => `
         <div class="manager-item">
             <span class="tm-go" onclick="taxMembers('dept',${i})" role="button" tabindex="0">${escapeHtml(d)}${taxLegacy.d.includes(d) ? ` <em class="tg warn">قديم${dUsed.has(d) ? ' — ' + cnt('department', 'extraDepartments', d) + ' مادة' : ' — فارغ (مخفي)'}</em>` : ''}</span>

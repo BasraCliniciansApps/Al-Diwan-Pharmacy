@@ -263,7 +263,7 @@ function shAutoBind() {
     Object.values(SH_AUTO).forEach(g => { g.prev = null; });
 }
 { const _si = shInit; shInit = function () { _si(); shAutoBind(); }; }
-{ const _so = shOpen; shOpen = function () { Object.values(SH_AUTO).forEach(g => { try { g.prev = g.get(); } catch (e) { g.prev = null; } }); return _so.apply(this, arguments); }; }
+{ const _so = shOpen; shOpen = function () { Object.values(SH_AUTO).forEach(g => { try { g.prev = g.get(); } catch (e) { g.prev = null; } }); const r = _so.apply(this, arguments); try { if (window.__mlStale) renderManagerLists(); } catch (e) { /* تجاهل */ } return r; }; }
 // حفظ تلقائي لإعدادات التسعير (بدون إعادة تسعير المواد) وإعدادات الذكاء الصناعي
 {
     let pT = null, aT = null;
