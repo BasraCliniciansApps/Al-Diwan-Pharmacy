@@ -900,7 +900,7 @@ const INV_SENT_K = 'diwanInvSent';
 const invSig = r => String(r.editedAt || r.cancelledAt || r.issuedTs || '') + '|' + (r.cancelled ? 1 : 0);
 let invChecking = false;
 async function invCheckUnsent() {
-    if (invChecking || typeof IS_ADMIN_PAGE === 'undefined' || !IS_ADMIN_PAGE || !cloudReady() || !navigator.onLine || usagePaused) return;
+    if (invChecking || typeof IS_ADMIN_PAGE === 'undefined' || !IS_ADMIN_PAGE || !cloudReady() || !navigator.onLine || usagePaused || (typeof recvOnly === 'function' && recvOnly())) return;   // الاستقبال فقط: لا فواتير لترسل
     invChecking = true;
     try {
         let list = []; try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }

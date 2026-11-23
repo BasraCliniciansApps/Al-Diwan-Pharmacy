@@ -380,6 +380,12 @@ function fsSet(ref, data, opts) {
 }
 // المزامنة التدريجية: يجلب السجلات المتغيرة بعد المؤشر فقط؛ قراءة كاملة عند الحاجة (أول مرة، يومياً، أو بطلب «مزامنة الآن»/النسخ الاحتياطي)
 // يرجع null إذا لا حاجة للقراءة الآن، وإلا {snap, full}. الحذف لا ينتقل بالتدريجي فيلتقطه التحديث الكامل اليومي.
+// هل سيجري cloudDelta قراءة من السحابة الآن؟ (بلا أثر جانبي): تتجنب الشاشات إعادة بناء القوائم الكبيرة وكتابتها في التخزين المحلي إن لم يحن موعد القراءة
+function cloudDeltaDue(key, ttlMin, haveLocal) {
+    if (window.__forceCloud > 0 || window.__forceFull > 0) return true;
+    let lastTry = 0, stampOK = true; try { lastTry = +localStorage.getItem('diwanLd_' + key) || 0; stampOK = localStorage.getItem('diwanNoStamp') !== '1'; } catch (e) { /* تجاهل */ }
+    return !(haveLocal && Date.now() - lastTry < (stampOK ? ttlMin : 60) * 60000);
+}
 async function cloudDelta(key, coll, haveLocal, ttlMin, fullHours, fullQuery) {
     const g = k => { try { return localStorage.getItem(k); } catch (e) { return null; } }, st = (k, v) => { try { localStorage.setItem(k, String(v)); } catch (e) { /* تجاهل */ } };
     const now = Date.now(), force = window.__forceCloud > 0, stampOK = g('diwanNoStamp') !== '1';
@@ -636,8 +642,10 @@ let _roToastAt = 0;
 function installRecvOnly() {
     if (window.__roInstalled || !window.firebase || !firebase.firestore) return;
     window.__roInstalled = true;
+    // الإشعار يظهر فقط إن كان الصيدلي هو من ضغط أو كتب قبل لحظات (محاولة حفظ مقصودة)؛ المحاولات الخلفية (مزامنة، صيانة، تعلّم البحث) ترفض بصمت
+    let _lastGesture = 0; ['pointerdown', 'keydown'].forEach(ev => document.addEventListener(ev, () => { _lastGesture = Date.now(); }, true));
     const F = firebase.firestore, deny = () => {
-        if (Date.now() - _roToastAt > 6000) { _roToastAt = Date.now(); try { Swal.fire({ icon: 'info', title: 'الحاسبة في وضع الاستقبال فقط', text: 'لا يمكن حفظ تعديلات من هذا البرنامج. أجرِ التعديل من الهاتف أو أوقف الوضع من الصفحة الرئيسية.', toast: true, position: 'bottom', showConfirmButton: false, timer: 3500 }); } catch (e) { /* تجاهل */ } }
+        if (Date.now() - _lastGesture < 1500 && Date.now() - _roToastAt > 6000) { _roToastAt = Date.now(); try { Swal.fire({ icon: 'info', title: 'الحاسبة في وضع الاستقبال فقط', text: 'لا يمكن حفظ تعديلات من هذا البرنامج. أجرِ التعديل من الهاتف أو أوقف الوضع من الصفحة الرئيسية.', toast: true, position: 'bottom', showConfirmButton: false, timer: 3500 }); } catch (e) { /* تجاهل */ } }
         const err = new Error('وضع الاستقبال فقط: الكتابة إلى السحابة معطّلة في هذا البرنامج'); err.code = 'receive-only'; return Promise.reject(err);
     };
     const wrap = (proto, names) => { if (!proto) return; names.forEach(n => { const o = proto[n]; if (typeof o !== 'function') return; proto[n] = function () { return recvOnly() ? deny() : o.apply(this, arguments); }; }); };
@@ -4711,7 +4719,7 @@ async function createCloudBackup(force) {
 }
 
 async function autoMaintenance() {
-    if (!cloudReady() || !navigator.onLine) return;
+    if (!cloudReady() || !navigator.onLine || recvOnly()) return;   // الحاسبة (الاستقبال فقط) لا تكتب نسخاً ولا تنظّف السلة والسجل
     try {
         const last = Number(lsJson(LS_AUTOBK, 0)) || 0;
         if (Date.now() - last >= AUTO_BACKUP_DAYS * 864e5) await createCloudBackup(false);

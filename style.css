@@ -4420,10 +4420,9 @@ html.is-desktop-app button, html.is-desktop-app [role=button], html.is-desktop-a
 html.is-desktop-app .hd-b:hover, html.is-desktop-app .small-icon-btn:hover { background: rgba(255,255,255,.18); }
 html.is-desktop-app .cn-card:hover, html.is-desktop-app .dr-btn:hover, html.is-desktop-app .sh-card:hover { box-shadow: 0 6px 16px -8px rgba(15,28,56,.35); transform: translateY(-1px); transition: box-shadow .15s, transform .15s; }
 /* 10) شريط تمرير رفيع */
-html.is-desktop-app *::-webkit-scrollbar { width: 10px; height: 10px; }
-html.is-desktop-app *::-webkit-scrollbar-track { background: transparent; }
-html.is-desktop-app *::-webkit-scrollbar-thumb { background: #b8c2d4; border-radius: 8px; border: 2px solid transparent; background-clip: content-box; }
-html.is-desktop-app *::-webkit-scrollbar-thumb:hover { background: #8d99b0; background-clip: content-box; }
+/* أشرطة التمرير مخفية بالكامل في الحاسبة (التمرير يبقى بالعجلة والمفاتيح واللمس) */
+html.is-desktop-app, html.is-desktop-app * { scrollbar-width: none !important; }
+html.is-desktop-app *::-webkit-scrollbar, html.is-desktop-app::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; }
 /* 11) الزر العائم لا يغطي الورقة: أصغر وعلى الحافة */
 html.is-desktop-app .pos-fab { left: 12px; bottom: 16px; height: 40px; padding: 0 12px; opacity: .92; }
 /* 12) التأكيدات: بطاقة بالوسط بدل الورقة السفلية */
@@ -4447,7 +4446,10 @@ html.is-desktop-app .cn-bar { padding-inline: 0; }
 /* شريط التنقل الجانبي (يظهر من عرض 1300px كي لا يغطي المحتوى) */
 html.is-desktop-app #dkRail { display: none; }
 @media (min-width: 1300px) {
-    html.is-desktop-app #dkRail { position: fixed; z-index: 9300; top: 50%; right: 10px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; padding: 8px; background: #0f1c38; border-radius: 18px; box-shadow: 0 10px 28px -8px rgba(15,28,56,.55), inset 0 0 0 1px rgba(244,183,63,.35); }
+    /* الشريط مثبّت على الحافة كعمود جانبي (يحجز مكانه) فلا يغطي المحتوى؛ النوافذ والشاشات المنبثقة (z-index 1000 فما فوق) تعلوه */
+    html.is-desktop-app body:not([data-view="login"]):not([data-view="splash"]) { padding-right: 76px; }
+    html.is-desktop-app body:not([data-view="login"]):not([data-view="splash"])::after { content: ''; position: fixed; top: 0; bottom: 0; right: 0; width: 76px; background: #0f1c38; box-shadow: inset 1px 0 0 rgba(244,183,63,.35); z-index: 990; pointer-events: none; }
+    html.is-desktop-app #dkRail { position: fixed; z-index: 995; top: 50%; right: 17px; transform: translateY(-50%); display: flex; flex-direction: column; gap: 8px; padding: 0; background: transparent; border-radius: 0; box-shadow: none; }
     html.is-desktop-app body[data-view="login"] #dkRail, html.is-desktop-app body[data-view="splash"] #dkRail { display: none; }
     #dkRail button { width: 42px; height: 42px; border: 0; border-radius: 12px; background: transparent; color: #cbd5e1; display: grid; place-items: center; cursor: pointer; transition: background .15s, color .15s; }
     #dkRail button:hover { background: rgba(255,255,255,.12); color: #fff; }

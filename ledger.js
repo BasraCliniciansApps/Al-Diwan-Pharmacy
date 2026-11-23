@@ -15,6 +15,7 @@ const lgId = () => 'lg' + Date.now() + Math.floor(Math.random() * 999);
 // ---------- التخزين (محلي + سحابة) ----------
 function lgLocal() { try { return JSON.parse(lsGet(LG_LS.list)) || []; } catch (e) { return []; } }
 async function lgLoad() {
+    if (lgAll.length && !(cloudReady() && navigator.onLine && cloudDeltaDue('lg', 3, true))) return lgAll;   // نفس بوابة puLoad: لا إعادة بناء بلا داعٍ
     const map = new Map();
     lgLocal().forEach(x => x && x.id && map.set(x.id, x));
     if (cloudReady() && navigator.onLine) {

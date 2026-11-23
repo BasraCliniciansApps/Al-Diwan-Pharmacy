@@ -40,6 +40,8 @@ const puKey = s => String(s || '').trim().toLowerCase();
 // ---------- التخزين (محلي + سحابة) ----------
 function puLocalList() { try { return JSON.parse(lsGet(PU_LS.list)) || []; } catch (e) { return []; } }
 async function puLoad() {
+    // لا إعادة بناء ولا كتابة (1.5 ميغابايت) في التخزين المحلي إن لم يحن موعد قراءة السحابة: القائمة في الذاكرة هي المرجع (كل تعديل محلي يحدّثها)
+    if (puAll.length && puSuppliers.length && !(cloudReady() && navigator.onLine && (cloudDeltaDue('pu', 3, true) || cloudDeltaDue('pus', 3, true)))) return puAll;
     const map = new Map();
     puLocalList().forEach(x => x && x.id && map.set(x.id, x));
     let sup = [];
@@ -846,6 +848,7 @@ let syncingLocal = false;
 function localOnlyCounts() { return ''; }
 async function syncLocalRecords(auto) {
     if (!cloudReady() || !navigator.onLine || syncingLocal) return 0;
+    if (typeof recvOnly === 'function' && recvOnly()) return 0;   // الاستقبال فقط: لا رفع إلى السحابة
     // الفحص الشامل يقرأ آلاف المستندات (فواتير ووارد ومذاخر ودفتر): تلقائياً مرة كل 12 ساعة، ويدوياً (سحب للتحديث أو «مزامنة الآن») مرة كل 3 ساعات،
     // وفوراً فقط إن وُجدت سجلات لم تُرسل (diwanNeedsPush). الكتابات العادية تُرسل لوحدها من طابور Firestore ولا تحتاج مقارنة.
     if (lsGet('diwanNeedsPush') !== '1') {

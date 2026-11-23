@@ -9,14 +9,28 @@
     async function loadFresh() {   // نقرأ أحدث وارد/فواتير/سجلات من السحابة بصمت (بدون شريط تقدم: عملية خلفية)
         for (const fn of ['puLoad', 'loadInvoices', 'lgLoad']) { try { if (typeof window[fn] === 'function') await window[fn](); } catch (e) { /* تجاهل */ } }
     }
-    async function run(refresh) {
+    // بصمة خفيفة لحالة البيانات: إن لم تتغيّر منذ آخر نسخة فلا نبني نسخة كاملة (عشرات الميغابايت) ولا نكتبها كل 10 دقائق وعند كل إخفاء للنافذة
+    let lastSig = '';
+    function dataSig() {
+        try {
+            let h = 0; const add = n => { h = (h * 31 + (n | 0)) | 0; };
+            products.forEach(p => { add(p.id); add(p.qty); add(p.loose); add(Math.round((+p.price || 0) * 10)); add(Math.round((+p.costPrice || 0) * 10)); add(p.counted ? 1 : 0); add(p.arch ? 1 : 0); add(String(p.name || '').length); });
+            const tail = (a, f) => (a && a.length ? String(f(a[0]) || '') : '');
+            const ls = k => { try { return (localStorage.getItem(k) || '').length; } catch (e) { return 0; } };
+            return [products.length, h, puAll.length, tail(puAll, x => x.editedAt || x.createdTs), lgAll.length, lgAll.reduce((m, e) => (String(e.upd || '') > m ? String(e.upd) : m), ''), billAll.length, tail(billAll, x => x.editedAt || x.cancelledAt || x.issuedTs), ls('diwanCountLists'), ls('diwanExpenses'), ls('diwanFollowups'), ls('diwanSuppliers')].join('|');
+        } catch (e) { return 'x' + Date.now(); }
+    }
+    async function run(refresh, force) {
         if (busy) return;
         if (typeof buildFullBackup !== 'function' || typeof products === 'undefined' || !products.length) return;   // لا نكتب نسخة فارغة فوق نسخة سليمة
         busy = true;
         try {
             if (refresh && navigator.onLine && typeof cloudReady === 'function' && cloudReady()) await loadFresh();
+            const sg = dataSig();
+            if (!force && sg === lastSig) { busy = false; render(); return; }   // لا تغيير: نتجنب العمل الثقيل
+            await new Promise(res => (window.requestIdleCallback ? requestIdleCallback(res, { timeout: 4000 }) : setTimeout(res, 50)));   // العمل الثقيل وقت الخمول لا أثناء استعمال البرنامج
             const r = await D.writeBackup(JSON.stringify(buildFullBackup()));
-            if (r && r.ok) { lastOk = r.ts; lastErr = ''; } else lastErr = (r && r.error) || 'تعذر الحفظ';
+            if (r && r.ok) { lastOk = r.ts; lastErr = ''; lastSig = sg; } else lastErr = (r && r.error) || 'تعذر الحفظ';
         } catch (e) { lastErr = e.message || String(e); }
         busy = false; render();
     }
@@ -40,10 +54,10 @@
         location.reload();
     };
     window.dsOpenDir = () => D.openBackupDir();
-    window.dsChooseDir = async () => { const r = await D.chooseBackupDir(); if (r && r.ok) { await run(false); } render(); };
+    window.dsChooseDir = async () => { const r = await D.chooseBackupDir(); if (r && r.ok) { await run(false, true); } render(); };
     window.dsBackupNow = async () => {
         const h = (typeof Prog !== 'undefined') ? Prog.start('حفظ نسخة على القرص', { text: 'جمع البيانات...' }) : null;
-        try { await run(true); if (h) { if (lastErr) h.fail('تعذر الحفظ', lastErr); else h.ok('تم حفظ النسخة على القرص'); } }
+        try { await run(true, true); if (h) { if (lastErr) h.fail('تعذر الحفظ', lastErr); else h.ok('تم حفظ النسخة على القرص'); } }
         catch (e) { if (h) h.fail('تعذر الحفظ', e.message || String(e)); }
     };
 

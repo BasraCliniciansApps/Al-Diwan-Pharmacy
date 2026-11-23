@@ -98,7 +98,7 @@ async function resolveRole(user) {
 }
 // يمنح كل مستخدم قديم بلا رقم تسلسلي رقماً بحسب تاريخ إنشاء حسابه (يعمل عند دخول المدير)
 async function userEnsureOrds() {
-    if (!cloudReady() || !navigator.onLine || userRole !== 'owner') return;
+    if (!cloudReady() || !navigator.onLine || userRole !== 'owner' || (typeof recvOnly === 'function' && recvOnly())) return;
     const snap = await db.collection('pharmacy_users').get(); const all = [];
     snap.forEach(d => all.push({ id: d.id, ...d.data() }));
     let mx = Math.max(1, ...all.map(u => parseInt(u.ord) || 0));
