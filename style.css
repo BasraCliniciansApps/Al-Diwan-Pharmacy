@@ -5111,3 +5111,6 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .kpi.done .kpi-ring { animation: krDone .8s ease forwards; }
 .kpi.done .kr-fg { stroke-dasharray: 100 0; }
 @keyframes krDone { 0% { opacity: 1; } 60% { opacity: 1; } 100% { opacity: 0; } }
+
+/* قوائم منسدلة أصغر على النقال فقط (الحاسوب بدون تغيير) */
+@media (max-width: 640px) and (pointer: coarse) { select option, select optgroup { font-size: 13px !important; line-height: 1.25 !important; min-height: 0 !important; padding: 3px 8px !important; } }
