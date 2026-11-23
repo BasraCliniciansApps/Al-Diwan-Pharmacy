@@ -502,8 +502,16 @@ function showSyncStatus() {
         (window.WA ? '<h5 class="ss-h">📲 التبادل عبر واتساب</h5><div id="waHostSs" class="wa-host">' + WA.hostHtml() + '</div>' : '') +
         `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}</details><div class="ss-note" id="ssVer"></div></div>`;
     const waM = usagePaused === 'wa';
-    Swal.fire({ title: 'حالة المزامنة', html, showCancelButton: true, showDenyButton: true, confirmButtonText: waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن', denyButtonText: '⟳ تحديث التطبيق', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { denyButton: 'dw-btn dw-btn-ghost dw-btn-soft', cancelButton: 'dw-btn dw-btn-text' }, didOpen: () => { appVersionTxt().then(v => { const el = document.getElementById('ssVer'); if (el) el.textContent = 'رقم نسخة التطبيق: ' + (v || 'غير معروف'); }).catch(() => { }); window.__ssOpen = true; clearInterval(ssTimer); ssTimer = setInterval(ssLive, 1500); }, willClose: () => { window.__ssOpen = false; clearInterval(ssTimer); } })      .then(r => { if (r.isConfirmed) { if (waM && window.WA) WA.exportSales(); else syncNow(); } else if (r.isDenied) hardRefresh(); });
+    const host = document.getElementById('syncBody'); if (!host) return;
+    const wasOpen = !!(host.querySelector('.ss-det') && host.querySelector('.ss-det').open);   // تبقى «تفاصيل تقنية» مفتوحة عند إعادة الرسم
+    const acts = `<div class="ss-acts"><button type="button" class="dw-btn dw-btn-main" onclick="ssGo()">${waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن'}</button><button type="button" class="dw-btn dw-btn-ghost" onclick="hardRefresh()">⟳ تحديث التطبيق</button></div>`;
+    host.innerHTML = (wasOpen ? html.replace('<details class="ss-det" ', '<details class="ss-det" open ') : html) + acts;
+    if (typeof currentView === 'undefined' || currentView !== 'sync') showView('sync');   // صفحة كاملة بترويسة التطبيق (لا نافذة منبثقة)
+    window.__ssOpen = true; clearInterval(ssTimer);
+    ssTimer = setInterval(() => { if (currentView !== 'sync') { clearInterval(ssTimer); window.__ssOpen = false; return; } ssLive(); }, 1500);
+    appVersionTxt().then(v => { const el = document.getElementById('ssVer'); if (el) el.textContent = 'رقم نسخة التطبيق: ' + (v || 'غير معروف'); }).catch(() => { });
 }
+function ssGo() { if (usagePaused === 'wa' && window.WA) WA.exportSales(); else syncNow(); }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
 
 // ===== بوّابة القراءة من السحابة: القراءات الكاملة (واردات، دفتر، فواتير...) تُجرى مرة كل مدة بدل كل فتح شاشة =====
@@ -544,7 +552,7 @@ function usageSetCap(t, v) {
     const n = Math.round(Number(v)); if (!(n >= 1000)) { Swal.fire({ icon: 'warning', title: 'قيمة غير صالحة', text: 'أدخل رقماً لا يقل عن 1000.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     try { localStorage.setItem('diwanCap_' + t, String(n)); } catch (e) { /* تجاهل */ }
     const u = usageGet(); if (usagePaused === 'cap' && u.r < usageCap('r') && u.w < usageCap('w')) usageResume();
-    Swal.close(); showSyncStatus();
+    showSyncStatus();
 }
 function usageAdd(t, n, src, cold) {
     if (!n) return;

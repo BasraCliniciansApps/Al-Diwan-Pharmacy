@@ -320,6 +320,7 @@
         try {
             if (on) { const n = await SU.enable(h); h.ok('تم التفعيل (ختم ' + n + ' مستند)'); } else { await SU.disable(); h.ok('تم الإيقاف'); }
             Swal.fire({ icon: 'success', title: on ? 'فُعّلت المزامنة الموفِّرة' : 'أُوقفت المزامنة الموفِّرة', text: 'أعد فتح التطبيق على كل جهاز ليُطبَّق التغيير.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+            try { if (typeof showSyncStatus === 'function' && typeof currentView !== 'undefined' && currentView === 'sync') showSyncStatus(); } catch (e2) { /* تجاهل */ }
         } catch (e) {
             cb.checked = !on; h.fail('تعذر التنفيذ', (e && e.message) || '');
             Swal.fire({ icon: 'error', title: e && e.message === 'rules-missing' ? 'قواعد Firestore غير منشورة' : 'تعذر التنفيذ', text: e && e.message === 'rules-missing' ? 'انشر ملف firestore.rules الجديد من وحدة تحكم Firebase ثم أعد المحاولة.' : ((e && e.message) || ''), confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });

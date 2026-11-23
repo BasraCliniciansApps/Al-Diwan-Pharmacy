@@ -1634,6 +1634,10 @@ body.admin-page .top-bar-inner { padding-top: 12px; }
 .exp-tag { position: absolute; left: 8px; bottom: 8px; padding: 4px 9px; border-radius: 10px; font-size: 0.68rem; font-weight: 900; z-index: 2; box-shadow: 0 2px 6px rgba(0,0,0,.2); }
 .t-exp { background: #991b1b; color: #fff; } .t-m1 { background: #ea580c; color: #fff; } .t-m3 { background: #f59e0b; color: #1f1300; } .t-m6 { background: #fde68a; color: #713f12; } .t-low { background: #dbeafe; color: #1e3a8a; }
 body.admin-page[data-view="alerts"] #alertsView { display: block; }
+body.admin-page[data-view="sync"] #syncView { display: block; }
+.sync-view > .sync-page { width: min(calc(100% - 32px), 760px); margin: 14px auto 0; box-sizing: border-box; }
+.sync-page .ss-acts { display: flex; flex-direction: column; gap: 10px; }
+.sync-page .ss-acts .dw-btn { width: 100%; height: 50px; flex: none; }
 body.admin-page[data-view="catalog"] #catalogView { display: block; }
 
 
