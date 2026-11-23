@@ -5,14 +5,46 @@
 let posOpenFlag = false, posFound = [], posDone = false, posExtraOpen = false;
 const posEsc = s => escapeHtml(String(s == null ? '' : s));
 
-function posBeep(ok) {
+// صوت المسح: عالٍ وثابت. نفتح مشغّل الصوت بأول لمسة ونُنعشه قبل كل نغمة (المسح بالكاميرا ليس لمسة فكان المشغّل يتوقف أحياناً)
+function posWav(freq, ms) {
+    const sr = 22050, n = Math.floor(sr * ms / 1000), buf = new ArrayBuffer(44 + n * 2), v = new DataView(buf);
+    const w = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+    w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+    for (let i = 0; i < n; i++) { const e = Math.min(1, i / 200, (n - i) / 400); v.setInt16(44 + i * 2, Math.sign(Math.sin(2 * Math.PI * freq * i / sr)) * 0.9 * 32767 * e, true); }
+    return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+function posAudioUnlock() {
     try {
         const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
-        const c = posBeep.c || (posBeep.c = new C()), o = c.createOscillator(), g = c.createGain();
-        o.type = 'sine'; o.frequency.value = ok ? 1100 : 300; g.gain.value = 0.08; o.connect(g); g.connect(c.destination);
-        o.start(); o.stop(c.currentTime + (ok ? 0.07 : 0.22));
-        if (navigator.vibrate) navigator.vibrate(ok ? 25 : [60, 40, 60]);
+        const c = posBeep.c || (posBeep.c = new C()); if (c.state === 'suspended') c.resume();
     } catch (e) { /* تجاهل */ }
+}
+['pointerdown', 'touchstart', 'click', 'keydown'].forEach(ev => document.addEventListener(ev, posAudioUnlock, { passive: true }));
+function posBeep(ok) {
+    const f = ok ? 1800 : 350, ms = ok ? 150 : 380;
+    try { if (navigator.vibrate) navigator.vibrate(ok ? 30 : [80, 50, 80]); } catch (e) { /* تجاهل */ }
+    let played = false;
+    try {
+        const C = window.AudioContext || window.webkitAudioContext;
+        if (C) {
+            const c = posBeep.c || (posBeep.c = new C()); if (c.state === 'suspended') c.resume();
+            if (c.state === 'running') {
+                const o = c.createOscillator(), g = c.createGain(), t = c.currentTime;
+                o.type = 'square'; o.frequency.value = f;
+                g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.9, t + 0.005); g.gain.setValueAtTime(0.9, t + ms / 1000 - 0.03); g.gain.exponentialRampToValueAtTime(0.0001, t + ms / 1000);
+                o.connect(g); g.connect(c.destination); o.start(t); o.stop(t + ms / 1000 + 0.02); played = true;
+            }
+        }
+    } catch (e) { /* تجاهل */ }
+    if (played) return;
+    try {   // احتياطي: ملف صوت جاهز إذا لم يعمل المشغّل
+        const k = 'w' + f, u = posBeep[k] || (posBeep[k] = posWav(f, ms)), a = new Audio(u); a.volume = 1; a.play().catch(() => { });
+    } catch (e) { /* تجاهل */ }
+}
+// منع القراءة المزدوجة بالكاميرا: نفس الباركود خلال ~2 ثانية يُهمَل (ما دام ظاهراً أمام الكاميرا يبقى مُهمَلاً)
+function posScanDup(code) {
+    const now = Date.now(), d = posScanDup.c === code && now - posScanDup.t < 2000; posScanDup.c = code; posScanDup.t = now; return d;
 }
 const posUnitOf = it => (it.unit === 'part' && it.pid && hasRetail(products.find(x => x.id === it.pid) || {}) ? 'part' : 'pack');
 const posKeyOf = (it, i) => it.pid ? it.pid + '|' + posUnitOf(it) : 'm' + i;
@@ -142,7 +174,7 @@ function posEnter() {
     if (posFound.length) posAddProduct(posFound[0].id);
 }
 function posScan() {   // كاميرا: تستمر بعد كل قراءة لحين الإغلاق
-    const cb = code => { if (!posOpenFlag) return; posByCode(code); setTimeout(() => { if (posOpenFlag && !document.querySelector('.swal2-container')) posScan(); }, 350); };
+    const cb = code => { if (!posOpenFlag) return; if (!posScanDup(code)) posByCode(code); setTimeout(() => { if (posOpenFlag && !document.querySelector('.swal2-container')) posScan(); }, 350); };
     openBarcodeScanner(cb);
 }
 
