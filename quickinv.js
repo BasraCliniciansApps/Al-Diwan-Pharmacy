@@ -227,3 +227,23 @@ async function billSharePdf() {
         }
     } catch (e) { h.fail('تعذّر تجهيز الملف', String(e && e.message || e)); }
 }
+
+// اقتراحات الكتابة السريعة (اكتب DE فيظهر DENIZ): قوائم اقتراح للشركة والزبون والطبيب في الفاتورة، وللشركة في نموذج الصنف
+const QH_MAP = { billTo: 'to', billCustomer: 'customer', billDoctor: 'doctor' };
+function qhFill(id, names) {
+    let dl = document.getElementById(id);
+    if (!dl) { dl = document.createElement('datalist'); dl.id = id; document.body.appendChild(dl); }
+    const key = names.join('\u0001'); if (dl.dataset.k === key) return; dl.dataset.k = key;
+    dl.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">`).join('');
+}
+function qhBrands() {
+    const s = new Set(); (products || []).forEach(p => { const b = String(p.brand || '').trim(); if (b && b.toUpperCase() !== 'GENERIC') s.add(b); });
+    return [...s].sort((a, b) => a.localeCompare(b));
+}
+document.addEventListener('focusin', e => {
+    const el = e.target; if (!el || !el.id) return;
+    try {
+        if (QH_MAP[el.id]) { const k = QH_MAP[el.id]; qhFill('qhDl_' + k, qiNames(k)); el.setAttribute('list', 'qhDl_' + k); el.setAttribute('autocomplete', 'off'); }
+        else if (el.id === 'fBrand') { qhFill('qhDl_brand', qhBrands()); el.setAttribute('list', 'qhDl_brand'); el.setAttribute('autocomplete', 'off'); }
+    } catch (err) { /* تجاهل */ }
+});
