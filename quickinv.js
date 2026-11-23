@@ -228,22 +228,35 @@ async function billSharePdf() {
     } catch (e) { h.fail('تعذّر تجهيز الملف', String(e && e.message || e)); }
 }
 
-// اقتراحات الكتابة السريعة (اكتب DE فيظهر DENIZ): قوائم اقتراح للشركة والزبون والطبيب في الفاتورة، وللشركة في نموذج الصنف
-const QH_MAP = { billTo: 'to', billCustomer: 'customer', billDoctor: 'doctor' };
-function qhFill(id, names) {
-    let dl = document.getElementById(id);
-    if (!dl) { dl = document.createElement('datalist'); dl.id = id; document.body.appendChild(dl); }
-    const key = names.join('\u0001'); if (dl.dataset.k === key) return; dl.dataset.k = key;
-    dl.innerHTML = names.map(n => `<option value="${escapeHtml(n)}">`).join('');
+// اقتراحات الكتابة السريعة (اكتب DE فيظهر DENIZ): أزرار صغيرة تحت الحقل مباشرة (بدون نافذة تغطي الكيبورد)
+const QH_MAP = { billTo: 'to', billCustomer: 'customer', billDoctor: 'doctor', fBrand: 'brand' };
+function qhKind(el) {
+    if (QH_MAP[el.id]) return QH_MAP[el.id];
+    const l = el.getAttribute && el.getAttribute('list') || ''; const m = /^qiDl_(to|customer|doctor)$/.exec(l); return m ? m[1] : '';
 }
 function qhBrands() {
     const s = new Set(); (products || []).forEach(p => { const b = String(p.brand || '').trim(); if (b && b.toUpperCase() !== 'GENERIC') s.add(b); });
     return [...s].sort((a, b) => a.localeCompare(b));
 }
+function qhNames(k) { return k === 'brand' ? qhBrands() : qiNames(k); }
+function qhBox(el) {
+    let b = el.nextElementSibling; if (b && b.classList.contains('qh-chips')) return b;
+    b = document.createElement('div'); b.className = 'qh-chips'; el.insertAdjacentElement('afterend', b); return b;
+}
+function qhShow(el) {
+    const k = qhKind(el); if (!k) return; const box = qhBox(el);
+    const q = el.value.trim().toLowerCase(), cur = el.value.trim();
+    let list = qhNames(k).filter(n => n !== cur && (!q || n.toLowerCase().includes(q)));
+    if (q) list.sort((a, b) => (b.toLowerCase().startsWith(q) - a.toLowerCase().startsWith(q)));
+    if (!q && k === 'brand') list = [];
+    list = list.slice(0, 6);
+    box.innerHTML = list.map(n => `<button type="button" class="qh-c" dir="auto">${escapeHtml(n)}</button>`).join('');
+    box.style.display = list.length ? '' : 'none';
+    box.onpointerdown = e => { const c = e.target.closest('.qh-c'); if (!c) return; e.preventDefault(); el.value = c.textContent; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); box.style.display = 'none'; };
+}
 document.addEventListener('focusin', e => {
-    const el = e.target; if (!el || !el.id) return;
-    try {
-        if (QH_MAP[el.id]) { const k = QH_MAP[el.id]; qhFill('qhDl_' + k, qiNames(k)); el.setAttribute('list', 'qhDl_' + k); el.setAttribute('autocomplete', 'off'); }
-        else if (el.id === 'fBrand') { qhFill('qhDl_brand', qhBrands()); el.setAttribute('list', 'qhDl_brand'); el.setAttribute('autocomplete', 'off'); }
-    } catch (err) { /* تجاهل */ }
+    const el = e.target; if (!el || el.tagName !== 'INPUT' || !qhKind(el)) return;
+    el.removeAttribute('list'); el.setAttribute('autocomplete', 'off'); qhShow(el);
 });
+document.addEventListener('input', e => { const el = e.target; if (el && el.tagName === 'INPUT' && qhKind(el)) { el.removeAttribute('list'); qhShow(el); } });
+document.addEventListener('focusout', e => { const el = e.target, b = el && el.nextElementSibling; if (b && b.classList && b.classList.contains('qh-chips')) setTimeout(() => { b.style.display = 'none'; }, 150); });

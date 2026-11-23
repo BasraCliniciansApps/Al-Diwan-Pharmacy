@@ -5114,3 +5114,6 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 
 /* قوائم منسدلة أصغر على النقال فقط (الحاسوب بدون تغيير) */
 @media (max-width: 640px) and (pointer: coarse) { select option, select optgroup { font-size: 13px !important; line-height: 1.25 !important; min-height: 0 !important; padding: 3px 8px !important; } }
+.qh-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.qh-c { border: 1.5px solid var(--border, #cbd5e1); background: var(--gold-soft, #fff3d6); color: var(--text-main, #0f1c38); border-radius: 999px; padding: 5px 12px; font: 700 .82rem inherit; font-family: inherit; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qh-c:active { background: var(--gold, #f9a825); }
