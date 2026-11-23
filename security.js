@@ -240,13 +240,26 @@ async function userSave() {
     try {
         if (pin) { await userCreate(u.name, pin, perms, f.uid); }
         else {
-            const sv = h2 => Promise.race([h2, new Promise((_, rej) => setTimeout(() => rej(new Error('انتهت مهلة الحفظ: تحقق من الاتصال بالإنترنت ثم أعد المحاولة.')), 20000))]);
-            try { await sv(db.collection('pharmacy_users').doc(f.uid).update({ perms, active })); }
-            catch (e1) { if (!/INTERNAL ASSERTION|Unexpected state/i.test((e1 && e1.message) || '')) throw e1; await sv(db.collection('pharmacy_users').doc(f.uid).set({ perms, active }, { merge: true })); }
-            if (u.login) { if (active) await db.collection('pharmacy_logins').doc(u.login).set({ email: u.email }); else await db.collection('pharmacy_logins').doc(u.login).delete(); }
+            const sv = h2 => Promise.race([h2, new Promise((_, rej) => setTimeout(() => { const te = new Error('انتهت مهلة الحفظ'); te.isTimeout = true; rej(te); }, 20000))]);
+            try {
+                try { await sv(db.collection('pharmacy_users').doc(f.uid).update({ perms, active })); }
+                catch (e1) { if (!/INTERNAL ASSERTION|Unexpected state/i.test((e1 && e1.message) || '')) throw e1; await sv(db.collection('pharmacy_users').doc(f.uid).set({ perms, active }, { merge: true })); }
+                if (u.login) { if (active) await db.collection('pharmacy_logins').doc(u.login).set({ email: u.email }); else await db.collection('pharmacy_logins').doc(u.login).delete(); }
+            } catch (e2) {
+                // انتهاء المهلة أو الحصة: الكتابة باقية في طابور الجهاز وتُرسل لوحدها، فلا نعرض «تعذر الحفظ»
+                if (!(isTimeoutErr(e2) || isQuotaErr(e2))) throw e2;
+                u.perms = perms; u.active = active;   // تظهر القائمة بالقيم الجديدة فوراً
+                if (u.login) { try { (active ? db.collection('pharmacy_logins').doc(u.login).set({ email: u.email }) : db.collection('pharmacy_logins').doc(u.login).delete()).catch(() => { }); } catch (e3) { /* تجاهل */ } }
+                hp.ok(isQuotaErr(e2) ? 'حُفظ على الجهاز: الحصة المجانية منتهية' : QUEUED_MSG);
+                Swal.fire({ icon: 'info', title: isQuotaErr(e2) ? 'الحصة المجانية منتهية' : QUEUED_MSG, text: isQuotaErr(e2) ? QUOTA_MSG : '', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' });
+                usForm = null; shScreenClose('userFormScr'); openUsers(); return;
+            }
         }
         hp.ok('تم الحفظ'); usForm = null; shScreenClose('userFormScr'); shToast('تم الحفظ ✓');
-    } catch (e) { hp.fail('تعذر الحفظ'); Swal.fire({ icon: 'error', title: 'تعذر الحفظ', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); return; }
+    } catch (e) {
+        if (isQuotaErr(e)) { hp.ok('حُفظ على الجهاز: الحصة المجانية منتهية'); Swal.fire({ icon: 'info', title: 'الحصة المجانية منتهية', text: QUOTA_MSG, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+        hp.fail('تعذر الحفظ'); Swal.fire({ icon: 'error', title: 'تعذر الحفظ', text: (e && e.message) || String(e), confirmButtonColor: '#0f1c38' }); return;
+    }
     openUsers();
 }
 async function userDelete(uid) {

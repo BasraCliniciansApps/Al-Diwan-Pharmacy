@@ -229,6 +229,7 @@ function rebuildProducts() {
         const s = stockMap[String(d.id)];
         const c = costMap[String(d.id)];
         const o = { ...d, ...(s || {}), ...(c || {}) };
+        delete o._su;   // ختم المزامنة الموفِّرة لا يدخل في بيانات المادة
         o.meta = fixMetaOrder(o.meta);
         return normalizeStockFields(o);
     });
@@ -248,7 +249,7 @@ function scheduleRebuild(share) {
     if (_rbTimer) return;
     _rbTimer = setTimeout(() => {
         _rbTimer = 0; const sh = _rbShare; _rbShare = false;
-        rebuildProducts(); saveLocal(); renderAll();
+        rebuildProducts(); try { if (window.SU && SU.on()) SU.rebuilt(); } catch (e) { /* تجاهل */ } saveLocal(); renderAll();
         try { if (typeof cnLiveSync === 'function') cnLiveSync(); } catch (e) { /* تجاهل */ }
         try { if (typeof formsAdoptOthers === 'function') formsAdoptOthers(); } catch (e) { /* تجاهل */ }
         if (sh) checkSharedProductUrl();
@@ -256,6 +257,7 @@ function scheduleRebuild(share) {
 }
 function startStockListener() {
     if (!IS_ADMIN_PAGE || unsubStock || !db) return;
+    if (window.SU && SU.on()) { SU.startStock(); return; }   // المزامنة الموفِّرة: استماع بالتغييرات فقط
     unsubStock = db.collection('pharmacy_stock').onSnapshot(snap => {
         const m = {};
         let sm = false;
@@ -266,6 +268,7 @@ function startStockListener() {
 }
 function startCostListener() {
     if (!IS_ADMIN_PAGE || unsubCost || !db) return;
+    if (window.SU && SU.on()) { SU.startCost(); return; }
     unsubCost = db.collection('pharmacy_cost').onSnapshot(snap => {
         const m = {}; let on = false;
         snap.forEach(doc => { if (doc.id === '_meta') on = !!(doc.data() || {}).on; else m[doc.id] = doc.data(); });
@@ -277,6 +280,7 @@ function syncStockLocal(list) {   // بعد نجاح الحفظ نحدّث نس�
     (list || []).forEach(p => { const sp = splitProduct(p); stockMap[String(p.id)] = sp.stock; if (sp.cost) costMap[String(p.id)] = sp.cost; });
 }
 function stopStockListener() {
+    try { if (window.SU) SU.stopPrivate(); } catch (e) { /* تجاهل */ }
     if (unsubStock) { unsubStock(); unsubStock = null; }
     if (unsubCost) { unsubCost(); unsubCost = null; }
     stockMap = {}; costMap = {}; costSplitOn = false; setupMode = false; stockReady = false;
@@ -319,7 +323,14 @@ function syncRefresh() {
     if (window.__ssOpen && typeof ssLive === 'function') { try { ssLive(); } catch (e) { /* تجاهل */ } }
     document.querySelectorAll('.sync-dot').forEach(d => { d.dataset.state = state; d.dataset.pend = (pendingOps || startupPending) ? '1' : '0'; d.title = txt + ' — اضغط للتفاصيل'; });
 }
+// رسائل الحفظ: انتهاء الحصة المجانية (resource-exhausted) وانتهاء المهلة ليسا فشلاً: التغيير محفوظ على الجهاز ويُرسل لوحده
+const QUOTA_MSG = 'انتهت الحصة اليومية المجانية لخدمة السحابة، وتتجدد الساعة 11 صباحاً بتوقيت بغداد. التغيير محفوظ على هذا الجهاز وسيُرسل تلقائياً بعد التجدد.';
+const QUEUED_MSG = 'حُفظ على هذا الجهاز وسيُرسل تلقائياً عند توفر الخدمة';
+function isQuotaErr(e) { return !!e && (e.code === 'resource-exhausted' || /resource-exhausted|quota/i.test(String(e.message || ''))); }
+function isTimeoutErr(e) { return !!e && (e.code === 'deadline-exceeded' || e.code === 'unavailable' || e.isTimeout === true || /مهلة|timeout|timed out|unavailable/i.test(String(e.message || ''))); }
 function asyncWriteFailed(e) {
+    if (isQuotaErr(e)) { syncErrMsg = ''; syncRefresh(); try { Swal.fire({ icon: 'info', title: 'الحصة المجانية منتهية', text: QUOTA_MSG, confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); } catch (x) { /* تجاهل */ } return; }
+    if (isTimeoutErr(e)) { syncErrMsg = ''; syncRefresh(); try { Swal.fire({ icon: 'info', title: QUEUED_MSG, toast: true, position: 'bottom', showConfirmButton: false, timer: 3500 }); } catch (x) { /* تجاهل */ } return; }
     syncErrMsg = (e && e.message) || 'فشل الكتابة'; syncRefresh();
     try { Swal.fire({ icon: 'error', title: 'تعذّر إرسال بعض التغييرات للسحابة', text: syncErrMsg, confirmButtonColor: '#0f1c38' }); } catch (x) { /* تجاهل */ }
 }
@@ -472,11 +483,11 @@ function showSyncStatus() {
     const u = usageGet(), cw = usageCap('w'), cr = usageCap('r');
     const bar = (label, n, cap) => { const pc = Math.min(100, Math.round(n / Math.max(1, cap) * 100)); return `<div class="ss-use"><div class="ss-ut"><span>${label}</span><b>${n} من ${cap}</b></div><div class="ss-bar"><i class="${pc >= 90 ? 'hi' : pc >= 70 ? 'mid' : ''}" style="width:${pc}%"></i></div></div>`; };
     const nearCap = u.w / Math.max(1, cw) >= .7 || u.r / Math.max(1, cr) >= .7;
-    const SRC = { pharmacy_products: 'المواد', pharmacy_stock: 'المخزون', pharmacy_cost: 'التكلفة', pharmacy_purchases: 'الواردات', pharmacy_suppliers: 'المذاخر', pharmacy_ledger: 'الدفتر', pharmacy_invoices: 'الفواتير', pharmacy_expenses: 'المصروفات', pharmacy_counts: 'الجرد', pharmacy_followups: 'المتابعات', pharmacy_moves: 'الحركات', pharmacy_log: 'السجل', pharmacy_backups: 'النسخ الاحتياطية', pharmacy_users: 'المستخدمون', pharmacy: 'الإعدادات' };
-    const topBy = (t) => { const m = usageBy()[t] || {}; return Object.keys(m).sort((a, b) => m[b] - m[a]).slice(0, 4).map(k => `<span>${escapeHtml(SRC[k] || k)}: <b>${fmtNum(m[k])}</b></span>`).join(' · '); };
-    const byHtml = (topBy('r') || topBy('w')) ? `<div class="ss-note ss-by">${topBy('r') ? '<div>أكثر القراءات: ' + topBy('r') + '</div>' : ''}${topBy('w') ? '<div>أكثر الكتابات: ' + topBy('w') + '</div>' : ''}</div>` : '';
+    const SRC = { pharmacy_products: 'المواد', pharmacy_stock: 'المخزون', pharmacy_cost: 'التكلفة', pharmacy_purchases: 'الواردات', pharmacy_suppliers: 'المذاخر', pharmacy_ledger: 'الدفتر', pharmacy_invoices: 'الفواتير', pharmacy_expenses: 'المصروفات', pharmacy_counts: 'الجرد', pharmacy_followups: 'المتابعات', pharmacy_moves: 'الحركات', pharmacy_log: 'السجل', pharmacy_backups: 'النسخ الاحتياطية', pharmacy_users: 'المستخدمون', pharmacy: 'الإعدادات', pharmacy_tomb: 'المحذوفات', pharmacy_search_misses: 'طلبات الأطباء' };
+    const topBy = (t) => { const m = usageBy()[t] || {}; return Object.keys(m).sort((a, b) => m[b] - m[a]).slice(0, 5).map(k => `<span>${escapeHtml(SRC[k] || k)}: <b>${fmtNum(m[k])}</b></span>`).join(' · '); };
+    const byHtml = (topBy('r') || topBy('w')) ? `<div class="ss-note ss-by">${topBy('r') ? '<div>أكثر القراءات: ' + topBy('r') + '</div>' : ''}${topBy('c') ? '<div>منها قراءة كاملة بعد غياب (فتح بارد): ' + topBy('c') + '</div>' : ''}${topBy('w') ? '<div>أكثر الكتابات: ' + topBy('w') + '</div>' : ''}</div>` : '';
     const capHtml = userRole === 'owner' ? `<div class="ss-cap"><label for="ssCapR">الحد اليومي للقراءات</label><input id="ssCapR" type="number" inputmode="numeric" min="1000" step="1000" value="${cr}" onchange="usageSetCap('r', this.value)"><label for="ssCapW">الحد اليومي للكتابات</label><input id="ssCapW" type="number" inputmode="numeric" min="1000" step="500" value="${cw}" onchange="usageSetCap('w', this.value)"></div><div class="ss-note">حصة Firebase المجانية للمشروع كله 50,000 قراءة و20,000 كتابة يومياً، وهي مشتركة بين كل الأجهزة. يُفضّل أن يكون مجموع حدود الأجهزة أقل منها.</div>` : '';
-    const tech = bar('الكتابات اليوم (هذا الجهاز)', u.w, cw) + bar('القراءات اليوم (هذا الجهاز)', u.r, cr) + byHtml + capHtml +
+    const tech = bar('الكتابات اليوم (هذا الجهاز)', u.w, cw) + bar('القراءات اليوم (هذا الجهاز)', u.r, cr) + byHtml + capHtml + (typeof suPanelHtml === 'function' ? suPanelHtml() : '') +
         (!native && !persistenceOn ? '<div class="ss-note">الحفظ دون إنترنت غير مدعوم في هذا المتصفح، فلا تُحفظ العمليات إن انقطع الاتصال.</div>' : '');
     const html = `<div class="ss-wrap">
         <div class="ss-hero ss-${tone}"><span class="ss-dot"></span><div class="ss-ht"><b>${head}</b><small>${sub}</small></div></div>` +
@@ -529,9 +540,9 @@ function usageSetCap(t, v) {
     const u = usageGet(); if (usagePaused === 'cap' && u.r < usageCap('r') && u.w < usageCap('w')) usageResume();
     Swal.close(); showSyncStatus();
 }
-function usageAdd(t, n, src) {
+function usageAdd(t, n, src, cold) {
     if (!n) return;
-    try { const by = usageBy(), m = by[t] || (by[t] = {}), s = src || 'أخرى'; m[s] = (m[s] || 0) + n; if (Date.now() - _usBySave > 3000) { _usBySave = Date.now(); localStorage.setItem('diwanUsageBy', JSON.stringify(by)); } } catch (e) { /* تجاهل */ }
+    try { const by = usageBy(), m = by[t] || (by[t] = {}), s = src || 'أخرى'; m[s] = (m[s] || 0) + n; if (cold) { const c = by.c || (by.c = {}); c[s] = (c[s] || 0) + n; } if (Date.now() - _usBySave > 3000) { _usBySave = Date.now(); localStorage.setItem('diwanUsageBy', JSON.stringify(by)); } } catch (e) { /* تجاهل */ }
     const u = _usMem && _usMem.d === usageDayKey() ? _usMem : (_usMem = usageGet());
     u[t] += n;
     if (t === 'w') { window.__abDirty = 1; if (typeof abDirty === 'function') abDirty(); }   // تغيّرت البيانات: تُحفظ نسخة تلقائية بعد قليل
@@ -560,19 +571,33 @@ function installUsage() {
     const WB = F.WriteBatch && F.WriteBatch.prototype;
     wrapW(WB, ['set', 'update', 'delete'], function (n, a) { this.__n = (this.__n || 0) + 1; const c = (a && a[0] && a[0].parent && a[0].parent.id) || 'أخرى'; this.__c = this.__c || {}; this.__c[c] = (this.__c[c] || 0) + 1; });
     wrapW(WB, ['commit'], function () { const c = this.__c || {}, ks = Object.keys(c); if (ks.length) ks.forEach(k => usageAdd('w', c[k], k)); else usageAdd('w', this.__n || 1); this.__n = 0; this.__c = {}; });
-    const cnt = s => { try { if (s && !(s.metadata && s.metadata.fromCache)) { const src = (s.docs && s.docs[0] && s.docs[0].ref && s.docs[0].ref.parent && s.docs[0].ref.parent.id) || (s.ref && s.ref.parent && s.ref.parent.id) || 'أخرى'; usageAdd('r', typeof s.docChanges === 'function' ? s.docChanges().length : 1, src); } } catch (e) { /* تجاهل */ } };
+    // القراءات «الباردة»: بعد غياب أكثر من 25 دقيقة (تطبيق بالخلفية أو شاشة مقفلة) يعيد Firestore قراءة كل مستندات المستمع من الخادم
+    // ويفوترها كلها، بينما docChanges() تعدّ المتغيّر فقط قياساً بالكاش. فنحتسب أول لقطة من الخادم بعد الغياب بحجمها الكامل.
+    const COLD_MS = 25 * 60000, AK = 'diwanAlive'; let coldEpoch = 0, startCold = false;
+    try { const last = +localStorage.getItem(AK) || 0; startCold = !last || Date.now() - last > COLD_MS; } catch (e) { startCold = true; }
+    if (startCold) coldEpoch = 1;
+    let aliveAt = Date.now(); const coldSeen = {};
+    const beat = () => { aliveAt = Date.now(); try { localStorage.setItem(AK, String(aliveAt)); } catch (e) { /* تجاهل */ } };
+    beat(); setInterval(beat, 30000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { try { localStorage.setItem('diwanUsageBy', JSON.stringify(usageBy())); localStorage.setItem('diwanUsage', JSON.stringify(_usMem || usageGet())); } catch (e) { /* تجاهل */ } } });   // حفظ العدّاد عند إخفاء الصفحة (يُحفظ كل 3 ثوانٍ فقط خلال العمل)
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { if (Date.now() - aliveAt > COLD_MS) coldEpoch++; beat(); } });
+    const isCold = src => { const s = coldSeen[src] === undefined ? (startCold ? 0 : coldEpoch) : coldSeen[src]; coldSeen[src] = coldEpoch; return s < coldEpoch; };
+    const srcOf = s => (s.docs && s.docs[0] && s.docs[0].ref && s.docs[0].ref.parent && s.docs[0].ref.parent.id) || (s.ref && s.ref.parent && s.ref.parent.id) || (s.query && s.query._query && s.query._query.path && s.query._query.path.canonicalString && s.query._query.path.canonicalString()) || 'أخرى';
+    const cnt = (s, live) => { try { if (s && !(s.metadata && s.metadata.fromCache)) { const src = srcOf(s);
+        if (live && typeof s.docChanges === 'function') { const cold = isCold(src); usageAdd('r', cold ? Math.max(1, s.size || 0) : Math.max(1, s.docChanges().length), src, cold); }
+        else usageAdd('r', typeof s.size === 'number' ? Math.max(1, s.size) : 1, src); } } catch (e) { /* تجاهل */ } };
     const wrapSnap = proto => {
         if (!proto || typeof proto.onSnapshot !== 'function') return; const o = proto.onSnapshot;
         proto.onSnapshot = function () {
             const a = Array.prototype.slice.call(arguments); const i = a.findIndex(x => typeof x === 'function');
-            if (i >= 0) { const f = a[i]; a[i] = function (s) { cnt(s); return f.apply(this, arguments); }; }
-            else { const k = a.findIndex(x => x && typeof x === 'object' && typeof x.next === 'function'); if (k >= 0) { const ob = a[k]; a[k] = { next: function (s) { cnt(s); return ob.next.apply(ob, arguments); }, error: ob.error && ob.error.bind(ob), complete: ob.complete && ob.complete.bind(ob) }; } }
+            if (i >= 0) { const f = a[i]; a[i] = function (s) { cnt(s, true); return f.apply(this, arguments); }; }
+            else { const k = a.findIndex(x => x && typeof x === 'object' && typeof x.next === 'function'); if (k >= 0) { const ob = a[k]; a[k] = { next: function (s) { cnt(s, true); return ob.next.apply(ob, arguments); }, error: ob.error && ob.error.bind(ob), complete: ob.complete && ob.complete.bind(ob) }; } }
             return o.apply(this, a);
         };
     };
     setInterval(() => { if (usagePaused === 'cap') { const u = usageGet(); if (u.w < usageCap('w') && u.r < usageCap('r')) usageResume(); } }, 600000);   // استئناف تلقائي عند تجدد الحصة
     wrapSnap(F.Query && F.Query.prototype); wrapSnap(F.DocumentReference && F.DocumentReference.prototype);
-    [F.Query && F.Query.prototype, F.DocumentReference && F.DocumentReference.prototype].forEach(proto => { if (!proto || typeof proto.get !== 'function') return; const o = proto.get; proto.get = function () { const r = o.apply(this, arguments); try { if (r && r.then) r.then(cnt, () => { }); } catch (e) { /* تجاهل */ } return r; }; });
+    [F.Query && F.Query.prototype, F.DocumentReference && F.DocumentReference.prototype].forEach(proto => { if (!proto || typeof proto.get !== 'function') return; const o = proto.get; proto.get = function () { const r = o.apply(this, arguments); try { if (r && r.then) r.then(x => cnt(x, false), () => { }); } catch (e) { /* تجاهل */ } return r; }; });
 }
 // غياب طويل: قد توجد كتابات كثيرة معلّقة، فلا تُرسل تلقائياً قبل موافقة المستخدم
 async function usageAbsenceGuard() {
@@ -608,6 +633,41 @@ function installRecvOnly() {
     if (F.Firestore && F.Firestore.prototype && F.Firestore.prototype.runTransaction) { const o = F.Firestore.prototype.runTransaction; F.Firestore.prototype.runTransaction = function () { if (recvOnly()) return deny(); return o.apply(this, arguments); }; }
 }
 
+let _prodLegacyOn = false;
+function startProductsLegacy() {   // النمط الكامل القديم: مستمع على كل مستندات pharmacy_products (يُعاد قراءتها كلها بعد كل غياب طويل)
+    if (_prodLegacyOn || !db) return; _prodLegacyOn = true;
+    db.collection('pharmacy_products').onSnapshot(snapshot => {
+        if (!snapshot.empty) {
+            cloudPub = [];
+            snapshot.forEach(doc => { cloudPub.push(doc.data()); });
+            scheduleRebuild(true);   // ✅ إعادة البناء مرة واحدة، ثم يُفتح المنتج المشارك إن وُجد
+            setSyncText("☁️ متزامن");
+        }
+    }, err => {
+        console.error("Cloud Sync Error:", err);
+        setSyncText("⚠️ خطأ مزامنة");
+    });
+}
+function initSu() {   // المزامنة الموفِّرة للقراءات (susync.js)
+    if (window.SU || typeof makeSu !== 'function' || !IS_ADMIN_PAGE) return;
+    const F = firebase.firestore;
+    window.SU = makeSu({
+        db: () => db, F, ls: localStorage, now: () => trustedNow(), uid: () => (currentUser && currentUser.uid) || '',
+        products: () => products, STOCK_FIELDS, COST_FIELDS,
+        getStock: () => stockMap, getCost: () => costMap,
+        setPub: a => { cloudPub = a; }, setStockReady: () => { stockReady = true; }, isStockReady: () => stockReady,
+        setSetupMode: v => { setupMode = !!v; }, setCostSplit: v => { costSplitOn = !!v; },
+        rebuild: share => { if (cloudPub.length) scheduleRebuild(share); },
+        legacyStart: kind => { if (kind === 'pub') startProductsLegacy(); else if (kind === 'stock') startStockListener(); else startCostListener(); },
+        prog: t => (typeof Prog !== 'undefined' ? Prog.start(t, { text: 'جاري التحميل...' }) : null),
+        grantWrites: n => usageGrant(0, n), log: (...a) => console.warn(...a),
+        onFlagChange: on => { try { Swal.fire({ icon: 'info', title: on ? 'فُعّلت المزامنة الموفِّرة للقراءات' : 'أُوقفت المزامنة الموفِّرة للقراءات', text: 'أغلق التطبيق وافتحه من جديد ليُطبَّق التغيير.', toast: true, position: 'bottom', showConfirmButton: false, timer: 5000 }); } catch (e) { /* تجاهل */ } }
+    });
+    SU.installStamp(F);
+    // مطابقة كاملة كل 48 ساعة تعالج أي مستند فاته الختم (جهاز بنسخة قديمة مثلاً) أو حذفٌ لم يُسجَّل
+    const recon = () => { try { if (SU.needRecon() && navigator.onLine && !usagePaused && document.visibilityState === 'visible') { const h = Prog.start('تحديث الأصناف الدوري', { text: 'جاري القراءة من السحابة...' }); SU.reconcile(h).catch(() => h.fail('تعذر التحديث')); } } catch (e) { /* تجاهل */ } };
+    setTimeout(recon, 90000); setInterval(recon, 6 * 3600e3);
+}
 async function initFirebase() {
     if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "PUT_YOUR_API_KEY_HERE") {
         setSyncText("💾 محلي");
@@ -622,6 +682,7 @@ async function initFirebase() {
         db = firebase.firestore();
         isFirebaseReady = true;
         installUsage();
+        try { initSu(); } catch (e) { console.warn('SU:', e && e.message); }
         if (recvOnly()) {
             installRecvOnly();
             try { if (localStorage.getItem('diwanRecvClean') !== '1') { await db.clearPersistence(); localStorage.setItem('diwanRecvClean', '1'); } } catch (e) { console.warn('clearPersistence:', e && e.code); }   // مسح طابور الكتابات القديم العالق مرة واحدة
@@ -650,6 +711,7 @@ async function initFirebase() {
                 } catch (e) { /* بدون اتصال: نكمل من النسخة المحلية */ }
                 if (can('stockView') || can('sell')) startStockListener();
                 if (userRole === 'owner' || can('scanCost')) startCostListener();
+                try { if (window.SU) SU.afterAuth(); } catch (e) { /* تجاهل */ }
                 checkPending();
                 if (userRole === 'owner') setTimeout(() => { if (typeof syncLocalRecords === 'function') syncLocalRecords(true).catch(() => {}); }, 4000);
                 if (userRole === 'owner') setTimeout(autoMaintenance, 9000);   // نسخة احتياطية أسبوعية + تنظيف السلة والسجل
@@ -686,17 +748,7 @@ async function initFirebase() {
         });
 
         // 2. مراقبة المنتجات والصور من السحابة (تحديث فوري لكل الأجهزة)
-        db.collection('pharmacy_products').onSnapshot(snapshot => {
-            if (!snapshot.empty) {
-                cloudPub = [];
-                snapshot.forEach(doc => { cloudPub.push(doc.data()); });
-                scheduleRebuild(true);   // ✅ إعادة البناء مرة واحدة، ثم يُفتح المنتج المشارك إن وُجد
-                setSyncText("☁️ متزامن");
-            }
-        }, err => {
-            console.error("Cloud Sync Error:", err);
-            setSyncText("⚠️ خطأ مزامنة");
-        });
+        if (window.SU && SU.on()) SU.startProducts(); else startProductsLegacy();
     } catch (e) {
         console.warn("Firebase Error:", e);
     }
@@ -706,8 +758,8 @@ async function initFirebase() {
 let _plTimer = 0;
 function flushProductsLocal() {
     if (_plTimer) { clearTimeout(_plTimer); _plTimer = 0; }
-    try { localStorage.setItem('diwanProducts', JSON.stringify(products)); }
-    catch (e) { localStorage.removeItem('diwanProducts'); }   // ذاكرة ممتلئة: نقرأ من السحابة
+    try { localStorage.setItem('diwanProducts', JSON.stringify(products)); try { if (window.SU) SU.commit(); } catch (e2) { /* تجاهل */ } }
+    catch (e) { localStorage.removeItem('diwanProducts'); try { if (window.SU) SU.invalidate(); } catch (e2) { /* تجاهل */ } }   // ذاكرة ممتلئة: نقرأ من السحابة
 }
 function saveProductsLocalSoon() { if (_plTimer) clearTimeout(_plTimer); _plTimer = setTimeout(flushProductsLocal, 1000); }
 ['pagehide', 'beforeunload'].forEach(ev => window.addEventListener(ev, () => { if (_plTimer) flushProductsLocal(); }));
@@ -755,7 +807,7 @@ function saveLocal() {
         saveProductsLocalSoon();
     } catch (e) {
         // إذا امتلأت ذاكرة المتصفح، نمسح النسخة المحلية القديمة لكي يقرأ المتصفح من السحابة المحدثة دائماً!
-        localStorage.removeItem('diwanProducts');
+        localStorage.removeItem('diwanProducts'); try { if (window.SU) SU.invalidate(); } catch (e2) { /* تجاهل */ }
     }
 }
 
@@ -3107,7 +3159,7 @@ function deltaFromSnap(p, s) {
 function pubDiff(pub, base, F) {   // الحقول التي تغيّرت عن نسخة السحابة (والمحذوفة بـ delete)
     const data = {}, fields = [];
     Object.keys(pub).forEach(k => { if (JSON.stringify(pub[k]) !== JSON.stringify(base[k])) { data[k] = pub[k]; fields.push(k); } });
-    Object.keys(base).forEach(k => { if (!(k in pub)) { data[k] = F.delete(); fields.push(k); } });
+    Object.keys(base).forEach(k => { if (k !== '_su' && !(k in pub)) { data[k] = F.delete(); fields.push(k); } });
     return fields.length ? { data, fields } : null;
 }
 async function saveProductsDelta(entries, op) {
@@ -4651,6 +4703,7 @@ async function autoMaintenance() {
         if (Date.now() - last >= AUTO_BACKUP_DAYS * 864e5) await createCloudBackup(false);
         await purgeOldTrash();
         await purgeOldLog();
+        try { if (window.SU && SU.on()) await SU.purgeTomb(); } catch (e) { /* تجاهل */ }
     } catch (e) { console.warn('Auto maintenance:', e && e.message); }
 }
 

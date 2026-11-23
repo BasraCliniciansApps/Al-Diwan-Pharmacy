@@ -846,7 +846,12 @@ let syncingLocal = false;
 function localOnlyCounts() { return ''; }
 async function syncLocalRecords(auto) {
     if (!cloudReady() || !navigator.onLine || syncingLocal) return 0;
-    if (auto && lsGet('diwanNeedsPush') !== '1' && (lsGet('diwanPushedOnce') === sessionStorage.getItem('diwanSess') || Date.now() - (+lsGet('diwanPushedAt') || 0) < 12 * 3600e3)) return 0;   // الفحص الشامل (آلاف القراءات) مرة كل 12 ساعة، أو فوراً إن وُجدت سجلات لم تُرسل
+    // الفحص الشامل يقرأ آلاف المستندات (فواتير ووارد ومذاخر ودفتر): تلقائياً مرة كل 12 ساعة، ويدوياً (سحب للتحديث أو «مزامنة الآن») مرة كل 3 ساعات،
+    // وفوراً فقط إن وُجدت سجلات لم تُرسل (diwanNeedsPush). الكتابات العادية تُرسل لوحدها من طابور Firestore ولا تحتاج مقارنة.
+    if (lsGet('diwanNeedsPush') !== '1') {
+        const ago = Date.now() - (+lsGet('diwanPushedAt') || 0);
+        if (auto ? (lsGet('diwanPushedOnce') === sessionStorage.getItem('diwanSess') || ago < 12 * 3600e3) : ago < 3 * 3600e3) return 0;
+    }
     syncingLocal = true; let n = 0;
     try {
         try { n += await pushLocalInvoices(); } catch (e) { /* القواعد */ }

@@ -15,9 +15,9 @@ service cloud.firestore {
       allow create, delete: if isOwner() || perm('stockEdit');
       // البائع يحدّث حالة التوفر فقط (inStock) عند البيع
       allow update: if isOwner() || perm('stockEdit')
-                    || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock']))
+                    || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock', '_su']))
                     // قوائم الجرد: الأسعار فقط
-                    || (perm('invList') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock', 'price', 'pricing', 'markupPct', 'subPrice', 'subManual', 'metaUpdatedAt']));
+                    || (perm('invList') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inStock', 'price', 'pricing', 'markupPct', 'subPrice', 'subManual', 'metaUpdatedAt', '_su']));
     }
     match /pharmacy/{id} {
       allow read: if true;
@@ -30,9 +30,17 @@ service cloud.firestore {
       allow create, delete: if isOwner() || perm('stockEdit');
       // البائع يغيّر الكمية فقط
       allow update: if isOwner() || perm('stockEdit')
-                    || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty', 'loose']))
+                    || (perm('sell') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty', 'loose', '_su']))
                     // قوائم الجرد: الكميات وعلامة «مجرودة» والدفعات
-                    || (perm('invList') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty', 'loose', 'counted', 'bt', 'expiryDates', 'expiryDate']));
+                    || (perm('invList') && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['qty', 'loose', 'counted', 'bt', 'expiryDates', 'expiryDate', '_su']));
+    }
+
+    // ---- سجل المحذوفات للمزامنة الموفِّرة للقراءات: مستند لكل مادة محذوفة (يُنظَّف بعد 45 يوماً) ----
+    // الحقل _su (ختم وقت الخادم) صار مسموحاً في تحديثات البائع وقوائم الجرد أعلاه؛ والقراءة لأي حساب مفعّل.
+    match /pharmacy_tomb/{id} {
+      allow read: if isOwner() || isStaff();
+      allow create, update: if isOwner() || perm('stockEdit');
+      allow delete: if isOwner();
     }
 
     // ---- قوائم الجرد ----

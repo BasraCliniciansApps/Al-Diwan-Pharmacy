@@ -15,7 +15,7 @@ const Prog = {
         h.tick = (i, n, t) => { if (n > 0) h.set(h.lo + (h.hi - h.lo) * Math.min(i, n) / n, t); else if (t !== undefined) h.text_(t); return h; };
         h.span = (lo, hi) => { h.lo = lo; h.hi = hi; return h; };
         h.ok = msg => { if (h.state !== 'run') return; h.state = 'ok'; h.pct = 100; h.text = msg || 'تم بنجاح'; Prog.paint(); setTimeout(() => { if (Prog.cur === h) Prog.hide(); }, 2600); };
-        h.fail = (msg, why) => { if (h.state !== 'run') return; h.state = 'err'; h.text = msg || 'فشلت العملية'; h.why = why || ''; Prog.paint(); };
+        h.fail = (msg, why) => { if (h.state !== 'run') return; h.state = 'err'; h.text = msg || 'فشلت العملية'; h.why = why || ''; try { if (/resource-exhausted|quota/i.test(String(why || '')) && typeof QUOTA_MSG === 'string') h.why = QUOTA_MSG; } catch (e) { /* تجاهل */ } Prog.paint(); };
         h.drop = () => { h.state = 'drop'; Prog.detach(h); if (Prog.cur === h) { Prog.cur = null; Prog.chipHide(); } };
         h.close = () => { if (Prog.cur === h) Prog.hide(); };
         Prog.cur = h; h.layer = Prog.topLayer(); h.line = null; Prog.paint();
