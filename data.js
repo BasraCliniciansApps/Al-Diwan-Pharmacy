@@ -5096,7 +5096,7 @@ function setBarcodeStatus(t, isErr) {
 
 let barcodeKeep = false, bcCool = 0, bcLastCode = '', bcLastAt = 0, bcPend = '', bcPendAt = 0, bcTrack = null;
 // opts.keep: تبقى الكاميرا مفتوحة بعد كل قراءة (للبيع السريع) بدل الإغلاق وإعادة الفتح
-function openBarcodeScanner(cb, opts) {
+function bcOpenWeb(cb, opts) {
     barcodeCallback = cb; barcodeKeep = !!(opts && opts.keep);
     bcLastCode = ''; bcLastAt = 0; bcPend = ''; bcPendAt = 0; bcCool = 0;
     document.getElementById('barcodeModal').style.display = 'flex';
@@ -5108,7 +5108,62 @@ function openBarcodeScanner(cb, opts) {
     startBarcodeCamera();
 }
 
+// ===== القارئ الأصلي (ML Kit من جوجل) داخل تطبيق الأندرويد: أسرع وأدق، وإن فشل نرجع للكاميرا العادية تلقائياً =====
+let bcNatId = 0;
+const BC_NAT_FORMATS = ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'CODE_128', 'CODE_39', 'ITF', 'QR_CODE', 'DATA_MATRIX'];
+function bcNativeOk() {
+    try { if (opsNoNative()) return false; return !!(window.NAT && NAT.is && NAT.plugins && NAT.plugins().BS && NAT.bs()); } catch (e) { return false; }
+}
+function opsNoNative() { try { return sessionStorage.getItem('diwanBcNatBad') === '1' || localStorage.getItem('diwanBcNative') === '0'; } catch (e) { return false; } }
+function openBarcodeScanner(cb, opts) {
+    if (!(opts && opts.web) && bcNativeOk()) { bcNativeRun(cb, !!(opts && opts.keep), true, opts); return; }
+    bcOpenWeb(cb, opts);
+}
+async function bcNativeRun(cb, keep, first, opts) {
+    const id = ++bcNatId, BS = NAT.bs(); if (first) { bcLastCode = ''; bcLastAt = 0; }
+    const fallback = (why) => {
+        try { sessionStorage.setItem('diwanBcNatBad', '1'); } catch (e) { /* تجاهل */ }
+        try { Swal.fire({ icon: 'info', title: why || 'تعذّر القارئ السريع، استُعملت الكاميرا العادية', toast: true, position: 'bottom', showConfirmButton: false, timer: 2600 }); } catch (e) { /* تجاهل */ }
+        bcOpenWeb(cb, opts);
+    };
+    try {
+        if (first) {
+            const sup = await BS.isSupported(); if (!sup || !sup.supported) { fallback(); return; }
+            let av = null; try { av = await BS.isGoogleBarcodeScannerModuleAvailable(); } catch (e) { av = null; }
+            if (av && av.available === false) {   // وحدة جوجل غير منزّلة بعد: نبدأ تنزيلها ونستعمل الكاميرا العادية الآن
+                try { BS.installGoogleBarcodeScannerModule().catch(() => { }); } catch (e) { /* تجاهل */ }
+                try { sessionStorage.setItem('diwanBcNatBad', '1'); } catch (e) { /* تجاهل */ }
+                try { Swal.fire({ icon: 'info', title: 'يجري تجهيز القارئ السريع، سيعمل في المرة القادمة', toast: true, position: 'bottom', showConfirmButton: false, timer: 3200 }); } catch (e) { /* تجاهل */ }
+                bcOpenWeb(cb, opts); return;
+            }
+        }
+        const r = await BS.scan({ formats: BC_NAT_FORMATS, autoZoom: true });
+        if (id !== bcNatId) return;
+        const b = r && r.barcodes && r.barcodes[0], raw = b && (b.rawValue || b.displayValue);
+        if (!raw) { if (keep) setTimeout(() => bcNativeRun(cb, keep, false, opts), 400); return; }
+        const g = parseGS1(raw), c = g ? g.gtin : cleanBarcode(raw);
+        if (!c) return;
+        const now = Date.now(); let res;
+        if (keep && c === bcLastCode && now - bcLastAt < 2500) { bcLastAt = now; res = 'dup'; }
+        else { bcLastCode = c; bcLastAt = now; try { res = cb && cb(c, g); } catch (e) { /* تجاهل */ } }
+        if (!keep || res === 'close') return;
+        const again = () => {   // نعيد فتح القارئ بعد لحظة، وننتظر إغلاق أي نافذة مفتوحة (مثل باركود غير مسجّل)
+            if (id !== bcNatId) return;
+            if (opts && opts.alive && !opts.alive()) return;   // خرج المستخدم من الشاشة
+            if (document.querySelector('.swal2-container')) { setTimeout(again, 400); return; }
+            bcNativeRun(cb, keep, false, opts);
+        };
+        setTimeout(again, 700);
+    } catch (e) {
+        const m = String((e && (e.message || e.errorMessage)) || e || '');
+        if (/cancel/i.test(m)) { barcodeCallback = null; if (typeof scOnCamClose === 'function') scOnCamClose(); return; }   // أغلق المستخدم القارئ
+        fallback();
+    }
+}
+function bcNativeStop() { bcNatId++; }
+
 function closeBarcodeScanner() {
+    bcNativeStop();
     stopBarcodeCamera();
     { const sb = document.getElementById('bcSearchBox'), mr = document.getElementById('bcManualRow'); if (sb) sb.style.display = 'none'; if (mr) mr.style.display = ''; }
     document.getElementById('barcodeModal').style.display = 'none';

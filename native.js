@@ -26,6 +26,7 @@
         return null;
     };
     NAT.plugins = () => ({ DP: !!DP, FS: !!FS, LN: !!LN, BS: !!BS, BIO: !!BIO, TP: !!TP, APP: !!APP });
+    NAT.bs = () => BS;   // قارئ ML Kit الأصلي (يستعمله السكانر إن توفّر)
     const FS = P('Filesystem'), LN = P('LocalNotifications'), BS = P('BarcodeScanner'),
         BIO = P('BiometricAuthNative'), TP = P('CapacitorThermalPrinter'), APP = P('App');
     const KEY = 'diwanNative';

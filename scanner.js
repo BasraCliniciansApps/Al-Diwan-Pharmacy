@@ -46,7 +46,7 @@ function scBuyLines(p) {
 let scCur = null;
 const scE = id => document.getElementById(id);
 function scInit() { scApplyHome(); const q = scE('scQ'); if (q) { q.value = ''; } scList([]); scCur = null; scE('scCard').innerHTML = '<div class="sc-hint">امسح باركود المادة أو ابحث باسمها 👆</div>'; }
-function scScan() { openBarcodeScanner(code => { const p = findByBarcode(code); if (p) { scPick(p.id); } else scUnknown(code); }); }
+function scScan() { openBarcodeScanner(code => { const p = findByBarcode(code); if (p) { scPick(p.id); } else scUnknown(code); }, { web: true }); }
 function scSearch(v) {
     const qn = normSearch(v || ''), qt = qn ? qn.split(' ') : [];
     if (!qn) { scList([]); return; }
@@ -179,7 +179,7 @@ function scScanTimed() {
         scManual();
         Swal.fire({ icon: 'info', title: 'لم يُقرأ باركود — ابحث بالاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     }, SC_SCAN_WAIT_MS);
-    openBarcodeScanner(cb);
+    openBarcodeScanner(cb, { web: true });
     { const b = scE('bcSearchBox'), mr = scE('bcManualRow'), q = scE('bcName'), r = scE('bcRes'); if (b) b.style.display = ''; if (q) q.value = ''; if (r) r.innerHTML = ''; }
 }
 // عند الرجوع من البطاقة: ارجع للكاميرا ثم أغلق

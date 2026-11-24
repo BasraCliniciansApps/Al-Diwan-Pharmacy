@@ -175,7 +175,7 @@ function posEnter() {
 }
 function posScan() {   // كاميرا: تستمر بعد كل قراءة لحين الإغلاق
     const cb = code => { if (!posOpenFlag) return 'close'; posByCode(code); };
-    openBarcodeScanner(cb, { keep: true });
+    openBarcodeScanner(cb, { keep: true, alive: () => posOpenFlag });
 }
 
 // ---------- جرد المادة عند أول بيع (خيار في الإعدادات، متوقف افتراضياً) ----------

@@ -117,7 +117,7 @@ function p2Enter() {
 }
 function p2Scan() {   // كاميرا: تستمر بعد كل قراءة لحين الإغلاق
     const cb = code => { if (!p2.open) return 'close'; p2ByCode(code); };
-    openBarcodeScanner(cb, { keep: true });
+    openBarcodeScanner(cb, { keep: true, alive: () => p2.open });
 }
 
 // ---------- بيانات الفاتورة الإضافية ----------
