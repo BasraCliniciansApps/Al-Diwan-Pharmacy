@@ -159,9 +159,9 @@ document.addEventListener('DOMContentLoaded', scApplyHome);
 const SC_SCAN_WAIT_MS = 8000;
 let scTimer = 0;
 function scOvEl() { return document.getElementById('scanView'); }
-function scGo() { scApplyHome(); scInit(); scScanTimed(); }   // الكاميرا فقط؛ لا تظهر نافذة الفاحص إلا عند اختيار مادة
+function scGo() { flightLog('sc-go'); scApplyHome(); scInit(); scScanTimed(); }   // الكاميرا فقط؛ لا تظهر نافذة الفاحص إلا عند اختيار مادة
 function scShowOv() { const el = scOvEl(); if (el && el.style.display !== 'flex') { el.style.display = 'flex'; document.body.classList.add('sc-open'); } }
-function scClose() { clearTimeout(scTimer); try { if (document.getElementById('barcodeModal').style.display === 'flex') closeBarcodeScanner('user'); } catch (e) { /* تجاهل */ } const el = scOvEl(); if (el) el.style.display = 'none'; document.body.classList.remove('sc-open'); scCur = null; }
+function scClose() { flightLog('sc-close'); clearTimeout(scTimer); try { if (document.getElementById('barcodeModal').style.display === 'flex') closeBarcodeScanner('user'); } catch (e) { /* تجاهل */ } const el = scOvEl(); if (el) el.style.display = 'none'; document.body.classList.remove('sc-open'); scCur = null; }
 function scManual() { clearTimeout(scTimer); const q = scE('bcName'); if (q) q.focus(); }
 function scModalSearch(v) {
     const qn = normSearch(v || ''), qt = qn ? qn.split(' ') : [], b = scE('bcRes'); if (!b) return;
@@ -183,7 +183,7 @@ function scScanTimed() {
     { const b = scE('bcSearchBox'), mr = scE('bcManualRow'), q = scE('bcName'), r = scE('bcRes'); if (b) b.style.display = ''; if (q) q.value = ''; if (r) r.innerHTML = ''; }
 }
 // عند الرجوع من البطاقة: ارجع للكاميرا ثم أغلق
-function scBack() { if (scCur) { scInit(); scScanTimed(); } else scClose(); }
+function scBack() { flightLog('sc-back'); scClose(); }   // زر الرجوع يغلق الفاحص دائماً (يخرج من التطبيق إن فُتح من الأيقونة) ولا يعيد فتح الكاميرا
 
 // إغلاق الكاميرا دون اختيار مادة يعيد المستخدم للرئيسية مباشرة (بلا شاشة فارغة)
 function scOnCamClose() { const el = scOvEl(); if (el && el.style.display === 'flex' && !scCur) scClose(); }

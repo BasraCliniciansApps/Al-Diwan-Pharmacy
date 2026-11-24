@@ -34,6 +34,7 @@ function p2Ensure() {
     document.body.appendChild(d);
 }
 function p2Open() {
+    flightLog('p2-open');
     if (typeof userRole !== 'undefined' && userRole === 'guest') return;
     try { initBillEditor(); } catch (e) { /* تجاهل */ }
     if (bill && bill.issued && !bill.editing) { bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); try { initBillEditor(); } catch (e) { /* تجاهل */ } }
@@ -59,6 +60,7 @@ async function p2EditExit(home) {   // الخروج من وضع التعديل �
 }
 function p2Home() { if (p2EditLive()) { p2EditExit(true); return; } p2Close(); try { if (typeof currentView !== 'undefined' && currentView !== 'home') showView('home'); } catch (e) { /* تجاهل */ } }
 function p2Close() {
+    flightLog('p2-close');
     p2.acc = null;
     const ov = p2El('p2Ov'); if (ov) ov.style.display = 'none';
     document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); p2.open = false;

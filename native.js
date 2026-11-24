@@ -290,13 +290,20 @@
     window.dwLaunch = function (t) {
         if (window.__dwT === t && Date.now() - (window.__dwAt || 0) < 4000) return;   // الإطلاق نفسه وصل بطريقتين: ننفذه مرة واحدة
         window.__dwT = t; window.__dwAt = Date.now();
+        try { flightLog('dwLaunch', t); } catch (e) { /* تجاهل */ }
+        if (window.__dwLoop) return;   // حلقة انتظار واحدة فقط: لا نكرر الإغلاق/الفتح
+        window.__dwLoop = true;
+        const shownId = id => { const e = document.getElementById(id); return !!e && getComputedStyle(e).display !== 'none'; };
+        const already = () => t === 'pos' ? (shownId('p2Ov') || shownId('posOv')) : (shownId('scanView') || shownId('barcodeModal'));
         const clear = () => document.documentElement.classList.remove('dw-go');
         let tries = 0;
         const go = () => {
             tries++;
             const ready = typeof currentView !== 'undefined' && !['splash', 'login', ''].includes(currentView) && typeof products !== 'undefined';
             const locked = !!(NAT.isLocked && NAT.isLocked());
-            if (!ready || locked) { if (tries < 150) setTimeout(go, 400); else clear(); return; }
+            if (!ready || locked) { if (tries < 150) setTimeout(go, 400); else { window.__dwLoop = false; clear(); } return; }
+            window.__dwLoop = false;
+            if (already()) { window.__dwDirect = t; try { flightLog('dwLaunch-skip', t); } catch (e) { /* تجاهل */ } setTimeout(clear, 250); return; }   // الشاشة مفتوحة أصلاً: لا نغلقها ونعيد فتحها
             try {
                 if (window.__closeAllLayers) window.__closeAllLayers();
                 if (t === 'pos' && typeof posOpen === 'function' && can('sell')) { window.__dwDirect = 'pos'; posOpen(); }
@@ -306,7 +313,7 @@
         };
         go();
     };
-    NAT.exit = () => { window.__dwT = ''; window.__dwAt = 0; try { history.replaceState(null, '', location.pathname); } catch (e) { /* تجاهل */ }   // نمسح وسم الوجهة كي لا تعيد إعادة تحميل الصفحة فتح البيع بعد الخروج منه
+    NAT.exit = () => { try { flightLog('nat-exit'); } catch (e) { /* تجاهل */ } window.__dwT = ''; window.__dwAt = 0; try { history.replaceState(null, '', location.pathname); } catch (e) { /* تجاهل */ }   // نمسح وسم الوجهة كي لا تعيد إعادة تحميل الصفحة فتح البيع بعد الخروج منه
         try { if (APP && APP.minimizeApp) APP.minimizeApp(); else if (APP && APP.exitApp) APP.exitApp(); } catch (e) { /* تجاهل */ } };
     // الإغلاق المباشر: إذا فُتح التطبيق من أيقونة البيع/الفاحص فإغلاق الشاشة يخرج من التطبيق بدل الرجوع للرئيسية
     window.addEventListener('load', () => {

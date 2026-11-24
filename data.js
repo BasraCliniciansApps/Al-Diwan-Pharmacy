@@ -506,7 +506,7 @@ function showSyncStatus() {
         (typeof invUnsentHtml === 'function' ? invUnsentHtml() : '') +
         (dups.length ? `<div class="ss-warn">أرقام فواتير مكررة (أُصدرت من أجهزة مختلفة بدون إنترنت):<br>${dups.map(escapeHtml).join('، ')}</div>` : '') +
         (window.WA ? '<h5 class="ss-h">📲 التبادل عبر واتساب</h5><div id="waHostSs" class="wa-host">' + WA.hostHtml() + '</div>' : '') +
-        `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}</details><div class="ss-note" id="ssVer"></div></div>`;
+        `<details class="ss-det" ${nearCap ? 'open' : ''}><summary>تفاصيل تقنية</summary>${tech}<div class="ds-bk-b"><button type="button" onclick="flightShow()">سجل النوافذ والماسح</button></div></details><div class="ss-note" id="ssVer"></div></div>`;
     const waM = usagePaused === 'wa';
     const host = document.getElementById('syncBody'); if (!host) return;
     const wasOpen = !!(host.querySelector('.ss-det') && host.querySelector('.ss-det').open);   // تبقى «تفاصيل تقنية» مفتوحة عند إعادة الرسم
@@ -5065,6 +5065,36 @@ async function saveInventory() {
     }
 }
 
+// ---------------- سجل الأحداث (صندوق أسود): يحفظ آخر أحداث النوافذ والماسح لتشخيص الإغلاق والفتح التلقائي ----------------
+const FL_TAG = (typeof window !== 'undefined' && window.__dwGo) ? window.__dwGo : 'main';
+function flightLog(ev, d) {
+    try {
+        const a = window.__fl || (window.__fl = (() => { try { return JSON.parse(localStorage.getItem('diwanFlight_' + FL_TAG) || '[]'); } catch (e) { return []; } })());
+        a.push([Date.now(), ev, d === undefined ? '' : String(d).slice(0, 90)]);
+        if (a.length > 120) a.splice(0, a.length - 120);
+        clearTimeout(flightLog.t); flightLog.t = setTimeout(() => { try { localStorage.setItem('diwanFlight_' + FL_TAG, JSON.stringify(a)); } catch (e) { /* تجاهل */ } }, 400);
+    } catch (e) { /* تجاهل */ }
+}
+function flightText() {
+    const all = [];
+    ['main', 'pos', 'scan'].forEach(t => { let a = []; if (t === FL_TAG && window.__fl) a = window.__fl; else { try { a = JSON.parse(localStorage.getItem('diwanFlight_' + t) || '[]'); } catch (e) { a = []; } } a.forEach(r => all.push([r[0], t, r[1], r[2]])); });
+    all.sort((x, y) => x[0] - y[0]);
+    const f = ms => { const d = new Date(ms), p = (n, l) => String(n).padStart(l || 2, '0'); return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds()) + '.' + p(d.getMilliseconds(), 3); };
+    return all.slice(-140).map(r => f(r[0]) + ' [' + r[1] + '] ' + r[2] + (r[3] ? ' ' + r[3] : '')).join('\n');
+}
+function flightShow() {
+    const t = flightText() || 'لا أحداث بعد';
+    Swal.fire({ title: 'سجل النوافذ والماسح', html: '<textarea readonly dir="ltr" style="width:100%;height:46vh;font:11px/1.35 monospace;direction:ltr;text-align:left;border:1px solid #cbd5e1;border-radius:10px;padding:8px;box-sizing:border-box">' + escapeHtml(t) + '</textarea>', showCancelButton: true, confirmButtonText: 'نسخ', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' }).then(r => { if (r.isConfirmed) { try { navigator.clipboard.writeText(t); Swal.fire({ icon: 'success', title: 'تم النسخ', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 }); } catch (e) { /* تجاهل */ } } });
+}
+try {
+    const nv = (performance.getEntriesByType && performance.getEntriesByType('navigation')[0]) || {};
+    flightLog('page-load', (nv.type || '?') + ' ' + (location.hash || '') + ' go=' + (window.__dwGo || ''));
+    document.addEventListener('visibilitychange', () => flightLog('visibility', document.visibilityState));
+    window.addEventListener('pageshow', e => flightLog('pageshow', e.persisted ? 'cached' : 'fresh'));
+    window.addEventListener('pagehide', () => flightLog('pagehide'));
+    window.addEventListener('popstate', () => flightLog('popstate', 'g=' + ((history.state && history.state.g) || 0)));
+} catch (e) { /* تجاهل */ }
+
 // ---------------- الباركود ----------------
 const ZXING_URL = 'vendor/zxing.min.js';   // مجمّعة داخل التطبيق (تعمل بلا إنترنت)
 let barcodeStream = null;
@@ -5098,7 +5128,7 @@ function setBarcodeStatus(t, isErr) {
 const BC_REARM = 700, BC_GAP = 400;
 let barcodeKeep = false, bcCool = 0, bcLastCode = '', bcLastAt = 0, bcPend = '', bcPendAt = 0, bcTrack = null;
 // opts.keep: تبقى الكاميرا مفتوحة بعد كل قراءة (للبيع السريع) بدل الإغلاق وإعادة الفتح
-let bcOpenedAt = 0;
+let bcOpenedAt = 0, bcGen = 0;
 // نافذة حوارية حقيقية مفتوحة؟ (الإشعارات الصغيرة toast لا تُوقف القراءة، كانت توقفها ~2 ثانية بعد كل مادة)
 function bcDialogOpen() { return !!document.querySelector('.swal2-container .swal2-popup:not(.swal2-toast)'); }
 function bcOverlayTap() { if (Date.now() - bcOpenedAt > 900) closeBarcodeScanner('outside'); }   // نقرة خارج المربع بعد الفتح مباشرة تُهمَل (نقرة الفتح نفسها كانت تغلقه)
@@ -5106,6 +5136,7 @@ function bcOpenWeb(cb, opts) {
     const mm = document.getElementById('barcodeModal');
     if (mm && mm.style.display === 'flex' && Date.now() - bcOpenedAt < 1500) { barcodeCallback = cb; barcodeKeep = !!(opts && opts.keep); return; }   // طلب فتح مكرر (نقر مزدوج): لا نعيد تشغيل الكاميرا
     bcOpenedAt = Date.now();
+    flightLog('scanner-open', (opts && opts.keep ? 'keep' : 'single') + ' g' + (bcGen + 1));
     barcodeCallback = cb; barcodeKeep = !!(opts && opts.keep);
     bcLastCode = ''; bcLastAt = 0; bcPend = ''; bcPendAt = 0; bcCool = 0;
     document.getElementById('barcodeModal').style.display = 'flex';
@@ -5173,6 +5204,7 @@ async function bcNativeRun(cb, keep, first, opts) {
 function bcNativeStop() { bcNatId++; }
 
 function closeBarcodeScanner(why) {
+    flightLog('scanner-close', (why || '-') + ' +' + (bcOpenedAt ? Date.now() - bcOpenedAt : 0) + 'ms');
     if (why !== 'found' && why !== 'user' && bcOpenedAt && Date.now() - bcOpenedAt < 3000) {   // أُغلق مبكراً بلا قرار من المستخدم: نُظهر المصدر لنعرف السبب
         let who = ''; try { who = (new Error().stack || '').split('\n').slice(2, 7).map(l => (/at (?:async )?([^ (]+)/.exec(l) || [])[1]).filter(Boolean).join(' < '); } catch (e) { /* تجاهل */ }
         try { Swal.fire({ icon: 'warning', title: 'أُغلق الماسح تلقائياً: ' + (why || '') + ' ' + who, toast: true, position: 'top', showConfirmButton: false, timer: 7000 }); } catch (e) { /* تجاهل */ }
@@ -5186,6 +5218,7 @@ function closeBarcodeScanner(why) {
 }
 
 function stopBarcodeCamera() {
+    bcGen++;   // يُبطل أي تشغيل أو حلقة قراءة قديمة
     cancelAnimationFrame(barcodeRaf);
     barcodeRaf = 0;
     if (zxingReader) { try { zxingReader.reset(); } catch (e) { /* تجاهل */ } zxingReader = null; }
@@ -5278,75 +5311,95 @@ function barcodeInvertedCanvas(src, w, h, boost) {
     cx.putImageData(im, 0, 0);
     return cv;
 }
+// ===== مصدر القراءة الموحّد: كاشف المتصفح إن وُجد وإلا ZXing المحلي، وكلاهما يقرأ الإطار نفسه (منطقة الإطار الذهبي) بحلقة واحدة نملكها =====
+let bcDet = null;
+async function bcMakeDetector() {
+    if (bcDet) return bcDet;
+    if ('BarcodeDetector' in window) {   // الكاشف الأصلي (غالباً غير متوفر داخل WebView الأندرويد)
+        try {
+            const want = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf', 'qr_code', 'data_matrix'];
+            const sup = BarcodeDetector.getSupportedFormats ? await BarcodeDetector.getSupportedFormats() : want;
+            const use = want.filter(f => sup.includes(f));
+            if (use.length) { const d = new BarcodeDetector({ formats: use }); return (bcDet = { name: 'native', max: 1280, detect: cv => d.detect(cv), detectInv: (cv, w, h, boost) => d.detect(barcodeInvertedCanvas(cv, w, h, boost)) }); }
+        } catch (e) { /* ننتقل إلى ZXing */ }
+    }
+    const Z = await loadZXing();
+    const hints = new Map();
+    hints.set(Z.DecodeHintType.TRY_HARDER, true);
+    hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.DATA_MATRIX, Z.BarcodeFormat.QR_CODE, Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.CODE_39, Z.BarcodeFormat.ITF]);
+    const rd = new Z.MultiFormatReader(); rd.setHints(hints);
+    const dec = src => {
+        try {
+            const r = rd.decode(new Z.BinaryBitmap(new Z.HybridBinarizer(src))), pts = r.getResultPoints() || [];
+            let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; pts.forEach(q => { x0 = Math.min(x0, q.getX()); x1 = Math.max(x1, q.getX()); y0 = Math.min(y0, q.getY()); y1 = Math.max(y1, q.getY()); });
+            return [{ rawValue: r.getText(), boundingBox: pts.length ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : null }];
+        } catch (e) { return []; }   // لم يُعثر على باركود في هذا الإطار
+    };
+    return (bcDet = { name: 'zxing', max: 960, detect: async cv => dec(new Z.HTMLCanvasElementLuminanceSource(cv)), detectInv: async cv => dec(new Z.HTMLCanvasElementLuminanceSource(cv).invert()) });
+}
+const bcSleep = ms => new Promise(r => setTimeout(r, ms));
 async function startBarcodeCamera() {
+    const gen = ++bcGen, alive = () => gen === bcGen;   // رمز الجيل: كل إغلاق/إعادة فتح يُبطل أي حلقة أو انتظار قديم فلا تبقى كاميرا شبحية تعمل في الخلفية
+    if (barcodeStream) { try { barcodeStream.getTracks().forEach(t => t.stop()); } catch (e) { /* تجاهل */ } barcodeStream = null; }   // لا نترك تياراً قديماً يعمل
+    flightLog('cam-start', 'g' + gen);
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         setBarcodeStatus('الكاميرا غير متاحة في هذا المتصفح. اكتب الرقم يدوياً أو صوّر الباركود.', true);
         return;
     }
     const video = document.getElementById('bcVideo');
+    let stream = null;
     try {
-        let det = null;
-        if ('BarcodeDetector' in window) {   // نستعمل الصيغ التي يدعمها الجهاز فعلاً (بعضها يرمي خطأ إن لم يُدعم)
-            try {
-                const want = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'itf', 'qr_code', 'data_matrix'];
-                const sup = BarcodeDetector.getSupportedFormats ? await BarcodeDetector.getSupportedFormats() : want;
-                const use = want.filter(f => sup.includes(f));
-                if (use.length) det = new BarcodeDetector({ formats: use });
-            } catch (e) { det = null; }
+        const detP = bcMakeDetector();
+        detP.catch(() => { });   // لا نترك رفضاً غير معالَج إن أُغلق قبل الانتظار
+        for (let i = 0; ; i++) {   // الكاميرا قد تكون «مشغولة» لحظة بعد إغلاق سابق: نعيد المحاولة قليلاً
+            try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false }); break; }
+            catch (e) { if (!alive()) return; if (i < 3 && e && /NotReadable|AbortError|TrackStart/i.test(e.name + ' ' + e.message)) { await bcSleep(450); if (!alive()) return; continue; } throw e; }
         }
-        if (det) {
-            barcodeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
-            video.srcObject = barcodeStream;
-            await video.play();
-            const tr0 = barcodeStream.getVideoTracks()[0];
-            try { await tr0.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) { /* غير مدعوم */ }
-            bcInitTools(tr0);
-            setBarcodeStatus('وجّه الباركود إلى داخل الإطار (قرّب واثبت قليلاً)...');
-            setTimeout(() => { if (barcodeStream && document.getElementById('barcodeModal').style.display === 'flex' && !bcLastAt) setBarcodeStatus('لم يُقرأ بعد: حسّن الإضاءة (الكشاف) وقرّب أو ابعد قليلاً، أو التقط صورة، أو اكتب الرقم.'); }, 7000);
-            let last = 0, tk = 0;
-            const roi = () => {   // منطقة القراءة = ما داخل الإطار الذهبي فقط (مع هامش بسيط) حتى لا يُقرأ باركود آخر في الصورة
-                const vw = video.videoWidth, vh = video.videoHeight, cw = video.clientWidth || 4, ch = video.clientHeight || 3, vA = vw / vh, cA = cw / ch;
-                const visW = vA > cA ? cA / vA : 1, visH = vA > cA ? 1 : vA / cA;
-                const fw = Math.min(1, visW * 0.88), fh = Math.min(1, visH * 0.66);
-                return { sx: vw * (1 - fw) / 2, sy: vh * (1 - fh) / 2, sw: vw * fw, sh: vh * fh };
-            };
-            const pickCentral = (arr, w, h) => {   // عند وجود أكثر من باركود: الأقرب لمركز الإطار
-                if (!arr || !arr.length) return null; let best = arr[0], bd = 1e18;
-                arr.forEach(r => { const b = r.boundingBox; if (!b) return; const d = Math.hypot(b.x + b.width / 2 - w / 2, b.y + b.height / 2 - h / 2); if (d < bd) { bd = d; best = r; } });
-                return best;
-            };
-            const tick = async (t) => {
-                if (!barcodeStream) return;
-                if (t - last > 200 && !document.hidden && !bcDialogOpen() && video.videoWidth) {
-                    last = t; tk++;
-                    try {
-                        const R = roi(), k = Math.min(1, 1280 / R.sw), cwid = Math.round(R.sw * k), chei = Math.round(R.sh * k);
-                        const cv = tick.cv || (tick.cv = document.createElement('canvas')); cv.width = cwid; cv.height = chei;
-                        cv.getContext('2d', { willReadFrequently: true }).drawImage(video, R.sx, R.sy, R.sw, R.sh, 0, 0, cwid, chei);
-                        let r = pickCentral(await det.detect(cv), cwid, chei);
-                        if (!r && tk % 3 === 0) {   // لم يُقرأ عادياً: جرّب النسخة المعكوسة (باركود أبيض على أحمر/أسود) كل ثالث إطار لتخفيف الحمل
-                            const iv = barcodeInvertedCanvas(cv, cwid, chei, (tk / 3) % 2 === 0);
-                            r = pickCentral(await det.detect(iv), cwid, chei);
-                        }
-                        if (r) barcodeFound(r.rawValue);
-                    } catch (e) { /* إطار غير جاهز */ }
-                }
-                if (barcodeStream) barcodeRaf = requestAnimationFrame(tick);
-            };
-            barcodeRaf = requestAnimationFrame(tick);
-        } else {
-            setBarcodeStatus('جاري تحميل قارئ الباركود...');
-            const Z = await loadZXing();
-            const hints = new Map();
-            try { hints.set(Z.DecodeHintType.TRY_HARDER, true); hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.DATA_MATRIX, Z.BarcodeFormat.QR_CODE, Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.CODE_39, Z.BarcodeFormat.ITF]); } catch (e) { /* تجاهل */ }
-            zxingReader = new Z.BrowserMultiFormatReader(hints);
-            setBarcodeStatus('وجّه الكاميرا نحو الباركود...');
-            setTimeout(() => { try { const tr = video.srcObject && video.srcObject.getVideoTracks()[0]; if (tr) bcInitTools(tr); } catch (e) { /* تجاهل */ } }, 1200);
-            zxingReader.decodeFromVideoDevice(null, 'bcVideo', (result) => {
-                if (result) barcodeFound(result.getText());
-            }).catch(err => setBarcodeStatus('تعذر تشغيل الكاميرا: ' + (err && err.message || err), true));
-        }
+        if (!alive()) { stream.getTracks().forEach(t => t.stop()); return; }
+        barcodeStream = stream; video.srcObject = stream;
+        try { await video.play(); } catch (e) { if (!alive()) return; throw e; }
+        if (!alive()) return;
+        const tr0 = stream.getVideoTracks()[0];
+        try { await tr0.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) { /* غير مدعوم */ }
+        setBarcodeStatus('جاري تجهيز القارئ...');
+        const det = await detP;
+        if (!alive()) return;
+        flightLog('cam-ready', 'g' + gen + ' ' + det.name + ' ' + video.videoWidth + 'x' + video.videoHeight);
+        bcInitTools(tr0);
+        setBarcodeStatus('وجّه الباركود إلى داخل الإطار (قرّب واثبت قليلاً)...');
+        setTimeout(() => { if (alive() && !bcLastAt) setBarcodeStatus('لم يُقرأ بعد: حسّن الإضاءة (الكشاف) وقرّب أو ابعد قليلاً، أو التقط صورة، أو اكتب الرقم.'); }, 7000);
+        let last = 0, tk = 0;
+        const cv = document.createElement('canvas');
+        const roi = () => {   // منطقة القراءة = ما داخل الإطار الذهبي فقط (مع هامش بسيط) حتى لا يُقرأ باركود آخر في الصورة
+            const vw = video.videoWidth, vh = video.videoHeight, cw = video.clientWidth || 4, ch = video.clientHeight || 3, vA = vw / vh, cA = cw / ch;
+            const visW = vA > cA ? cA / vA : 1, visH = vA > cA ? 1 : vA / cA;
+            const fw = Math.min(1, visW * 0.88), fh = Math.min(1, visH * 0.66);
+            return { sx: vw * (1 - fw) / 2, sy: vh * (1 - fh) / 2, sw: vw * fw, sh: vh * fh };
+        };
+        const pickCentral = (arr, w, h) => {   // عند وجود أكثر من باركود: الأقرب لمركز الإطار
+            if (!arr || !arr.length) return null; let best = arr[0], bd = 1e18;
+            arr.forEach(r => { const b = r.boundingBox; if (!b) return; const d = Math.hypot(b.x + b.width / 2 - w / 2, b.y + b.height / 2 - h / 2); if (d < bd) { bd = d; best = r; } });
+            return best;
+        };
+        const tick = async (t) => {
+            if (!alive()) return;
+            if (t - last > 200 && !document.hidden && !bcDialogOpen() && video.videoWidth) {
+                last = t; tk++;
+                try {
+                    const R = roi(), k = Math.min(1, det.max / R.sw), cwid = Math.round(R.sw * k), chei = Math.round(R.sh * k);
+                    cv.width = cwid; cv.height = chei;
+                    cv.getContext('2d', { willReadFrequently: true }).drawImage(video, R.sx, R.sy, R.sw, R.sh, 0, 0, cwid, chei);
+                    let r = pickCentral(await det.detect(cv), cwid, chei);
+                    if (!r && tk % 3 === 0 && alive()) r = pickCentral(await det.detectInv(cv, cwid, chei, (tk / 3) % 2 === 0), cwid, chei);   // معكوس (أبيض على أحمر/أسود) كل ثالث إطار لتخفيف الحمل
+                    if (r && alive()) barcodeFound(r.rawValue);
+                } catch (e) { /* إطار غير جاهز */ }
+            }
+            if (alive()) barcodeRaf = requestAnimationFrame(tick);
+        };
+        barcodeRaf = requestAnimationFrame(tick);
     } catch (err) {
+        if (!alive()) return;
+        flightLog('cam-error', err && (err.name || err.message));
         setBarcodeStatus('تعذر تشغيل الكاميرا (اسمح للتطبيق باستخدامها). يمكنك الكتابة يدوياً أو تصوير الباركود.', true);
     }
 }
