@@ -5114,7 +5114,8 @@ const BC_NAT_FORMATS = ['EAN_13', 'EAN_8', 'UPC_A', 'UPC_E', 'CODE_128', 'CODE_3
 function bcNativeOk() {
     try { if (opsNoNative()) return false; return !!(window.NAT && NAT.is && NAT.plugins && NAT.plugins().BS && NAT.bs()); } catch (e) { return false; }
 }
-function opsNoNative() { try { return sessionStorage.getItem('diwanBcNatBad') === '1' || localStorage.getItem('diwanBcNative') === '0'; } catch (e) { return false; } }
+// قارئ جوجل الأصلي معطّل افتراضياً: واجهته ملء الشاشة وبقراءة واحدة (يُغلق ويُفتح بعد كل مادة) وفيها عبارة جوجل. يُفعَّل يدوياً فقط: localStorage.diwanBcNative='1'
+function opsNoNative() { try { return localStorage.getItem('diwanBcNative') !== '1' || sessionStorage.getItem('diwanBcNatBad') === '1'; } catch (e) { return true; } }
 function openBarcodeScanner(cb, opts) {
     if (!(opts && opts.web) && bcNativeOk()) { bcNativeRun(cb, !!(opts && opts.keep), true, opts); return; }
     bcOpenWeb(cb, opts);
