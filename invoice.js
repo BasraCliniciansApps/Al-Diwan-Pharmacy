@@ -247,7 +247,7 @@ function billScan() {
         if (typeof barcodeCallback === 'undefined' || barcodeCallback !== cb) return;   // أُغلق الماسح يدوياً أو قُرئ باركود
         const m = document.getElementById('bcManual');
         if (m && (m.value || document.activeElement === m)) return;                    // المستخدم يكتب الباركود بنفسه
-        closeBarcodeScanner();
+        closeBarcodeScanner('found');
         const s = $b('billSearch');
         if (s) { s.scrollIntoView({ block: 'center' }); s.focus(); }
         Swal.fire({ icon: 'info', title: 'لم يُقرأ باركود — ابحث بالاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });

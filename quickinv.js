@@ -109,7 +109,7 @@ function qiScan() {
     t = setTimeout(() => {
         if (typeof barcodeCallback === 'undefined' || barcodeCallback !== cb) return;
         const m = document.getElementById('bcManual'); if (m && (m.value || document.activeElement === m)) return;
-        closeBarcodeScanner();
+        closeBarcodeScanner('found');
         const q = document.getElementById('qiQ'); if (q) q.focus();
         Swal.fire({ icon: 'info', title: 'لم يُقرأ باركود — ابحث بالاسم', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     }, BILL_SCAN_WAIT_MS);

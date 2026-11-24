@@ -5096,7 +5096,12 @@ function setBarcodeStatus(t, isErr) {
 
 let barcodeKeep = false, bcCool = 0, bcLastCode = '', bcLastAt = 0, bcPend = '', bcPendAt = 0, bcTrack = null;
 // opts.keep: تبقى الكاميرا مفتوحة بعد كل قراءة (للبيع السريع) بدل الإغلاق وإعادة الفتح
+let bcOpenedAt = 0;
+function bcOverlayTap() { if (Date.now() - bcOpenedAt > 900) closeBarcodeScanner('outside'); }   // نقرة خارج المربع بعد الفتح مباشرة تُهمَل (نقرة الفتح نفسها كانت تغلقه)
 function bcOpenWeb(cb, opts) {
+    const mm = document.getElementById('barcodeModal');
+    if (mm && mm.style.display === 'flex' && Date.now() - bcOpenedAt < 1500) { barcodeCallback = cb; barcodeKeep = !!(opts && opts.keep); return; }   // طلب فتح مكرر (نقر مزدوج): لا نعيد تشغيل الكاميرا
+    bcOpenedAt = Date.now();
     barcodeCallback = cb; barcodeKeep = !!(opts && opts.keep);
     bcLastCode = ''; bcLastAt = 0; bcPend = ''; bcPendAt = 0; bcCool = 0;
     document.getElementById('barcodeModal').style.display = 'flex';
@@ -5163,7 +5168,11 @@ async function bcNativeRun(cb, keep, first, opts) {
 }
 function bcNativeStop() { bcNatId++; }
 
-function closeBarcodeScanner() {
+function closeBarcodeScanner(why) {
+    if (why !== 'found' && why !== 'user' && bcOpenedAt && Date.now() - bcOpenedAt < 3000) {   // أُغلق مبكراً بلا قرار من المستخدم: نُظهر المصدر لنعرف السبب
+        let who = ''; try { who = (new Error().stack || '').split('\n').slice(2, 7).map(l => (/at (?:async )?([^ (]+)/.exec(l) || [])[1]).filter(Boolean).join(' < '); } catch (e) { /* تجاهل */ }
+        try { Swal.fire({ icon: 'warning', title: 'أُغلق الماسح تلقائياً: ' + (why || '') + ' ' + who, toast: true, position: 'top', showConfirmButton: false, timer: 7000 }); } catch (e) { /* تجاهل */ }
+    }
     bcNativeStop();
     stopBarcodeCamera();
     { const sb = document.getElementById('bcSearchBox'), mr = document.getElementById('bcManualRow'); if (sb) sb.style.display = 'none'; if (mr) mr.style.display = ''; }
@@ -5215,12 +5224,12 @@ function barcodeFound(code, force) {
         bcLastCode = c; bcLastAt = now; bcCool = now + 900;
         const cb = barcodeCallback; let r;
         try { r = cb && cb(c, g); } catch (e) { /* تجاهل */ }
-        if (r === 'close') { closeBarcodeScanner(); return; }
+        if (r === 'close') { closeBarcodeScanner('screen'); return; }
         bcShowLast(c);
         return;
     }
     const cb = barcodeCallback;
-    closeBarcodeScanner();
+    closeBarcodeScanner('found');
     if (cb) cb(c, g);
 }
 
@@ -5835,7 +5844,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         ['helpHub', () => vis('helpHub'), () => helpBack()],
         ['waOv', () => vis('waOv'), () => { if (window.WA) WA.close(); }],
         ['ssOv', () => !!document.getElementById('ssOv'), () => { if (typeof ssClose === 'function') ssClose(); else document.getElementById('ssOv').remove(); }],
-        ['barcodeModal', () => vis('barcodeModal'), () => closeBarcodeScanner()],
+        ['barcodeModal', () => vis('barcodeModal'), () => { if (Date.now() - bcOpenedAt < 1200) return; closeBarcodeScanner('back'); }],
         ['reportViewer', () => !!document.getElementById('reportViewer'), () => closeReport()],
         ['zoomModal', () => vis('zoomModal'), () => { document.getElementById('zoomModal').style.display = 'none'; }],
         ['spModal', () => vis('spModal'), () => { if (typeof spClose === 'function') spClose(); else document.getElementById('spModal').style.display = 'none'; }],

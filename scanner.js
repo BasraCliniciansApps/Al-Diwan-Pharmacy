@@ -161,7 +161,7 @@ let scTimer = 0;
 function scOvEl() { return document.getElementById('scanView'); }
 function scGo() { scApplyHome(); scInit(); scScanTimed(); }   // الكاميرا فقط؛ لا تظهر نافذة الفاحص إلا عند اختيار مادة
 function scShowOv() { const el = scOvEl(); if (el && el.style.display !== 'flex') { el.style.display = 'flex'; document.body.classList.add('sc-open'); } }
-function scClose() { clearTimeout(scTimer); try { if (document.getElementById('barcodeModal').style.display === 'flex') closeBarcodeScanner(); } catch (e) { /* تجاهل */ } const el = scOvEl(); if (el) el.style.display = 'none'; document.body.classList.remove('sc-open'); scCur = null; }
+function scClose() { clearTimeout(scTimer); try { if (document.getElementById('barcodeModal').style.display === 'flex') closeBarcodeScanner('user'); } catch (e) { /* تجاهل */ } const el = scOvEl(); if (el) el.style.display = 'none'; document.body.classList.remove('sc-open'); scCur = null; }
 function scManual() { clearTimeout(scTimer); const q = scE('bcName'); if (q) q.focus(); }
 function scModalSearch(v) {
     const qn = normSearch(v || ''), qt = qn ? qn.split(' ') : [], b = scE('bcRes'); if (!b) return;
@@ -169,7 +169,7 @@ function scModalSearch(v) {
     const res = qn ? products.map(p => ({ p, s: searchScore(p, qn, qt) })).filter(x => x.s > 0).sort((a, c) => c.s - a.s).slice(0, 6).map(x => x.p) : [];
     b.innerHTML = res.map(p => `<button type="button" class="sc-res" onclick="scModalPick(${p.id})"><b dir="ltr">${dispNameHtml(p)}</b><span>${fmtNum(p.price || 0)}</span></button>`).join('');
 }
-function scModalPick(id) { clearTimeout(scTimer); closeBarcodeScanner(); scPick(id); }
+function scModalPick(id) { clearTimeout(scTimer); closeBarcodeScanner('found'); scPick(id); }
 function scScanTimed() {
     clearTimeout(scTimer);
     const cb = code => { clearTimeout(scTimer); const p = findByBarcode(code); if (p) scPick(p.id); else scUnknown(code); };
