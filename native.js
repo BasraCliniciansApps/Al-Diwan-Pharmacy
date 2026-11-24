@@ -310,10 +310,15 @@
                 else if (t === 'scan' && typeof scGo === 'function' && can('scan')) { window.__dwDirect = 'scan'; scGo(); }
             } catch (e) { /* تجاهل */ }
             setTimeout(clear, 250);
+            window.__dwWant = t;   // الشاشة مطلوبة حتى يخرج المستخدم منها بنفسه
+            // حارس: خلال 10 ثوانٍ، وعند كل عودة للتطبيق، إن أُغلقت الشاشة دون قرار من المستخدم (مثلاً تهيئة الصفحة أو إعادة تحميلها) نعيد فتحها
+            const keep = () => { if (window.__dwWant !== t) return; if (!already() && !window.__dwNav) { try { flightLog('dwKeep-reopen', t); } catch (e) { /* تجاهل */ } try { if (t === 'pos' && can('sell')) { window.__dwDirect = 'pos'; posOpen(); } else if (t === 'scan' && can('scan')) { window.__dwDirect = 'scan'; scGo(); } } catch (e) { /* تجاهل */ } } };
+            let n = 0; const iv = setInterval(() => { keep(); if (++n > 14 || window.__dwWant !== t) clearInterval(iv); }, 700);
+            if (!window.__dwVis) { window.__dwVis = true; document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && window.__dwWant) setTimeout(() => { const w = window.__dwWant; if (w === 'pos' ? !(shownId('p2Ov') || shownId('posOv')) : !(shownId('scanView') || shownId('barcodeModal'))) { try { flightLog('dwKeep-resume', w); } catch (e) { /* تجاهل */ } try { if (w === 'pos' && can('sell')) { window.__dwDirect = 'pos'; posOpen(); } else if (w === 'scan' && can('scan')) { window.__dwDirect = 'scan'; scGo(); } } catch (e) { /* تجاهل */ } } }, 400); }); }
         };
         go();
     };
-    NAT.exit = () => { try { flightLog('nat-exit'); } catch (e) { /* تجاهل */ } window.__dwT = ''; window.__dwAt = 0; try { history.replaceState(null, '', location.pathname); } catch (e) { /* تجاهل */ }   // نمسح وسم الوجهة كي لا تعيد إعادة تحميل الصفحة فتح البيع بعد الخروج منه
+    NAT.exit = () => { try { flightLog('nat-exit'); } catch (e) { /* تجاهل */ } window.__dwWant = ''; window.__dwT = ''; window.__dwAt = 0; try { history.replaceState(null, '', location.pathname); } catch (e) { /* تجاهل */ }   // نمسح وسم الوجهة كي لا تعيد إعادة تحميل الصفحة فتح البيع بعد الخروج منه
         try { if (APP && APP.minimizeApp) APP.minimizeApp(); else if (APP && APP.exitApp) APP.exitApp(); } catch (e) { /* تجاهل */ } };
     // الإغلاق المباشر: إذا فُتح التطبيق من أيقونة البيع/الفاحص فإغلاق الشاشة يخرج من التطبيق بدل الرجوع للرئيسية
     window.addEventListener('load', () => {
