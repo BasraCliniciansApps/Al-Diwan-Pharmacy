@@ -5066,7 +5066,7 @@ async function saveInventory() {
 }
 
 // ---------------- الباركود ----------------
-const ZXING_URL = 'https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js';
+const ZXING_URL = 'vendor/zxing.min.js';   // مجمّعة داخل التطبيق (تعمل بلا إنترنت)
 let barcodeStream = null;
 let barcodeRaf = 0;
 let barcodeCallback = null;
@@ -5094,11 +5094,16 @@ function setBarcodeStatus(t, isErr) {
     if (el) { el.innerText = t || ''; el.style.color = isErr ? '#b91c1c' : ''; }
 }
 
-function openBarcodeScanner(cb) {
-    barcodeCallback = cb;
+let barcodeKeep = false, bcCool = 0, bcLastCode = '', bcLastAt = 0, bcPend = '', bcPendAt = 0, bcTrack = null;
+// opts.keep: تبقى الكاميرا مفتوحة بعد كل قراءة (للبيع السريع) بدل الإغلاق وإعادة الفتح
+function openBarcodeScanner(cb, opts) {
+    barcodeCallback = cb; barcodeKeep = !!(opts && opts.keep);
+    bcLastCode = ''; bcLastAt = 0; bcPend = ''; bcPendAt = 0; bcCool = 0;
     document.getElementById('barcodeModal').style.display = 'flex';
     const m = document.getElementById('bcManual');
     if (m) m.value = '';
+    const l = document.getElementById('bcLast'); if (l) { l.textContent = ''; l.className = 'bc-last'; }
+    const tl = document.getElementById('bcTools'); if (tl) tl.style.display = 'none';
     setBarcodeStatus('');
     startBarcodeCamera();
 }
@@ -5116,18 +5121,70 @@ function stopBarcodeCamera() {
     barcodeRaf = 0;
     if (zxingReader) { try { zxingReader.reset(); } catch (e) { /* تجاهل */ } zxingReader = null; }
     if (barcodeStream) { barcodeStream.getTracks().forEach(t => t.stop()); barcodeStream = null; }
+    bcTrack = null; const tl = document.getElementById('bcTools'); if (tl) tl.style.display = 'none';
     const v = document.getElementById('bcVideo');
     if (v) { try { v.srcObject = null; } catch (e) { /* تجاهل */ } }
 }
 
-function barcodeFound(code) {
+function gtinOk(s) {   // فحص رقم التحقق لـ EAN-8/UPC-A/EAN-13/GTIN-14
+    if (!/^\d+$/.test(s) || ![8, 12, 13, 14].includes(s.length)) return false;
+    let sum = 0; for (let i = 0; i < s.length - 1; i++) { const d = +s[s.length - 2 - i]; sum += d * (i % 2 === 0 ? 3 : 1); }
+    return (10 - sum % 10) % 10 === +s[s.length - 1];
+}
+// قراءة موثوقة: GS1 أو رقم تحقق صحيح تُقبل فوراً، وغيرها (Code128/Code39 أو رقم تحقق خاطئ) لا تُقبل إلا بقراءتين متطابقتين متتاليتين
+function bcAccept(c, g) {
+    if (g || gtinOk(c)) return true;
+    const now = Date.now();
+    if (bcPend === c && now - bcPendAt < 1500) { bcPend = ''; return true; }
+    bcPend = c; bcPendAt = now; return false;
+}
+function bcShowLast(c) {
+    const el = document.getElementById('bcLast'); if (!el) return;
+    let p = null; try { p = findByBarcode(c); } catch (e) { /* تجاهل */ }
+    el.className = 'bc-last ' + (p ? 'ok' : 'no');
+    el.textContent = p ? ('✓ ' + p.name) : ('باركود غير مسجّل: ' + c);
+}
+function barcodeFound(code, force) {
     const g = parseGS1(code);                       // باركود GS1: نحفظ GTIN فقط (الرقم التسلسلي يتغير لكل علبة)
     const c = g ? g.gtin : cleanBarcode(code);
     if (!c) return;
+    if (!force) {
+        if (document.querySelector('.swal2-container')) return;   // نافذة مفتوحة فوق الكاميرا: لا نقرأ
+        if (!bcAccept(c, g)) return;
+    }
+    if (barcodeKeep && !force) {
+        const now = Date.now();
+        if (now < bcCool) return;
+        if (c === bcLastCode && now - bcLastAt < 2500) { bcLastAt = now; return; }   // نفس الباركود ما دام أمام الكاميرا: مرة واحدة فقط
+        bcLastCode = c; bcLastAt = now; bcCool = now + 900;
+        const cb = barcodeCallback; let r;
+        try { r = cb && cb(c, g); } catch (e) { /* تجاهل */ }
+        if (r === 'close') { closeBarcodeScanner(); return; }
+        bcShowLast(c);
+        return;
+    }
     const cb = barcodeCallback;
     closeBarcodeScanner();
     if (cb) cb(c, g);
 }
+
+// أدوات الكاميرا: كشاف وتقريب وإعادة تركيز بلمسة
+function bcInitTools(track) {
+    bcTrack = track; const tl = document.getElementById('bcTools'); if (!tl || !track) return;
+    let cap = {}; try { cap = track.getCapabilities ? track.getCapabilities() : {}; } catch (e) { cap = {}; }
+    const tb = document.getElementById('bcTorch'), z = document.getElementById('bcZoom');
+    if (tb) { tb.style.display = cap.torch ? '' : 'none'; tb.classList.remove('on'); }
+    if (z) { if (cap.zoom && cap.zoom.max > cap.zoom.min) { z.min = cap.zoom.min; z.max = cap.zoom.max; z.step = cap.zoom.step || 0.1; z.value = cap.zoom.min; z.style.display = ''; } else z.style.display = 'none'; }
+    tl.style.display = (cap.torch || cap.zoom) ? 'flex' : 'none';
+    const v = document.getElementById('bcVideo');
+    if (v && !v._bcTap) { v._bcTap = 1; v.addEventListener('click', async () => { const t = bcTrack; if (!t) return; try { await t.applyConstraints({ advanced: [{ focusMode: 'single-shot' }] }); setTimeout(() => { try { t.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) { /* تجاهل */ } }, 1500); } catch (e) { /* غير مدعوم */ } }); }
+}
+async function bcToggleTorch() {
+    const t = bcTrack, b = document.getElementById('bcTorch'); if (!t) return;
+    const on = !(b && b.classList.contains('on'));
+    try { await t.applyConstraints({ advanced: [{ torch: on }] }); if (b) b.classList.toggle('on', on); } catch (e) { setBarcodeStatus('الكشاف غير متاح على هذا الجهاز.', true); }
+}
+async function bcSetZoom(v) { const t = bcTrack; if (!t) return; try { await t.applyConstraints({ advanced: [{ zoom: +v }] }); } catch (e) { /* تجاهل */ } }
 
 // باركودات بيضاء على خلفية ملونة (معكوسة) لا يقرأها الكاشف مباشرة: نرسم الإطار رمادياً ونعكسه ثم نقرأه
 function barcodeInvertedCanvas(src, w, h, boost) {
@@ -5164,25 +5221,40 @@ async function startBarcodeCamera() {
             barcodeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
             video.srcObject = barcodeStream;
             await video.play();
-            try { const tr = barcodeStream.getVideoTracks()[0]; await tr.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) { /* غير مدعوم */ }
-            setBarcodeStatus('وجّه الكاميرا نحو الباركود (قرّب واثبت قليلاً)...');
-            setTimeout(() => { if (barcodeStream && document.getElementById('barcodeModal').style.display === 'flex') setBarcodeStatus('لم يُقرأ بعد: حسّن الإضاءة وقرّب أو ابعد قليلاً، أو التقط صورة، أو اكتب الرقم.'); }, 7000);
-            let last = 0, invTick = 0;
+            const tr0 = barcodeStream.getVideoTracks()[0];
+            try { await tr0.applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch (e) { /* غير مدعوم */ }
+            bcInitTools(tr0);
+            setBarcodeStatus('وجّه الباركود إلى داخل الإطار (قرّب واثبت قليلاً)...');
+            setTimeout(() => { if (barcodeStream && document.getElementById('barcodeModal').style.display === 'flex' && !bcLastAt) setBarcodeStatus('لم يُقرأ بعد: حسّن الإضاءة (الكشاف) وقرّب أو ابعد قليلاً، أو التقط صورة، أو اكتب الرقم.'); }, 7000);
+            let last = 0, tk = 0;
+            const roi = () => {   // منطقة القراءة = ما داخل الإطار الذهبي فقط (مع هامش بسيط) حتى لا يُقرأ باركود آخر في الصورة
+                const vw = video.videoWidth, vh = video.videoHeight, cw = video.clientWidth || 4, ch = video.clientHeight || 3, vA = vw / vh, cA = cw / ch;
+                const visW = vA > cA ? cA / vA : 1, visH = vA > cA ? 1 : vA / cA;
+                const fw = Math.min(1, visW * 0.88), fh = Math.min(1, visH * 0.66);
+                return { sx: vw * (1 - fw) / 2, sy: vh * (1 - fh) / 2, sw: vw * fw, sh: vh * fh };
+            };
+            const pickCentral = (arr, w, h) => {   // عند وجود أكثر من باركود: الأقرب لمركز الإطار
+                if (!arr || !arr.length) return null; let best = arr[0], bd = 1e18;
+                arr.forEach(r => { const b = r.boundingBox; if (!b) return; const d = Math.hypot(b.x + b.width / 2 - w / 2, b.y + b.height / 2 - h / 2); if (d < bd) { bd = d; best = r; } });
+                return best;
+            };
             const tick = async (t) => {
                 if (!barcodeStream) return;
-                if (t - last > 220) {
-                    last = t;
+                if (t - last > 200 && !document.hidden && !document.querySelector('.swal2-container') && video.videoWidth) {
+                    last = t; tk++;
                     try {
-                        let found = await det.detect(video);
-                        if (found && found.length) { barcodeFound(found[0].rawValue); return; }
-                        if (video.videoWidth) {   // لم يُقرأ عادياً: جرّب النسخة المعكوسة (باركود أبيض على أحمر/أسود) بالتناوب
-                            invTick = (invTick || 0) + 1;
-                            found = await det.detect(barcodeInvertedCanvas(video, video.videoWidth, video.videoHeight, invTick % 2 === 0));
-                            if (found && found.length) { barcodeFound(found[0].rawValue); return; }
+                        const R = roi(), k = Math.min(1, 1280 / R.sw), cwid = Math.round(R.sw * k), chei = Math.round(R.sh * k);
+                        const cv = tick.cv || (tick.cv = document.createElement('canvas')); cv.width = cwid; cv.height = chei;
+                        cv.getContext('2d', { willReadFrequently: true }).drawImage(video, R.sx, R.sy, R.sw, R.sh, 0, 0, cwid, chei);
+                        let r = pickCentral(await det.detect(cv), cwid, chei);
+                        if (!r && tk % 3 === 0) {   // لم يُقرأ عادياً: جرّب النسخة المعكوسة (باركود أبيض على أحمر/أسود) كل ثالث إطار لتخفيف الحمل
+                            const iv = barcodeInvertedCanvas(cv, cwid, chei, (tk / 3) % 2 === 0);
+                            r = pickCentral(await det.detect(iv), cwid, chei);
                         }
+                        if (r) barcodeFound(r.rawValue);
                     } catch (e) { /* إطار غير جاهز */ }
                 }
-                barcodeRaf = requestAnimationFrame(tick);
+                if (barcodeStream) barcodeRaf = requestAnimationFrame(tick);
             };
             barcodeRaf = requestAnimationFrame(tick);
         } else {
@@ -5192,6 +5264,7 @@ async function startBarcodeCamera() {
             try { hints.set(Z.DecodeHintType.TRY_HARDER, true); hints.set(Z.DecodeHintType.POSSIBLE_FORMATS, [Z.BarcodeFormat.DATA_MATRIX, Z.BarcodeFormat.QR_CODE, Z.BarcodeFormat.EAN_13, Z.BarcodeFormat.EAN_8, Z.BarcodeFormat.UPC_A, Z.BarcodeFormat.UPC_E, Z.BarcodeFormat.CODE_128, Z.BarcodeFormat.CODE_39, Z.BarcodeFormat.ITF]); } catch (e) { /* تجاهل */ }
             zxingReader = new Z.BrowserMultiFormatReader(hints);
             setBarcodeStatus('وجّه الكاميرا نحو الباركود...');
+            setTimeout(() => { try { const tr = video.srcObject && video.srcObject.getVideoTracks()[0]; if (tr) bcInitTools(tr); } catch (e) { /* تجاهل */ } }, 1200);
             zxingReader.decodeFromVideoDevice(null, 'bcVideo', (result) => {
                 if (result) barcodeFound(result.getText());
             }).catch(err => setBarcodeStatus('تعذر تشغيل الكاميرا: ' + (err && err.message || err), true));
@@ -5221,7 +5294,7 @@ async function barcodeFromPhoto(event) {
             try { code = (await new Z.BrowserMultiFormatReader().decodeFromImageUrl(url)).getText(); }
             finally { URL.revokeObjectURL(url); }
         }
-        if (code) barcodeFound(code); else setBarcodeStatus('لم أجد باركوداً في الصورة. جرّب صورة أقرب أو اكتب الرقم.', true);
+        if (code) barcodeFound(code, true); else setBarcodeStatus('لم أجد باركوداً في الصورة. جرّب صورة أقرب أو اكتب الرقم.', true);
     } catch (err) {
         setBarcodeStatus('لم أستطع قراءة الباركود من الصورة. اكتب الرقم يدوياً.', true);
     } finally {
@@ -5232,7 +5305,7 @@ async function barcodeFromPhoto(event) {
 function submitManualBarcode() {
     const v = (document.getElementById('bcManual') || {}).value;
     if (!cleanBarcode(v)) { setBarcodeStatus('اكتب رقم الباركود.', true); return; }
-    barcodeFound(v);
+    barcodeFound(v, true);
 }
 
 // ---- GS1 (DataMatrix/GS1-128 على علب الأدوية): (01)GTIN (17)انتهاء (10)دفعة (21)رقم تسلسلي لكل علبة ----

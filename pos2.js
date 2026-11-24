@@ -116,8 +116,8 @@ function p2Enter() {
     if (p2.found.length) p2AddProduct(p2.found[0].id);
 }
 function p2Scan() {   // كاميرا: تستمر بعد كل قراءة لحين الإغلاق
-    const cb = code => { if (!p2.open) return; if (!posScanDup(code)) p2ByCode(code); setTimeout(() => { if (p2.open && !document.querySelector('.swal2-container')) p2Scan(); }, 350); };
-    openBarcodeScanner(cb);
+    const cb = code => { if (!p2.open) return 'close'; p2ByCode(code); };
+    openBarcodeScanner(cb, { keep: true });
 }
 
 // ---------- بيانات الفاتورة الإضافية ----------

@@ -174,8 +174,8 @@ function posEnter() {
     if (posFound.length) posAddProduct(posFound[0].id);
 }
 function posScan() {   // كاميرا: تستمر بعد كل قراءة لحين الإغلاق
-    const cb = code => { if (!posOpenFlag) return; if (!posScanDup(code)) posByCode(code); setTimeout(() => { if (posOpenFlag && !document.querySelector('.swal2-container')) posScan(); }, 350); };
-    openBarcodeScanner(cb);
+    const cb = code => { if (!posOpenFlag) return 'close'; posByCode(code); };
+    openBarcodeScanner(cb, { keep: true });
 }
 
 // ---------- جرد المادة عند أول بيع (خيار في الإعدادات، متوقف افتراضياً) ----------

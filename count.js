@@ -243,7 +243,7 @@ function cnEnter() {
     if (cnFound.length) cnAddProduct(cnFound[0].id);
 }
 function cnScan() {
-    const cb = code => { if (!cnOpenFlag || !cnCur) return; cnByCode(code); setTimeout(() => { if (cnOpenFlag && cnCur && !document.querySelector('.swal2-container') && !document.querySelector('.cn-cnt:focus')) cnScan(); }, 700); };
+    const cb = code => { if (!cnOpenFlag || !cnCur) return; if (posScanDup(code)) return; cnByCode(code); setTimeout(() => { if (cnOpenFlag && cnCur && !document.querySelector('.swal2-container') && !document.querySelector('.cn-cnt:focus')) cnScan(); }, 700); };
     openBarcodeScanner(cb);
 }
 

@@ -5117,3 +5117,12 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .qh-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
 .qh-c { border: 1.5px solid var(--border, #cbd5e1); background: var(--gold-soft, #fff3d6); color: var(--text-main, #0f1c38); border-radius: 999px; padding: 5px 12px; font: 700 .82rem inherit; font-family: inherit; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .qh-c:active { background: var(--gold, #f9a825); }
+/* أدوات السكانر: كشاف وتقريب وآخر قراءة */
+.bc-tools { display: flex; align-items: center; gap: 10px; margin: 0 0 8px; }
+.bc-torch { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 12px; }
+.bc-torch.on { background: var(--gold); color: var(--navy, #0f1c38); border-color: var(--gold); }
+.bc-zoom { flex: 1; min-width: 0; accent-color: var(--gold); }
+.bc-last { min-height: 0; font-size: .85rem; font-weight: 800; border-radius: 10px; padding: 0; margin-bottom: 6px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bc-last.ok, .bc-last.no { padding: 8px 10px; }
+.bc-last.ok { background: #e8f7ee; color: #166534; }
+.bc-last.no { background: #fdecec; color: #b91c1c; }
