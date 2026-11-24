@@ -113,9 +113,16 @@ function p2Results(show) {
     }).join('');
     box.style.display = 'block';
 }
-function p2ByCode(code) {
+function p2ByCode(code, inline) {
     const p = findByBarcode(code);
     if (p) { p2AddProduct(p.id); return true; }
+    if (inline) {   // من الكاميرا: لا نافذة تلقائية. قراءة غير معروفة تحتاج تأكيداً بقراءة ثانية (تفادي القراءات الخاطئة)، ثم شريط وصوت خطأ وزر «إضافة»
+        const now = Date.now();
+        if (p2.unk !== code || now - (p2.unkAt || 0) > 1500) { p2.unk = code; p2.unkAt = now; return 'pending'; }
+        p2.unk = ''; posBeep(false);
+        bcShowUnknown(code, () => offerUnknownBarcode(code, p2b => { p2AddProduct(p2b.id); }));
+        return 'unknown';
+    }
     posBeep(false);
     offerUnknownBarcode(code, p2b => { p2AddProduct(p2b.id); });
     return false;
@@ -130,7 +137,7 @@ function p2Enter() {
     if (p2.found.length) p2AddProduct(p2.found[0].id);
 }
 function p2Scan() {   // كاميرا: تستمر بعد كل قراءة لحين الإغلاق
-    const cb = code => { if (!p2.open) return 'close'; p2ByCode(code); };
+    const cb = code => { if (!p2.open) return 'close'; return p2ByCode(code, true); };
     openBarcodeScanner(cb, { keep: true, alive: () => p2.open });
 }
 

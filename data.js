@@ -5094,9 +5094,13 @@ function setBarcodeStatus(t, isErr) {
     if (el) { el.innerText = t || ''; el.style.color = isErr ? '#b91c1c' : ''; }
 }
 
+// المعايير: الماسحات المحترفة (مثل Zebra) تجعل مهلة تكرار نفس الباركود 0.5 ثانية افتراضياً؛ هنا نفس الباركود يُعاد بعد غيابه 0.7 ثانية، وبين أي باركودين 0.4 ثانية
+const BC_REARM = 700, BC_GAP = 400;
 let barcodeKeep = false, bcCool = 0, bcLastCode = '', bcLastAt = 0, bcPend = '', bcPendAt = 0, bcTrack = null;
 // opts.keep: تبقى الكاميرا مفتوحة بعد كل قراءة (للبيع السريع) بدل الإغلاق وإعادة الفتح
 let bcOpenedAt = 0;
+// نافذة حوارية حقيقية مفتوحة؟ (الإشعارات الصغيرة toast لا تُوقف القراءة، كانت توقفها ~2 ثانية بعد كل مادة)
+function bcDialogOpen() { return !!document.querySelector('.swal2-container .swal2-popup:not(.swal2-toast)'); }
 function bcOverlayTap() { if (Date.now() - bcOpenedAt > 900) closeBarcodeScanner('outside'); }   // نقرة خارج المربع بعد الفتح مباشرة تُهمَل (نقرة الفتح نفسها كانت تغلقه)
 function bcOpenWeb(cb, opts) {
     const mm = document.getElementById('barcodeModal');
@@ -5156,7 +5160,7 @@ async function bcNativeRun(cb, keep, first, opts) {
         const again = () => {   // نعيد فتح القارئ بعد لحظة، وننتظر إغلاق أي نافذة مفتوحة (مثل باركود غير مسجّل)
             if (id !== bcNatId) return;
             if (opts && opts.alive && !opts.alive()) return;   // خرج المستخدم من الشاشة
-            if (document.querySelector('.swal2-container')) { setTimeout(again, 400); return; }
+            if (bcDialogOpen()) { setTimeout(again, 400); return; }
             bcNativeRun(cb, keep, false, opts);
         };
         setTimeout(again, 700);
@@ -5203,6 +5207,12 @@ function bcAccept(c, g) {
     if (bcPend === c && now - bcPendAt < 1500) { bcPend = ''; return true; }
     bcPend = c; bcPendAt = now; return false;
 }
+function bcShowUnknown(code, onAdd) {   // باركود غير مسجّل: شريط داخل الكاميرا بلا نافذة تقطع المسح، وزر لإضافته عند الحاجة
+    const el = document.getElementById('bcLast'); if (!el) return;
+    el.className = 'bc-last no';
+    el.innerHTML = '<span>باركود غير مسجّل: <bdi dir="ltr">' + escapeHtml(code) + '</bdi></span><button type="button" class="bc-add">إضافة</button>';
+    const b = el.querySelector('.bc-add'); if (b) b.onclick = () => { closeBarcodeScanner('user'); try { onAdd && onAdd(); } catch (e) { /* تجاهل */ } };
+}
 function bcShowLast(c) {
     const el = document.getElementById('bcLast'); if (!el) return;
     let p = null; try { p = findByBarcode(c); } catch (e) { /* تجاهل */ }
@@ -5214,17 +5224,19 @@ function barcodeFound(code, force) {
     const c = g ? g.gtin : cleanBarcode(code);
     if (!c) return;
     if (!force) {
-        if (document.querySelector('.swal2-container')) return;   // نافذة مفتوحة فوق الكاميرا: لا نقرأ
+        if (bcDialogOpen()) return;   // نافذة مفتوحة فوق الكاميرا: لا نقرأ
         if (!bcAccept(c, g)) return;
     }
     if (barcodeKeep && !force) {
         const now = Date.now();
         if (now < bcCool) return;
-        if (c === bcLastCode && now - bcLastAt < 2500) { bcLastAt = now; return; }   // نفس الباركود ما دام أمام الكاميرا: مرة واحدة فقط
-        bcLastCode = c; bcLastAt = now; bcCool = now + 900;
+        if (c === bcLastCode && now - bcLastAt < BC_REARM) { bcLastAt = now; return; }   // نفس الباركود ما دام أمام الكاميرا: مرة واحدة (يُعاد تفعيله بعد غيابه BC_REARM ملي ثانية)
+        bcLastCode = c; bcLastAt = now; bcCool = now + BC_GAP;
         const cb = barcodeCallback; let r;
         try { r = cb && cb(c, g); } catch (e) { /* تجاهل */ }
         if (r === 'close') { closeBarcodeScanner('screen'); return; }
+        if (r === 'pending') { bcLastCode = ''; bcCool = now + 150; return; }   // قراءة غير مسجّلة تنتظر تأكيداً بقراءة ثانية سريعة
+        if (r === 'unknown') return;   // الشاشة عرضت الشريط بنفسها
         bcShowLast(c);
         return;
     }
@@ -5305,7 +5317,7 @@ async function startBarcodeCamera() {
             };
             const tick = async (t) => {
                 if (!barcodeStream) return;
-                if (t - last > 200 && !document.hidden && !document.querySelector('.swal2-container') && video.videoWidth) {
+                if (t - last > 200 && !document.hidden && !bcDialogOpen() && video.videoWidth) {
                     last = t; tk++;
                     try {
                         const R = roi(), k = Math.min(1, 1280 / R.sw), cwid = Math.round(R.sw * k), chei = Math.round(R.sh * k);

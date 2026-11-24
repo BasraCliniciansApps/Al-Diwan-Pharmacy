@@ -5128,3 +5128,5 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .bc-last.ok, .bc-last.no { padding: 8px 10px; }
 .bc-last.ok { background: #e8f7ee; color: #166534; }
 .bc-last.no { background: #fdecec; color: #b91c1c; }
+.bc-last { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.bc-last .bc-add { flex: none; height: 30px; padding: 0 12px; border-radius: 8px; border: 1.5px solid currentColor; background: transparent; color: inherit; font: 800 .8rem inherit; font-family: inherit; cursor: pointer; }
