@@ -4828,7 +4828,9 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .p2-bar { display: flex; gap: 8px; }
 .p2-bar input { flex: 1; min-width: 0; height: 52px; box-sizing: border-box; border: 2px solid #cbd5e1; border-radius: 14px; padding: 0 14px; font: 600 1.05rem inherit; font-family: inherit; background: #fff; }
 .p2-bar input:focus { outline: 0; border-color: #0f1c38; }
-.p2-cam { width: 52px; height: 52px; border: 0; border-radius: 14px; background: #0f1c38; color: #fff; font-size: 1.4rem; cursor: pointer; }
+.p2-cam { width: 52px; height: 52px; border: 0; border-radius: 14px; background: #0f1c38; color: #fff; font-size: 1.4rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.p2-auto { width: 52px; height: 52px; box-sizing: border-box; border: 2px solid #cbd5e1; border-radius: 14px; background: #fff; color: #64748b; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; padding: 0; }
+.p2-auto.on { background: #0f1c38; border-color: #0f1c38; color: #fff; }
 .p2-resbox { background: #fff; border: 1px solid #cbd5e1; border-radius: 14px; box-shadow: 0 6px 18px rgba(15,28,56,.14); max-height: 320px; overflow-y: auto; }
 .p2-list { display: flex; flex-direction: column; gap: 10px; }
 .p2-panel { display: flex; flex-direction: column; gap: 8px; padding: 0 12px 12px; text-align: right; }

@@ -23,7 +23,7 @@ function p2Ensure() {
         <div class="page-title"><span id="p2Title">🛒 شاشة البيع</span><span class="p2-no" dir="ltr" id="p2No"></span></div></div>
         <div class="p2-main" id="p2Main">
             <section class="p2-items" id="p2Items">
-                <div class="p2-bar"><input id="p2Q" type="search" autocomplete="off" placeholder="امسح الباركود أو اكتب اسم المادة" oninput="p2SearchInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();p2Enter();}"><button type="button" class="p2-cam" onclick="p2Scan()" aria-label="مسح بالكاميرا">📷</button></div>
+                <div class="p2-bar"><input id="p2Q" type="search" autocomplete="off" placeholder="امسح الباركود أو اكتب اسم المادة" oninput="p2SearchInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();p2Enter();}"><button type="button" class="p2-auto" id="p2Auto" onclick="p2AutoToggle()" aria-label="فتح الكاميرا تلقائياً عند بدء البيع" aria-pressed="false" title="فتح الكاميرا تلقائياً"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/></svg></button><button type="button" class="p2-cam" onclick="p2Scan()" aria-label="مسح بالكاميرا"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button></div>
                 <div id="p2Res" class="p2-resbox" style="display:none"></div>
                 <div id="p2List" class="p2-list"></div>
                 <div id="p2Extra" class="p2-extra"></div>
@@ -42,7 +42,7 @@ function p2Open() {
     p2El('p2Title').textContent = bill && bill.editing ? '✏️ تعديل الفاتورة' : '🛒 شاشة البيع';
     p2El('p2No').textContent = bill.no || '';
     p2El('p2Ov').style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open');
-    const q = p2El('p2Q'); if (q) q.value = ''; p2Results(); p2Render(); p2Focus();
+    const q = p2El('p2Q'); if (q) q.value = ''; p2Results(); p2Render(); p2Focus(); p2AutoSync(); p2AutoOpen();
 }
 // الرجوع: يغلق القسم المفتوح (خصم، آجل...) أولاً على الموبايل، ثم يخرج من نافذة البيع
 function p2Back() {
@@ -64,11 +64,25 @@ function p2Close() {
     document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); p2.open = false;
     try { writeInvoiceFields(); renderInvoiceRows(); recalcInvoice(); updateIssuedUI(); } catch (e) { /* تجاهل */ }
 }
+// فتح الكاميرا تلقائياً عند بدء البيع: إعداد لكل جهاز، مطفأ افتراضياً
+const P2_AUTOCAM_LS = 'diwanP2AutoCam';
+const p2AutoCam = () => { try { return localStorage.getItem(P2_AUTOCAM_LS) === '1'; } catch (e) { return false; } };
+function p2AutoSync() { const b = p2El('p2Auto'); if (b) { const on = p2AutoCam(); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); } }
+function p2AutoToggle() {
+    const on = !p2AutoCam(); try { localStorage.setItem(P2_AUTOCAM_LS, on ? '1' : '0'); } catch (e) { /* تجاهل */ }
+    p2AutoSync();
+    try { Swal.fire({ icon: 'info', title: on ? 'ستُفتح الكاميرا تلقائياً عند بدء البيع' : 'أُلغي فتح الكاميرا التلقائي', toast: true, position: 'top', showConfirmButton: false, timer: 1800 }); } catch (e) { /* تجاهل */ }
+    if (on && p2.open && !(bill && bill.editing)) p2AutoOpen();
+}
+function p2AutoOpen() {   // مرة واحدة فقط: لا نفتحها إن كانت مفتوحة أو كانت نافذة أخرى ظاهرة
+    if (!p2AutoCam() || !p2.open || (bill && bill.editing)) return;
+    setTimeout(() => { const m = document.getElementById('barcodeModal'); if (p2.open && !(m && m.style.display === 'flex') && !document.querySelector('.swal2-container')) p2Scan(); }, 300);
+}
 function p2Focus() { const q = p2El('p2Q'); if (q && !(window.matchMedia && matchMedia('(pointer: coarse)').matches)) q.focus(); }
 function p2New() {
     bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); p2.done = false; p2.extra = false; try { p2El('p2Title').textContent = '🛒 شاشة البيع'; } catch (e) { /* تجاهل */ } p2.recv = ''; p2.credit = false; p2.zero = false; p2.paid = '';
     try { initBillEditor(); } catch (e) { /* تجاهل */ }
-    p2El('p2No').textContent = bill.no || ''; p2Render(); p2Focus();
+    p2El('p2No').textContent = bill.no || ''; p2Render(); p2Focus(); p2AutoOpen();
 }
 
 // ---------- البحث والمسح ----------
