@@ -199,18 +199,23 @@ function sdFrom() { return sdAdd(todayLocalISO(), -(2 * sdN - 1)); }
 function sdSet(n) { sdN = n; exRefresh(); }
 function sdCalc() {
     const today = todayLocalISO(), curFrom = sdAdd(today, -(sdN - 1)), prevFrom = sdAdd(today, -(2 * sdN - 1)), prevTo = sdAdd(today, -sdN);
-    const mk = () => ({ sales: 0, n: 0, profit: 0, costRev: 0, owed: 0, noCost: 0, days: new Map(), hours: new Array(24).fill(0), wd: new Array(7).fill(0), items: new Map(), sold: new Set() });
+    const mk = () => ({ sales: 0, n: 0, profit: 0, costRev: 0, owed: 0, noCost: 0, days: new Map(), hours: new Array(24).fill(0), wd: new Array(7).fill(0), items: new Map(), sold: new Set(), emp: new Map(), dept: new Map(), gross: 0, disc: 0, discN: 0 });
     const cur = mk(), prev = mk();
     (billAll || []).forEach(b => {
         if (!b || !b.issued || b.cancelled) return; const d = String(b.date || '');
         const g = d >= curFrom && d <= today ? cur : d >= prevFrom && d <= prevTo ? prev : null; if (!g) return;
         const sub = (b.items || []).reduce((a, it) => a + (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), 0), t = invTotalOf(b);
         g.sales += t; g.n++; g.owed += invRemaining(b); g.days.set(d, (g.days.get(d) || { s: 0, p: 0 })); g.days.get(d).s += t;
+        if (g === cur) {
+            const nm = String(b.by || 'غير معروف'), e = g.emp.get(nm) || { name: nm, n: 0, sales: 0, disc: 0, gross: 0, dn: 0 }; e.n++; e.sales += t; e.gross += sub; e.disc += sub - t; if (sub - t > 0.5) e.dn++; g.emp.set(nm, e);
+            g.gross += sub; g.disc += sub - t; if (sub - t > 0.5) g.discN++;
+        }
         if (g === cur) { const dt = b.issuedTs ? new Date(b.issuedTs) : null; if (dt && !isNaN(dt)) g.hours[dt.getHours()] += 1; g.wd[(new Date(d + 'T12:00:00').getDay() + 1) % 7] += t; }
         (b.items || []).forEach(it => {
             const q = parseFloat(it.qty) || 0, rev = q * (parseFloat(it.price) || 0) * (sub > 0 ? t / sub : 1);
             if (it.pid) g.sold.add(it.pid);
             if (it.cost > 0) { const pr = rev - it.cost * q; g.profit += pr; g.costRev += rev; g.days.get(d).p += pr; } else g.noCost++;
+            if (g === cur) { const pp = it.pid ? products.find(x => x.id === it.pid) : null, dn = (pp && pp.department) || 'غير مصنّف', de = g.dept.get(dn) || { name: dn, rev: 0, profit: 0, costRev: 0 }; de.rev += rev; if (it.cost > 0) { de.profit += rev - it.cost * q; de.costRev += rev; } g.dept.set(dn, de); }
             if (g === cur) { const k = it.pid ? 'p' + it.pid : 'n' + (it.name || ''), e = g.items.get(k) || { name: it.name || '—', pid: it.pid || null, q: 0, rev: 0, profit: 0, costRev: 0, costed: 0 }; e.q += q; e.rev += rev; if (it.cost > 0) { e.profit += rev - it.cost * q; e.costRev += rev; e.costed++; } g.items.set(k, e); }
         });
     });
@@ -236,6 +241,7 @@ function sdBars(vals, labels, fmt) {   // أعمدة عمودية: الأعلى 
     const mx = Math.max(1, ...vals), rank = [...vals].map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]).slice(0, 3).filter(x => x[0] > 0).map(x => x[1]);
     return `<div class="sd-bars" style="--n:${vals.length}">${vals.map((v, i) => `<div class="sd-bc"><b>${v ? fmt(v) : ''}</b><i class="${rank.includes(i) ? 'hi' : ''}" style="height:${Math.max(v ? 4 : 1, Math.round(v / mx * 100))}%"></i><span>${labels[i]}</span></div>`).join('')}</div>`;
 }
+function sdHBar(name, v, mx, sub) { return `<div class="sd-hb"><div class="sd-hh"><span dir="auto">${escapeHtml(name)}</span><b>${fmtNum(Math.round(v))}</b></div><div class="sd-ht"><i style="width:${Math.max(3, Math.round(v / mx * 100))}%"></i></div>${sub ? `<small>${escapeHtml(sub)}</small>` : ''}</div>`; }
 function sdHtml() {
     const c = sdCalc(), A = c.cur, P = c.prev, pers = [7, 30, 90];
     const avg = A.n ? A.sales / A.n : 0, avgP = P.n ? P.sales / P.n : 0, mar = A.costRev > 0 ? A.profit / A.costRev * 100 : null;
@@ -248,6 +254,8 @@ function sdHtml() {
     const peak = hv.length ? h0 + hv.indexOf(Math.max(...hv)) : -1;
     const nWd = new Array(7).fill(0); for (let i = 0; i < sdN; i++) nWd[(new Date(sdAdd(c.today, -i) + 'T12:00:00').getDay() + 1) % 7]++;
     const wdAvg = A.wd.map((v, i) => nWd[i] ? v / nWd[i] : 0), bestWd = wdAvg.indexOf(Math.max(...wdAvg));
+    const emps = [...A.emp.values()].sort((a, b) => b.sales - a.sales), empMx = Math.max(1, ...emps.map(e => e.sales));
+    const depts = [...A.dept.values()].filter(d => d.rev > 0).sort((a, b) => b.rev - a.rev).slice(0, 8), deptMx = Math.max(1, ...depts.map(d => d.rev));
     const row = (n, a, b) => `<div class="rep-row"><span dir="auto">${escapeHtml(n)}</span><small>${a}</small><b>${b}</b></div>`;
     return `<div class="cn-chips fu-chips">${pers.map(n => `<button type="button" class="cn-chip ${sdN === n ? 'on' : ''}" onclick="sdSet(${n})">${n === 7 ? '7 أيام' : n + ' يوماً'}</button>`).join('')}</div>
         <div class="sd-cards">
@@ -260,6 +268,9 @@ function sdHtml() {
         <div class="cu-h">النقد والآجل</div><div class="sd-box"><div class="sd-pay"><i style="width:${cashPct}%"></i></div><div class="sd-leg"><span><i class="l1"></i>نقد ${fmtNum(cash)} (${fmtNum(cashPct)}%)</span><span><i class="l4"></i>آجل ${fmtNum(A.owed)}</span></div></div>
         ${hv.length ? `<div class="cu-h">ساعات الازدحام (عدد الفواتير)</div><div class="sd-box">${sdBars(hv, hl, v => fmtNum(v))}<div class="sd-note">ذروة الازدحام: ${fmtNum(peak % 12 === 0 ? 12 : peak % 12)} ${peak >= 12 ? 'مساءً' : 'صباحاً'}</div></div>` : ''}
         ${A.sales > 0 ? `<div class="cu-h">متوسط المبيعات حسب اليوم</div><div class="sd-box">${sdBars(wdAvg.map(Math.round), SD_DAYS.map(d => d.replace('ال', '')), v => v >= 1e6 ? fmtNum(Math.round(v / 1e5) / 10) + ' مليون' : fmtNum(Math.round(v / 1000)) + ' ألف')}<div class="sd-note">أفضل يوم: ${SD_DAYS[bestWd]}</div></div>` : ''}
+        ${emps.length ? `<div class="cu-h">مبيعات الموظفين</div><div class="sd-box">${emps.map(e => sdHBar(e.name, e.sales, empMx, fmtNum(e.n) + ' فاتورة • متوسط ' + fmtNum(Math.round(e.sales / e.n)))).join('')}</div>` : ''}
+        ${depts.length ? `<div class="cu-h">المبيعات حسب القسم</div><div class="sd-box">${depts.map(d => sdHBar(d.name, d.rev, deptMx, (A.sales > 0 ? fmtNum(Math.round(d.rev / A.sales * 100)) + '% من المبيعات' : '') + (d.costRev > 0 ? ' • ربح ' + fmtNum(Math.round(d.profit)) : ''))).join('')}</div>` : ''}
+        ${A.disc > 0.5 ? `<div class="cu-h">الخصومات</div><div class="sd-cards sd-c3"><div><span>إجمالي الخصومات</span><b>${fmtNum(Math.round(A.disc))}</b>${sdDelta(A.disc, P.disc)}</div><div><span>نسبتها من المبيعات</span><b>${fmtNum(Math.round(A.disc / A.gross * 1000) / 10)}%</b></div><div><span>فواتير بخصم</span><b>${fmtNum(A.discN)}</b><small>من ${fmtNum(A.n)}</small></div></div>${emps.filter(e => e.disc > 0.5).length > 1 ? '<div class="sd-box">' + emps.filter(e => e.disc > 0.5).sort((a, b) => b.disc / b.gross - a.disc / a.gross).map(e => sdHBar(e.name, e.disc, Math.max(...emps.map(x => x.disc)), fmtNum(Math.round(e.disc / e.gross * 1000) / 10) + '% من مبيعاته • ' + fmtNum(e.dn) + ' فاتورة')).join('') + '</div>' : ''}` : ''}
         ${topProfit.length ? `<div class="cu-h">الأكثر ربحاً (الربح بالدينار)</div>${topProfit.map(e => row(e.name, '× ' + fmtNum(Math.round(e.q * 10) / 10), fmtNum(Math.round(e.profit)))).join('')}` : ''}
         ${low.length ? `<div class="cu-h">هامش منخفض (أقل من 10%)</div>${low.map(e => row(e.name, fmtNum(Math.round(e.profit / e.costRev * 1000) / 10) + '%', fmtNum(Math.round(e.profit)))).join('')}<div class="sd-note">الهامش السالب يعني البيع بأقل من سعر الشراء.</div>` : ''}
         ${dead.length ? `<div class="cu-h">راكدة: لم تُبع خلال ${fmtNum(sdN)} يوماً</div>${dead.map(x => row(dispName(x.p), 'المتوفر: ' + escapeHtml(stockLabel(x.p)), fmtNum(Math.round(x.v)))).join('')}<div class="sd-note">الرقم الأخير قيمة المخزون الراكد بسعر الشراء.</div>` : ''}
