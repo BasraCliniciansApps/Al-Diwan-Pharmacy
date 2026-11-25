@@ -4,6 +4,8 @@
 // الحالة والطلبات الصادرة محفوظة على الجهاز (لا تلمس الفواتير ولا المخزن).
 // ============================================================================
 const ND_ST = 'diwanNeedState', ND_OR = 'diwanNeedOrders', ND_NO = 'diwanNeedNo', ND_HOLD_DAYS = 14;
+const ND_CNT = 'diwanNdCounted';
+const ndCountedOnly = () => { try { return localStorage.getItem(ND_CNT) !== '0'; } catch (e) { return true; } };
 let ndOpenFlag = false, ndScr = 'list', ndTab = 'list', ndSupF = '', ndQ = '', ndSel = new Set(), ndAddRes = [], ndView = null;
 const ndEsc = s => escapeHtml(String(s == null ? '' : s));
 function ndState() { let s = {}; try { s = JSON.parse(lsGet(ND_ST)) || {}; } catch (e) { s = {}; } return { qty: s.qty || {}, off: s.off || {}, extra: s.extra || [], ordered: s.ordered || {} }; }
@@ -14,6 +16,7 @@ const ndAgo = iso => Math.max(0, Math.round((new Date(todayLocalISO() + 'T00:00:
 
 // ---------- بناء القائمة ----------
 function ndList() {
+    ndList.hid = 0; const cntOnly = ndCountedOnly();
     const st = ndState(), c = typeof spoCfg === 'function' ? spoCfg() : { on: false, weeks: 4, cover: 14 }, sold = c.on && typeof spoSold === 'function' ? spoSold(c) : new Map(), out = [], seen = new Set();
     const held = pid => { const o = st.ordered[pid]; return o && ndAgo(o.at) < ND_HOLD_DAYS; };
     products.forEach(p => {
@@ -21,8 +24,9 @@ function ndList() {
         const i = c.on && typeof spoInfo === 'function' ? spoInfo(p, sold, c) : { rate: 0, left: null, sug: 0 };
         const low = !isInStock(p) || isLowStock(p), fast = i.sug > 0 && i.left !== null && i.left < c.cover, manual = st.extra.includes(p.id);
         if (!low && !fast && !manual) return;
+        if (!manual && cntOnly && p.counted !== true) { ndList.hid++; return; }   // غير مجرودة: كميتها غير موثوقة فلا تدخل القائمة التلقائية
         const dflt = i.sug > 0 ? i.sug : Math.max(getMinQty(p) * 2 - (parseInt(p.qty) || 0), 1);
-        out.push({ p, i, qty: Math.max(1, parseInt(st.qty[p.id]) || dflt), manual: manual && !low && !fast, out: !isInStock(p) });
+        out.push({ p, i, qty: Math.max(1, parseInt(st.qty[p.id]) || dflt), manual: manual && !low && !fast, mine: manual, auto: (low || fast) && (!cntOnly || p.counted === true), out: !isInStock(p) });
         seen.add(p.id);
     });
     out.sort((a, b) => (b.out - a.out) || ((a.i.left === null ? 1e9 : a.i.left) - (b.i.left === null ? 1e9 : b.i.left)) || (parseInt(a.p.qty) || 0) - (parseInt(b.p.qty) || 0));
@@ -66,13 +70,13 @@ function ndRowsHtml(list) {
         const info = i.rate > 0 ? `يُباع ${Math.round(i.rate * 10) / 10} علبة/يوم • يكفي ${i.left < 1 ? 'أقل من يوم' : Math.floor(i.left) + ' يوماً'}` : (out ? 'نافدة' : 'كمية قليلة');
         return `<div class="nd-row ${ndSel.has(p.id) ? 'on' : ''}" data-id="${p.id}">
             <label class="nd-chk"><input type="checkbox" ${ndSel.has(p.id) ? 'checked' : ''} onchange="ndToggle(${p.id},this.checked)"><i></i></label>
-            <div class="nd-main"><b dir="ltr">${dispNameHtml(p)}</b><small>المتوفر: ${ndEsc(stockLabel(p))} • ${info}${ndSupOf(p) ? ' • ' + ndEsc(ndSupOf(p)) : ''}${manual ? ' • مضافة يدوياً' : ''}</small></div>
+            <div class="nd-main"><b dir="ltr">${dispNameHtml(p)}</b><small>المتوفر: ${ndEsc(stockLabel(p))} • ${info}${ndSupOf(p) ? ' • ' + ndEsc(ndSupOf(p)) : ''}${manual && ndTab !== 'mine' ? ' • مضافة يدوياً' : ''}</small></div>
             <div class="nd-qty"><button type="button" onclick="ndStep(${p.id},-1)" aria-label="إنقاص">−</button><input type="number" inputmode="numeric" min="1" value="${qty}" oninput="ndQty(${p.id},this.value)" onfocus="this.select()"><button type="button" onclick="ndStep(${p.id},1)" aria-label="زيادة">+</button></div>
-            <button type="button" class="nd-x" onclick="ndRemove(${p.id})" aria-label="إزالة من القائمة">✕</button></div>`;
+            <button type="button" class="nd-x" onclick="${ndTab === 'mine' ? 'ndUnmine' : 'ndRemove'}(${p.id})" aria-label="إزالة من القائمة">✕</button></div>`;
     }).join('');
 }
 function ndFiltered() {
-    let list = ndList(); const q = ndQ ? normSearch(ndQ) : '', toks = q ? q.split(' ') : [];
+    let list = ndList().filter(x => ndTab === 'mine' ? x.mine : x.auto); const q = ndQ ? normSearch(ndQ) : '', toks = q ? q.split(' ') : [];
     if (ndSupF) list = list.filter(x => (ndSupF === '__none' ? !ndSupOf(x.p) : ndSupOf(x.p) === ndSupF));
     if (q) list = list.filter(x => searchScore(x.p, q, toks) > 0);
     return list;
@@ -80,16 +84,17 @@ function ndFiltered() {
 function ndListRender() {
     ndScr = 'list'; const all = ndList(), sups = [...new Set(all.map(x => ndSupOf(x.p)).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ar')), noSup = all.some(x => !ndSupOf(x.p));
     const orders = ndOrders(), openOrd = orders.filter(o => o.status !== 'received').length;
-    const tabs = `<div class="cu-seg"><button type="button" class="${ndTab === 'list' ? 'on' : ''}" onclick="ndTab='list';ndRender()">قائمة النواقص (${fmtNum(all.length)})</button><button type="button" class="${ndTab === 'orders' ? 'on' : ''}" onclick="ndTab='orders';ndRender()">الطلبات الصادرة${openOrd ? ' (' + fmtNum(openOrd) + ')' : ''}</button></div>`;
+    const tabs = `<div class="cu-seg"><button type="button" class="${ndTab === 'list' ? 'on' : ''}" onclick="ndTab='list';ndRender()">النواقص (${fmtNum(all.filter(x => x.auto).length)})</button><button type="button" class="${ndTab === 'mine' ? 'on' : ''}" onclick="ndTab='mine';ndRender()">قائمتي (${fmtNum(all.filter(x => x.mine).length)})</button><button type="button" class="${ndTab === 'orders' ? 'on' : ''}" onclick="ndTab='orders';ndRender()">الطلبات الصادرة${openOrd ? ' (' + fmtNum(openOrd) + ')' : ''}</button></div>`;
     let body, bar = '';
     if (ndTab === 'orders') body = ndOrdersHtml(orders);
     else {
         const list = ndFiltered(), allOn = list.length && list.every(x => ndSel.has(x.p.id)), nSel = [...ndSel].filter(id => all.some(x => x.p.id === id)).length;
-        body = `<div class="nd-tools"><select class="fu-in" onchange="ndSupF=this.value;ndRender()"><option value="">كل المذاخر</option>${sups.map(s => `<option value="${ndEsc(s)}" ${ndSupF === s ? 'selected' : ''}>${ndEsc(s)}</option>`).join('')}${noSup ? `<option value="__none" ${ndSupF === '__none' ? 'selected' : ''}>بلا مذخر معروف</option>` : ''}</select>
+        const hid = ndTab === 'list' ? ndList.hid : 0;
+        body = (ndTab === 'list' ? ndSetHtml(hid) : '<div class="bill-set-hint">قائمة تختار موادها بنفسك: لا تتغير تلقائياً. أضف المادة بالزر ثم حدّد الكمية وأصدر الطلب.</div>') + `<div class="nd-tools"><select class="fu-in" onchange="ndSupF=this.value;ndRender()"><option value="">كل المذاخر</option>${sups.map(s => `<option value="${ndEsc(s)}" ${ndSupF === s ? 'selected' : ''}>${ndEsc(s)}</option>`).join('')}${noSup ? `<option value="__none" ${ndSupF === '__none' ? 'selected' : ''}>بلا مذخر معروف</option>` : ''}</select>
             <button type="button" class="nd-add" onclick="ndAddOpen()">+ إضافة مادة</button></div>
             <div class="fu-q"><input type="search" autocomplete="off" placeholder="بحث في القائمة" value="${ndEsc(ndQ)}" oninput="ndQ=this.value;ndRowsRedraw()"></div>
             <div class="nd-selall"><label class="nd-chk"><input type="checkbox" id="ndAll" ${allOn ? 'checked' : ''} onchange="ndSelAll(this.checked)"><i></i></label><span>تحديد الكل (${fmtNum(list.length)})</span></div>
-            <div id="ndRows">${ndRowsHtml(list) || '<div class="cu-none">لا توجد مواد ناقصة 🎉</div>'}</div><div style="height:78px"></div>`;
+            <div id="ndRows">${ndRowsHtml(list) || (ndTab === 'mine' ? '<div class="cu-none">قائمتك فارغة. أضف موادك بالزر أعلاه.</div>' : '<div class="cu-none">لا توجد مواد ناقصة 🎉</div>')}</div><div style="height:78px"></div>`;
         bar = `<div class="nd-bar"><button type="button" class="cn-new" id="ndIssueBtn" onclick="ndIssue()" ${nSel ? '' : 'disabled'}>${nSel ? 'إصدار طلب بـ ' + fmtNum(nSel) + ' مادة' : 'حدّد المواد لإصدار الطلب'}</button></div>`;
     }
     document.getElementById('ndBox').innerHTML = `<div class="cn-head"><b>🛒 النواقص والطلبية</b><span></span></div><div class="cn-body">${tabs}${body}</div>${bar}`;
@@ -111,6 +116,44 @@ async function ndRemove(id) {
     const s = ndState(); s.off[id] = 1; s.extra = s.extra.filter(x => x !== id); ndSave(s); ndSel.delete(id); ndRender(); ndBadge();
 }
 
+// ---------- إعدادات اعتبار المادة ناقصة ----------
+function ndSetHtml(hid) {
+    const c = typeof spoCfg === 'function' ? spoCfg() : null, opt = (arr, cur, f) => arr.map(x => `<option value="${x}" ${x === cur ? 'selected' : ''}>${f(x)}</option>`).join('');
+    return `<details class="nd-set"><summary>⚙ متى تُعدّ المادة ناقصة؟</summary>
+        <div class="nd-set-b">
+        <div class="fu-l fu-sw"><span>إظهار المواد المجرودة فقط</span><label class="setup-sw"><input type="checkbox" ${ndCountedOnly() ? 'checked' : ''} onchange="ndCountedSet(this.checked)"><i></i></label></div>
+        ${hid ? `<div class="bill-set-hint">${ndCountedOnly() ? 'مخفية الآن: ' + fmtNum(hid) + ' مادة غير مجرودة، لأن كمياتها غير موثوقة.' : ''}</div>` : ''}
+        <label class="fu-l">الحد العام: المادة ناقصة إذا بقي منها (علب) أو أقل
+        <input class="fu-in" type="number" inputmode="numeric" min="0" value="${fuIntSafe(lowStockThreshold)}" onchange="ndLowSet(this.value)"></label>
+        <div class="nd-hint">لمادة بعينها حدّ خاص بها: افتح المادة وعدّل حقل «تنبيه عند (علب)».</div>
+        ${c ? `<div class="nd-hint">وتُعدّ ناقصة أيضاً إذا كان رصيدها يكفي أقل من المدة التالية بحسب سرعة بيعها:</div>
+        <div class="fu-two"><label class="fu-l">مدة التغطية<select class="fu-in" onchange="ndSpoSet('cover',+this.value)">${opt([7, 14, 21, 30], c.cover, x => x + ' يوماً')}</select></label>
+        <label class="fu-l">قياس المبيعات<select class="fu-in" onchange="ndSpoSet('weeks',+this.value)">${opt([2, 4, 8, 12], c.weeks, x => 'آخر ' + x + ' أسابيع')}</select></label></div>` : ''}
+        </div></details>`;
+}
+const fuIntSafe = v => parseInt(v) || 0;
+function ndCountedSet(on) { try { localStorage.setItem(ND_CNT, on ? '1' : '0'); } catch (e) { /* تجاهل */ } ndSel = new Set(); ndRender(); ndBadge(); }
+function ndLowSet(v) {
+    const n = parseInt(v); if (isNaN(n) || n < 0) { Swal.fire({ icon: 'warning', title: 'أدخل رقماً صحيحاً (0 أو أكثر)', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); ndRender(); return; }
+    const el = document.getElementById('lowThresholdInput'); if (el) el.value = n;
+    lowStockThreshold = n; try { localStorage.setItem('diwanLowThreshold', String(n)); } catch (e) { /* تجاهل */ }
+    try { pushToCloud(true); } catch (e) { /* تجاهل */ }
+    Swal.fire({ icon: 'success', title: 'تم حفظ الحد العام', toast: true, position: 'bottom', showConfirmButton: false, timer: 1500 });
+    ndRender(); ndBadge();
+}
+async function ndSpoSet(k, v) {
+    const c = spoCfg(); c[k] = v; spoSave(c);
+    const h = Prog.start('تحديث النواقص', { text: 'جارٍ احتساب المبيعات...' });
+    try { await spoEnsure(c); h.ok('تم التحديث'); } catch (e) { h.fail('تعذر التحديث', e.message || String(e)); }
+    if (ndOpenFlag && ndScr === 'list') ndRender(); ndBadge();
+}
+async function ndUnmine(id) {
+    const p = products.find(x => x.id === id);
+    const r = await Swal.fire({ icon: 'warning', title: 'إزالة من قائمتك؟', html: `<span dir="ltr">${p ? ndEsc(dispName(p)) : ''}</span>`, showCancelButton: true, confirmButtonText: 'نعم، إزالة', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c', reverseButtons: true });
+    if (!r.isConfirmed) return;
+    const s = ndState(); s.extra = s.extra.filter(x => x !== id); ndSave(s); ndSel.delete(id); ndRender(); ndBadge();
+}
+
 // ---------- إضافة مادة يدوياً ----------
 function ndAddOpen() { ndScr = 'add'; ndAddRes = []; ndAddRender(); }
 function ndAddRender() {
@@ -127,7 +170,7 @@ function ndAddSearch() {
 function ndAddPick(id) {
     const s = ndState(); delete s.off[id]; delete s.ordered[id]; if (!s.extra.includes(id)) s.extra.push(id); ndSave(s); ndSel.add(id);
     Swal.fire({ icon: 'success', title: 'أُضيفت إلى القائمة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1400 });
-    ndScr = 'list'; ndTab = 'list'; ndSupF = ''; ndQ = ''; ndRender();
+    ndScr = 'list'; ndTab = 'mine'; ndSupF = ''; ndQ = ''; ndRender();
 }
 
 // ---------- إصدار الطلب ----------

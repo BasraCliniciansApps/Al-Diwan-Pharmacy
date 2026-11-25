@@ -5138,3 +5138,8 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .fm-sum { font-size: 13px; color: #64748b; margin: 4px 2px 8px; }
 .fm-note { font-size: 12px; line-height: 1.7; color: #64748b; margin: 12px 2px 4px; }
 .fm-e b { font-weight: 500; font-size: 13px; }
+
+.nd-set { margin: 0 0 10px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
+.nd-set summary { padding: 11px 12px; font-weight: 800; font-size: .88rem; color: #334155; cursor: pointer; }
+.nd-set-b { display: grid; gap: 10px; padding: 0 12px 12px; }
+.nd-hint { font-size: 12px; line-height: 1.7; color: #64748b; }
