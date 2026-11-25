@@ -8,7 +8,7 @@ const ND_CNT = 'diwanNdCounted';
 const ndCountedOnly = () => { try { return localStorage.getItem(ND_CNT) !== '0'; } catch (e) { return true; } };
 let ndOpenFlag = false, ndScr = 'list', ndTab = 'list', ndSupF = '', ndQ = '', ndSel = new Set(), ndAddRes = [], ndView = null;
 const ndEsc = s => escapeHtml(String(s == null ? '' : s));
-function ndState() { let s = {}; try { s = JSON.parse(lsGet(ND_ST)) || {}; } catch (e) { s = {}; } return { qty: s.qty || {}, off: s.off || {}, extra: s.extra || [], ordered: s.ordered || {} }; }
+function ndState() { let s = {}; try { s = JSON.parse(lsGet(ND_ST)) || {}; } catch (e) { s = {}; } return { qty: s.qty || {}, off: s.off || {}, extra: s.extra || [], ordered: s.ordered || {}, custom: s.custom || [], cseq: s.cseq || 0 }; }
 function ndSave(s) { lsSet(ND_ST, JSON.stringify(s)); }
 function ndOrders() { try { return (JSON.parse(lsGet(ND_OR)) || []).filter(x => x && x.id); } catch (e) { return []; } }
 function ndOrdersSave(a) { lsSet(ND_OR, JSON.stringify(a)); }
@@ -28,6 +28,11 @@ function ndList() {
         const dflt = i.sug > 0 ? i.sug : Math.max(getMinQty(p) * 2 - (parseInt(p.qty) || 0), 1);
         out.push({ p, i, qty: Math.max(1, parseInt(st.qty[p.id]) || dflt), manual: manual && !low && !fast, mine: manual, auto: (low || fast) && (!cntOnly || p.counted === true), out: !isInStock(p) });
         seen.add(p.id);
+    });
+    // مواد أضفتها يدوياً وهي غير موجودة بالمخزن (معرّفها سالب كي لا تتعارض مع معرّفات المخزن)
+    st.custom.forEach(c => {
+        if (st.off[c.id]) return;
+        out.push({ p: { id: c.id, custom: true, name: c.name, brand: '' }, i: { rate: 0, left: null, sug: 0 }, qty: Math.max(1, parseInt(st.qty[c.id]) || 1), manual: true, mine: true, auto: false, out: false });
     });
     out.sort((a, b) => (b.out - a.out) || ((a.i.left === null ? 1e9 : a.i.left) - (b.i.left === null ? 1e9 : b.i.left)) || (parseInt(a.p.qty) || 0) - (parseInt(b.p.qty) || 0));
     return out;
@@ -70,7 +75,7 @@ function ndRowsHtml(list) {
         const info = i.rate > 0 ? `يُباع ${Math.round(i.rate * 10) / 10} علبة/يوم • يكفي ${i.left < 1 ? 'أقل من يوم' : Math.floor(i.left) + ' يوماً'}` : (out ? 'نافدة' : 'كمية قليلة');
         return `<div class="nd-row ${ndSel.has(p.id) ? 'on' : ''}" data-id="${p.id}">
             <label class="nd-chk"><input type="checkbox" ${ndSel.has(p.id) ? 'checked' : ''} onchange="ndToggle(${p.id},this.checked)"><i></i></label>
-            <div class="nd-main"><b dir="ltr">${dispNameHtml(p)}</b><small>المتوفر: ${ndEsc(stockLabel(p))} • ${info}${ndSupOf(p) ? ' • ' + ndEsc(ndSupOf(p)) : ''}${manual && ndTab !== 'mine' ? ' • مضافة يدوياً' : ''}</small></div>
+            <div class="nd-main">${p.custom ? `<b dir="auto">${ndEsc(p.name)}</b><small>مادة خارج المخزن • مضافة يدوياً</small>` : `<b dir="ltr">${dispNameHtml(p)}</b><small>المتوفر: ${ndEsc(stockLabel(p))} • ${info}${ndSupOf(p) ? ' • ' + ndEsc(ndSupOf(p)) : ''}${manual && ndTab !== 'mine' ? ' • مضافة يدوياً' : ''}</small>`}</div>
             <div class="nd-qty"><button type="button" onclick="ndStep(${p.id},-1)" aria-label="إنقاص">−</button><input type="number" inputmode="numeric" min="1" value="${qty}" oninput="ndQty(${p.id},this.value)" onfocus="this.select()"><button type="button" onclick="ndStep(${p.id},1)" aria-label="زيادة">+</button></div>
             <button type="button" class="nd-x" onclick="${ndTab === 'mine' ? 'ndUnmine' : 'ndRemove'}(${p.id})" aria-label="إزالة من القائمة">✕</button></div>`;
     }).join('');
@@ -78,7 +83,7 @@ function ndRowsHtml(list) {
 function ndFiltered() {
     let list = ndList().filter(x => ndTab === 'mine' ? x.mine : x.auto); const q = ndQ ? normSearch(ndQ) : '', toks = q ? q.split(' ') : [];
     if (ndSupF) list = list.filter(x => (ndSupF === '__none' ? !ndSupOf(x.p) : ndSupOf(x.p) === ndSupF));
-    if (q) list = list.filter(x => searchScore(x.p, q, toks) > 0);
+    if (q) list = list.filter(x => x.p.custom ? toks.every(t => normSearch(x.p.name).includes(t)) : searchScore(x.p, q, toks) > 0);
     return list;
 }
 function ndListRender() {
@@ -90,7 +95,7 @@ function ndListRender() {
     else {
         const list = ndFiltered(), allOn = list.length && list.every(x => ndSel.has(x.p.id)), nSel = [...ndSel].filter(id => all.some(x => x.p.id === id)).length;
         const hid = ndTab === 'list' ? ndList.hid : 0;
-        body = (ndTab === 'list' ? ndSetHtml(hid) : '<div class="bill-set-hint">قائمة تختار موادها بنفسك: لا تتغير تلقائياً. أضف المادة بالزر ثم حدّد الكمية وأصدر الطلب.</div>') + `<div class="nd-tools"><select class="fu-in" onchange="ndSupF=this.value;ndRender()"><option value="">كل المذاخر</option>${sups.map(s => `<option value="${ndEsc(s)}" ${ndSupF === s ? 'selected' : ''}>${ndEsc(s)}</option>`).join('')}${noSup ? `<option value="__none" ${ndSupF === '__none' ? 'selected' : ''}>بلا مذخر معروف</option>` : ''}</select>
+        body = (ndTab === 'list' ? ndSetHtml(hid) : '<div class="bill-set-hint">قائمة تختار موادها بنفسك: لا تتغير تلقائياً.<br>أضف المادة بالزر ثم حدّد الكمية وأصدر الطلب.<br>يمكنك أيضاً إضافة مادة غير موجودة في المخزن.</div>') + `<div class="nd-tools"><select class="fu-in" onchange="ndSupF=this.value;ndRender()"><option value="">كل المذاخر</option>${sups.map(s => `<option value="${ndEsc(s)}" ${ndSupF === s ? 'selected' : ''}>${ndEsc(s)}</option>`).join('')}${noSup ? `<option value="__none" ${ndSupF === '__none' ? 'selected' : ''}>بلا مذخر معروف</option>` : ''}</select>
             <button type="button" class="nd-add" onclick="ndAddOpen()">+ إضافة مادة</button></div>
             <div class="fu-q"><input type="search" autocomplete="off" placeholder="بحث في القائمة" value="${ndEsc(ndQ)}" oninput="ndQ=this.value;ndRowsRedraw()"></div>
             <div class="nd-selall"><label class="nd-chk"><input type="checkbox" id="ndAll" ${allOn ? 'checked' : ''} onchange="ndSelAll(this.checked)"><i></i></label><span>تحديد الكل (${fmtNum(list.length)})</span></div>
@@ -148,17 +153,17 @@ async function ndSpoSet(k, v) {
     if (ndOpenFlag && ndScr === 'list') ndRender(); ndBadge();
 }
 async function ndUnmine(id) {
-    const p = products.find(x => x.id === id);
-    const r = await Swal.fire({ icon: 'warning', title: 'إزالة من قائمتك؟', html: `<span dir="ltr">${p ? ndEsc(dispName(p)) : ''}</span>`, showCancelButton: true, confirmButtonText: 'نعم، إزالة', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c', reverseButtons: true });
+    const p = products.find(x => x.id === id), cu = ndState().custom.find(x => x.id === id);
+    const r = await Swal.fire({ icon: 'warning', title: 'إزالة من قائمتك؟', html: `<span dir="auto">${cu ? ndEsc(cu.name) : (p ? ndEsc(dispName(p)) : '')}</span>`, showCancelButton: true, confirmButtonText: 'نعم، إزالة', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c', reverseButtons: true });
     if (!r.isConfirmed) return;
-    const s = ndState(); s.extra = s.extra.filter(x => x !== id); ndSave(s); ndSel.delete(id); ndRender(); ndBadge();
+    const s = ndState(); s.extra = s.extra.filter(x => x !== id); s.custom = s.custom.filter(x => x.id !== id); delete s.qty[id]; ndSave(s); ndSel.delete(id); ndRender(); ndBadge();
 }
 
 // ---------- إضافة مادة يدوياً ----------
 function ndAddOpen() { ndScr = 'add'; ndAddRes = []; ndAddRender(); }
 function ndAddRender() {
     document.getElementById('ndBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="ndBack()" aria-label="رجوع">→</button><b>إضافة مادة للقائمة</b><span></span></div><div class="cn-body">
-        <input id="ndAddQ" class="fu-in" type="search" autocomplete="off" placeholder="ابحث بالاسم أو الباركود" oninput="ndAddSearch()"><div id="ndAddRes" style="margin-top:10px"></div></div>`;
+        <input id="ndAddQ" class="fu-in" type="search" autocomplete="off" placeholder="ابحث بالاسم أو الباركود" oninput="ndAddSearch()"><button type="button" class="nd-add" style="margin-top:10px;width:100%" onclick="ndAddCustom()">+ مادة غير موجودة في المخزن</button><div id="ndAddRes" style="margin-top:10px"></div></div>`;
     setTimeout(() => { const i = document.getElementById('ndAddQ'); if (i) i.focus(); }, 80);
 }
 function ndAddSearch() {
@@ -171,6 +176,27 @@ function ndAddPick(id) {
     const s = ndState(); delete s.off[id]; delete s.ordered[id]; if (!s.extra.includes(id)) s.extra.push(id); ndSave(s); ndSel.add(id);
     Swal.fire({ icon: 'success', title: 'أُضيفت إلى القائمة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1400 });
     ndScr = 'list'; ndTab = 'mine'; ndSupF = ''; ndQ = ''; ndRender();
+}
+
+// إضافة مادة غير موجودة في المخزن: اسم وكمية فقط، وتبقى في «قائمتي» حتى تُصدر في طلب
+async function ndAddCustom() {
+    const qEl = document.getElementById('ndAddQ'), pre = qEl ? qEl.value.trim() : '';
+    const r = await Swal.fire({
+        title: 'مادة خارج المخزن', confirmButtonText: 'إضافة', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', reverseButtons: true,
+        html: `<div dir="rtl" style="text-align:right;display:grid;gap:10px"><label class="fu-l">اسم المادة<input id="ndCuName" class="fu-in" autocomplete="off" value="${ndEsc(pre)}" placeholder="الاسم مع الشكل والتركيز"></label>
+            <label class="fu-l">الكمية المطلوبة<input id="ndCuQty" class="fu-in" type="number" inputmode="numeric" min="1" value="1"></label></div>`,
+        preConfirm: () => {
+            const name = document.getElementById('ndCuName').value.trim().replace(/\s+/g, ' '), qty = Math.max(1, parseInt(document.getElementById('ndCuQty').value) || 1);
+            if (!name) { Swal.showValidationMessage('أدخل اسم المادة'); return false; }
+            return { name, qty };
+        }
+    });
+    if (!r.isConfirmed) return;
+    const s = ndState(), key = normSearch(r.value.name); let c = s.custom.find(x => normSearch(x.name) === key);
+    if (!c) { s.cseq = (s.cseq || 0) + 1; c = { id: -s.cseq, name: r.value.name }; s.custom.push(c); }
+    delete s.off[c.id]; s.qty[c.id] = r.value.qty; ndSave(s); ndSel.add(c.id);
+    Swal.fire({ icon: 'success', title: 'أُضيفت إلى القائمة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1400 });
+    ndScr = 'list'; ndTab = 'mine'; ndSupF = ''; ndQ = ''; ndRender(); ndBadge();
 }
 
 // ---------- إصدار الطلب ----------
@@ -187,9 +213,9 @@ async function ndIssue() {
     });
     if (!r.isConfirmed) return;
     const no = (parseInt(lsGet(ND_NO)) || 0) + 1; lsSet(ND_NO, String(no));
-    const o = { id: 'nd' + Date.now().toString(36), no: 'ط-' + String(no).padStart(4, '0'), date: todayLocalISO(), at: new Date().toISOString(), supplier: r.value.supplier, note: r.value.note, status: 'sent', items: items.map(x => ({ pid: x.p.id, name: dispName(x.p), brand: x.p.brand || '', qty: x.qty })) };
+    const o = { id: 'nd' + Date.now().toString(36), no: 'ط-' + String(no).padStart(4, '0'), date: todayLocalISO(), at: new Date().toISOString(), supplier: r.value.supplier, note: r.value.note, status: 'sent', items: items.map(x => ({ pid: x.p.id, name: x.p.custom ? x.p.name : dispName(x.p), brand: x.p.brand || '', qty: x.qty })) };
     const all = ndOrders(); all.unshift(o); ndOrdersSave(all);
-    const s = ndState(); items.forEach(x => { s.ordered[x.p.id] = { oid: o.id, at: o.at }; s.extra = s.extra.filter(e => e !== x.p.id); delete s.qty[x.p.id]; ndSel.delete(x.p.id); }); ndSave(s);
+    const s = ndState(); items.forEach(x => { s.ordered[x.p.id] = { oid: o.id, at: o.at }; s.extra = s.extra.filter(e => e !== x.p.id); s.custom = s.custom.filter(e => e.id !== x.p.id); delete s.qty[x.p.id]; ndSel.delete(x.p.id); }); ndSave(s);
     ndView = o.id; ndScr = 'order'; ndRender(); ndBadge();
 }
 
