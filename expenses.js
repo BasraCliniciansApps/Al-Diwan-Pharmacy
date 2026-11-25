@@ -288,7 +288,7 @@ function sdHtml() {
 // وللمتقطع والكتلي Croston بتصحيح SBA؛ ثم مخزون أمان بحسب فئة ABC، ونقطة إعادة الطلب = الطلب خلال (التوريد + دورة الطلب) + الأمان.
 // الوارد يدخل في «قيد الطلب» وفي تصحيح النفاد؛ مدة التوريد ودورة الطلب إعدادان قابلان للتعديل.
 // ============================================================================
-let ndmF = 'order', ndmShow = 60;
+let ndmF = 'order', ndmShow = 60, ndmQ = '';
 const ndmMed = a => { if (!a.length) return 0; const b = a.slice().sort((x, y) => x - y), m = b.length >> 1; return b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2; };
 const ndmDays = (a, b) => Math.round((new Date(b + 'T12:00:00') - new Date(a + 'T12:00:00')) / 864e5);
 function ndmAuto() {   // مدة التوريد ودورة الطلب من سجلات المخزن نفسها (يوم الإدخال هو يوم الاستلام): بلا إدخال يدوي
@@ -354,7 +354,7 @@ let ndmRows = [];
 function ndmHtml() {
     const c = ndmCalc(); ndmRows = c.rows; const cfg = c.cfg, cnt = k => c.rows.filter(r => r.status === k).length;
     const opt = (arr, cur, f) => arr.map(x => `<option value="${x}" ${x === cur ? 'selected' : ''}>${f(x)}</option>`).join('');
-    const list = c.rows.map((r, i) => [r, i]).filter(([r]) => ndmF === 'all' || r.status === ndmF), chips = [['order', 'اطلب الآن'], ['soon', 'قريباً'], ['over', 'فائض'], ['all', 'الكل']];
+    const chips = [['order', 'اطلب الآن'], ['soon', 'قريباً'], ['over', 'فائض'], ['all', 'الكل']];
     const nOrd = cnt('order');
     return `<div class="sd-cards sd-c3"><div><span>اطلب الآن</span><b>${fmtNum(nOrd)}</b></div><div><span>قريباً</span><b>${fmtNum(cnt('soon'))}</b></div><div><span>فائض</span><b>${fmtNum(cnt('over'))}</b></div></div>
         <details class="nd-set"><summary>ⓘ طريقة الحساب والقيم المستخدمة</summary><div class="nd-set-b">
@@ -362,9 +362,16 @@ function ndmHtml() {
         <div class="nd-hint">كيف يُحسب التقدير:<br>١) الأساس هو المبيعات الفعلية (الصادر)، لا الوارد، لأن الوارد يعكس قرارات الشراء وليس حاجة الزبائن.<br>٢) لا تُحتسب أيام نفاد المادة ضمن الطلب، ويُضاف إليه ما سُجّل في «المطلوبة وغير المتوفرة».<br>٣) يُصنَّف نمط الطلب (منتظم، متذبذب، متقطع، كتلي) بمؤشرَي ADI وCV².<br>٤) للمنتظم والمتذبذب: متوسط يوزن بالحداثة، وللمتقطع والكتلي: طريقة Croston بتصحيح SBA.<br>٥) مخزون الأمان بحسب فئة المادة بالإيراد: A بمستوى خدمة 98%، وB بمستوى 95%، وC بمستوى 90%.<br>٦) نقطة إعادة الطلب = الطلب خلال مدة الوصول + مخزون الأمان، والكمية المقترحة تصل بالمخزون إلى الطلب خلال (مدة الوصول + دورة الطلب) + الأمان، مطروحاً منها المتوفر وما هو قيد الطلب.<br>٧) البيانات القليلة تعطي تقديراً ضعيفاً، ولا يحسب النموذج الموسمية لأن مدة القياس قصيرة.<br>٨) الرقم بين قوسين بجانب الطلب الأسبوعي هو المدى المتوقع بثقة 80%، أي أن الأسبوع القادم يقع غالباً ضمنه.</div></div></details>
         ${nOrd ? `<button type="button" class="cn-new" onclick="ndmToList()">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى قائمة النواقص</button>` : ''}
         <div class="cn-chips fu-chips">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndmF === k ? 'on' : ''}" onclick="ndmF='${k}';ndmShow=60;exRender()">${l}</button>`).join('')}</div>
-        ${list.slice(0, ndmShow).map(([r, i]) => ndmRow(r, i)).join('') || '<div class="cu-none">لا توجد مواد في هذا التصنيف.</div>'}
-        ${list.length > ndmShow ? `<button type="button" class="ex-cat" onclick="ndmShow+=60;exRender()">عرض المزيد (${fmtNum(list.length - ndmShow)})</button>` : ''}`;
+        <div class="fu-q"><input type="search" autocomplete="off" placeholder="ابحث عن مادة لتقدير احتياجها" value="${escapeHtml(ndmQ)}" oninput="ndmQ=this.value;ndmShow=60;ndmRowsRedraw()"></div>
+        <div id="ndmList">${ndmListHtml()}</div>`;
 }
+function ndmListHtml() {
+    const q = ndmQ ? normSearch(ndmQ) : '', toks = q ? q.split(' ') : [];
+    const list = ndmRows.map((r, i) => [r, i]).filter(([r]) => q ? searchScore(r.p, q, toks) > 0 : (ndmF === 'all' || r.status === ndmF));
+    return (list.slice(0, ndmShow).map(([r, i]) => ndmRow(r, i)).join('') || `<div class="cu-none">${q ? 'لا توجد مبيعات مسجلة لهذه المادة خلال المدة، فلا يمكن تقدير احتياجها.' : 'لا توجد مواد في هذا التصنيف.'}</div>`)
+        + (list.length > ndmShow ? `<button type="button" class="ex-cat" onclick="ndmShow+=60;ndmRowsRedraw()">عرض المزيد (${fmtNum(list.length - ndmShow)})</button>` : '');
+}
+function ndmRowsRedraw() { const b = document.getElementById('ndmList'); if (b) b.innerHTML = ndmListHtml(); }
 function ndmDetail(i) {
     const r = ndmRows[i]; if (!r) return; const f = v => fmtNum(Math.round(v * 10) / 10);
     Swal.fire({ title: 'تفاصيل التقدير', showConfirmButton: false, showCloseButton: true, html: `<div class="fu-det" dir="rtl">
