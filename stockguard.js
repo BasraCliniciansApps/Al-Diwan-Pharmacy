@@ -1,14 +1,15 @@
 // ============================================================================
 // حماية المخزون عند البيع (للمواد المجرودة فقط):
 // ١) المنع: لا يُسمح بإضافة كمية أكبر من المتوفر، فتتوقف الكمية عند المتوفر.
-// ٢) التجاوز: المدير، ومن مُنح صلاحية «تجاوز المخزون»، يتجاوز بتأكيد عند الإصدار، ويُسجَّل التجاوز.
+// ٢) التجاوز: من مُنح صلاحية «تجاوز المخزون»، وكذلك المدير إن سُمح له من الإعدادات (ممنوع افتراضياً)، يتجاوز بتأكيد عند الإصدار ويُسجَّل.
 // ٣) التنبيه: عند بقاء عدد قليل (الافتراضي 2 فأقل) بعد البيع يظهر تنبيه نفاد.
 // المواد غير المجرودة لا تُمنع لأن كمياتها غير موثوقة (يبقى لها التحذير القديم).
 // ============================================================================
-const SG_ON = 'diwanSgOn', SG_AL = 'diwanSgAlert', SG_LOG = 'diwanSgLog';
+const SG_ON = 'diwanSgOn', SG_AL = 'diwanSgAlert', SG_LOG = 'diwanSgLog', SG_OWN = 'diwanSgOwn';
 const sgOn = () => { try { return localStorage.getItem(SG_ON) !== '0'; } catch (e) { return true; } };
 const sgAlertAt = () => { let n = NaN; try { n = parseInt(localStorage.getItem(SG_AL)); } catch (e) { /* تجاهل */ } return isNaN(n) || n < 0 ? 2 : n; };
-const sgCanOver = () => userRole === 'owner' || (typeof can === 'function' && can('overSell'));
+const sgOwnOver = () => { try { return localStorage.getItem(SG_OWN) === '1'; } catch (e) { return false; } };   // الافتراضي: المدير ممنوع من التجاوز أيضاً
+const sgCanOver = () => userRole === 'owner' ? sgOwnOver() : (typeof can === 'function' && can('overSell'));
 const sgGuarded = p => !!p && sgOn() && p.counted === true;
 const sgBlock = p => sgGuarded(p) && !sgCanOver();
 const sgEsc = s => escapeHtml(String(s == null ? '' : s));
@@ -46,7 +47,7 @@ async function sgGate(short) {
     const g = (short || []).filter(e => sgGuarded(e.p)); if (!g.length) return true;
     const list = g.map(e => `<div dir="rtl" style="margin:6px 0"><b dir="ltr">${sgEsc(dispName(e.p))}</b><br><small>المطلوب ${sgEsc(sgReq(e.p))} • المتوفر ${sgEsc(stockLabel(e.p))}</small></div>`).join('');
     if (!sgCanOver()) {
-        await Swal.fire({ icon: 'error', title: 'لا يمكن البيع فوق المتوفر', html: list + '<small>خفّض الكمية إلى المتوفر، أو اطلب من المدير.</small>', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' });
+        await Swal.fire({ icon: 'error', title: 'لا يمكن البيع فوق المتوفر', html: list + '<small>' + (userRole === 'owner' ? 'خفّض الكمية إلى المتوفر، أو اسمح للمدير بالتجاوز من الإعدادات (حدود التنبيه).' : 'خفّض الكمية إلى المتوفر، أو اطلب من المدير.') + '</small>', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' });
         return false;
     }
     const r = await Swal.fire({ icon: 'warning', title: 'تجاوز المخزون', html: 'الكميات التالية أكبر من المتوفر بعد الجرد:' + list + '<small>سيصبح رصيدها 0 ويُسجَّل التجاوز.</small>', showCancelButton: true, confirmButtonText: 'تجاوز وإصدار', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c', reverseButtons: true });
@@ -56,13 +57,14 @@ async function sgGate(short) {
 
 // ---------- الإعدادات ----------
 function sgSetOn(v) { try { localStorage.setItem(SG_ON, v ? '1' : '0'); } catch (e) { /* تجاهل */ } Swal.fire({ icon: 'success', title: v ? 'فُعّل منع البيع فوق المتوفر' : 'أُوقف منع البيع فوق المتوفر', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 }); }
+function sgSetOwn(v) { try { localStorage.setItem(SG_OWN, v ? '1' : '0'); } catch (e) { /* تجاهل */ } Swal.fire({ icon: 'success', title: v ? 'سُمح للمدير بالتجاوز بتأكيد' : 'مُنع المدير من التجاوز', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 }); }
 function sgSetAlert(v) {
     const n = parseInt(v);
     if (isNaN(n) || n < 0) { Swal.fire({ icon: 'warning', title: 'أدخل رقماً صحيحاً (0 أو أكثر)', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); sgInitUi(); return; }
     try { localStorage.setItem(SG_AL, String(n)); } catch (e) { /* تجاهل */ }
     Swal.fire({ icon: 'success', title: 'تم حفظ حد تنبيه النفاد', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 });
 }
-function sgInitUi() { const a = document.getElementById('sgOnInput'), b = document.getElementById('sgAlertInput'); if (a) a.checked = sgOn(); if (b) b.value = sgAlertAt(); }
+function sgInitUi() { const a = document.getElementById('sgOnInput'), b = document.getElementById('sgAlertInput'), o = document.getElementById('sgOwnInput'); if (o) o.checked = sgOwnOver(); if (a) a.checked = sgOn(); if (b) b.value = sgAlertAt(); }
 function sgLogOpen() {
     const a = sgLog();
     Swal.fire({ title: 'سجل التجاوزات', confirmButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', html: a.length ? `<div dir="rtl" style="text-align:right;max-height:55vh;overflow:auto">${a.slice(0, 50).map(x => `<div style="border-bottom:1px solid #e2e8f0;padding:8px 0"><small>${sgEsc(fmtDateDMY(String(x.at).slice(0, 10)))} • ${sgEsc(x.user || '—')}${x.bill ? ' • فاتورة ' + sgEsc(x.bill) : ''}</small>${(x.items || []).map(i => `<div><b dir="ltr">${sgEsc(i.name)}</b><br><small>المطلوب ${sgEsc(i.need)} • كان المتوفر ${sgEsc(i.avail)}</small></div>`).join('')}</div>`).join('')}</div><small>أعد جرد هذه المواد لتصحيح أرصدتها.</small>` : 'لا توجد تجاوزات مسجلة.' });

@@ -141,7 +141,8 @@
                     <small class="set-hint">يُنبَّه إلى الصنف عندما تصل كميته إلى هذا الرقم أو أقل.</small>
                     <input type="number" id="lowThresholdInput" min="0">
                 </div>
-                <div class="qk-row"><div><b>منع البيع فوق المتوفر</b><small><i class="set-scope">هذا الجهاز</i> للمواد المجرودة فقط.<br>المدير يتجاوز بتأكيد، ولكل مستخدم صلاحية «تجاوز المخزون» من إعدادات المستخدمين.</small></div><label class="setup-sw"><input type="checkbox" id="sgOnInput" onchange="sgSetOn(this.checked)" aria-label="منع البيع فوق المتوفر"><i></i></label></div>
+                <div class="qk-row"><div><b>منع البيع فوق المتوفر</b><small><i class="set-scope">هذا الجهاز</i> للمواد المجرودة فقط.<br>تُمنح صلاحية «تجاوز المخزون» لكل مستخدم من إعدادات المستخدمين.</small></div><label class="setup-sw"><input type="checkbox" id="sgOnInput" onchange="sgSetOn(this.checked)" aria-label="منع البيع فوق المتوفر"><i></i></label></div>
+                <div class="qk-row"><div><b>السماح للمدير بتجاوز المخزون</b><small><i class="set-scope">هذا الجهاز</i> مغلق افتراضياً: يُمنع المدير كغيره.<br>عند التفعيل يتجاوز بتأكيد ويُسجَّل التجاوز.</small></div><label class="setup-sw"><input type="checkbox" id="sgOwnInput" onchange="sgSetOwn(this.checked)" aria-label="السماح للمدير بتجاوز المخزون"><i></i></label></div>
                 <div class="form-group">
                     <label>تنبيه نفاد المادة عند البيع</label>
                     <small class="set-hint"><i class="set-scope">هذا الجهاز</i> يظهر تنبيه عندما يتبقى هذا العدد من القطع أو أقل بعد البيع. الافتراضي 2.</small>
