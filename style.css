@@ -5130,3 +5130,11 @@ body.role-staff:not(.can-followups):not(.can-stockedit) .home-row6 { display: no
 .bc-last.no { background: #fdecec; color: #b91c1c; }
 .bc-last { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .bc-last .bc-add { flex: none; height: 30px; padding: 0 12px; border-radius: 8px; border: 1.5px solid currentColor; background: transparent; color: inherit; font: 800 .8rem inherit; font-family: inherit; cursor: pointer; }
+
+/* المطلوبة وغير المتوفرة */
+.fm-link { display: block; width: 100%; margin: 6px 0 2px; padding: 9px 10px; border: 1px dashed #94a3b8; border-radius: 10px; background: transparent; color: #475569; font: inherit; font-size: 13px; cursor: pointer; }
+.fm-q { display: grid; gap: 10px; text-align: right; }
+.fm-l { font-size: 13px; color: #64748b; }
+.fm-sum { font-size: 13px; color: #64748b; margin: 4px 2px 8px; }
+.fm-note { font-size: 12px; line-height: 1.7; color: #64748b; margin: 12px 2px 4px; }
+.fm-e b { font-weight: 500; font-size: 13px; }

@@ -106,15 +106,16 @@ function p2Results(show) {
     const box = p2El('p2Res'); if (!box) return;
     if (!show || !p2.found.length) {
         const q = p2El('p2Q');
-        box.innerHTML = show && q && q.value.trim() ? '<div class="pos-none">لا توجد نتائج</div>' : '';
+        box.innerHTML = show && q && q.value.trim() ? '<div class="pos-none">لا توجد نتائج</div>' + p2MissBtn() : '';
         box.style.display = box.innerHTML ? 'block' : 'none'; return;
     }
     box.innerHTML = p2.found.map(p => {
         const ne = posNearestExp(p), inS = isInStock(p);
         return `<button type="button" class="pos-res" onclick="p2AddProduct(${p.id})"><span class="pos-rn" dir="ltr">${dispNameHtml(p)}</span><span class="pos-rm"><b>${p.price ? fmtNum(p.price) + ' د.ع' : 'بلا سعر'}</b><em class="${inS ? '' : 'bad'}">${inS ? 'المتوفر ' + posEsc(stockLabel(p)) : 'غير متوفر'}</em>${ne ? `<em>ينتهي ${posFmtExp(ne)}</em>` : ''}</span></button>`;
-    }).join('');
+    }).join('') + p2MissBtn();
     box.style.display = 'block';
 }
+function p2MissBtn() { return typeof fmQuick === 'function' ? '<button type="button" class="fm-link" onclick="fmQuick(null, (p2El(\'p2Q\') || {}).value || \'\')">لم تجد المادة؟ سجّل أنها مطلوبة وغير متوفرة</button>' : ''; }
 function p2ByCode(code, inline) {
     const p = findByBarcode(code);
     if (p) { p2AddProduct(p.id); return true; }

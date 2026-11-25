@@ -60,6 +60,11 @@ service cloud.firestore {
     match /pharmacy_followups/{id} {
       allow read, write: if isOwner() || perm('followups');
     }
+    // ---- الطلبات غير المتوفرة: أي حساب مفعّل يسجّل طلباً، والقراءة والتعديل والحذف لصاحب صلاحية المتابعات ----
+    match /pharmacy_missed/{id} {
+      allow create: if isOwner() || isStaff();
+      allow read, update, delete: if isOwner() || perm('followups');
+    }
     // ---- الفواتير ----
     match /pharmacy_invoices/{id} {
       allow read: if isOwner() || perm('sell') || perm('customers');

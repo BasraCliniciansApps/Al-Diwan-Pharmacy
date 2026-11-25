@@ -361,7 +361,7 @@ async function syncClock() {
 }
 setTimeout(syncClock, 3000); setInterval(syncClock, 6 * 3600e3); window.addEventListener('online', () => setTimeout(syncClock, 1500));
 // السجلات المتزامنة تُختم بوقت آخر تعديل الموثوق (_u): أساس المزامنة التدريجية (يُجلب بعد المؤشر فقط)
-const DELTA_COLLS = { pharmacy_purchases: 1, pharmacy_suppliers: 1, pharmacy_ledger: 1, pharmacy_invoices: 1, pharmacy_expenses: 1, pharmacy_counts: 1, pharmacy_followups: 1 };
+const DELTA_COLLS = { pharmacy_purchases: 1, pharmacy_suppliers: 1, pharmacy_ledger: 1, pharmacy_invoices: 1, pharmacy_expenses: 1, pharmacy_counts: 1, pharmacy_followups: 1, pharmacy_missed: 1 };
 // _su = وقت الخادم عند وصول الكتابة فعلاً (حتى الكتابات المؤجلة دون إنترنت تأخذ وقتها عند الوصول)، فلا يفوت أي جهاز سجلاً متأخراً
 function fsSet(ref, data, opts) {
     let out = data, stamped = false;
