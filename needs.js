@@ -163,14 +163,14 @@ async function ndUnmine(id) {
 function ndAddOpen() { ndScr = 'add'; ndAddRes = []; ndAddRender(); }
 function ndAddRender() {
     document.getElementById('ndBox').innerHTML = `<div class="cn-head"><button type="button" class="cn-back" onclick="ndBack()" aria-label="رجوع">→</button><b>إضافة مادة للقائمة</b><span></span></div><div class="cn-body">
-        <input id="ndAddQ" class="fu-in" type="search" autocomplete="off" placeholder="ابحث بالاسم أو الباركود" oninput="ndAddSearch()"><button type="button" class="nd-add" style="margin-top:10px;width:100%" onclick="ndAddCustom()">+ مادة غير موجودة في المخزن</button><div id="ndAddRes" style="margin-top:10px"></div></div>`;
+        <input id="ndAddQ" class="fu-in" type="search" autocomplete="off" placeholder="ابحث بالاسم أو الباركود" oninput="ndAddSearch()"><div id="ndAddRes" style="margin-top:10px"></div></div>`;
     setTimeout(() => { const i = document.getElementById('ndAddQ'); if (i) i.focus(); }, 80);
 }
 function ndAddSearch() {
     const q = normSearch(document.getElementById('ndAddQ').value), box = document.getElementById('ndAddRes'); if (!q) { box.innerHTML = ''; return; }
     const toks = q.split(' '), st = ndState();
     ndAddRes = products.filter(p => !p.arch).map(p => [p, searchScore(p, q, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 15).map(x => x[0]);
-    box.innerHTML = ndAddRes.map(p => `<button type="button" class="cn-res" onclick="ndAddPick(${p.id})"><span dir="ltr">${dispNameHtml(p)}</span><em>${ndEsc(stockLabel(p))}</em></button>`).join('') || '<div class="cu-none">لا نتائج.</div>';
+    box.innerHTML = ndAddRes.map(p => `<button type="button" class="cn-res" onclick="ndAddPick(${p.id})"><span dir="ltr">${dispNameHtml(p)}</span><em>${ndEsc(stockLabel(p))}</em></button>`).join('') || `<div class="bill-noresult">المادة غير موجودة في المخزن<button type="button" class="pu-newprod" onclick="ndAddCustom(decodeURIComponent('${encodeURIComponent(document.getElementById('ndAddQ').value.trim())}'))">➕ إضافة «${ndEsc(document.getElementById('ndAddQ').value.trim())}» إلى القائمة</button></div>`;
 }
 function ndAddPick(id) {
     const s = ndState(); delete s.off[id]; delete s.ordered[id]; if (!s.extra.includes(id)) s.extra.push(id); ndSave(s); ndSel.add(id);
@@ -179,22 +179,11 @@ function ndAddPick(id) {
 }
 
 // إضافة مادة غير موجودة في المخزن: اسم وكمية فقط، وتبقى في «قائمتي» حتى تُصدر في طلب
-async function ndAddCustom() {
-    const qEl = document.getElementById('ndAddQ'), pre = qEl ? qEl.value.trim() : '';
-    const r = await Swal.fire({
-        title: 'مادة خارج المخزن', confirmButtonText: 'إضافة', showCancelButton: true, cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', reverseButtons: true,
-        html: `<div dir="rtl" style="text-align:right;display:grid;gap:10px"><label class="fu-l">اسم المادة<input id="ndCuName" class="fu-in" autocomplete="off" value="${ndEsc(pre)}" placeholder="الاسم مع الشكل والتركيز"></label>
-            <label class="fu-l">الكمية المطلوبة<input id="ndCuQty" class="fu-in" type="number" inputmode="numeric" min="1" value="1"></label></div>`,
-        preConfirm: () => {
-            const name = document.getElementById('ndCuName').value.trim().replace(/\s+/g, ' '), qty = Math.max(1, parseInt(document.getElementById('ndCuQty').value) || 1);
-            if (!name) { Swal.showValidationMessage('أدخل اسم المادة'); return false; }
-            return { name, qty };
-        }
-    });
-    if (!r.isConfirmed) return;
-    const s = ndState(), key = normSearch(r.value.name); let c = s.custom.find(x => normSearch(x.name) === key);
-    if (!c) { s.cseq = (s.cseq || 0) + 1; c = { id: -s.cseq, name: r.value.name }; s.custom.push(c); }
-    delete s.off[c.id]; s.qty[c.id] = r.value.qty; ndSave(s); ndSel.add(c.id);
+async function ndAddCustom(name) {
+    name = String(name || '').trim().replace(/\s+/g, ' '); if (!name) return;
+    const s = ndState(), key = normSearch(name); let c = s.custom.find(x => normSearch(x.name) === key);
+    if (!c) { s.cseq = (s.cseq || 0) + 1; c = { id: -s.cseq, name }; s.custom.push(c); }
+    delete s.off[c.id]; if (!s.qty[c.id]) s.qty[c.id] = 1; ndSave(s); ndSel.add(c.id);
     Swal.fire({ icon: 'success', title: 'أُضيفت إلى القائمة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1400 });
     ndScr = 'list'; ndTab = 'mine'; ndSupF = ''; ndQ = ''; ndRender(); ndBadge();
 }
