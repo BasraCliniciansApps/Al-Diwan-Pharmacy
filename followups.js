@@ -3,7 +3,7 @@
 // للمدير دائماً، ولغيره بصلاحية «followups». التخزين: pharmacy_followups (سحابة تدريجية) + نسخة محلية.
 // ============================================================================
 const FU_LS = 'diwanFollowups', FU_DAYS_LS = 'diwanFuDays', FU_SEEN_LS = 'diwanFuSeen';
-let fuAll = [], fuTab = 'promise', fuSeg = 'open', fuScr = 'list', fuOpenFlag = false, fuForm = null, fuRepQ = '', fuFound = [];
+let fuAll = [], fuTab = 'miss', fuSeg = 'open', fuScr = 'list', fuOpenFlag = false, fuForm = null, fuRepQ = '', fuFound = [];
 const fuEsc = s => escapeHtml(String(s == null ? '' : s));
 const fuId = () => 'fu' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const fuNum = v => parseFloat(String(v || '').replace(/[,،\s]/g, '')) || 0;
@@ -80,11 +80,12 @@ async function fuOpen(onlyLate) {
     if (!fuAllowed()) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'لا تملك صلاحية المتابعات.', confirmButtonColor: '#0f1c38' }); return; }
     fuEnsureDom(); fuAll = fuLocal(); fuSort();
     document.getElementById('fuOv').style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open'); fuOpenFlag = true;
-    fuScr = 'list'; fuSeg = onlyLate ? 'late' : 'open'; fuRepQ = ''; fuListRender();
+    fuScr = 'list'; fuSeg = onlyLate ? 'late' : 'open'; fuRepQ = ''; if (onlyLate) fuTab = 'promise'; else fuTab = 'miss'; fuListRender();
     const h = Prog.start('تحميل المتابعات', { text: 'جارٍ التحديث...' });
     try { await fuLoad(); h.ok('تم التحديث'); } catch (e) { h.fail('تعذر التحديث', e.message || String(e)); }
     if (fuOpenFlag && fuScr === 'list') fuListRender();
     fuBadge();
+    if (fuTab === 'miss') fmRefresh();
 }
 function fuClose() {
     const ov = document.getElementById('fuOv'); if (ov) ov.style.display = 'none';
@@ -121,7 +122,7 @@ function fuCardHtml(r) {
 function fuListRender() {
     fuScr = 'list'; fuLoadLocal();
     const late = fuAll.filter(fuOverdue).length;
-    const tabs = `<div class="cu-seg"><button type="button" class="${fuTab === 'promise' ? 'on' : ''}" onclick="fuTab='promise';fuListRender()">وعود المندوبين</button><button type="button" class="${fuTab === 'loan' ? 'on' : ''}" onclick="fuTab='loan';fuListRender()">المواد المأخوذة</button><button type="button" class="${fuTab === 'rep' ? 'on' : ''}" onclick="fuTab='rep';fuListRender()">المندوبون</button><button type="button" class="${fuTab === 'miss' ? 'on' : ''}" onclick="fuTab='miss';fuListRender();fmRefresh()">المطلوبة</button></div>`;
+    const tabs = `<div class="cu-seg"><button type="button" class="${fuTab === 'miss' ? 'on' : ''}" onclick="fuTab='miss';fuListRender();fmRefresh()">المطلوبة</button><button type="button" class="${fuTab === 'promise' ? 'on' : ''}" onclick="fuTab='promise';fuListRender()">وعود المندوبين</button><button type="button" class="${fuTab === 'loan' ? 'on' : ''}" onclick="fuTab='loan';fuListRender()">المواد المأخوذة</button><button type="button" class="${fuTab === 'rep' ? 'on' : ''}" onclick="fuTab='rep';fuListRender()">المندوبون</button></div>`;
     let body;
     if (fuTab === 'rep') body = fuRepsHtml();
     else if (fuTab === 'miss') body = fmBodyHtml();
@@ -358,7 +359,7 @@ async function fuAfterPurchase(rec) {
 // التخزين: pharmacy_missed (مستند لكل طلب) + نسخة محلية. القرار: عدد الطلبات وأيامها وزبائنها وقبول البديل.
 // ============================================================================
 const FM_LS = 'diwanMissed', FM_COLL = 'pharmacy_missed';
-let fmAll = [], fmPer = 30;
+let fmAll = [], fmPer = 30, fmView = 'call';
 const FM_ALT = { none: 'غادر دون شراء', accepted: 'قبل بديلاً', other: 'اشترى من مكان آخر' };
 const fmId = () => 'fm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 const fmKey = r => r.pid ? 'p' + r.pid : 'n' + fuNormQ(r.item);
@@ -400,16 +401,17 @@ async function fmQuick(pid, name) {
         html: `<div class="fm-q" dir="rtl">${nm ? `<div class="fu-item"><span dir="ltr">${fuEsc(nm)}</span></div>` : `<input id="fmItem" class="fu-in" placeholder="اسم المادة المطلوبة" autocomplete="off">`}
             <div class="fm-l">ماذا فعل الزبون؟</div>
             <div class="cu-seg" id="fmAlt">${Object.keys(FM_ALT).map((k, i) => `<button type="button" data-a="${k}" class="${i ? '' : 'on'}" onclick="document.querySelectorAll('#fmAlt button').forEach(b => b.classList.toggle('on', b === this))">${FM_ALT[k]}</button>`).join('')}</div>
-            <input id="fmCust" class="fu-in" placeholder="اسم الزبون (اختياري)" autocomplete="off"></div>`,
+            <input id="fmCust" class="fu-in" placeholder="اسم الزبون (اختياري)" autocomplete="off">
+            <input id="fmPhone" class="fu-in" type="tel" inputmode="tel" dir="ltr" placeholder="رقم الهاتف (اختياري، للاتصال عند توفر المادة)" autocomplete="off"></div>`,
         preConfirm: () => {
             const it = nm || String((document.getElementById('fmItem') || {}).value || '').trim();
             if (!it) { Swal.showValidationMessage('اكتب اسم المادة'); return false; }
             const a = document.querySelector('#fmAlt button.on');
-            return { item: it, alt: a ? a.dataset.a : 'none', cust: String((document.getElementById('fmCust') || {}).value || '').trim() };
+            return { item: it, alt: a ? a.dataset.a : 'none', cust: String((document.getElementById('fmCust') || {}).value || '').trim(), phone: String((document.getElementById('fmPhone') || {}).value || '').replace(/[^0-9+]/g, '') };
         }
     });
     if (!x.isConfirmed || !x.value) return;
-    const rec = { id: fmId(), type: 'miss', pid: p ? p.id : null, item: x.value.item, alt: x.value.alt, customer: x.value.cust, date: todayLocalISO(), ts: new Date().toISOString(), by: (typeof userName !== 'undefined' && userName) || 'المدير' };
+    const rec = { id: fmId(), type: 'miss', pid: p ? p.id : null, item: x.value.item, alt: x.value.alt, customer: x.value.cust, phone: x.value.phone, status: x.value.phone ? 'open' : '', date: todayLocalISO(), ts: new Date().toISOString(), by: (typeof userName !== 'undefined' && userName) || 'المدير' };
     const h = Prog.start('حفظ الطلب', { text: 'جارٍ الحفظ...' });
     const ok = await fmPut(rec);
     ok ? h.ok('تم تسجيل الطلب') : h.fail('حُفظ على هذا الجهاز فقط', 'سيُرفع عند توفر الاتصال أو بعد إضافة القاعدة.');
@@ -436,7 +438,57 @@ function fmGroups() {
         return g;
     }).sort((a, b) => b.n - a.n || b.d - a.d || String(b.last).localeCompare(String(a.last)));
 }
+function fmProd(r) { return r.pid ? products.find(x => x.id === r.pid) : products.find(x => !x.arch && fuNormQ(dispName(x)) === fuNormQ(r.item)); }
+async function fmUpd(rec) {
+    delete rec.sy; fmAll = fmAll.filter(x => x.id !== rec.id); fmAll.unshift(rec); fmSort(); fmStore();
+    if (cloudReady()) await fmPush(rec); fmStore();
+}
+function fmCalls(st) { fmAll = fmAll.length ? fmAll : fmLocal(); return fmAll.filter(r => r.phone && (st === 'open' ? r.status === 'open' : r.status === 'called' || r.status === 'dropped')).sort((a, b) => st === 'open' ? String(a.date).localeCompare(String(b.date)) : String(b.date).localeCompare(String(a.date))); }
+function fmCallRow(r) {
+    const p = fmProd(r), inS = p && isInStock(p), d = fuAgo(r.date);
+    return `<div class="cu-row fu-row ${inS && r.status === 'open' ? 'fu-late' : ''}" onclick="fmCallDetail('${r.id}')"><div class="cu-av fu-av ${r.status === 'open' ? (inS ? 'ok' : 'wb') : 'ok'}">☎</div>
+        <div><b dir="ltr">${fuEsc(r.item)}</b><small>${fuEsc([r.customer, r.phone].filter(Boolean).join(' • '))}</small><small>${fuEsc(fmtDateDMY(r.date))}${r.status === 'open' && d ? ' • منذ ' + fmtNum(d) + ' يوم' : ''}${r.status === 'called' ? ' • تم الاتصال' : r.status === 'dropped' ? ' • لم يعد يريدها' : ''}</small></div>
+        <div class="fu-st ${inS && r.status === 'open' ? 'ok' : 'wb'}">${r.status !== 'open' ? '' : inS ? 'متوفرة الآن' : 'بانتظار التوفر'}</div></div>`;
+}
+function fmCallDetail(id) {
+    const r = fmAll.find(x => x.id === id); if (!r) return;
+    const p = fmProd(r), inS = p && isInStock(p);
+    Swal.fire({
+        title: 'طلب زبون', showConfirmButton: false, showCloseButton: true,
+        html: `<div class="fu-det" dir="rtl"><div class="fu-dr"><span>المادة</span><b dir="ltr">${fuEsc(r.item)}</b></div>${inS ? '<div class="fu-dr"><span>الحالة</span><b>متوفرة الآن بالمخزن</b></div>' : ''}
+        ${r.customer ? `<div class="fu-dr"><span>الزبون</span><b>${fuEsc(r.customer)}</b></div>` : ''}<div class="fu-dr"><span>الهاتف</span><b><a href="tel:${fuEsc(r.phone)}" dir="ltr">${fuEsc(r.phone)}</a></b></div>
+        <div class="fu-dr"><span>التاريخ</span><b>${fuEsc(fmtDateDMY(r.date))}</b></div>${r.by ? `<div class="fu-dr"><span>سجّله</span><b>${fuEsc(r.by)}</b></div>` : ''}${r.alt ? `<div class="fu-dr"><span>ماذا فعل</span><b>${fuEsc(FM_ALT[r.alt] || '')}</b></div>` : ''}
+        <div class="fu-acts"><a class="fu-ab ok" href="tel:${fuEsc(r.phone)}" style="text-decoration:none;text-align:center">اتصال</a>
+        ${r.status === 'open' ? `<button type="button" class="fu-ab ok" onclick="Swal.close();fmCallAct('${id}','called')">تم الاتصال</button><button type="button" class="fu-ab" onclick="Swal.close();fmCallAct('${id}','dropped')">لم يعد يريدها</button>` : `<button type="button" class="fu-ab" onclick="Swal.close();fmCallAct('${id}','open')">إعادة للقائمة</button>`}
+        <button type="button" class="fu-ab bad" onclick="Swal.close();fmCallAct('${id}','del')">حذف</button></div></div>`
+    });
+}
+async function fmCallAct(id, a) {
+    const r = fmAll.find(x => x.id === id); if (!r) return;
+    const sure = (t, txt, b, danger) => Swal.fire({ icon: 'warning', title: t, html: txt, showCancelButton: true, confirmButtonText: b, cancelButtonText: 'إلغاء', confirmButtonColor: danger ? '#b91c1c' : '#0f1c38', reverseButtons: true }).then(x => x.isConfirmed);
+    if (a === 'dropped' && !(await sure('إنهاء هذا الطلب؟', 'سيُنقل إلى المنتهية دون اتصال.', 'نعم، أنهِ'))) return;
+    if (a === 'del' && !(await sure('حذف هذا الطلب؟', 'لا يمكن التراجع عن الحذف.', 'نعم، احذف', true))) return;
+    const h = Prog.start('حفظ', { text: 'جارٍ الحفظ...' });
+    if (a === 'del') {
+        fmAll = fmAll.filter(x => x.id !== id); fmStore(); let ok = true;
+        if (cloudReady()) { try { await fsWrite(db.collection(FM_COLL).doc(id).delete()); } catch (e) { ok = false; } }
+        ok ? h.ok('تم الحذف') : h.fail('تعذر الحذف من السحابة', 'سيبقى في السحابة.');
+    } else {
+        const n = { ...r, status: a }; if (a === 'called') n.calledAt = todayLocalISO(); else delete n.calledAt;
+        await fmUpd(n); h.ok('تم الحفظ');
+    }
+    if (fuOpenFlag && fuScr === 'list') fuListRender();
+}
 function fmBodyHtml() {
+    const nOpen = fmCalls('open').length, ch = [['call', 'للاتصال' + (nOpen ? ' (' + fmtNum(nOpen) + ')' : '')], ['done', 'تم الاتصال'], ['stats', 'الإحصاء']];
+    const bar = `<button type="button" class="cn-new" onclick="fmQuick(null,'')">+ تسجيل طلب غير متوفر</button><div class="cn-chips fu-chips">${ch.map(([k, l]) => `<button type="button" class="cn-chip ${fmView === k ? 'on' : ''}" onclick="fmView='${k}';fuListRender()">${l}</button>`).join('')}</div>`;
+    if (fmView === 'call' || fmView === 'done') {
+        const rows = fmCalls(fmView === 'call' ? 'open' : 'done');
+        return bar + (rows.map(fmCallRow).join('') || `<div class="cu-none">${fmView === 'call' ? 'لا توجد طلبات بانتظار الاتصال. أدخل رقم الزبون عند التسجيل لتظهر هنا.' : 'لا توجد طلبات منتهية.'}</div>`);
+    }
+    return bar + fmStatsHtml();
+}
+function fmStatsHtml() {
     const gs = fmGroups(), pers = [[30, '30 يوماً'], [90, '90 يوماً'], [0, 'الكل']];
     const tot = gs.reduce((a, g) => a + g.n, 0);
     const rows = gs.map(g => {
@@ -446,8 +498,7 @@ function fmBodyHtml() {
         <div><b dir="ltr">${fuEsc(g.name)}</b><small>طُلبت ${fmtNum(g.n)} مرة • في ${fmtNum(g.d)} يوماً${g.cust.size ? ' • ' + fmtNum(g.cust.size) + ' زبون' : ''}${g.acc ? ' • قبل البديل ' + fmtNum(g.acc) : ''}</small><small>آخر طلب: ${fuEsc(fmtDateDMY(g.last))}${inS ? ' • متوفرة الآن' : ''}</small></div>
         <div class="fu-st ${g.verdict[1]}">${g.verdict[0]}</div></div>`;
     }).join('');
-    return `<button type="button" class="cn-new" onclick="fmQuick(null,'')">+ تسجيل طلب غير متوفر</button>
-        <div class="cn-chips fu-chips">${pers.map(([k, l]) => `<button type="button" class="cn-chip ${fmPer === k ? 'on' : ''}" onclick="fmPer=${k};fuListRender()">${l}</button>`).join('')}</div>
+    return `<div class="cn-chips fu-chips">${pers.map(([k, l]) => `<button type="button" class="cn-chip ${fmPer === k ? 'on' : ''}" onclick="fmPer=${k};fuListRender()">${l}</button>`).join('')}</div>
         <div class="fm-sum">${fmtNum(tot)} طلب لـ ${fmtNum(gs.length)} مادة</div>
         ${rows || '<div class="cu-none">لا توجد طلبات مسجّلة في هذه المدة.</div>'}
         <div class="fm-note">التقدير: «يستحق التوفير» عند 3 طلبات فأكثر في 3 أيام مختلفة، وقبول البديل لا يتجاوز النصف، ومن أكثر من زبون إن سُجّلت الأسماء. السهم يقارن النصف الأحدث من المدة بالأقدم. القرار النهائي لك بحسب الربح والصلاحية.</div>`;
@@ -460,7 +511,7 @@ function fmDetail(key) {
         html: `<div class="fu-det" dir="rtl"><div class="fu-dr"><span>المادة</span><b dir="ltr">${fuEsc(g.name)}</b></div>
         <div class="fu-dr"><span>عدد الطلبات</span><b>${fmtNum(g.n)}</b></div><div class="fu-dr"><span>أيام مختلفة</span><b>${fmtNum(g.d)}</b></div>
         <div class="fu-dr"><span>زبائن مسمّون</span><b>${fmtNum(g.cust.size)}</b></div><div class="fu-dr"><span>قبلوا البديل</span><b>${fmtNum(g.acc)}</b></div>
-        ${list.map(r => `<div class="fu-dr fm-e"><span>${fuEsc(fmtDateDMY(r.date))}</span><b>${fuEsc(FM_ALT[r.alt] || '')}${r.customer ? ' • ' + fuEsc(r.customer) : ''}${r.by ? ' • ' + fuEsc(r.by) : ''}</b></div>`).join('')}
+        ${list.map(r => `<div class="fu-dr fm-e"><span>${fuEsc(fmtDateDMY(r.date))}</span><b>${fuEsc(FM_ALT[r.alt] || '')}${r.customer ? ' • ' + fuEsc(r.customer) : ''}${r.phone ? ' • ' + fuEsc(r.phone) : ''}${r.by ? ' • ' + fuEsc(r.by) : ''}</b></div>`).join('')}
         <div class="fu-acts"><button type="button" class="fu-ab ok" onclick="Swal.close();fmQuick(${g.pid ? g.pid : 'null'},'${fuEsc(g.name).replace(/'/g, '')}')">تسجيل طلب آخر</button><button type="button" class="fu-ab bad" onclick="Swal.close();fmDelGroup('${fuEsc(key).replace(/'/g, '')}')">حذف سجلات المادة</button></div></div>`
     });
 }
