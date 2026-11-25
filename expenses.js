@@ -78,7 +78,7 @@ async function exOpen(tab) {
 function exClose() { const ov = document.getElementById('exOv'); if (ov) ov.style.display = 'none'; document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); exOpenFlag = false; }
 async function exRefresh() {
     const r = exRange(), h = Prog.start('تحميل البيانات', { text: 'المصروفات والفواتير...', indeterminate: false });
-    try { await exLoad(); h.set(40); await invEnsureSince(r.from); h.ok('تم التحميل'); } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
+    try { await exLoad(); h.set(40); await invEnsureSince(exTab === 'dash' ? sdFrom() : r.from); h.ok('تم التحميل'); } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
     if (exOpenFlag) exRender();
 }
 function exSetMode(m) { exMode = m; exVal = ''; exRefresh(); }
@@ -90,8 +90,11 @@ function exPeriodHtml() {
 }
 function exRender() {
     const r = exRange(), c = exCalc(r);
-    const tabs = `<div class="cu-seg"><button type="button" class="${exTab === 'rep' ? 'on' : ''}" onclick="exTab='rep';exRender()">صافي الربح</button><button type="button" class="${exTab === 'list' ? 'on' : ''}" onclick="exTab='list';exRender()">المصروفات</button></div>`;
+    const tabs = `<div class="cu-seg"><button type="button" class="${exTab === 'dash' ? 'on' : ''}" onclick="exTab='dash';exRefresh()">لوحة المبيعات</button><button type="button" class="${exTab === 'rep' ? 'on' : ''}" onclick="exTab='rep';exRefresh()">صافي الربح</button><button type="button" class="${exTab === 'list' ? 'on' : ''}" onclick="exTab='list';exRender()">المصروفات</button></div>`;
     let body;
+    if (exTab === 'dash') {
+        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>📊 لوحة المبيعات</b></div><div class="cn-body">${tabs}${sdHtml()}</div>`; return;
+    }
     if (exTab === 'rep') {
         const mx = Math.max(1, ...c.cats.map(x => x[1]));
         body = `<div class="ex-cards">
@@ -182,4 +185,83 @@ function exPrint() {
         <tr><td>المصروفات</td><td>${fmtNum(c.expTot)}</td></tr><tr><td><b>صافي الربح</b></td><td><b>${fmtNum(c.net)}</b></td></tr></tbody></table></div>` +
         (c.cats.length ? `<div class="pu-tw" style="margin-top:10px"><table class="bill-table pu-mtable"><thead><tr><th>التصنيف</th><th>المبلغ</th></tr></thead><tbody>${c.cats.map(([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${fmtNum(v)}</td></tr>`).join('')}</tbody></table></div>` : '');
     openReport({ title: 'صافي الربح — ' + r.label, html, fileName: 'Al-Diwan-Pharmacy_Net-Profit_' + r.label.replace(/\//g, '-') });
+}
+
+
+// ============================================================================
+// لوحة المبيعات (للمدير): بطاقات مع مقارنة بالفترة السابقة، رسوم SVG محلية، وقوائم قرار.
+// الربح من كلفة المواد المسجَّلة بالفاتورة فقط (المواد بلا كلفة لا تدخل حساب الربح).
+// ============================================================================
+let sdN = 30;
+const SD_DAYS = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+function sdAdd(iso, n) { const d = new Date(String(iso).slice(0, 10) + 'T12:00:00'); d.setDate(d.getDate() + n); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function sdFrom() { return sdAdd(todayLocalISO(), -(2 * sdN - 1)); }
+function sdSet(n) { sdN = n; exRefresh(); }
+function sdCalc() {
+    const today = todayLocalISO(), curFrom = sdAdd(today, -(sdN - 1)), prevFrom = sdAdd(today, -(2 * sdN - 1)), prevTo = sdAdd(today, -sdN);
+    const mk = () => ({ sales: 0, n: 0, profit: 0, costRev: 0, owed: 0, noCost: 0, days: new Map(), hours: new Array(24).fill(0), wd: new Array(7).fill(0), items: new Map(), sold: new Set() });
+    const cur = mk(), prev = mk();
+    (billAll || []).forEach(b => {
+        if (!b || !b.issued || b.cancelled) return; const d = String(b.date || '');
+        const g = d >= curFrom && d <= today ? cur : d >= prevFrom && d <= prevTo ? prev : null; if (!g) return;
+        const sub = (b.items || []).reduce((a, it) => a + (parseFloat(it.qty) || 0) * (parseFloat(it.price) || 0), 0), t = invTotalOf(b);
+        g.sales += t; g.n++; g.owed += invRemaining(b); g.days.set(d, (g.days.get(d) || { s: 0, p: 0 })); g.days.get(d).s += t;
+        if (g === cur) { const dt = b.issuedTs ? new Date(b.issuedTs) : null; if (dt && !isNaN(dt)) g.hours[dt.getHours()] += 1; g.wd[(new Date(d + 'T12:00:00').getDay() + 1) % 7] += t; }
+        (b.items || []).forEach(it => {
+            const q = parseFloat(it.qty) || 0, rev = q * (parseFloat(it.price) || 0) * (sub > 0 ? t / sub : 1);
+            if (it.pid) g.sold.add(it.pid);
+            if (it.cost > 0) { const pr = rev - it.cost * q; g.profit += pr; g.costRev += rev; g.days.get(d).p += pr; } else g.noCost++;
+            if (g === cur) { const k = it.pid ? 'p' + it.pid : 'n' + (it.name || ''), e = g.items.get(k) || { name: it.name || '—', pid: it.pid || null, q: 0, rev: 0, profit: 0, costRev: 0, costed: 0 }; e.q += q; e.rev += rev; if (it.cost > 0) { e.profit += rev - it.cost * q; e.costRev += rev; e.costed++; } g.items.set(k, e); }
+        });
+    });
+    return { cur, prev, curFrom, today };
+}
+const sdDelta = (a, b) => { if (!(b > 0)) return a > 0 ? '<i class="sd-d up">جديد</i>' : ''; const p = Math.round((a - b) / b * 100); return p === 0 ? '<i class="sd-d">0%</i>' : `<i class="sd-d ${p > 0 ? 'up' : 'dn'}">${p > 0 ? '▲' : '▼'} ${fmtNum(Math.abs(p))}%</i>`; };
+function sdLine(c, pr) {   // خط المبيعات (يومياً) مع خط الربح ومنقّط للفترة السابقة
+    const days = []; for (let i = 0; i < sdN; i++) days.push(sdAdd(c.today, -(sdN - 1 - i)));
+    const sv = days.map(d => (c.cur.days.get(d) || { s: 0 }).s), pv = days.map(d => (c.cur.days.get(d) || { p: 0 }).p), qv = days.map((d, i) => (c.prev.days.get(sdAdd(d, -sdN)) || { s: 0 }).s);
+    const mx = Math.max(1, ...sv, ...qv), W = 340, H = 150, L = 6, R = 6, T = 10, B = 20, x = i => W - R - (W - L - R) * (sdN > 1 ? i / (sdN - 1) : 0.5), y = v => T + (H - T - B) * (1 - Math.max(0, v) / mx);
+    const path = a => a.map((v, i) => (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(v).toFixed(1)).join(' ');
+    const area = path(sv) + ` L${x(sdN - 1).toFixed(1)} ${H - B} L${x(0).toFixed(1)} ${H - B} Z`;
+    const top = sv.indexOf(Math.max(...sv));
+    return `<svg class="sd-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="مبيعات يومية"><defs><linearGradient id="sdG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#0f766e" stop-opacity=".28"/><stop offset="1" stop-color="#0f766e" stop-opacity="0"/></linearGradient></defs>
+        ${[0, 1, 2].map(k => `<line class="sd-grid" x1="${L}" x2="${W - R}" y1="${T + (H - T - B) * k / 2}" y2="${T + (H - T - B) * k / 2}"/>`).join('')}
+        <path d="${area}" fill="url(#sdG)"/><path class="sd-prev" d="${path(qv)}"/><path class="sd-ln" d="${path(sv)}"/>${pv.some(v => v) ? `<path class="sd-pr" d="${path(pv.map(v => Math.max(0, v)))}"/>` : ''}
+        ${sv[top] > 0 ? `<circle class="sd-dot" cx="${x(top).toFixed(1)}" cy="${y(sv[top]).toFixed(1)}" r="3.4"/>` : ''}
+        <text class="sd-tx" x="${W - R}" y="${H - 5}" text-anchor="end">${escapeHtml(fmtDateDMY(days[0]))}</text><text class="sd-tx" x="${L}" y="${H - 5}" text-anchor="start">${escapeHtml(fmtDateDMY(days[sdN - 1]))}</text></svg>
+        <div class="sd-leg"><span><i class="l1"></i>المبيعات</span>${pv.some(v => v) ? '<span><i class="l2"></i>الربح</span>' : ''}<span><i class="l3"></i>الفترة السابقة</span></div>
+        ${sv[top] > 0 ? `<div class="sd-note">أعلى يوم: ${escapeHtml(fmtDateDMY(days[top]))} بمبلغ ${fmtNum(sv[top])} د.ع</div>` : ''}`;
+}
+function sdBars(vals, labels, fmt) {   // أعمدة عمودية: الأعلى 3 بلون مميّز
+    const mx = Math.max(1, ...vals), rank = [...vals].map((v, i) => [v, i]).sort((a, b) => b[0] - a[0]).slice(0, 3).filter(x => x[0] > 0).map(x => x[1]);
+    return `<div class="sd-bars" style="--n:${vals.length}">${vals.map((v, i) => `<div class="sd-bc"><b>${v ? fmt(v) : ''}</b><i class="${rank.includes(i) ? 'hi' : ''}" style="height:${Math.max(v ? 4 : 1, Math.round(v / mx * 100))}%"></i><span>${labels[i]}</span></div>`).join('')}</div>`;
+}
+function sdHtml() {
+    const c = sdCalc(), A = c.cur, P = c.prev, pers = [7, 30, 90];
+    const avg = A.n ? A.sales / A.n : 0, avgP = P.n ? P.sales / P.n : 0, mar = A.costRev > 0 ? A.profit / A.costRev * 100 : null;
+    const cash = Math.max(0, A.sales - A.owed), cashPct = A.sales > 0 ? Math.round(cash / A.sales * 100) : 0;
+    const items = [...A.items.values()];
+    const topProfit = items.filter(e => e.costed).sort((a, b) => b.profit - a.profit).slice(0, 8);
+    const low = items.filter(e => e.costed && e.costRev > 0 && e.profit / e.costRev < 0.1 && e.rev > 0).sort((a, b) => a.profit / a.costRev - b.profit / b.costRev).slice(0, 6);
+    const dead = products.filter(p => !p.arch && (parseInt(p.qty) || 0) > 0 && !A.sold.has(p.id)).map(p => ({ p, v: (parseInt(p.qty) || 0) * (parseFloat(p.costPrice) || 0) })).filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 8);
+    const hrs = A.hours, h0 = hrs.findIndex(v => v > 0), h1 = hrs.length - 1 - [...hrs].reverse().findIndex(v => v > 0), hv = h0 < 0 ? [] : hrs.slice(h0, h1 + 1), hl = hv.map((_, i) => { const h = h0 + i, ap = h >= 12 ? 'م' : 'ص'; return fmtNum(h % 12 === 0 ? 12 : h % 12) + ap; });
+    const peak = hv.length ? h0 + hv.indexOf(Math.max(...hv)) : -1;
+    const nWd = new Array(7).fill(0); for (let i = 0; i < sdN; i++) nWd[(new Date(sdAdd(c.today, -i) + 'T12:00:00').getDay() + 1) % 7]++;
+    const wdAvg = A.wd.map((v, i) => nWd[i] ? v / nWd[i] : 0), bestWd = wdAvg.indexOf(Math.max(...wdAvg));
+    const row = (n, a, b) => `<div class="rep-row"><span dir="auto">${escapeHtml(n)}</span><small>${a}</small><b>${b}</b></div>`;
+    return `<div class="cn-chips fu-chips">${pers.map(n => `<button type="button" class="cn-chip ${sdN === n ? 'on' : ''}" onclick="sdSet(${n})">${n === 7 ? '7 أيام' : n + ' يوماً'}</button>`).join('')}</div>
+        <div class="sd-cards">
+        <div><span>صافي المبيعات</span><b>${fmtNum(A.sales)}</b>${sdDelta(A.sales, P.sales)}</div>
+        <div><span>الربح التقديري</span><b>${A.costRev > 0 ? fmtNum(A.profit) : '—'}</b>${A.costRev > 0 ? sdDelta(A.profit, P.profit) : ''}${mar !== null ? `<small>هامش ${fmtNum(Math.round(mar * 10) / 10)}%</small>` : ''}</div>
+        <div><span>عدد الفواتير</span><b>${fmtNum(A.n)}</b>${sdDelta(A.n, P.n)}</div>
+        <div><span>متوسط الفاتورة</span><b>${fmtNum(Math.round(avg))}</b>${sdDelta(avg, avgP)}</div></div>
+        ${A.noCost ? `<div class="bill-set-hint">الربح محسوب من المواد التي لها سعر شراء فقط (${fmtNum(A.noCost)} سطر بلا سعر شراء).</div>` : ''}
+        <div class="cu-h">المبيعات اليومية</div><div class="sd-box">${sdLine(c)}</div>
+        <div class="cu-h">النقد والآجل</div><div class="sd-box"><div class="sd-pay"><i style="width:${cashPct}%"></i></div><div class="sd-leg"><span><i class="l1"></i>نقد ${fmtNum(cash)} (${fmtNum(cashPct)}%)</span><span><i class="l4"></i>آجل ${fmtNum(A.owed)}</span></div></div>
+        ${hv.length ? `<div class="cu-h">ساعات الازدحام (عدد الفواتير)</div><div class="sd-box">${sdBars(hv, hl, v => fmtNum(v))}<div class="sd-note">ذروة الازدحام: ${fmtNum(peak % 12 === 0 ? 12 : peak % 12)} ${peak >= 12 ? 'مساءً' : 'صباحاً'}</div></div>` : ''}
+        ${A.sales > 0 ? `<div class="cu-h">متوسط المبيعات حسب اليوم</div><div class="sd-box">${sdBars(wdAvg.map(Math.round), SD_DAYS.map(d => d.replace('ال', '')), v => v >= 1e6 ? fmtNum(Math.round(v / 1e5) / 10) + ' مليون' : fmtNum(Math.round(v / 1000)) + ' ألف')}<div class="sd-note">أفضل يوم: ${SD_DAYS[bestWd]}</div></div>` : ''}
+        ${topProfit.length ? `<div class="cu-h">الأكثر ربحاً (الربح بالدينار)</div>${topProfit.map(e => row(e.name, '× ' + fmtNum(Math.round(e.q * 10) / 10), fmtNum(Math.round(e.profit)))).join('')}` : ''}
+        ${low.length ? `<div class="cu-h">هامش منخفض (أقل من 10%)</div>${low.map(e => row(e.name, fmtNum(Math.round(e.profit / e.costRev * 1000) / 10) + '%', fmtNum(Math.round(e.profit)))).join('')}<div class="sd-note">الهامش السالب يعني البيع بأقل من سعر الشراء.</div>` : ''}
+        ${dead.length ? `<div class="cu-h">راكدة: لم تُبع خلال ${fmtNum(sdN)} يوماً</div>${dead.map(x => row(dispName(x.p), 'المتوفر: ' + escapeHtml(stockLabel(x.p)), fmtNum(Math.round(x.v)))).join('')}<div class="sd-note">الرقم الأخير قيمة المخزون الراكد بسعر الشراء.</div>` : ''}
+        ${!A.n ? '<div class="cu-none">لا توجد مبيعات في هذه المدة.</div>' : ''}`;
 }
