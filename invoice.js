@@ -724,12 +724,21 @@ function billDuplicateNumbers() {
     (billAll || []).forEach(x => { if (!x || !x.issued || x.cancelled || !x.no) return; if (seen.has(x.no) && seen.get(x.no) !== x.id) dup.add(x.no); else seen.set(x.no, x.id); });
     return [...dup];
 }
+// ---------- «فواتيره فقط»: موظف يحدده المدير لا يرى إلا الفواتير التي أصدرها بنفسه ----------
+const invMyUid = () => (window.__actAs && window.__actAs.uid) || (typeof currentUser !== 'undefined' && currentUser && currentUser.uid) || '';
+const invOwnOnly = () => typeof userRole !== 'undefined' && userRole !== 'owner' && can('ownInv') && !can('customers');   // صلاحية الزبائن تعني رؤية الآجل لكل الفواتير فتُستثنى
+function invScope(arr) {
+    if (!invOwnOnly()) return arr;
+    let ids = new Set(); try { ids = new Set((JSON.parse(lsGet(BILL_LS.list)) || []).map(x => x && x.id)); } catch (e) { /* تجاهل */ }
+    const me = invMyUid(); return arr.filter(b => b && (b.byUid === me || ids.has(b.id)));
+}
+async function invOwnCloud() { return db.collection('pharmacy_invoices').where('byUid', '==', invMyUid()).get(); }
 async function pushLocalInvoices() {
     if (!cloudReady()) return 0;
     let local = []; try { local = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { return 0; }
     if (!local.length) return 0;
     let cloud = new Map();
-    const snap = await db.collection('pharmacy_invoices').orderBy('issuedTs', 'desc').limit(300).get();
+    const snap = invOwnOnly() ? await invOwnCloud() : await db.collection('pharmacy_invoices').orderBy('issuedTs', 'desc').limit(300).get();
     snap.forEach(d => { const x = d.data(); if (x && x.id) cloud.set(x.id, x); });
     let n = 0;
     for (const r of local) {
@@ -750,6 +759,17 @@ async function loadInvoices(ttl) {   // ttl: مهلة إعادة الجلب با
     cached.forEach(x => map.set(x.id, x));   // ما حُمّل سابقاً من السحابة يبقى بعد إغلاق التطبيق
     (billAll || []).forEach(x => x && x.id && map.set(x.id, x));   // ما حُمّل سابقاً (مثل الأقدم من تاريخ) لا يُفقد عند التحديث
     own.forEach(x => map.set(x.id, x));
+    if (invOwnOnly()) {   // استعلام واحد بشرط byUid (تفرضه القواعد)، بمهلة 10 دقائق، دون فهارس مركّبة
+        let ids = new Set(own.map(x => x.id)); const me = invMyUid();
+        [...map.keys()].forEach(k => { const x = map.get(k); if (!(x.byUid === me || ids.has(k))) map.delete(k); });
+        let last = 0; try { last = +lsGet('diwanInvOwnAt') || 0; } catch (e) { /* تجاهل */ }
+        if (cloudReady() && navigator.onLine && (ttl === 0 || Date.now() - last > 10 * 60000)) {
+            try { const snap = await invOwnCloud(); snap.forEach(d => { const x = d.data(); if (x && x.id) map.set(x.id, x); }); lsSet('diwanInvOwnAt', String(Date.now())); } catch (e) { /* تجاهل */ }
+        }
+        billAll = [...map.values()].sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
+        try { lsSet(INV_CK, JSON.stringify(billAll.slice(0, 300))); } catch (e) { /* تجاهل */ }
+        return billAll;
+    }
     // الترتيب بالتاريخ: كل فاتورة لها تاريخ، أما الفاتورة بلا issuedTs فكانت تُستبعد من الاستعلام
     if (cloudReady() && navigator.onLine) {
         try {

@@ -41,10 +41,10 @@ async function invEnsureSince(fromISO) {   // تحميل الفواتير من �
     const m = new Map(); (billAll || []).forEach(x => x && x.id && m.set(x.id, x));
     try { (JSON.parse(lsGet(BILL_LS.list)) || []).forEach(x => x && x.id && !m.has(x.id) && m.set(x.id, x)); } catch (e) { /* تجاهل */ }
     if (cloudReady() && navigator.onLine) {
-        const snap = await db.collection('pharmacy_invoices').where('date', '>=', fromISO).get();
+        const snap = invOwnOnly() ? await invOwnCloud() : await db.collection('pharmacy_invoices').where('date', '>=', fromISO).get();
         snap.forEach(d => { const x = d.data(); if (x && x.id) m.set(x.id, x); });
     }
-    billAll = [...m.values()].sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
+    billAll = invScope([...m.values()]).sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
 }
 function exCalc(r) {
     let sales = 0, cost = 0, costRev = 0, noCost = 0, n = 0; const days = new Map();

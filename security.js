@@ -119,7 +119,7 @@ function secAuth() {
     return app.auth();
 }
 const permBoxes = (cur) => Object.keys(PERM_LABELS).map(p => `<label class="pu-chk"><input type="checkbox" class="uPerm" data-p="${p}" ${cur && cur[p] ? 'checked' : ''}><span>${PERM_LABELS[p]}</span></label>`).join('');
-const readPerms = () => { const o = {}; document.querySelectorAll('.uPerm').forEach(c => { if (c.checked) o[c.dataset.p] = true; }); if (o.deleteOwn) o.cancelOwn = true; if (o.cancelOwn) o.sell = true; if (o.catalog) o.stockEdit = true; if (o.sell || o.stockEdit || o.purchases || o.invList) o.stockView = true; return o; };
+const readPerms = () => { const o = {}; document.querySelectorAll('.uPerm').forEach(c => { if (c.checked) o[c.dataset.p] = true; }); if (o.deleteOwn) o.cancelOwn = true; if (o.cancelOwn || o.ownInv) o.sell = true; if (o.catalog) o.stockEdit = true; if (o.sell || o.stockEdit || o.purchases || o.invList) o.stockView = true; return o; };
 let usersCache = [];
 async function openUsers() {
     if (userRole !== 'owner') return;
@@ -153,7 +153,7 @@ function usersHtml() {
 }
 // ---------- نموذج المستخدم (إضافة / تعديل) كشاشة داخل الإعدادات ----------
 const PERM_GROUPS = [
-    ['المبيعات', ['sell', 'cancelOwn', 'deleteOwn', 'posCost', 'customers']],
+    ['المبيعات', ['sell', 'ownInv', 'cancelOwn', 'deleteOwn', 'posCost', 'customers']],
     ['المخزن', ['stockView', 'stockEdit', 'catalog', 'newItem', 'invList']],
     ['الوارد والسجلات', ['purchases']],
     ['فاحص المادة', ['scan', 'scanDisc', 'scanCost', 'scanDel']],
@@ -161,6 +161,7 @@ const PERM_GROUPS = [
 ];
 const PERM_TXT = {
     sell: ['إصدار الفواتير', 'البيع من شاشة البيع.'],
+    ownInv: ['فواتيره فقط', 'لا يرى إلا الفواتير التي أصدرها بنفسه ولا يرى فواتير بقية الموظفين. إن لم تُفعَّل رأى كل الفواتير. صلاحية «الزبائن» تتجاوزها لأنها تعرض الآجل لكل الفواتير. يتطلب صلاحية البيع.'],
     customers: ['الزبائن وتسديد الدفعات', 'تظهر له أيقونة الزبائن: يرى الآجل على كل الزبائن ويسجّل دفعات التسديد (تُحفظ باسمه). لا يستطيع تعديل أي شيء آخر في الفواتير. مغلق افتراضياً.'],
     posCost: ['شاشة البيع: خصم بسعر الكلفة', 'يظهر له زر «سعر الكلفة» في شاشة البيع، ويكشف له سعر الشراء مقرّباً. مغلق افتراضياً.'],
     cancelOwn: ['إلغاء فواتيره', 'يلغي فواتيره هو وتُرجَع الكميات إلى المخزن. يتطلب صلاحية البيع.'],
@@ -177,7 +178,7 @@ const PERM_TXT = {
     scanDel: ['حذف تواريخ الانتهاء', 'داخل فاحص المادة، ويتطلب تعديل المواد.'],
     followups: ['المتابعات', 'تسجيل وعود المندوبين والمواد المأخوذة ومتابعتها. خصم الكميات من المخزن يتطلب صلاحية البيع أو تعديل المواد.']
 };
-const PERM_REQ = { posCost: ['sell'], scanCost: ['scan'], cancelOwn: ['sell'], deleteOwn: ['cancelOwn'], catalog: ['stockEdit'], sell: ['stockView'], stockEdit: ['stockView'], purchases: ['stockView'], invList: ['stockView'], scanDel: ['stockEdit'] };
+const PERM_REQ = { ownInv: ['sell'], posCost: ['sell'], scanCost: ['scan'], cancelOwn: ['sell'], deleteOwn: ['cancelOwn'], catalog: ['stockEdit'], sell: ['stockView'], stockEdit: ['stockView'], purchases: ['stockView'], invList: ['stockView'], scanDel: ['stockEdit'] };
 let usForm = null;   // { uid, dirty }
 function usPermRows(cur) {
     return PERM_GROUPS.map(([g, keys]) => `<h5 class="set-sec">${g}</h5>` + keys.map(k => `<div class="qk-row"><div><b>${PERM_TXT[k][0]}</b><small>${PERM_TXT[k][1]}</small></div><label class="setup-sw"><input type="checkbox" class="uPerm" data-p="${k}" ${cur && cur[k] ? 'checked' : ''}><i></i></label></div>`).join('')).join('');
