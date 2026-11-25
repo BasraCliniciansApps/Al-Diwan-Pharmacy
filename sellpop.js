@@ -30,6 +30,7 @@ function spAutoRows() {
     const out = billAllocate(sim, p, sp.unit, sp.qty);
     sp.rows = out.filter(a => !a.over).map(a => ({ e: a.e, pr: a.pr || 0, n: a.n }));
     sp.short = out.filter(a => a.over).reduce((s, a) => s + a.n, 0);
+    if (sp.short > 0 && sgBlock(p)) { sgClampNote(p, sp.short); sp.short = 0; }   // مادة مجرودة: تتوقف الكمية عند المتوفر
 }
 function spOpen(pid, opts) {
     opts = opts || {};
@@ -141,6 +142,7 @@ function spRender() {
 function spCommit(next) {
     if (!sp) return;
     const p = products.find(x => x.id === sp.pid); if (!p) return;
+    if (sp.short > 0 && sgBlock(p)) { sgClampNote(p, sp.short); sp.short = 0; spRender(); return; }
     const needDef = sp.rows.some(r => r.n > 0 && !billExpired(r.e) && !(r.pr > 0)) || sp.short > 0;   // الدفعات ذات السعر الخاص لا تحتاج سعراً مكتوباً
     if (needDef && !(parseFloat(sp.price) > 0)) {   // لا تنزل مادة للفاتورة قبل كتابة سعرها
         const pi = document.querySelector('#spCard .sp-price');
@@ -163,6 +165,6 @@ function spCommit(next) {
     const name = p.name, edit = sp.edit;
     spClose();
     renderInvoiceRows(); billChanged();
-    Swal.fire({ icon: 'success', title: (edit ? 'عُدّلت: ' : 'أُضيفت: ') + name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1100 });
+    if (!sgLowNote(p.id)) Swal.fire({ icon: 'success', title: (edit ? 'عُدّلت: ' : 'أُضيفت: ') + name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1100 });
     if (next) setTimeout(() => billScan(), 250);
 }

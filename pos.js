@@ -78,16 +78,20 @@ function posAdd(pid, unit, n) {
     const out = billAllocate(sim, p, unit, n, last && last.exp, last && last.bpr);
     const needPrice = out.some(r => !(r.pr > 0)) && !(defPrice > 0);
     if (needPrice) { spOpen(pid, { scan: true }); return false; }   // مادة بلا سعر: النافذة الحالية تفرض كتابة السعر
-    let over = 0;
+    let over = 0, blocked = 0, added = 0;
     out.forEach(l => {
+        if (l.over && sgBlock(p)) { blocked += l.n; return; }   // مادة مجرودة: لا يُضاف فوق المتوفر
+        added += l.n;
         const price = l.pr > 0 ? (unit === 'part' ? (subPriceCalc(l.pr, btSc(p)) || 0) : l.pr) : defPrice;
         if (l.over) over += l.n;
         const ex = bill.items.find(it => it.pid === pid && posUnitOf(it) === unit && (it.exp || '') === (l.e || '') && (it.bpr || 0) === (l.pr || 0));
         if (ex) { ex.qty = (parseFloat(ex.qty) || 0) + l.n; ex.price = price; }
         else bill.items.push({ pid, name: dispName(p, unit === 'part'), qty: l.n, price, unit, partType: unit === 'part' ? subTypeOf(p) : '', ...(l.e ? { exp: l.e } : {}), ...(l.pr ? { bpr: l.pr } : {}) });
     });
-    if (over) Swal.fire({ icon: 'warning', title: 'المطلوب أكبر من المتوفر بـ ' + over, toast: true, position: 'top', showConfirmButton: false, timer: 2200 });
-    return true;
+    if (blocked) sgClampNote(p, blocked);
+    else if (over) Swal.fire({ icon: 'warning', title: 'المطلوب أكبر من المتوفر بـ ' + over, toast: true, position: 'top', showConfirmButton: false, timer: 2200 });
+    else if (added > 0) sgLowNote(pid);
+    return added > 0 || !blocked;
 }
 function posGroup(key) { return posGroups().find(g => g.key === key); }
 function posTotalQty(g) { return g.lines.reduce((s, it) => s + (parseFloat(it.qty) || 0), 0); }

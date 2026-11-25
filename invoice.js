@@ -435,6 +435,7 @@ async function issueInvoice(doPrintAfter, skipConfirm) {   // true/undefined: إ
     const deduct = bill.deduct !== false;
     const plan = deduct ? billPlan() : [];
     const short = plan.filter(e => e.short);
+    if (short.length && !(await sgGate(short))) return;   // مواد مجرودة فوق المتوفر: منع أو تجاوز بتأكيد
     let hubWarn = '';
     try { if (deduct && plan.length && window.LAN && LAN.preSale) { const hs = await LAN.preSale(plan); if (hs.length) hubWarn = `<div style="margin-top:10px;color:#b91c1c;font-weight:700;font-size:.85rem;">⚠️ المتوفر حسب الحاسوب أقل من المطلوب (قد بيعت من جهاز آخر):<br>${hs.map(x => escapeHtml(x.name) + ' (المتوفر ' + x.av + ')').join('<br>')}</div>`; } } catch (e) { /* لا يعطّل البيع */ }
     const manual = bill.items.filter(it => !it.pid).length;
@@ -575,6 +576,7 @@ async function saveInvoiceEdit(doPrintAfter) {
         plan.forEach(e => { snap(e.p); });
     }
     const short = plan.filter(e => e.short);
+    if (short.length && !(await sgGate(short))) { snaps.forEach(s => { s.p.qty = s.qty; s.p.loose = s.loose; delete s.p._badd; }); return; }
     const r = await Swal.fire({ icon: 'question', title: 'حفظ تعديل الفاتورة ' + escapeHtml(bill.no) + '؟', html: `المبلغ الكلي: <b>${fmtNum(billTotals().total)} د.ع</b>` + (hadDeduct ? '<br>سيُصحَّح المخزن بالفرق عن الفاتورة السابقة.' : '') + (short.length ? `<div style="margin-top:10px;color:#b45309;font-weight:700;font-size:.85rem;">⚠️ كميات غير كافية:<br>${short.map(e => escapeHtml(e.p.name) + ' (المتوفر ' + stockLabel(e.p) + ')').join('<br>')}</div>` : ''), showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'حفظ', cancelButtonText: 'رجوع' });
     const rollback = () => { snaps.forEach(s => { s.p.qty = s.qty; s.p.loose = s.loose; delete s.p._badd; }); };
     if (!r.isConfirmed) { rollback(); return; }

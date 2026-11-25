@@ -67,7 +67,7 @@ async function costSplitStep2() {
 // كل موظف حساب Firebase حقيقي (بريد داخلي + رمز سري)، وصلاحياته في pharmacy_users/{uid}،
 // وقواعد Firestore (firestore.rules) هي التي تفرضها فعلاً، والواجهة تُخفي الأزرار فقط.
 // ============================================================================
-const PERM_LABELS = { customers: 'الزبائن: عرض الآجل وتسديد الدفعات', posCost: 'شاشة البيع: خصم بسعر الكلفة', sell: 'إصدار الفواتير (البيع)', stockView: 'عرض المخزن والكميات', stockEdit: 'تعديل المواد والكميات والجرد', purchases: 'الوارد والمذاخر والسجلات', catalog: 'سجل الأدوية (تسعير وكميات وإضافة سريعة — يشمل تعديل المواد)', scan: 'فاحص المادة (سعر البيع وتواريخ الانتهاء)', scanDisc: 'فاحص المادة: حد الخصم وحاسبة الخصم', scanDel: 'فاحص المادة: حذف تواريخ الانتهاء (يحتاج تعديل المواد)', scanCost: 'فاحص المادة: سعر الشراء والربح', newItem: 'إضافة صنف جديد أو ربط باركود عند مسح باركود غير مسجّل', invList: 'قوائم الجرد (إدخال الأعداد والأسعار وتحديث المخزن منها)', cancelOwn: 'إلغاء فواتيره هو (تُرجَع الكميات إلى المخزن)', deleteOwn: 'حذف فواتيره الملغاة نهائياً', followups: 'المتابعات (وعود المندوبين والمواد المأخوذة)' };
+const PERM_LABELS = { customers: 'الزبائن: عرض الآجل وتسديد الدفعات', posCost: 'شاشة البيع: خصم بسعر الكلفة', sell: 'إصدار الفواتير (البيع)', stockView: 'عرض المخزن والكميات', stockEdit: 'تعديل المواد والكميات والجرد', purchases: 'الوارد والمذاخر والسجلات', catalog: 'سجل الأدوية (تسعير وكميات وإضافة سريعة — يشمل تعديل المواد)', scan: 'فاحص المادة (سعر البيع وتواريخ الانتهاء)', scanDisc: 'فاحص المادة: حد الخصم وحاسبة الخصم', scanDel: 'فاحص المادة: حذف تواريخ الانتهاء (يحتاج تعديل المواد)', overSell: 'البيع: تجاوز المخزون للمواد المجرودة', scanCost: 'فاحص المادة: سعر الشراء والربح', newItem: 'إضافة صنف جديد أو ربط باركود عند مسح باركود غير مسجّل', invList: 'قوائم الجرد (إدخال الأعداد والأسعار وتحديث المخزن منها)', cancelOwn: 'إلغاء فواتيره هو (تُرجَع الكميات إلى المخزن)', deleteOwn: 'حذف فواتيره الملغاة نهائياً', followups: 'المتابعات (وعود المندوبين والمواد المأخوذة)' };
 const PERM_PRESETS = { seller: { sell: true, stockView: true }, manager: { sell: true, stockView: true, stockEdit: true, catalog: true } };
 function loginKey(n) { return String(n || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/[\/#?\[\]\.]/g, ''); }
 
@@ -153,7 +153,7 @@ function usersHtml() {
 }
 // ---------- نموذج المستخدم (إضافة / تعديل) كشاشة داخل الإعدادات ----------
 const PERM_GROUPS = [
-    ['المبيعات', ['sell', 'ownInv', 'cancelOwn', 'deleteOwn', 'posCost', 'customers']],
+    ['المبيعات', ['sell', 'ownInv', 'cancelOwn', 'deleteOwn', 'posCost', 'customers', 'overSell']],
     ['المخزن', ['stockView', 'stockEdit', 'catalog', 'newItem', 'invList']],
     ['الوارد والسجلات', ['purchases']],
     ['فاحص المادة', ['scan', 'scanDisc', 'scanCost', 'scanDel']],
@@ -164,6 +164,7 @@ const PERM_TXT = {
     ownInv: ['فواتيره فقط', 'لا يرى إلا الفواتير التي أصدرها بنفسه ولا يرى فواتير بقية الموظفين. إن لم تُفعَّل رأى كل الفواتير. صلاحية «الزبائن» تتجاوزها لأنها تعرض الآجل لكل الفواتير. يتطلب صلاحية البيع.'],
     customers: ['الزبائن وتسديد الدفعات', 'تظهر له أيقونة الزبائن: يرى الآجل على كل الزبائن ويسجّل دفعات التسديد (تُحفظ باسمه). لا يستطيع تعديل أي شيء آخر في الفواتير. مغلق افتراضياً.'],
     posCost: ['شاشة البيع: خصم بسعر الكلفة', 'يظهر له زر «سعر الكلفة» في شاشة البيع، ويكشف له سعر الشراء مقرّباً. مغلق افتراضياً.'],
+    overSell: ['تجاوز المخزون', 'يستطيع بيع كمية أكبر من المتوفر في المواد المجرودة بعد تأكيد، ويُسجَّل التجاوز. إن لم تُفعَّل مُنع من ذلك. يتطلب صلاحية البيع. مغلق افتراضياً.'],
     cancelOwn: ['إلغاء فواتيره', 'يلغي فواتيره هو وتُرجَع الكميات إلى المخزن. يتطلب صلاحية البيع.'],
     deleteOwn: ['حذف فواتيره الملغاة نهائياً', 'يتطلب صلاحية إلغاء الفواتير.'],
     stockView: ['عرض المخزن والكميات', 'رؤية الأصناف وكمياتها.'],
@@ -178,7 +179,7 @@ const PERM_TXT = {
     scanDel: ['حذف تواريخ الانتهاء', 'داخل فاحص المادة، ويتطلب تعديل المواد.'],
     followups: ['المتابعات', 'تسجيل وعود المندوبين والمواد المأخوذة ومتابعتها. خصم الكميات من المخزن يتطلب صلاحية البيع أو تعديل المواد.']
 };
-const PERM_REQ = { ownInv: ['sell'], posCost: ['sell'], scanCost: ['scan'], cancelOwn: ['sell'], deleteOwn: ['cancelOwn'], catalog: ['stockEdit'], sell: ['stockView'], stockEdit: ['stockView'], purchases: ['stockView'], invList: ['stockView'], scanDel: ['stockEdit'] };
+const PERM_REQ = { overSell: ['sell'], ownInv: ['sell'], posCost: ['sell'], scanCost: ['scan'], cancelOwn: ['sell'], deleteOwn: ['cancelOwn'], catalog: ['stockEdit'], sell: ['stockView'], stockEdit: ['stockView'], purchases: ['stockView'], invList: ['stockView'], scanDel: ['stockEdit'] };
 let usForm = null;   // { uid, dirty }
 function usPermRows(cur) {
     return PERM_GROUPS.map(([g, keys]) => `<h5 class="set-sec">${g}</h5>` + keys.map(k => `<div class="qk-row"><div><b>${PERM_TXT[k][0]}</b><small>${PERM_TXT[k][1]}</small></div><label class="setup-sw"><input type="checkbox" class="uPerm" data-p="${k}" ${cur && cur[k] ? 'checked' : ''}><i></i></label></div>`).join('')).join('');
