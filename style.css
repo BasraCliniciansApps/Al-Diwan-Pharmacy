@@ -5193,3 +5193,8 @@ body.dark .sd-hh { color: #e2e8f0; } body.dark .sd-ht { background: #243252; } b
 .ndw-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; } .ndw-acts .ln-btn { height: 44px; white-space: nowrap; }
 .fu-chips { flex-wrap: wrap; overflow-x: visible; }
 .ndw-kt.bad { background: #fef2f2; border-color: #fca5a5; } .ndw-kt.bad span, .ndw-kt.bad small { color: #991b1b; } .ndw-kt.bad b { color: #b91c1c; font-size: 1.25rem; }
+
+body.role-staff .home-row7 { display: none !important; }
+.ndw-fab { position: fixed; left: 16px; bottom: 22px; z-index: 9100; display: inline-flex; align-items: center; gap: 8px; height: 50px; padding: 0 18px; border: 0; border-radius: 999px; background: #0f766e; color: #fff; font: 800 .95rem inherit; font-family: inherit; box-shadow: 0 8px 20px -6px rgba(15,118,110,.65); cursor: pointer; white-space: nowrap; }
+.ndw-fab svg { color: #f9c14a; }
+#exBox .cn-body:has(+ .ndw-fab) { padding-bottom: 88px; }

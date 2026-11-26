@@ -91,11 +91,11 @@ function exPeriodHtml() {
 }
 function exRender() {
     const r = exRange(), c = exCalc(r);
-    const tabs = `<div class="cu-seg"><button type="button" class="${exTab === 'dash' ? 'on' : ''}" onclick="exTab='dash';exRefresh()">المبيعات</button><button type="button" class="${exTab === 'need' || exTab === 'need2' || exTab === 'xf' ? 'on' : ''}" onclick="exTab='need';exRefresh()">تقدير الاحتياج</button><button type="button" class="${exTab === 'rep' ? 'on' : ''}" onclick="exTab='rep';exRefresh()">صافي الربح</button><button type="button" class="${exTab === 'list' ? 'on' : ''}" onclick="exTab='list';exRender()">المصروفات</button></div>`;
+    const tabs = `<div class="cu-seg"><button type="button" class="${exTab === 'dash' ? 'on' : ''}" onclick="exTab='dash';exRefresh()">المبيعات</button><button type="button" class="${exTab === 'rep' ? 'on' : ''}" onclick="exTab='rep';exRefresh()">صافي الربح</button><button type="button" class="${exTab === 'list' ? 'on' : ''}" onclick="exTab='list';exRender()">المصروفات</button></div>`;
     let body;
     if (exTab === 'need' || exTab === 'need2' || exTab === 'xf') {
         const sub = `<div class="cu-seg"><button type="button" class="${exTab === 'need' ? 'on' : ''}" onclick="exTab='need';exRefresh()">من المبيعات</button><button type="button" class="${exTab === 'need2' ? 'on' : ''}" onclick="exTab='need2';exRefresh()">من الوارد</button><button type="button" class="${exTab === 'xf' ? 'on' : ''}" onclick="exTab='xf';exRefresh()">مناقلة مقترحة</button></div>`;
-        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>📦 تقدير الاحتياج</b></div><div class="cn-body">${tabs}${sub}${exTab === 'need' ? ndmHtml() : exTab === 'need2' ? ndwHtml() : xfHtml()}</div>`; return;
+        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>تقدير الاحتياج</b></div><div class="cn-body">${sub}${exTab === 'need' ? ndmHtml() : exTab === 'need2' ? ndwHtml() : xfHtml()}</div><button type="button" class="ndw-fab" onclick="ndcOpen()" aria-label="حاسبة الاحتياج"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><rect x="8" y="5.5" width="8" height="3.5" rx="1"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 17h.01M12 17h.01M15.5 17h.01"/></svg><span>حاسبة</span></button>`; return;
     }
     if (exTab === 'dash') {
         document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>📊 لوحة المبيعات</b></div><div class="cn-body">${tabs}${sdHtml()}</div>`; return;
@@ -356,11 +356,11 @@ function ndmCalc() {
     const onOrd = new Map(); try { if (typeof ndOrders === 'function') ndOrders().filter(o => o.status !== 'received').forEach(o => (o.items || []).forEach(x => onOrd.set(x.pid, (onOrd.get(x.pid) || 0) + (parseFloat(x.qty) || 0)))); } catch (e) { /* تجاهل */ }
     // فئات ABC بحسب الإيراد
     const abc = new Map(); let cum = 0; [...rev.entries()].sort((a, b) => b[1] - a[1]).forEach(([pid, v]) => { const before = cum / (totRev || 1); cum += v; abc.set(pid, before < 0.8 ? 'A' : before < 0.95 ? 'B' : 'C'); });
-    const rows = [], pids = new Set([...sales.keys(), ...miss.keys()]);
+    const rows = [], manM = ndwManualMap(), pids = new Set([...sales.keys(), ...miss.keys()]);
     pids.forEach(pid => {
         const p = products.find(x => x.id === pid); if (!p || p.arch) return;
         const sm = sales.get(pid) || new Map(), mm = miss.get(pid) || new Map(), ds = [...sm.keys(), ...mm.keys()].sort(), first = ds[0], last = ds[ds.length - 1];
-        const stock = (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0);
+        const hm = p.counted !== true && manM[pid] !== undefined && manM[pid] !== '' && isFinite(parseFloat(manM[pid])), stock = hm ? parseFloat(manM[pid]) : (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0);
         let st = first < sdAdd(today, -13) ? (first > from ? first : from) : sdAdd(today, -13), en = stock <= 0 && last < today ? last : today;
         if (en < sdAdd(st, 6)) en = sdAdd(st, 6) > today ? today : sdAdd(st, 6);
         const n = Math.max(7, Math.round((new Date(en + 'T12:00:00') - new Date(st + 'T12:00:00')) / 864e5) + 1), x = new Array(n).fill(0);
@@ -378,7 +378,7 @@ function ndmCalc() {
         const st0 = ndwSet(), mq = parseInt(p.minQty), hasMin = isFinite(mq) && mq > 0, cover = rate > 0 ? pos / rate : null, rare = rate * 30 < 1 && !hasMin;
         const status = (hasMin && pos <= mq) ? 'order' : rare ? 'rare' : (cover !== null && cover <= st0.urgent) ? 'order' : (cover !== null && cover > ndOverDays()) ? 'over' : 'ok';
         const sold = x.reduce((a, b) => a + b, 0), sdc = Math.min(sdw, Math.sqrt(Math.max(rate * 7, 0) * 3));   // تشتت أسبوعي لا يتجاوز نموذج بواسون المتشتت (φ≤3)
-        rows.push({ src: 's', method: 'sales', counted: true, manual: false, p, ex, ci, wks: wk.length, cls, pat, rate, stock, ord: onOrd.get(pid) || 0, ss: Z[cls] * sdc * Math.sqrt(T / 7), rop: rate * cfg.lead + Z[cls] * sdc * Math.sqrt(T / 7), tgt: rate * T + Z[cls] * sdc * Math.sqrt(T / 7), sdw: sdc, status, sug: Math.max(0, Math.ceil(Math.max(rate * st0.target, hasMin ? mq : 0) - pos - 1e-9)), minQ: hasMin ? mq : 0, cover, pos, nz: nz.length, n, x, st, miss: [...mm.values()].reduce((a, b) => a + b, 0), conf: nz.length >= 8 ? 'جيدة' : nz.length >= 4 ? 'متوسطة' : 'منخفضة', consumed: sold, demand: sold, span: n, ev: [], first: first, last, since: ndmDays(last, today), units: sold, nEv: nz.length, nsE: 0, nsO: 0, w80: ci.w80, sups: [], sup: '' });
+        rows.push({ src: 's', method: 'sales', counted: true, manual: hm, p, ex, ci, wks: wk.length, cls, pat, rate, stock, ord: onOrd.get(pid) || 0, ss: Z[cls] * sdc * Math.sqrt(T / 7), rop: rate * cfg.lead + Z[cls] * sdc * Math.sqrt(T / 7), tgt: rate * T + Z[cls] * sdc * Math.sqrt(T / 7), sdw: sdc, status, sug: Math.max(0, Math.ceil(Math.max(rate * st0.target, hasMin ? mq : 0) - pos - 1e-9)), minQ: hasMin ? mq : 0, cover, pos, nz: nz.length, n, x, st, miss: [...mm.values()].reduce((a, b) => a + b, 0), conf: nz.length >= 8 ? 'جيدة' : nz.length >= 4 ? 'متوسطة' : 'منخفضة', consumed: sold, demand: sold, span: n, ev: [], first: first, last, since: ndmDays(last, today), units: sold, nEv: nz.length, nsE: 0, nsO: 0, w80: ci.w80, sups: [], sup: '' });
     });
     const ord = { order: 0, ok: 1, over: 2, rare: 3 }, sm = ndwSupMap();
     rows.forEach(r => { r.sups = sm.get(r.p.id) || []; r.sup = ndwSupPick(r.sups, r.p.id); });
@@ -524,7 +524,8 @@ function ndwCalc() {
     rows.forEach(r => { r.sups = sm.get(r.p.id) || []; r.sup = ndwSupPick(r.sups, r.p.id); });
     return { cfg, rows: rows.sort((a, b) => ord[a.status] - ord[b.status] || (a.rate > 0 ? a.stock / a.rate : 1e9) - (b.rate > 0 ? b.stock / b.rate : 1e9)) };
 }
-const ndwFind = pid => (ndwSrc === 's' ? ndmRows : ndwRows).find(x => x.p.id === pid);
+let ndcSynth = null;
+const ndwFind = pid => ndwSrc === 'y' ? ndcSynth : (ndwSrc === 's' ? ndmRows : ndwRows).find(x => x.p.id === pid);
 function ndwCoverTxt(d) { return d === null || d === undefined ? 'بلا استهلاك' : d < 1 ? 'أقل من يوم' : d < 60 ? fmtNum(Math.floor(d)) + ' يوماً' : d < 365 ? fmtNum(Math.round(d / 30 * 10) / 10) + ' شهر' : 'أكثر من سنة'; }
 function ndwRow(r, i, fn) {
     const st = NDW_ST[r.status], mo = r.rate * 30, f = v => fmtNum(v >= 10 ? Math.round(v) : Math.round(v * 10) / 10);
@@ -677,7 +678,7 @@ function ndwOpen(pid) {
     Swal.fire({ title: 'تقدير الاحتياج من الوارد', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div id="ndwDet" class="fu-det" dir="rtl" style="text-align:right">${ndwDetBody(r)}</div>` });
 }
 function ndwDetRefresh() {
-    if (ndwSrc === 's') { ndmRows = ndmCalc().rows; ndmRowsRedraw(); } else { ndwRows = ndwCalc().rows; ndwRowsRedraw(); }
+    if (ndwSrc === 's') { ndmRows = ndmCalc().rows; ndmRowsRedraw(); } else if (ndwSrc !== 'y') { ndwRows = ndwCalc().rows; ndwRowsRedraw(); }
     const r = ndwFind(ndwCur), el = document.getElementById('ndwDet'); if (r && el) el.innerHTML = ndwDetBody(r);
 }
 function ndwNeedCalc(r) {
@@ -780,12 +781,12 @@ function ndwDetBody(r) {
     const calcIn = dr('الطريقة', r.method === 'bal' ? 'رصيد الجرد (أثر رجعي)' : r.method === 'int' ? 'فترات الشراء' : 'غير كافية') + (r.method === 'none' ? '' : dr(r.method === 'bal' ? 'المستهلك (الوارد − الرصيد)' : 'المستهلك قبل آخر شراء', f(r.consumed) + ' خلال ' + fmtNum(r.span) + ' يوماً') + dr('الاستهلاك اليومي المقدّر', fmtNum(Math.round(r.rate * 100) / 100)) + dr('الشهري المتوقع', f(r.rate * 30)) + dr('المدى الأسبوعي (ثقة 80%)', f(r.w80[0]) + ' – ' + f(r.w80[1])))
         + dr('مرات الشراء', fmtNum(r.nEv) + ' • أولها ' + fmtDateDMY(r.first)) + dr('مجموع الوارد', f(r.units)) + dr('آخر شراء', 'قبل ' + fmtNum(r.since) + ' يوماً') + dr('المتوفر', f(r.stock)) + (r.ord ? dr('قيد الطلب', f(r.ord)) : '') + ndxDetailRows(r.ex)
         + (r.method === 'none' ? '' : dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', r.counted ? fmtNum(r.sug) : '—')) + (r.minQ ? dr('الحد الأدنى (من بطاقة المادة)', fmtNum(r.minQ)) : '') + dr('درجة الثقة', r.conf);
-    const calcS = !S ? '' : dr('الطريقة', 'المبيعات الفعلية') + dr('فئة الإيراد', r.cls) + dr('نمط الطلب', r.pat[0]) + dr('مدة التحليل', fmtNum(r.n) + ' يوماً') + dr('أيام فيها بيع', fmtNum(r.nz) + ' من ' + fmtNum(r.n)) + (r.miss ? dr('طلبات غير ملبّاة', fmtNum(r.miss)) : '')
+    const calcS = !S || r.synth ? '' : dr('الطريقة', 'المبيعات الفعلية') + dr('فئة الإيراد', r.cls) + dr('نمط الطلب', r.pat[0]) + dr('مدة التحليل', fmtNum(r.n) + ' يوماً') + dr('أيام فيها بيع', fmtNum(r.nz) + ' من ' + fmtNum(r.n)) + (r.miss ? dr('طلبات غير ملبّاة', fmtNum(r.miss)) : '')
         + dr('الطلب اليومي المقدّر', fmtNum(Math.round(r.rate * 100) / 100)) + dr('الطلب الشهري المتوقع', f(r.rate * 30)) + dr('المدى الأسبوعي (ثقة 80%)', f(r.ci.w80[0]) + ' – ' + f(r.ci.w80[1])) + dr('المتوفر', f(r.stock)) + (r.ord ? dr('قيد الطلب', f(r.ord)) : '') + ndxDetailRows(r.ex)
         + dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', fmtNum(r.sug)) + (r.minQ ? dr('الحد الأدنى (من بطاقة المادة)', fmtNum(r.minQ)) : '') + dr('جودة البيانات', r.conf);
     const calc = S ? calcS : calcIn;
     return `<div class="ndw-h" dir="ltr">${dispNameHtml(r.p)}</div>${ndxTag(r.ex)}`
-        + sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + (S ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + sec('plan', 'توريد مخطط', plan) + sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r)) + sec('exp', 'الصلاحية والدفعات', expB) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc);
+        + sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + ((S && r.p.counted === true) || r.synth ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + sec('plan', 'توريد مخطط', plan) + (r.synth ? '' : sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r))) + sec('exp', 'الصلاحية والدفعات', expB) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + (r.synth ? '' : sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc));
 }
 // ---------- مناقلة مقترحة: المواد المتوقع تلف جزء منها قبل بيعه، مرتبة بالأقرب نفاذاً ----------
 let xfF = 'all', xfRows = [];
@@ -820,6 +821,47 @@ function xfOpen(pid) { const i = ndmRows.findIndex(x => x.p.id === pid); if (i >
 function xfGo() {
     const v = xfVisible(); if (!v.length) return;
     try { exClose(); showView('purch'); puTab('xfer'); lgxOpen('xfer', { items: v.map(r => ({ pid: r.p.id, qty: r.qty })) }); } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر فتح شاشة المناقلة', confirmButtonText: 'حسناً' }); }
+}
+// ---------- حاسبة الاحتياج: اختيار مادة ثم حساب المطلوب وتقييم عرض المندوب ----------
+async function ndcEnsure() {
+    const h = Prog.start('تحميل البيانات', { text: 'سجل الوارد والفواتير...', indeterminate: false });
+    try {
+        if (typeof puLoad === 'function') { try { await puLoad(); } catch (e) { /* تجاهل */ } } h.set(40);
+        if (typeof lgLoad === 'function') { try { await lgLoad(); } catch (e) { /* تجاهل */ } } h.set(70);
+        const fr = ndmFrom(); if (!(window.__exInvFrom && window.__exInvFrom <= fr && Date.now() - (window.__exInvAt || 0) < 30 * 60000)) { await invEnsureSince(fr); window.__exInvFrom = fr; window.__exInvAt = Date.now(); }
+        h.ok('تم التحميل');
+    } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
+}
+async function ndcOpen() {
+    if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'هذه الصفحة للمدير فقط.', confirmButtonColor: '#0f1c38' }); return; }
+    await ndcEnsure();
+    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div dir="rtl" style="text-align:right"><div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة لحساب المطلوب شراؤه وتقييم عرض المندوب.</div></div>`, didOpen: () => { const el = document.getElementById('ndcQ'); if (el) el.focus(); } });
+}
+function ndcSearch(v) {
+    const q = normSearch(v || ''), toks = q ? q.split(' ') : [], box = document.getElementById('ndcRes'); if (!box) return;
+    if (!q) { box.innerHTML = ''; return; }
+    const list = (products || []).filter(p => p && !p.arch && searchScore(p, q, toks) > 0).slice(0, 8);
+    box.innerHTML = list.map(p => `<div class="cu-row fu-row ndw-rw" onclick="ndcPick(${p.id})"><div><b dir="ltr">${dispNameHtml(p)}</b></div></div>`).join('') || '<div class="cu-none">لا توجد نتائج.</div>';
+}
+async function ndcPick(pid) {
+    const p = (products || []).find(x => x.id === pid); if (!p) return;
+    ndmRows = ndmCalc().rows; ndwRows = ndwCalc().rows;
+    let r = ndmRows.find(x => x.p.id === pid), src = 's';
+    if (!r) { r = ndwRows.find(x => x.p.id === pid && x.method !== 'none'); src = 'i'; }
+    if (!r) {
+        const inp = 'width:100%;height:42px;border:1px solid #cbd5e1;border-radius:10px;padding:0 10px;font:inherit;text-align:center;box-sizing:border-box';
+        const cur = (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0);
+        const o = await Swal.fire({ title: 'لا يتوفر تقدير لهذه المادة', html: `<div dir="rtl" style="text-align:right;display:grid;gap:10px"><div class="nd-hint">أدخل أرقاماً تقريبية للحساب فقط.</div><label class="fu-l">الاستهلاك الشهري التقريبي (علب)<input id="ndcM" type="number" inputmode="decimal" min="0" step="any" style="${inp}"></label><label class="fu-l">الرصيد الحالي (علب)<input id="ndcS" type="number" inputmode="decimal" min="0" step="any" value="${cur}" style="${inp}"></label></div>`, showCancelButton: true, confirmButtonText: 'حساب', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', reverseButtons: true, preConfirm: () => { const m = parseFloat(document.getElementById('ndcM').value), st = parseFloat(document.getElementById('ndcS').value); if (!(m >= 0)) { Swal.showValidationMessage('أدخل الاستهلاك الشهري'); return false; } return { m, st: st >= 0 ? st : 0 }; } });
+        if (!o.isConfirmed) return;
+        r = ndcSynthRow(p, o.value.m, o.value.st); ndcSynth = r; src = 'y';
+    }
+    ndwSrc = src; ndwCur = pid; ndwOpenSec = { sum: true, need: true, plan: true };
+    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div id="ndwDet" class="fu-det" dir="rtl" style="text-align:right">${ndwDetBody(r)}</div>` });
+}
+function ndcSynthRow(p, monthly, stock) {
+    const rate = monthly / 30, ex = ndxExpiry(p, rate), cfg = ndmCfg(), T = cfg.lead + cfg.rev, sdw = Math.sqrt(rate * 7 * 2), ss = 1.65 * sdw * Math.sqrt(T / 7), today = todayLocalISO(), pos = stock - ex.expired, sm = ndwSupMap();
+    const sups = sm.get(p.id) || [];
+    return { src: 's', synth: true, method: 'sales', counted: true, manual: true, p, ex, rate, stock, ord: 0, ss, rop: rate * cfg.lead + ss, tgt: rate * T + ss, sdw, status: 'ok', sug: 0, minQ: 0, cover: rate > 0 ? pos / rate : null, pos, conf: 'منخفضة', consumed: rate * 90, demand: rate * 90, span: 90, ev: [], first: today, last: today, since: 0, units: 0, nEv: 0, nsE: 0, nsO: 0, w80: [Math.max(0, rate * 7 - 1.28 * sdw), rate * 7 + 1.28 * sdw], sups, sup: ndwSupPick(sups, p.id) };
 }
 function ndwToList(src) {
     const rows = (src === 's' ? ndmRows : ndwRows).filter(r => r.status === 'order' && r.sug > 0 && (!ndwSup || r.sup === ndwSup)); if (!rows.length) return;
