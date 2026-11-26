@@ -27,8 +27,8 @@ function lgHubInit() {   // شريط رجوع داخل كل سجل
 function lgRenderHub() {
     const pend = lgRets().filter(e => lgStatus(e) === 'pending').length, late = lgRets().filter(e => lgStatus(e) === 'pending' && lgDaysSince(e.date) > lgDays()).length;
     const unrec = lgRets().filter(e => e.mode === 'unrec').reduce((s, e) => s + puNum(e.amount), 0);
-    const badge = { ret: pend ? `<em class="tg ${late ? 'bad' : 'warn'}">${pend} بانتظار فاتورة${late ? ' • ' + late + ' متأخر' : ''}</em>` : '', unrec: unrec ? `<em class="tg warn">${fmtNum(unrec)}</em>` : '' };
-    $b('lgHub').innerHTML = LG_HUB.map(([id, ic, t, s]) => `<button type="button" class="lg-hub-card" onclick="puTab('${id}')"><span class="lg-hub-ic">${ic}</span><b>${t}</b><small>${s}</small>${badge[id] || ''}</button>`).join('');
+    const badge = { ret: pend ? `<em class="tg ${late ? 'bad' : 'warn'}">${pend}${late ? ' • ' + late + ' متأخر' : ''}</em>` : '', unrec: unrec ? `<em class="tg warn">${fmtNum(unrec)}</em>` : '' };
+    $b('lgHub').innerHTML = LG_HUB.map(([id, ic, t, s]) => `<button type="button" class="lg-hub-card" onclick="puTab('${id}')"><span class="lg-hub-ic">${ic}</span><span class="lg-hub-tx"><b>${t}</b><small>${s}</small></span>${badge[id] || ''}<span class="lg-hub-ch" aria-hidden="true">‹</span></button>`).join('');
 }
 function lgTabBadge() {
     const n = lgRets().filter(e => lgStatus(e) === 'pending').length, b = $b('puTabHub');

@@ -5218,3 +5218,14 @@ body.role-staff .home-row7 { display: none !important; }
 #puTabs button { position: relative; }
 #puTabs button + button::before { content: ""; position: absolute; inset-inline-start: -1px; top: 25%; height: 50%; width: 1px; background: #a9b6c8; }
 #puTabs button.active::before, #puTabs button.active + button::before { background: transparent; }
+
+.lg-hub { display: block; padding: 12px 0; background: #fff; border: 1px solid #d5dbe6; border-radius: 14px; margin: 12px 0; overflow: hidden; }
+.lg-hub-card { display: flex; flex-direction: row; align-items: center; gap: 12px; width: 100%; min-height: 64px; padding: 10px 12px; border: 0; border-bottom: 1px solid #e5e9f0; border-radius: 0; background: #fff; text-align: right; }
+.lg-hub-card:last-child { border-bottom: 0; }
+.lg-hub-card:active { transform: none; background: #f4f6fa; }
+.lg-hub-ic { flex: none; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 11px; background: #eef2f8; font-size: 1.25rem; }
+.lg-hub-tx { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.lg-hub-tx b { font-size: .92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lg-hub-tx small { font-size: .74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lg-hub-card .tg { flex: none; }
+.lg-hub-ch { flex: none; color: #94a3b8; font-size: 1.4rem; line-height: 1; }
