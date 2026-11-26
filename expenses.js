@@ -437,7 +437,7 @@ const NDW_ST = { order: ['اطلب الآن', 'bad'], soon: ['قريباً', 'wb
 function ndwCalc() {
     const cfg = ndmCfg(), today = todayLocalISO(), T = cfg.lead + cfg.rev, ev = new Map();
     (typeof puAll !== 'undefined' ? puAll : []).forEach(r => {
-        if (!r || r.cancelled || r.gift || r.stmt) return; const d = String(r.date || '').slice(0, 10); if (!d) return;
+        if (!r || r.cancelled) return; const d = String(r.date || '').slice(0, 10); if (!d) return;
         (r.items || []).forEach(it => {
             if (!it.pid) return; const u = (parseInt(it.qty) || 0) + (parseInt(it.bonus) || 0) - (parseFloat(it.ret) || 0); if (!(u > 0)) return;
             let m = ev.get(it.pid); if (!m) { m = new Map(); ev.set(it.pid, m); } m.set(d, (m.get(d) || 0) + u);
