@@ -432,8 +432,11 @@ function ndmToList() {
 // مجموع ما اشتُري قبل آخر شراء ÷ المدة بين أول وآخر شراء. تحتاج المادة 3 مرات شراء بمدة 14 يوماً فأكثر.
 // ثم تُقارن نقطة إعادة الطلب بالرصيد المجرود (والمواد غير المجرودة تُعرض بمعدلها فقط).
 // ============================================================================
-let ndwF = 'order', ndwShow = 60, ndwQ = '', ndwRows = [];
-const NDW_ST = { order: ['اطلب الآن', 'bad'], soon: ['قريباً', 'wb'], ok: ['كافٍ', 'ok'], over: ['فائض', ''], wait: ['بانتظار الجرد', ''] };
+let ndwF = 'order', ndwShow = 60, ndwQ = '', ndwRows = [], ndwCur = null, ndwOpenSec = { need: true };
+let ndwPer = (() => { try { const o = JSON.parse(localStorage.getItem('diwanNdwPer')); if (o && o.n > 0 && o.u > 0) return o; } catch (e) { /* تجاهل */ } return { n: 1, u: 30, ss: true }; })();
+const ndwManualMap = () => { try { return JSON.parse(localStorage.getItem('diwanNdwManual')) || {}; } catch (e) { return {}; } };   // أرصدة يدوية للحساب فقط (لا تُسجَّل في الجرد)
+const ndwManualSave = m => { try { localStorage.setItem('diwanNdwManual', JSON.stringify(m)); } catch (e) { /* تجاهل */ } };
+const NDW_ST = { order: ['اطلب الآن', 'bad'], soon: ['قريباً', 'wb'], ok: ['كافٍ', 'ok'], over: ['فائض', ''], wait: ['بانتظار الجرد', ''], low: ['بيانات غير كافية', ''] };
 function ndwCalc() {
     const cfg = ndmCfg(), today = todayLocalISO(), T = cfg.lead + cfg.rev, ev = new Map();
     (typeof puAll !== 'undefined' ? puAll : []).forEach(r => {
@@ -453,14 +456,19 @@ function ndwCalc() {
         ev.forEach((m, pid) => { m.forEach((v, d) => { if (!(v > 0)) m.delete(d); }); if (!m.size) ev.delete(pid); });
     } catch (e) { /* تجاهل */ }
     const onOrd = new Map(); try { if (typeof ndOrders === 'function') ndOrders().filter(o => o.status !== 'received').forEach(o => (o.items || []).forEach(x => onOrd.set(x.pid, (onOrd.get(x.pid) || 0) + (parseFloat(x.qty) || 0)))); } catch (e) { /* تجاهل */ }
-    const rows = [];
+    const rows = [], man = ndwManualMap();
     ev.forEach((m, pid) => {
         const p = products.find(x => x.id === pid); if (!p || p.arch) return;
-        const ds = [...m.keys()].sort(), span = ndmDays(ds[0], ds[ds.length - 1]), counted = p.counted === true;
-        const stock = (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0);
+        const hasMan = p.counted !== true && man[pid] !== undefined && man[pid] !== '' && isFinite(parseFloat(man[pid]));   // رصيد يدوي لمادة غير مجرودة: للحساب فقط
+        const ds = [...m.keys()].sort(), span = ndmDays(ds[0], ds[ds.length - 1]), counted = p.counted === true || hasMan;
+        const stock = hasMan ? parseFloat(man[pid]) : (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0);
         const total = [...m.values()].reduce((a, b) => a + b, 0), since0 = ndmDays(ds[0], today);
         const okA = ds.length >= 3 && span >= 14, okB = counted && since0 >= 14;   // ب: طريقة الرصيد (أثر رجعي) للمواد المجرودة
-        if (!okA && !okB) return;
+        if (!okA && !okB) {   // بيانات غير كافية: تُعرض في «الكل» وبالبحث ليُدخَل رصيدها اليدوي
+            const exL = ndxExpiry(p, 0), oL = onOrd.get(pid) || 0;
+            rows.push({ p, ex: exL, rate: 0, stock, ord: oL, ss: 0, rop: 0, tgt: 0, status: 'low', counted, manual: hasMan, method: 'none', consumed: 0, nEv: ds.length, span: since0, last: ds[ds.length - 1], since: ndmDays(ds[ds.length - 1], today), first: ds[0], units: total, w80: [0, 0], sug: 0, conf: 'منخفضة', sdw: 0, pos: stock - exL.expired + oL, ev: ds.map(d => ({ d, u: m.get(d) })) });
+            return;
+        }
         let usedA = 0; const rates = []; for (let k = 0; k < ds.length - 1; k++) { usedA += m.get(ds[k]); const g = ndmDays(ds[k], ds[k + 1]); if (g > 0) rates.push(m.get(ds[k]) / g); }
         const rateA = okA ? usedA / span : 0, method = okB ? 'bal' : 'int';
         const consumed = Math.max(0, total - stock), rate = okB ? consumed / since0 : rateA, period = okB ? since0 : span;
@@ -469,13 +477,14 @@ function ndwCalc() {
         const ss = 1.65 * sdw * Math.sqrt(T / 7), rop = rate * cfg.lead + ss, tgt = rate * T + ss;
         const status = !counted ? 'wait' : pos <= rop ? 'order' : pos <= rop + rate * cfg.rev ? 'soon' : (rate > 0 && pos > tgt + rate * 30) ? 'over' : 'ok';
         const conf = okB ? (since0 >= 90 && ds.length >= 2 ? 'جيدة' : since0 >= 45 ? 'متوسطة' : 'منخفضة') : (ds.length >= 8 ? 'جيدة' : ds.length >= 5 ? 'متوسطة' : 'منخفضة');
-        rows.push({ p, ex, rate, stock, ord, ss, rop, tgt, status, counted, method, consumed: okB ? consumed : usedA, nEv: ds.length, span: period, last: ds[ds.length - 1], since: ndmDays(ds[ds.length - 1], today), first: ds[0], units: total, w80: [Math.max(0, mw - 1.28 * sdw), mw + 1.28 * sdw], sug: counted ? Math.max(0, Math.ceil(tgt - pos - 1e-9)) : 0, conf });
+        rows.push({ p, ex, rate, stock, ord, ss, rop, tgt, status, counted, method, consumed: okB ? consumed : usedA, nEv: ds.length, span: period, last: ds[ds.length - 1], since: ndmDays(ds[ds.length - 1], today), first: ds[0], units: total, w80: [Math.max(0, mw - 1.28 * sdw), mw + 1.28 * sdw], sug: counted ? Math.max(0, Math.ceil(tgt - pos - 1e-9)) : 0, conf, manual: hasMan, sdw, pos, ev: ds.map(d => ({ d, u: m.get(d) })) });
     });
-    const ord = { order: 0, soon: 1, ok: 2, over: 3, wait: 4 };
+    const ord = { order: 0, soon: 1, ok: 2, over: 3, wait: 4, low: 5 };
     return { cfg, rows: rows.sort((a, b) => ord[a.status] - ord[b.status] || (a.rate > 0 ? a.stock / a.rate : 1e9) - (b.rate > 0 ? b.stock / b.rate : 1e9)) };
 }
 function ndwRow(r, i) {
     const st = NDW_ST[r.status], wk = Math.round(r.rate * 70) / 10;
+    if (r.status === 'low') return `<div class="cu-row fu-row" onclick="ndwDetail(${i})"><div class="cu-av fu-av">${fmtNum(r.nEv)}</div><div><b dir="ltr">${dispNameHtml(r.p)}</b><small>بيانات غير كافية: ${fmtNum(r.nEv)} مرات شراء خلال ${fmtNum(r.span)} يوماً</small><small>افتح المادة لإدخال الرصيد الحالي للحساب.</small>${ndxTag(r.ex)}</div><div class="fu-st">${st[0]}</div></div>`;
     return `<div class="cu-row fu-row" onclick="ndwDetail(${i})"><div class="cu-av fu-av ${r.conf === 'جيدة' ? 'ok' : r.conf === 'متوسطة' ? 'wb' : ''}">${fmtNum(r.nEv)}</div>
         <div><b dir="ltr">${dispNameHtml(r.p)}</b><small>الشراء ${fmtNum(wk)} علبة/أسبوع (${fmtNum(Math.round(r.w80[0]))}–${fmtNum(Math.round(r.w80[1]))}) • ${r.method === 'bal' ? 'استُهلك ' + fmtNum(Math.round(r.consumed * 10) / 10) + ' من ' + fmtNum(Math.round(r.units * 10) / 10) + ' وارد خلال ' : fmtNum(r.nEv) + ' مرات شراء خلال '}${fmtNum(r.span)} يوماً • ${r.counted ? 'المتوفر ' + fmtNum(Math.round(r.stock * 10) / 10) : 'غير مجرودة'}${r.ord ? ' • قيد الطلب ' + fmtNum(r.ord) : ''}</small>${ndxTag(r.ex)}</div>
         <div class="fu-st ${st[1]}">${(r.status === 'order' || r.status === 'soon') && r.sug ? 'اطلب ' + fmtNum(r.sug) : st[0]}</div></div>`;
@@ -492,27 +501,90 @@ function ndwHtml() {
     const chips = [['order', 'اطلب الآن'], ['soon', 'قريباً'], ['over', 'فائض'], ['wait', 'بانتظار الجرد'], ['exp', 'نفاذ قريب (' + fmtNum(c.rows.filter(r => r.ex && r.ex.flag).length) + ')'], ['all', 'الكل']];
     return `<div class="sd-cards sd-c3"><div><span>اطلب الآن</span><b>${fmtNum(nOrd)}</b></div><div><span>قريباً</span><b>${fmtNum(cnt('soon'))}</b></div><div><span>بانتظار الجرد</span><b>${fmtNum(cnt('wait'))}</b></div></div>
         <details class="nd-set"><summary>ⓘ طريقة الحساب وحدودها</summary><div class="nd-set-b">
-        <div class="nd-hint">كيف يُحسب التقدير:<br>١) الأساس سجل الوارد (مع البونص) لأن المبيعات غير مسجلة بالكامل.<br>٢) المردود للمذخر يُخصم من وارد القائمة التي رُدّ منها.<br>٣) المواد المجرودة: المستهلك = مجموع الوارد − الرصيد الحالي، ÷ المدة من أول وارد حتى اليوم (14 يوماً فأكثر).<br>٤) غير المجرودة: ما اشتُري قبل آخر شراء ÷ المدة بين أول وآخر شراء (3 مرات شراء فأكثر).<br>يُعدّ رصيد المادة قبل أول وارد مسجل صفراً.<br>٥) مدة وصول الطلبية ${fmtNum(cfg.lead)} ودورة الطلب ${fmtNum(cfg.rev)} (تُحسبان من سجلات المخزن نفسها).<br>٦) الصلاحية: الدفعات المنتهية لا تُحتسب من المتوفر، وتُنبَّه الدفعات القريبة والكميات التي لن تُباع قبل نفاذها.<br>٧) الكمية المقترحة تُحسب للمواد المجرودة فقط، وغير المجرودة تظهر بمعدلها دون اقتراح.</div>
+        <div class="nd-hint">كيف يُحسب التقدير:<br>١) الأساس سجل الوارد (مع البونص) لأن المبيعات غير مسجلة بالكامل.<br>٢) المردود للمذخر يُخصم من وارد القائمة التي رُدّ منها.<br>٣) المواد المجرودة: المستهلك = مجموع الوارد − الرصيد الحالي، ÷ المدة من أول وارد حتى اليوم (14 يوماً فأكثر).<br>٤) غير المجرودة: ما اشتُري قبل آخر شراء ÷ المدة بين أول وآخر شراء (3 مرات شراء فأكثر).<br>يُعدّ رصيد المادة قبل أول وارد مسجل صفراً.<br>٥) مدة وصول الطلبية ${fmtNum(cfg.lead)} ودورة الطلب ${fmtNum(cfg.rev)} (تُحسبان من سجلات المخزن نفسها).<br>٦) الصلاحية: الدفعات المنتهية لا تُحتسب من المتوفر، وتُنبَّه الدفعات القريبة والكميات التي لن تُباع قبل نفاذها.<br>٧) الكمية المقترحة تُحسب للمواد المجرودة فقط، وغير المجرودة تظهر بمعدلها دون اقتراح.<br>٨) لغير المجرودة: يمكن إدخال العدد الحالي داخل تفاصيل المادة ليُستعمل في الحساب فقط دون تسجيله في الجرد.</div>
         <div class="bill-set-hint">حدود هذه الطريقة:<br>• قد يقلّ التقدير إن كان لديك رصيد قبل أول وارد مسجل أو وارد غير مسجل.<br>• يعكس الاستهلاك الكلي (بيعاً وتحويلاً وإتلافاً) لا المبيعات وحدها.<br>• الشراء الكبير لأجل البونص أو الخصم يرفع التقدير.<br>• نفاد المادة بين مرتين يخفضه.<br>• الرقم داخل الدائرة هو عدد مرات الشراء، وكلما زاد زادت الثقة.<br>• تتحسن الدقة مع تراكم سجل الوارد، وتبقى «من المبيعات» أدق متى سُجلت المبيعات.</div></div></details>
         ${nOrd ? `<button type="button" class="cn-new" onclick="ndwToList()">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى قائمة النواقص</button>` : ''}
         <div class="cn-chips fu-chips">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndwF === k ? 'on' : ''}" onclick="ndwF='${k}';ndwShow=60;exRender()">${l}</button>`).join('')}</div>
         <div class="fu-q"><input type="search" autocomplete="off" placeholder="ابحث عن مادة لتقدير احتياجها" value="${escapeHtml(ndwQ)}" oninput="ndwQ=this.value;ndwShow=60;ndwRowsRedraw()"></div>
         <div id="ndwList">${ndwListHtml()}</div>`;
 }
-function ndwDetail(i) {
-    const r = ndwRows[i]; if (!r) return; const f = v => fmtNum(Math.round(v * 10) / 10);
-    Swal.fire({ title: 'تفاصيل التقدير من الوارد', showConfirmButton: false, showCloseButton: true, html: `<div class="fu-det" dir="rtl">
-        <div class="fu-dr"><span>المادة</span><b dir="ltr">${dispNameHtml(r.p)}</b></div>
-        <div class="fu-dr"><span>الطريقة</span><b>${r.method === 'bal' ? 'رصيد الجرد (أثر رجعي)' : 'فترات الشراء'}</b></div>
-        <div class="fu-dr"><span>مرات الشراء</span><b>${fmtNum(r.nEv)} • أولها ${escapeHtml(String(r.first))}</b></div><div class="fu-dr"><span>مجموع الوارد</span><b>${f(r.units)}</b></div>
-        <div class="fu-dr"><span>${r.method === 'bal' ? 'المستهلك (الوارد − الرصيد)' : 'المستهلك قبل آخر شراء'}</span><b>${f(r.consumed)} خلال ${fmtNum(r.span)} يوماً</b></div>
-        <div class="fu-dr"><span>آخر شراء</span><b>قبل ${fmtNum(r.since)} يوماً</b></div>
-        <div class="fu-dr"><span>الاستهلاك اليومي المقدّر</span><b>${fmtNum(Math.round(r.rate * 100) / 100)}</b></div><div class="fu-dr"><span>الشهري المتوقع</span><b>${f(r.rate * 30)}</b></div>
-        <div class="fu-dr"><span>المدى الأسبوعي (ثقة 80%)</span><b>${f(r.w80[0])} – ${f(r.w80[1])}</b></div>
-        <div class="fu-dr"><span>المتوفر</span><b>${r.counted ? f(r.stock) : 'غير مجرودة'}</b></div>${r.ord ? `<div class="fu-dr"><span>قيد الطلب</span><b>${f(r.ord)}</b></div>` : ''}
-        ${ndxDetailRows(r.ex)}<div class="fu-dr"><span>مخزون الأمان</span><b>${f(r.ss)}</b></div><div class="fu-dr"><span>نقطة إعادة الطلب</span><b>${f(r.rop)}</b></div>
-        <div class="fu-dr"><span>المستوى المستهدف</span><b>${f(r.tgt)}</b></div><div class="fu-dr"><span>الكمية المقترحة</span><b>${r.counted ? fmtNum(r.sug) : '—'}</b></div>
-        <div class="fu-dr"><span>درجة الثقة</span><b>${r.conf}</b></div></div>` });
+function ndwDetail(i) { const r = ndwRows[i]; if (r) ndwOpen(r.p.id); }
+function ndwOpen(pid) {
+    ndwCur = pid; const r = ndwRows.find(x => x.p.id === pid); if (!r) return;
+    Swal.fire({ title: 'تقدير الاحتياج من الوارد', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div id="ndwDet" class="fu-det" dir="rtl" style="text-align:right">${ndwDetBody(r)}</div>` });
+}
+function ndwDetRefresh() {
+    ndwRows = ndwCalc().rows; ndwRowsRedraw();
+    const r = ndwRows.find(x => x.p.id === ndwCur), el = document.getElementById('ndwDet'); if (r && el) el.innerHTML = ndwDetBody(r);
+}
+function ndwNeedCalc(r) {
+    const days = ndwPer.n * ndwPer.u, cons = r.rate * days, ss = ndwPer.ss ? 1.65 * r.sdw * Math.sqrt(days / 7) : 0, need = cons + ss;
+    return { days, cons, ss, need, buy: r.counted ? Math.max(0, Math.ceil(need - r.pos - 1e-9)) : null, lo: r.w80[0] * days / 7, hi: r.w80[1] * days / 7, cover: r.rate > 0 ? r.pos / r.rate : null };
+}
+function ndwNeedHtml(r) {
+    const f = v => fmtNum(Math.round(v * 10) / 10), row = (t, v, st) => `<div class="fu-dr"><span>${t}</span><b${st ? ' style="' + st + '"' : ''}>${v}</b></div>`;
+    if (r.method === 'none') return '<small>لا يتوفر تقدير لهذه المادة بعد.<br>أدخل الرصيد الحالي في القسم الأعلى (يلزم وارد مسجل منذ 14 يوماً فأكثر).</small>';
+    const c = ndwNeedCalc(r);
+    return row('الاستهلاك المتوقع للمدة', f(c.cons) + ' (' + f(c.lo) + ' – ' + f(c.hi) + ')') + (ndwPer.ss ? row('مخزون الأمان المضاف', f(c.ss)) : '') + row('المتوفر + قيد الطلب', f(r.pos))
+        + (c.cover !== null ? row('يكفي المتوفر', fmtNum(Math.floor(c.cover)) + ' يوماً (حتى ' + fmtDateDMY(sdAdd(todayLocalISO(), Math.floor(c.cover))) + ')') : '')
+        + (c.buy === null ? '<small>الرصيد غير معتمد: أدخل العدد الحالي لحساب المطلوب شراؤه.</small>' : row('المطلوب شراؤه لتغطية المدة', fmtNum(c.buy) + ' علبة', 'color:#0f766e;font-size:1.1em') + (c.buy > 0 ? '<button type="button" class="cn-new" style="margin-top:8px" onclick="ndwAddOne()">إضافة ' + fmtNum(c.buy) + ' إلى قائمة النواقص</button>' : ''));
+}
+function ndwPerSet() {
+    const n = Math.max(1, parseInt(document.getElementById('ndwPn').value) || 1), u = parseInt(document.getElementById('ndwPu').value) || 30, ss = !!document.getElementById('ndwSs').checked;
+    ndwPer = { n, u, ss }; try { localStorage.setItem('diwanNdwPer', JSON.stringify(ndwPer)); } catch (e) { /* تجاهل */ }
+    const r = ndwRows.find(x => x.p.id === ndwCur), o = document.getElementById('ndwNeedOut'); if (r && o) o.innerHTML = ndwNeedHtml(r);
+}
+function ndwAddOne() {
+    const r = ndwRows.find(x => x.p.id === ndwCur); if (!r) return; const c = ndwNeedCalc(r); if (!(c.buy > 0)) return;
+    const st = ndState(); delete st.off[r.p.id]; delete st.ordered[r.p.id]; if (!st.extra.includes(r.p.id)) st.extra.push(r.p.id); st.qty[r.p.id] = c.buy; ndSave(st);
+    Swal.fire({ icon: 'success', title: 'أُضيفت ' + fmtNum(c.buy) + ' إلى «قائمتي» في النواقص والطلبية', toast: true, position: 'bottom', showConfirmButton: false, timer: 2400 });
+    try { ndBadge(); } catch (e) { /* تجاهل */ }
+}
+function ndwManSet() {
+    const v = parseFloat(document.getElementById('ndwMan').value);
+    if (!isFinite(v) || v < 0) { document.getElementById('ndwManErr').innerText = 'أدخل رقماً صحيحاً (0 أو أكثر)'; return; }
+    const m = ndwManualMap(); m[ndwCur] = v; ndwManualSave(m); ndwDetRefresh();
+}
+async function ndwManClear() {
+    const pid = ndwCur;
+    const r = await Swal.fire({ icon: 'warning', title: 'حذف الرصيد اليدوي؟', text: 'يُحذف من الحساب فقط، ولا يتأثر الجرد.', showCancelButton: true, confirmButtonText: 'نعم، حذف', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c', reverseButtons: true });
+    if (r.isConfirmed) { const m = ndwManualMap(); delete m[pid]; ndwManualSave(m); ndwRows = ndwCalc().rows; ndwRowsRedraw(); }
+    ndwOpen(pid);
+}
+// رسم سحب المادة: أعمدة الوارد + خط الرصيد التقديري بمعدل ثابت + نقطة الرصيد الحالي + إسقاط حتى النفاد
+function ndwChartSvg(r) {
+    const today = todayLocalISO(), T = Math.max(1, ndmDays(r.first, today)), rate = r.rate, Hz = rate > 0 ? Math.min(120, Math.max(0, r.stock / rate)) : 0, X = T + Hz;
+    let s = 0, tp = 0; const pts = [[0, 0]], bars = [];
+    r.ev.forEach(e => { const t = ndmDays(r.first, e.d); s = Math.max(0, s - rate * (t - tp)); pts.push([t, s]); s += e.u; pts.push([t, s]); tp = t; bars.push([t, e.u]); });
+    s = Math.max(0, s - rate * (T - tp)); pts.push([T, s]);
+    const ym = Math.max(1, ...pts.map(p => p[1]), r.stock) * 1.12, W = 340, H = 170, L = 34, R = 10, Tp = 12, B = 26, x = t => L + t / X * (W - L - R), y = v => Tp + (1 - v / ym) * (H - Tp - B), base = y(0);
+    const line = pts.map((p, k) => (k ? 'L' : 'M') + x(p[0]).toFixed(1) + ',' + y(p[1]).toFixed(1)).join(' ');
+    const lbl = (t, anchor, txt) => `<text x="${x(t).toFixed(1)}" y="${H - 8}" font-size="9" fill="#64748b" text-anchor="${anchor}">${txt}</text>`;
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;max-width:100%" role="img" aria-label="رسم سحب المادة">
+        <line x1="${L}" y1="${base}" x2="${W - R}" y2="${base}" stroke="#cbd5e1"/><line x1="${L}" y1="${Tp}" x2="${L}" y2="${base}" stroke="#cbd5e1"/>
+        <text x="${L - 4}" y="${base + 3}" font-size="9" fill="#64748b" text-anchor="end">0</text><text x="${L - 4}" y="${Tp + 8}" font-size="9" fill="#64748b" text-anchor="end">${fmtNum(Math.round(ym))}</text>
+        ${bars.map(b => `<rect x="${(x(b[0]) - 3).toFixed(1)}" y="${y(b[1]).toFixed(1)}" width="6" height="${(base - y(b[1])).toFixed(1)}" fill="#cbd5e1"/><text x="${x(b[0]).toFixed(1)}" y="${(y(b[1]) - 3).toFixed(1)}" font-size="8" fill="#475569" text-anchor="middle">${fmtNum(Math.round(b[1] * 10) / 10)}</text>`).join('')}
+        <path d="${line}" fill="none" stroke="#0f766e" stroke-width="1.8"/>
+        ${Hz > 0 ? `<line x1="${x(T).toFixed(1)}" y1="${y(r.stock).toFixed(1)}" x2="${x(T + Hz).toFixed(1)}" y2="${base}" stroke="#0f766e" stroke-width="1.4" stroke-dasharray="4 3"/>` : ''}
+        <circle cx="${x(T).toFixed(1)}" cy="${y(r.stock).toFixed(1)}" r="4" fill="#b91c1c"/>
+        ${lbl(0, 'start', fmtDateDMY(r.first))}${lbl(T, Hz > 0 ? 'middle' : 'end', 'اليوم')}${Hz > 0 ? lbl(T + Hz, 'end', fmtDateDMY(sdAdd(today, Math.floor(Hz)))) : ''}</svg>
+        <small style="display:block;margin-top:4px">الأعمدة: الوارد بتاريخه • الخط الأخضر: رصيد تقديري بمعدل سحب ثابت (نموذج تقريبي) • النقطة الحمراء: الرصيد الحالي ${fmtNum(Math.round(r.stock * 10) / 10)} • الخط المتقطع: النفاد المتوقع.</small>`;
+}
+function ndwDetBody(r) {
+    const f = v => fmtNum(Math.round(v * 10) / 10), dr = (t, v) => `<div class="fu-dr"><span>${t}</span><b>${v}</b></div>`;
+    const sec = (k, t, body) => `<details class="nd-set" ${ndwOpenSec[k] ? 'open' : ''} ontoggle="ndwOpenSec['${k}']=this.open"><summary>${t}</summary><div class="nd-set-b">${body}</div></details>`;
+    const manV = ndwManualMap()[r.p.id], inp = 'height:38px;border:1px solid #cbd5e1;border-radius:10px;padding:0 8px;font:inherit;text-align:center;box-sizing:border-box';
+    const bal = r.p.counted === true ? dr('الرصيد المعتمد (جرد)', f(r.stock)) + '<small>المادة مجرودة، فيُعتمد رصيد الجرد.</small>'
+        : dr('الرصيد المعتمد في الحساب', r.manual ? f(r.stock) + ' (يدوي)' : 'غير مجرودة') + `<div style="display:flex;gap:6px;margin-top:6px"><input id="ndwMan" type="number" inputmode="decimal" min="0" value="${manV !== undefined ? escapeHtml(String(manV)) : ''}" placeholder="العدد الحالي بالعلب" style="flex:1;${inp}"><button type="button" class="ln-btn" style="height:38px" onclick="ndwManSet()">اعتماد للحساب</button>${r.manual ? '<button type="button" class="ln-btn" style="height:38px" onclick="ndwManClear()">حذف</button>' : ''}</div><small id="ndwManErr" style="color:#b91c1c;display:block"></small><small style="display:block">للحساب فقط.<br>لا يُسجَّل في الجرد ولا يغيّر رصيد المادة.</small>`;
+    const unitOpt = [[1, 'يوم'], [7, 'أسبوع'], [30, 'شهر']].map(([v, l]) => `<option value="${v}" ${ndwPer.u === v ? 'selected' : ''}>${l}</option>`).join('');
+    const need = `<div class="fu-dr"><span>المدة المراد توفيرها</span><span style="display:flex;gap:6px"><input id="ndwPn" type="number" inputmode="numeric" min="1" value="${ndwPer.n}" oninput="ndwPerSet()" style="width:70px;${inp}"><select id="ndwPu" onchange="ndwPerSet()" style="${inp};background:#fff">${unitOpt}</select></span></div>
+        <div class="qk-row"><div><b>إضافة مخزون أمان</b><small>احتياط فوق الاستهلاك المتوقع.</small></div><label class="setup-sw"><input type="checkbox" id="ndwSs" ${ndwPer.ss ? 'checked' : ''} onchange="ndwPerSet()" aria-label="مخزون الأمان"><i></i></label></div><div id="ndwNeedOut">${ndwNeedHtml(r)}</div>`;
+    const ivs = r.ev.map((e, k) => { const nx = r.ev[k + 1]; if (!nx) return `<div class="fu-dr"><span>${fmtDateDMY(e.d)} ← اليوم</span><b>وارد ${f(e.u)} • الرصيد الآن ${f(r.stock)}</b></div>`; const g = ndmDays(e.d, nx.d); return `<div class="fu-dr"><span>${fmtDateDMY(e.d)} ← ${fmtDateDMY(nx.d)} (${fmtNum(g)} يوماً)</span><b>وارد ${f(e.u)} • السحب ≈ ${f(g > 0 ? e.u / g * 7 : 0)}/أسبوع</b></div>`; }).join('');
+    const calc = dr('الطريقة', r.method === 'bal' ? 'رصيد الجرد (أثر رجعي)' : r.method === 'int' ? 'فترات الشراء' : 'غير كافية') + (r.method === 'none' ? '' : dr(r.method === 'bal' ? 'المستهلك (الوارد − الرصيد)' : 'المستهلك قبل آخر شراء', f(r.consumed) + ' خلال ' + fmtNum(r.span) + ' يوماً') + dr('الاستهلاك اليومي المقدّر', fmtNum(Math.round(r.rate * 100) / 100)) + dr('الشهري المتوقع', f(r.rate * 30)) + dr('المدى الأسبوعي (ثقة 80%)', f(r.w80[0]) + ' – ' + f(r.w80[1])))
+        + dr('مرات الشراء', fmtNum(r.nEv) + ' • أولها ' + fmtDateDMY(r.first)) + dr('مجموع الوارد', f(r.units)) + dr('آخر شراء', 'قبل ' + fmtNum(r.since) + ' يوماً') + dr('المتوفر', f(r.stock)) + (r.ord ? dr('قيد الطلب', f(r.ord)) : '') + ndxDetailRows(r.ex)
+        + (r.method === 'none' ? '' : dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', r.counted ? fmtNum(r.sug) : '—')) + dr('درجة الثقة', r.conf);
+    return `<div class="fu-dr"><span>المادة</span><b dir="ltr">${dispNameHtml(r.p)}</b></div>${ndxTag(r.ex)}`
+        + sec('bal', 'الرصيد الحالي', bal) + sec('need', 'الاحتياج لمدة محددة', need) + sec('chart', 'رسم سحب المادة', r.method === 'none' && !(r.rate > 0) ? ndwChartSvg(r) : ndwChartSvg(r)) + sec('iv', 'فترات السحب', ivs) + sec('calc', 'الحسابات الحالية', calc);
 }
 function ndwToList() {
     const rows = ndwRows.filter(r => r.status === 'order' && r.sug > 0); if (!rows.length) return;
