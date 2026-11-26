@@ -34,10 +34,10 @@
         // ---- المفاتيح ----
         S.rulesOk = () => L.get('diwanSuRules') === '1';
         S.flagOn = () => L.get('diwanSuOn') === '1';
-        S.killed = () => { const k = +L.get('diwanSuKill') || 0; return k > env.now() - 24 * 3600e3; };
+        S.killed = () => { const k = +L.get('diwanSuKill') || 0, w = String(L.get('diwanSuWhy') || ''), win = /ASSERTION|unavailable|deadline|cancelled|aborted/i.test(w) ? 5 * 60e3 : 24 * 3600e3; return k > env.now() - win; };   // أعطال الاتصال العابرة توقف النمط 5 دقائق فقط، والقواعد/الصلاحيات 24 ساعة
         S.on = () => S.rulesOk() && S.flagOn() && !S.killed();
         S.lastFull = () => +L.get('diwanSuFull') || 0;
-        function kill(why) { L.set('diwanSuKill', env.now()); log('susync fallback:', why); }
+        function kill(why) { L.set('diwanSuKill', env.now()); L.set('diwanSuWhy', String(why || '').slice(0, 120)); log('susync fallback:', why); }
 
         // ---- الأساس المحلي ----
         const bKey = k => 'diwanSuB_' + k, cKey = k => 'diwanSuC_' + k;
@@ -307,7 +307,7 @@
         try {
             if (!root.SU || typeof userRole === 'undefined' || userRole !== 'owner') return '';
             const st = SU.status(), when = st.lastFull ? new Date(st.lastFull).toLocaleString('ar-IQ') : 'لم يُحمَّل بعد';
-            const txt = !st.rules ? 'تحتاج نشر قواعد Firestore الجديدة (ملف firestore.rules) أولاً.' : st.killed ? 'أُوقفت مؤقتاً بعد خطأ، ويعمل التطبيق بالنمط الكامل حالياً.' : st.flag ? 'مفعّلة: تُقرأ الأصناف المتغيّرة فقط عند الفتح. آخر تحديث كامل: ' + when : 'متوقفة: يقرأ كل جهاز كل الأصناف عند كل فتح بعد غياب.';
+            const txt = !st.rules ? 'تحتاج نشر قواعد Firestore الجديدة (ملف firestore.rules) أولاً.' : st.killed ? 'أُوقفت مؤقتاً بعد خطأ، ويعمل التطبيق بالنمط الكامل حالياً. سبب الخطأ: <span dir="ltr">' + String(L.get('diwanSuWhy') || 'غير معروف').replace(/</g, '&lt;') + '</span>' : st.flag ? 'مفعّلة: تُقرأ الأصناف المتغيّرة فقط عند الفتح. آخر تحديث كامل: ' + when : 'متوقفة: يقرأ كل جهاز كل الأصناف عند كل فتح بعد غياب.';
             return '<div class="qk-row"><div><b>المزامنة الموفِّرة للقراءات</b><small>' + txt + '</small></div><label class="setup-sw"><input type="checkbox" id="suSw" ' + (st.flag ? 'checked' : '') + ' onchange="suToggle(this)"><i></i></label></div>'
                 + (st.flag ? '<div class="ds-bk-b"><button type="button" onclick="suFullNow()">تحديث كامل للأصناف</button></div>' : '');
         } catch (e) { return ''; }
