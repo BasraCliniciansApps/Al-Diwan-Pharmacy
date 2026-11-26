@@ -306,14 +306,14 @@ function ndmPattern(adi, cv2) { return adi < 1.32 ? (cv2 < 0.49 ? ['منتظم',
 // ---------- الصلاحية في تقدير الاحتياج ----------
 // المنتهية لا تُحتسب من المتوفر. القريبة: ضمن أقصر مدة تنبيه (شهر افتراضياً). المهدّدة بالتلف: كمية لن تُباع قبل نفاذ دفعتها بمعدل الاستهلاك المقدّر (الأقدم نفاذاً يُباع أولاً).
 function ndxExpiry(p, rate) {
-    const out = { expired: 0, nearBoxes: 0, nearDays: null, risk: 0, flag: false };
+    const out = { expired: 0, nearBoxes: 0, nearDays: null, risk: 0, riskDays: null, flag: false };
     try {
         const sc = btSc(p), nearD = (alertMonths[0] || 1) * 30, riskD = (alertMonths[2] || 6) * 30; let cum = 0;
         getBatches(p).filter(b => b.e).forEach(b => {
             const boxes = (b.q || 0) + (sc > 1 ? (b.l || 0) / sc : 0), d = expiryDaysOf(b.e); if (d === null || !(boxes > 0)) return;
             if (d <= 0) { out.expired += boxes; return; }
             if (d <= nearD) { out.nearBoxes += boxes; out.nearDays = out.nearDays === null ? d : Math.min(out.nearDays, d); }
-            if (d <= riskD) out.risk += Math.max(0, boxes - Math.max(0, rate * d - cum));
+            if (d <= riskD) { const w = Math.max(0, boxes - Math.max(0, rate * d - cum)); out.risk += w; if (w > 0.5) out.riskDays = out.riskDays === null ? d : Math.min(out.riskDays, d); }
             cum += boxes;
         });
         out.flag = out.expired > 0 || out.nearBoxes > 0 || out.risk > 0.5;
@@ -752,7 +752,8 @@ function ndwSumHtml(r) {
     }
     const per = ndwPer.n + ' ' + (ndwPer.u === 1 ? 'يوم' : ndwPer.u === 7 ? 'أسبوع' : 'شهر');
     const ord = c.buy === null ? tile('اطلب هذا العدد', '—', 'أدخل الرصيد الحالي في القسم أدناه', 'wide') : tile('اطلب هذا العدد', fmtNum(c.buy) + ' علبة', 'لتغطية ' + per + (ndwPer.ss ? ' مع مخزون أمان' : ''), 'wide ok');
-    return `<div class="ndw-k">${tile('الاحتياج الشهري', f(r.rate * 30) + ' علبة')}${tile('الاحتياج السنوي', f(r.rate * 365) + ' علبة')}${ord}${tile('تنفد الكمية الحالية بتاريخ', run, runSub)}${tile('تغطي الكمية الحالية', cov, covSub)}</div>`
+    const rk = r.ex && r.ex.risk > 0.5 ? tile('قد يتلف قبل بيعه', f(r.ex.risk) + ' علبة', (r.ex.riskDays ? 'أقرب نفاذ بعد ' + fmtNum(r.ex.riskDays) + ' يوماً • ' : '') + 'يُنصح بمناقلتها', 'wide bad') : '';
+    return `<div class="ndw-k">${rk}${tile('الاحتياج الشهري', f(r.rate * 30) + ' علبة')}${tile('الاحتياج السنوي', f(r.rate * 365) + ' علبة')}${ord}${tile('تنفد الكمية الحالية بتاريخ', run, runSub)}${tile('تغطي الكمية الحالية', cov, covSub)}</div>`
         + (c.buy > 0 ? '<button type="button" class="cn-new" style="margin-top:10px" onclick="ndwAddOne()">إضافة ' + fmtNum(c.buy) + ' إلى قائمة النواقص</button>' : '');
 }
 function ndwDetBody(r) {

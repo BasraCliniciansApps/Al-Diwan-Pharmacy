@@ -5192,3 +5192,4 @@ body.dark .sd-hh { color: #e2e8f0; } body.dark .sd-ht { background: #243252; } b
 .ndw-l2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; } .ndw-tg { color: #92400e; font-size: .72rem; white-space: nowrap; }
 .ndw-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; } .ndw-acts .ln-btn { height: 44px; white-space: nowrap; }
 .fu-chips { flex-wrap: wrap; overflow-x: visible; }
+.ndw-kt.bad { background: #fef2f2; border-color: #fca5a5; } .ndw-kt.bad span, .ndw-kt.bad small { color: #991b1b; } .ndw-kt.bad b { color: #b91c1c; font-size: 1.25rem; }
