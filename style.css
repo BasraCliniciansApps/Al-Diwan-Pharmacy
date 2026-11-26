@@ -5241,3 +5241,6 @@ body.role-staff .home-row7 { display: none !important; }
 .ndw-cv i { display: block; height: 100%; border-radius: 2px; }
 .ndw-idle { width: 100%; min-height: 44px; margin: 8px 0; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; border: 1px dashed #b6c1d1; border-radius: 12px; background: #f4f6fa; color: #334155; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; }
 #exBox .ndw-rw { padding-top: 9px; padding-bottom: 9px; }
+/* صف مرشحات واحد متساوي الأعمدة بلا التفاف */
+.cn-chips.nd5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; flex-wrap: nowrap; }
+.cn-chips.nd5 .cn-chip { white-space: nowrap; padding: 0 2px; font-size: .76rem; min-width: 0; min-height: 36px; justify-content: center; }

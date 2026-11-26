@@ -392,7 +392,7 @@ function ndmCalc() {
 let ndmRows = [];
 function ndmHtml() {
     const c = ndmCalc(); ndmRows = c.rows; const cfg = c.cfg, cnt = k => c.rows.filter(r => r.status === k).length, vis = c.rows.filter(r => !ndwSup || r.sup === ndwSup), nOrd = vis.filter(r => r.status === 'order' && r.sug > 0).length;
-    const chips = [['order', 'اطلب الآن'], ['over', 'زائد'], ['rare', 'حسب الطلب'], ['exp', 'نفاذ قريب (' + fmtNum(c.rows.filter(r => r.ex && r.ex.flag).length) + ')'], ['all', 'الكل']];
+    const chips = [['order', 'اطلب الآن'], ['over', 'زائد'], ['rare', 'حسب الطلب'], ['exp', 'قريب (' + fmtNum(c.rows.filter(r => r.ex && r.ex.flag).length) + ')'], ['all', 'الكل']];
     const tops = ndwTopSups(3), supChips = tops.length ? `<div class="cn-chips fu-chips"><button type="button" class="cn-chip ${ndwSup === '' ? 'on' : ''}" onclick="ndwSup='';ndmShow=60;exRender()">كل المذاخر</button>${tops.map((n, k) => `<button type="button" class="cn-chip ${ndwSup === n ? 'on' : ''}" onclick="ndwSupSel(${k})">${escapeHtml(n)}</button>`).join('')}</div>` : '';
     return `<div class="sd-cards sd-c3"><div><span>اطلب الآن</span><b>${fmtNum(cnt('order'))}</b></div><div><span>زائد</span><b>${fmtNum(cnt('over'))}</b></div><div><span>حسب الطلب</span><b>${fmtNum(cnt('rare'))}</b></div></div>
         <div class="ndw-acts"><button type="button" class="ln-btn" onclick="ndwSupSheet('s')">الطلب حسب المذخر</button><button type="button" class="ln-btn" onclick="ndwOfferMode('s')">تقييم عرض مندوب</button></div>
@@ -400,7 +400,7 @@ function ndmHtml() {
         <div class="nd-hint">طريقة الحساب:<br>• الأساس المبيعات الفعلية (الصادر) خلال آخر 12 أسبوعاً، لا الوارد.<br>• لا تُحتسب أيام نفاد المادة ضمن الطلب، ويُضاف ما سُجّل في «المطلوبة وغير المتوفرة».<br>• يُصنَّف نمط الطلب (منتظم، متذبذب، متقطع، كتلي) ويُختار نموذج مناسب له.<br>• الكمية المقترحة تغطي «مدة الهدف» بعد خصم المتوفر وما قيد الطلب.<br>• الحد الأدنى المسجل في بطاقة المادة يُعتمد إن وُجد.<br>• المادة التي تقل مبيعاتها عن علبة شهرياً تُصنَّف «حسب الطلب» ولا يُقترح لها شراء.<br>• المذخر المقترح هو الأرخص بآخر سعر شراء، وإلا الأكثر شراءً منه.<br>• مدة وصول الطلبية ${fmtNum(cfg.lead)} ${cfg.lead === 1 ? 'يوم' : 'أيام'} ودورة الطلب ${fmtNum(cfg.rev)} ${cfg.rev === 1 ? 'يوم' : 'أيام'} (تلقائياً من سجل المخزن).</div>
         <div class="bill-set-hint">حدود هذه الطريقة:<br>• دقتها مرتبطة باكتمال تسجيل فواتير البيع.<br>• المواد التي لم تُسجَّل لها مبيعات خلال المدة لا تظهر هنا.<br>• الموسمية لا تُرصد قبل مرور سنة من البيانات.</div></div></details>
         ${nOrd ? `<button type="button" class="cn-new" onclick="ndwToList('s')">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى قائمة النواقص</button>` : ''}
-        <div class="cn-chips fu-chips">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndmF === k ? 'on' : ''}" onclick="ndmF='${k}';ndmShow=60;exRender()">${l}</button>`).join('')}</div>${supChips}
+        <div class="cn-chips fu-chips nd5">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndmF === k ? 'on' : ''}" onclick="ndmF='${k}';ndmShow=60;exRender()">${l}</button>`).join('')}</div>${supChips}
         <div class="fu-q"><input type="search" id="ndmSearch" autocomplete="off" placeholder="ابحث عن مادة لتقدير احتياجها" value="${escapeHtml(ndmQ)}" oninput="ndmQ=this.value;ndmShow=60;ndmRowsRedraw()"></div>
         <div id="ndmList">${ndmListHtml()}</div>`;
 }
