@@ -533,7 +533,7 @@ async function netCycle() {
     } catch (e) {
         if (e && /INTERNAL ASSERTION/i.test(e.message || '')) {   // حالة داخلية تالفة في مكتبة Firestore: لا علاج إلا بإعادة تشغيل التطبيق
             const op = oldestPend(), onlyDoc = op && /pharmacy\/doctor/.test(op.src || '') && pendMeta.size === 1;
-            if (onlyDoc) { try { localStorage.setItem('diwanRecvClean', '0'); } catch (x) { /* تجاهل */ } }   // العالق وثيقة صفحة الطبيب فقط وتُعاد توليدها تلقائياً: نمسح الطابور
+            if (onlyDoc) { try { localStorage.setItem('diwanClearQ', '1'); } catch (x) { /* تجاهل */ } }   // العالق وثيقة صفحة الطبيب فقط وتُعاد توليدها تلقائياً: نمسح الطابور
             h.fail('حالة الاتصال تالفة', 'سيُعاد تشغيل التطبيق الآن لإصلاحها.'); setTimeout(() => location.reload(), 1500); return;
         }
         syncRefresh(); h.fail('لم تؤكد السحابة الاستلام بعد', (e && e.message === 'مهلة') ? 'تحقق من الإنترنت، أو أن الحصة اليومية للخدمة لم تنتهِ (تتجدد 11 صباحاً بتوقيت بغداد).' : (e && e.message)); }
@@ -732,6 +732,7 @@ async function initFirebase() {
             installRecvOnly();
             try { if (localStorage.getItem('diwanRecvClean') !== '1') { await db.clearPersistence(); localStorage.setItem('diwanRecvClean', '1'); } } catch (e) { console.warn('clearPersistence:', e && e.code); }   // مسح طابور الكتابات القديم العالق مرة واحدة
         }
+        try { if (localStorage.getItem('diwanClearQ') === '1') { localStorage.removeItem('diwanClearQ'); await db.clearPersistence(); } } catch (e) { console.warn('clearQ:', e && e.code); }   // مسح طابور الكتابات العالق (يُطلب من إعادة تشغيل الاتصال)
         try { await db.enablePersistence({ synchronizeTabs: true }); persistenceOn = true; } catch (e) { persistenceOn = false; console.warn('Offline persistence:', e && e.code); }
         syncRefresh();
         usageAbsenceGuard();
