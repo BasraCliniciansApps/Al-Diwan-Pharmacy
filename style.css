@@ -5203,3 +5203,7 @@ body.role-staff .home-row7 { display: none !important; }
 .ndw-seg button.on b { color: #0f1c38; }
 .ndw-fr { display: flex; gap: 8px; margin: 0 0 8px; }
 .ndw-sel { flex: 1; min-width: 0; height: 40px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; padding: 0 10px; font: inherit; font-size: .85rem; color: #0f1c38; box-sizing: border-box; }
+
+.ndw-tabs { display: flex; gap: 2px; padding: 4px; margin: 0 0 10px; background: #eaeef4; border-radius: 14px; }
+.ndw-tabs button { flex: 1; min-height: 42px; padding: 0 2px; border: 0; border-radius: 10px; background: transparent; font: inherit; font-size: .9rem; color: #475569; white-space: nowrap; cursor: pointer; }
+.ndw-tabs button.on { background: #0f1c38; color: #fff; font-weight: 800; }

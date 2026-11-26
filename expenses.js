@@ -94,7 +94,7 @@ function exRender() {
     const tabs = `<div class="cu-seg"><button type="button" class="${exTab === 'dash' ? 'on' : ''}" onclick="exTab='dash';exRefresh()">المبيعات</button><button type="button" class="${exTab === 'rep' ? 'on' : ''}" onclick="exTab='rep';exRefresh()">صافي الربح</button><button type="button" class="${exTab === 'list' ? 'on' : ''}" onclick="exTab='list';exRender()">المصروفات</button></div>`;
     let body;
     if (exTab === 'need' || exTab === 'need2' || exTab === 'xf') {
-        const sub = `<div class="cu-seg"><button type="button" class="${exTab === 'need' ? 'on' : ''}" onclick="exTab='need';exRefresh()">من المبيعات</button><button type="button" class="${exTab === 'need2' ? 'on' : ''}" onclick="exTab='need2';exRefresh()">من الوارد</button><button type="button" class="${exTab === 'xf' ? 'on' : ''}" onclick="exTab='xf';exRefresh()">مناقلة مقترحة</button></div>`;
+        const sub = `<div class="ndw-tabs"><button type="button" class="${exTab === 'need' ? 'on' : ''}" onclick="exTab='need';exRefresh()">من المبيعات</button><button type="button" class="${exTab === 'need2' ? 'on' : ''}" onclick="exTab='need2';exRefresh()">من الوارد</button><button type="button" class="${exTab === 'xf' ? 'on' : ''}" onclick="exTab='xf';exRefresh()">مناقلة مقترحة</button></div>`;
         document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>تقدير الاحتياج</b></div><div class="cn-body">${sub}${exTab === 'need' ? ndmHtml() : exTab === 'need2' ? ndwHtml() : xfHtml()}</div>`; return;
     }
     if (exTab === 'dash') {
