@@ -64,7 +64,14 @@ async function docPublish() {
     d.tx = tx;
     d.upd = Date.now(); d.sig = docSigOf(d);
     try { localStorage.setItem(DOC_LS, JSON.stringify(d)); } catch (e) { /* تجاهل */ }
-    try { if (typeof cloudReady === 'function' && cloudReady() && userRole === 'owner') { const body = JSON.parse(JSON.stringify(d)); window.__docKB = Math.round(JSON.stringify(body).length / 1024); if (window.__docKB > 900) { console.warn('docPublish: الوثيقة كبيرة', window.__docKB); return false; } await fsSet(db.collection('pharmacy').doc('doctor'), body); return true; } } catch (e) { console.warn('docPublish', e); }
+    try { if (typeof cloudReady === 'function' && cloudReady() && userRole === 'owner') { const body = JSON.parse(JSON.stringify(d)); window.__docKB = Math.round(JSON.stringify(body).length / 1024); if (window.__docKB > 900) { console.warn('docPublish: الوثيقة كبيرة', window.__docKB); return false; } const wr = fsSet(db.collection('pharmacy').doc('doctor'), body), tm = new Promise(r => setTimeout(() => r('t'), 30000));
+            if (await Promise.race([wr.then(() => 'ok'), tm]) === 't') {   // تشخيص: هل القناة نفسها تعمل؟ كتابة صغيرة للمقارنة
+                const t0 = Date.now();
+                try { await Promise.race([db.collection('pharmacy').doc('doctor_ping').set({ t: Date.now() }), new Promise((_, j) => setTimeout(() => j(new Error('to')), 15000))]); window.__docDiag = 'الكتابة الصغيرة وصلت خلال ' + Math.round((Date.now() - t0) / 1000) + ' ث (المشكلة بحجم الوثيقة)'; }
+                catch (e) { window.__docDiag = 'الكتابة الصغيرة لم تصل أيضاً: ' + ((e && (e.code || e.message)) || '') + ' (المشكلة بقناة الإرسال)'; }
+                try { if (typeof showSyncStatus === 'function' && document.getElementById('ssBox')) showSyncStatus(); } catch (e) { /* تجاهل */ }
+            }
+            await wr; return true; } } catch (e) { console.warn('docPublish', e); }
     return false;
 }
 function docSaveSoon() { clearTimeout(docPubT); docPubT = setTimeout(docPublish, 700); }
