@@ -5244,3 +5244,31 @@ body.role-staff .home-row7 { display: none !important; }
 /* صف مرشحات واحد متساوي الأعمدة بلا التفاف */
 .cn-chips.nd5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; flex-wrap: nowrap; }
 .cn-chips.nd5 .cn-chip { white-space: nowrap; padding: 0 2px; font-size: .76rem; min-width: 0; min-height: 36px; justify-content: center; }
+/* تقييم العروض: نتيجة ملوّنة أولاً ثم تفاصيل */
+.of-intro { font-size: .85rem; color: #475569; line-height: 1.8; margin: 0 0 10px; }
+.of-card { border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; padding: 12px; margin-bottom: 10px; }
+.of-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.of-h b { font-size: 1rem; color: #0f1c38; white-space: nowrap; }
+.of-h select { flex: 1; max-width: 190px; height: 38px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; font: inherit; font-size: .85rem; padding: 0 8px; }
+.of-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.of-f { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.of-f span { font-size: .78rem; font-weight: 700; color: #475569; white-space: nowrap; }
+.of-f input { width: 100%; height: 42px; border: 1px solid #cbd5e1; border-radius: 10px; padding: 0 8px; font: inherit; text-align: center; box-sizing: border-box; background: #fff; min-width: 0; }
+.of-out { margin-top: 12px; }
+.of-v { border-radius: 14px; padding: 12px; text-align: center; }
+.of-v b { display: block; font-size: 1.1rem; font-weight: 800; }
+.of-v small { display: block; font-size: .82rem; font-weight: 600; margin-top: 4px; line-height: 1.6; }
+.of-v.ok { background: #ecfdf5; color: #0f766e; border: 1px solid #a7f3d0; }
+.of-v.mid { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+.of-v.bad { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+.of-k { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; }
+.of-k div { border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px 4px; text-align: center; background: #f8fafc; min-width: 0; }
+.of-k span { display: block; font-size: .7rem; color: #64748b; white-space: nowrap; }
+.of-k b { display: block; font-size: .92rem; margin-top: 2px; white-space: nowrap; color: #0f1c38; }
+.of-k .g { background: #ecfdf5; border-color: #a7f3d0; } .of-k .g b { color: #0f766e; }
+.of-k .r { background: #fef2f2; border-color: #fecaca; } .of-k .r b { color: #b91c1c; }
+.of-det { margin-top: 10px; border-top: 1px dashed #e2e8f0; padding-top: 6px; }
+.of-det summary { font-weight: 700; font-size: .85rem; color: #475569; cursor: pointer; padding: 6px 0; }
+.of-set { border: 1px solid #e2e8f0; border-radius: 14px; padding: 8px 12px 12px; background: #fff; }
+body.dark .of-card, body.dark .of-set, body.dark .of-f input, body.dark .of-h select { background: #16213a; border-color: #2a3a5c; color: #e2e8f0; }
+body.dark .of-h b, body.dark .of-k b { color: #e2e8f0; } body.dark .of-k div { background: #16213a; border-color: #2a3a5c; }

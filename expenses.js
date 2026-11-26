@@ -666,40 +666,40 @@ function ndwOfEval(r, o) {
     return { Q0, b, Q, c, ceff, c0, cap, cr, full, best, verdict, ok, hasD };
 }
 function ndwOfOne(r, i) {
-    if (r.method === 'none' || r.status === 'low') return '<small>يلزم تقدير للاستهلاك أولاً (أدخل الرصيد الحالي ليتوفر وارد مسجل منذ 14 يوماً فأكثر).</small>';
+    if (r.method === 'none' || r.status === 'low') return '<div class="of-v mid"><b>يلزم تقدير الاستهلاك أولاً</b><small>أدخل الرصيد الحالي ليتوفر وارد مسجل منذ 14 يوماً فأكثر.</small></div>';
     const o = ndwOf[i], ev = ndwOfEval(r, o), f = v => fmtNum(Math.round(v * 10) / 10), iqd = v => fmtNum(Math.round(v)) + ' د.ع', dr = (t, v, st) => `<div class="fu-dr"><span>${t}</span><b${st ? ' style="' + st + '"' : ''}>${v}</b></div>`;
-    if (!ev) return '<small>أدخل كمية العرض لتقييمه.</small>';
-    const fl = ev.full, p = fl.p; let h = '';
-    if (ev.b > 0) h += dr('إجمالي الدفعة مع البونص', fmtNum(ev.Q) + ' علبة');
-    if (ev.ceff > 0 && ev.c0 > 0) { const d = Math.round((1 - ev.ceff / ev.c0) * 100); h += dr('سعر العلبة الفعلي', iqd(ev.ceff)) + dr('مقارنة بالسعر المعتاد', Math.abs(d) + '% ' + (d >= 0 ? 'أرخص' : 'أغلى'), d >= 0 ? 'color:#0f766e' : 'color:#b91c1c'); }
-    else if (ev.ceff > 0) h += dr('سعر العلبة الفعلي', iqd(ev.ceff)) + '<small>أدخل «السعر المعتاد للعلبة» لحساب الوفر وصافي الربح.</small>';
-    h += dr('ينفد بعد التوريد', ndwDay(p.t1[1])) + `<div class="fu-dr ndw-sub"><span>المدى المتوقع</span><b>${ndwDay(p.t1[0])} – ${ndwDay(p.t1[2])}</b></div>`;
-    if (ev.hasD) {
-        if (fl.dead) h += '<small style="color:#b91c1c">تاريخ النفاذ المُدخل منتهٍ، فلا يُباع.</small>';
-        else h += dr('احتمال بقاء كمية بلا بيع', fmtNum(Math.round(p.pWaste * 100)) + '%') + dr('المتوقع تلفه', f(fl.waste) + ' علبة') + dr('أكبر كمية آمنة (ثقة 90%)', fmtNum(p.qSafe) + ' علبة', 'color:#0f766e');
-    } else h += '<small>أدخل تاريخ النفاذ ليُحسب التلف المتوقع.</small>';
+    if (!ev) return '<div class="of-v mid"><b>أدخل كمية العرض</b><small>ثم السعر والبونص لتظهر النتيجة.</small></div>';
+    const fl = ev.full, p = fl.p;
+    let top;
+    if (!ev.ok) top = '<div class="of-v mid"><b>أدخل سعر العلبة</b><small>لحساب الربح وتقييم العرض.</small></div>';
+    else if (ev.verdict === 'take') top = `<div class="of-v ok"><b>اطلبها: العرض مربح</b><small>تُباع كلها قبل النفاذ بصافي ربح ${iqd(ev.best.net)}</small></div>`;
+    else if (ev.verdict === 'less') top = `<div class="of-v mid"><b>اطلب ${fmtNum(ev.best.paid)} علبة فقط${ev.b > 0 ? ' والبونص يتبعها' : ''}</b><small>الكمية الأكبر قد يتلف جزء منها. صافي الربح ${iqd(ev.best.net)}</small></div>`;
+    else top = `<div class="of-v bad"><b>لا تطلبها</b><small>${fl.dead ? 'تاريخ النفاذ المُدخل منتهٍ.' : 'لا تحقق ربحاً بعد التلف وتجميد المبلغ.'}</small></div>`;
+    let tiles = '';
     if (ev.ok) {
-        const col = v => v >= 0 ? 'color:#0f766e' : 'color:#b91c1c';
-        h += dr('الوفر على المباع', iqd(fl.saving), col(fl.saving)) + dr('خسارة التلف المتوقع', iqd(-fl.loss), fl.loss > 0 ? 'color:#b91c1c' : '') + dr('كلفة تجميد المبلغ', iqd(-fl.hold), fl.hold > 0 ? 'color:#b45309' : '') + dr('صافي الربح', iqd(fl.net), col(fl.net) + ';font-size:1.05em');
-        const V = { take: ['#0f766e', '#ecfdf5', 'خذ العرض كاملاً'], less: ['#b45309', '#fffbeb', 'خذ ' + fmtNum(ev.best.paid) + ' علبة فقط (مدفوعة)' + (ev.b > 0 ? ' والبونص يتبعها' : '') + ' • صافي ' + iqd(ev.best.net)], reject: ['#b91c1c', '#fef2f2', 'ارفض العرض: لا يحقق ربحاً بعد التلف وتجميد المبلغ'] }[ev.verdict];
-        h += `<div style="margin-top:6px;padding:10px;border-radius:10px;background:${V[1]};color:${V[0]};font-weight:800;text-align:center;line-height:1.7">${V[2]}</div>`;
+        const d = Math.round((1 - ev.ceff / ev.c0) * 100), good = v => v >= 0 ? 'g' : 'r';
+        tiles = `<div class="of-k"><div><span>سعر العلبة الفعلي</span><b>${fmtNum(Math.round(ev.ceff))}</b></div><div class="${d >= 0 ? 'g' : 'r'}"><span>مقارنة بالمعتاد</span><b>${Math.abs(d)}% ${d >= 0 ? 'أرخص' : 'أغلى'}</b></div><div class="${good(fl.net)}"><span>صافي الربح</span><b>${fmtNum(Math.round(fl.net))}</b></div>
+            <div><span>تنفد بعد</span><b>${p.t1[1] >= 3650 ? '10 سنوات+' : fmtNum(Math.round(p.t1[1])) + ' يوماً'}</b></div><div class="${ev.hasD ? (fl.waste > 0.5 ? 'r' : 'g') : ''}"><span>التلف المتوقع</span><b>${ev.hasD ? f(fl.waste) + ' علبة' : '—'}</b></div><div class="${ev.hasD ? 'g' : ''}"><span>أكبر كمية آمنة</span><b>${ev.hasD ? fmtNum(p.qSafe) + ' علبة' : '—'}</b></div></div>`;
     }
-    return h;
+    let h = '';
+    if (ev.b > 0) h += dr('إجمالي الدفعة مع البونص', fmtNum(ev.Q) + ' علبة');
+    if (ev.ceff > 0 && ev.c0 <= 0) h += '<small>أدخل «السعر المعتاد للعلبة» لحساب الوفر وصافي الربح.</small>';
+    h += dr('ينفد بعد التوريد', ndwDay(p.t1[1])) + `<div class="fu-dr ndw-sub"><span>المدى المتوقع</span><b>${ndwDay(p.t1[0])} – ${ndwDay(p.t1[2])}</b></div>`;
+    if (ev.hasD && !fl.dead) h += dr('احتمال بقاء كمية بلا بيع', fmtNum(Math.round(p.pWaste * 100)) + '%');
+    if (!ev.hasD) h += '<small>أدخل تاريخ النفاذ ليُحسب التلف المتوقع.</small>';
+    if (ev.ok) h += dr('الوفر على المباع', iqd(fl.saving)) + dr('خسارة التلف المتوقع', iqd(-fl.loss)) + dr('كلفة تجميد المبلغ', iqd(-fl.hold)) + dr('صافي الربح', iqd(fl.net));
+    return top + tiles + `<details class="of-det"><summary>تفاصيل الحساب</summary>${h}</details>`;
 }
 function ndwOfHtml(r) {
-    const inp = 'height:38px;border:1px solid #cbd5e1;border-radius:10px;padding:0 8px;font:inherit;text-align:center;box-sizing:border-box;width:110px', e = escapeHtml;
-    const names = [...new Set([...(r.sups || []).map(x => x.name), ...ndwTopSups(3)])], ref = ndwOfRefPrice(r);
-    const card = (o, i) => `<div class="nd-set" style="padding:6px 12px 10px"><div class="fu-dr"><b>العرض ${i + 1}</b><select id="ndwOS${i}" onchange="ndwOfRunSoon()" style="${inp};width:150px;background:#fff"><option value="">المذخر</option>${names.map(n => `<option ${o.s === n ? 'selected' : ''}>${e(n)}</option>`).join('')}</select></div>
-        <div class="fu-dr"><span>الكمية (علب)</span><input id="ndwOQ${i}" type="number" inputmode="decimal" min="0" value="${e(String(o.q))}" oninput="ndwOfRunSoon()" style="${inp}"></div>
-        <div class="fu-dr"><span>البونص (%)</span><input id="ndwOB${i}" type="number" inputmode="decimal" min="0" value="${e(String(o.b))}" oninput="ndwOfRunSoon()" style="${inp}"></div>
-        <div class="fu-dr"><span>سعر العلبة</span><input id="ndwOC${i}" type="number" inputmode="decimal" min="0" value="${e(String(o.c))}" oninput="ndwOfRunSoon()" style="${inp}"></div>
-        <div class="fu-dr"><span>تاريخ النفاذ</span><input id="ndwOE${i}" type="month" value="${e(String(o.e))}" onchange="ndwOfRunSoon()" style="${inp}"></div>
-        <div class="fu-dr"><span>أيام الآجل</span><input id="ndwOR${i}" type="number" inputmode="numeric" min="0" value="${e(String(o.cr))}" oninput="ndwOfRunSoon()" style="${inp}"></div>
-        <div id="ndwOfOut${i}">${ndwOfOne(r, i)}</div></div>`;
-    return `<div class="fu-dr"><span>السعر المعتاد للعلبة</span><input id="ndwOfRef" type="number" inputmode="decimal" min="0" value="${e(String(ndwOfRef))}" placeholder="${ref > 0 ? fmtNum(ref) : 'غير متوفر'}" oninput="ndwOfRunSoon()" style="${inp}"></div>
-        <div class="fu-dr"><span>تكلفة المال شهرياً (%)</span><input id="ndwOfCap" type="number" inputmode="decimal" min="0" max="20" step="any" value="${ndwCapPct()}" oninput="ndwOfRunSoon()" style="${inp}"></div>
-        <small>السعر المعتاد هو أرخص آخر سعر شراء مسجل ما لم تدخل غيره.</small>${ndwOf.map(card).join('')}
-        ${ndwOf.length < 3 ? '<button type="button" class="ln-btn" style="width:100%;height:42px" onclick="ndwOfAdd()">إضافة عرض آخر للمقارنة</button>' : ''}<div id="ndwOfBest">${ndwOfBestHtml(r)}</div>`;
+    const e = escapeHtml, names = [...new Set([...(r.sups || []).map(x => x.name), ...ndwTopSups(3)])], ref = ndwOfRefPrice(r);
+    const fld = (t, id, o) => `<label class="of-f"><span>${t}</span>${o}</label>`;
+    const card = (o, i) => `<div class="of-card"><div class="of-h"><b>العرض ${i + 1}</b><select id="ndwOS${i}" onchange="ndwOfRunSoon()" aria-label="المذخر أو الشركة"><option value="">المذخر (اختياري)</option>${names.map(n => `<option ${o.s === n ? 'selected' : ''}>${e(n)}</option>`).join('')}</select></div>
+        <div class="of-grid">${fld('الكمية (علب)', '', `<input id="ndwOQ${i}" type="number" inputmode="decimal" min="0" value="${e(String(o.q))}" oninput="ndwOfRunSoon()">`)}${fld('سعر العلبة', '', `<input id="ndwOC${i}" type="number" inputmode="decimal" min="0" value="${e(String(o.c))}" oninput="ndwOfRunSoon()">`)}${fld('البونص (%)', '', `<input id="ndwOB${i}" type="number" inputmode="decimal" min="0" value="${e(String(o.b))}" oninput="ndwOfRunSoon()">`)}${fld('تاريخ النفاذ', '', `<input id="ndwOE${i}" type="month" value="${e(String(o.e))}" onchange="ndwOfRunSoon()">`)}${fld('أيام الآجل', '', `<input id="ndwOR${i}" type="number" inputmode="numeric" min="0" value="${e(String(o.cr))}" oninput="ndwOfRunSoon()">`)}</div>
+        <div id="ndwOfOut${i}" class="of-out">${ndwOfOne(r, i)}</div></div>`;
+    return `<div class="of-intro">يجيبك المندوب بعرض؟ أدخل الكمية والسعر والبونص وتاريخ النفاذ، والنتيجة تخبرك: اطلب أو لا تطلب.</div>
+        ${ndwOf.map(card).join('')}
+        ${ndwOf.length < 3 ? '<button type="button" class="ln-btn" style="width:100%;height:42px" onclick="ndwOfAdd()">إضافة عرض آخر للمقارنة</button>' : ''}<div id="ndwOfBest">${ndwOfBestHtml(r)}</div>
+        <details class="of-det of-set"><summary>إعدادات الحساب</summary><div class="of-grid">${fld('السعر المعتاد للعلبة', '', `<input id="ndwOfRef" type="number" inputmode="decimal" min="0" value="${e(String(ndwOfRef))}" placeholder="${ref > 0 ? fmtNum(ref) : 'غير متوفر'}" oninput="ndwOfRunSoon()">`)}${fld('تكلفة المال شهرياً (%)', '', `<input id="ndwOfCap" type="number" inputmode="decimal" min="0" max="20" step="any" value="${ndwCapPct()}" oninput="ndwOfRunSoon()">`)}</div><small>السعر المعتاد هو أرخص آخر سعر شراء مسجل ما لم تدخل غيره.</small></details>`;
 }
 function ndwOfBestHtml(r) {
     if (ndwOf.length < 2 || r.method === 'none') return '';
@@ -844,7 +844,7 @@ function ndwDetBody(r) {
         + dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', fmtNum(r.sug)) + (r.minQ ? dr('الحد الأدنى (من بطاقة المادة)', fmtNum(r.minQ)) : '') + dr('جودة البيانات', r.conf);
     const calc = S ? calcS : calcIn;
     return `<div class="ndw-h" dir="ltr">${dispNameHtml(r.p)}</div>${ndxTag(r.ex)}${r.synth && r.note ? '<div class="nd-hint" style="margin:6px 0">' + escapeHtml(r.note) + '</div>' : ''}`
-        + (offerTab ? sec('plan', 'تقييم العروض', plan) : (sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + ((S && r.p.counted === true) || r.synth ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + (r.synth ? '' : sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r))) + sec('exp', 'الصلاحية والدفعات', expB) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + (r.synth ? '' : sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc))));
+        + (offerTab ? plan : (sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + ((S && r.p.counted === true) || r.synth ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + (r.synth ? '' : sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r))) + sec('exp', 'الصلاحية والدفعات', expB) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + (r.synth ? '' : sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc))));
 }
 // ---------- مناقلة مقترحة: المواد المتوقع تلف جزء منها قبل بيعه، مرتبة بالأقرب نفاذاً ----------
 let xfF = 'all', xfRows = [];
