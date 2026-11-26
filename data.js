@@ -530,7 +530,13 @@ async function netCycle() {
         await usageResume(); h.set(null, 'بانتظار تأكيد السحابة...');
         await Promise.race([db.waitForPendingWrites(), new Promise((_, rej) => setTimeout(() => rej(new Error('مهلة')), 20000))]);
         markSynced(); syncRefresh(); h.ok('وصلت كل العمليات إلى السحابة');
-    } catch (e) { syncRefresh(); h.fail('لم تؤكد السحابة الاستلام بعد', (e && e.message === 'مهلة') ? 'تحقق من الإنترنت، أو أن الحصة اليومية للخدمة لم تنتهِ (تتجدد 11 صباحاً بتوقيت بغداد).' : (e && e.message)); }
+    } catch (e) {
+        if (e && /INTERNAL ASSERTION/i.test(e.message || '')) {   // حالة داخلية تالفة في مكتبة Firestore: لا علاج إلا بإعادة تشغيل التطبيق
+            const op = oldestPend(), onlyDoc = op && /pharmacy\/doctor/.test(op.src || '') && pendMeta.size === 1;
+            if (onlyDoc) { try { localStorage.setItem('diwanRecvClean', '0'); } catch (x) { /* تجاهل */ } }   // العالق وثيقة صفحة الطبيب فقط وتُعاد توليدها تلقائياً: نمسح الطابور
+            h.fail('حالة الاتصال تالفة', 'سيُعاد تشغيل التطبيق الآن لإصلاحها.'); setTimeout(() => location.reload(), 1500); return;
+        }
+        syncRefresh(); h.fail('لم تؤكد السحابة الاستلام بعد', (e && e.message === 'مهلة') ? 'تحقق من الإنترنت، أو أن الحصة اليومية للخدمة لم تنتهِ (تتجدد 11 صباحاً بتوقيت بغداد).' : (e && e.message)); }
 }
 function ssGo() { if (usagePaused === 'wa' && window.WA) WA.exportSales(); else syncNow(); }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
