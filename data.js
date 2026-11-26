@@ -338,7 +338,7 @@ function asyncWriteFailed(e) {
 const pendMeta = new Map(); let pendSeq = 0;
 function oldestPend() { let o = null; pendMeta.forEach(v => { if (!o || v.t < o.t) o = v; }); return o ? { min: Math.floor((Date.now() - o.t) / 60000), src: o.src } : null; }
 async function fsWrite(promise) {
-    const pid = ++pendSeq; let psrc = ''; try { psrc = ((new Error().stack || '').split('\n')[2] || '').trim().replace(/^at\s+/, '').slice(0, 90); } catch (e) { /* تجاهل */ }
+    const pid = ++pendSeq; let psrc = window.__wLast || ''; try { const fr = (new Error().stack || '').split('\n').slice(2).map(x => x.trim()).filter(x => x && !/progsave\.js/.test(x))[0]; if (fr) psrc += ' | ' + fr.replace(/^at\s+/, '').replace(/https?:\/\/[^\s)]*\//g, '').slice(0, 70); } catch (e) { /* تجاهل */ }
     pendMeta.set(pid, { t: Date.now(), src: psrc });
     pendingOps++; syncRefresh();
     const settle = ok => { pendMeta.delete(pid); pendingOps = Math.max(0, pendingOps - 1); if (ok) { syncErrMsg = ''; markSynced(); } syncRefresh(); };
@@ -601,11 +601,11 @@ function installUsage() {
     window.__usInstalled = true;
     const F = firebase.firestore;
     const wrapW = (proto, names, per) => { if (!proto) return; names.forEach(n => { const o = proto[n]; if (typeof o !== 'function') return; proto[n] = function () { try { per.call(this, n, arguments); } catch (e) { /* تجاهل */ } return o.apply(this, arguments); }; }); };
-    wrapW(F.DocumentReference && F.DocumentReference.prototype, ['set', 'update', 'delete'], function () { usageAdd('w', 1, this.parent && this.parent.id); });
+    wrapW(F.DocumentReference && F.DocumentReference.prototype, ['set', 'update', 'delete'], function (n) { window.__wLast = n + ' ' + (this.parent ? this.parent.id : '') + '/' + (this.id || ''); usageAdd('w', 1, this.parent && this.parent.id); });
     wrapW(F.CollectionReference && F.CollectionReference.prototype, ['add'], () => usageAdd('w', 1));
     const WB = F.WriteBatch && F.WriteBatch.prototype;
     wrapW(WB, ['set', 'update', 'delete'], function (n, a) { this.__n = (this.__n || 0) + 1; const c = (a && a[0] && a[0].parent && a[0].parent.id) || 'أخرى'; this.__c = this.__c || {}; this.__c[c] = (this.__c[c] || 0) + 1; });
-    wrapW(WB, ['commit'], function () { const c = this.__c || {}, ks = Object.keys(c); if (ks.length) ks.forEach(k => usageAdd('w', c[k], k)); else usageAdd('w', this.__n || 1); this.__n = 0; this.__c = {}; });
+    wrapW(WB, ['commit'], function () { const c = this.__c || {}, ks = Object.keys(c); window.__wLast = 'commit ' + ks.map(k => k + ':' + c[k]).join(', '); if (ks.length) ks.forEach(k => usageAdd('w', c[k], k)); else usageAdd('w', this.__n || 1); this.__n = 0; this.__c = {}; });
     // القراءات «الباردة»: بعد غياب أكثر من 25 دقيقة (تطبيق بالخلفية أو شاشة مقفلة) يعيد Firestore قراءة كل مستندات المستمع من الخادم
     // ويفوترها كلها، بينما docChanges() تعدّ المتغيّر فقط قياساً بالكاش. فنحتسب أول لقطة من الخادم بعد الغياب بحجمها الكامل.
     const COLD_MS = 25 * 60000, AK = 'diwanAlive'; let coldEpoch = 0, startCold = false;
