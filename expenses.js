@@ -916,11 +916,7 @@ async function ndcPick(pid) {
     ndmRows = ndmCalc().rows; ndwRows = ndwCalc().rows;
     const rS = ndmRows.find(x => x.p.id === pid), rI = ndwRows.find(x => x.p.id === pid && x.method !== 'none');
     let r = rS || rI, src = rS ? 's' : 'i'; ndcAlt = null;
-    if (rS && rI) {
-        const f = v => fmtNum(Math.round(v * 30 * 10) / 10), ch = await Swal.fire({ title: 'طريقة التقدير', html: `<div dir="rtl" style="text-align:right" class="nd-hint">• حسب المبيعات: ${f(rS.rate)} علبة شهرياً.<br>• حسب الوارد: ${f(rI.rate)} علبة شهرياً.</div>`, showDenyButton: true, showCancelButton: true, confirmButtonText: 'حسب المبيعات', denyButtonText: 'حسب الوارد', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', denyButtonColor: '#334155', reverseButtons: true });
-        if (ch.isDismissed) return;
-        src = ch.isDenied ? 'i' : 's'; r = src === 's' ? rS : rI; ndcAlt = { s: rS, i: rI };
-    }
+    if (rS && rI) { src = 's'; r = rS; ndcAlt = { s: rS, i: rI }; }   // المبيعات الفعلية أدق، وللتبديل شريط في الصفحة
     if (!r) {
         const cur = (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0);
         const ch = await Swal.fire({ title: 'لا يتوفر تقدير لهذه المادة', html: '<div dir="rtl" style="text-align:right" class="nd-hint">اختر طريقة تقدير الاستهلاك:<br>• مادة مشابهة: يؤخذ استهلاكها الفعلي مع نسبة تعديل.<br>• إدخال يدوي: تكتب الاستهلاك الشهري المتوقع.</div>', showDenyButton: true, showCancelButton: true, confirmButtonText: 'مادة مشابهة', denyButtonText: 'إدخال الاستهلاك يدوياً', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', denyButtonColor: '#334155', reverseButtons: true });
