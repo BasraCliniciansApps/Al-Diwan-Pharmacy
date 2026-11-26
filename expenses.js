@@ -890,11 +890,20 @@ async function ndcEnsure() {
         h.ok('تم التحميل');
     } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
 }
+function ndcEnsureDom() {
+    if (document.getElementById('ndcOv')) return;
+    const d = document.createElement('div'); d.id = 'ndcOv'; d.className = 'cn-ov no-print'; d.setAttribute('dir', 'rtl'); d.style.display = 'none';
+    d.innerHTML = '<div class="cn-box" id="ndcBox"><div class="cn-head"><b>حاسبة الاحتياج</b></div><div class="cn-body"><div id="ndcTabs"></div><div id="ndcMain"></div></div></div>'; document.body.appendChild(d);
+}
+function ndcClose() { const ov = document.getElementById('ndcOv'); if (ov) ov.style.display = 'none'; document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); ndcMode = false; ndwCur = null; }
+function ndcSearchHtml() { return `<div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة ثم طريقة التقدير (حسب المبيعات أو حسب الوارد)، وبعدها تظهر الحاسبة وتقييم العروض.</div>`; }
+function ndcShowSearch() { ndwCur = null; const m = document.getElementById('ndcMain'); if (m) m.innerHTML = ndcSearchHtml(); const el = document.getElementById('ndcQ'); if (el) el.focus(); }
 async function ndcOpen() {
-    ndcTab = 'calc'; ndcMode = true;
     if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'هذه الصفحة للمدير فقط.', confirmButtonColor: '#0f1c38' }); return; }
+    ndcEnsureDom(); ndcTab = 'calc'; ndcMode = true; ndcAlt = null;
+    document.getElementById('ndcTabs').innerHTML = ndcTabsHtml(); ndcShowSearch();
+    document.getElementById('ndcOv').style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open');
     await ndcEnsure();
-    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', willClose: () => { setTimeout(() => { if (!Swal.isVisible()) ndcMode = false; }, 400); }, html: `<div dir="rtl" style="text-align:right"><div id="ndcTabs">${ndcTabsHtml()}</div><div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة المعروضة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة ثم طريقة التقدير (حسب المبيعات أو حسب الوارد)، وبعدها تظهر الإحصائيات وتقييم العروض.</div></div>`, didOpen: () => { const el = document.getElementById('ndcQ'); if (el) el.focus(); } });
 }
 function ndcSearch(v) {
     const q = normSearch(v || ''), toks = q ? q.split(' ') : [], box = document.getElementById('ndcRes'); if (!box) return;
@@ -930,10 +939,14 @@ async function ndcPick(pid) {
         ndcSynth = r; src = 'y';
     }
     ndwSrc = src; ndwCur = pid; ndwOpenSec = { sum: true, need: true, plan: true };
-    ndcMode = true;
-    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', willClose: () => { setTimeout(() => { if (!Swal.isVisible()) ndcMode = false; }, 400); }, html: `<div dir="rtl" style="text-align:right"><div id="ndcTabs">${ndcTabsHtml()}</div><div id="ndcSeg">${ndcSegHtml()}</div><div id="ndwDet" class="fu-det">${ndwDetBody(r)}</div></div>` });
+    ndcMode = true; ndcInline(r);
 }
 let ndcAlt = null, ndcMode = false, ndcTab = 'calc';
+function ndcInline(r) {
+    const m = document.getElementById('ndcMain'); if (!m) return;
+    m.innerHTML = `<button type="button" class="ln-btn" style="margin-bottom:10px" onclick="ndcShowSearch()">تغيير المادة</button><div id="ndcSeg">${ndcSegHtml()}</div><div id="ndwDet" class="fu-det">${ndwDetBody(r)}</div>`;
+    const b = document.querySelector('#ndcOv .cn-body'); if (b) b.scrollTop = 0;
+}
 function ndcTabsHtml() { return `<div class="ndw-tabs">${[['calc', 'حاسبة الاحتياج'], ['offer', 'تقييم العروض']].map(([k, l]) => `<button type="button" class="${ndcTab === k ? 'on' : ''}" onclick="ndcGo('${k}')">${l}</button>`).join('')}</div>`; }
 function ndcGo(k) {
     if (ndcTab === k) return; if (document.getElementById('ndwDet')) ndwOfRead(); ndcTab = k;

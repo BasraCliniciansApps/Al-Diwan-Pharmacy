@@ -5948,6 +5948,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         ['rxHub', () => vis('rxHub'), () => { if (typeof rxCurId !== 'undefined' && rxCurId) rxBack(); else rxClose(); }],
         ['cuOv', () => vis('cuOv'), () => { if (typeof cuBack === 'function') cuBack(); else cuClose(); }],
         ['exOv', () => vis('exOv'), () => exClose()],
+        ['ndcOv', () => vis('ndcOv'), () => ndcClose()],
         ['ndOv', () => vis('ndOv'), () => { if (typeof ndBack === 'function') ndBack(); else ndClose(); }],
         ['fuOv', () => vis('fuOv'), () => { if (typeof fuBack === 'function') fuBack(); else fuClose(); }],
         ['cnOv', () => vis('cnOv'), () => { if (typeof cnBack === 'function') cnBack(); else cnClose(); }],

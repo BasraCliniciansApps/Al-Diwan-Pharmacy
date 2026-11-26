@@ -62,7 +62,7 @@
 
     // ===== مسار الرجوع =====
     // زر الرجوع = خطوة للخلف إلى المكان الذي كنت فيه قبل الدخول للمكان الحالي (حتى لو كان نافذة منبثقة كشاشة البيع)
-    const REOPEN = [['p2Ov', 'posOpen'], ['posOv', 'posOpen'], ['cnOv', 'cnHub'], ['cuOv', 'cuOpen'], ['exOv', 'exOpen'], ['fuOv', 'fuOpen'], ['ndOv', 'ndOpen'], ['rxHub', 'rxOpen'], ['dataHub', 'dhOpen'], ['helpHub', 'helpOpen']];
+    const REOPEN = [['p2Ov', 'posOpen'], ['posOv', 'posOpen'], ['cnOv', 'cnHub'], ['cuOv', 'cuOpen'], ['exOv', 'exOpen'], ['ndcOv', 'ndcOpen'], ['fuOv', 'fuOpen'], ['ndOv', 'ndOpen'], ['rxHub', 'rxOpen'], ['dataHub', 'dhOpen'], ['helpHub', 'helpOpen']];
     const shownEl = id => { const e = document.getElementById(id); return !!e && !!e.style.display && e.style.display !== 'none'; };
     function originEntry() {
         const cv = (typeof currentView !== 'undefined') ? currentView : 'home';
