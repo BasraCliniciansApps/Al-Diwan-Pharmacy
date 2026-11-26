@@ -131,6 +131,7 @@ function lgxOpen(kind, opts) {
     if (isX) { lgxFillPh(opts.pharmacy || ''); $b('lgxDir').value = 'out'; $b('lgxMode').value = 'credit'; }
     else $b('lgxReason').selectedIndex = 0;
     if (opts.pid) lgxAddProd(opts.pid, true);
+    (opts.items || []).forEach(it => { lgxAddProd(it.pid, true); const ln = lgx.lines.find(x => x.pid === it.pid); if (ln && it.qty > 0) ln.qty = it.qty; });
     const stockRow = $b('lgxStock').closest('label'); stockRow.style.display = '';
     if (opts.edit) {
         const e = lgAll.find(x => x.id === opts.edit);

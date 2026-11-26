@@ -78,8 +78,8 @@ async function exOpen(tab) {
 function exClose() { const ov = document.getElementById('exOv'); if (ov) ov.style.display = 'none'; document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); exOpenFlag = false; }
 async function exRefresh() {
     const r = exRange(), h = Prog.start('تحميل البيانات', { text: 'المصروفات والفواتير...', indeterminate: false });
-    try { await exLoad(); h.set(40); if ((exTab === 'need' || exTab === 'need2') && typeof puLoad === 'function') { try { await puLoad(); } catch (e) { /* تجاهل */ } if (exTab === 'need2' && typeof lgLoad === 'function') { try { await lgLoad(); } catch (e) { /* تجاهل */ } } }
-    const fr = exTab === 'dash' ? sdFrom() : exTab === 'need' ? ndmFrom() : exTab === 'need2' ? todayLocalISO() : r.from; if (!(window.__exInvFrom && window.__exInvFrom <= fr && Date.now() - (window.__exInvAt || 0) < 30 * 60000)) { await invEnsureSince(fr); window.__exInvFrom = fr; window.__exInvAt = Date.now(); } h.ok('تم التحميل'); } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
+    try { await exLoad(); h.set(40); if ((exTab === 'need' || exTab === 'need2' || exTab === 'xf') && typeof puLoad === 'function') { try { await puLoad(); } catch (e) { /* تجاهل */ } if ((exTab === 'need2' || exTab === 'xf') && typeof lgLoad === 'function') { try { await lgLoad(); } catch (e) { /* تجاهل */ } } }
+    const fr = exTab === 'dash' ? sdFrom() : (exTab === 'need' || exTab === 'xf') ? ndmFrom() : exTab === 'need2' ? todayLocalISO() : r.from; if (!(window.__exInvFrom && window.__exInvFrom <= fr && Date.now() - (window.__exInvAt || 0) < 30 * 60000)) { await invEnsureSince(fr); window.__exInvFrom = fr; window.__exInvAt = Date.now(); } h.ok('تم التحميل'); } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
     if (exOpenFlag) exRender();
 }
 function exSetMode(m) { exMode = m; exVal = ''; exRefresh(); }
@@ -91,11 +91,11 @@ function exPeriodHtml() {
 }
 function exRender() {
     const r = exRange(), c = exCalc(r);
-    const tabs = `<div class="cu-seg"><button type="button" class="${exTab === 'dash' ? 'on' : ''}" onclick="exTab='dash';exRefresh()">المبيعات</button><button type="button" class="${exTab === 'need' || exTab === 'need2' ? 'on' : ''}" onclick="exTab='need';exRefresh()">تقدير الاحتياج</button><button type="button" class="${exTab === 'rep' ? 'on' : ''}" onclick="exTab='rep';exRefresh()">صافي الربح</button><button type="button" class="${exTab === 'list' ? 'on' : ''}" onclick="exTab='list';exRender()">المصروفات</button></div>`;
+    const tabs = `<div class="cu-seg"><button type="button" class="${exTab === 'dash' ? 'on' : ''}" onclick="exTab='dash';exRefresh()">المبيعات</button><button type="button" class="${exTab === 'need' || exTab === 'need2' || exTab === 'xf' ? 'on' : ''}" onclick="exTab='need';exRefresh()">تقدير الاحتياج</button><button type="button" class="${exTab === 'rep' ? 'on' : ''}" onclick="exTab='rep';exRefresh()">صافي الربح</button><button type="button" class="${exTab === 'list' ? 'on' : ''}" onclick="exTab='list';exRender()">المصروفات</button></div>`;
     let body;
-    if (exTab === 'need' || exTab === 'need2') {
-        const sub = `<div class="cu-seg"><button type="button" class="${exTab === 'need' ? 'on' : ''}" onclick="exTab='need';exRefresh()">من المبيعات</button><button type="button" class="${exTab === 'need2' ? 'on' : ''}" onclick="exTab='need2';exRefresh()">من الوارد</button></div>`;
-        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>📦 تقدير الاحتياج</b></div><div class="cn-body">${tabs}${sub}${exTab === 'need' ? ndmHtml() : ndwHtml()}</div>`; return;
+    if (exTab === 'need' || exTab === 'need2' || exTab === 'xf') {
+        const sub = `<div class="cu-seg"><button type="button" class="${exTab === 'need' ? 'on' : ''}" onclick="exTab='need';exRefresh()">من المبيعات</button><button type="button" class="${exTab === 'need2' ? 'on' : ''}" onclick="exTab='need2';exRefresh()">من الوارد</button><button type="button" class="${exTab === 'xf' ? 'on' : ''}" onclick="exTab='xf';exRefresh()">مناقلة مقترحة</button></div>`;
+        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>📦 تقدير الاحتياج</b></div><div class="cn-body">${tabs}${sub}${exTab === 'need' ? ndmHtml() : exTab === 'need2' ? ndwHtml() : xfHtml()}</div>`; return;
     }
     if (exTab === 'dash') {
         document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>📊 لوحة المبيعات</b></div><div class="cn-body">${tabs}${sdHtml()}</div>`; return;
@@ -786,6 +786,40 @@ function ndwDetBody(r) {
     const calc = S ? calcS : calcIn;
     return `<div class="ndw-h" dir="ltr">${dispNameHtml(r.p)}</div>${ndxTag(r.ex)}`
         + sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + (S ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + sec('plan', 'توريد مخطط', plan) + sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r)) + sec('exp', 'الصلاحية والدفعات', expB) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc);
+}
+// ---------- مناقلة مقترحة: المواد المتوقع تلف جزء منها قبل بيعه، مرتبة بالأقرب نفاذاً ----------
+let xfF = 'all', xfRows = [];
+function xfCalc() {
+    const sm = ndmCalc().rows, im = ndwCalc().rows; ndmRows = sm; ndwRows = im;
+    const rt = new Map(); im.forEach(r => { if (r.method !== 'none') rt.set(r.p.id, { rate: r.rate, conf: r.conf }); }); sm.forEach(r => rt.set(r.p.id, { rate: r.rate, conf: r.conf }));   // المبيعات أولى من الوارد
+    const rows = [];
+    (products || []).forEach(p => {
+        if (!p || p.arch) return; const t = rt.get(p.id), ex = ndxExpiry(p, t ? t.rate : 0), waste = t ? ex.riskY : ex.nearBoxes;
+        if (!(waste > 0.5)) return;
+        const b = (ex.batches || []).find(x => x.waste > 0.5), d = t ? (ex.riskDays !== null ? ex.riskDays : ex.nearDays) : ex.nearDays;
+        rows.push({ p, ex, waste, qty: Math.ceil(waste - 1e-9), d, e: b ? b.e : '', known: !!t, conf: t ? t.conf : '' });
+    });
+    return rows.sort((a, b) => (a.d === null ? 1e9 : a.d) - (b.d === null ? 1e9 : b.d));
+}
+function xfVisible() { const lim = xfF === 'all' ? 1e9 : parseInt(xfF); return xfRows.filter(r => r.d === null || r.d <= lim); }
+function xfRow(r) {
+    const f = v => fmtNum(Math.round(v * 10) / 10), dt = r.e ? r.e.slice(5, 7) + '/' + r.e.slice(0, 4) : '';
+    const l2 = 'يتلف ' + f(r.waste) + ' علبة' + (r.d !== null ? ' • بعد ' + fmtNum(r.d) + ' يوماً' + (dt ? ' (' + dt + ')' : '') : '');
+    const tg = !r.known ? '<small class="ndw-tg">بلا تقدير استهلاك: تُعرض القريبة النفاذ فقط</small>' : r.conf === 'منخفضة' ? '<small class="ndw-tg">تقدير أولي لقلة البيانات</small>' : '';
+    return `<div class="cu-row fu-row ndw-rw" onclick="xfOpen(${r.p.id})"><div><b dir="ltr">${dispNameHtml(r.p)}</b><small class="ndw-l2">${l2}</small>${tg}</div><div class="fu-st bad">ناقل ${fmtNum(r.qty)}</div></div>`;
+}
+function xfHtml() {
+    xfRows = xfCalc(); const v = xfVisible(), tot = v.reduce((a, r) => a + r.waste, 0), chips = [['all', 'الكل'], ['90', 'خلال 3 أشهر'], ['180', 'خلال 6 أشهر'], ['365', 'خلال سنة']];
+    return `<div class="sd-cards sd-c3"><div><span>مواد معرضة</span><b>${fmtNum(v.length)}</b></div><div><span>علب متوقع تلفها</span><b>${fmtNum(Math.round(tot))}</b></div><div><span>أقرب نفاذ</span><b>${v.length && v[0].d !== null ? fmtNum(v[0].d) + ' يوماً' : '—'}</b></div></div>
+        <details class="nd-set"><summary>طريقة الحساب</summary><div class="nd-set-b"><div class="nd-hint">• تُقارَن كل دفعة بتاريخ نفاذها مع ما يُتوقع بيعه منها حتى ذلك التاريخ.<br>• الدفعة الأقدم نفاذاً تُباع أولاً.<br>• الاستهلاك من المبيعات إن توفرت، وإلا من الوارد.<br>• الكمية المقترحة للمناقلة هي المتوقع تلفه مقرَّباً للأعلى.<br>• كلما بعد النفاذ قلّت دقة التقدير.</div></div></details>
+        ${v.length ? `<button type="button" class="cn-new" onclick="xfGo()">فتح مناقلة بهذه المواد (${fmtNum(v.length)})</button>` : ''}
+        <div class="cn-chips fu-chips">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${xfF === k ? 'on' : ''}" onclick="xfF='${k}';exRender()">${l}</button>`).join('')}</div>
+        <div id="xfList">${v.map(xfRow).join('') || '<div class="cu-none">لا توجد مواد متوقع تلفها ضمن هذا النطاق.</div>'}</div>`;
+}
+function xfOpen(pid) { const i = ndmRows.findIndex(x => x.p.id === pid); if (i >= 0) { ndmDetail(i); return; } if (ndwRows.some(x => x.p.id === pid)) ndwOpen(pid); }
+function xfGo() {
+    const v = xfVisible(); if (!v.length) return;
+    try { exClose(); showView('purch'); puTab('xfer'); lgxOpen('xfer', { items: v.map(r => ({ pid: r.p.id, qty: r.qty })) }); } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر فتح شاشة المناقلة', confirmButtonText: 'حسناً' }); }
 }
 function ndwToList(src) {
     const rows = (src === 's' ? ndmRows : ndwRows).filter(r => r.status === 'order' && r.sug > 0 && (!ndwSup || r.sup === ndwSup)); if (!rows.length) return;
