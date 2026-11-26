@@ -446,6 +446,13 @@ function ndwCalc() {
             let m = ev.get(it.pid); if (!m) { m = new Map(); ev.set(it.pid, m); } m.set(d, (m.get(d) || 0) + u);
         });
     });
+    // المنتهي/التالف والمناقلة الخارجة (إن كانت أثّرت على المخزن) ليست طلباً: تُستبعد من الطلب. المناقلة الواردة تُعدّ وارداً.
+    const nsExp = new Map(), nsOut = new Map();
+    try {
+        const add = (mp, pid, d, q) => { const o = mp.get(pid) || []; o.push({ d, q }); mp.set(pid, o); };
+        (typeof lgExps === 'function' ? lgExps() : []).forEach(e => { if (!e.stockApplied) return; (e.items || []).forEach(l => { const q = puNum(l.qty) || 0; if (q > 0) add(nsExp, l.pid, String(e.date || '').slice(0, 10), q); }); });
+        (typeof lgXfers === 'function' ? lgXfers() : []).forEach(e => { if (!e.stockApplied) return; const d = String(e.date || '').slice(0, 10); (e.items || []).forEach(l => { const q = puNum(l.qty) || 0; if (!(q > 0) || !d) return; if (e.dir === 'in') { let m = ev.get(l.pid); if (!m) { m = new Map(); ev.set(l.pid, m); } m.set(d, (m.get(d) || 0) + q); } else add(nsOut, l.pid, d, q); }); });
+    } catch (e) { /* تجاهل */ }
     // المردود للمذخر (من سجل المردود) يُخصم من وارد القائمة التي رُدّ منها (علب + بونص)، فلا يُعدّ استهلاكاً
     try {
         const dOf = new Map((typeof puAll !== 'undefined' ? puAll : []).map(r => [r.id, String(r.date || '').slice(0, 10)]));
@@ -466,18 +473,19 @@ function ndwCalc() {
         const okA = ds.length >= 3 && span >= 14, okB = counted && since0 >= 14;   // ب: طريقة الرصيد (أثر رجعي) للمواد المجرودة
         if (!okA && !okB) {   // بيانات غير كافية: تُعرض في «الكل» وبالبحث ليُدخَل رصيدها اليدوي
             const exL = ndxExpiry(p, 0), oL = onOrd.get(pid) || 0;
-            rows.push({ p, ex: exL, rate: 0, stock, ord: oL, ss: 0, rop: 0, tgt: 0, status: 'low', counted, manual: hasMan, method: 'none', consumed: 0, nEv: ds.length, span: since0, last: ds[ds.length - 1], since: ndmDays(ds[ds.length - 1], today), first: ds[0], units: total, w80: [0, 0], sug: 0, conf: 'منخفضة', sdw: 0, pos: stock - exL.expired + oL, ev: ds.map(d => ({ d, u: m.get(d) })) });
+            rows.push({ p, ex: exL, rate: 0, stock, ord: oL, ss: 0, rop: 0, tgt: 0, status: 'low', counted, manual: hasMan, method: 'none', consumed: 0, nEv: ds.length, span: since0, last: ds[ds.length - 1], since: ndmDays(ds[ds.length - 1], today), first: ds[0], units: total, w80: [0, 0], sug: 0, conf: 'منخفضة', sdw: 0, demand: 0, nsE: 0, nsO: 0, pos: stock - exL.expired + oL, ev: ds.map(d => ({ d, u: m.get(d) })) });
             return;
         }
         let usedA = 0; const rates = []; for (let k = 0; k < ds.length - 1; k++) { usedA += m.get(ds[k]); const g = ndmDays(ds[k], ds[k + 1]); if (g > 0) rates.push(m.get(ds[k]) / g); }
         const rateA = okA ? usedA / span : 0, method = okB ? 'bal' : 'int';
-        const consumed = Math.max(0, total - stock), rate = okB ? consumed / since0 : rateA, period = okB ? since0 : span;
+        const consumed = Math.max(0, total - stock), sumNs = mp => (mp.get(pid) || []).filter(x => x.d >= ds[0]).reduce((a, x) => a + x.q, 0), nsE = sumNs(nsExp), nsO = sumNs(nsOut);
+        const demand = okB ? Math.max(0, consumed - nsE - nsO) : usedA, rate = okB ? demand / since0 : rateA, period = okB ? since0 : span;
         const sdw = okA && rates.length >= 3 ? Math.sqrt(rates.reduce((a, b) => a + (b - rateA) * (b - rateA), 0) / (rates.length - 1)) * 7 : Math.sqrt(Math.max(rate * 7, 0)), mw = rate * 7;
         const ex = ndxExpiry(p, rate), ord = onOrd.get(pid) || 0, pos = stock - ex.expired + ord;
         const ss = 1.65 * sdw * Math.sqrt(T / 7), rop = rate * cfg.lead + ss, tgt = rate * T + ss;
         const status = !counted ? 'wait' : pos <= rop ? 'order' : pos <= rop + rate * cfg.rev ? 'soon' : (rate > 0 && pos > tgt + rate * 30) ? 'over' : 'ok';
         const conf = okB ? (since0 >= 90 && ds.length >= 2 ? 'جيدة' : since0 >= 45 ? 'متوسطة' : 'منخفضة') : (ds.length >= 8 ? 'جيدة' : ds.length >= 5 ? 'متوسطة' : 'منخفضة');
-        rows.push({ p, ex, rate, stock, ord, ss, rop, tgt, status, counted, method, consumed: okB ? consumed : usedA, nEv: ds.length, span: period, last: ds[ds.length - 1], since: ndmDays(ds[ds.length - 1], today), first: ds[0], units: total, w80: [Math.max(0, mw - 1.28 * sdw), mw + 1.28 * sdw], sug: counted ? Math.max(0, Math.ceil(tgt - pos - 1e-9)) : 0, conf, manual: hasMan, sdw, pos, ev: ds.map(d => ({ d, u: m.get(d) })) });
+        rows.push({ p, ex, rate, stock, ord, ss, rop, tgt, status, counted, method, consumed: okB ? consumed : usedA, nEv: ds.length, span: period, last: ds[ds.length - 1], since: ndmDays(ds[ds.length - 1], today), first: ds[0], units: total, w80: [Math.max(0, mw - 1.28 * sdw), mw + 1.28 * sdw], sug: counted ? Math.max(0, Math.ceil(tgt - pos - 1e-9)) : 0, conf, manual: hasMan, sdw, pos, demand, nsE, nsO, ev: ds.map(d => ({ d, u: m.get(d) })) });
     });
     const ord = { order: 0, soon: 1, ok: 2, over: 3, wait: 4, low: 5 };
     return { cfg, rows: rows.sort((a, b) => ord[a.status] - ord[b.status] || (a.rate > 0 ? a.stock / a.rate : 1e9) - (b.rate > 0 ? b.stock / b.rate : 1e9)) };
@@ -507,6 +515,96 @@ function ndwHtml() {
         <div class="cn-chips fu-chips">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndwF === k ? 'on' : ''}" onclick="ndwF='${k}';ndwShow=60;exRender()">${l}</button>`).join('')}</div>
         <div class="fu-q"><input type="search" autocomplete="off" placeholder="ابحث عن مادة لتقدير احتياجها" value="${escapeHtml(ndwQ)}" oninput="ndwQ=this.value;ndwShow=60;ndwRowsRedraw()"></div>
         <div id="ndwList">${ndwListHtml()}</div>`;
+}
+
+// ============================================================================
+// الأساس الإحصائي لتقدير الوارد (نموذج بويسون-غاما بايزي مع معامل تشتت):
+// - عدد الوحدات المسحوبة خلال المدة يُعامل كعدّ بويسون بمعدل غير معروف λ، وتُحسب سلسلة λ اللاحقة من توزيع غاما (قبْليّ جيفريز 0.5).
+//   فالبيانات القليلة تعطي مدى واسعاً بدل رقم مضلِّل، وتضيق الثقة كلما زادت المدة والكمية.
+// - معامل التشتت φ من فترات الشراء (مربع كاي بيرسون ÷ درجات الحرية، بين 1 و3؛ 2 إن قلّت الفترات) يوسّع المدى عند تذبذب السحب.
+// - الشراء الكبير (بونص/خصم) لا يؤثر لأن الأساس مجموع الوارد − الرصيد، والمردود والمنتهي/التالف والمناقلة الخارجة مستبعدة.
+// - المحاكاة (مونت كارلو) بمولّد ثابت البذرة: النتيجة نفسها لنفس المدخلات.
+// ============================================================================
+function ndsRng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function ndsNorm(rng) { let u = 0; while (!u) u = rng(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * rng()); }
+function ndsGamma(k, rng) {   // مارساغليا-تسانغ
+    if (k < 1) return ndsGamma(k + 1, rng) * Math.pow(rng(), 1 / k);
+    const d = k - 1 / 3, c = 1 / Math.sqrt(9 * d);
+    for (;;) { let x, v; do { x = ndsNorm(rng); v = 1 + c * x; } while (v <= 0); v = v * v * v; const u = rng(); if (u < 1 - 0.0331 * x * x * x * x || Math.log(u) < 0.5 * x * x + d * (1 - v + Math.log(v))) return d * v; }
+}
+function ndsPois(m, rng) { if (m <= 0) return 0; if (m < 30) { const L = Math.exp(-m); let k = 0, p = 1; do { k++; p *= rng(); } while (p > L); return k - 1; } return Math.max(0, Math.round(m + Math.sqrt(m) * ndsNorm(rng))); }
+const ndsQ = (arr, p) => { const a = arr.slice().sort((x, y) => x - y); return a.length ? a[Math.min(a.length - 1, Math.max(0, Math.floor(p * (a.length - 1))))] : 0; };
+function ndsSeed(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function ndsModel(r) {
+    const C = r.method === 'bal' ? r.demand : r.consumed, T = Math.max(1, r.span), ivs = [];
+    for (let k = 0; k < r.ev.length - 1; k++) { const g = ndmDays(r.ev[k].d, r.ev[k + 1].d); if (g > 0) ivs.push({ u: r.ev[k].u, g }); }
+    let phi = 2, chi = 0;
+    if (ivs.length >= 3) { const lam = ivs.reduce((a, x) => a + x.u, 0) / ivs.reduce((a, x) => a + x.g, 0); if (lam > 0) { chi = ivs.reduce((a, x) => a + Math.pow(x.u - lam * x.g, 2) / (lam * x.g), 0); phi = Math.min(3, Math.max(1, chi / (ivs.length - 1))); } }
+    const a = C / phi + 0.5, b = T / phi, rng = ndsRng(ndsSeed('lam' + r.p.id + '|' + C + '|' + T)), ls = [];
+    for (let i = 0; i < 2000; i++) ls.push(ndsGamma(a, rng) / b);
+    const lo = ndsQ(ls, 0.025), hi = ndsQ(ls, 0.975), mean = a / b, rel = mean > 0 ? (hi - lo) / (2 * mean) : 9;
+    // اتجاه الاستهلاك: اختبار كندال على معدلات الفترات (5 فترات فأكثر)
+    let trend = null; const cr = ivs.map(x => x.u / x.g);
+    if (cr.length >= 5) { let S = 0; for (let i = 0; i < cr.length; i++) for (let j = i + 1; j < cr.length; j++) S += Math.sign(cr[j] - cr[i]); const n = cr.length, tau = S / (n * (n - 1) / 2), z = 3 * tau * Math.sqrt(n * (n - 1)) / Math.sqrt(2 * (2 * n + 5)); trend = { tau, z, sig: Math.abs(z) >= 1.645 }; }
+    return { C, T, a, b, phi, K: ivs.length, lam: C / T, mean, lo, hi, rel, rely: rel < 0.3 ? 'عالية' : rel < 0.6 ? 'متوسطة' : 'منخفضة', trend };
+}
+// محاكاة توريد مخطط: متى ينفد المخزون؟ وهل تُباع الدفعة قبل نفاذ صلاحيتها (الأقدم نفاذاً يُباع أولاً)؟
+function ndsPlan(r, Q, expYM) {
+    const mo = ndsModel(r), N = 3000, rng = ndsRng(ndsSeed('plan' + r.p.id + '|' + Q + '|' + expYM)), S0 = Math.max(0, r.stock - (r.ex ? r.ex.expired : 0)), S = S0 + Q, out = { mo, S0, S };
+    const draw = (units, lam) => units > 0 ? Math.min(3650, ndsGamma(Math.max(1, Math.ceil(units)), rng) / lam) : 0, t0 = [], t1 = [];
+    let D = null, ahead = 0; const nd = [], waste = [], tAll = [];
+    if (expYM) {
+        D = expiryDaysOf(expYM + '-01');
+        try { const sc = btSc(r.p); getBatches(r.p).forEach(b => { if (!b.e) return; const d = expiryDaysOf(b.e); if (d !== null && d > 0 && b.e <= expYM + '-31') ahead += (b.q || 0) + (sc > 1 ? (b.l || 0) / sc : 0); }); } catch (e) { /* تجاهل */ }
+        out.ahead = ahead;
+    }
+    for (let i = 0; i < N; i++) {
+        const lam = Math.max(1e-9, ndsGamma(mo.a, rng) / mo.b);
+        t0.push(draw(S0, lam)); t1.push(draw(S, lam));
+        if (D !== null && D > 0 && Q > 0) { const c = ndsPois(lam * D, rng); nd.push(c); waste.push(Math.min(Q, Math.max(0, ahead + Q - c))); tAll.push(draw(ahead + Q, lam)); }
+    }
+    out.t0 = [ndsQ(t0, 0.1), ndsQ(t0, 0.5), ndsQ(t0, 0.9)]; out.t1 = [ndsQ(t1, 0.1), ndsQ(t1, 0.5), ndsQ(t1, 0.9)];
+    if (D !== null) {
+        out.D = D;
+        if (D > 0 && Q > 0) {
+            out.pWaste = waste.filter(x => x > 0).length / N; out.meanWaste = waste.reduce((a, x) => a + x, 0) / N; out.qSafe = Math.max(0, Math.floor(ndsQ(nd, 0.1) - ahead)); out.sell = [ndsQ(tAll, 0.1), ndsQ(tAll, 0.5), ndsQ(tAll, 0.9)];
+            out.verdict = out.pWaste <= 0.1 ? 'ok' : out.pWaste <= 0.3 ? 'warn' : 'bad';
+        }
+    }
+    return out;
+}
+let ndwPlan = { q: '', e: '' };
+function ndwDay(d) { return d >= 3650 ? 'أكثر من 10 سنوات' : fmtDateDMY(sdAdd(todayLocalISO(), Math.round(d))); }
+function ndwPlanHtml(r) {
+    if (r.method === 'none' || !(r.rate >= 0) || r.status === 'low') return '<small>يلزم تقدير للاستهلاك أولاً (أدخل الرصيد الحالي ليتوفر وارد مسجل منذ 14 يوماً فأكثر).</small>';
+    const Q = Math.max(0, parseFloat(ndwPlan.q) || 0), p = ndsPlan(r, Q, ndwPlan.e || ''), f = v => fmtNum(Math.round(v * 10) / 10), dr = (t, v, st) => `<div class="fu-dr"><span>${t}</span><b${st ? ' style="' + st + '"' : ''}>${v}</b></div>`;
+    const rng = a => ndwDay(a[1]) + ' (من ' + ndwDay(a[0]) + ' إلى ' + ndwDay(a[2]) + ')';
+    let h = dr('المتوفر الصالح للبيع الآن', f(p.S0)) + dr('ينفد بدون توريد', rng(p.t0));
+    if (Q > 0) h += dr('ينفد بعد التوريد (' + f(Q) + ')', rng(p.t1)) + dr('يكفي حوالي', fmtNum(Math.round(p.t1[1])) + ' يوماً');
+    if (ndwPlan.e) {
+        if (p.D === null || p.D <= 0) h += '<small style="color:#b91c1c;display:block">تاريخ النفاذ المُدخل منتهٍ أو غير صالح، فلا يُباع.</small>';
+        else if (Q > 0) {
+            const col = p.verdict === 'ok' ? '#0f766e' : p.verdict === 'warn' ? '#b45309' : '#b91c1c', lbl = p.verdict === 'ok' ? 'مناسبة: يُتوقع بيعها قبل النفاذ' : p.verdict === 'warn' ? 'مقبولة بحذر: احتمال بقاء جزء بلا بيع' : 'غير مناسبة: يُرجّح تلف جزء منها';
+            h += dr('تاريخ النفاذ', fmtDateDMY(ndwPlan.e + '-01') + ' (بعد ' + fmtNum(p.D) + ' يوماً)') + dr('يُتوقع نفاد بيع الدفعة', rng(p.sell)) + dr('احتمال بقاء كمية بلا بيع عند النفاذ', fmtNum(Math.round(p.pWaste * 100)) + '%') + dr('المتوقع تلفه (متوسط)', f(p.meanWaste) + ' علبة')
+                + dr('أكبر كمية آمنة (ثقة 90%)', fmtNum(p.qSafe) + ' علبة', 'color:#0f766e') + `<div style="margin-top:6px;padding:8px;border-radius:10px;background:#f8fafc;color:${col};font-weight:700">${lbl}</div>`
+                + (p.ahead ? `<small style="display:block">يُباع قبلها ${f(p.ahead)} علبة من دفعات أقدم نفاذاً.</small>` : '');
+        } else h += '<small style="display:block">أدخل الكمية المراد توريدها لتقييم ملاءمة تاريخ النفاذ.</small>';
+    }
+    return h + `<small style="display:block;margin-top:6px">المدى بين قوسين: من 10% إلى 90% من السيناريوهات.<br>يفترض الحساب بقاء معدل الاستهلاك الحالي.<br>لا يشمل ما هو قيد الطلب.</small>`;
+}
+function ndwPlanRun() {
+    const q = document.getElementById('ndwPlQ'), e = document.getElementById('ndwPlE'); ndwPlan = { q: q ? q.value : '', e: e ? e.value : '' };
+    const r = ndwRows.find(x => x.p.id === ndwCur), o = document.getElementById('ndwPlanOut'); if (r && o) o.innerHTML = ndwPlanHtml(r);
+}
+function ndwStatHtml(r) {
+    if (r.method === 'none') return '<small>لا تتوفر بيانات كافية للإحصاء.</small>';
+    const m = ndsModel(r), f = v => fmtNum(Math.round(v * 100) / 100), dr = (t, v) => `<div class="fu-dr"><span>${t}</span><b>${v}</b></div>`;
+    return dr('معدل السحب اليومي (تقدير)', f(m.mean)) + dr('مجال الثقة 95% (شهرياً)', f(m.lo * 30) + ' – ' + f(m.hi * 30)) + dr('الشهري المتوقع', f(m.mean * 30))
+        + dr('الأساس', fmtNum(Math.round(m.C * 10) / 10) + ' وحدة خلال ' + fmtNum(m.T) + ' يوماً') + dr('معامل التشتت', f(m.phi) + (m.K >= 3 ? ' (من ' + fmtNum(m.K) + ' فترات)' : ' (افتراضي لقلة الفترات)')) + dr('موثوقية التقدير', m.rely)
+        + dr('اتجاه الاستهلاك', m.trend ? (m.trend.sig ? (m.trend.tau > 0 ? 'يميل للارتفاع' : 'يميل للانخفاض') : 'لا اتجاه واضح') : 'غير كافٍ (يلزم 5 فترات)')
+        + dr('الموسمية', m.T >= 365 ? 'ممكن رصدها' : 'لا يمكن رصدها (البيانات أقل من سنة)')
+        + (r.nsE > 0 ? dr('منتهي/تالف مستبعد', fmtNum(Math.round(r.nsE * 10) / 10)) : '') + (r.nsO > 0 ? dr('مناقلة خارجة مستبعدة', fmtNum(Math.round(r.nsO * 10) / 10)) : '')
+        + `<small style="display:block;margin-top:6px">المعالجات المطبّقة:<br>• المردود يُخصم من الوارد.<br>• الشراء الكبير (بونص أو خصم) لا يؤثر لأن الأساس مجموع الوارد − الرصيد.<br>• البيانات القليلة تعطي مدى أوسع (نموذج بايزي) بدل رقم مضلِّل.<br>• تذبذب السحب يوسّع المدى (معامل التشتت).<br>تبقى حدود لا تعالجها البيانات: نفاد المادة يخفّض التقدير، والطلب غير الملبّى غير مسجل.</small>`;
 }
 function ndwDetail(i) { const r = ndwRows[i]; if (r) ndwOpen(r.p.id); }
 function ndwOpen(pid) {
@@ -579,12 +677,14 @@ function ndwDetBody(r) {
     const unitOpt = [[1, 'يوم'], [7, 'أسبوع'], [30, 'شهر']].map(([v, l]) => `<option value="${v}" ${ndwPer.u === v ? 'selected' : ''}>${l}</option>`).join('');
     const need = `<div class="fu-dr"><span>المدة المراد توفيرها</span><span style="display:flex;gap:6px"><input id="ndwPn" type="number" inputmode="numeric" min="1" value="${ndwPer.n}" oninput="ndwPerSet()" style="width:70px;${inp}"><select id="ndwPu" onchange="ndwPerSet()" style="${inp};background:#fff">${unitOpt}</select></span></div>
         <div class="qk-row"><div><b>إضافة مخزون أمان</b><small>احتياط فوق الاستهلاك المتوقع.</small></div><label class="setup-sw"><input type="checkbox" id="ndwSs" ${ndwPer.ss ? 'checked' : ''} onchange="ndwPerSet()" aria-label="مخزون الأمان"><i></i></label></div><div id="ndwNeedOut">${ndwNeedHtml(r)}</div>`;
+    const plan = `<div class="fu-dr"><span>الكمية المراد توريدها (علب)</span><input id="ndwPlQ" type="number" inputmode="decimal" min="0" value="${escapeHtml(String(ndwPlan.q))}" oninput="ndwPlanRun()" style="width:90px;${inp}"></div>
+        <div class="fu-dr"><span>تاريخ نفاذ الدفعة (اختياري)</span><input id="ndwPlE" type="month" value="${escapeHtml(String(ndwPlan.e))}" onchange="ndwPlanRun()" style="width:150px;${inp}"></div><div id="ndwPlanOut">${ndwPlanHtml(r)}</div>`;
     const ivs = r.ev.map((e, k) => { const nx = r.ev[k + 1]; if (!nx) return `<div class="fu-dr"><span>${fmtDateDMY(e.d)} ← اليوم</span><b>وارد ${f(e.u)} • الرصيد الآن ${f(r.stock)}</b></div>`; const g = ndmDays(e.d, nx.d); return `<div class="fu-dr"><span>${fmtDateDMY(e.d)} ← ${fmtDateDMY(nx.d)} (${fmtNum(g)} يوماً)</span><b>وارد ${f(e.u)} • السحب ≈ ${f(g > 0 ? e.u / g * 7 : 0)}/أسبوع</b></div>`; }).join('');
     const calc = dr('الطريقة', r.method === 'bal' ? 'رصيد الجرد (أثر رجعي)' : r.method === 'int' ? 'فترات الشراء' : 'غير كافية') + (r.method === 'none' ? '' : dr(r.method === 'bal' ? 'المستهلك (الوارد − الرصيد)' : 'المستهلك قبل آخر شراء', f(r.consumed) + ' خلال ' + fmtNum(r.span) + ' يوماً') + dr('الاستهلاك اليومي المقدّر', fmtNum(Math.round(r.rate * 100) / 100)) + dr('الشهري المتوقع', f(r.rate * 30)) + dr('المدى الأسبوعي (ثقة 80%)', f(r.w80[0]) + ' – ' + f(r.w80[1])))
         + dr('مرات الشراء', fmtNum(r.nEv) + ' • أولها ' + fmtDateDMY(r.first)) + dr('مجموع الوارد', f(r.units)) + dr('آخر شراء', 'قبل ' + fmtNum(r.since) + ' يوماً') + dr('المتوفر', f(r.stock)) + (r.ord ? dr('قيد الطلب', f(r.ord)) : '') + ndxDetailRows(r.ex)
         + (r.method === 'none' ? '' : dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', r.counted ? fmtNum(r.sug) : '—')) + dr('درجة الثقة', r.conf);
     return `<div class="fu-dr"><span>المادة</span><b dir="ltr">${dispNameHtml(r.p)}</b></div>${ndxTag(r.ex)}`
-        + sec('bal', 'الرصيد الحالي', bal) + sec('need', 'الاحتياج لمدة محددة', need) + sec('chart', 'رسم سحب المادة', r.method === 'none' && !(r.rate > 0) ? ndwChartSvg(r) : ndwChartSvg(r)) + sec('iv', 'فترات السحب', ivs) + sec('calc', 'الحسابات الحالية', calc);
+        + sec('bal', 'الرصيد الحالي', bal) + sec('need', 'الاحتياج لمدة محددة', need) + sec('plan', 'توريد مخطط: متى ينفد؟ وهل يناسبه تاريخ النفاذ؟', plan) + sec('chart', 'رسم سحب المادة', r.method === 'none' && !(r.rate > 0) ? ndwChartSvg(r) : ndwChartSvg(r)) + sec('iv', 'فترات السحب', ivs) + sec('stat', 'الإحصاءات وجودة التقدير', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc);
 }
 function ndwToList() {
     const rows = ndwRows.filter(r => r.status === 'order' && r.sug > 0); if (!rows.length) return;
