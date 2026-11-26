@@ -630,9 +630,11 @@ async function usageAbsenceGuard() {
         const hrs = (Date.now() - new Date(lastSyncAt).getTime()) / 3600e3;
         if (hrs < 24) return;
         await db.disableNetwork(); usagePaused = 'absence'; syncRefresh();
+        let snz = 0; try { snz = parseInt(localStorage.getItem('diwanAbsSnooze')) || 0; } catch (e) { /* تجاهل */ }
+        if (Date.now() - snz < 24 * 3600e3) return;   // اختار «لاحقاً» خلال آخر 24 ساعة: يبقى الإرسال موقوفاً دون إعادة السؤال
         const days = Math.floor(hrs / 24);
-        const r = await Swal.fire({ icon: 'question', title: 'غياب عن السحابة منذ ' + days + (days > 10 ? ' يوماً' : ' أيام'), html: 'قد توجد تعديلات محفوظة على هذا الجهاز بانتظار الإرسال.<br>أُوقف الإرسال مؤقتاً حتى لا تُرسل دفعة واحدة تستهلك الحصة المجانية.', showCancelButton: true, confirmButtonText: 'إرسال الآن', cancelButtonText: 'لاحقاً', confirmButtonColor: '#0f1c38', allowOutsideClick: false });
-        if (r.isConfirmed) await usageResume();
+        const r = await Swal.fire({ icon: 'question', title: 'غياب عن السحابة منذ ' + (days === 1 ? 'يوم واحد' : days === 2 ? 'يومين' : days + (days > 10 ? ' يوماً' : ' أيام')), html: 'قد توجد تعديلات محفوظة على هذا الجهاز بانتظار الإرسال.<br>أُوقف الإرسال مؤقتاً حتى لا تُرسل دفعة واحدة تستهلك الحصة المجانية.', showCancelButton: true, confirmButtonText: 'إرسال الآن', cancelButtonText: 'لاحقاً', confirmButtonColor: '#0f1c38', allowOutsideClick: false });
+        if (r.isConfirmed) { await usageResume(); markSynced(); } else { try { localStorage.setItem('diwanAbsSnooze', String(Date.now())); } catch (e) { /* تجاهل */ } }
     } catch (e) { /* تجاهل */ }
 }
 
