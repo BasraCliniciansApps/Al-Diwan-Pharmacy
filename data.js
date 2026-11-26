@@ -335,9 +335,13 @@ function asyncWriteFailed(e) {
     try { Swal.fire({ icon: 'error', title: 'تعذّر إرسال بعض التغييرات للسحابة', text: syncErrMsg, confirmButtonColor: '#0f1c38' }); } catch (x) { /* تجاهل */ }
 }
 // ننتظر تأكيد السحابة إن كان الاتصال سريعاً، وإلا نعتبرها «في الطابور» ونكمل بدون تعليق الشاشة
+const pendMeta = new Map(); let pendSeq = 0;
+function oldestPend() { let o = null; pendMeta.forEach(v => { if (!o || v.t < o.t) o = v; }); return o ? { min: Math.floor((Date.now() - o.t) / 60000), src: o.src } : null; }
 async function fsWrite(promise) {
+    const pid = ++pendSeq; let psrc = ''; try { psrc = ((new Error().stack || '').split('\n')[2] || '').trim().replace(/^at\s+/, '').slice(0, 90); } catch (e) { /* تجاهل */ }
+    pendMeta.set(pid, { t: Date.now(), src: psrc });
     pendingOps++; syncRefresh();
-    const settle = ok => { pendingOps = Math.max(0, pendingOps - 1); if (ok) { syncErrMsg = ''; markSynced(); } syncRefresh(); };
+    const settle = ok => { pendMeta.delete(pid); pendingOps = Math.max(0, pendingOps - 1); if (ok) { syncErrMsg = ''; markSynced(); } syncRefresh(); };
     promise.then(() => settle(true), () => settle(false));
     if (!navigator.onLine) { promise.catch(asyncWriteFailed); return 'queued'; }
     const r = await Promise.race([promise.then(() => 'ok'), new Promise(res => setTimeout(() => res('slow'), window.__fsWait != null ? window.__fsWait : 1500))]);
@@ -468,7 +472,7 @@ function ssState() {
     else if (!online) { tone = 'err'; head = 'بدون إنترنت'; sub = 'تُحفظ العمليات على الجهاز وتُرسل عند عودة الاتصال' + (pend ? ' (' + opsTxt(pend) + ' بانتظار الإرسال)' : ''); }
     else if (syncErrMsg) { tone = 'err'; head = 'تعذّر الحفظ'; sub = escapeHtml(syncErrMsg); }
     else if (window.INV_UNSENT && window.INV_UNSENT.length) { tone = 'err'; head = 'فواتير لم تصل'; sub = fmtNum(window.INV_UNSENT.length) + ' فاتورة محفوظة على هذا الجهاز فقط'; }
-    else if (pend > 0 || startupPending) { tone = 'busy'; head = 'جارٍ الإرسال'; sub = pend ? opsTxt(pend) + ' بانتظار الإرسال' : 'عمليات من جلسة سابقة بانتظار الإرسال'; }
+    else if (pend > 0 || startupPending) { tone = 'busy'; head = 'جارٍ الإرسال'; const op = pend ? oldestPend() : null; sub = pend ? opsTxt(pend) + ' بانتظار الإرسال' + (op && op.min >= 2 ? '<br>مضى ' + op.min + ' دقيقة دون تأكيد من السحابة. جرّب «إعادة تشغيل الاتصال».' + (op.src ? '<br><span dir="ltr">' + escapeHtml(op.src) + '</span>' : '') : '') : 'عمليات من جلسة سابقة بانتظار الإرسال'; }
     return { tone, head, sub, dups, native };
 }
 let ssTimer = null;
@@ -510,12 +514,23 @@ function showSyncStatus() {
     const waM = usagePaused === 'wa';
     const host = document.getElementById('syncBody'); if (!host) return;
     const wasOpen = !!(host.querySelector('.ss-det') && host.querySelector('.ss-det').open);   // تبقى «تفاصيل تقنية» مفتوحة عند إعادة الرسم
-    const acts = `<div class="ss-acts"><button type="button" class="dw-btn dw-btn-main" onclick="ssGo()">${waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن'}</button><button type="button" class="dw-btn dw-btn-ghost" onclick="hardRefresh()">⟳ تحديث التطبيق</button></div>`;
+    const acts = `<div class="ss-acts"><button type="button" class="dw-btn dw-btn-main" onclick="ssGo()">${waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن'}</button><button type="button" class="dw-btn dw-btn-ghost" onclick="netCycle()">إعادة تشغيل الاتصال</button><button type="button" class="dw-btn dw-btn-ghost" onclick="hardRefresh()">⟳ تحديث التطبيق</button></div>`;
     host.innerHTML = (wasOpen ? html.replace('<details class="ss-det" ', '<details class="ss-det" open ') : html) + acts;
     if (typeof currentView === 'undefined' || currentView !== 'sync') showView('sync');   // صفحة كاملة بترويسة التطبيق (لا نافذة منبثقة)
     window.__ssOpen = true; clearInterval(ssTimer);
     ssTimer = setInterval(() => { if (currentView !== 'sync') { clearInterval(ssTimer); window.__ssOpen = false; return; } ssLive(); }, 1500);
     appVersionTxt().then(v => { const el = document.getElementById('ssVer'); if (el) el.textContent = 'رقم نسخة التطبيق: ' + (v || 'غير معروف'); }).catch(() => { });
+}
+async function netCycle() {
+    if (!isFirebaseReady || !db) return;
+    const h = Prog.start('إعادة تشغيل الاتصال', { text: 'جاري قطع الاتصال...' });
+    try {
+        await db.disableNetwork(); h.set(null, 'جاري إعادة الاتصال...');
+        if (usagePaused === 'cap' || usagePaused === 'lan' || usagePaused === 'wa') { await db.enableNetwork(); h.fail('الاتصال موقوف عمداً', 'السبب: وضع الإيقاف الحالي. غيّره من صفحة الحالة.'); return; }
+        await usageResume(); h.set(null, 'بانتظار تأكيد السحابة...');
+        await Promise.race([db.waitForPendingWrites(), new Promise((_, rej) => setTimeout(() => rej(new Error('مهلة')), 20000))]);
+        markSynced(); syncRefresh(); h.ok('وصلت كل العمليات إلى السحابة');
+    } catch (e) { syncRefresh(); h.fail('لم تؤكد السحابة الاستلام بعد', (e && e.message === 'مهلة') ? 'تحقق من الإنترنت، أو أن الحصة اليومية للخدمة لم تنتهِ (تتجدد 11 صباحاً بتوقيت بغداد).' : (e && e.message)); }
 }
 function ssGo() { if (usagePaused === 'wa' && window.WA) WA.exportSales(); else syncNow(); }
 document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
