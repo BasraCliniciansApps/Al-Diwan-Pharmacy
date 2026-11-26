@@ -78,7 +78,7 @@ async function exOpen(tab) {
 function exClose() { const ov = document.getElementById('exOv'); if (ov) ov.style.display = 'none'; document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); exOpenFlag = false; }
 async function exRefresh() {
     const r = exRange(), h = Prog.start('تحميل البيانات', { text: 'المصروفات والفواتير...', indeterminate: false });
-    try { await exLoad(); h.set(40); if ((exTab === 'need' || exTab === 'need2') && typeof puLoad === 'function') { try { await puLoad(); } catch (e) { /* تجاهل */ } }
+    try { await exLoad(); h.set(40); if ((exTab === 'need' || exTab === 'need2') && typeof puLoad === 'function') { try { await puLoad(); } catch (e) { /* تجاهل */ } if (exTab === 'need2' && typeof lgLoad === 'function') { try { await lgLoad(); } catch (e) { /* تجاهل */ } } }
     const fr = exTab === 'dash' ? sdFrom() : exTab === 'need' ? ndmFrom() : exTab === 'need2' ? todayLocalISO() : r.from; if (!(window.__exInvFrom && window.__exInvFrom <= fr && Date.now() - (window.__exInvAt || 0) < 30 * 60000)) { await invEnsureSince(fr); window.__exInvFrom = fr; window.__exInvAt = Date.now(); } h.ok('تم التحميل'); } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
     if (exOpenFlag) exRender();
 }
@@ -443,6 +443,15 @@ function ndwCalc() {
             let m = ev.get(it.pid); if (!m) { m = new Map(); ev.set(it.pid, m); } m.set(d, (m.get(d) || 0) + u);
         });
     });
+    // المردود للمذخر (من سجل المردود) يُخصم من وارد القائمة التي رُدّ منها (علب + بونص)، فلا يُعدّ استهلاكاً
+    try {
+        const dOf = new Map((typeof puAll !== 'undefined' ? puAll : []).map(r => [r.id, String(r.date || '').slice(0, 10)]));
+        (typeof lgRets === 'function' ? lgRets() : []).forEach(e => (e.items || []).forEach(l => {
+            const m = ev.get(l.pid), d = dOf.get(e.listId) || String(e.date || '').slice(0, 10), q = (puNum(l.qty) || 0) + (puNum(l.bq) || 0);
+            if (m && d && q > 0) m.set(d, (m.get(d) || 0) - q);
+        }));
+        ev.forEach((m, pid) => { m.forEach((v, d) => { if (!(v > 0)) m.delete(d); }); if (!m.size) ev.delete(pid); });
+    } catch (e) { /* تجاهل */ }
     const onOrd = new Map(); try { if (typeof ndOrders === 'function') ndOrders().filter(o => o.status !== 'received').forEach(o => (o.items || []).forEach(x => onOrd.set(x.pid, (onOrd.get(x.pid) || 0) + (parseFloat(x.qty) || 0)))); } catch (e) { /* تجاهل */ }
     const rows = [];
     ev.forEach((m, pid) => {
@@ -483,7 +492,7 @@ function ndwHtml() {
     const chips = [['order', 'اطلب الآن'], ['soon', 'قريباً'], ['over', 'فائض'], ['wait', 'بانتظار الجرد'], ['exp', 'نفاذ قريب (' + fmtNum(c.rows.filter(r => r.ex && r.ex.flag).length) + ')'], ['all', 'الكل']];
     return `<div class="sd-cards sd-c3"><div><span>اطلب الآن</span><b>${fmtNum(nOrd)}</b></div><div><span>قريباً</span><b>${fmtNum(cnt('soon'))}</b></div><div><span>بانتظار الجرد</span><b>${fmtNum(cnt('wait'))}</b></div></div>
         <details class="nd-set"><summary>ⓘ طريقة الحساب وحدودها</summary><div class="nd-set-b">
-        <div class="nd-hint">كيف يُحسب التقدير:<br>١) الأساس سجل الوارد (مع البونص وبعد خصم المردود) لأن المبيعات غير مسجلة بالكامل.<br>٢) المواد المجرودة: المستهلك = مجموع الوارد − الرصيد الحالي، ÷ المدة من أول وارد حتى اليوم (14 يوماً فأكثر).<br>٣) غير المجرودة: ما اشتُري قبل آخر شراء ÷ المدة بين أول وآخر شراء (3 مرات شراء فأكثر).<br>يُعدّ رصيد المادة قبل أول وارد مسجل صفراً.<br>٤) مدة وصول الطلبية ${fmtNum(cfg.lead)} ودورة الطلب ${fmtNum(cfg.rev)} (تُحسبان من سجلات المخزن نفسها).<br>٥) الصلاحية: الدفعات المنتهية لا تُحتسب من المتوفر، وتُنبَّه الدفعات القريبة والكميات التي لن تُباع قبل نفاذها.<br>٦) الكمية المقترحة تُحسب للمواد المجرودة فقط، وغير المجرودة تظهر بمعدلها دون اقتراح.</div>
+        <div class="nd-hint">كيف يُحسب التقدير:<br>١) الأساس سجل الوارد (مع البونص) لأن المبيعات غير مسجلة بالكامل.<br>٢) المردود للمذخر يُخصم من وارد القائمة التي رُدّ منها.<br>٣) المواد المجرودة: المستهلك = مجموع الوارد − الرصيد الحالي، ÷ المدة من أول وارد حتى اليوم (14 يوماً فأكثر).<br>٤) غير المجرودة: ما اشتُري قبل آخر شراء ÷ المدة بين أول وآخر شراء (3 مرات شراء فأكثر).<br>يُعدّ رصيد المادة قبل أول وارد مسجل صفراً.<br>٥) مدة وصول الطلبية ${fmtNum(cfg.lead)} ودورة الطلب ${fmtNum(cfg.rev)} (تُحسبان من سجلات المخزن نفسها).<br>٦) الصلاحية: الدفعات المنتهية لا تُحتسب من المتوفر، وتُنبَّه الدفعات القريبة والكميات التي لن تُباع قبل نفاذها.<br>٧) الكمية المقترحة تُحسب للمواد المجرودة فقط، وغير المجرودة تظهر بمعدلها دون اقتراح.</div>
         <div class="bill-set-hint">حدود هذه الطريقة:<br>• قد يقلّ التقدير إن كان لديك رصيد قبل أول وارد مسجل أو وارد غير مسجل.<br>• يعكس الاستهلاك الكلي (بيعاً وتحويلاً وإتلافاً) لا المبيعات وحدها.<br>• الشراء الكبير لأجل البونص أو الخصم يرفع التقدير.<br>• نفاد المادة بين مرتين يخفضه.<br>• الرقم داخل الدائرة هو عدد مرات الشراء، وكلما زاد زادت الثقة.<br>• تتحسن الدقة مع تراكم سجل الوارد، وتبقى «من المبيعات» أدق متى سُجلت المبيعات.</div></div></details>
         ${nOrd ? `<button type="button" class="cn-new" onclick="ndwToList()">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى قائمة النواقص</button>` : ''}
         <div class="cn-chips fu-chips">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndwF === k ? 'on' : ''}" onclick="ndwF='${k}';ndwShow=60;exRender()">${l}</button>`).join('')}</div>
