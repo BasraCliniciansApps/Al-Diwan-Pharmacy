@@ -417,13 +417,20 @@ function ndwCalc() {
     const rows = [];
     ev.forEach((m, pid) => {
         const p = products.find(x => x.id === pid); if (!p || p.arch) return;
-        const ds = [...m.keys()].sort(), span = ndmDays(ds[0], ds[ds.length - 1]); if (ds.length < 3 || span < 14) return;
-        let used = 0; const rates = []; for (let k = 0; k < ds.length - 1; k++) { used += m.get(ds[k]); const g = ndmDays(ds[k], ds[k + 1]); if (g > 0) rates.push(m.get(ds[k]) / g); }
-        const rate = used / span, sdw = rates.length >= 3 ? Math.sqrt(rates.reduce((a, b) => a + (b - rate) * (b - rate), 0) / (rates.length - 1)) * 7 : Math.sqrt(Math.max(rate * 7, 0)), mw = rate * 7;
-        const counted = p.counted === true, stock = (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0), ord = onOrd.get(pid) || 0, pos = stock + ord;
+        const ds = [...m.keys()].sort(), span = ndmDays(ds[0], ds[ds.length - 1]), counted = p.counted === true;
+        const stock = (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0);
+        const total = [...m.values()].reduce((a, b) => a + b, 0), since0 = ndmDays(ds[0], today);
+        const okA = ds.length >= 3 && span >= 14, okB = counted && since0 >= 14;   // ب: طريقة الرصيد (أثر رجعي) للمواد المجرودة
+        if (!okA && !okB) return;
+        let usedA = 0; const rates = []; for (let k = 0; k < ds.length - 1; k++) { usedA += m.get(ds[k]); const g = ndmDays(ds[k], ds[k + 1]); if (g > 0) rates.push(m.get(ds[k]) / g); }
+        const rateA = okA ? usedA / span : 0, method = okB ? 'bal' : 'int';
+        const consumed = Math.max(0, total - stock), rate = okB ? consumed / since0 : rateA, period = okB ? since0 : span;
+        const sdw = okA && rates.length >= 3 ? Math.sqrt(rates.reduce((a, b) => a + (b - rateA) * (b - rateA), 0) / (rates.length - 1)) * 7 : Math.sqrt(Math.max(rate * 7, 0)), mw = rate * 7;
+        const ord = onOrd.get(pid) || 0, pos = stock + ord;
         const ss = 1.65 * sdw * Math.sqrt(T / 7), rop = rate * cfg.lead + ss, tgt = rate * T + ss;
         const status = !counted ? 'wait' : pos <= rop ? 'order' : pos <= rop + rate * cfg.rev ? 'soon' : (rate > 0 && pos > tgt + rate * 30) ? 'over' : 'ok';
-        rows.push({ p, rate, stock, ord, ss, rop, tgt, status, counted, nEv: ds.length, span, last: ds[ds.length - 1], since: ndmDays(ds[ds.length - 1], today), units: used + m.get(ds[ds.length - 1]), w80: [Math.max(0, mw - 1.28 * sdw), mw + 1.28 * sdw], sug: counted ? Math.max(0, Math.ceil(tgt - pos - 1e-9)) : 0, conf: ds.length >= 8 ? 'جيدة' : ds.length >= 5 ? 'متوسطة' : 'منخفضة' });
+        const conf = okB ? (since0 >= 90 && ds.length >= 2 ? 'جيدة' : since0 >= 45 ? 'متوسطة' : 'منخفضة') : (ds.length >= 8 ? 'جيدة' : ds.length >= 5 ? 'متوسطة' : 'منخفضة');
+        rows.push({ p, rate, stock, ord, ss, rop, tgt, status, counted, method, consumed: okB ? consumed : usedA, nEv: ds.length, span: period, last: ds[ds.length - 1], since: ndmDays(ds[ds.length - 1], today), first: ds[0], units: total, w80: [Math.max(0, mw - 1.28 * sdw), mw + 1.28 * sdw], sug: counted ? Math.max(0, Math.ceil(tgt - pos - 1e-9)) : 0, conf });
     });
     const ord = { order: 0, soon: 1, ok: 2, over: 3, wait: 4 };
     return { cfg, rows: rows.sort((a, b) => ord[a.status] - ord[b.status] || (a.rate > 0 ? a.stock / a.rate : 1e9) - (b.rate > 0 ? b.stock / b.rate : 1e9)) };
@@ -431,13 +438,13 @@ function ndwCalc() {
 function ndwRow(r, i) {
     const st = NDW_ST[r.status], wk = Math.round(r.rate * 70) / 10;
     return `<div class="cu-row fu-row" onclick="ndwDetail(${i})"><div class="cu-av fu-av ${r.conf === 'جيدة' ? 'ok' : r.conf === 'متوسطة' ? 'wb' : ''}">${fmtNum(r.nEv)}</div>
-        <div><b dir="ltr">${dispNameHtml(r.p)}</b><small>الشراء ${fmtNum(wk)} علبة/أسبوع (${fmtNum(Math.round(r.w80[0]))}–${fmtNum(Math.round(r.w80[1]))}) • ${fmtNum(r.nEv)} مرات شراء خلال ${fmtNum(r.span)} يوماً • ${r.counted ? 'المتوفر ' + fmtNum(Math.round(r.stock * 10) / 10) : 'غير مجرودة'}${r.ord ? ' • قيد الطلب ' + fmtNum(r.ord) : ''}</small></div>
+        <div><b dir="ltr">${dispNameHtml(r.p)}</b><small>الشراء ${fmtNum(wk)} علبة/أسبوع (${fmtNum(Math.round(r.w80[0]))}–${fmtNum(Math.round(r.w80[1]))}) • ${r.method === 'bal' ? 'استُهلك ' + fmtNum(Math.round(r.consumed * 10) / 10) + ' من ' + fmtNum(Math.round(r.units * 10) / 10) + ' وارد خلال ' : fmtNum(r.nEv) + ' مرات شراء خلال '}${fmtNum(r.span)} يوماً • ${r.counted ? 'المتوفر ' + fmtNum(Math.round(r.stock * 10) / 10) : 'غير مجرودة'}${r.ord ? ' • قيد الطلب ' + fmtNum(r.ord) : ''}</small></div>
         <div class="fu-st ${st[1]}">${(r.status === 'order' || r.status === 'soon') && r.sug ? 'اطلب ' + fmtNum(r.sug) : st[0]}</div></div>`;
 }
 function ndwListHtml() {
     const q = ndwQ ? normSearch(ndwQ) : '', toks = q ? q.split(' ') : [];
     const list = ndwRows.map((r, i) => [r, i]).filter(([r]) => q ? searchScore(r.p, q, toks) > 0 : (ndwF === 'all' || r.status === ndwF));
-    return (list.slice(0, ndwShow).map(([r, i]) => ndwRow(r, i)).join('') || `<div class="cu-none">${q ? 'لا يتوفر لهذه المادة سجل وارد كافٍ للتقدير.<br>يلزم 3 مرات شراء على الأقل بمدة 14 يوماً فأكثر.' : 'لا توجد مواد في هذا التصنيف.'}</div>`)
+    return (list.slice(0, ndwShow).map(([r, i]) => ndwRow(r, i)).join('') || `<div class="cu-none">${q ? 'لا يتوفر لهذه المادة سجل وارد كافٍ للتقدير.<br>للمجرودة: وارد مسجل منذ 14 يوماً فأكثر.<br>لغير المجرودة: 3 مرات شراء على الأقل.' : 'لا توجد مواد في هذا التصنيف.'}</div>`)
         + (list.length > ndwShow ? `<button type="button" class="ex-cat" onclick="ndwShow+=60;ndwRowsRedraw()">عرض المزيد (${fmtNum(list.length - ndwShow)})</button>` : '');
 }
 function ndwRowsRedraw() { const b = document.getElementById('ndwList'); if (b) b.innerHTML = ndwListHtml(); }
@@ -446,8 +453,8 @@ function ndwHtml() {
     const chips = [['order', 'اطلب الآن'], ['soon', 'قريباً'], ['over', 'فائض'], ['wait', 'بانتظار الجرد'], ['all', 'الكل']];
     return `<div class="sd-cards sd-c3"><div><span>اطلب الآن</span><b>${fmtNum(nOrd)}</b></div><div><span>قريباً</span><b>${fmtNum(cnt('soon'))}</b></div><div><span>بانتظار الجرد</span><b>${fmtNum(cnt('wait'))}</b></div></div>
         <details class="nd-set"><summary>ⓘ طريقة الحساب وحدودها</summary><div class="nd-set-b">
-        <div class="nd-hint">كيف يُحسب التقدير:<br>١) الأساس سجل الوارد (مع البونص وبعد خصم المردود) لأن المبيعات غير مسجلة بالكامل.<br>٢) معدل الاستهلاك = ما اشتُري قبل آخر شراء ÷ المدة بين أول وآخر شراء.<br>٣) تدخل المادة إذا اشتُريت 3 مرات على الأقل بمدة 14 يوماً فأكثر.<br>٤) مدة وصول الطلبية ${fmtNum(cfg.lead)} ودورة الطلب ${fmtNum(cfg.rev)} (تُحسبان من سجلات المخزن نفسها).<br>٥) الكمية المقترحة تُحسب للمواد المجرودة فقط، وغير المجرودة تظهر بمعدلها دون اقتراح.</div>
-        <div class="bill-set-hint">حدود هذه الطريقة:<br>• تقيس وتيرة الشراء لا الطلب الفعلي للزبائن.<br>• الشراء الكبير لأجل البونص أو الخصم يرفع التقدير.<br>• نفاد المادة بين مرتين يخفضه.<br>• الرقم داخل الدائرة هو عدد مرات الشراء، وكلما زاد زادت الثقة.<br>• تتحسن الدقة مع تراكم سجل الوارد، وتبقى «من المبيعات» أدق متى سُجلت المبيعات.</div></div></details>
+        <div class="nd-hint">كيف يُحسب التقدير:<br>١) الأساس سجل الوارد (مع البونص وبعد خصم المردود) لأن المبيعات غير مسجلة بالكامل.<br>٢) المواد المجرودة: المستهلك = مجموع الوارد − الرصيد الحالي، ÷ المدة من أول وارد حتى اليوم (14 يوماً فأكثر).<br>٣) غير المجرودة: ما اشتُري قبل آخر شراء ÷ المدة بين أول وآخر شراء (3 مرات شراء فأكثر).<br>يُعدّ رصيد المادة قبل أول وارد مسجل صفراً.<br>٤) مدة وصول الطلبية ${fmtNum(cfg.lead)} ودورة الطلب ${fmtNum(cfg.rev)} (تُحسبان من سجلات المخزن نفسها).<br>٥) الكمية المقترحة تُحسب للمواد المجرودة فقط، وغير المجرودة تظهر بمعدلها دون اقتراح.</div>
+        <div class="bill-set-hint">حدود هذه الطريقة:<br>• قد يقلّ التقدير إن كان لديك رصيد قبل أول وارد مسجل أو وارد غير مسجل.<br>• يعكس الاستهلاك الكلي (بيعاً وتحويلاً وإتلافاً) لا المبيعات وحدها.<br>• الشراء الكبير لأجل البونص أو الخصم يرفع التقدير.<br>• نفاد المادة بين مرتين يخفضه.<br>• الرقم داخل الدائرة هو عدد مرات الشراء، وكلما زاد زادت الثقة.<br>• تتحسن الدقة مع تراكم سجل الوارد، وتبقى «من المبيعات» أدق متى سُجلت المبيعات.</div></div></details>
         ${nOrd ? `<button type="button" class="cn-new" onclick="ndwToList()">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى قائمة النواقص</button>` : ''}
         <div class="cn-chips fu-chips">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndwF === k ? 'on' : ''}" onclick="ndwF='${k}';ndwShow=60;exRender()">${l}</button>`).join('')}</div>
         <div class="fu-q"><input type="search" autocomplete="off" placeholder="ابحث عن مادة لتقدير احتياجها" value="${escapeHtml(ndwQ)}" oninput="ndwQ=this.value;ndwShow=60;ndwRowsRedraw()"></div>
@@ -457,7 +464,9 @@ function ndwDetail(i) {
     const r = ndwRows[i]; if (!r) return; const f = v => fmtNum(Math.round(v * 10) / 10);
     Swal.fire({ title: 'تفاصيل التقدير من الوارد', showConfirmButton: false, showCloseButton: true, html: `<div class="fu-det" dir="rtl">
         <div class="fu-dr"><span>المادة</span><b dir="ltr">${dispNameHtml(r.p)}</b></div>
-        <div class="fu-dr"><span>مرات الشراء</span><b>${fmtNum(r.nEv)} خلال ${fmtNum(r.span)} يوماً</b></div><div class="fu-dr"><span>مجموع الوارد</span><b>${f(r.units)}</b></div>
+        <div class="fu-dr"><span>الطريقة</span><b>${r.method === 'bal' ? 'رصيد الجرد (أثر رجعي)' : 'فترات الشراء'}</b></div>
+        <div class="fu-dr"><span>مرات الشراء</span><b>${fmtNum(r.nEv)} • أولها ${escapeHtml(String(r.first))}</b></div><div class="fu-dr"><span>مجموع الوارد</span><b>${f(r.units)}</b></div>
+        <div class="fu-dr"><span>${r.method === 'bal' ? 'المستهلك (الوارد − الرصيد)' : 'المستهلك قبل آخر شراء'}</span><b>${f(r.consumed)} خلال ${fmtNum(r.span)} يوماً</b></div>
         <div class="fu-dr"><span>آخر شراء</span><b>قبل ${fmtNum(r.since)} يوماً</b></div>
         <div class="fu-dr"><span>الاستهلاك اليومي المقدّر</span><b>${fmtNum(Math.round(r.rate * 100) / 100)}</b></div><div class="fu-dr"><span>الشهري المتوقع</span><b>${f(r.rate * 30)}</b></div>
         <div class="fu-dr"><span>المدى الأسبوعي (ثقة 80%)</span><b>${f(r.w80[0])} – ${f(r.w80[1])}</b></div>
