@@ -725,6 +725,7 @@ async function initFirebase() {
         }
         auth = firebase.auth();
         db = firebase.firestore();
+        try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) { console.warn('settings:', e && e.message); }   // شبكات/مزوّدات تعطّل قناة البث فتعلق الكتابات: يتحول تلقائياً إلى الاستعلام الدوري
         isFirebaseReady = true;
         installUsage();
         try { initSu(); } catch (e) { console.warn('SU:', e && e.message); }
