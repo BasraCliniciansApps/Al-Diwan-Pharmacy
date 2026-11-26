@@ -64,7 +64,7 @@ async function docPublish() {
     d.tx = tx;
     d.upd = Date.now(); d.sig = docSigOf(d);
     try { localStorage.setItem(DOC_LS, JSON.stringify(d)); } catch (e) { /* تجاهل */ }
-    try { if (typeof cloudReady === 'function' && cloudReady() && userRole === 'owner') { await fsSet(db.collection('pharmacy').doc('doctor'), JSON.parse(JSON.stringify(d))); return true; } } catch (e) { console.warn('docPublish', e); }
+    try { if (typeof cloudReady === 'function' && cloudReady() && userRole === 'owner') { const body = JSON.parse(JSON.stringify(d)); window.__docKB = Math.round(JSON.stringify(body).length / 1024); if (window.__docKB > 900) { console.warn('docPublish: الوثيقة كبيرة', window.__docKB); return false; } await fsSet(db.collection('pharmacy').doc('doctor'), body); return true; } } catch (e) { console.warn('docPublish', e); }
     return false;
 }
 function docSaveSoon() { clearTimeout(docPubT); docPubT = setTimeout(docPublish, 700); }

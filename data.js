@@ -472,7 +472,7 @@ function ssState() {
     else if (!online) { tone = 'err'; head = 'بدون إنترنت'; sub = 'تُحفظ العمليات على الجهاز وتُرسل عند عودة الاتصال' + (pend ? ' (' + opsTxt(pend) + ' بانتظار الإرسال)' : ''); }
     else if (syncErrMsg) { tone = 'err'; head = 'تعذّر الحفظ'; sub = escapeHtml(syncErrMsg); }
     else if (window.INV_UNSENT && window.INV_UNSENT.length) { tone = 'err'; head = 'فواتير لم تصل'; sub = fmtNum(window.INV_UNSENT.length) + ' فاتورة محفوظة على هذا الجهاز فقط'; }
-    else if (pend > 0 || startupPending) { tone = 'busy'; head = 'جارٍ الإرسال'; const op = pend ? oldestPend() : null; sub = pend ? opsTxt(pend) + ' بانتظار الإرسال' + (op && op.min >= 2 ? '<br>مضى ' + op.min + ' دقيقة دون تأكيد من السحابة. جرّب «إعادة تشغيل الاتصال».' + (op.src ? '<br><span dir="ltr">' + escapeHtml(op.src) + '</span>' : '') : '') : 'عمليات من جلسة سابقة بانتظار الإرسال'; }
+    else if (pend > 0 || startupPending) { tone = 'busy'; head = 'جارٍ الإرسال'; const op = pend ? oldestPend() : null; sub = pend ? opsTxt(pend) + ' بانتظار الإرسال' + (op && op.min >= 2 ? '<br>مضى ' + op.min + ' دقيقة دون تأكيد من السحابة. جرّب «إعادة تشغيل الاتصال».' + (op.src ? '<br><span dir="ltr">' + escapeHtml(op.src) + (/pharmacy\/doctor/.test(op.src) && window.__docKB ? ' | ' + window.__docKB + ' KB' : '') + '</span>' : '') : '') : 'عمليات من جلسة سابقة بانتظار الإرسال'; }
     return { tone, head, sub, dups, native };
 }
 let ssTimer = null;
