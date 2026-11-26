@@ -5207,3 +5207,9 @@ body.role-staff .home-row7 { display: none !important; }
 .ndw-tabs { display: flex; gap: 2px; padding: 4px; margin: 0 0 10px; background: #eaeef4; border-radius: 14px; }
 .ndw-tabs button { flex: 1; min-height: 42px; padding: 0 2px; border: 0; border-radius: 10px; background: transparent; font: inherit; font-size: .9rem; color: #475569; white-space: nowrap; cursor: pointer; }
 .ndw-tabs button.on { background: #0f1c38; color: #fff; font-weight: 800; }
+
+#puTabs { overflow: visible; }
+#puTabs .pu-seg { flex: 1 1 100%; min-width: 0; display: flex; gap: 2px; padding: 4px; background: #dbe2ec; border-radius: 14px; }
+#puTabs button { flex: 1 1 0; min-width: 0; min-height: 42px; padding: 0 2px; border: 0; border-radius: 10px; background: transparent; color: #475569; font-size: .78rem; font-weight: 700; white-space: nowrap; transform: none; box-shadow: none; }
+#puTabs button.active { background: #0f1c38; color: #fff; font-weight: 800; transform: none; box-shadow: none; }
+#puTabs { -webkit-mask-image: none; mask-image: none; }
