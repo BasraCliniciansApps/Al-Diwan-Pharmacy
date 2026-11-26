@@ -5229,3 +5229,15 @@ body.role-staff .home-row7 { display: none !important; }
 .lg-hub-tx small { font-size: .74rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lg-hub-card .tg { flex: none; }
 .lg-hub-ch { flex: none; color: #94a3b8; font-size: 1.4rem; line-height: 1; }
+
+.ndw-tb { display: flex; gap: 8px; margin: 0 0 8px; }
+.ndw-tb input { flex: 1; min-width: 0; height: 42px; border: 1px solid #cbd5e1; border-radius: 12px; padding: 0 12px; font: inherit; font-size: .9rem; background: #fff; box-sizing: border-box; }
+.ndw-ib { flex: none; width: 42px; height: 42px; border: 1px solid #cbd5e1; border-radius: 12px; background: #fff; color: #334155; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+.ndw-menu { display: grid; gap: 8px; }
+.ndw-menu .ln-btn { width: 100%; min-height: 46px; }
+.ndw-bar { position: sticky; bottom: 8px; z-index: 5; padding: 8px 0 0; }
+.ndw-bar .cn-new { margin: 0; box-shadow: 0 6px 18px rgba(15, 28, 56, .25); }
+.ndw-cv { height: 4px; margin-top: 7px; border-radius: 2px; background: #e5e9f0; overflow: hidden; }
+.ndw-cv i { display: block; height: 100%; border-radius: 2px; }
+.ndw-idle { width: 100%; min-height: 44px; margin: 8px 0; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; border: 1px dashed #b6c1d1; border-radius: 12px; background: #f4f6fa; color: #334155; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; }
+#exBox .ndw-rw { padding-top: 9px; padding-bottom: 9px; }
