@@ -306,7 +306,7 @@ function ndmPattern(adi, cv2) { return adi < 1.32 ? (cv2 < 0.49 ? ['منتظم',
 // ---------- الصلاحية في تقدير الاحتياج ----------
 // المنتهية لا تُحتسب من المتوفر. القريبة: ضمن أقصر مدة تنبيه (شهر افتراضياً). المهدّدة بالتلف: كمية لن تُباع قبل نفاذ دفعتها بمعدل الاستهلاك المقدّر (الأقدم نفاذاً يُباع أولاً).
 function ndxExpiry(p, rate) {
-    const out = { expired: 0, nearBoxes: 0, nearDays: null, risk: 0, riskY: 0, riskDays: null, flag: false };
+    const out = { expired: 0, nearBoxes: 0, nearDays: null, risk: 0, riskY: 0, riskDays: null, batches: [], flag: false };
     try {
         const sc = btSc(p), nearD = (alertMonths[0] || 1) * 30, riskD = (alertMonths[2] || 6) * 30; let cum = 0;
         getBatches(p).filter(b => b.e).forEach(b => {
@@ -315,7 +315,8 @@ function ndxExpiry(p, rate) {
             if (d <= nearD) { out.nearBoxes += boxes; out.nearDays = out.nearDays === null ? d : Math.min(out.nearDays, d); }
             const w = Math.max(0, boxes - Math.max(0, rate * d - cum));
             if (d <= riskD) out.risk += w;
-            if (d <= 365) { out.riskY += w; if (w > 0.5) out.riskDays = out.riskDays === null ? d : Math.min(out.riskDays, d); }   // أفق سنة للخانة الحمراء في الخلاصة
+            out.riskY += w; if (w > 0.5) out.riskDays = out.riskDays === null ? d : Math.min(out.riskDays, d);   // بلا أفق: كل دفعة تُقارَن بما يُتوقع بيعه حتى نفاذها
+            out.batches.push({ e: b.e, d, boxes, sold: boxes - w, waste: w });
             cum += boxes;
         });
         out.flag = out.expired > 0 || out.nearBoxes > 0 || out.risk > 0.5;
@@ -754,7 +755,7 @@ function ndwSumHtml(r) {
     }
     const per = ndwPer.n + ' ' + (ndwPer.u === 1 ? 'يوم' : ndwPer.u === 7 ? 'أسبوع' : 'شهر');
     const ord = c.buy === null ? tile('اطلب هذا العدد', '—', 'أدخل الرصيد الحالي في القسم أدناه', 'wide') : tile('اطلب هذا العدد', fmtNum(c.buy) + ' علبة', 'لتغطية ' + per + (ndwPer.ss ? ' مع مخزون أمان' : ''), 'wide ok');
-    const rk = r.ex && r.ex.riskY > 0.5 ? tile('قد يتلف قبل بيعه (خلال سنة)', f(r.ex.riskY) + ' علبة', (r.ex.riskDays ? 'أقرب نفاذ بعد ' + fmtNum(r.ex.riskDays) + ' يوماً • ' : '') + 'يُنصح بمناقلتها', 'wide bad') : '';
+    const rk = r.ex && r.ex.riskY > 0.5 ? tile('قد يتلف قبل بيعه', f(r.ex.riskY) + ' علبة', (r.ex.riskDays ? 'أقرب نفاذ بعد ' + fmtNum(r.ex.riskDays) + ' يوماً • ' : '') + 'يُنصح بمناقلتها', 'wide bad') : '';
     return `<div class="ndw-k">${rk}${tile('الاحتياج الشهري', f(r.rate * 30) + ' علبة')}${tile('الاحتياج السنوي', f(r.rate * 365) + ' علبة')}${ord}${tile('تنفد الكمية الحالية بتاريخ', run, runSub)}${tile('تغطي الكمية الحالية', cov, covSub)}</div>`
         + (c.buy > 0 ? '<button type="button" class="cn-new" style="margin-top:10px" onclick="ndwAddOne()">إضافة ' + fmtNum(c.buy) + ' إلى قائمة النواقص</button>' : '');
 }
@@ -775,6 +776,7 @@ function ndwDetBody(r) {
     const ivRows = r.ev.map((e, k) => { const nx = r.ev[k + 1], g = ndmDays(e.d, nx ? nx.d : todayLocalISO()); return `<tr><td>${fmtDateDMY(e.d)}${nx ? '' : ' <em>(جارية)</em>'}</td><td>${fmtNum(g)} يوماً</td><td>${f(e.u)}</td><td>${nx ? f(g > 0 ? e.u / g * 7 : 0) : '—'}</td></tr>`; }).join('');
     const ivs = `<table class="ndw-t"><thead><tr><th>بداية الفترة</th><th>المدة</th><th>الوارد</th><th>السحب أسبوعياً</th></tr></thead><tbody>${ivRows}</tbody></table>` + dr('الرصيد الآن', f(r.stock));
     const supB = (r.sups && r.sups.length) ? `<table class="ndw-t"><thead><tr><th>المذخر</th><th>آخر سعر</th><th>آخر شراء</th><th>المرات</th></tr></thead><tbody>${r.sups.map(x => `<tr><td>${escapeHtml(x.name)}${x.name === r.sup ? ' <em>(المقترح)</em>' : ''}</td><td>${x.cost > 0 ? fmtNum(x.cost) : '—'}</td><td>${fmtDateDMY(x.last)}</td><td>${fmtNum(x.n)}</td></tr>`).join('')}</tbody></table><div class="cn-chips fu-chips" style="padding:8px 0 0;flex-wrap:wrap">${r.sups.map(x => `<button type="button" class="cn-chip ${x.name === r.sup ? 'on' : ''}" data-s="${escapeHtml(x.name)}" onclick="ndwSupChoose(${r.p.id},this.dataset.s)">اطلب من ${escapeHtml(x.name)}</button>`).join('')}</div><small>المقترح هو الأرخص بآخر سعر، وإلا الأكثر شراءً منه.</small>` : '<small>لا يوجد مذخر مسجل في وارد هذه المادة.</small>';
+    const bt = r.ex && r.ex.batches ? r.ex.batches : [], expB = bt.length ? `<table class="ndw-t"><thead><tr><th>تاريخ النفاذ</th><th>الكمية</th><th>يُباع قبله</th><th>يتلف</th></tr></thead><tbody>${bt.map(x => `<tr><td>${x.e.slice(5, 7)}/${x.e.slice(0, 4)}</td><td>${f(x.boxes)}</td><td>${f(x.sold)}</td><td style="${x.waste > 0.5 ? 'color:#b91c1c;font-weight:700' : ''}">${f(x.waste)}</td></tr>`).join('')}</tbody></table><small>تُباع الدفعة الأقدم نفاذاً أولاً بمعدل الاستهلاك المقدّر، وهو تقدير تقريبي كلما بعد تاريخ النفاذ.</small>` : '<small>لا توجد دفعات بتواريخ نفاذ مسجلة لهذه المادة.</small>';
     const calcIn = dr('الطريقة', r.method === 'bal' ? 'رصيد الجرد (أثر رجعي)' : r.method === 'int' ? 'فترات الشراء' : 'غير كافية') + (r.method === 'none' ? '' : dr(r.method === 'bal' ? 'المستهلك (الوارد − الرصيد)' : 'المستهلك قبل آخر شراء', f(r.consumed) + ' خلال ' + fmtNum(r.span) + ' يوماً') + dr('الاستهلاك اليومي المقدّر', fmtNum(Math.round(r.rate * 100) / 100)) + dr('الشهري المتوقع', f(r.rate * 30)) + dr('المدى الأسبوعي (ثقة 80%)', f(r.w80[0]) + ' – ' + f(r.w80[1])))
         + dr('مرات الشراء', fmtNum(r.nEv) + ' • أولها ' + fmtDateDMY(r.first)) + dr('مجموع الوارد', f(r.units)) + dr('آخر شراء', 'قبل ' + fmtNum(r.since) + ' يوماً') + dr('المتوفر', f(r.stock)) + (r.ord ? dr('قيد الطلب', f(r.ord)) : '') + ndxDetailRows(r.ex)
         + (r.method === 'none' ? '' : dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', r.counted ? fmtNum(r.sug) : '—')) + (r.minQ ? dr('الحد الأدنى (من بطاقة المادة)', fmtNum(r.minQ)) : '') + dr('درجة الثقة', r.conf);
@@ -783,7 +785,7 @@ function ndwDetBody(r) {
         + dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', fmtNum(r.sug)) + (r.minQ ? dr('الحد الأدنى (من بطاقة المادة)', fmtNum(r.minQ)) : '') + dr('جودة البيانات', r.conf);
     const calc = S ? calcS : calcIn;
     return `<div class="ndw-h" dir="ltr">${dispNameHtml(r.p)}</div>${ndxTag(r.ex)}`
-        + sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + (S ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + sec('plan', 'توريد مخطط', plan) + sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r)) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc);
+        + sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + (S ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + sec('plan', 'توريد مخطط', plan) + sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r)) + sec('exp', 'الصلاحية والدفعات', expB) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc);
 }
 function ndwToList(src) {
     const rows = (src === 's' ? ndmRows : ndwRows).filter(r => r.status === 'order' && r.sug > 0 && (!ndwSup || r.sup === ndwSup)); if (!rows.length) return;
