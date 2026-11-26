@@ -372,61 +372,54 @@ function ndmCalc() {
         let sdw; if (wk.length >= 3) { const mw = wk.reduce((a, b) => a + b, 0) / wk.length; sdw = Math.sqrt(wk.reduce((a, b) => a + (b - mw) * (b - mw), 0) / (wk.length - 1)); } else sdw = Math.sqrt(Math.max(rate * 7, 0));
         const mw = rate * 7, ci = { w80: [Math.max(0, mw - 1.28 * sdw), mw + 1.28 * sdw], w95: [Math.max(0, mw - 1.96 * sdw), mw + 1.96 * sdw], m80: [Math.max(0, rate * 30 - 1.28 * sdw * Math.sqrt(30 / 7)), rate * 30 + 1.28 * sdw * Math.sqrt(30 / 7)], m95: [Math.max(0, rate * 30 - 1.96 * sdw * Math.sqrt(30 / 7)), rate * 30 + 1.96 * sdw * Math.sqrt(30 / 7)] };
         const cls = abc.get(pid) || 'C', T = cfg.lead + cfg.rev, ss = Z[cls] * sdw * Math.sqrt(T / 7), rop = rate * cfg.lead + ss, tgt = rate * T + ss, ex = ndxExpiry(p, rate), pos = stock - ex.expired + (onOrd.get(pid) || 0);
-        const status = pos <= rop ? 'order' : pos <= rop + rate * cfg.rev ? 'soon' : (rate > 0 && pos > Math.max(tgt + rate * 30, rate * ndOverDays())) ? 'over' : 'ok';
-        rows.push({ p, ex, ci, wks: wk.length, cls, pat, rate, stock, ord: onOrd.get(pid) || 0, ss, rop, tgt, status, sug: Math.max(0, Math.ceil(tgt - pos - 1e-9)), cover: rate > 0 ? stock / rate : null, nz: nz.length, n, miss: [...mm.values()].reduce((a, b) => a + b, 0), conf: nz.length >= 8 ? 'جيدة' : nz.length >= 4 ? 'متوسطة' : 'ضعيفة' });
+        const st0 = ndwSet(), mq = parseInt(p.minQty), hasMin = isFinite(mq) && mq > 0, cover = rate > 0 ? pos / rate : null, rare = rate * 30 < 1 && !hasMin;
+        const status = (hasMin && pos <= mq) ? 'order' : rare ? 'rare' : (cover !== null && cover <= st0.urgent) ? 'order' : (cover !== null && cover > ndOverDays()) ? 'over' : 'ok';
+        const sold = x.reduce((a, b) => a + b, 0), sdc = Math.min(sdw, Math.sqrt(Math.max(rate * 7, 0) * 3));   // تشتت أسبوعي لا يتجاوز نموذج بواسون المتشتت (φ≤3)
+        rows.push({ src: 's', method: 'sales', counted: true, manual: false, p, ex, ci, wks: wk.length, cls, pat, rate, stock, ord: onOrd.get(pid) || 0, ss: Z[cls] * sdc * Math.sqrt(T / 7), rop: rate * cfg.lead + Z[cls] * sdc * Math.sqrt(T / 7), tgt: rate * T + Z[cls] * sdc * Math.sqrt(T / 7), sdw: sdc, status, sug: Math.max(0, Math.ceil(Math.max(rate * st0.target, hasMin ? mq : 0) - pos - 1e-9)), minQ: hasMin ? mq : 0, cover, pos, nz: nz.length, n, x, st, miss: [...mm.values()].reduce((a, b) => a + b, 0), conf: nz.length >= 8 ? 'جيدة' : nz.length >= 4 ? 'متوسطة' : 'منخفضة', consumed: sold, demand: sold, span: n, ev: [], first: first, last, since: ndmDays(last, today), units: sold, nEv: nz.length, nsE: 0, nsO: 0, w80: ci.w80, sups: [], sup: '' });
     });
-    const ord = { order: 0, soon: 1, ok: 2, over: 3 };
+    const ord = { order: 0, ok: 1, over: 2, rare: 3 }, sm = ndwSupMap();
+    rows.forEach(r => { r.sups = sm.get(r.p.id) || []; r.sup = ndwSupPick(r.sups, r.p.id); });
     return { cfg, rows: rows.sort((a, b) => ord[a.status] - ord[b.status] || (a.cover == null ? 1e9 : a.cover) - (b.cover == null ? 1e9 : b.cover)) };
-}
-const NDM_ST = { order: ['اطلب الآن', 'bad'], soon: ['قريباً', 'wb'], ok: ['كافٍ', 'ok'], over: ['فائض', ''] };
-function ndmRow(r, i) {
-    const st = NDM_ST[r.status], wk = Math.round(r.rate * 70) / 10;
-    return `<div class="cu-row fu-row" onclick="ndmDetail(${i})"><div class="cu-av fu-av ${r.cls === 'A' ? 'ok' : r.cls === 'B' ? 'wb' : ''}">${r.cls}</div>
-        <div><b dir="ltr">${dispNameHtml(r.p)}</b><small>${r.pat[0]} • الطلب ${fmtNum(wk)} علبة/أسبوع (${fmtNum(Math.round(r.ci.w80[0]))}–${fmtNum(Math.round(r.ci.w80[1]))}) • المتوفر ${fmtNum(Math.round(r.stock * 10) / 10)}${r.ord ? ' + قيد الطلب ' + fmtNum(r.ord) : ''}</small><small>${r.cover == null ? '' : 'يكفي ' + (r.cover < 1 ? 'أقل من يوم' : fmtNum(Math.floor(r.cover)) + ' يوماً')} • البيانات ${r.conf}</small>${ndxTag(r.ex)}</div>
-        <div class="fu-st ${st[1]}">${r.status === 'order' || r.status === 'soon' ? (r.sug ? 'اطلب ' + fmtNum(r.sug) : st[0]) : st[0]}</div></div>`;
 }
 let ndmRows = [];
 function ndmHtml() {
-    const c = ndmCalc(); ndmRows = c.rows; const cfg = c.cfg, cnt = k => c.rows.filter(r => r.status === k).length;
-    const opt = (arr, cur, f) => arr.map(x => `<option value="${x}" ${x === cur ? 'selected' : ''}>${f(x)}</option>`).join('');
-    const chips = [['order', 'اطلب الآن'], ['soon', 'قريباً'], ['over', 'فائض'], ['exp', 'نفاذ قريب (' + fmtNum(c.rows.filter(r => r.ex && r.ex.flag).length) + ')'], ['all', 'الكل']];
-    const nOrd = cnt('order');
-    return `<div class="sd-cards sd-c3"><div><span>اطلب الآن</span><b>${fmtNum(nOrd)}</b></div><div><span>قريباً</span><b>${fmtNum(cnt('soon'))}</b></div><div><span>فائض</span><b>${fmtNum(cnt('over'))}</b></div></div>
-        <details class="nd-set"><summary>ⓘ طريقة الحساب والقيم المستخدمة</summary><div class="nd-set-b">${ndOverRow()}
-        <div class="bill-set-hint">القيم التالية تُحسب تلقائياً من سجل المخزن، ولا تحتاج إدخالاً:<br>مدة وصول الطلبية: ${fmtNum(cfg.lead)} ${cfg.lead === 1 ? 'يوم' : 'أيام'} ${cfg.leadAuto ? '(من ' + fmtNum(cfg.nLead) + ' طلبية)' : '(قيمة افتراضية لعدم كفاية الطلبيات المسجّلة)'}<br>دورة الطلب: ${fmtNum(cfg.rev)} ${cfg.rev === 1 ? 'يوم' : 'أيام'} ${cfg.revAuto ? '(من ' + fmtNum(cfg.nRev + 1) + ' وارداً)' : '(قيمة افتراضية لعدم كفاية الواردات)'}<br>مدة قياس المبيعات: 12 أسبوعاً</div>
-        <div class="nd-hint">كيف يُحسب التقدير:<br>١) الأساس هو المبيعات الفعلية (الصادر)، لا الوارد، لأن الوارد يعكس قرارات الشراء وليس حاجة الزبائن.<br>٢) لا تُحتسب أيام نفاد المادة ضمن الطلب، ويُضاف إليه ما سُجّل في «المطلوبة وغير المتوفرة».<br>٣) يُصنَّف نمط الطلب (منتظم، متذبذب، متقطع، كتلي) بمؤشرَي ADI وCV².<br>٤) للمنتظم والمتذبذب: متوسط يوزن بالحداثة، وللمتقطع والكتلي: طريقة Croston بتصحيح SBA.<br>٥) مخزون الأمان بحسب فئة المادة بالإيراد: A بمستوى خدمة 98%، وB بمستوى 95%، وC بمستوى 90%.<br>٦) نقطة إعادة الطلب = الطلب خلال مدة الوصول + مخزون الأمان، والكمية المقترحة تصل بالمخزون إلى الطلب خلال (مدة الوصول + دورة الطلب) + الأمان، مطروحاً منها المتوفر وما هو قيد الطلب.<br>٧) البيانات القليلة تعطي تقديراً ضعيفاً، ولا يحسب النموذج الموسمية لأن مدة القياس قصيرة.<br>٨) الرقم بين قوسين بجانب الطلب الأسبوعي هو المدى المتوقع بثقة 80%، أي أن الأسبوع القادم يقع غالباً ضمنه.</div></div></details>
-        ${nOrd ? `<button type="button" class="cn-new" onclick="ndmToList()">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى قائمة النواقص</button>` : ''}
-        <div class="cn-chips fu-chips">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndmF === k ? 'on' : ''}" onclick="ndmF='${k}';ndmShow=60;exRender()">${l}</button>`).join('')}</div>
-        <div class="fu-q"><input type="search" autocomplete="off" placeholder="ابحث عن مادة لتقدير احتياجها" value="${escapeHtml(ndmQ)}" oninput="ndmQ=this.value;ndmShow=60;ndmRowsRedraw()"></div>
+    const c = ndmCalc(); ndmRows = c.rows; const cfg = c.cfg, cnt = k => c.rows.filter(r => r.status === k).length, vis = c.rows.filter(r => !ndwSup || r.sup === ndwSup), nOrd = vis.filter(r => r.status === 'order' && r.sug > 0).length;
+    const chips = [['order', 'اطلب الآن'], ['over', 'زائد'], ['rare', 'حسب الطلب'], ['exp', 'نفاذ قريب (' + fmtNum(c.rows.filter(r => r.ex && r.ex.flag).length) + ')'], ['all', 'الكل']];
+    const tops = ndwTopSups(3), supChips = tops.length ? `<div class="cn-chips fu-chips"><button type="button" class="cn-chip ${ndwSup === '' ? 'on' : ''}" onclick="ndwSup='';ndmShow=60;exRender()">كل المذاخر</button>${tops.map((n, k) => `<button type="button" class="cn-chip ${ndwSup === n ? 'on' : ''}" onclick="ndwSupSel(${k})">${escapeHtml(n)}</button>`).join('')}</div>` : '';
+    return `<div class="sd-cards sd-c3"><div><span>اطلب الآن</span><b>${fmtNum(cnt('order'))}</b></div><div><span>زائد</span><b>${fmtNum(cnt('over'))}</b></div><div><span>حسب الطلب</span><b>${fmtNum(cnt('rare'))}</b></div></div>
+        <div class="ndw-acts"><button type="button" class="ln-btn" onclick="ndwSupSheet('s')">الطلب حسب المذخر</button><button type="button" class="ln-btn" onclick="ndwOfferMode('s')">تقييم عرض مندوب</button></div>
+        <details class="nd-set"><summary>الإعدادات وطريقة الحساب</summary><div class="nd-set-b">${ndwSetRows()}
+        <div class="nd-hint">طريقة الحساب:<br>• الأساس المبيعات الفعلية (الصادر) خلال آخر 12 أسبوعاً، لا الوارد.<br>• لا تُحتسب أيام نفاد المادة ضمن الطلب، ويُضاف ما سُجّل في «المطلوبة وغير المتوفرة».<br>• يُصنَّف نمط الطلب (منتظم، متذبذب، متقطع، كتلي) ويُختار نموذج مناسب له.<br>• الكمية المقترحة تغطي «مدة الهدف» بعد خصم المتوفر وما قيد الطلب.<br>• الحد الأدنى المسجل في بطاقة المادة يُعتمد إن وُجد.<br>• المادة التي تقل مبيعاتها عن علبة شهرياً تُصنَّف «حسب الطلب» ولا يُقترح لها شراء.<br>• المذخر المقترح هو الأرخص بآخر سعر شراء، وإلا الأكثر شراءً منه.<br>• مدة وصول الطلبية ${fmtNum(cfg.lead)} ${cfg.lead === 1 ? 'يوم' : 'أيام'} ودورة الطلب ${fmtNum(cfg.rev)} ${cfg.rev === 1 ? 'يوم' : 'أيام'} (تلقائياً من سجل المخزن).</div>
+        <div class="bill-set-hint">حدود هذه الطريقة:<br>• دقتها مرتبطة باكتمال تسجيل فواتير البيع.<br>• المواد التي لم تُسجَّل لها مبيعات خلال المدة لا تظهر هنا.<br>• الموسمية لا تُرصد قبل مرور سنة من البيانات.</div></div></details>
+        ${nOrd ? `<button type="button" class="cn-new" onclick="ndwToList('s')">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى قائمة النواقص</button>` : ''}
+        <div class="cn-chips fu-chips">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndmF === k ? 'on' : ''}" onclick="ndmF='${k}';ndmShow=60;exRender()">${l}</button>`).join('')}</div>${supChips}
+        <div class="fu-q"><input type="search" id="ndmSearch" autocomplete="off" placeholder="ابحث عن مادة لتقدير احتياجها" value="${escapeHtml(ndmQ)}" oninput="ndmQ=this.value;ndmShow=60;ndmRowsRedraw()"></div>
         <div id="ndmList">${ndmListHtml()}</div>`;
 }
 function ndmListHtml() {
     const q = ndmQ ? normSearch(ndmQ) : '', toks = q ? q.split(' ') : [];
-    const list = ndmRows.map((r, i) => [r, i]).filter(([r]) => q ? searchScore(r.p, q, toks) > 0 : (ndmF === 'all' || (ndmF === 'exp' ? r.ex && r.ex.flag : r.status === ndmF)));
-    return (list.slice(0, ndmShow).map(([r, i]) => ndmRow(r, i)).join('') || `<div class="cu-none">${q ? 'لا توجد مبيعات مسجلة لهذه المادة خلال المدة، فلا يمكن تقدير احتياجها.' : 'لا توجد مواد في هذا التصنيف.'}</div>`)
+    const list = ndmRows.map((r, i) => [r, i]).filter(([r]) => q ? searchScore(r.p, q, toks) > 0 : ((!ndwSup || r.sup === ndwSup) && (ndmF === 'all' || (ndmF === 'exp' ? r.ex && r.ex.flag : r.status === ndmF))));
+    return (list.slice(0, ndmShow).map(([r, i]) => ndwRow(r, i, 'ndmDetail')).join('') || `<div class="cu-none">${q ? 'لا توجد مبيعات مسجلة لهذه المادة خلال المدة، فلا يمكن تقدير احتياجها.' : 'لا توجد مواد في هذا التصنيف.'}</div>`)
         + (list.length > ndmShow ? `<button type="button" class="ex-cat" onclick="ndmShow+=60;ndmRowsRedraw()">عرض المزيد (${fmtNum(list.length - ndmShow)})</button>` : '');
 }
 function ndmRowsRedraw() { const b = document.getElementById('ndmList'); if (b) b.innerHTML = ndmListHtml(); }
 function ndmDetail(i) {
-    const r = ndmRows[i]; if (!r) return; const f = v => fmtNum(Math.round(v * 10) / 10);
-    Swal.fire({ title: 'تفاصيل التقدير', showConfirmButton: false, showCloseButton: true, html: `<div class="fu-det" dir="rtl">
-        <div class="fu-dr"><span>المادة</span><b dir="ltr">${dispNameHtml(r.p)}</b></div>
-        <div class="fu-dr"><span>فئة الإيراد</span><b>${r.cls}</b></div><div class="fu-dr"><span>نمط الطلب</span><b>${r.pat[0]}</b></div>
-        <div class="fu-dr"><span>الطلب اليومي المقدّر</span><b>${fmtNum(Math.round(r.rate * 100) / 100)}</b></div><div class="fu-dr"><span>الطلب الشهري المتوقع</span><b>${f(r.rate * 30)}</b></div>
-        <div class="fu-dr"><span>المدى الأسبوعي (ثقة 80%)</span><b>${f(r.ci.w80[0])} – ${f(r.ci.w80[1])}</b></div><div class="fu-dr"><span>المدى الأسبوعي (ثقة 95%)</span><b>${f(r.ci.w95[0])} – ${f(r.ci.w95[1])}</b></div>
-        <div class="fu-dr"><span>المدى الشهري (ثقة 80%)</span><b>${f(r.ci.m80[0])} – ${f(r.ci.m80[1])}</b></div><div class="fu-dr"><span>المدى الشهري (ثقة 95%)</span><b>${f(r.ci.m95[0])} – ${f(r.ci.m95[1])}</b></div>
-        <div class="fu-dr"><span>المتوفر</span><b>${f(r.stock)}</b></div>${r.ord ? `<div class="fu-dr"><span>قيد الطلب</span><b>${f(r.ord)}</b></div>` : ''}
-        ${ndxDetailRows(r.ex)}<div class="fu-dr"><span>مخزون الأمان</span><b>${f(r.ss)}</b></div><div class="fu-dr"><span>نقطة إعادة الطلب</span><b>${f(r.rop)}</b></div>
-        <div class="fu-dr"><span>المستوى المستهدف</span><b>${f(r.tgt)}</b></div><div class="fu-dr"><span>الكمية المقترحة</span><b>${fmtNum(r.sug)}</b></div>
-        <div class="fu-dr"><span>أيام فيها بيع</span><b>${fmtNum(r.nz)} من ${fmtNum(r.n)}</b></div>${r.miss ? `<div class="fu-dr"><span>طلبات غير ملبّاة</span><b>${fmtNum(r.miss)}</b></div>` : ''}
-        <div class="fu-dr"><span>جودة البيانات</span><b>${r.conf}</b></div></div>` });
+    const r = ndmRows[i]; if (!r) return;
+    ndwSrc = 's'; ndwCur = r.p.id; if (ndwOffer) { ndwOffer = false; ndwOpenSec = { plan: true }; }
+    Swal.fire({ title: 'تقدير الاحتياج من المبيعات', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div id="ndwDet" class="fu-det" dir="rtl" style="text-align:right">${ndwDetBody(r)}</div>` });
 }
-function ndmToList() {
-    const rows = ndmRows.filter(r => r.status === 'order' && r.sug > 0); if (!rows.length) return;
-    if (typeof ndState !== 'function') return;
-    const st = ndState(); rows.forEach(r => { delete st.off[r.p.id]; delete st.ordered[r.p.id]; if (!st.extra.includes(r.p.id)) st.extra.push(r.p.id); st.qty[r.p.id] = r.sug; }); ndSave(st);
-    Swal.fire({ icon: 'success', title: 'أُضيفت ' + fmtNum(rows.length) + ' مادة إلى «قائمتي» في النواقص والطلبية', toast: true, position: 'bottom', showConfirmButton: false, timer: 2600 });
-    try { ndBadge(); } catch (e) { /* تجاهل */ }
+// رسم المبيعات الأسبوعية: أعمدة أسبوعية + خط المتوسط المقدّر، مع محور تواريخ وشبكة
+function ndmChartSvg(r) {
+    const wk = [], n = r.x.length; for (let e = n; e > 0; e -= 7) wk.unshift({ d: sdAdd(r.st, Math.max(0, e - 7)), v: r.x.slice(Math.max(0, e - 7), e).reduce((a, b) => a + b, 0), len: Math.min(7, e) });
+    const avg = r.rate * 7, raw = Math.max(1, avg, ...wk.map(w => w.v)), mag = Math.pow(10, Math.floor(Math.log10(raw))), ym = [1, 2, 2.5, 5, 10].map(k => k * mag).find(v => v >= raw * 1.05) || raw * 1.1;
+    const W = 360, H = 210, L = 36, R = 12, Tp = 18, B = 34, k = wk.length, bw = Math.min(26, (W - L - R) / Math.max(1, k) * 0.7), x = i => L + (i + 0.5) / k * (W - L - R), y = v => Tp + (1 - v / ym) * (H - Tp - B), base = y(0), dm = iso => iso.slice(8, 10) + '/' + iso.slice(5, 7);
+    const every = Math.max(1, Math.ceil(k / 6));
+    return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;max-width:100%;direction:ltr" role="img" aria-label="المبيعات الأسبوعية" font-family="inherit">
+        ${[0, .25, .5, .75, 1].map(q => `<line x1="${L}" y1="${y(ym * q).toFixed(1)}" x2="${W - R}" y2="${y(ym * q).toFixed(1)}" stroke="${q === 0 ? '#94a3b8' : '#e2e8f0'}" ${q === 0 ? '' : 'stroke-dasharray="3 3"'}/><text x="${L - 5}" y="${(y(ym * q) + 3).toFixed(1)}" font-size="9" fill="#64748b" text-anchor="end">${fmtNum(Math.round(ym * q * 10) / 10)}</text>`).join('')}
+        <text x="${L}" y="${Tp - 6}" font-size="9" fill="#64748b">علبة أسبوعياً</text>
+        ${wk.map((w, i) => `<rect x="${(x(i) - bw / 2).toFixed(1)}" y="${y(w.v).toFixed(1)}" width="${bw.toFixed(1)}" height="${(base - y(w.v)).toFixed(1)}" rx="2" fill="#0f766e" opacity=".85"/>${i % every === 0 ? `<line x1="${x(i).toFixed(1)}" y1="${base}" x2="${x(i).toFixed(1)}" y2="${base + 4}" stroke="#94a3b8"/><text x="${x(i).toFixed(1)}" y="${base + 16}" font-size="9" fill="#64748b" text-anchor="middle">${dm(w.d)}</text>` : ''}`).join('')}
+        <line x1="${L}" y1="${y(avg).toFixed(1)}" x2="${W - R}" y2="${y(avg).toFixed(1)}" stroke="#b45309" stroke-width="1.6" stroke-dasharray="4 3"/></svg>
+        <div class="ndw-lg"><span><i style="background:#0f766e"></i>المبيعات الأسبوعية</span><span><i style="background:#b45309"></i>المتوسط المقدّر ${fmtNum(Math.round(avg * 10) / 10)}</span></div>`;
 }
 
 
@@ -436,7 +429,7 @@ function ndmToList() {
 // مجموع ما اشتُري قبل آخر شراء ÷ المدة بين أول وآخر شراء. تحتاج المادة 3 مرات شراء بمدة 14 يوماً فأكثر.
 // ثم تُقارن نقطة إعادة الطلب بالرصيد المجرود (والمواد غير المجرودة تُعرض بمعدلها فقط).
 // ============================================================================
-let ndwF = 'order', ndwSup = '', ndwOffer = false, ndwGrp = [], ndwShow = 60, ndwQ = '', ndwRows = [], ndwCur = null, ndwOpenSec = { sum: true, need: true };
+let ndwSrc = 'i', ndwF = 'order', ndwSup = '', ndwOffer = false, ndwGrp = [], ndwShow = 60, ndwQ = '', ndwRows = [], ndwCur = null, ndwOpenSec = { sum: true, need: true };
 let ndwPer = (() => { try { const o = JSON.parse(localStorage.getItem('diwanNdwPer')); if (o && o.n > 0 && o.u > 0) return o; } catch (e) { /* تجاهل */ } return { n: 1, u: 30, ss: true }; })();
 const ndwManualMap = () => { try { return JSON.parse(localStorage.getItem('diwanNdwManual')) || {}; } catch (e) { return {}; } };   // أرصدة يدوية للحساب فقط (لا تُسجَّل في الجرد)
 const ndwManualSave = m => { try { localStorage.setItem('diwanNdwManual', JSON.stringify(m)); } catch (e) { /* تجاهل */ } };
@@ -528,12 +521,13 @@ function ndwCalc() {
     rows.forEach(r => { r.sups = sm.get(r.p.id) || []; r.sup = ndwSupPick(r.sups, r.p.id); });
     return { cfg, rows: rows.sort((a, b) => ord[a.status] - ord[b.status] || (a.rate > 0 ? a.stock / a.rate : 1e9) - (b.rate > 0 ? b.stock / b.rate : 1e9)) };
 }
+const ndwFind = pid => (ndwSrc === 's' ? ndmRows : ndwRows).find(x => x.p.id === pid);
 function ndwCoverTxt(d) { return d === null || d === undefined ? 'بلا استهلاك' : d < 1 ? 'أقل من يوم' : d < 60 ? fmtNum(Math.floor(d)) + ' يوماً' : d < 365 ? fmtNum(Math.round(d / 30 * 10) / 10) + ' شهر' : 'أكثر من سنة'; }
-function ndwRow(r, i) {
+function ndwRow(r, i, fn) {
     const st = NDW_ST[r.status], mo = r.rate * 30, f = v => fmtNum(v >= 10 ? Math.round(v) : Math.round(v * 10) / 10);
     const l2 = r.status === 'low' ? 'بيانات غير كافية • افتح المادة لإدخال الرصيد' : 'الشهري ' + f(mo) + ' • ' + (r.counted ? 'يكفي ' + ndwCoverTxt(r.cover) : 'غير مجرودة');
     const tags = (r.conf === 'منخفضة' && r.status !== 'low' ? '<small class="ndw-tg">تقدير أولي لقلة البيانات</small>' : '') + ndxTag(r.ex);
-    return `<div class="cu-row fu-row ndw-rw" onclick="ndwDetail(${i})"><div><b dir="ltr">${dispNameHtml(r.p)}</b><small class="ndw-l2">${l2}</small>${tags}</div>
+    return `<div class="cu-row fu-row ndw-rw" onclick="${fn || 'ndwDetail'}(${i})"><div><b dir="ltr">${dispNameHtml(r.p)}</b><small class="ndw-l2">${l2}</small>${tags}</div>
         <div class="fu-st ${st[1]}">${r.status === 'order' && r.sug ? 'اطلب ' + fmtNum(r.sug) : st[0]}</div></div>`;
 }
 function ndwListHtml() {
@@ -558,13 +552,13 @@ function ndwHtml() {
         <div id="ndwList">${ndwListHtml()}</div>`;
 }
 function ndwSupSel(k) { ndwSup = ndwTopSups(3)[k] || ''; ndwShow = 60; exRender(); }
-function ndwOfferMode() {
-    ndwOffer = true; const el = document.getElementById('ndwSearch'); if (el) { el.focus(); try { el.scrollIntoView({ block: 'center' }); } catch (e) { /* تجاهل */ } }
+function ndwOfferMode(src) {
+    ndwOffer = true; const el = document.getElementById(src === 's' ? 'ndmSearch' : 'ndwSearch'); if (el) { el.focus(); try { el.scrollIntoView({ block: 'center' }); } catch (e) { /* تجاهل */ } }
     Swal.fire({ icon: 'info', title: 'تقييم عرض مندوب', text: 'ابحث عن المادة في خانة البحث ثم اختر نتيجتها، وستُفتح مباشرة على «توريد مخطط».', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' });
 }
 // تجميع الطلب حسب المذخر: المواد «اطلب الآن» موزعة على مذاخرها الأنسب مع التكلفة التقديرية
-function ndwSupSheet() {
-    const rows = ndwRows.filter(r => r.status === 'order' && r.sug > 0); if (!rows.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد مطلوبة الآن', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' }); return; }
+function ndwSupSheet(src) {
+    const rows = (src === 's' ? ndmRows : ndwRows).filter(r => r.status === 'order' && r.sug > 0); if (!rows.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد مطلوبة الآن', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' }); return; }
     const g = new Map(), f = v => fmtNum(Math.round(v * 10) / 10);
     rows.forEach(r => { const k = r.sup || ''; if (!g.has(k)) g.set(k, []); g.get(k).push(r); });
     const keys = [...g.keys()].sort((a, b) => (a === '') - (b === '') || g.get(b).length - g.get(a).length); ndwGrp = keys.map(k => g.get(k));
@@ -661,7 +655,7 @@ function ndwPlanHtml(r) {
 }
 function ndwPlanRun() {
     const q = document.getElementById('ndwPlQ'), e = document.getElementById('ndwPlE'); const bb = document.getElementById('ndwPlB'); const pc = document.getElementById('ndwPlP'); ndwPlan = { q: q ? q.value : '', e: e ? e.value : '', b: bb ? bb.value : '', c: pc ? pc.value : '' };
-    const r = ndwRows.find(x => x.p.id === ndwCur), o = document.getElementById('ndwPlanOut'); if (r && o) o.innerHTML = ndwPlanHtml(r);
+    const r = ndwFind(ndwCur), o = document.getElementById('ndwPlanOut'); if (r && o) o.innerHTML = ndwPlanHtml(r);
 }
 function ndwStatHtml(r) {
     if (r.method === 'none') return '<small>لا تتوفر بيانات كافية للإحصاء.</small>';
@@ -671,17 +665,17 @@ function ndwStatHtml(r) {
         + dr('اتجاه الاستهلاك', m.trend ? (m.trend.sig ? (m.trend.tau > 0 ? 'يميل للارتفاع' : 'يميل للانخفاض') : 'لا اتجاه واضح') : 'غير كافٍ (يلزم 5 فترات)')
         + dr('الموسمية', m.T >= 365 ? 'ممكن رصدها' : 'غير ممكنة (أقل من سنة)')
         + (r.nsE > 0 ? dr('منتهي/تالف مستبعد', fmtNum(Math.round(r.nsE * 10) / 10)) : '') + (r.nsO > 0 ? dr('مناقلة خارجة مستبعدة', fmtNum(Math.round(r.nsO * 10) / 10)) : '')
-        + `<small style="display:block;margin-top:6px">المعالجات المطبّقة:<br>• المردود يُخصم من الوارد.<br>• الشراء الكبير (بونص أو خصم) لا يؤثر لأن الأساس مجموع الوارد − الرصيد.<br>• البيانات القليلة تعطي مدى أوسع (نموذج بايزي) بدل رقم مضلِّل.<br>• تذبذب السحب يوسّع المدى (معامل التشتت).<br>تبقى حدود لا تعالجها البيانات: نفاد المادة يخفّض التقدير، والطلب غير الملبّى غير مسجل.</small>`;
+        + `<small style="display:block;margin-top:6px">المعالجات المطبّقة:<br>${r.src === 's' ? '• الأساس مبيعات فعلية، فلا يتأثر بالشراء الكبير لأجل البونص أو الخصم.<br>• أيام نفاد المادة لا تُحتسب ضمن الطلب.<br>' : '• المردود يُخصم من الوارد.<br>• الشراء الكبير (بونص أو خصم) لا يؤثر لأن الأساس مجموع الوارد − الرصيد.<br>'}• البيانات القليلة تعطي مدى أوسع (نموذج بايزي) بدل رقم مضلِّل.<br>• تذبذب السحب يوسّع المدى (معامل التشتت).<br>تبقى حدود لا تعالجها البيانات: نفاد المادة يخفّض التقدير، والطلب غير الملبّى غير مسجل.</small>`;
 }
 function ndwDetail(i) { const r = ndwRows[i]; if (r) ndwOpen(r.p.id); }
 function ndwOpen(pid) {
-    ndwCur = pid; const r = ndwRows.find(x => x.p.id === pid); if (!r) return;
+    ndwSrc = 'i'; ndwCur = pid; const r = ndwRows.find(x => x.p.id === pid); if (!r) return;
     if (ndwOffer) { ndwOffer = false; ndwOpenSec = { plan: true }; }
     Swal.fire({ title: 'تقدير الاحتياج من الوارد', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div id="ndwDet" class="fu-det" dir="rtl" style="text-align:right">${ndwDetBody(r)}</div>` });
 }
 function ndwDetRefresh() {
-    ndwRows = ndwCalc().rows; ndwRowsRedraw();
-    const r = ndwRows.find(x => x.p.id === ndwCur), el = document.getElementById('ndwDet'); if (r && el) el.innerHTML = ndwDetBody(r);
+    if (ndwSrc === 's') { ndmRows = ndmCalc().rows; ndmRowsRedraw(); } else { ndwRows = ndwCalc().rows; ndwRowsRedraw(); }
+    const r = ndwFind(ndwCur), el = document.getElementById('ndwDet'); if (r && el) el.innerHTML = ndwDetBody(r);
 }
 function ndwNeedCalc(r) {
     const days = ndwPer.n * ndwPer.u, cons = r.rate * days, ss = ndwPer.ss ? 1.65 * r.sdw * Math.sqrt(days / 7) : 0, need = cons + ss;
@@ -698,10 +692,10 @@ function ndwNeedHtml(r) {
 function ndwPerSet() {
     const n = Math.max(1, parseInt(document.getElementById('ndwPn').value) || 1), u = parseInt(document.getElementById('ndwPu').value) || 30, ss = !!document.getElementById('ndwSs').checked;
     ndwPer = { n, u, ss }; try { localStorage.setItem('diwanNdwPer', JSON.stringify(ndwPer)); } catch (e) { /* تجاهل */ }
-    const r = ndwRows.find(x => x.p.id === ndwCur), o = document.getElementById('ndwNeedOut'), so = document.getElementById('ndwSumOut'); if (r && o) o.innerHTML = ndwNeedHtml(r); if (r && so) so.innerHTML = ndwSumHtml(r);
+    const r = ndwFind(ndwCur), o = document.getElementById('ndwNeedOut'), so = document.getElementById('ndwSumOut'); if (r && o) o.innerHTML = ndwNeedHtml(r); if (r && so) so.innerHTML = ndwSumHtml(r);
 }
 function ndwAddOne() {
-    const r = ndwRows.find(x => x.p.id === ndwCur); if (!r) return; const c = ndwNeedCalc(r); if (!(c.buy > 0)) return;
+    const r = ndwFind(ndwCur); if (!r) return; const c = ndwNeedCalc(r); if (!(c.buy > 0)) return;
     const st = ndState(); delete st.off[r.p.id]; delete st.ordered[r.p.id]; if (!st.extra.includes(r.p.id)) st.extra.push(r.p.id); st.qty[r.p.id] = c.buy; ndSave(st);
     Swal.fire({ icon: 'success', title: 'أُضيفت ' + fmtNum(c.buy) + ' إلى «قائمتي» في النواقص والطلبية', toast: true, position: 'bottom', showConfirmButton: false, timer: 2400 });
     try { ndBadge(); } catch (e) { /* تجاهل */ }
@@ -753,7 +747,7 @@ function ndwSumHtml(r) {
     if (!known) { runSub = 'أدخل الرصيد في القسم أدناه'; covSub = 'أدخل الرصيد في القسم أدناه'; }
     else if (days !== null) {
         run = cur <= 0 ? 'نفدت' : days >= 3650 ? 'بعد أكثر من 10 سنوات' : fmtDateDMY(sdAdd(todayLocalISO(), Math.floor(days)));
-        cov = cur <= 0 ? 'لا تكفي ليوم' : days >= 3650 ? 'أكثر من 10 سنوات' : days < 1 ? 'أقل من يوم' : fmtNum(Math.round(days / 30 * 10) / 10) + ' شهر <em>(' + fmtNum(Math.floor(days)) + ' يوماً)</em>';
+        cov = cur <= 0 ? 'لا تكفي ليوم' : days >= 3650 ? 'أكثر من 10 سنوات' : days < 1 ? 'أقل من يوم' : days < 30 ? fmtNum(Math.floor(days)) + ' يوماً' : fmtNum(Math.round(days / 30 * 10) / 10) + ' شهر <em>(' + fmtNum(Math.floor(days)) + ' يوماً)</em>';
     }
     const per = ndwPer.n + ' ' + (ndwPer.u === 1 ? 'يوم' : ndwPer.u === 7 ? 'أسبوع' : 'شهر');
     const ord = c.buy === null ? tile('اطلب هذا العدد', '—', 'أدخل الرصيد الحالي في القسم أدناه', 'wide') : tile('اطلب هذا العدد', fmtNum(c.buy) + ' علبة', 'لتغطية ' + per + (ndwPer.ss ? ' مع مخزون أمان' : ''), 'wide ok');
@@ -761,6 +755,7 @@ function ndwSumHtml(r) {
         + (c.buy > 0 ? '<button type="button" class="cn-new" style="margin-top:10px" onclick="ndwAddOne()">إضافة ' + fmtNum(c.buy) + ' إلى قائمة النواقص</button>' : '');
 }
 function ndwDetBody(r) {
+    const S = r.src === 's';
     const f = v => fmtNum(Math.round(v * 10) / 10), dr = (t, v) => `<div class="fu-dr"><span>${t}</span><b>${v}</b></div>`;
     const sec = (k, t, body) => `<details class="nd-set" ${(ndwOpenSec[k] !== undefined ? ndwOpenSec[k] : (k === 'bal' && r.p.counted !== true && !r.manual)) ? 'open' : ''} ontoggle="ndwOpenSec['${k}']=this.open"><summary>${t}</summary><div class="nd-set-b">${body}</div></details>`;
     const manV = ndwManualMap()[r.p.id], inp = 'height:38px;border:1px solid #cbd5e1;border-radius:10px;padding:0 8px;font:inherit;text-align:center;box-sizing:border-box';
@@ -776,13 +771,17 @@ function ndwDetBody(r) {
     const ivRows = r.ev.map((e, k) => { const nx = r.ev[k + 1], g = ndmDays(e.d, nx ? nx.d : todayLocalISO()); return `<tr><td>${fmtDateDMY(e.d)}${nx ? '' : ' <em>(جارية)</em>'}</td><td>${fmtNum(g)} يوماً</td><td>${f(e.u)}</td><td>${nx ? f(g > 0 ? e.u / g * 7 : 0) : '—'}</td></tr>`; }).join('');
     const ivs = `<table class="ndw-t"><thead><tr><th>بداية الفترة</th><th>المدة</th><th>الوارد</th><th>السحب أسبوعياً</th></tr></thead><tbody>${ivRows}</tbody></table>` + dr('الرصيد الآن', f(r.stock));
     const supB = (r.sups && r.sups.length) ? `<table class="ndw-t"><thead><tr><th>المذخر</th><th>آخر سعر</th><th>آخر شراء</th><th>المرات</th></tr></thead><tbody>${r.sups.map(x => `<tr><td>${escapeHtml(x.name)}${x.name === r.sup ? ' <em>(المقترح)</em>' : ''}</td><td>${x.cost > 0 ? fmtNum(x.cost) : '—'}</td><td>${fmtDateDMY(x.last)}</td><td>${fmtNum(x.n)}</td></tr>`).join('')}</tbody></table><div class="cn-chips fu-chips" style="padding:8px 0 0;flex-wrap:wrap">${r.sups.map(x => `<button type="button" class="cn-chip ${x.name === r.sup ? 'on' : ''}" data-s="${escapeHtml(x.name)}" onclick="ndwSupChoose(${r.p.id},this.dataset.s)">اطلب من ${escapeHtml(x.name)}</button>`).join('')}</div><small>المقترح هو الأرخص بآخر سعر، وإلا الأكثر شراءً منه.</small>` : '<small>لا يوجد مذخر مسجل في وارد هذه المادة.</small>';
-    const calc = dr('الطريقة', r.method === 'bal' ? 'رصيد الجرد (أثر رجعي)' : r.method === 'int' ? 'فترات الشراء' : 'غير كافية') + (r.method === 'none' ? '' : dr(r.method === 'bal' ? 'المستهلك (الوارد − الرصيد)' : 'المستهلك قبل آخر شراء', f(r.consumed) + ' خلال ' + fmtNum(r.span) + ' يوماً') + dr('الاستهلاك اليومي المقدّر', fmtNum(Math.round(r.rate * 100) / 100)) + dr('الشهري المتوقع', f(r.rate * 30)) + dr('المدى الأسبوعي (ثقة 80%)', f(r.w80[0]) + ' – ' + f(r.w80[1])))
+    const calcIn = dr('الطريقة', r.method === 'bal' ? 'رصيد الجرد (أثر رجعي)' : r.method === 'int' ? 'فترات الشراء' : 'غير كافية') + (r.method === 'none' ? '' : dr(r.method === 'bal' ? 'المستهلك (الوارد − الرصيد)' : 'المستهلك قبل آخر شراء', f(r.consumed) + ' خلال ' + fmtNum(r.span) + ' يوماً') + dr('الاستهلاك اليومي المقدّر', fmtNum(Math.round(r.rate * 100) / 100)) + dr('الشهري المتوقع', f(r.rate * 30)) + dr('المدى الأسبوعي (ثقة 80%)', f(r.w80[0]) + ' – ' + f(r.w80[1])))
         + dr('مرات الشراء', fmtNum(r.nEv) + ' • أولها ' + fmtDateDMY(r.first)) + dr('مجموع الوارد', f(r.units)) + dr('آخر شراء', 'قبل ' + fmtNum(r.since) + ' يوماً') + dr('المتوفر', f(r.stock)) + (r.ord ? dr('قيد الطلب', f(r.ord)) : '') + ndxDetailRows(r.ex)
         + (r.method === 'none' ? '' : dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', r.counted ? fmtNum(r.sug) : '—')) + (r.minQ ? dr('الحد الأدنى (من بطاقة المادة)', fmtNum(r.minQ)) : '') + dr('درجة الثقة', r.conf);
+    const calcS = dr('الطريقة', 'المبيعات الفعلية') + dr('فئة الإيراد', r.cls) + dr('نمط الطلب', r.pat[0]) + dr('مدة التحليل', fmtNum(r.n) + ' يوماً') + dr('أيام فيها بيع', fmtNum(r.nz) + ' من ' + fmtNum(r.n)) + (r.miss ? dr('طلبات غير ملبّاة', fmtNum(r.miss)) : '')
+        + dr('الطلب اليومي المقدّر', fmtNum(Math.round(r.rate * 100) / 100)) + dr('الطلب الشهري المتوقع', f(r.rate * 30)) + dr('المدى الأسبوعي (ثقة 80%)', f(r.ci.w80[0]) + ' – ' + f(r.ci.w80[1])) + dr('المتوفر', f(r.stock)) + (r.ord ? dr('قيد الطلب', f(r.ord)) : '') + ndxDetailRows(r.ex)
+        + dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', fmtNum(r.sug)) + (r.minQ ? dr('الحد الأدنى (من بطاقة المادة)', fmtNum(r.minQ)) : '') + dr('جودة البيانات', r.conf);
+    const calc = S ? calcS : calcIn;
     return `<div class="ndw-h" dir="ltr">${dispNameHtml(r.p)}</div>${ndxTag(r.ex)}`
-        + sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal) + sec('need', 'الاحتياج لمدة محددة', need) + sec('plan', 'توريد مخطط', plan) + sec('chart', 'رسم سحب المادة', ndwChartSvg(r)) + sec('sup', 'المذخر والأسعار', supB) + sec('iv', 'فترات السحب', ivs) + sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc);
+        + sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + (S ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + sec('plan', 'توريد مخطط', plan) + sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r)) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc);
 }
-function ndwToList() {
-    const rows = ndwRows.filter(r => r.status === 'order' && r.sug > 0 && (!ndwSup || r.sup === ndwSup)); if (!rows.length) return;
+function ndwToList(src) {
+    const rows = (src === 's' ? ndmRows : ndwRows).filter(r => r.status === 'order' && r.sug > 0 && (!ndwSup || r.sup === ndwSup)); if (!rows.length) return;
     ndwPushList(rows);
 }
