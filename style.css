@@ -5187,3 +5187,8 @@ body.dark .sd-hh { color: #e2e8f0; } body.dark .sd-ht { background: #243252; } b
 .ndw-nt { font-size: .85rem; line-height: 1.9; color: #64748b; text-align: center; padding: 6px 4px; }
 .ndw-t { width: 100%; border-collapse: collapse; font-size: .8rem; white-space: nowrap; } .ndw-t th { color: #64748b; font-weight: 600; font-size: .74rem; text-align: right; padding: 6px 4px; border-bottom: 1px solid #e2e8f0; } .ndw-t td { padding: 8px 4px; border-bottom: 1px solid #f1f5f9; font-variant-numeric: tabular-nums; } .ndw-t th:nth-child(n+2), .ndw-t td:nth-child(n+2) { text-align: center; } .ndw-t td em { font-style: normal; color: #64748b; font-size: .72rem; }
 .ndw-lg { display: flex; flex-wrap: wrap; gap: 6px 14px; justify-content: center; margin-top: 8px; font-size: .74rem; color: #475569; } .ndw-lg span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; } .ndw-lg i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+.cu-row.ndw-rw > div:nth-child(1) { flex: 1; min-width: 0; display: grid; gap: 3px; } .cu-row.ndw-rw > div:nth-child(2) { flex: none; display: block; }
+.ndw-l2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; } .ndw-tg { color: #92400e; font-size: .72rem; white-space: nowrap; }
+.ndw-acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 8px 0; } .ndw-acts .ln-btn { height: 44px; white-space: nowrap; }
+.fu-chips { flex-wrap: wrap; overflow-x: visible; }

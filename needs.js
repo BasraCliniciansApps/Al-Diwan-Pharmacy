@@ -8,8 +8,9 @@ const ND_CNT = 'diwanNdCounted';
 const ndCountedOnly = () => { try { return localStorage.getItem(ND_CNT) !== '0'; } catch (e) { return true; } };
 let ndOpenFlag = false, ndScr = 'list', ndTab = 'list', ndSupF = '', ndQ = '', ndSel = new Set(), ndAddRes = [], ndView = null;
 const ndEsc = s => escapeHtml(String(s == null ? '' : s));
-function ndState() { let s = {}; try { s = JSON.parse(lsGet(ND_ST)) || {}; } catch (e) { s = {}; } return { qty: s.qty || {}, off: s.off || {}, extra: s.extra || [], ordered: s.ordered || {}, custom: s.custom || [], cseq: s.cseq || 0 }; }
-function ndSave(s) { lsSet(ND_ST, JSON.stringify(s)); }
+function ndState() { let s = {}; try { s = JSON.parse(lsGet(ND_ST)) || {}; } catch (e) { s = {}; } return { qty: s.qty || {}, off: s.off || {}, extra: s.extra || [], ordered: s.ordered || {}, custom: s.custom || [], cseq: s.cseq || 0, sup: s.sup || {} }; }
+let ndSupC = null;
+function ndSave(s) { ndSupC = null; lsSet(ND_ST, JSON.stringify(s)); }
 function ndOrders() { try { return (JSON.parse(lsGet(ND_OR)) || []).filter(x => x && x.id); } catch (e) { return []; } }
 function ndOrdersSave(a) { lsSet(ND_OR, JSON.stringify(a)); }
 const ndAgo = iso => Math.max(0, Math.round((new Date(todayLocalISO() + 'T00:00:00') - new Date(String(iso).slice(0, 10) + 'T00:00:00')) / 864e5));
@@ -37,7 +38,7 @@ function ndList() {
     out.sort((a, b) => (b.out - a.out) || ((a.i.left === null ? 1e9 : a.i.left) - (b.i.left === null ? 1e9 : b.i.left)) || (parseInt(a.p.qty) || 0) - (parseInt(b.p.qty) || 0));
     return out;
 }
-const ndSupOf = p => (p.lastPurchase && p.lastPurchase.supplier) || '';
+const ndSupOf = p => { if (!ndSupC) ndSupC = ndState().sup; return ndSupC[p.id] || (p.lastPurchase && p.lastPurchase.supplier) || ''; };   // مذخر اختاره تقدير الاحتياج أولاً ثم آخر وارد
 function ndBadge() {
     try {
         const el = document.getElementById('homePoCount'); if (!el) return;
