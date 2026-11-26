@@ -5195,3 +5195,11 @@ body.dark .sd-hh { color: #e2e8f0; } body.dark .sd-ht { background: #243252; } b
 .ndw-kt.bad { background: #fef2f2; border-color: #fca5a5; } .ndw-kt.bad span, .ndw-kt.bad small { color: #991b1b; } .ndw-kt.bad b { color: #b91c1c; font-size: 1.25rem; }
 
 body.role-staff .home-row7 { display: none !important; }
+
+.ndw-seg { display: flex; gap: 2px; padding: 3px; margin: 0 0 8px; background: #eaeef4; border-radius: 12px; }
+.ndw-seg button { flex: 1; min-height: 38px; padding: 0 2px; border: 1px solid transparent; border-radius: 9px; background: transparent; font: inherit; font-size: .82rem; color: #475569; white-space: nowrap; cursor: pointer; }
+.ndw-seg button b { margin-inline-start: 4px; font-size: .75rem; font-weight: 800; color: #64748b; }
+.ndw-seg button.on { background: #fff; border-color: #cbd5e1; color: #0f1c38; font-weight: 800; }
+.ndw-seg button.on b { color: #0f1c38; }
+.ndw-fr { display: flex; gap: 8px; margin: 0 0 8px; }
+.ndw-sel { flex: 1; min-width: 0; height: 40px; border: 1px solid #cbd5e1; border-radius: 10px; background: #fff; padding: 0 10px; font: inherit; font-size: .85rem; color: #0f1c38; box-sizing: border-box; }

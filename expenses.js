@@ -548,19 +548,20 @@ function ndwListHtml() {
 function ndwRowsRedraw() { const b = document.getElementById('ndwList'); if (b) b.innerHTML = ndwListHtml(); }
 function ndwHtml() {
     const c = ndwCalc(); ndwRows = c.rows; const cnt = k => c.rows.filter(r => r.status === k).length, vis = c.rows.filter(r => !ndwSup || r.sup === ndwSup), nOrd = vis.filter(r => r.status === 'order' && r.sug > 0).length;
-    const chips = [['order', 'اطلب الآن'], ['over', 'زائد'], ['still', 'راكد'], ['wait', 'بانتظار الجرد'], ['exp', 'نفاذ قريب (' + fmtNum(c.rows.filter(r => r.ex && r.ex.flag).length) + ')'], ['all', 'الكل']];
-    const tops = ndwTopSups(3), supChips = tops.length ? `<div class="cn-chips fu-chips"><button type="button" class="cn-chip ${ndwSup === '' ? 'on' : ''}" onclick="ndwSup='';ndwShow=60;exRender()">كل المذاخر</button>${tops.map((n, k) => `<button type="button" class="cn-chip ${ndwSup === n ? 'on' : ''}" onclick="ndwSupSel(${k})">${escapeHtml(n)}</button>`).join('')}</div>` : '';
-    return `<div class="sd-cards sd-c3"><div><span>اطلب الآن</span><b>${fmtNum(cnt('order'))}</b></div><div><span>زائد</span><b>${fmtNum(cnt('over'))}</b></div><div><span>بانتظار الجرد</span><b>${fmtNum(cnt('wait'))}</b></div></div>
-        <div class="ndw-acts"><button type="button" class="ln-btn" onclick="ndwSupSheet()">الطلب حسب المذخر</button><button type="button" class="ln-btn" onclick="ndwOfferMode()">تقييم عرض مندوب</button></div>
+    const vc = k => vis.filter(r => r.status === k).length, nExp = vis.filter(r => r.ex && r.ex.flag).length, main = [['order', 'اطلب الآن', vc('order')], ['over', 'زائد', vc('over')], ['still', 'راكد', vc('still')], ['all', 'الكل', null]];
+    const seg = `<div class="ndw-seg">${main.map(([k, l, n]) => `<button type="button" class="${ndwF === k ? 'on' : ''}" onclick="ndwF='${k}';ndwShow=60;exRender()">${l}${n !== null ? '<b>' + fmtNum(n) + '</b>' : ''}</button>`).join('')}</div>`;
+    const oth = `<select class="ndw-sel" onchange="if(this.value){ndwF=this.value;ndwShow=60;exRender()}" aria-label="حالات أخرى"><option value="" ${['wait', 'exp'].includes(ndwF) ? '' : 'selected'}>حالات أخرى</option><option value="wait" ${ndwF === 'wait' ? 'selected' : ''}>بانتظار الجرد (${fmtNum(vc('wait'))})</option><option value="exp" ${ndwF === 'exp' ? 'selected' : ''}>نفاذ قريب (${fmtNum(nExp)})</option></select>`;
+    const tops = ndwTopSups(3), supSel = tops.length ? `<select class="ndw-sel" onchange="ndwSupSel(this.value===''?-1:+this.value)" aria-label="المذخر"><option value="">كل المذاخر</option>${tops.map((n, k) => `<option value="${k}" ${ndwSup === n ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('')}</select>` : '';
+    return `<div class="ndw-acts"><button type="button" class="ln-btn" onclick="ndwSupSheet()">الطلب حسب المذخر</button><button type="button" class="ln-btn" onclick="ndwOfferMode()">تقييم عرض مندوب</button></div>
         <details class="nd-set"><summary>الإعدادات وطريقة الحساب</summary><div class="nd-set-b">${ndwSetRows()}
         <div class="nd-hint">طريقة الحساب:<br>• الأساس سجل الوارد، لأن المبيعات غير مسجلة بالكامل.<br>• المواد المجرودة: المستهلك = الوارد − الرصيد الحالي، مقسوماً على المدة منذ أول وارد.<br>• المواد غير المجرودة: تُقدَّر من الفترات بين مرات الشراء (ثلاث مرات فأكثر).<br>• الكمية المقترحة تغطي «مدة الهدف» بعد خصم المتوفر وما قيد الطلب.<br>• الحد الأدنى المسجل في بطاقة المادة يُعتمد إن وُجد.<br>• المادة التي يقل استهلاكها عن علبة شهرياً تُصنَّف «حسب الطلب» ولا يُقترح لها شراء.<br>• المذخر المقترح هو الأرخص بآخر سعر شراء، وإلا الأكثر شراءً منه.</div>
         <div class="bill-set-hint">حدود هذه الطريقة:<br>• قد يقلّ التقدير إن كان لديك رصيد قبل أول وارد مسجل أو وارد غير مسجل.<br>• يعكس الاستهلاك الكلي (بيعاً وتحويلاً وإتلافاً) لا المبيعات وحدها.<br>• نفاد المادة بين مرتين يخفض التقدير.<br>• تتحسن الدقة مع تراكم السجل، وتصبح «من المبيعات» أدق متى سُجلت المبيعات يومياً.</div></div></details>
         ${nOrd ? `<button type="button" class="cn-new" onclick="ndwToList()">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى قائمة النواقص</button>` : ''}
-        <div class="cn-chips fu-chips">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndwF === k ? 'on' : ''}" onclick="ndwF='${k}';ndwShow=60;exRender()">${l}</button>`).join('')}</div>${supChips}
+        ${seg}<div class="ndw-fr">${oth}${supSel}</div>
         <div class="fu-q"><input type="search" id="ndwSearch" autocomplete="off" placeholder="ابحث عن مادة لتقدير احتياجها" value="${escapeHtml(ndwQ)}" oninput="ndwQ=this.value;ndwShow=60;ndwRowsRedraw()"></div>
         <div id="ndwList">${ndwListHtml()}</div>`;
 }
-function ndwSupSel(k) { ndwSup = ndwTopSups(3)[k] || ''; ndwShow = 60; exRender(); }
+function ndwSupSel(k) { ndwSup = k >= 0 ? (ndwTopSups(3)[k] || '') : ''; ndwShow = 60; exRender(); }
 function ndwOfferMode(src) {
     ndwOffer = true; const el = document.getElementById(src === 's' ? 'ndmSearch' : 'ndwSearch'); if (el) { el.focus(); try { el.scrollIntoView({ block: 'center' }); } catch (e) { /* تجاهل */ } }
     Swal.fire({ icon: 'info', title: 'تقييم عرض مندوب', text: 'ابحث عن المادة في خانة البحث ثم اختر نتيجتها، وستُفتح مباشرة على «تقييم العروض».', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' });
