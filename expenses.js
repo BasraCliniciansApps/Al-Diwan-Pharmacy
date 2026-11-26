@@ -891,9 +891,10 @@ async function ndcEnsure() {
     } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
 }
 async function ndcOpen() {
+    ndcTab = 'calc'; ndcMode = true;
     if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'هذه الصفحة للمدير فقط.', confirmButtonColor: '#0f1c38' }); return; }
     await ndcEnsure();
-    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div dir="rtl" style="text-align:right"><div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة المعروضة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة ثم طريقة التقدير (حسب المبيعات أو حسب الوارد)، وبعدها تظهر الإحصائيات وتقييم العروض.</div></div>`, didOpen: () => { const el = document.getElementById('ndcQ'); if (el) el.focus(); } });
+    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', willClose: () => { setTimeout(() => { if (!Swal.isVisible()) ndcMode = false; }, 400); }, html: `<div dir="rtl" style="text-align:right"><div id="ndcTabs">${ndcTabsHtml()}</div><div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة المعروضة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة ثم طريقة التقدير (حسب المبيعات أو حسب الوارد)، وبعدها تظهر الإحصائيات وتقييم العروض.</div></div>`, didOpen: () => { const el = document.getElementById('ndcQ'); if (el) el.focus(); } });
 }
 function ndcSearch(v) {
     const q = normSearch(v || ''), toks = q ? q.split(' ') : [], box = document.getElementById('ndcRes'); if (!box) return;
@@ -929,13 +930,13 @@ async function ndcPick(pid) {
         ndcSynth = r; src = 'y';
     }
     ndwSrc = src; ndwCur = pid; ndwOpenSec = { sum: true, need: true, plan: true };
-    ndcMode = true; ndcTab = 'calc';
-    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', willClose: () => { ndcMode = false; }, html: `<div dir="rtl" style="text-align:right"><div id="ndcTabs">${ndcTabsHtml()}</div><div id="ndcSeg">${ndcSegHtml()}</div><div id="ndwDet" class="fu-det">${ndwDetBody(r)}</div></div>` });
+    ndcMode = true;
+    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', willClose: () => { setTimeout(() => { if (!Swal.isVisible()) ndcMode = false; }, 400); }, html: `<div dir="rtl" style="text-align:right"><div id="ndcTabs">${ndcTabsHtml()}</div><div id="ndcSeg">${ndcSegHtml()}</div><div id="ndwDet" class="fu-det">${ndwDetBody(r)}</div></div>` });
 }
 let ndcAlt = null, ndcMode = false, ndcTab = 'calc';
 function ndcTabsHtml() { return `<div class="ndw-tabs">${[['calc', 'حاسبة الاحتياج'], ['offer', 'تقييم العروض']].map(([k, l]) => `<button type="button" class="${ndcTab === k ? 'on' : ''}" onclick="ndcGo('${k}')">${l}</button>`).join('')}</div>`; }
 function ndcGo(k) {
-    if (ndcTab === k) return; ndwOfRead(); ndcTab = k;
+    if (ndcTab === k) return; if (document.getElementById('ndwDet')) ndwOfRead(); ndcTab = k;
     const t = document.getElementById('ndcTabs'); if (t) t.innerHTML = ndcTabsHtml();
     const r = ndwFind(ndwCur), el = document.getElementById('ndwDet'); if (r && el) el.innerHTML = ndwDetBody(r);
 }
