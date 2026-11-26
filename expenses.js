@@ -569,10 +569,7 @@ function ndwHtml() {
         ${nOrd ? `<div class="ndw-bar"><button type="button" class="cn-new" onclick="ndwToList()">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى النواقص</button></div>` : ''}`;
 }
 function ndwSupSel(k) { ndwSup = k >= 0 ? (ndwTopSups(3)[k] || '') : ''; ndwShow = 60; exRender(); }
-function ndwOfferMode(src) {
-    ndwOffer = true; const el = document.getElementById(src === 's' ? 'ndmSearch' : 'ndwSearch'); if (el) { el.focus(); try { el.scrollIntoView({ block: 'center' }); } catch (e) { /* تجاهل */ } }
-    Swal.fire({ icon: 'info', title: 'تقييم عرض مندوب', text: 'ابحث عن المادة في خانة البحث ثم اختر نتيجتها، وستُفتح مباشرة على «تقييم العروض».', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' });
-}
+function ndwOfferMode() { ndcOpen(); }
 // تجميع الطلب حسب المذخر: المواد «اطلب الآن» موزعة على مذاخرها الأنسب مع التكلفة التقديرية
 function ndwSupSheet(src) {
     const rows = (src === 's' ? ndmRows : ndwRows).filter(r => r.status === 'order' && r.sug > 0); if (!rows.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد مطلوبة الآن', confirmButtonText: 'حسناً', confirmButtonColor: '#0f1c38' }); return; }
@@ -896,7 +893,7 @@ async function ndcEnsure() {
 async function ndcOpen() {
     if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'هذه الصفحة للمدير فقط.', confirmButtonColor: '#0f1c38' }); return; }
     await ndcEnsure();
-    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div dir="rtl" style="text-align:right"><div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة لحساب المطلوب شراؤه وتقييم عرض المندوب.</div></div>`, didOpen: () => { const el = document.getElementById('ndcQ'); if (el) el.focus(); } });
+    Swal.fire({ title: 'تقييم العروض', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div dir="rtl" style="text-align:right"><div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة المعروضة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة ثم طريقة التقدير (حسب المبيعات أو حسب الوارد)، وبعدها تظهر الإحصائيات وتقييم العروض.</div></div>`, didOpen: () => { const el = document.getElementById('ndcQ'); if (el) el.focus(); } });
 }
 function ndcSearch(v) {
     const q = normSearch(v || ''), toks = q ? q.split(' ') : [], box = document.getElementById('ndcRes'); if (!box) return;
@@ -907,8 +904,13 @@ function ndcSearch(v) {
 async function ndcPick(pid) {
     const p = (products || []).find(x => x.id === pid); if (!p) return;
     ndmRows = ndmCalc().rows; ndwRows = ndwCalc().rows;
-    let r = ndmRows.find(x => x.p.id === pid), src = 's';
-    if (!r) { r = ndwRows.find(x => x.p.id === pid && x.method !== 'none'); src = 'i'; }
+    const rS = ndmRows.find(x => x.p.id === pid), rI = ndwRows.find(x => x.p.id === pid && x.method !== 'none');
+    let r = rS || rI, src = rS ? 's' : 'i'; ndcAlt = null;
+    if (rS && rI) {
+        const f = v => fmtNum(Math.round(v * 30 * 10) / 10), ch = await Swal.fire({ title: 'طريقة التقدير', html: `<div dir="rtl" style="text-align:right" class="nd-hint">• حسب المبيعات: ${f(rS.rate)} علبة شهرياً.<br>• حسب الوارد: ${f(rI.rate)} علبة شهرياً.</div>`, showDenyButton: true, showCancelButton: true, confirmButtonText: 'حسب المبيعات', denyButtonText: 'حسب الوارد', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38', denyButtonColor: '#334155', reverseButtons: true });
+        if (ch.isDismissed) return;
+        src = ch.isDenied ? 'i' : 's'; r = src === 's' ? rS : rI; ndcAlt = { s: rS, i: rI };
+    }
     if (!r) {
         const cur = (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0);
         const ch = await Swal.fire({ title: 'لا يتوفر تقدير لهذه المادة', html: '<div dir="rtl" style="text-align:right" class="nd-hint">اختر طريقة تقدير الاستهلاك:<br>• مادة مشابهة: يؤخذ استهلاكها الفعلي مع نسبة تعديل.<br>• إدخال يدوي: تكتب الاستهلاك الشهري المتوقع.</div>', showDenyButton: true, showCancelButton: true, confirmButtonText: 'مادة مشابهة', denyButtonText: 'إدخال الاستهلاك يدوياً', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', denyButtonColor: '#334155', reverseButtons: true });
@@ -927,7 +929,13 @@ async function ndcPick(pid) {
         ndcSynth = r; src = 'y';
     }
     ndwSrc = src; ndwCur = pid; ndwOpenSec = { sum: true, need: true, plan: true };
-    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div id="ndwDet" class="fu-det" dir="rtl" style="text-align:right">${ndwDetBody(r)}</div>` });
+    Swal.fire({ title: 'تقييم العروض', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div dir="rtl" style="text-align:right"><div id="ndcSeg">${ndcSegHtml()}</div><div id="ndwDet" class="fu-det">${ndwDetBody(r)}</div></div>` });
+}
+let ndcAlt = null;
+function ndcSegHtml() { return ndcAlt ? `<div class="ndw-seg" style="margin-bottom:10px">${[['s', 'حسب المبيعات'], ['i', 'حسب الوارد']].map(([k, l]) => `<button type="button" class="${ndwSrc === k ? 'on' : ''}" onclick="ndcSwitch('${k}')">${l}</button>`).join('')}</div>` : ''; }
+function ndcSwitch(k) {
+    if (!ndcAlt || !ndcAlt[k] || ndwSrc === k) return; ndwOfRead(); ndwSrc = k;
+    const sg = document.getElementById('ndcSeg'); if (sg) sg.innerHTML = ndcSegHtml(); ndwDetRefresh();
 }
 let ndcSimSel = null, ndcSimPid = null;
 function ndcSimSearch(v) {
