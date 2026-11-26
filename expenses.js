@@ -95,7 +95,7 @@ function exRender() {
     let body;
     if (exTab === 'need' || exTab === 'need2' || exTab === 'xf') {
         const sub = `<div class="cu-seg"><button type="button" class="${exTab === 'need' ? 'on' : ''}" onclick="exTab='need';exRefresh()">من المبيعات</button><button type="button" class="${exTab === 'need2' ? 'on' : ''}" onclick="exTab='need2';exRefresh()">من الوارد</button><button type="button" class="${exTab === 'xf' ? 'on' : ''}" onclick="exTab='xf';exRefresh()">مناقلة مقترحة</button></div>`;
-        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>تقدير الاحتياج</b></div><div class="cn-body">${sub}${exTab === 'need' ? ndmHtml() : exTab === 'need2' ? ndwHtml() : xfHtml()}</div><button type="button" class="ndw-fab" onclick="ndcOpen()" aria-label="حاسبة الاحتياج"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2.5" width="14" height="19" rx="2.5"/><rect x="8" y="5.5" width="8" height="3.5" rx="1"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 17h.01M12 17h.01M15.5 17h.01"/></svg><span>حاسبة</span></button>`; return;
+        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>تقدير الاحتياج</b></div><div class="cn-body">${sub}${exTab === 'need' ? ndmHtml() : exTab === 'need2' ? ndwHtml() : xfHtml()}</div>`; return;
     }
     if (exTab === 'dash') {
         document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>📊 لوحة المبيعات</b></div><div class="cn-body">${tabs}${sdHtml()}</div>`; return;
@@ -308,6 +308,10 @@ function ndmPattern(adi, cv2) { return adi < 1.32 ? (cv2 < 0.49 ? ['منتظم',
 function ndxExpiry(p, rate) {
     const out = { expired: 0, nearBoxes: 0, nearDays: null, risk: 0, riskY: 0, riskDays: null, batches: [], flag: false };
     try {
+        if (!(p.bt && typeof p.bt === 'object')) {   // مادة بلا دفعات مسجلة: كمية كل تاريخ مجهولة، فلا تُنسب كل الكمية لأقرب تاريخ
+            const d0 = getProductExpiryDates(p)[0]; if (d0) out.unk = { e: d0, d: expiryDaysOf(d0) };
+            return out;
+        }
         const sc = btSc(p), nearD = (alertMonths[0] || 1) * 30, riskD = (alertMonths[2] || 6) * 30; let cum = 0;
         getBatches(p).filter(b => b.e).forEach(b => {
             const boxes = (b.q || 0) + (sc > 1 ? (b.l || 0) / sc : 0), d = expiryDaysOf(b.e); if (d === null || !(boxes > 0)) return;
@@ -324,6 +328,7 @@ function ndxExpiry(p, rate) {
     return out;
 }
 function ndxTag(ex) {
+    if (ex && !ex.flag && ex.unk && ex.unk.d !== null && ex.unk.d <= 365) return `<small>أقرب تاريخ نفاذ مسجل (${escapeHtml(ex.unk.e.slice(5, 7) + '/' + ex.unk.e.slice(0, 4))}) بلا تحديد كمية دفعته، فلم يُحسب التلف. سجّل الدفعات لتفعيله.</small>`;
     if (!ex || !ex.flag) return '';
     const f = v => fmtNum(Math.round(v * 10) / 10), t = [];
     if (ex.expired > 0) t.push(`<small style="color:#b91c1c">منتهية الصلاحية: ${f(ex.expired)} علبة (لا تُحتسب من المتوفر)</small>`);
