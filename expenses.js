@@ -745,7 +745,8 @@ function ndwSumHtml(r) {
     const c = ndwNeedCalc(r), known = r.counted || r.manual, cur = Math.max(0, r.stock - (r.ex ? r.ex.expired : 0)), days = r.rate > 0 ? cur / r.rate : null;
     let run = '—', cov = '—', covSub = '', runSub = '';
     if (!known) { runSub = 'أدخل الرصيد في القسم أدناه'; covSub = 'أدخل الرصيد في القسم أدناه'; }
-    else if (days !== null) {
+    else if (days === null) { run = 'بلا استهلاك'; cov = 'بلا استهلاك'; runSub = covSub = cur > 0 ? 'لم يُستهلك شيء منذ أول وارد' : ''; }
+    else {
         run = cur <= 0 ? 'نفدت' : days >= 3650 ? 'بعد أكثر من 10 سنوات' : fmtDateDMY(sdAdd(todayLocalISO(), Math.floor(days)));
         cov = cur <= 0 ? 'لا تكفي ليوم' : days >= 3650 ? 'أكثر من 10 سنوات' : days < 1 ? 'أقل من يوم' : days < 30 ? fmtNum(Math.floor(days)) + ' يوماً' : fmtNum(Math.round(days / 30 * 10) / 10) + ' شهر <em>(' + fmtNum(Math.floor(days)) + ' يوماً)</em>';
     }
