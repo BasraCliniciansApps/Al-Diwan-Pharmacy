@@ -122,7 +122,7 @@ function fuCardHtml(r) {
 function fuListRender() {
     fuScr = 'list'; fuLoadLocal();
     const late = fuAll.filter(fuOverdue).length;
-    const tabs = `<div class="cu-seg"><button type="button" class="${fuTab === 'miss' ? 'on' : ''}" onclick="fuTab='miss';fuListRender();fmRefresh()">المطلوبة</button><button type="button" class="${fuTab === 'promise' ? 'on' : ''}" onclick="fuTab='promise';fuListRender()">وعود المندوبين</button><button type="button" class="${fuTab === 'loan' ? 'on' : ''}" onclick="fuTab='loan';fuListRender()">المواد المأخوذة</button><button type="button" class="${fuTab === 'rep' ? 'on' : ''}" onclick="fuTab='rep';fuListRender()">المندوبون</button></div>`;
+    const tabs = `<div class="cu-seg"><button type="button" class="${fuTab === 'miss' ? 'on' : ''}" onclick="fuTab='miss';fuListRender();fmRefresh()">المطلوبة</button><button type="button" class="${fuTab === 'promise' ? 'on' : ''}" onclick="fuTab='promise';fuListRender()">الوعود</button><button type="button" class="${fuTab === 'loan' ? 'on' : ''}" onclick="fuTab='loan';fuListRender()">الأمانات</button><button type="button" class="${fuTab === 'rep' ? 'on' : ''}" onclick="fuTab='rep';fuListRender()">المندوبون</button></div>`;
     let body;
     if (fuTab === 'rep') body = fuRepsHtml();
     else if (fuTab === 'miss') body = fmBodyHtml();

@@ -3710,7 +3710,7 @@ body.role-staff .home-sq .tile-scan { grid-column: auto; }
 .cu-sum { display: grid; gap: 4px; padding: 14px; border-radius: 16px; background: linear-gradient(145deg, #12204d, #2b3f7a); color: #fff; text-align: center; margin-bottom: 10px; }
 .cu-sum b { font-size: 1.5rem; } .cu-sum span, .cu-sum small { font-size: .8rem; opacity: .85; }
 .cu-seg { display: flex; gap: 6px; margin: 0 0 8px; }
-.cu-seg button { flex: 1; min-height: 40px; border: 1.5px solid #cbd5e1; border-radius: 12px; background: #fff; font: inherit; font-weight: 800; font-size: .85rem; color: #0f1c38; cursor: pointer; }
+.cu-seg button { flex: 1; min-height: 40px; border: 1.5px solid #cbd5e1; border-radius: 12px; background: #fff; font: inherit; font-weight: 800; font-size: .85rem; color: #0f1c38; cursor: pointer; white-space: nowrap; padding: 0 4px; }
 .cu-seg button.on { background: #0f1c38; color: #fff; border-color: #0f1c38; }
 .cu-row { display: flex; align-items: center; gap: 10px; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; margin-bottom: 8px; cursor: pointer; }
 .cu-av { width: 42px; height: 42px; flex: none; border-radius: 50%; background: #fce7f3; color: #9d174d; font-weight: 900; display: flex; align-items: center; justify-content: center; }
