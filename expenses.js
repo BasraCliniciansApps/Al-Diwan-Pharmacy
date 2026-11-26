@@ -833,7 +833,7 @@ function ndwDetBody(r) {
         + dr('الطلب اليومي المقدّر', fmtNum(Math.round(r.rate * 100) / 100)) + dr('الطلب الشهري المتوقع', f(r.rate * 30)) + dr('المدى الأسبوعي (ثقة 80%)', f(r.ci.w80[0]) + ' – ' + f(r.ci.w80[1])) + dr('المتوفر', f(r.stock)) + (r.ord ? dr('قيد الطلب', f(r.ord)) : '') + ndxDetailRows(r.ex)
         + dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', fmtNum(r.sug)) + (r.minQ ? dr('الحد الأدنى (من بطاقة المادة)', fmtNum(r.minQ)) : '') + dr('جودة البيانات', r.conf);
     const calc = S ? calcS : calcIn;
-    return `<div class="ndw-h" dir="ltr">${dispNameHtml(r.p)}</div>${ndxTag(r.ex)}`
+    return `<div class="ndw-h" dir="ltr">${dispNameHtml(r.p)}</div>${ndxTag(r.ex)}${r.synth && r.note ? '<div class="nd-hint" style="margin:6px 0">' + escapeHtml(r.note) + '</div>' : ''}`
         + sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + ((S && r.p.counted === true) || r.synth ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + sec('plan', 'تقييم العروض', plan) + (r.synth ? '' : sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r))) + sec('exp', 'الصلاحية والدفعات', expB) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + (r.synth ? '' : sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc));
 }
 // ---------- مناقلة مقترحة: المواد المتوقع تلف جزء منها قبل بيعه، مرتبة بالأقرب نفاذاً ----------
@@ -897,19 +897,44 @@ async function ndcPick(pid) {
     let r = ndmRows.find(x => x.p.id === pid), src = 's';
     if (!r) { r = ndwRows.find(x => x.p.id === pid && x.method !== 'none'); src = 'i'; }
     if (!r) {
-        const inp = 'width:100%;height:42px;border:1px solid #cbd5e1;border-radius:10px;padding:0 10px;font:inherit;text-align:center;box-sizing:border-box';
         const cur = (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0);
-        const o = await Swal.fire({ title: 'لا يتوفر تقدير لهذه المادة', html: `<div dir="rtl" style="text-align:right;display:grid;gap:10px"><div class="nd-hint">أدخل أرقاماً تقريبية للحساب فقط.</div><label class="fu-l">الاستهلاك الشهري التقريبي (علب)<input id="ndcM" type="number" inputmode="decimal" min="0" step="any" style="${inp}"></label><label class="fu-l">الرصيد الحالي (علب)<input id="ndcS" type="number" inputmode="decimal" min="0" step="any" value="${cur}" style="${inp}"></label></div>`, showCancelButton: true, confirmButtonText: 'حساب', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', reverseButtons: true, preConfirm: () => { const m = parseFloat(document.getElementById('ndcM').value), st = parseFloat(document.getElementById('ndcS').value); if (!(m >= 0)) { Swal.showValidationMessage('أدخل الاستهلاك الشهري'); return false; } return { m, st: st >= 0 ? st : 0 }; } });
-        if (!o.isConfirmed) return;
-        r = ndcSynthRow(p, o.value.m, o.value.st); ndcSynth = r; src = 'y';
+        const ch = await Swal.fire({ title: 'لا يتوفر تقدير لهذه المادة', html: '<div dir="rtl" style="text-align:right" class="nd-hint">اختر طريقة تقدير الاستهلاك:<br>• مادة مشابهة: يؤخذ استهلاكها الفعلي مع نسبة تعديل.<br>• إدخال يدوي: تكتب الاستهلاك الشهري المتوقع.</div>', showDenyButton: true, showCancelButton: true, confirmButtonText: 'مادة مشابهة', denyButtonText: 'إدخال الاستهلاك يدوياً', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', denyButtonColor: '#334155', reverseButtons: true });
+        if (ch.isDismissed) return;
+        const inp = 'width:100%;height:42px;border:1px solid #cbd5e1;border-radius:10px;padding:0 10px;font:inherit;text-align:center;box-sizing:border-box';
+        if (ch.isDenied) {
+            const o = await Swal.fire({ title: 'الاستهلاك المتوقع', html: `<div dir="rtl" style="text-align:right;display:grid;gap:10px"><div class="nd-hint">أدخل أرقاماً تقريبية للحساب فقط.</div><label class="fu-l">الاستهلاك الشهري المتوقع (علب)<input id="ndcM" type="number" inputmode="decimal" min="0" step="any" style="${inp}"></label><label class="fu-l">الرصيد الحالي (علب)<input id="ndcS" type="number" inputmode="decimal" min="0" step="any" value="${cur}" style="${inp}"></label></div>`, showCancelButton: true, confirmButtonText: 'حساب', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', reverseButtons: true, preConfirm: () => { const m = parseFloat(document.getElementById('ndcM').value), st = parseFloat(document.getElementById('ndcS').value); if (!(m >= 0)) { Swal.showValidationMessage('أدخل الاستهلاك الشهري'); return false; } return { m, st: st >= 0 ? st : 0 }; } });
+            if (!o.isConfirmed) return;
+            r = ndcSynthRow(p, o.value.m, o.value.st, 'استهلاك مُدخل يدوياً');
+        } else {
+            ndcSimSel = null; ndcSimPid = pid;
+            const o = await Swal.fire({ title: 'اختر المادة المشابهة', html: `<div dir="rtl" style="text-align:right;display:grid;gap:10px"><input type="search" id="ndcSimQ" autocomplete="off" placeholder="ابحث عن المادة المشابهة" oninput="ndcSimSearch(this.value)" style="${inp}"><div id="ndcSimRes"></div><div id="ndcSimSelBox" class="nd-hint"></div><label class="fu-l">نسبة التعديل (%) من استهلاكها<input id="ndcSimP" type="number" inputmode="decimal" min="1" step="any" value="100" style="${inp}"></label><label class="fu-l">الرصيد الحالي للمادة الجديدة (علب)<input id="ndcSimS" type="number" inputmode="decimal" min="0" step="any" value="${cur}" style="${inp}"></label></div>`, showCancelButton: true, confirmButtonText: 'حساب', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', reverseButtons: true, preConfirm: () => { const pc = parseFloat(document.getElementById('ndcSimP').value), st = parseFloat(document.getElementById('ndcSimS').value); if (!ndcSimSel) { Swal.showValidationMessage('اختر المادة المشابهة'); return false; } if (!(pc > 0)) { Swal.showValidationMessage('أدخل نسبة التعديل'); return false; } return { pc, st: st >= 0 ? st : 0 }; } });
+            if (!o.isConfirmed || !ndcSimSel) return;
+            const sr = ndcSimSel, pc = o.value.pc; r = ndcSynthRow(p, sr.rate * 30 * pc / 100, o.value.st, 'مبني على مادة مشابهة: ' + (sr.p.name || '') + ' بنسبة ' + fmtNum(pc) + '%');
+        }
+        ndcSynth = r; src = 'y';
     }
     ndwSrc = src; ndwCur = pid; ndwOpenSec = { sum: true, need: true, plan: true };
     Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div id="ndwDet" class="fu-det" dir="rtl" style="text-align:right">${ndwDetBody(r)}</div>` });
 }
-function ndcSynthRow(p, monthly, stock) {
+let ndcSimSel = null, ndcSimPid = null;
+function ndcSimSearch(v) {
+    const q = normSearch(v || ''), toks = q ? q.split(' ') : [], box = document.getElementById('ndcSimRes'); if (!box) return;
+    if (!q) { box.innerHTML = ''; return; }
+    const rates = new Map(); [...ndwRows, ...ndmRows].forEach(x => { if (x.method !== 'none' && x.rate > 0 && (!rates.has(x.p.id) || x.src === 's')) rates.set(x.p.id, x); });
+    const list = (products || []).filter(p => p && !p.arch && p.id !== ndcSimPid && rates.has(p.id) && searchScore(p, q, toks) > 0).slice(0, 6);
+    box.innerHTML = list.map(p => { const x = rates.get(p.id); return `<div class="cu-row fu-row ndw-rw" onclick="ndcSimUse(${p.id})"><div><b dir="ltr">${dispNameHtml(p)}</b></div><small>${fmtNum(Math.round(x.rate * 300) / 10)} علبة شهرياً</small></div>`; }).join('') || '<div class="cu-none">لا توجد مادة لها استهلاك مسجل بهذا الاسم.</div>';
+    ndcSimMap = rates;
+}
+let ndcSimMap = null;
+function ndcSimUse(id) {
+    const x = ndcSimMap && ndcSimMap.get(id); if (!x) return; ndcSimSel = x;
+    const b = document.getElementById('ndcSimSelBox'); if (b) b.innerHTML = 'المختارة: <b dir="ltr">' + escapeHtml(x.p.name || '') + '</b> • استهلاكها ' + fmtNum(Math.round(x.rate * 300) / 10) + ' علبة شهرياً';
+    const r = document.getElementById('ndcSimRes'); if (r) r.innerHTML = '';
+}
+function ndcSynthRow(p, monthly, stock, note) {
     const rate = monthly / 30, ex = ndxExpiry(p, rate), cfg = ndmCfg(), T = cfg.lead + cfg.rev, sdw = Math.sqrt(rate * 7 * 2), ss = 1.65 * sdw * Math.sqrt(T / 7), today = todayLocalISO(), pos = stock - ex.expired, sm = ndwSupMap();
     const sups = sm.get(p.id) || [];
-    return { src: 's', synth: true, method: 'sales', counted: true, manual: true, p, ex, rate, stock, ord: 0, ss, rop: rate * cfg.lead + ss, tgt: rate * T + ss, sdw, status: 'ok', sug: 0, minQ: 0, cover: rate > 0 ? pos / rate : null, pos, conf: 'منخفضة', consumed: rate * 90, demand: rate * 90, span: 90, ev: [], first: today, last: today, since: 0, units: 0, nEv: 0, nsE: 0, nsO: 0, w80: [Math.max(0, rate * 7 - 1.28 * sdw), rate * 7 + 1.28 * sdw], sups, sup: ndwSupPick(sups, p.id) };
+    return { src: 's', synth: true, note: note || '', method: 'sales', counted: true, manual: true, p, ex, rate, stock, ord: 0, ss, rop: rate * cfg.lead + ss, tgt: rate * T + ss, sdw, status: 'ok', sug: 0, minQ: 0, cover: rate > 0 ? pos / rate : null, pos, conf: 'منخفضة', consumed: rate * 90, demand: rate * 90, span: 90, ev: [], first: today, last: today, since: 0, units: 0, nEv: 0, nsE: 0, nsO: 0, w80: [Math.max(0, rate * 7 - 1.28 * sdw), rate * 7 + 1.28 * sdw], sups, sup: ndwSupPick(sups, p.id) };
 }
 function ndwToList(src) {
     const rows = (src === 's' ? ndmRows : ndwRows).filter(r => r.status === 'order' && r.sug > 0 && (!ndwSup || r.sup === ndwSup)); if (!rows.length) return;
