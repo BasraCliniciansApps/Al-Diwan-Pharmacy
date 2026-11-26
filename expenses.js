@@ -395,7 +395,7 @@ function ndmHtml() {
     const chips = [['order', 'اطلب الآن'], ['over', 'زائد'], ['rare', 'حسب الطلب'], ['exp', 'قريب (' + fmtNum(c.rows.filter(r => r.ex && r.ex.flag).length) + ')'], ['all', 'الكل']];
     const tops = ndwTopSups(3), supChips = tops.length ? `<div class="cn-chips fu-chips"><button type="button" class="cn-chip ${ndwSup === '' ? 'on' : ''}" onclick="ndwSup='';ndmShow=60;exRender()">كل المذاخر</button>${tops.map((n, k) => `<button type="button" class="cn-chip ${ndwSup === n ? 'on' : ''}" onclick="ndwSupSel(${k})">${escapeHtml(n)}</button>`).join('')}</div>` : '';
     return `<div class="sd-cards sd-c3"><div><span>اطلب الآن</span><b>${fmtNum(cnt('order'))}</b></div><div><span>زائد</span><b>${fmtNum(cnt('over'))}</b></div><div><span>حسب الطلب</span><b>${fmtNum(cnt('rare'))}</b></div></div>
-        <div class="ndw-acts"><button type="button" class="ln-btn" onclick="ndwSupSheet('s')">الطلب حسب المذخر</button><button type="button" class="ln-btn" onclick="ndwOfferMode('s')">تقييم عرض مندوب</button></div>
+        <div class="ndw-acts"><button type="button" class="ln-btn" onclick="ndwSupSheet('s')">الطلب حسب المذخر</button></div>
         <details class="nd-set"><summary>الإعدادات وطريقة الحساب</summary><div class="nd-set-b">${ndwSetRows()}
         <div class="nd-hint">طريقة الحساب:<br>• الأساس المبيعات الفعلية (الصادر) خلال آخر 12 أسبوعاً، لا الوارد.<br>• لا تُحتسب أيام نفاد المادة ضمن الطلب، ويُضاف ما سُجّل في «المطلوبة وغير المتوفرة».<br>• يُصنَّف نمط الطلب (منتظم، متذبذب، متقطع، كتلي) ويُختار نموذج مناسب له.<br>• الكمية المقترحة تغطي «مدة الهدف» بعد خصم المتوفر وما قيد الطلب.<br>• الحد الأدنى المسجل في بطاقة المادة يُعتمد إن وُجد.<br>• المادة التي تقل مبيعاتها عن علبة شهرياً تُصنَّف «حسب الطلب» ولا يُقترح لها شراء.<br>• المذخر المقترح هو الأرخص بآخر سعر شراء، وإلا الأكثر شراءً منه.<br>• مدة وصول الطلبية ${fmtNum(cfg.lead)} ${cfg.lead === 1 ? 'يوم' : 'أيام'} ودورة الطلب ${fmtNum(cfg.rev)} ${cfg.rev === 1 ? 'يوم' : 'أيام'} (تلقائياً من سجل المخزن).</div>
         <div class="bill-set-hint">حدود هذه الطريقة:<br>• دقتها مرتبطة باكتمال تسجيل فواتير البيع.<br>• المواد التي لم تُسجَّل لها مبيعات خلال المدة لا تظهر هنا.<br>• الموسمية لا تُرصد قبل مرور سنة من البيانات.</div></div></details>
@@ -551,7 +551,7 @@ function ndwListHtml() {
         + (list.length > ndwShow ? `<button type="button" class="ex-cat" onclick="ndwShow+=60;ndwRowsRedraw()">عرض المزيد (${fmtNum(list.length - ndwShow)})</button>` : '') + idleBox;
 }
 function ndwTools() {
-    Swal.fire({ title: 'الأدوات', showConfirmButton: false, showCloseButton: true, width: 'min(92vw, 420px)', html: `<div dir="rtl" class="ndw-menu"><button type="button" class="ln-btn" onclick="Swal.close();ndwSupSheet()">الطلب حسب المذخر</button><button type="button" class="ln-btn" onclick="Swal.close();ndwOfferMode()">تقييم عرض مندوب</button><button type="button" class="ln-btn" onclick="Swal.close();ndwSetShow=!ndwSetShow;exRender();if(ndwSetShow){const d=document.getElementById('ndwSetBox');if(d)d.scrollIntoView({block:'start'})}">${ndwSetShow ? 'إخفاء الإعدادات وطريقة الحساب' : 'الإعدادات وطريقة الحساب'}</button></div>` });
+    Swal.fire({ title: 'الأدوات', showConfirmButton: false, showCloseButton: true, width: 'min(92vw, 420px)', html: `<div dir="rtl" class="ndw-menu"><button type="button" class="ln-btn" onclick="Swal.close();ndwSupSheet()">الطلب حسب المذخر</button><button type="button" class="ln-btn" onclick="Swal.close();ndwSetShow=!ndwSetShow;exRender();if(ndwSetShow){const d=document.getElementById('ndwSetBox');if(d)d.scrollIntoView({block:'start'})}">${ndwSetShow ? 'إخفاء الإعدادات وطريقة الحساب' : 'الإعدادات وطريقة الحساب'}</button></div>` });
 }
 function ndwRowsRedraw() { const b = document.getElementById('ndwList'); if (b) b.innerHTML = ndwListHtml(); }
 function ndwHtml() {
@@ -821,7 +821,8 @@ function ndwSumHtml(r) {
         + (c.buy > 0 ? '<button type="button" class="cn-new" style="margin-top:10px" onclick="ndwAddOne()">إضافة ' + fmtNum(c.buy) + ' إلى قائمة النواقص</button>' : '');
 }
 function ndwDetBody(r) {
-    const S = r.src === 's';
+    const S = r.src === 's', offerTab = ndcMode && ndcTab === 'offer';
+    if (offerTab) ndwOpenSec.plan = true;
     const f = v => fmtNum(Math.round(v * 10) / 10), dr = (t, v) => `<div class="fu-dr"><span>${t}</span><b>${v}</b></div>`;
     const sec = (k, t, body) => `<details class="nd-set" ${(ndwOpenSec[k] !== undefined ? ndwOpenSec[k] : (k === 'bal' && r.p.counted !== true && !r.manual)) ? 'open' : ''} ontoggle="ndwOpenSec['${k}']=this.open"><summary>${t}</summary><div class="nd-set-b">${body}</div></details>`;
     const manV = ndwManualMap()[r.p.id], inp = 'height:38px;border:1px solid #cbd5e1;border-radius:10px;padding:0 8px;font:inherit;text-align:center;box-sizing:border-box';
@@ -844,7 +845,7 @@ function ndwDetBody(r) {
         + dr('مخزون الأمان', f(r.ss)) + dr('نقطة إعادة الطلب', f(r.rop)) + dr('المستوى المستهدف', f(r.tgt)) + dr('الكمية المقترحة', fmtNum(r.sug)) + (r.minQ ? dr('الحد الأدنى (من بطاقة المادة)', fmtNum(r.minQ)) : '') + dr('جودة البيانات', r.conf);
     const calc = S ? calcS : calcIn;
     return `<div class="ndw-h" dir="ltr">${dispNameHtml(r.p)}</div>${ndxTag(r.ex)}${r.synth && r.note ? '<div class="nd-hint" style="margin:6px 0">' + escapeHtml(r.note) + '</div>' : ''}`
-        + sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + ((S && r.p.counted === true) || r.synth ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + sec('plan', 'تقييم العروض', plan) + (r.synth ? '' : sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r))) + sec('exp', 'الصلاحية والدفعات', expB) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + (r.synth ? '' : sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc));
+        + (offerTab ? sec('plan', 'تقييم العروض', plan) : (sec('sum', 'الخلاصة', '<div id="ndwSumOut">' + ndwSumHtml(r) + '</div>') + ((S && r.p.counted === true) || r.synth ? '' : sec('bal', r.p.counted === true ? 'الرصيد الحالي' : 'الرصيد الحالي (إدخال للحساب)', bal)) + sec('need', 'الاحتياج لمدة محددة', need) + (r.synth ? '' : sec('chart', S ? 'رسم المبيعات' : 'رسم سحب المادة', S ? ndmChartSvg(r) : ndwChartSvg(r))) + sec('exp', 'الصلاحية والدفعات', expB) + sec('sup', 'المذخر والأسعار', supB) + (S ? '' : sec('iv', 'فترات السحب', ivs)) + (r.synth ? '' : sec('stat', 'الإحصاءات والجودة', ndwStatHtml(r)) + sec('calc', 'الحسابات الحالية', calc))));
 }
 // ---------- مناقلة مقترحة: المواد المتوقع تلف جزء منها قبل بيعه، مرتبة بالأقرب نفاذاً ----------
 let xfF = 'all', xfRows = [];
@@ -893,7 +894,7 @@ async function ndcEnsure() {
 async function ndcOpen() {
     if (typeof userRole === 'undefined' || userRole !== 'owner') { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'هذه الصفحة للمدير فقط.', confirmButtonColor: '#0f1c38' }); return; }
     await ndcEnsure();
-    Swal.fire({ title: 'تقييم العروض', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div dir="rtl" style="text-align:right"><div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة المعروضة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة ثم طريقة التقدير (حسب المبيعات أو حسب الوارد)، وبعدها تظهر الإحصائيات وتقييم العروض.</div></div>`, didOpen: () => { const el = document.getElementById('ndcQ'); if (el) el.focus(); } });
+    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div dir="rtl" style="text-align:right"><div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة المعروضة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة ثم طريقة التقدير (حسب المبيعات أو حسب الوارد)، وبعدها تظهر الإحصائيات وتقييم العروض.</div></div>`, didOpen: () => { const el = document.getElementById('ndcQ'); if (el) el.focus(); } });
 }
 function ndcSearch(v) {
     const q = normSearch(v || ''), toks = q ? q.split(' ') : [], box = document.getElementById('ndcRes'); if (!box) return;
@@ -929,9 +930,16 @@ async function ndcPick(pid) {
         ndcSynth = r; src = 'y';
     }
     ndwSrc = src; ndwCur = pid; ndwOpenSec = { sum: true, need: true, plan: true };
-    Swal.fire({ title: 'تقييم العروض', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', html: `<div dir="rtl" style="text-align:right"><div id="ndcSeg">${ndcSegHtml()}</div><div id="ndwDet" class="fu-det">${ndwDetBody(r)}</div></div>` });
+    ndcMode = true; ndcTab = 'calc';
+    Swal.fire({ title: 'حاسبة الاحتياج', showConfirmButton: false, showCloseButton: true, width: 'min(94vw, 520px)', willClose: () => { ndcMode = false; }, html: `<div dir="rtl" style="text-align:right"><div id="ndcTabs">${ndcTabsHtml()}</div><div id="ndcSeg">${ndcSegHtml()}</div><div id="ndwDet" class="fu-det">${ndwDetBody(r)}</div></div>` });
 }
-let ndcAlt = null;
+let ndcAlt = null, ndcMode = false, ndcTab = 'calc';
+function ndcTabsHtml() { return `<div class="ndw-tabs">${[['calc', 'حاسبة الاحتياج'], ['offer', 'تقييم العروض']].map(([k, l]) => `<button type="button" class="${ndcTab === k ? 'on' : ''}" onclick="ndcGo('${k}')">${l}</button>`).join('')}</div>`; }
+function ndcGo(k) {
+    if (ndcTab === k) return; ndwOfRead(); ndcTab = k;
+    const t = document.getElementById('ndcTabs'); if (t) t.innerHTML = ndcTabsHtml();
+    const r = ndwFind(ndwCur), el = document.getElementById('ndwDet'); if (r && el) el.innerHTML = ndwDetBody(r);
+}
 function ndcSegHtml() { return ndcAlt ? `<div class="ndw-seg" style="margin-bottom:10px">${[['s', 'حسب المبيعات'], ['i', 'حسب الوارد']].map(([k, l]) => `<button type="button" class="${ndwSrc === k ? 'on' : ''}" onclick="ndcSwitch('${k}')">${l}</button>`).join('')}</div>` : ''; }
 function ndcSwitch(k) {
     if (!ndcAlt || !ndcAlt[k] || ndwSrc === k) return; ndwOfRead(); ndwSrc = k;
