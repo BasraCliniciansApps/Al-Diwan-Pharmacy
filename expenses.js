@@ -944,7 +944,7 @@ async function ndcPick(pid) {
 let ndcAlt = null, ndcMode = false, ndcTab = 'calc';
 function ndcInline(r) {
     const m = document.getElementById('ndcMain'); if (!m) return;
-    m.innerHTML = `<button type="button" class="ln-btn" style="margin-bottom:10px" onclick="ndcShowSearch()">تغيير المادة</button><div id="ndcSeg">${ndcSegHtml()}</div><div id="ndwDet" class="fu-det">${ndwDetBody(r)}</div>`;
+    m.innerHTML = `<button type="button" class="ln-btn" style="margin-bottom:10px;width:100%" onclick="ndcShowSearch()">تغيير المادة</button><div id="ndcSeg">${ndcSegHtml()}</div><div id="ndwDet" class="fu-det">${ndwDetBody(r)}</div>`;
     const b = document.querySelector('#ndcOv .cn-body'); if (b) b.scrollTop = 0;
 }
 function ndcTabsHtml() { return `<div class="ndw-tabs">${[['calc', 'حاسبة الاحتياج'], ['offer', 'تقييم العروض']].map(([k, l]) => `<button type="button" class="${ndcTab === k ? 'on' : ''}" onclick="ndcGo('${k}')">${l}</button>`).join('')}</div>`; }
