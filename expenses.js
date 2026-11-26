@@ -480,7 +480,8 @@ function ndwCalc() {
         const rateA = okA ? usedA / span : 0, method = okB ? 'bal' : 'int';
         const consumed = Math.max(0, total - stock), sumNs = mp => (mp.get(pid) || []).filter(x => x.d >= ds[0]).reduce((a, x) => a + x.q, 0), nsE = sumNs(nsExp), nsO = sumNs(nsOut);
         const demand = okB ? Math.max(0, consumed - nsE - nsO) : usedA, rate = okB ? demand / since0 : rateA, period = okB ? since0 : span;
-        const sdw = okA && rates.length >= 3 ? Math.sqrt(rates.reduce((a, b) => a + (b - rateA) * (b - rateA), 0) / (rates.length - 1)) * 7 : Math.sqrt(Math.max(rate * 7, 0)), mw = rate * 7;
+        let phi = 2; { const iv = []; for (let k = 0; k < ds.length - 1; k++) { const g = ndmDays(ds[k], ds[k + 1]); if (g > 0) iv.push({ u: m.get(ds[k]), g }); } if (iv.length >= 3) { const lm = iv.reduce((a, x) => a + x.u, 0) / iv.reduce((a, x) => a + x.g, 0); if (lm > 0) phi = Math.min(3, Math.max(1, iv.reduce((a, x) => a + Math.pow(x.u - lm * x.g, 2) / (lm * x.g), 0) / (iv.length - 1))); } }
+        const sdw = Math.sqrt(Math.max(rate * 7, 0) * phi), mw = rate * 7; // انحراف أسبوعي بنموذج بواسون المتشتت (φ بين 1 و3) بدل تباين فترات الشراء المضخَّم
         const ex = ndxExpiry(p, rate), ord = onOrd.get(pid) || 0, pos = stock - ex.expired + ord;
         const ss = 1.65 * sdw * Math.sqrt(T / 7), rop = rate * cfg.lead + ss, tgt = rate * T + ss;
         const status = !counted ? 'wait' : pos <= rop ? 'order' : pos <= rop + rate * cfg.rev ? 'soon' : (rate > 0 && pos > tgt + rate * 30) ? 'over' : 'ok';
