@@ -158,43 +158,34 @@ function p2RStep(n) {   // نفس تسوية الألف في البيع السا
     const np = (parseFloat(it.price) || 0) + n / (parseFloat(it.qty) || 1); if (np <= 0) return;
     it.price = np; billChanged(); p2Render();
 }
-// تسوية الألف بضغطة واحدة (الباقي r = الصافي mod 1000):
-//  1) خصم r mod 250 (بلا تعديل سعر) للوصول إلى مضاعف 250، ويُسجَّل في خانة الخصم.
-//  2) الباقي 250/500/750: يُضاف للوصول إلى الألف الأعلى على أسعار المواد التي بلا ملصق وزاري (أسعار صحيحة، مادة أو مادتان).
-//  3) إن تعذّرت الإضافة: خصم إلى الألف الأدنى (إن كان الباقي < 500) أو الاكتفاء بأقرب 250.
-function p2RoundAdd(diff) {
-    const el = typeof qiEligible === 'function' ? qiEligible() : []; if (!el.length) return false;
-    const L = el.map(i => { const it = bill.items[i]; return { i, q: parseFloat(it.qty) || 0, p: parseFloat(it.price) || 0 }; }).filter(x => x.q > 0 && Number.isInteger(x.q));
-    const ok = (x, d) => Number.isInteger(x.p) && x.p + d > 0;
+// تسوية السعر بضغطة واحدة (r = الصافي mod 1000):
+//  أولاً: محاولة الإضافة (250/500/750) للوصول إلى الألف الأعلى على مواد بلا ملصق وزاري. الزيادة لكل قطعة مضاعف 250 فقط وبلا كسور
+//        (فلا تُوزَّع 250 على كمية > 1، ولا 500 على كمية > 2، ولا 750 على كمية > 3)، ويجوز تقسيمها على عدة مواد بـ250 لكل قطعة.
+//  إن لم تُمكن: خصم أقل مبلغ يوصل الباقي إلى مضاعف 250 تصح عنده الإضافة (أو إلى الألف الأدنى)، ويُسجَّل في خانة الخصم.
+function p2RoundAdd(u) {
+    const el = typeof qiEligible === 'function' ? qiEligible() : [], n = u / 250; if (!el.length || !Number.isInteger(n) || n < 1) return false;
+    const L = el.map(i => { const it = bill.items[i]; return { i, q: parseFloat(it.qty) || 0, p: parseFloat(it.price) || 0 }; }).filter(x => Number.isInteger(x.q) && x.q >= 1 && x.q <= n && Number.isInteger(x.p));
     let best = null;
-    const score = a => a.reduce((s, r) => s + Math.abs(r.d), 0) * 1000 + a.length;
-    L.forEach(x => { if (diff % x.q === 0 && ok(x, diff / x.q)) { const c = [{ x, d: diff / x.q }]; if (!best || score(c) < score(best)) best = c; } });
-    if (!best) {
-        for (let a = 0; a < L.length; a++) for (let b = a + 1; b < L.length; b++) {
-            const x = L[a], y = L[b], lim = Math.ceil(diff / Math.min(x.q, y.q)) + y.q;
-            for (let d1 = 1; d1 <= lim; d1++) {
-                const rest = diff - d1 * x.q; if (rest % y.q !== 0) continue;
-                const d2 = rest / y.q; if (d2 <= 0 || !ok(x, d1) || !ok(y, d2)) continue;
-                const c = [{ x, d: d1 }, { x: y, d: d2 }]; if (!best || score(c) < score(best)) best = c;
-            }
-        }
-    }
+    const go = (idx, left, pick) => {
+        if (left === 0) { if (!best || pick.length < best.length) best = pick.slice(); return; }
+        if (idx >= L.length) return;
+        const x = L[idx];
+        for (let k = Math.floor(left / x.q); k >= 0; k--) { if (k) pick.push({ x, k }); go(idx + 1, left - k * x.q, pick); if (k) pick.pop(); }
+    };
+    go(0, n, []);
     if (!best) return false;
-    best.forEach(r => { bill.items[r.x.i].price = r.x.p + r.d; }); p2.rcur = best[0].x.i;
+    best.forEach(r => { bill.items[r.x.i].price = r.x.p + 250 * r.k; }); p2.rcur = best[0].x.i;
     return true;
 }
 function p2RoundNow() {
     const el = typeof qiEligible === 'function' ? qiEligible() : []; if (!el.length) return;
-    const tot = billTotals().total, r = tot % 1000; if (!r) return;
-    const d = r % 250, r2 = r - d;   // الخصم d (بلا تعديل سعر) يوصل إلى مضاعف 250
-    let disc = d, added = false;
-    if (r2 > 0) {   // الباقي بعد الخصم 250/500/750: نحاول رفعه للألف الأعلى بالإضافة على أسعار المواد
-        if (p2RoundAdd(1000 - r2)) added = true;
-        else disc = r2 < 500 ? r : d;   // تعذّرت الإضافة: خصم إلى الألف الأدنى (إن كان قريباً) أو إلى أقرب 250
+    const r = billTotals().total % 1000; if (!r) return;
+    for (let r2 = r - r % 250; r2 >= 0; r2 -= 250) {
+        const disc = r - r2;
+        if (r2 > 0 && !p2RoundAdd(1000 - r2)) continue;
+        if (disc) bill.discount = String((parseFloat(bill.discount) || 0) + disc);
+        writeInvoiceFields(); billChanged(); p2Render(); return;
     }
-    if (!added && !disc) { Swal.fire({ icon: 'warning', title: 'تعذّرت التسوية', text: 'الزيادة المطلوبة تحتاج كسوراً عشرية في السعر، ولا يُسمح بها. عدّل سعر مادة يدوياً.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
-    if (disc) bill.discount = String((parseFloat(bill.discount) || 0) + disc);
-    writeInvoiceFields(); billChanged(); p2Render();
 }
 function p2Chip(k) { const S = billTotals().sub; p2SetDisc(p2ChipD(k, S)); p2Sync(); }
 function p2DiscMax() { p2SetDisc(posDiscForMax(billTotals().sub, posLimits().allow)); p2Sync(); }
@@ -422,7 +413,7 @@ function p2Pills(hasRnd) {
     if (!P2_COMPACT) return '';
     const bd = (id, on, txt) => `<i class="p2-bd" id="${id}" ${on ? '' : 'hidden'}>${txt || ''}</i>`;
     const b = (k, lbl, badge, cls) => `<button type="button" class="p2-pill${cls || ''}${p2.acc === k ? ' on' : ''}" onclick="p2Acc('${k}')"><span>${lbl}</span>${badge}</button>`;
-    return `<div class="p2-pills"><div class="p2-pr">${b('disc', 'خصم', bd('p2BdD', false))}${hasRnd ? `<button type="button" class="p2-pill" onclick="p2RoundNow()"><span>تسوية الألف</span></button>` : ''}${b('cr', 'بيع آجل', bd('p2BdR', p2.credit, '✓'))}</div>${b('calc', 'حاسبة الباقي', bd('p2BdC', p2Calc(), '✓'), ' p2-pill-wide')}</div>`;
+    return `<div class="p2-pills"><div class="p2-pr">${b('disc', 'خصم', bd('p2BdD', false))}${hasRnd ? `<button type="button" class="p2-pill" onclick="p2RoundNow()"><span>تسوية السعر</span></button>` : ''}${b('cr', 'بيع آجل', bd('p2BdR', p2.credit, '✓'))}</div>${b('calc', 'حاسبة الباقي', bd('p2BdC', p2Calc(), '✓'), ' p2-pill-wide')}</div>`;
 }
 function p2Fit() {   // ارتفاع التذييل الثابت والقسم المفتوح: لإزاحة المحتوى ووضع شريط الصافي فوقهما
     const ov = p2El('p2Ov'), a = ov && ov.querySelector('.p2-act'); if (!a) return;
