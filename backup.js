@@ -200,68 +200,27 @@ async function applyHistoryReplace(data) {
 
 
 // ---------- استيراد «آخر شراء» للمواد التي بلا وارد: من ملفات الإكسل القديمة، سجل فقط (لا يمس المخزن) ----------
-const LB_FORM = new Set('tablet tablets tab tabs capsule capsules cap caps syrup susp suspension cream ointment gel drops drop eye ear nasal spray vial vials amp ampoule ampoules injection inj sachet sachets lotion shampoo oral solution sol powder suppository supp suppositories film coated fc ml mg gm g mcg iu for the and of with x pcs'.split(' '));
-function lbToks(s) {
-    s = String(s || '').toLowerCase().replace(/(\d)([a-z])/g, '$1 $2').replace(/([a-z])(\d)/g, '$1 $2');
-    return new Set((s.match(/[a-z]+|\d+(?:\.\d+)?/g) || []).filter(t => (/^\d/.test(t) || t.length > 1 || !'xgms'.includes(t)) && !LB_FORM.has(t)));
-}
-function lbEd(a, b, mx) {   // مسافة التحرير (حرف ناقص/زائد/مبدّل) مع حد أقصى
-    if (Math.abs(a.length - b.length) > mx) return mx + 1;
-    let p = Array.from({ length: b.length + 1 }, (_, j) => j);
-    for (let i = 1; i <= a.length; i++) {
-        const c = [i]; let mn = i;
-        for (let j = 1; j <= b.length; j++) { c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); if (c[j] < mn) mn = c[j]; }
-        if (mn > mx) return mx + 1; p = c;
-    }
-    return p[b.length];
-}
-const lbCo = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, '');
-function lbCoCmp(a, b) {   // تطابق الشركة: true / false / null (غير معروفة في أحد الطرفين)
-    a = lbCo(a); b = lbCo(b); if (!a || !b) return null;
-    return a === b || (Math.min(a.length, b.length) >= 3 && (a.includes(b) || b.includes(a))) || lbEd(a, b, 2) <= 2;
-}
+const lbCo = s => String(s || '').toLowerCase().replace(/[^a-z0-9؀-ۿ]/g, '');
+const lbPk = (n, c) => lbCo(n) + '|' + lbCo(c);
 async function applyLastBuyImport(data) {
-    const lines = (data.lines || []).filter(l => l && l.name && l.date);
-    const have = new Set(), haveKeys = new Set();
-    (puAll || []).forEach(r => { if (r.cancelled) return; (r.items || []).forEach(it => { if (it.pid != null) have.add(String(it.pid)); haveKeys.add([...lbToks(it.name)].sort().join(' ')); }); });
-    const cand = products.filter(p => !have.has(String(p.id)) && !haveKeys.has([...lbToks(typeof dispName === 'function' ? dispName(p) : p.name)].sort().join(' ')));
-    const byKey = new Map(lines.map(l => [l.k, l])), inv = new Map();
-    lines.forEach(l => l.k.split(' ').forEach(t => { if (!inv.has(t)) inv.set(t, []); inv.get(t).push(l); }));
-    const vocab = [...inv.keys()].filter(t => !/^\d/.test(t) && t.length >= 4), fz = new Map();
-    const fixTok = t => {   // أقرب كلمة في ملفات الإكسل (خطأ إملائي بحرف أو حرفين)
-        if (/^\d/.test(t) || t.length < 4 || inv.has(t)) return t;
-        if (fz.has(t)) return fz.get(t);
-        const mx = t.length >= 9 ? 2 : 1; let best = t, bd = mx + 1;
-        for (const v of vocab) { const d = lbEd(t, v, mx); if (d < bd) { bd = d; best = v; if (d === 1) break; } }
-        fz.set(t, best); return best;
-    };
-    const used = new Map(), rows = [], none = [];
-    cand.forEach(p => {
-        const pn = typeof dispName === 'function' ? dispName(p) : p.name, tk0 = lbToks(pn);
-        if (!tk0.size) { none.push(pn); return; }
-        const tk = new Set([...tk0].map(fixTok)), typo = [...tk0].some(t => !tk.has(t)), key = [...tk].sort().join(' ');
-        let l = byKey.get(key), exact = !!l && !typo, sc = 1, cm = l ? lbCoCmp(p.brand || p.company, l.company) : null;
-        if (!l) {
-            const seen = new Map(); tk.forEach(t => (inv.get(t) || []).forEach(x => seen.set(x, (seen.get(x) || 0) + 1)));
-            let best = 0.75 - 1e-9;
-            seen.forEach((i, x) => {
-                const xn = x.k.split(' ').filter(t => /^\d/.test(t)).sort().join(','), pnn = [...tk].filter(t => /^\d/.test(t)).sort().join(',');
-                if (xn !== pnn) return;   // اختلاف الأرقام (التركيز/العبوة) = مادة مختلفة
-                const c = lbCoCmp(p.brand || p.company, x.company), j = i / (tk.size + x.k.split(' ').length - i), j2 = c === true ? j + 0.15 : (c === false ? j - 0.15 : j);
-                if (j2 > best) { best = j2; l = x; sc = j; cm = c; }
-            });
-        }
-        if (l && cm === false) exact = false;
-        if (!l) { none.push(pn); return; }
-        rows.push({ p, pn, l, exact, sc, cm }); used.set(l.k, (used.get(l.k) || 0) + 1);
+    const map = (data.map || []).filter(m => m && m.pn && m.date);
+    const have = new Set();
+    (puAll || []).forEach(r => { if (!r.cancelled) (r.items || []).forEach(it => { if (it.pid != null) have.add(String(it.pid)); }); });
+    const cnt = new Map(); products.forEach(p => { const k = lbPk(p.name, p.brand || p.company); cnt.set(k, (cnt.get(k) || 0) + 1); });
+    const byKey = new Map(map.map(m => [lbPk(m.pn, m.pc), m]));
+    const rows = []; let noInflow = 0;
+    products.forEach(p => {
+        if (have.has(String(p.id))) return; noInflow++;
+        const k = lbPk(p.name, p.brand || p.company), m = byKey.get(k); if (!m) return;
+        const dup = cnt.get(k) > 1;
+        rows.push({ p, pn: p.name, l: m, on: m.conf === 'H' && !dup, dup });
     });
-    rows.forEach(r => { const same = rows.filter(x => x.l.k === r.l.k); r.amb = same.length > 1 && !(r.cm === true && same.filter(x => x.cm === true).length === 1); r.on = r.exact && !r.amb && r.cm !== false; });
     rows.sort((a, b) => (b.on - a.on) || a.pn.localeCompare(b.pn));
-    if (!rows.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد للتعبئة', text: 'كل المواد لها وارد، أو لم تُطابَق أسماؤها مع ملفات الإكسل.', confirmButtonColor: '#0f1c38' }); return; }
+    if (!rows.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد للتعبئة', text: 'كل المواد لها وارد، أو لا يوجد لها شراء مدقَّق في ملفات الإكسل.', confirmButtonColor: '#0f1c38' }); return; }
     const E = escapeHtml;
-    const rowHtml = (r, i) => `<label class="lb-r"><input type="checkbox" class="lb-c" data-i="${i}" ${r.on ? 'checked' : ''}><span class="lb-n">${E(r.pn)}</span><span class="lb-x">${E(r.l.name)}${r.exact ? '' : ' ≈'}${r.amb ? ' ⚠' : ''}${r.cm === false ? ' ✗شركة' : ''}</span><span class="lb-d">${E(r.l.supplier)} · ${E(r.l.date)}</span></label>`;
+    const rowHtml = (r, i) => `<label class="lb-r"><input type="checkbox" class="lb-c" data-i="${i}" ${r.on ? 'checked' : ''}><span class="lb-n">${E(r.pn)}</span><span class="lb-x">${E(r.l.xn)}${r.l.conf === 'H' ? '' : ' ≈'}${r.dup ? ' ⚠' : ''}</span><span class="lb-d">${E(r.l.supplier)} · ${E(r.l.date)}</span></label>`;
     const ok = await Swal.fire({ title: 'تعبئة آخر شراء', width: '96vw', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'استورد المحدد', cancelButtonText: 'إلغاء',
-        html: `<div style="text-align:right;font-size:.85rem;line-height:1.7"><b>${fmtNum(rows.length)}</b> مادة بلا وارد وجدنا لها آخر شراء (مطابق تماماً: ${fmtNum(rows.filter(r => r.exact && !r.amb).length)}) · بلا مطابقة: ${fmtNum(none.length)}<br><span style="color:#64748b">≈ مطابقة تقريبية، ⚠ مشتركة مع مادة أخرى، ✗شركة: الشركة تختلف — غير محددة افتراضياً، راجعها. يُسجَّل كل سطر في قائمته الأصلية وبتاريخها، بلا أي تغيير في المخزن.</span></div><div class="lb-l" style="max-height:52vh;overflow:auto;margin-top:8px;border:1px solid #e2e8f0;border-radius:10px">${rows.map(rowHtml).join('')}</div>
+        html: `<div style="text-align:right;font-size:.85rem;line-height:1.7">مواد بلا وارد: <b>${fmtNum(noInflow)}</b> · لها شراء مدقَّق: <b>${fmtNum(rows.length)}</b> (مؤكَّد: ${fmtNum(rows.filter(r => r.on).length)}) · بلا شراء في الملفات: ${fmtNum(noInflow - rows.length)}<br><span style="color:#64748b">≈ مطابقة محتملة تحتاج مراجعة، ⚠ اسم مكرر بين مادتين. يُسجَّل كل سطر في قائمته الأصلية وبتاريخها، بلا أي تغيير في المخزن.</span></div><div class="lb-l" style="max-height:52vh;overflow:auto;margin-top:8px;border:1px solid #e2e8f0;border-radius:10px">${rows.map(rowHtml).join('')}</div>
         <style>.lb-r{display:grid;grid-template-columns:20px 1.2fr 1.2fr .9fr;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:.78rem;text-align:right;cursor:pointer}.lb-r span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lb-x,.lb-d{color:#64748b}</style>`,
         preConfirm: () => [...document.querySelectorAll('.lb-c')].filter(c => c.checked).map(c => +c.dataset.i) });
     if (!ok.isConfirmed) return;
@@ -277,7 +236,7 @@ async function applyLastBuyImport(data) {
             recs.set(rid, rec);
         }
         if (!rec.items.some(it => String(it.pid) === String(r.p.id)))
-            rec.items.push({ pid: r.p.id, name: r.pn, qty: l.qty, bonus: l.bonus || 0, cost: l.cost, company: l.company || '', expiry: l.expiry || '', batch: '', applied: false });
+            rec.items.push({ pid: r.p.id, name: r.pn, qty: l.qty, bonus: l.bonus || 0, cost: l.cost, company: l.xc || '', expiry: l.expiry || '', batch: '', applied: false });
     });
     const sups = [...new Set([...recs.values()].map(r => r.supplier))].filter(s => !(puSuppliers || []).some(x => puKey(x.name) === puKey(s)))
         .map(s => ({ id: 'simp-' + puKey(s).replace(/\s+/g, '').slice(0, 20), name: s, phone: '' }));
