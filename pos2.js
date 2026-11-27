@@ -227,7 +227,7 @@ function p2RecvSet(v) { p2.recv = v === '' ? '' : String(v); const i = p2El('p2R
 function p2CalcRefresh() {
     const box = p2El('p2Chg'); if (!box) return;
     const net = p2Net(), r = parseFloat(p2.recv);
-    const q = p2El('p2Quick'); if (q && !q.dataset.r) { q.dataset.r = '1'; q.innerHTML = P2_NOTES.map(n => `<button type="button" onclick="p2RecvAdd(${n})">${fmtNum(n)}</button>`).join('') + '<button type="button" class="m" onclick="p2RecvSet(Math.round(p2Net()))">مطابق</button><button type="button" class="c" onclick="p2RecvSet(\'\')">مسح</button>'; }
+    const q = p2El('p2Quick'); if (q && !q.dataset.r) { q.dataset.r = '1'; q.innerHTML = P2_NOTES.slice().reverse().map(n => `<button type="button" class="nt" onclick="p2RecvAdd(${n})" aria-label="${fmtNum(n)}"><img src="notes/n${n}.jpg" alt="${fmtNum(n)}" draggable="false"></button>`).join('') + '<button type="button" class="m" onclick="p2RecvSet(Math.round(p2Net()))">مطابق</button><button type="button" class="c" onclick="p2RecvSet(\'\')">مسح</button>'; }
     p2CrSync();
     if (!(r >= 0) || p2.recv === '') { box.className = 'p2-chg'; box.innerHTML = '<span>الباقي للزبون</span><b>—</b>'; return; }
     if (r >= net) { box.className = 'p2-chg ok'; box.innerHTML = `<span>الباقي للزبون</span><b>${fmtNum(r - net)} د.ع</b>`; }

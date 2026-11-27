@@ -5314,3 +5314,8 @@ body.dark .of-h b, body.dark .of-k b { color: #e2e8f0; } body.dark .of-k div { b
 }
 .p2-btns .pos-big.cx { flex: .55; background: #fff; color: #b91c1c; border: 1.5px solid #fecaca; }
 .p2-btns .pos-big.alt { flex: .8; }
+/* فئات النقد بصور الأوراق النقدية */
+.p2-quick { grid-template-columns: repeat(3, 1fr) !important; }
+.p2-quick button.nt { padding: 0; height: 56px; overflow: hidden; background: #fff; border: 1.5px solid #d5dbe6; border-radius: 10px; }
+.p2-quick button.nt img { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
+.p2-quick button.nt:active { transform: scale(.97); }
