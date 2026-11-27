@@ -158,15 +158,30 @@ function p2RStep(n) {   // نفس تسوية الألف في البيع السا
     const np = (parseFloat(it.price) || 0) + n / (parseFloat(it.qty) || 1); if (np <= 0) return;
     it.price = np; billChanged(); p2Render();
 }
-// تسوية الألف بضغطة واحدة: يُقرَّب الصافي لأقرب ألف بتعديل سعر أول مادة مؤهلة (بلا ملصق وزاري)
+// تسوية الألف بضغطة واحدة: يُقرَّب الصافي لأقرب ألف بتعديل أسعار المواد التي بلا ملصق وزاري، بأسعار صحيحة دون كسور
+// تُجرَّب مادة واحدة ثم مادتان (توزيع التسوية)، وإن تعذّر بلا كسور يُعرض تنبيه ولا يُعدَّل شيء
 function p2RoundNow() {
     const el = typeof qiEligible === 'function' ? qiEligible() : []; if (!el.length) return;
-    const i = el.includes(p2.rcur) ? p2.rcur : el[0], it = bill.items[i]; if (!it) return;
     const tot = billTotals().total, target = Math.round(tot / 1000) * 1000, diff = target - tot;
-    if (!diff) return;
-    const np = (parseFloat(it.price) || 0) + diff / (parseFloat(it.qty) || 1);
-    if (target <= 0 || np <= 0) return;
-    it.price = np; p2.rcur = i; billChanged(); p2Render();
+    if (!diff || target <= 0) return;
+    const L = el.map(i => { const it = bill.items[i]; return { i, q: parseFloat(it.qty) || 0, p: parseFloat(it.price) || 0 }; }).filter(x => x.q > 0 && Number.isInteger(x.q));
+    const ok = (x, d) => Number.isInteger(x.p) && x.p + d > 0;
+    let best = null;   // [{x, d}] بأقل تغيير
+    const score = a => a.reduce((s, r) => s + Math.abs(r.d), 0) * 1000 + a.length;
+    L.forEach(x => { if (diff % x.q === 0 && ok(x, diff / x.q)) { const c = [{ x, d: diff / x.q }]; if (!best || score(c) < score(best)) best = c; } });
+    if (!best) {
+        for (let a = 0; a < L.length; a++) for (let b = a + 1; b < L.length; b++) {
+            const x = L[a], y = L[b], lim = Math.ceil(Math.abs(diff) / Math.min(x.q, y.q)) + y.q;
+            for (let d1 = -lim; d1 <= lim; d1++) {
+                const rest = diff - d1 * x.q; if (d1 === 0 || rest % y.q !== 0) continue;
+                const d2 = rest / y.q; if (d2 === 0 || !ok(x, d1) || !ok(y, d2)) continue;
+                const c = [{ x, d: d1 }, { x: y, d: d2 }]; if (!best || score(c) < score(best)) best = c;
+            }
+        }
+    }
+    if (!best) { Swal.fire({ icon: 'warning', title: 'تعذّرت التسوية', text: 'التسوية إلى ألف كاملة تحتاج كسوراً عشرية في السعر، ولا يُسمح بها. عدّل سعر مادة يدوياً أو غيّر الكمية.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+    best.forEach(r => { bill.items[r.x.i].price = r.x.p + r.d; });
+    p2.rcur = best[0].x.i; billChanged(); p2Render();
 }
 function p2Chip(k) { const S = billTotals().sub; p2SetDisc(p2ChipD(k, S)); p2Sync(); }
 function p2DiscMax() { p2SetDisc(posDiscForMax(billTotals().sub, posLimits().allow)); p2Sync(); }
