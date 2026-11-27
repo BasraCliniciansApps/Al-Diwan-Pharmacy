@@ -198,6 +198,71 @@ async function applyHistoryReplace(data) {
     } catch (e) { h.fail('تعذر الاستبدال', e.message || String(e)); Swal.fire({ icon: 'error', title: 'تعذر الاستبدال', text: (e.message || String(e)) + ' — يمكنك إعادة المحاولة بأمان.', confirmButtonColor: '#0f1c38' }); }
 }
 
+
+// ---------- استيراد «آخر شراء» للمواد التي بلا وارد: من ملفات الإكسل القديمة، سجل فقط (لا يمس المخزن) ----------
+const LB_FORM = new Set('tablet tablets tab tabs capsule capsules cap caps syrup susp suspension cream ointment gel drops drop eye ear nasal spray vial vials amp ampoule ampoules injection inj sachet sachets lotion shampoo oral solution sol powder suppository supp suppositories film coated fc ml mg gm g mcg iu for the and of with x pcs'.split(' '));
+function lbToks(s) {
+    s = String(s || '').toLowerCase().replace(/(\d)([a-z])/g, '$1 $2').replace(/([a-z])(\d)/g, '$1 $2');
+    return new Set((s.match(/[a-z]+|\d+(?:\.\d+)?/g) || []).filter(t => (/^\d/.test(t) || t.length > 1) && !LB_FORM.has(t)));
+}
+async function applyLastBuyImport(data) {
+    const lines = (data.lines || []).filter(l => l && l.name && l.date);
+    const have = new Set(), haveKeys = new Set();
+    (puAll || []).forEach(r => { if (r.cancelled) return; (r.items || []).forEach(it => { if (it.pid != null) have.add(String(it.pid)); haveKeys.add([...lbToks(it.name)].sort().join(' ')); }); });
+    const cand = products.filter(p => !have.has(String(p.id)) && !haveKeys.has([...lbToks(typeof dispName === 'function' ? dispName(p) : p.name)].sort().join(' ')));
+    const byKey = new Map(lines.map(l => [l.k, l])), inv = new Map();
+    lines.forEach(l => l.k.split(' ').forEach(t => { if (!inv.has(t)) inv.set(t, []); inv.get(t).push(l); }));
+    const used = new Map(), rows = [], none = [];
+    cand.forEach(p => {
+        const pn = typeof dispName === 'function' ? dispName(p) : p.name, tk = lbToks(pn), key = [...tk].sort().join(' ');
+        if (!tk.size) { none.push(pn); return; }
+        let l = byKey.get(key), exact = !!l, sc = 1;
+        if (!l) {
+            const seen = new Map(); tk.forEach(t => (inv.get(t) || []).forEach(x => seen.set(x, (seen.get(x) || 0) + 1)));
+            let best = 0.75 - 1e-9;
+            seen.forEach((i, x) => { const j = i / (tk.size + x.k.split(' ').length - i); if (j > best) { best = j; l = x; sc = j; } });
+        }
+        if (!l) { none.push(pn); return; }
+        rows.push({ p, pn, l, exact, sc }); used.set(l.k, (used.get(l.k) || 0) + 1);
+    });
+    rows.forEach(r => { r.amb = used.get(r.l.k) > 1; r.on = r.exact && !r.amb; });
+    rows.sort((a, b) => (b.on - a.on) || a.pn.localeCompare(b.pn));
+    if (!rows.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد للتعبئة', text: 'كل المواد لها وارد، أو لم تُطابَق أسماؤها مع ملفات الإكسل.', confirmButtonColor: '#0f1c38' }); return; }
+    const E = escapeHtml;
+    const rowHtml = (r, i) => `<label class="lb-r"><input type="checkbox" class="lb-c" data-i="${i}" ${r.on ? 'checked' : ''}><span class="lb-n">${E(r.pn)}</span><span class="lb-x">${E(r.l.name)}${r.exact ? '' : ' ≈'}${r.amb ? ' ⚠' : ''}</span><span class="lb-d">${E(r.l.supplier)} · ${E(r.l.date)}</span></label>`;
+    const ok = await Swal.fire({ title: 'تعبئة آخر شراء', width: '96vw', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'استورد المحدد', cancelButtonText: 'إلغاء',
+        html: `<div style="text-align:right;font-size:.85rem;line-height:1.7"><b>${fmtNum(rows.length)}</b> مادة بلا وارد وجدنا لها آخر شراء (مطابق تماماً: ${fmtNum(rows.filter(r => r.exact && !r.amb).length)}) · بلا مطابقة: ${fmtNum(none.length)}<br><span style="color:#64748b">≈ مطابقة تقريبية و ⚠ مشتركة مع مادة أخرى — غير محددة افتراضياً، راجعها. يُسجَّل كل سطر في قائمته الأصلية وبتاريخها، بلا أي تغيير في المخزن.</span></div><div class="lb-l" style="max-height:52vh;overflow:auto;margin-top:8px;border:1px solid #e2e8f0;border-radius:10px">${rows.map(rowHtml).join('')}</div>
+        <style>.lb-r{display:grid;grid-template-columns:20px 1.2fr 1.2fr .9fr;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:.78rem;text-align:right;cursor:pointer}.lb-r span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lb-x,.lb-d{color:#64748b}</style>`,
+        preConfirm: () => [...document.querySelectorAll('.lb-c')].filter(c => c.checked).map(c => +c.dataset.i) });
+    if (!ok.isConfirmed) return;
+    const sel = (ok.value || []).map(i => rows[i]);
+    if (!sel.length) return;
+    const recs = new Map();
+    sel.forEach(r => {
+        const l = r.l, rid = 'pimp-lb-' + puKey(l.supplier).replace(/\s+/g, '') + '-' + String(l.no).replace(/\W/g, '') + '-' + l.date;
+        let rec = recs.get(rid);
+        if (!rec) {
+            const ex = (puAll || []).find(x => x.id === rid);
+            rec = ex ? { ...ex, items: [...(ex.items || [])] } : { id: rid, stmt: true, useEntry: false, supplier: l.supplier, no: String(l.no), date: l.date, items: [], returnAmt: 0, paid: 0, payments: [], notes: 'مستورد من ملفات الإكسل (سجل تاريخي، لم يُغيّر المخزن)', cancelled: false, createdTs: l.date + 'T00:00:00.000Z', imp: true };
+            recs.set(rid, rec);
+        }
+        if (!rec.items.some(it => String(it.pid) === String(r.p.id)))
+            rec.items.push({ pid: r.p.id, name: r.pn, qty: l.qty, bonus: l.bonus || 0, cost: l.cost, company: l.company || '', expiry: l.expiry || '', batch: '', applied: false });
+    });
+    const sups = [...new Set([...recs.values()].map(r => r.supplier))].filter(s => !(puSuppliers || []).some(x => puKey(x.name) === puKey(s)))
+        .map(s => ({ id: 'simp-' + puKey(s).replace(/\s+/g, '').slice(0, 20), name: s, phone: '' }));
+    const h = Prog.start('تعبئة آخر شراء', { text: 'نسخة احتياطية قبل الاستيراد...' });
+    try {
+        h.span(0, 15); await downloadFile(`diwan-before-lastbuy-${todayStamp()}.json`, JSON.stringify(buildFullBackup()), 'application/json');
+        h.set(15, 'رفع السجلات...'); h.span(15, 95);
+        await bkApplyPlan(bkPlan({ purchases: [...recs.values()], suppliers: sups }).filter(p => p.total));
+        h.set(96, 'تحديث السجل...');
+        if (typeof lgLoad === 'function') { try { await lgLoad(); } catch (e) { /* تجاهل */ } }
+        renderAll(); h.ok('تمت التعبئة');
+        Swal.fire({ icon: 'success', title: 'تمت التعبئة', text: `${fmtNum(sel.length)} مادة في ${fmtNum(recs.size)} قائمة وارد بتواريخها الأصلية`, confirmButtonColor: '#0f1c38' });
+    } catch (e) { h.fail('تعذر الاستيراد', e.message || String(e)); Swal.fire({ icon: 'error', title: 'تعذر الاستيراد', text: (e.message || String(e)) + ' — يمكنك إعادة المحاولة بأمان.', confirmButtonColor: '#0f1c38' }); }
+}
+
 // ---------- تصحيح: أسعار بيع البونص المستوردة من الإكسل (يملأ bonusSale الناقص فقط، لا يمس المخزن) ----------
 async function applyBonusPatch(data) {
     const nz = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, '');
