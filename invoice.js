@@ -370,6 +370,9 @@ const INV_SET_HTML = `<div class="bill-set-title im-main-title">⚙️ بيان�
 <div class="bill-set-title" style="margin-top:18px">✏️ تعديل الفاتورة</div>
 <label class="bill-field" style="flex-direction:row;align-items:center;gap:12px"><input type="checkbox" class="im-bd" onchange="billDirectSet(this.checked)"><span>السماح بالتعديل المباشر على الفاتورة</span></label>
 <div class="bill-set-hint">الافتراضي: الفاتورة للعرض فقط. الفاتورة الصادرة تُعدَّل بزر «تعديل الفاتورة».</div>
+<div class="bill-set-title" style="margin-top:18px">🔗 المادة المرافقة</div>
+<label class="bill-field" style="flex-direction:row;align-items:center;gap:12px"><input type="checkbox" class="im-lk" onchange="lkAutoSet(this.checked)"><span>إضافة المادة المرافقة تلقائياً بدون سؤال</span></label>
+<div class="bill-set-hint">الافتراضي: يظهر اقتراح «إضافة» أو «تخطي» عند بيع مادة مرتبطة بمرافق (مثل السرنجة للأمبول).</div>
 <div class="bill-set-title" style="margin-top:18px">🧮 شاشة البيع الجديدة</div>
 <label class="bill-field" style="flex-direction:row;align-items:center;gap:12px"><input type="checkbox" class="im-pc" onchange="posCountSet(this.checked)"><span>طلب جرد المادة عند أول بيع (للمواد غير المجرودة في وضع التأسيس)</span></label>
 <div class="bill-set-hint">عند التفعيل يظهر تنبيه على المادة غير المجرودة داخل شاشة البيع؛ بالضغط عليه تُدخل عدد العلب وعدد الأجزاء والسعر فتصبح المادة مجرودة. الخيار متوقف افتراضياً، ويتطلب صلاحية تعديل المواد.</div>`;
@@ -378,6 +381,7 @@ function initBillSettings() {
     invSettingsRender();
     const m = getInvMeta();
     document.querySelectorAll('.im-bd').forEach(c => { c.checked = billDirectOn(); });
+    try { document.querySelectorAll('.im-lk').forEach(c => { c.checked = lkAutoOn(); }); } catch (e) { /* تجاهل */ }
     try { const on = !!scCfg().posCount; document.querySelectorAll('.im-pc').forEach(c => { c.checked = on; }); } catch (e) { /* تجاهل */ }
     ['addr', 'phone', 'lic', 'ret', 'foot'].forEach(k => document.querySelectorAll('.im-f[data-k="' + k + '"]').forEach(e => { e.value = m[k] || ''; }));
 }

@@ -5289,3 +5289,14 @@ body.dark .of-h b, body.dark .of-k b { color: #e2e8f0; } body.dark .of-k div { b
 .fs-chip.on { background: #0f1c38; border-color: #0f1c38; color: #fff; }
 .fs-chip.on b { background: rgba(255,255,255,.2); color: #fff; }
 .fs-tree .tf-l { max-height: 38vh; }
+/* المادة المرافقة */
+.lk-res { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 46vh; overflow-y: auto; }
+.lk-row { width: 100%; text-align: left; padding: 10px 12px; border: 1.5px solid #d5dbe6; border-radius: 10px; background: #fff; cursor: pointer; font-family: inherit; font-size: .88rem; color: #0f1c38; }
+.lk-none { color: #64748b; padding: 8px; }
+.lk-form { display: flex; align-items: center; gap: 6px; }
+.lk-form #fLinkName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 10px 12px; border: 1.5px solid #d5dbe6; border-radius: 10px; background: #fff; text-align: start; cursor: pointer; font-family: inherit; font-size: .88rem; color: #0f1c38; min-height: 42px; }
+.lk-form #fLinkName.lk-empty { color: #94a3b8; }
+.lk-form .lk-q { width: 64px; min-height: 42px; text-align: center; }
+.lk-form .lk-x { width: 36px; height: 42px; border: 0; border-radius: 10px; background: #fee2e2; color: #b91c1c; cursor: pointer; }
+.cn-lk { display: block; max-width: 100%; border: 0; background: transparent; padding: 0; text-align: start; cursor: pointer; font-family: inherit; font-size: .76rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cn-lk.has { color: #0369a1; font-weight: 700; }

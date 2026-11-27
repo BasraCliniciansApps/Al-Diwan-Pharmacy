@@ -91,6 +91,7 @@ function posAdd(pid, unit, n) {
     if (blocked) sgClampNote(p, blocked);
     else if (over) Swal.fire({ icon: 'warning', title: 'المطلوب أكبر من المتوفر بـ ' + over, toast: true, position: 'top', showConfirmButton: false, timer: 2200 });
     else if (added > 0) sgLowNote(pid);
+    if (added > 0 && typeof lkOffer === 'function') lkOffer(pid, added);   // اقتراح المادة المرافقة (سرنجة...)
     return added > 0 || !blocked;
 }
 function posGroup(key) { return posGroups().find(g => g.key === key); }

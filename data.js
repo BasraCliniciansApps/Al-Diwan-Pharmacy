@@ -2182,6 +2182,7 @@ function openFormModal(id = null) {
         document.getElementById('fMeta').value = fixMetaOrder(p.meta);
         document.getElementById('fQty').value = p.qty;
         document.getElementById('fImg').value = p.img || '';
+        if (typeof lkFormLoad === 'function') lkFormLoad(p);
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = p.price || 0;
         if (document.getElementById('fCost')) document.getElementById('fCost').value = p.costPrice || '';
         fillRetailForm(p);
@@ -2205,6 +2206,7 @@ function openFormModal(id = null) {
         document.getElementById('fMeta').value = '';
         document.getElementById('fQty').value = 5;
         document.getElementById('fImg').value = '';
+        if (typeof lkFormLoad === 'function') lkFormLoad(null);
         if (document.getElementById('fPrice')) document.getElementById('fPrice').value = 0;
         if (document.getElementById('fCost')) document.getElementById('fCost').value = '';   // لا يبقى سعر شراء المادة السابقة
         fillRetailForm(null);
@@ -2416,6 +2418,7 @@ async function saveFormProduct() {
         pricing: (document.getElementById('fPriceMode') && document.getElementById('fPriceMode').value) || 'manual',
         ...(isPer ? { markupPct: parseFloat(document.getElementById('fMarkup').value) } : { markupPct: null }),
         ...readRetailForm(),
+        ...(typeof lkFormRead === 'function' ? lkFormRead() : {}),
         ...((() => { const o = editId ? products.find(x => x.id === parseInt(editId)) : null; return o && o.lastPurchase ? { lastPurchase: o.lastPurchase } : {}; })()),
         expiryDates: expiryDates,
         expiryDate: expiryDates[0] || '',   // الأقرب نفاذاً (للتوافق مع الأكواد القديمة)
