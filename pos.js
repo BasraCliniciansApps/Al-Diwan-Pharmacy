@@ -455,12 +455,7 @@ function posClose() {
 }
 
 // ---------- زر الدخول داخل صفحة الفاتورة ----------
-function posFabSync() {
-    const v = document.getElementById('billView'); if (!v) return;
-    let b = document.getElementById('posFab');
-    if (!b) { b = document.createElement('button'); b.type = 'button'; b.id = 'posFab'; b.className = 'pos-fab no-print'; b.innerHTML = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/><path d="M2 3h3l2.6 12.2a2 2 0 0 0 2 1.6h8a2 2 0 0 0 2-1.5L21 7H6"/></svg>'; b.title = 'شاشة البيع'; b.setAttribute('aria-label', 'شاشة البيع السريعة'); b.onclick = posOpen; v.appendChild(b); }
-    b.style.display = (typeof currentBillTab === 'undefined' || currentBillTab === 'new') ? '' : 'none';
-}
+function posFabSync() { const b = document.getElementById('posFab'); if (b) b.remove(); }  // الزر الطافي أُلغي
 (function () {
     const ob = billTab; billTab = function () { const r = ob.apply(this, arguments); try { posFabSync(); } catch (e) { /* تجاهل */ } return r; };
     const orr = renderInvoiceRows; renderInvoiceRows = function () { const r = orr.apply(this, arguments); try { if (posOpenFlag && !spOpenNow()) { posRender(); } } catch (e) { /* تجاهل */ } return r; };

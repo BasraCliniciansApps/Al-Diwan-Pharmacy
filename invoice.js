@@ -109,6 +109,25 @@ function writeInvoiceFields() {
     $b('billDeduct').checked = bill.deduct !== false;
     updateIssuedUI();
 }
+const BILL_DIRECT_KEY = 'diwanBillDirect';
+function billDirectOn() { return lsGet(BILL_DIRECT_KEY) === '1'; }
+function billDirectSet(on) {
+    try { localStorage.setItem(BILL_DIRECT_KEY, on ? '1' : '0'); } catch (e) { /* تجاهل */ }
+    document.querySelectorAll('.im-bd').forEach(c => { c.checked = !!on; });
+    billApplyRO();
+}
+// الفاتورة للعرض فقط ما لم يُفعَّل التعديل المباشر من الإعدادات (أو كنا في وضع تعديل فاتورة صادرة)
+function billStickySync() {
+    try { const t = document.getElementById('billTabs'), tb = document.querySelector('.bill-toolbar'); if (t && tb) document.documentElement.style.setProperty('--bt', (tb.offsetHeight + t.offsetHeight) + 'px'); } catch (e) { /* تجاهل */ }
+}
+function billApplyRO() {
+    billStickySync();
+    const sheet = document.getElementById('billSheet'); if (!sheet) return;
+    const ro = !billDirectOn() && !(typeof bill !== 'undefined' && bill && bill.editing);
+    sheet.classList.toggle('bill-ro', ro);
+    sheet.querySelectorAll('input:not([type=checkbox]), textarea').forEach(e => { e.readOnly = ro; if (ro) e.tabIndex = -1; else e.removeAttribute('tabindex'); });
+    sheet.querySelectorAll('select').forEach(e => { e.disabled = ro; });
+}
 function updateIssuedUI() {
     const note = $b('billIssuedNote'), chk = $b('billDeduct'), sheet = $b('billSheet');
     const show = (id, on) => { $b(id).style.display = on ? '' : 'none'; };
@@ -128,6 +147,7 @@ function updateIssuedUI() {
             : '✅ صدرت هذه الفاتورة' + (bill.issuedAt ? ' بتاريخ ' + fmtDateDMY(bill.issuedAt) : '') + (bill.deducted ? ' وتم خصم الكميات من المخزن.' : ' (بدون خصم من المخزن).') + (bill.editedAt ? ' • عُدّلت بتاريخ ' + fmtDateDMY(bill.editedAt.slice(0, 10)) : '');
         chk.disabled = true;
     } else { note.style.display = 'none'; chk.disabled = false; }
+    billApplyRO();
 }
 function autoGrow(el) { if (!el) return; el.style.height = 'auto'; el.style.height = Math.max(el.scrollHeight, 28) + 'px'; }
 
@@ -183,6 +203,7 @@ function renderInvoiceRows() {
         body.querySelectorAll('textarea').forEach(autoGrow);
     }
     recalcInvoice();
+    billApplyRO();
 }
 function billItemEdit(i, field, val) { if (!bill.items[i]) return; bill.items[i][field] = val; billChanged(); }
 function billStep(i, d) {
@@ -346,6 +367,9 @@ const INV_SET_HTML = `<div class="bill-set-title im-main-title">⚙️ بيان�
 <button type="button" class="bill-tb-btn" onclick="billClearImages()">إزالة الصورتين</button>
 </div>
 <div class="bill-set-hint">إن تركت الصورتين فارغتين يبقى مكان التوقيع والختم فارغاً لتوقّع وتختم بيدك بعد الطباعة.</div>
+<div class="bill-set-title" style="margin-top:18px">✏️ تعديل الفاتورة</div>
+<label class="bill-field" style="flex-direction:row;align-items:center;gap:12px"><input type="checkbox" class="im-bd" onchange="billDirectSet(this.checked)"><span>السماح بالتعديل المباشر على الفاتورة</span></label>
+<div class="bill-set-hint">الافتراضي: الفاتورة للعرض فقط. الفاتورة الصادرة تُعدَّل بزر «تعديل الفاتورة».</div>
 <div class="bill-set-title" style="margin-top:18px">🧮 شاشة البيع الجديدة</div>
 <label class="bill-field" style="flex-direction:row;align-items:center;gap:12px"><input type="checkbox" class="im-pc" onchange="posCountSet(this.checked)"><span>طلب جرد المادة عند أول بيع (للمواد غير المجرودة في وضع التأسيس)</span></label>
 <div class="bill-set-hint">عند التفعيل يظهر تنبيه على المادة غير المجرودة داخل شاشة البيع؛ بالضغط عليه تُدخل عدد العلب وعدد الأجزاء والسعر فتصبح المادة مجرودة. الخيار متوقف افتراضياً، ويتطلب صلاحية تعديل المواد.</div>`;
@@ -353,6 +377,7 @@ function invSettingsRender() { document.querySelectorAll('[data-inv-set]').forEa
 function initBillSettings() {
     invSettingsRender();
     const m = getInvMeta();
+    document.querySelectorAll('.im-bd').forEach(c => { c.checked = billDirectOn(); });
     try { const on = !!scCfg().posCount; document.querySelectorAll('.im-pc').forEach(c => { c.checked = on; }); } catch (e) { /* تجاهل */ }
     ['addr', 'phone', 'lic', 'ret', 'foot'].forEach(k => document.querySelectorAll('.im-f[data-k="' + k + '"]').forEach(e => { e.value = m[k] || ''; }));
 }

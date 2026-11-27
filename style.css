@@ -1509,7 +1509,9 @@ body.admin-page:not([data-view="stock"]) .bottom-nav { display: none; }
 .bill-tabs button.active { background: #0f1c38; border-color: #0f1c38; color: #fff; }
 .bill-pane { display: none; max-width: 794px; margin: 0 auto; }
 .bill-pane.active { display: block; }
-.bill-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.bill-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; position: sticky; top: var(--bt, 123px); z-index: 28; background: #e8ecf3; padding: 8px 0; }
+.bill-sheet.bill-ro input:not([type=checkbox]), .bill-sheet.bill-ro textarea, .bill-sheet.bill-ro select { pointer-events: none; }
+.bill-sheet.bill-ro .bill-step, .bill-sheet.bill-ro .c-del, .bill-sheet.bill-ro th.c-del { display: none; }
 .bill-actions .bill-tb-primary { margin-inline-start: auto; }
 .bill-danger { color: #b91c1c; border-color: #fecaca; background: #fff5f5; }
 .bill-panel { display: flex; flex-direction: column; gap: 10px; }
