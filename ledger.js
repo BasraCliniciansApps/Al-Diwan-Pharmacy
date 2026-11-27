@@ -14,13 +14,14 @@ const lgId = () => 'lg' + Date.now() + Math.floor(Math.random() * 999);
 
 // ---------- التخزين (محلي + سحابة) ----------
 function lgLocal() { try { return JSON.parse(lsGet(LG_LS.list)) || []; } catch (e) { return []; } }
-async function lgLoad() {
-    if (lgAll.length && !(cloudReady() && navigator.onLine && cloudDeltaDue('lg', 3, true))) return lgAll;   // نفس بوابة puLoad: لا إعادة بناء بلا داعٍ
+async function lgLoad(ttl) {
+    const TT = ttl > 0 ? ttl : 3;
+    if (lgAll.length && !(cloudReady() && navigator.onLine && cloudDeltaDue('lg', TT, true))) return lgAll;   // نفس بوابة puLoad: لا إعادة بناء بلا داعٍ
     const map = new Map();
     lgLocal().forEach(x => x && x.id && map.set(x.id, x));
     if (cloudReady() && navigator.onLine) {
         try {
-            const r1 = await cloudDelta('lg', 'pharmacy_ledger', map.size > 0, 3, 24, c => c.limit(3000)); if (!r1) throw { skip: 1 };
+            const r1 = await cloudDelta('lg', 'pharmacy_ledger', map.size > 0, TT, 24, c => c.limit(3000)); if (!r1) throw { skip: 1 };
             const snap = r1.snap;
             snap.forEach(d => { const x = d.data(); if (!x || !x.id) return; const c = map.get(x.id); if (!c || String(x.upd || '') >= String(c.upd || '')) map.set(x.id, x); });
         } catch (e) { /* القاعدة غير مضافة بعد، أو لا حاجة للقراءة الآن */ }

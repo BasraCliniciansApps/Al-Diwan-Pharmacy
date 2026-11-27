@@ -74,6 +74,7 @@ function goAddProduct() { openFormModal(); }   // تُفتح فوق الشاشة
 
 // آخر أرقام عُرضت تُحفظ محلياً لتظهر فور فتح التطبيق قبل اكتمال تحميل البيانات
 const KPI_KEY = 'diwanKpiCache';
+const kpiRingHtml = '<svg class="kpi-ring" aria-hidden="true"><rect class="kr-tr" x="1.5" y="1.5" rx="16" ry="16" pathLength="100"/><rect class="kr-fg" x="1.5" y="1.5" rx="16" ry="16" pathLength="100"/></svg>';
 function kpiPaint(c) {
     const el = document.getElementById('homeKpis'); if (!el || !c) return;
     const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}${cls === 'k-sales' && window.__salesBusy ? ' busy' : ''}" onclick="${onclick}"><b>${val}</b><span>${label}</span>${cls === 'k-sales' ? kpiRingHtml : ''}</button>`;
@@ -91,7 +92,7 @@ async function refreshHome() {
     let exp = 0; try { exp = getExpiringProducts().length; } catch (e) { /* تجاهل */ }
     const kpi = (cls, label, val, onclick) => `<button type="button" class="kpi ${cls}${cls === 'k-sales' && window.__salesBusy ? ' busy' : ''}" onclick="${onclick}"><b>${val}</b><span>${label}</span>${cls === 'k-sales' ? kpiRingHtml : ''}</button>`;
     const alertsTotal = products.filter(p => alertKinds(p).any).length;
-    if (typeof puLoad === 'function' && can('purchases')) Promise.all([puLoad(), typeof lgLoad === 'function' ? lgLoad() : null]).then(puHomeBadge).catch(() => {});   // المردود المرتبط يأتي من دفتر الحسابات: ننتظره قبل حساب المستحق
+    if (typeof puLoad === 'function' && can('purchases')) Promise.all([puLoad(360), typeof lgLoad === 'function' ? lgLoad(360) : null]).then(puHomeBadge).catch(() => {});   // محلي أولاً؛ السحابة كل 6 ساعات على الأكثر   // المردود المرتبط يأتي من دفتر الحسابات: ننتظره قبل حساب المستحق
     const hb = document.getElementById('homeAlertCount');
     if (hb) { hb.innerText = alertsTotal; hb.style.display = alertsTotal ? 'flex' : 'none'; }
     window.hdAlertN = alertsTotal; if (window.hdToolsRefresh) window.hdToolsRefresh();
@@ -102,15 +103,17 @@ async function refreshHome() {
             kpi('k-out', 'غير متوفر', out, "goStock('out')") +
             kpi('k-low', 'كمية قليلة', low, "goAlerts('low')") +
             kpi('k-exp', 'قريب الانتهاء', exp, "goAlerts('m6')") +
-            kpi('k-sales', 'مبيعات اليوم', fmtNum(sales), 'homeSalesTap()');
+            kpi('k-sales', 'مبيعات اليوم', typeof sales === 'string' ? sales : fmtNum(sales), 'homeSalesTap()');
     };
     const save = (sales) => { try { localStorage.setItem(KPI_KEY, JSON.stringify({ out, low, exp, alerts: alertsTotal, sales: fmtNum(sales), day: new Date().toDateString() })); } catch (e) { /* تجاهل */ } };
-    render(salesTodayTotal()); save(salesTodayTotal());
-    try { await loadInvoices(0.5); render(salesTodayTotal()); save(salesTodayTotal()); } catch (e) { /* تجاهل */ }
+    let prevSales = null; try { const c0 = JSON.parse(localStorage.getItem(KPI_KEY) || 'null'); if (c0 && c0.day === new Date().toDateString()) prevSales = c0.sales; } catch (e) { /* تجاهل */ }
+    if (billAll && billAll.length) { render(salesTodayTotal()); save(salesTodayTotal()); }
+    else if (prevSales !== null) { render(prevSales); }   // الفواتير لم تُحمَّل بعد: نُبقي آخر رقم محفوظ بدل صفر مؤقت
+    else render(0);
+    try { await loadInvoices(360); render(salesTodayTotal()); save(salesTodayTotal()); } catch (e) { /* تجاهل */ }   // محلي أولاً؛ السحابة كل 6 ساعات على الأكثر أو بضغط «مبيعات اليوم»
 }
 // مبيعات اليوم: الضغطة الأولى تحدّث الرقم من السحابة وتدور حلقة ذهبية حول الزر (كحلقة الشعار)، والضغطة الثانية (خلال 20 ثانية) تفتح التفاصيل
 let homeSalesBusy = false, homeSalesArm = 0;
-const kpiRingHtml = '<svg class="kpi-ring" aria-hidden="true"><rect class="kr-tr" x="1.5" y="1.5" rx="16" ry="16" pathLength="100"/><rect class="kr-fg" x="1.5" y="1.5" rx="16" ry="16" pathLength="100"/></svg>';
 function kpiRing(on, done) {
     const b = document.querySelector('.kpi.k-sales'); if (!b) return;
     b.classList.toggle('busy', !!on);

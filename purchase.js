@@ -39,9 +39,10 @@ const puKey = s => String(s || '').trim().toLowerCase();
 
 // ---------- التخزين (محلي + سحابة) ----------
 function puLocalList() { try { return JSON.parse(lsGet(PU_LS.list)) || []; } catch (e) { return []; } }
-async function puLoad() {
+async function puLoad(ttl) {   // ttl: مهلة إعادة الجلب بالدقائق (الافتراضي 3)
+    const TT = ttl > 0 ? ttl : 3;
     // لا إعادة بناء ولا كتابة (1.5 ميغابايت) في التخزين المحلي إن لم يحن موعد قراءة السحابة: القائمة في الذاكرة هي المرجع (كل تعديل محلي يحدّثها)
-    if (puAll.length && puSuppliers.length && !(cloudReady() && navigator.onLine && (cloudDeltaDue('pu', 3, true) || cloudDeltaDue('pus', 3, true)))) return puAll;
+    if (puAll.length && puSuppliers.length && !(cloudReady() && navigator.onLine && (cloudDeltaDue('pu', TT, true) || cloudDeltaDue('pus', TT, true)))) return puAll;
     const map = new Map();
     puLocalList().forEach(x => x && x.id && map.set(x.id, x));
     let sup = [];
@@ -49,7 +50,7 @@ async function puLoad() {
     const smap = new Map(sup.map(s => [s.id, s]));
     if (cloudReady() && navigator.onLine) {
         try {
-            const r1 = await cloudDelta('pu', 'pharmacy_purchases', map.size > 0, 3, 24, c => c.limit(1000)); if (!r1) throw { skip: 1 };
+            const r1 = await cloudDelta('pu', 'pharmacy_purchases', map.size > 0, TT, 24, c => c.limit(1000)); if (!r1) throw { skip: 1 };
             const snap = r1.snap, cloud = new Map();
             snap.forEach(d => { const x = d.data(); if (x && x.id) cloud.set(x.id, x); });
             // حماية من التكرار: سجل محلي فقط (غير موجود بالسحابة) له نفس المذخر والرقم والتاريخ لسجل سحابي بمعرّف مختلف = نسخة مكررة، فلا نبقيها ولا نرسلها
@@ -58,7 +59,7 @@ async function puLoad() {
             [...map.values()].forEach(x => { if (!cloud.has(x.id) && ckeys.has(ck(x))) map.delete(x.id); });
             cloud.forEach((x, id) => map.set(id, x));
         } catch (e) { /* القواعد غير مضافة، أو لا حاجة للقراءة الآن */ }
-        try { const r2 = await cloudDelta('pus', 'pharmacy_suppliers', smap.size > 0, 3, 24, c => c.limit(500)); if (r2) r2.snap.forEach(d => { const x = d.data(); if (x && x.id) smap.set(x.id, x); }); } catch (e) { /* القواعد غير مضافة */ }
+        try { const r2 = await cloudDelta('pus', 'pharmacy_suppliers', smap.size > 0, TT, 24, c => c.limit(500)); if (r2) r2.snap.forEach(d => { const x = d.data(); if (x && x.id) smap.set(x.id, x); }); } catch (e) { /* القواعد غير مضافة */ }
     }
     puAll = [...map.values()].sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdTs).localeCompare(String(a.createdTs)));
     puSuppliers = [...smap.values()];
