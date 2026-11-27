@@ -95,7 +95,7 @@ function exRender() {
     let body;
     if (exTab === 'need' || exTab === 'need2' || exTab === 'xf') {
         const sub = `<div class="ndw-tabs"><button type="button" class="${exTab === 'need' ? 'on' : ''}" onclick="exTab='need';exRefresh()">من المبيعات</button><button type="button" class="${exTab === 'need2' ? 'on' : ''}" onclick="exTab='need2';exRefresh()">من الوارد</button><button type="button" class="${exTab === 'xf' ? 'on' : ''}" onclick="exTab='xf';exRefresh()">مناقلة مقترحة</button></div>`;
-        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>تقدير الاحتياج</b></div><div class="cn-body">${sub}${exTab === 'need' ? ndmHtml() : exTab === 'need2' ? ndwHtml() : xfHtml()}</div>`; return;
+        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>${exTab === 'xf' ? '⇄ الصلاحية والمناقلة' : '📈 تقدير الاحتياج'}</b></div><div class="cn-body">${sub}${exTab === 'need' ? ndmHtml() : exTab === 'need2' ? ndwHtml() : xfHtml()}</div>`; return;
     }
     if (exTab === 'dash') {
         document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>📊 لوحة المبيعات</b></div><div class="cn-body">${tabs}${sdHtml()}</div>`; return;
@@ -389,19 +389,19 @@ function ndmCalc() {
     rows.forEach(r => { r.sups = sm.get(r.p.id) || []; r.sup = ndwSupPick(r.sups, r.p.id); });
     return { cfg, rows: rows.sort((a, b) => ord[a.status] - ord[b.status] || (a.cover == null ? 1e9 : a.cover) - (b.cover == null ? 1e9 : b.cover)) };
 }
-let ndmRows = [];
+let ndmRows = [], ndmSetShow = false;
 function ndmHtml() {
-    const c = ndmCalc(); ndmRows = c.rows; const cfg = c.cfg, cnt = k => c.rows.filter(r => r.status === k).length, vis = c.rows.filter(r => !ndwSup || r.sup === ndwSup), nOrd = vis.filter(r => r.status === 'order' && r.sug > 0).length;
-    const chips = [['order', 'اطلب الآن'], ['over', 'زائد'], ['rare', 'حسب الطلب'], ['exp', 'قريب (' + fmtNum(c.rows.filter(r => r.ex && r.ex.flag).length) + ')'], ['all', 'الكل']];
-    const tops = ndwTopSups(3), supChips = tops.length ? `<div class="cn-chips fu-chips"><button type="button" class="cn-chip ${ndwSup === '' ? 'on' : ''}" onclick="ndwSup='';ndmShow=60;exRender()">كل المذاخر</button>${tops.map((n, k) => `<button type="button" class="cn-chip ${ndwSup === n ? 'on' : ''}" onclick="ndwSupSel(${k})">${escapeHtml(n)}</button>`).join('')}</div>` : '';
-    return `<div class="sd-cards sd-c3"><div><span>اطلب الآن</span><b>${fmtNum(cnt('order'))}</b></div><div><span>زائد</span><b>${fmtNum(cnt('over'))}</b></div><div><span>حسب الطلب</span><b>${fmtNum(cnt('rare'))}</b></div></div>
-        <details class="nd-set"><summary>الإعدادات وطريقة الحساب</summary><div class="nd-set-b">${ndwSetRows()}
+    ndwSup = ''; const c = ndmCalc(); ndmRows = c.rows; const cfg = c.cfg, vc = k => c.rows.filter(r => r.status === k).length, nOrd = c.rows.filter(r => r.status === 'order' && r.sug > 0).length, nExp = c.rows.filter(r => r.ex && r.ex.flag).length;
+    const main = [['order', 'اطلب الآن', vc('order')], ['over', 'زائد', vc('over')], ['rare', 'حسب الطلب', vc('rare')], ['all', 'الكل', null]];
+    const seg = `<div class="ndw-seg">${main.map(([k, l, n]) => `<button type="button" class="${ndmF === k ? 'on' : ''}" onclick="ndmF='${k}';ndmShow=60;exRender()">${l}${n !== null ? '<b>' + fmtNum(n) + '</b>' : ''}</button>`).join('')}</div>`;
+    const oth = `<select class="ndw-sel" onchange="if(this.value){ndmF=this.value;ndmShow=60;exRender()}" aria-label="حالات أخرى"><option value="" ${ndmF === 'exp' ? '' : 'selected'}>حالات أخرى</option><option value="exp" ${ndmF === 'exp' ? 'selected' : ''}>نفاذ قريب (${fmtNum(nExp)})</option></select>`;
+    return `<div class="ndw-tb"><input type="search" id="ndmSearch" autocomplete="off" placeholder="ابحث عن مادة" value="${escapeHtml(ndmQ)}" oninput="ndmQ=this.value;ndmShow=60;ndmRowsRedraw()"><button type="button" class="ndw-ib" onclick="ndmSetShow=!ndmSetShow;exRender()" aria-label="الإعدادات"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button></div>
+        ${seg}<div class="ndw-fr">${oth}</div>
+        <details class="nd-set" ${ndmSetShow ? 'open' : 'style="display:none"'}><summary>الإعدادات وطريقة الحساب</summary><div class="nd-set-b">${ndwSetRows()}
         <div class="nd-hint">طريقة الحساب:<br>• الأساس المبيعات الفعلية (الصادر) خلال آخر 12 أسبوعاً، لا الوارد.<br>• لا تُحتسب أيام نفاد المادة ضمن الطلب، ويُضاف ما سُجّل في «المطلوبة وغير المتوفرة».<br>• يُصنَّف نمط الطلب (منتظم، متذبذب، متقطع، كتلي) ويُختار نموذج مناسب له.<br>• الكمية المقترحة تغطي «مدة الهدف» بعد خصم المتوفر وما قيد الطلب.<br>• الحد الأدنى المسجل في بطاقة المادة يُعتمد إن وُجد.<br>• المادة التي تقل مبيعاتها عن علبة شهرياً تُصنَّف «حسب الطلب» ولا يُقترح لها شراء.<br>• المذخر المقترح هو الأرخص بآخر سعر شراء، وإلا الأكثر شراءً منه.<br>• مدة وصول الطلبية ${fmtNum(cfg.lead)} ${cfg.lead === 1 ? 'يوم' : 'أيام'} ودورة الطلب ${fmtNum(cfg.rev)} ${cfg.rev === 1 ? 'يوم' : 'أيام'} (تلقائياً من سجل المخزن).</div>
         <div class="bill-set-hint">حدود هذه الطريقة:<br>• دقتها مرتبطة باكتمال تسجيل فواتير البيع.<br>• المواد التي لم تُسجَّل لها مبيعات خلال المدة لا تظهر هنا.<br>• الموسمية لا تُرصد قبل مرور سنة من البيانات.</div></div></details>
-        ${nOrd ? `<button type="button" class="cn-new" onclick="ndwToList('s')">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى قائمة النواقص</button>` : ''}
-        <div class="cn-chips fu-chips nd5">${chips.map(([k, l]) => `<button type="button" class="cn-chip ${ndmF === k ? 'on' : ''}" onclick="ndmF='${k}';ndmShow=60;exRender()">${l}</button>`).join('')}</div>${supChips}
-        <div class="fu-q"><input type="search" id="ndmSearch" autocomplete="off" placeholder="ابحث عن مادة لتقدير احتياجها" value="${escapeHtml(ndmQ)}" oninput="ndmQ=this.value;ndmShow=60;ndmRowsRedraw()"></div>
-        <div id="ndmList">${ndmListHtml()}</div>`;
+        <div id="ndmList">${ndmListHtml()}</div>
+        ${nOrd ? `<div class="ndw-bar"><button type="button" class="cn-new" onclick="ndwToList('s')">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى النواقص</button></div>` : ''}`;
 }
 function ndmListHtml() {
     const q = ndmQ ? normSearch(ndmQ) : '', toks = q ? q.split(' ') : [];
@@ -558,12 +558,12 @@ function ndwHtml() {
     const vc = k => vis.filter(r => r.status === k).length, nExp = vis.filter(r => r.ex && r.ex.flag).length, main = [['order', 'اطلب الآن', vc('order')], ['over', 'زائد', vc('over')], ['still', 'راكد', vc('still')], ['all', 'الكل', null]];
     const seg = `<div class="ndw-seg">${main.map(([k, l, n]) => `<button type="button" class="${ndwF === k ? 'on' : ''}" onclick="ndwF='${k}';ndwShow=60;exRender()">${l}${n !== null ? '<b>' + fmtNum(n) + '</b>' : ''}</button>`).join('')}</div>`;
     const oth = `<select class="ndw-sel" onchange="if(this.value){ndwF=this.value;ndwShow=60;exRender()}" aria-label="حالات أخرى"><option value="" ${['wait', 'exp'].includes(ndwF) ? '' : 'selected'}>حالات أخرى</option><option value="wait" ${ndwF === 'wait' ? 'selected' : ''}>بانتظار الجرد (${fmtNum(vc('wait'))})</option><option value="exp" ${ndwF === 'exp' ? 'selected' : ''}>نفاذ قريب (${fmtNum(nExp)})</option></select>`;
-    const tops = ndwTopSups(3), supSel = tops.length ? `<select class="ndw-sel" onchange="ndwSupSel(this.value===''?-1:+this.value)" aria-label="المذخر"><option value="">كل المذاخر</option>${tops.map((n, k) => `<option value="${k}" ${ndwSup === n ? 'selected' : ''}>${escapeHtml(n)}</option>`).join('')}</select>` : '';
+    ndwSup = '';
     return `<details class="nd-set" id="ndwSetBox" ${ndwSetShow ? 'open' : 'style="display:none"'}><summary>الإعدادات وطريقة الحساب</summary><div class="nd-set-b">${ndwSetRows()}
         <div class="nd-hint">طريقة الحساب:<br>• الأساس سجل الوارد، لأن المبيعات غير مسجلة بالكامل.<br>• المواد المجرودة: المستهلك = الوارد − الرصيد الحالي، مقسوماً على المدة منذ أول وارد.<br>• المواد غير المجرودة: تُقدَّر من الفترات بين مرات الشراء (ثلاث مرات فأكثر).<br>• الكمية المقترحة تغطي «مدة الهدف» بعد خصم المتوفر وما قيد الطلب.<br>• الحد الأدنى المسجل في بطاقة المادة يُعتمد إن وُجد.<br>• المادة التي يقل استهلاكها عن علبة شهرياً تُصنَّف «حسب الطلب» ولا يُقترح لها شراء.<br>• المذخر المقترح هو الأرخص بآخر سعر شراء، وإلا الأكثر شراءً منه.</div>
         <div class="bill-set-hint">حدود هذه الطريقة:<br>• قد يقلّ التقدير إن كان لديك رصيد قبل أول وارد مسجل أو وارد غير مسجل.<br>• يعكس الاستهلاك الكلي (بيعاً وتحويلاً وإتلافاً) لا المبيعات وحدها.<br>• نفاد المادة بين مرتين يخفض التقدير.<br>• تتحسن الدقة مع تراكم السجل، وتصبح «من المبيعات» أدق متى سُجلت المبيعات يومياً.</div></div></details>
         <div class="ndw-tb"><input type="search" id="ndwSearch" autocomplete="off" placeholder="ابحث عن مادة" value="${escapeHtml(ndwQ)}" oninput="ndwQ=this.value;ndwShow=60;ndwRowsRedraw()"><button type="button" class="ndw-ib" onclick="ndwTools()" aria-label="الأدوات"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button></div>
-        ${seg}<div class="ndw-fr">${oth}${supSel}</div>
+        ${seg}<div class="ndw-fr">${oth}</div>
         <div id="ndwList">${ndwListHtml()}</div>
         ${nOrd ? `<div class="ndw-bar"><button type="button" class="cn-new" onclick="ndwToList()">إضافة المواد المطلوبة (${fmtNum(nOrd)}) إلى النواقص</button></div>` : ''}`;
 }
@@ -893,7 +893,7 @@ async function ndcEnsure() {
 function ndcEnsureDom() {
     if (document.getElementById('ndcOv')) return;
     const d = document.createElement('div'); d.id = 'ndcOv'; d.className = 'cn-ov no-print'; d.setAttribute('dir', 'rtl'); d.style.display = 'none';
-    d.innerHTML = '<div class="cn-box" id="ndcBox"><div class="cn-head"><b>حاسبة الاحتياج</b></div><div class="cn-body"><div id="ndcTabs"></div><div id="ndcMain"></div></div></div>'; document.body.appendChild(d);
+    d.innerHTML = '<div class="cn-box" id="ndcBox"><div class="cn-head"><b>🧮 حاسبة الاحتياج</b></div><div class="cn-body"><div id="ndcTabs"></div><div id="ndcMain"></div></div></div>'; document.body.appendChild(d);
 }
 function ndcClose() { const ov = document.getElementById('ndcOv'); if (ov) ov.style.display = 'none'; document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); ndcMode = false; ndwCur = null; }
 function ndcSearchHtml() { return `<div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة ثم طريقة التقدير (حسب المبيعات أو حسب الوارد)، وبعدها تظهر الحاسبة وتقييم العروض.</div>`; }
