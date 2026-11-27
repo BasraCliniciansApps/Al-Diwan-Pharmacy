@@ -493,8 +493,15 @@ async function appVersionTxt() {   // رقم نسخة التطبيق (من كا�
     if (!ver) { try { const t = await (await fetch('sw.js', { cache: 'no-store' })).text(); ver = (/diwan-v(\d+)/.exec(t) || [])[1] || ''; } catch (e) { /* تجاهل */ } }
     return ver;
 }
-function showSyncStatus() {
+function syncTopClose() { const v = document.getElementById('syncView'); if (v) v.classList.remove('sync-top'); window.__syncTop = false; window.__ssOpen = false; clearInterval(ssTimer); }
+function syncTopOpen() {
+    const v = document.getElementById('syncView'); if (!v) return;
+    if (!document.getElementById('syncTopX')) { const b = document.createElement('button'); b.type = 'button'; b.id = 'syncTopX'; b.className = 'sync-top-x'; b.textContent = '✕ إغلاق'; b.onclick = syncTopClose; v.appendChild(b); }
+    v.classList.add('sync-top'); window.__syncTop = true;
+}
+function showSyncStatus(opts) {
     if (!IS_ADMIN_PAGE) return;
+    const top = !!(opts && opts.top);
     const { tone, head, sub, dups, native } = ssState();
     const u = usageGet(), cw = usageCap('w'), cr = usageCap('r');
     const bar = (label, n, cap) => { const pc = Math.min(100, Math.round(n / Math.max(1, cap) * 100)); return `<div class="ss-use"><div class="ss-ut"><span>${label}</span><b>${n} من ${cap}</b></div><div class="ss-bar"><i class="${pc >= 90 ? 'hi' : pc >= 70 ? 'mid' : ''}" style="width:${pc}%"></i></div></div>`; };
@@ -516,9 +523,10 @@ function showSyncStatus() {
     const wasOpen = !!(host.querySelector('.ss-det') && host.querySelector('.ss-det').open);   // تبقى «تفاصيل تقنية» مفتوحة عند إعادة الرسم
     const acts = `<div class="ss-acts"><button type="button" class="dw-btn dw-btn-main" onclick="ssGo()">${waM ? '📲 إرسال المبيعات' : '🔄 مزامنة الآن'}</button><button type="button" class="dw-btn dw-btn-ghost" onclick="netCycle()">إعادة تشغيل الاتصال</button><button type="button" class="dw-btn dw-btn-ghost" onclick="hardRefresh()">⟳ تحديث التطبيق</button></div>`;
     host.innerHTML = (wasOpen ? html.replace('<details class="ss-det" ', '<details class="ss-det" open ') : html) + acts;
-    if (typeof currentView === 'undefined' || currentView !== 'sync') showView('sync');   // صفحة كاملة بترويسة التطبيق (لا نافذة منبثقة)
+    if (top) syncTopOpen(); else if (window.__syncTop) syncTopClose();
+    if (!top && (typeof currentView === 'undefined' || currentView !== 'sync')) showView('sync');   // صفحة كاملة بترويسة التطبيق (لا نافذة منبثقة)
     window.__ssOpen = true; clearInterval(ssTimer);
-    ssTimer = setInterval(() => { if (currentView !== 'sync') { clearInterval(ssTimer); window.__ssOpen = false; return; } ssLive(); }, 1500);
+    ssTimer = setInterval(() => { if (currentView !== 'sync' && !window.__syncTop) { clearInterval(ssTimer); window.__ssOpen = false; return; } ssLive(); }, 1500);
     appVersionTxt().then(v => { const el = document.getElementById('ssVer'); if (el) el.textContent = 'رقم نسخة التطبيق: ' + (v || 'غير معروف'); }).catch(() => { });
 }
 async function netCycle() {
@@ -539,7 +547,7 @@ async function netCycle() {
         syncRefresh(); h.fail('لم تؤكد السحابة الاستلام بعد', (e && e.message === 'مهلة') ? 'تحقق من الإنترنت، أو أن الحصة اليومية للخدمة لم تنتهِ (تتجدد 11 صباحاً بتوقيت بغداد).' : (e && e.message)); }
 }
 function ssGo() { if (usagePaused === 'wa' && window.WA) WA.exportSales(); else syncNow(); }
-document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo') && !e.target.closest('#p2Ov, .p2-ov, .pos-ov, .cn-ov, .lg-ov, [id$="Ov"]')) showSyncStatus(); });   // داخل النوافذ الكاملة (البيع السريع...) لا تُفتح شاشة المزامنة خلفها
+document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus({ top: !!e.target.closest('#p2Ov, .p2-ov, .pos-ov, .cn-ov, .lg-ov, [id$="Ov"]') }); });   // داخل النوافذ الكاملة (البيع السريع...) تُفتح شاشة المزامنة فوقها
 
 // ===== بوّابة القراءة من السحابة: القراءات الكاملة (واردات، دفتر، فواتير...) تُجرى مرة كل مدة بدل كل فتح شاشة =====
 // التخزين المحلي هو المرجع، والسحابة تُقرأ فقط عند انتهاء المدة أو طلب مزامنة يدوي أو إذا كانت النسخة المحلية فارغة.
@@ -5961,6 +5969,7 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         ['rxHub', () => vis('rxHub'), () => { if (typeof rxCurId !== 'undefined' && rxCurId) rxBack(); else rxClose(); }],
         ['cuOv', () => vis('cuOv'), () => { if (typeof cuBack === 'function') cuBack(); else cuClose(); }],
         ['exOv', () => vis('exOv'), () => exClose()],
+        ['syncView', () => !!window.__syncTop, () => syncTopClose()],
         ['lbOv', () => vis('lbOv'), () => { if (typeof lbBack === 'function') lbBack(); }],
         ['ndcOv', () => vis('ndcOv'), () => ndcClose()],
         ['ndOv', () => vis('ndOv'), () => { if (typeof ndBack === 'function') ndBack(); else ndClose(); }],
