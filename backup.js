@@ -215,6 +215,11 @@ function lbEd(a, b, mx) {   // مسافة التحرير (حرف ناقص/زائ
     }
     return p[b.length];
 }
+const lbCo = s => String(s || '').toLowerCase().replace(/[^a-z0-9\u0600-\u06ff]/g, '');
+function lbCoCmp(a, b) {   // تطابق الشركة: true / false / null (غير معروفة في أحد الطرفين)
+    a = lbCo(a); b = lbCo(b); if (!a || !b) return null;
+    return a === b || (Math.min(a.length, b.length) >= 3 && (a.includes(b) || b.includes(a))) || lbEd(a, b, 2) <= 2;
+}
 async function applyLastBuyImport(data) {
     const lines = (data.lines || []).filter(l => l && l.name && l.date);
     const have = new Set(), haveKeys = new Set();
@@ -235,22 +240,26 @@ async function applyLastBuyImport(data) {
         const pn = typeof dispName === 'function' ? dispName(p) : p.name, tk0 = lbToks(pn);
         if (!tk0.size) { none.push(pn); return; }
         const tk = new Set([...tk0].map(fixTok)), typo = [...tk0].some(t => !tk.has(t)), key = [...tk].sort().join(' ');
-        let l = byKey.get(key), exact = !!l && !typo, sc = 1;
+        let l = byKey.get(key), exact = !!l && !typo, sc = 1, cm = l ? lbCoCmp(p.brand || p.company, l.company) : null;
         if (!l) {
             const seen = new Map(); tk.forEach(t => (inv.get(t) || []).forEach(x => seen.set(x, (seen.get(x) || 0) + 1)));
             let best = 0.75 - 1e-9;
-            seen.forEach((i, x) => { const j = i / (tk.size + x.k.split(' ').length - i); if (j > best) { best = j; l = x; sc = j; } });
+            seen.forEach((i, x) => {
+                const c = lbCoCmp(p.brand || p.company, x.company), j = i / (tk.size + x.k.split(' ').length - i), j2 = c === true ? j + 0.15 : (c === false ? j - 0.15 : j);
+                if (j2 > best) { best = j2; l = x; sc = j; cm = c; }
+            });
         }
+        if (l && cm === false) exact = false;
         if (!l) { none.push(pn); return; }
-        rows.push({ p, pn, l, exact, sc }); used.set(l.k, (used.get(l.k) || 0) + 1);
+        rows.push({ p, pn, l, exact, sc, cm }); used.set(l.k, (used.get(l.k) || 0) + 1);
     });
-    rows.forEach(r => { r.amb = used.get(r.l.k) > 1; r.on = r.exact && !r.amb; });
+    rows.forEach(r => { const same = rows.filter(x => x.l.k === r.l.k); r.amb = same.length > 1 && !(r.cm === true && same.filter(x => x.cm === true).length === 1); r.on = r.exact && !r.amb && r.cm !== false; });
     rows.sort((a, b) => (b.on - a.on) || a.pn.localeCompare(b.pn));
     if (!rows.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد للتعبئة', text: 'كل المواد لها وارد، أو لم تُطابَق أسماؤها مع ملفات الإكسل.', confirmButtonColor: '#0f1c38' }); return; }
     const E = escapeHtml;
-    const rowHtml = (r, i) => `<label class="lb-r"><input type="checkbox" class="lb-c" data-i="${i}" ${r.on ? 'checked' : ''}><span class="lb-n">${E(r.pn)}</span><span class="lb-x">${E(r.l.name)}${r.exact ? '' : ' ≈'}${r.amb ? ' ⚠' : ''}</span><span class="lb-d">${E(r.l.supplier)} · ${E(r.l.date)}</span></label>`;
+    const rowHtml = (r, i) => `<label class="lb-r"><input type="checkbox" class="lb-c" data-i="${i}" ${r.on ? 'checked' : ''}><span class="lb-n">${E(r.pn)}</span><span class="lb-x">${E(r.l.name)}${r.exact ? '' : ' ≈'}${r.amb ? ' ⚠' : ''}${r.cm === false ? ' ✗شركة' : ''}</span><span class="lb-d">${E(r.l.supplier)} · ${E(r.l.date)}</span></label>`;
     const ok = await Swal.fire({ title: 'تعبئة آخر شراء', width: '96vw', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'استورد المحدد', cancelButtonText: 'إلغاء',
-        html: `<div style="text-align:right;font-size:.85rem;line-height:1.7"><b>${fmtNum(rows.length)}</b> مادة بلا وارد وجدنا لها آخر شراء (مطابق تماماً: ${fmtNum(rows.filter(r => r.exact && !r.amb).length)}) · بلا مطابقة: ${fmtNum(none.length)}<br><span style="color:#64748b">≈ مطابقة تقريبية و ⚠ مشتركة مع مادة أخرى — غير محددة افتراضياً، راجعها. يُسجَّل كل سطر في قائمته الأصلية وبتاريخها، بلا أي تغيير في المخزن.</span></div><div class="lb-l" style="max-height:52vh;overflow:auto;margin-top:8px;border:1px solid #e2e8f0;border-radius:10px">${rows.map(rowHtml).join('')}</div>
+        html: `<div style="text-align:right;font-size:.85rem;line-height:1.7"><b>${fmtNum(rows.length)}</b> مادة بلا وارد وجدنا لها آخر شراء (مطابق تماماً: ${fmtNum(rows.filter(r => r.exact && !r.amb).length)}) · بلا مطابقة: ${fmtNum(none.length)}<br><span style="color:#64748b">≈ مطابقة تقريبية، ⚠ مشتركة مع مادة أخرى، ✗شركة: الشركة تختلف — غير محددة افتراضياً، راجعها. يُسجَّل كل سطر في قائمته الأصلية وبتاريخها، بلا أي تغيير في المخزن.</span></div><div class="lb-l" style="max-height:52vh;overflow:auto;margin-top:8px;border:1px solid #e2e8f0;border-radius:10px">${rows.map(rowHtml).join('')}</div>
         <style>.lb-r{display:grid;grid-template-columns:20px 1.2fr 1.2fr .9fr;gap:6px;align-items:center;padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:.78rem;text-align:right;cursor:pointer}.lb-r span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.lb-x,.lb-d{color:#64748b}</style>`,
         preConfirm: () => [...document.querySelectorAll('.lb-c')].filter(c => c.checked).map(c => +c.dataset.i) });
     if (!ok.isConfirmed) return;
