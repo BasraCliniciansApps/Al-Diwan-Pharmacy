@@ -347,9 +347,9 @@ function ndOverSet(v) { const n = Math.min(730, Math.max(7, parseInt(v) || 90));
 function ndOverRow() { return `<div class="fu-dr"><span>حد الفائض: يكفي أكثر من (يوماً)</span><input type="number" inputmode="numeric" min="7" max="730" value="${ndOverDays()}" onchange="ndOverSet(this.value)" style="width:80px;height:38px;border:1px solid #cbd5e1;border-radius:10px;padding:0 8px;font:inherit;text-align:center;box-sizing:border-box"></div>`; }
 function ndmCalc() {
     const cfg = ndmCfg(), today = todayLocalISO(), from = sdAdd(today, -(cfg.weeks * 7 - 1)), Z = { A: 2.05, B: 1.65, C: 1.28 };
-    const sales = new Map(), rev = new Map(); let totRev = 0;
+    const sales = new Map(), rev = new Map(); let totRev = 0, gs = today;   // gs: أقدم يوم فيه مبيعات مسجلة (بداية البيانات)
     (billAll || []).forEach(b => {
-        if (!b || !b.issued || b.cancelled) return; const d = String(b.date || ''); if (d < from || d > today) return;
+        if (!b || !b.issued || b.cancelled) return; const d = String(b.date || ''); if (d < from || d > today) return; if (d < gs) gs = d;
         (b.items || []).forEach(it => {
             if (!it.pid) return; const p = products.find(x => x.id === it.pid), q = parseFloat(it.qty) || 0; if (!(q > 0)) return;
             const boxes = it.unit === 'part' && p && hasRetail(p) ? q / subCountOf(p) : q;
@@ -366,7 +366,7 @@ function ndmCalc() {
         const p = products.find(x => x.id === pid); if (!p || p.arch) return;
         const sm = sales.get(pid) || new Map(), mm = miss.get(pid) || new Map(), ds = [...sm.keys(), ...mm.keys()].sort(), first = ds[0], last = ds[ds.length - 1];
         const hm = p.counted !== true && manM[pid] !== undefined && manM[pid] !== '' && isFinite(parseFloat(manM[pid])), stock = hm ? parseFloat(manM[pid]) : (parseInt(p.qty) || 0) + (hasRetail(p) ? (parseInt(p.loose) || 0) / subCountOf(p) : 0);
-        let st = first < sdAdd(today, -13) ? (first > from ? first : from) : sdAdd(today, -13), en = stock <= 0 && last < today ? last : today;
+        let st = gs < from ? from : gs; if (st > sdAdd(today, -13)) st = sdAdd(today, -13); if (first < st) st = first; let en = stock <= 0 && last < today ? last : today;
         if (en < sdAdd(st, 6)) en = sdAdd(st, 6) > today ? today : sdAdd(st, 6);
         const n = Math.max(7, Math.round((new Date(en + 'T12:00:00') - new Date(st + 'T12:00:00')) / 864e5) + 1), x = new Array(n).fill(0);
         const put = (d, v) => { let i = Math.round((new Date(d + 'T12:00:00') - new Date(st + 'T12:00:00')) / 864e5); i = Math.min(n - 1, Math.max(0, i)); x[i] += v; };
@@ -375,12 +375,12 @@ function ndmCalc() {
         const adi = n / nz.length, mean = nz.reduce((a, b) => a + b, 0) / nz.length, cv2 = nz.length > 1 ? nz.reduce((a, b) => a + (b - mean) * (b - mean), 0) / nz.length / (mean * mean) : 0, pat = ndmPattern(adi, cv2);
         let rate;
         if (adi < 1.32) { let sw = 0, sv = 0; x.forEach((v, i) => { const w = Math.pow(0.5, (n - 1 - i) / 21); sw += w; sv += w * v; }); rate = sv / sw; }
-        else { const al = 0.1; let z = 0, pp = 0, q = 1, init = false; x.forEach((v, i) => { if (v > 0) { if (!init) { z = v; pp = i + 1; init = true; } else { z = al * v + (1 - al) * z; pp = al * q + (1 - al) * pp; } q = 1; } else q++; }); rate = (1 - al / 2) * z / pp; }
+        else { const al = 0.1; let z = 0, pp = 0, q = 1, init = false; x.forEach((v, i) => { if (v > 0) { if (!init) { z = v; pp = Math.max(1, n / nz.length); init = true; } else { z = al * v + (1 - al) * z; pp = al * q + (1 - al) * pp; } q = 1; } else q++; }); rate = (1 - al / 2) * z / pp; }
         const wk = []; for (let e = n; e - 7 >= 0; e -= 7) wk.push(x.slice(e - 7, e).reduce((a, b) => a + b, 0));
         let sdw; if (wk.length >= 3) { const mw = wk.reduce((a, b) => a + b, 0) / wk.length; sdw = Math.sqrt(wk.reduce((a, b) => a + (b - mw) * (b - mw), 0) / (wk.length - 1)); } else sdw = Math.sqrt(Math.max(rate * 7, 0));
         const mw = rate * 7, ci = { w80: [Math.max(0, mw - 1.28 * sdw), mw + 1.28 * sdw], w95: [Math.max(0, mw - 1.96 * sdw), mw + 1.96 * sdw], m80: [Math.max(0, rate * 30 - 1.28 * sdw * Math.sqrt(30 / 7)), rate * 30 + 1.28 * sdw * Math.sqrt(30 / 7)], m95: [Math.max(0, rate * 30 - 1.96 * sdw * Math.sqrt(30 / 7)), rate * 30 + 1.96 * sdw * Math.sqrt(30 / 7)] };
         const cls = abc.get(pid) || 'C', T = cfg.lead + cfg.rev, ss = Z[cls] * sdw * Math.sqrt(T / 7), rop = rate * cfg.lead + ss, tgt = rate * T + ss, ex = ndxExpiry(p, rate), pos = stock - ex.expired + (onOrd.get(pid) || 0);
-        const st0 = ndwSet(), mq = parseInt(p.minQty), hasMin = isFinite(mq) && mq > 0, cover = rate > 0 ? pos / rate : null, rare = rate * 30 < 1 && !hasMin;
+        const st0 = ndwSet(), mq = parseInt(p.minQty), hasMin = isFinite(mq) && mq > 0, cover = rate > 0 ? pos / rate : null, rare = (rate * 30 < 1 || nz.length < 3) && !hasMin;   // أقل من 3 أيام بيع = دليل غير كافٍ للطلب
         const status = (hasMin && pos <= mq) ? 'order' : rare ? 'rare' : (cover !== null && cover <= st0.urgent) ? 'order' : (cover !== null && cover > ndOverDays()) ? 'over' : 'ok';
         const sold = x.reduce((a, b) => a + b, 0), sdc = Math.min(sdw, Math.sqrt(Math.max(rate * 7, 0) * 3));   // تشتت أسبوعي لا يتجاوز نموذج بواسون المتشتت (φ≤3)
         rows.push({ src: 's', method: 'sales', counted: true, manual: hm, p, ex, ci, wks: wk.length, cls, pat, rate, stock, ord: onOrd.get(pid) || 0, ss: Z[cls] * sdc * Math.sqrt(T / 7), rop: rate * cfg.lead + Z[cls] * sdc * Math.sqrt(T / 7), tgt: rate * T + Z[cls] * sdc * Math.sqrt(T / 7), sdw: sdc, status, sug: Math.max(0, Math.ceil(Math.max(rate * st0.target, hasMin ? mq : 0) - pos - 1e-9)), minQ: hasMin ? mq : 0, cover, pos, nz: nz.length, n, x, st, miss: [...mm.values()].reduce((a, b) => a + b, 0), conf: nz.length >= 8 ? 'جيدة' : nz.length >= 4 ? 'متوسطة' : 'منخفضة', consumed: sold, demand: sold, span: n, ev: [], first: first, last, since: ndmDays(last, today), units: sold, nEv: nz.length, nsE: 0, nsO: 0, w80: ci.w80, sups: [], sup: '' });
