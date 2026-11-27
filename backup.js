@@ -203,14 +203,14 @@ async function applyHistoryReplace(data) {
 const lbCo = s => String(s || '').toLowerCase().replace(/[^a-z0-9؀-ۿ]/g, '');
 const lbPk = (n, c) => lbCo(n) + '|' + lbCo(c);
 async function applyLastBuyImport(data) {
-    const map = (data.map || []).filter(m => m && m.pid != null && m.date);
+    const map = (data.map || []).filter(m => m && (m.pid != null || m.pn) && m.date);
     const have = new Set();
     (puAll || []).forEach(r => { if (!r.cancelled) (r.items || []).forEach(it => { if (it.pid != null) have.add(String(it.pid)); }); });
-    const byKey = new Map(map.map(m => [String(m.pid), m]));
+    const byKey = new Map(map.map(m => [m.pid != null ? String(m.pid) : lbPk(m.pn, m.pc), m]));
     const rows = []; let noInflow = 0;
     products.forEach(p => {
         if (have.has(String(p.id))) return; noInflow++;
-        const m = byKey.get(String(p.id)); if (!m) return;
+        const m = byKey.get(String(p.id)) || byKey.get(lbPk(p.name, p.brand || p.company)); if (!m) return;
         rows.push({ p, pn: p.name, l: m, on: m.conf === 'H', dup: false });
     });
     rows.sort((a, b) => (b.on - a.on) || a.pn.localeCompare(b.pn));
