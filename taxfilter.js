@@ -63,7 +63,7 @@
     window.tfMount = function (host, cfg) {
         host._tf = cfg; cfg.open = cfg.open || new Set(); cfg.q = cfg.q || '';
         host.innerHTML = `<div class="tf-p"><input class="tf-q" type="search" autocomplete="off" placeholder="ابحث عن قسم أو تصنيف" value="${esc(cfg.q)}"><div class="tf-l"></div>
-            <div class="tf-f"><button type="button" data-tf="clear">مسح التحديد</button><button type="button" class="go" data-tf="done">تم</button></div></div>`;
+            ${cfg.noFoot ? '' : '<div class="tf-f"><button type="button" data-tf="clear">مسح التحديد</button><button type="button" class="go" data-tf="done">تم</button></div>'}</div>`;
         refresh(host);
         if (host._tfBound) return; host._tfBound = true;
         host.addEventListener('input', e => { if (!e.target.classList.contains('tf-q')) return; const c = host._tf; c.q = e.target.value; refresh(host); });

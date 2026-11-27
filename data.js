@@ -1633,7 +1633,7 @@ let fsTreeCfg = null;
 function fsMountTree() {
     const host = document.getElementById('fsTree'); if (!host) return;
     fsTreeCfg = fsTreeCfg || { open: new Set(), q: '' };
-    Object.assign(fsTreeCfg, { tree: tfAdminTree(), sel: { d: filDepts, c: filCats }, count: tfAdminCounter(getBaseFilteredByTab()), onChange() { renderAll(); fsUpdateFoot(); }, onDone() { closeFilterSheet(); } });
+    Object.assign(fsTreeCfg, { noFoot: true, tree: tfAdminTree(), sel: { d: filDepts, c: filCats }, count: tfAdminCounter(getBaseFilteredByTab()), onChange() { renderAll(); fsUpdateFoot(); }, onDone() { closeFilterSheet(); } });
     tfMount(host, fsTreeCfg);
 }
 function fsUpdateFoot() {
@@ -1691,7 +1691,9 @@ function renderFilterSheet(focusKind) {
         <div class="fs-head"><h3>تصفية الأصناف</h3><button type="button" class="fs-x" onclick="closeFilterSheet()" aria-label="إغلاق">✕</button></div>
         <div class="fs-body">
             <button type="button" class="fs-switch ${filInStock ? 'on' : ''}" onclick="toggleInStockFilter()"><span>المتوفر فقط</span><i></i></button>
-            <div class="fs-tree-h">الأقسام والتصنيفات</div><div id="fsTree" class="fs-tree"></div>${dd('brand')}${dd('form')}
+            ${lists.form.length ? `<div class="fs-sec"><div class="fs-tree-h">الشكل الدوائي${filForms.size ? ` <em>${filForms.size}</em>` : ''}</div><div class="fs-chips">${lists.form.map(([name, n]) => `<button type="button" class="fs-chip ${filForms.has(name) ? 'on' : ''}" data-v="${escapeHtml(name)}" onclick="toggleFilter('form', this.dataset.v)" aria-pressed="${filForms.has(name)}"><span dir="auto">${escapeHtml(name)}</span><b>${n}</b></button>`).join('')}</div></div>` : ''}
+            <div class="fs-sec"><div class="fs-tree-h">الأقسام والتصنيفات${filDepts.size + filCats.size ? ` <em>${filDepts.size + filCats.size}</em>` : ''}</div><div id="fsTree" class="fs-tree"></div></div>
+            ${lists.brand.length ? `<div class="fs-sec">${dd('brand')}</div>` : ''}
         </div>
         <div class="fs-foot">
             <button type="button" class="icon-btn" onclick="resetFilters()" ${activeFilterCount() ? '' : 'disabled'}>مسح الكل</button>
