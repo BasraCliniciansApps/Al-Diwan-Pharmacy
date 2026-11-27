@@ -180,9 +180,11 @@ function p2RoundAdd(u) {
 function p2RoundNow() {
     const el = typeof qiEligible === 'function' ? qiEligible() : []; if (!el.length) return;
     const r = billTotals().total % 1000; if (!r) return;
-    const d = r % 250;
-    if (d === 0) { if (p2RoundAdd(1000 - r)) { writeInvoiceFields(); billChanged(); p2Render(); } return; }   // مضاعف 250: إضافة إن أمكن وإلا يبقى كما هو
-    bill.discount = String((parseFloat(bill.discount) || 0) + d);   // غير ذلك: خصم الزائد فقط عن أقرب 250 تحته
+    const d = r % 250, r2 = r - d;
+    // 1) محاولة الإضافة مباشرة إن كان الباقي مضاعف 250؛ 2) وإلا خصم الزائد عن أقرب 250 ثم محاولة الإضافة للوصول إلى الألف
+    const added = r2 > 0 ? p2RoundAdd(1000 - r2) : false;
+    if (d) bill.discount = String((parseFloat(bill.discount) || 0) + d);
+    if (!added && !d) return;
     writeInvoiceFields(); billChanged(); p2Render();
 }
 function p2Chip(k) { const S = billTotals().sub; p2SetDisc(p2ChipD(k, S)); p2Sync(); }
