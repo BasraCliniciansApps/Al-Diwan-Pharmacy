@@ -159,9 +159,9 @@ function p2RStep(n) {   // نفس تسوية الألف في البيع السا
     it.price = np; billChanged(); p2Render();
 }
 // تسوية الألف بضغطة واحدة (الباقي r = الصافي mod 1000):
-//  • r ≥ 500: إن كان المطلوب للألف الأعلى 250 أو 500 فيُضاف على أسعار المواد التي بلا ملصق وزاري (أسعار صحيحة، مادة أو مادتان)؛
-//    وإن لم يصحّ ينزل الصافي بخصم إلى أقرب 250 تحته (ويُسجَّل الخصم في خانة الخصم).
-//  • r < 500: خصم r كاملاً للوصول إلى الألف الأدنى.
+//  1) خصم r mod 250 (بلا تعديل سعر) للوصول إلى مضاعف 250، ويُسجَّل في خانة الخصم.
+//  2) الباقي 250/500/750: يُضاف للوصول إلى الألف الأعلى على أسعار المواد التي بلا ملصق وزاري (أسعار صحيحة، مادة أو مادتان).
+//  3) إن تعذّرت الإضافة: خصم إلى الألف الأدنى (إن كان الباقي < 500) أو الاكتفاء بأقرب 250.
 function p2RoundAdd(diff) {
     const el = typeof qiEligible === 'function' ? qiEligible() : []; if (!el.length) return false;
     const L = el.map(i => { const it = bill.items[i]; return { i, q: parseFloat(it.qty) || 0, p: parseFloat(it.price) || 0 }; }).filter(x => x.q > 0 && Number.isInteger(x.q));
@@ -185,12 +185,13 @@ function p2RoundAdd(diff) {
 }
 function p2RoundNow() {
     const el = typeof qiEligible === 'function' ? qiEligible() : []; if (!el.length) return;
-    const t = billTotals(), tot = t.total, r = tot % 1000; if (!r) return;
-    let disc = 0, added = false;
-    if (r >= 500) {
-        const u = 1000 - r;
-        if (u % 250 === 0 && p2RoundAdd(u)) added = true; else disc = r % 250;
-    } else disc = r;
+    const tot = billTotals().total, r = tot % 1000; if (!r) return;
+    const d = r % 250, r2 = r - d;   // الخصم d (بلا تعديل سعر) يوصل إلى مضاعف 250
+    let disc = d, added = false;
+    if (r2 > 0) {   // الباقي بعد الخصم 250/500/750: نحاول رفعه للألف الأعلى بالإضافة على أسعار المواد
+        if (p2RoundAdd(1000 - r2)) added = true;
+        else disc = r2 < 500 ? r : d;   // تعذّرت الإضافة: خصم إلى الألف الأدنى (إن كان قريباً) أو إلى أقرب 250
+    }
     if (!added && !disc) { Swal.fire({ icon: 'warning', title: 'تعذّرت التسوية', text: 'الزيادة المطلوبة تحتاج كسوراً عشرية في السعر، ولا يُسمح بها. عدّل سعر مادة يدوياً.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
     if (disc) bill.discount = String((parseFloat(bill.discount) || 0) + disc);
     writeInvoiceFields(); billChanged(); p2Render();
