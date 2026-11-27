@@ -183,6 +183,7 @@ function recalcInvoice() {
 function itemProduct(it) { return it.pid ? products.find(x => x.id === it.pid) : null; }
 function renderInvoiceRows() {
     const body = $b('billRows');
+    if (!bill.items.length && !bill.issued && !bill.editing && bill.discount) { bill.discount = ''; const di = $b('billDiscount'); if (di) di.value = ''; }   // الفاتورة فارغة: يُمسح الخصم معها
     if (!bill.items.length) {
         body.innerHTML = `<tr class="bill-empty-row no-print"><td colspan="6">لم تُضف مواد بعد. ابحث بالاسم أو امسح الباركود أو أضف سطراً.</td></tr>`;
     } else {
