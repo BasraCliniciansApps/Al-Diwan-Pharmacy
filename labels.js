@@ -132,7 +132,7 @@ function lblOpen(arg, opt) {   // arg: مصفوفة مواد/عناصر، أو �
     const picker = !arg;
     lblSt = { cfg: lblCfg(), items: picker ? [] : (arg[0] && arg[0].id !== undefined && arg[0].bc === undefined ? lblItemsOf(arg) : arg), picker, src: 'nobc', picked: [] };
     if (picker) lblPickRecalc();
-    Swal.fire({ title: '🏷️ ملصقات الباركود', html: lblTabsHtml(opt.tab) + '<div id="lbPane1"' + (opt.tab === 2 ? ' hidden' : '') + '>' + lblDlgHtml() + '</div><div id="lbPane2"' + (opt.tab === 2 ? '' : ' hidden') + '></div>', width: 560, showCancelButton: true, confirmButtonText: '🖨️ طباعة', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { popup: 'lbl-pop' },
+    Swal.fire({ title: (typeof pgIc === 'function' ? pgIc('lbl') : '') + 'ملصقات الباركود', html: lblTabsHtml(opt.tab) + '<div id="lbPane1"' + (opt.tab === 2 ? ' hidden' : '') + '>' + lblDlgHtml() + '</div><div id="lbPane2"' + (opt.tab === 2 ? '' : ' hidden') + '></div>', width: 560, showCancelButton: true, confirmButtonText: '🖨️ طباعة', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38', customClass: { popup: 'lbl-pop' },
         didOpen: () => { lblWire(); lblTabWire(opt.tab === 2 ? 2 : 1); }, preConfirm: () => { lblRead(); const ok = lblSt.items.filter(i => i.bc); if (!ok.length) { Swal.showValidationMessage('لا توجد مواد بباركود للطباعة'); return false; } lblCfgSave(lblSt.cfg); lblPrint(lblSt.cfg, ok); return false; } });
 }
 function lblPickRecalc() {

@@ -63,6 +63,14 @@ function exCalc(r) {
 }
 
 // ---------- الواجهة ----------
+// أيقونات عناوين الصفحات = نفس أيقونة زر الصفحة في الرئيسية
+const PG_IC = {
+    need: '<path d="M3 20h18"/><path d="M6 16v-5M11 16V6M16 16v-8M21 16v-3"/><path d="M5 8l5-4 4 3 6-4"/>',
+    ndc: '<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><rect x="8" y="5.5" width="8" height="3.5" rx="1"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 17h.01M12 17h.01M15.5 17h.01"/>',
+    xf: '<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
+    lbl: '<path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M21 5v14"/>'
+};
+function pgIc(k) { return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + PG_IC[k] + '</svg> '; }
 function exEnsureDom() {
     if (document.getElementById('exOv')) return;
     const d = document.createElement('div'); d.id = 'exOv'; d.className = 'cn-ov no-print'; d.setAttribute('dir', 'rtl'); d.style.display = 'none';
@@ -95,7 +103,7 @@ function exRender() {
     let body;
     if (exTab === 'need' || exTab === 'need2' || exTab === 'xf') {
         const sub = `<div class="ndw-tabs"><button type="button" class="${exTab === 'need' ? 'on' : ''}" onclick="exTab='need';exRefresh()">من المبيعات</button><button type="button" class="${exTab === 'need2' ? 'on' : ''}" onclick="exTab='need2';exRefresh()">من الوارد</button><button type="button" class="${exTab === 'xf' ? 'on' : ''}" onclick="exTab='xf';exRefresh()">مناقلة مقترحة</button></div>`;
-        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>${exTab === 'xf' ? '⇄ الصلاحية والمناقلة' : '📈 تقدير الاحتياج'}</b></div><div class="cn-body">${sub}${exTab === 'need' ? ndmHtml() : exTab === 'need2' ? ndwHtml() : xfHtml()}</div>`; return;
+        document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>${exTab === 'xf' ? pgIc('xf') + 'الصلاحية والمناقلة' : pgIc('need') + 'تقدير الاحتياج'}</b></div><div class="cn-body">${sub}${exTab === 'need' ? ndmHtml() : exTab === 'need2' ? ndwHtml() : xfHtml()}</div>`; return;
     }
     if (exTab === 'dash') {
         document.getElementById('exBox').innerHTML = `<div class="cn-head"><b>📊 لوحة المبيعات</b></div><div class="cn-body">${tabs}${sdHtml()}</div>`; return;
@@ -933,7 +941,7 @@ async function ndcEnsure() {
 function ndcEnsureDom() {
     if (document.getElementById('ndcOv')) return;
     const d = document.createElement('div'); d.id = 'ndcOv'; d.className = 'cn-ov no-print'; d.setAttribute('dir', 'rtl'); d.style.display = 'none';
-    d.innerHTML = '<div class="cn-box" id="ndcBox"><div class="cn-head"><b>🧮 حاسبة الاحتياج</b></div><div class="cn-body"><div id="ndcTabs"></div><div id="ndcMain"></div></div></div>'; document.body.appendChild(d);
+    d.innerHTML = '<div class="cn-box" id="ndcBox"><div class="cn-head"><b>' + pgIc('ndc') + 'حاسبة الاحتياج</b></div><div class="cn-body"><div id="ndcTabs"></div><div id="ndcMain"></div></div></div>'; document.body.appendChild(d);
 }
 function ndcClose() { const ov = document.getElementById('ndcOv'); if (ov) ov.style.display = 'none'; document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); ndcMode = false; ndwCur = null; }
 function ndcSearchHtml() { return `<div class="fu-q"><input type="search" id="ndcQ" autocomplete="off" placeholder="ابحث عن المادة" oninput="ndcSearch(this.value)"></div><div id="ndcRes"></div><div class="nd-hint" style="margin-top:10px">اختر المادة ثم طريقة التقدير (حسب المبيعات أو حسب الوارد)، وبعدها تظهر الحاسبة وتقييم العروض.</div>`; }
