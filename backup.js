@@ -203,7 +203,7 @@ async function applyHistoryReplace(data) {
 const LB_FORM = new Set('tablet tablets tab tabs capsule capsules cap caps syrup susp suspension cream ointment gel drops drop eye ear nasal spray vial vials amp ampoule ampoules injection inj sachet sachets lotion shampoo oral solution sol powder suppository supp suppositories film coated fc ml mg gm g mcg iu for the and of with x pcs'.split(' '));
 function lbToks(s) {
     s = String(s || '').toLowerCase().replace(/(\d)([a-z])/g, '$1 $2').replace(/([a-z])(\d)/g, '$1 $2');
-    return new Set((s.match(/[a-z]+|\d+(?:\.\d+)?/g) || []).filter(t => (/^\d/.test(t) || t.length > 1) && !LB_FORM.has(t)));
+    return new Set((s.match(/[a-z]+|\d+(?:\.\d+)?/g) || []).filter(t => (/^\d/.test(t) || t.length > 1 || !'xgms'.includes(t)) && !LB_FORM.has(t)));
 }
 function lbEd(a, b, mx) {   // مسافة التحرير (حرف ناقص/زائد/مبدّل) مع حد أقصى
     if (Math.abs(a.length - b.length) > mx) return mx + 1;
@@ -245,6 +245,8 @@ async function applyLastBuyImport(data) {
             const seen = new Map(); tk.forEach(t => (inv.get(t) || []).forEach(x => seen.set(x, (seen.get(x) || 0) + 1)));
             let best = 0.75 - 1e-9;
             seen.forEach((i, x) => {
+                const xn = x.k.split(' ').filter(t => /^\d/.test(t)).sort().join(','), pnn = [...tk].filter(t => /^\d/.test(t)).sort().join(',');
+                if (xn !== pnn) return;   // اختلاف الأرقام (التركيز/العبوة) = مادة مختلفة
                 const c = lbCoCmp(p.brand || p.company, x.company), j = i / (tk.size + x.k.split(' ').length - i), j2 = c === true ? j + 0.15 : (c === false ? j - 0.15 : j);
                 if (j2 > best) { best = j2; l = x; sc = j; cm = c; }
             });
