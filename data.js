@@ -539,7 +539,7 @@ async function netCycle() {
         syncRefresh(); h.fail('لم تؤكد السحابة الاستلام بعد', (e && e.message === 'مهلة') ? 'تحقق من الإنترنت، أو أن الحصة اليومية للخدمة لم تنتهِ (تتجدد 11 صباحاً بتوقيت بغداد).' : (e && e.message)); }
 }
 function ssGo() { if (usagePaused === 'wa' && window.WA) WA.exportSales(); else syncNow(); }
-document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo')) showSyncStatus(); });
+document.addEventListener('click', e => { if (IS_ADMIN_PAGE && e.target && e.target.closest && e.target.closest('.brand-logo') && !e.target.closest('#p2Ov, .p2-ov, .pos-ov, .cn-ov, .lg-ov, [id$="Ov"]')) showSyncStatus(); });   // داخل النوافذ الكاملة (البيع السريع...) لا تُفتح شاشة المزامنة خلفها
 
 // ===== بوّابة القراءة من السحابة: القراءات الكاملة (واردات، دفتر، فواتير...) تُجرى مرة كل مدة بدل كل فتح شاشة =====
 // التخزين المحلي هو المرجع، والسحابة تُقرأ فقط عند انتهاء المدة أو طلب مزامنة يدوي أو إذا كانت النسخة المحلية فارغة.
