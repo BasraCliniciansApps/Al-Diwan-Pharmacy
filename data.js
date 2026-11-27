@@ -1652,7 +1652,7 @@ function closeFilterSheet() {
     document.getElementById('filterBackdrop').classList.remove('open');
     document.getElementById('filterSheet').classList.remove('open');
 }
-function toggleDD(kind) { ddOpen = ddOpen === kind ? '' : kind; ddQuery[kind] = ''; renderFilterSheet(); }
+function toggleDD(kind) { ddOpen = ddOpen === kind ? '' : kind; if (ddQuery[kind] != null) ddQuery[kind] = ''; renderFilterSheet(); }
 function onDDSearch(kind, v) { ddQuery[kind] = v; renderFilterSheet(kind); }
 function renderFilterSheet(focusKind) {
     const box = document.getElementById('filterContent');
@@ -1692,7 +1692,12 @@ function renderFilterSheet(focusKind) {
         <div class="fs-body">
             <button type="button" class="fs-switch ${filInStock ? 'on' : ''}" onclick="toggleInStockFilter()"><span>المتوفر فقط</span><i></i></button>
             ${lists.form.length ? `<div class="fs-sec">${dd('form')}</div>` : ''}
-            <div class="fs-sec"><div class="fs-tree-h">الأقسام والتصنيفات${filDepts.size + filCats.size ? ` <em>${filDepts.size + filCats.size}</em>` : ''}</div><div id="fsTree" class="fs-tree"></div></div>
+            <div class="fs-sec"><div class="fs-dd ${ddOpen === 'tree' ? 'open' : ''}">
+                <button type="button" class="fs-dd-trigger ${filDepts.size + filCats.size ? 'has' : ''}" onclick="toggleDD('tree')" aria-expanded="${ddOpen === 'tree'}">
+                    <span class="fs-dd-title">الأقسام والتصنيفات</span><em dir="auto">${filDepts.size + filCats.size ? (filDepts.size + filCats.size) + ' مختارة' : 'الكل'}</em><i>▾</i>
+                </button>
+                ${ddOpen === 'tree' ? '<div class="fs-dd-panel"><div id="fsTree" class="fs-tree"></div></div>' : ''}
+            </div></div>
             ${lists.brand.length ? `<div class="fs-sec">${dd('brand')}</div>` : ''}
         </div>
         <div class="fs-foot">
