@@ -467,7 +467,7 @@ function p2Panel() {
         <div class="p2-sumbar" id="p2SumBar"><span class="p2-sb-l">الصافي <small id="p2FSum"></small></span><b><span id="p2NetBar2"></span> <i>د.ع</i></b></div>
         <div class="p2-act"><div class="px-val" id="p2Val" style="display:none" role="alert"></div>
             ${p2Pills(el.length > 0)}<div class="p2-netbar"><span>الصافي</span><b id="p2NetBar">${fmtNum(t.total)}</b><i>د.ع</i></div>
-            <div class="p2-btns">${bill.editing ? '<button type="button" class="pos-big alt" onclick="p2SaveEdit(false)">حفظ التعديل</button><button type="button" class="pos-big go" onclick="p2SaveEdit(true)">حفظ وطباعة</button>' : '<button type="button" class="pos-big cx" onclick="p2CancelSale()">إلغاء</button><button type="button" class="pos-big alt" onclick="p2Issue(false)">إصدار</button><button type="button" class="pos-big go" onclick="p2Issue(true)">إصدار وطباعة</button>'}</div></div>`;
+            <div class="p2-btns">${bill.editing ? '<button type="button" class="pos-big alt" onclick="p2SaveEdit(false)">حفظ التعديل</button><button type="button" class="pos-big go" onclick="p2SaveEdit(true)">حفظ وطباعة</button>' : '<button type="button" class="pos-big alt" onclick="p2Issue(false)">إصدار</button><button type="button" class="pos-big go" onclick="p2Issue(true)">إصدار وطباعة</button><button type="button" class="pos-big cx" onclick="p2CancelSale()">إلغاء</button>'}</div></div>`;
 }
 function p2Render() {
     const ov = p2El('p2Ov'); if (!ov || !bill) return;
