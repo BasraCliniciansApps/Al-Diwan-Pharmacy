@@ -10,7 +10,7 @@ let puTabName = 'new';
 let puPendingBc = '';          // باركود جديد بانتظار ربطه بدواء
 let puDraftTimer = null;
 
-function emptyPurchase() { return { supplier: '', no: '', date: todayLocalISO(), items: [], returnAmt: '', paid: '', notes: '', stmt: false, useEntry: false, updStock: true }; }
+function emptyPurchase() { return { supplier: '', no: '', date: todayLocalISO(), items: [], returnAmt: '', paid: '', notes: '', stmt: false, useEntry: false, cash: false, updStock: true }; }
 const puNum = v => parseFloat(v) || 0;
 function puBatchMap(l) {   // توزيع كمية السطر على تواريخ نفاذها: الدفعة الرئيسية (+البونص) والدفعات الإضافية
     const m = {}; if (!l || l.applied === false) return m;
@@ -211,18 +211,20 @@ async function puGiftCancel() {
 function puWriteFields() {
     $b('puSupplier').value = pu.supplier || ''; $b('puNo').value = pu.no || ''; $b('puDate').value = pu.date || todayLocalISO();
     $b('puReturn').value = pu.returnAmt === '' ? '' : pu.returnAmt; $b('puPaid').value = pu.paid === '' ? '' : pu.paid; $b('puNotes').value = pu.notes || '';
-    if ($b('puStmt')) $b('puStmt').checked = !!pu.stmt; if ($b('puUseEntry')) $b('puUseEntry').checked = !!pu.useEntry;
+    if ($b('puStmt')) $b('puStmt').checked = !!pu.stmt; if ($b('puUseEntry')) $b('puUseEntry').checked = !!pu.useEntry; if ($b('puCash')) $b('puCash').checked = !!pu.cash;
     if ($b('puUpdStock')) $b('puUpdStock').checked = pu.updStock !== false;
 }
 function puReadFields() {
     pu.supplier = $b('puSupplier').value; pu.no = $b('puNo').value; pu.date = $b('puDate').value || todayLocalISO();
     pu.returnAmt = $b('puReturn').value; pu.paid = $b('puPaid').value; pu.notes = $b('puNotes').value;
-    pu.stmt = !!($b('puStmt') && $b('puStmt').checked); pu.useEntry = !!($b('puUseEntry') && $b('puUseEntry').checked);
+    pu.stmt = !!($b('puStmt') && $b('puStmt').checked); pu.useEntry = !!($b('puUseEntry') && $b('puUseEntry').checked); pu.cash = !!($b('puCash') && $b('puCash').checked);
     if ($b('puUpdStock')) pu.updStock = $b('puUpdStock').checked;
 }
 function puChanged() { puReadFields(); puRecalc(); clearTimeout(puDraftTimer); puDraftTimer = setTimeout(() => lsSet(PU_LS.draft, JSON.stringify(pu)), 300); }
 function puRecalc() {
-    const tot = puTotalOf(pu), net = puNetOf(pu), rem = Math.max(net - puNum(pu.paid), 0);
+    const tot = puTotalOf(pu), net = puNetOf(pu);
+    if (pu.cash) { pu.paid = net; const pe = $b('puPaid'); if (pe) { pe.value = net || ''; pe.disabled = true; } } else { const pe = $b('puPaid'); if (pe && pe.disabled) pe.disabled = false; }
+    const rem = Math.max(net - puNum(pu.paid), 0);
     $b('puTotal').innerText = fmtNum(tot); $b('puNet').innerText = fmtNum(net); $b('puRem').innerText = fmtNum(rem);
     pu.items.forEach((it, i) => {
         const sum = fmtNum(puNum(it.qty) * puNum(it.cost)), set = (id, v) => { const el = $b(id + i); if (el) el.innerText = v; };
@@ -576,15 +578,16 @@ async function puSave0() {
         } catch (e) { /* تجاهل */ }
     }, 0);
     lines.filter(l => l.applied !== false).forEach(l => { const p = products.find(x => x.id === l.pid); const old = oldBy.get(l.pid); logAction('qty', p, [{ f: 'الكمية (' + (editing ? 'تعديل وارد ' : 'وارد ') + no + ' - ' + supplier + ')', from: String(old ? puLQ(old) : l.prevQty), to: String(old ? puLQ(l) : l.prevQty + puLQ(l)) }]); });
-    const paid = Math.min(puNum(pu.paid), Math.max(total - ret, 0));
+    const paid = pu.cash ? Math.max(total - ret, 0) : Math.min(puNum(pu.paid), Math.max(total - ret, 0));
     let rec;
     if (editing) {
         const diff = paid - puNum(editing.paid);
-        rec = { ...editing, seq: (editing.seq && puMonthOf({ ...editing, date: pu.date, useEntry: !!pu.useEntry }) === puMonthOf(editing)) ? editing.seq : puNextSeq(puMonthOf({ ...editing, date: pu.date, useEntry: !!pu.useEntry }), editing.id), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, notes: pu.notes.trim(), editedAt: new Date().toISOString() };
+        rec = { ...editing, seq: (editing.seq && puMonthOf({ ...editing, date: pu.date, useEntry: !!pu.useEntry }) === puMonthOf(editing)) ? editing.seq : puNextSeq(puMonthOf({ ...editing, date: pu.date, useEntry: !!pu.useEntry }), editing.id), stmt: !!pu.stmt, useEntry: !!pu.useEntry, cash: !!pu.cash, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, notes: pu.notes.trim(), editedAt: new Date().toISOString() };
         rec.payments = (editing.payments || []).slice(); if (Math.abs(diff) > 0.001) rec.payments.push({ at: todayLocalISO(), amount: diff, adj: true });
     } else {
-        rec = { id: recId, seq: puNextSeq((pu.useEntry ? todayLocalISO() : String(pu.date)).slice(0, 7)), stmt: !!pu.stmt, useEntry: !!pu.useEntry, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
+        rec = { id: recId, seq: puNextSeq((pu.useEntry ? todayLocalISO() : String(pu.date)).slice(0, 7)), stmt: !!pu.stmt, useEntry: !!pu.useEntry, cash: !!pu.cash, supplier, no, date: pu.date, items: lines, returnAmt: ret, paid, payments: paid > 0 ? [{ at: pu.date, amount: paid }] : [], notes: pu.notes.trim(), cancelled: false, createdTs: new Date().toISOString() };
     }
+    if (rec.cash) delete rec.seq;   // الشراء النقدي لا يأخذ رقماً في سجل الطلبيات
     if (gift) { rec.gift = true; rec.bonusOnly = true; delete rec.seq; }
     else if (puLooksBonus(rec) && !(pu.items || []).some(it => puNum(it.ret) > 0)) { rec.bonusOnly = true; rec.autoBonus = true; delete rec.seq; }   // قائمة كلها بونص: لا تدخل سجل الوارد ولا الطلبيات
     else if (rec.autoBonus) { rec.bonusOnly = false; rec.autoBonus = false; if (!rec.seq) rec.seq = puNextSeq(puMonthOf(rec), rec.id); }
@@ -606,17 +609,17 @@ async function puCancelEdit() { if (!(await askSure('إلغاء التعديل؟
 function puEdit(id) {
     const r = puAll.find(x => x.id === id); if (!r || r.cancelled) return;
     if (pu && pu.items.length && !pu.editId) { /* المسودة الحالية ستُستبدل */ }
-    pu = { editId: r.id, gift: !!r.gift, stmt: !!r.stmt, useEntry: !!r.useEntry, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, bonus: l.bonus || '', bc: !!l.bc, cost: l.cost, expiry: l.expiry || '', batch: l.batch || '', xb: l.xb && l.xb.length ? l.xb.map(b => ({ ...b })) : undefined, q0: l.xb && l.xb.length ? (parseInt(l.qty) || 0) - l.xb.reduce((t, b) => t + (parseInt(b.q) || 0), 0) : undefined })) };
+    pu = { editId: r.id, gift: !!r.gift, stmt: !!r.stmt, useEntry: !!r.useEntry, cash: !!r.cash, supplier: r.supplier, no: r.no, date: r.date, returnAmt: r.returnAmt || '', paid: r.paid || '', notes: r.notes || '', items: (r.items || []).map(l => ({ pid: l.pid, name: l.name, qty: l.qty, bonus: l.bonus || '', bc: !!l.bc, cost: l.cost, expiry: l.expiry || '', batch: l.batch || '', xb: l.xb && l.xb.length ? l.xb.map(b => ({ ...b })) : undefined, q0: l.xb && l.xb.length ? (parseInt(l.qty) || 0) - l.xb.reduce((t, b) => t + (parseInt(b.q) || 0), 0) : undefined })) };
     puTab('new'); window.scrollTo(0, 0);
 }
 
 // ---------- السجل ----------
 function puCardHtml(r, extra, withSeq) {
     const rem = puRemaining(r);
-    const tags = (r.cancelled ? '<em class="tg bad">ملغى</em>' : '') + (rem > 0 ? `<em class="tg warn">متبقي ${fmtNum(rem)}</em>` : '') + (puNum(r.returnAmt) > 0 ? `<em class="tg">استرجاع ${fmtNum(r.returnAmt)}</em>` : '') + (r.stmt ? '<em class="tg">✓ كشف</em>' : '');
+    const tags = (r.cancelled ? '<em class="tg bad">ملغى</em>' : '') + (rem > 0 ? `<em class="tg warn">متبقي ${fmtNum(rem)}</em>` : '') + (puNum(r.returnAmt) > 0 ? `<em class="tg">استرجاع ${fmtNum(r.returnAmt)}</em>` : '') + (r.stmt ? '<em class="tg">✓ كشف</em>' : '') + (r.cash ? '<em class="tg">نقدي</em>' : '');
     return `<div class="bill-card ${r.cancelled ? 'cancelled' : ''}">
         ${withSeq && puSelMode ? `<button type="button" class="sel-ck ${puSel.has(r.id) ? 'on' : ''}" onclick="puSelToggle('${r.id}',event)" aria-label="تحديد">${puSel.has(r.id) ? '✓' : ''}</button>` : ''}
-        ${withSeq ? `<div class="pu-seqbox" onclick="puSeqEdit('${r.id}', event)" title="رقم القائمة في الشهر — انقر للتعديل">${r.seq || '؟'}</div>` : ''}
+        ${withSeq ? `<div class="pu-seqbox" onclick="puSeqEdit('${r.id}', event)" title="رقم القائمة في الشهر — انقر للتعديل">${r.cash ? '—' : (r.seq || '؟')}</div>` : ''}
         <div class="bill-card-main" onclick="${withSeq && puSelMode ? `puSelToggle('${r.id}',event)` : `puOpen('${r.id}')`}">
             <b>${escapeHtml(r.supplier)}</b> <span dir="ltr">${escapeHtml(r.no)}</span> ${tags}
             <small>${escapeHtml(fmtDateDMY(r.date))} • ${(r.items || []).length} مادة</small>
@@ -642,7 +645,7 @@ async function puDeletePermanently(id) {
     } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
 }
 // ترقيم القوائم الشهري (عمود «ت» في الإكسل): يبدأ من 1 كل شهر ويتبع الإدخال، ويمكن تعديله بالنقر عليه
-function puMonthRecs(m) { return puAll.filter(r => !puIsBonusOnly(r) && puMonthOf(r) === m); }
+function puMonthRecs(m) { return puAll.filter(r => !puIsBonusOnly(r) && !r.cash && puMonthOf(r) === m); }
 function puNextSeq(m, exceptId) { return puMonthRecs(m).filter(r => r.id !== exceptId).reduce((a, r) => Math.max(a, parseInt(r.seq) || 0), 0) + 1; }
 function puSeqCmp(a, b) { return ((parseInt(a.seq) || 1e9) - (parseInt(b.seq) || 1e9)) || String(a.createdTs || a.date).localeCompare(String(b.createdTs || b.date)); }
 function puMonthsList() { return [...new Set(puAll.filter(r => !puIsBonusOnly(r)).map(puMonthOf).filter(Boolean))].sort().reverse(); }

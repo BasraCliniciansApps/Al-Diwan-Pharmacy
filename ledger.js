@@ -102,7 +102,7 @@ function puStmtRange() {
 }
 function lgStmtData(from, to, sup, group) {
     const inR = m => m >= from && m <= to, okSup = s => !sup || puKey(s) === puKey(sup), rets = lgRets(), rows = [];
-    puAll.filter(r => !r.cancelled && !puIsBonusOnly(r) && inR(puMonthOf(r)) && okSup(r.supplier)).forEach(r => {
+    puAll.filter(r => !r.cancelled && !puIsBonusOnly(r) && !r.cash && inR(puMonthOf(r)) && okSup(r.supplier)).forEach(r => {
         const subs = rets.filter(e => e.listId === r.id && e.mode === 'net');
         const ret = puNum(r.returnAmt) + subs.reduce((s, e) => s + puNum(e.amount), 0), total = puTotalOf(r);
         rows.push({ t: 'inv', m: puMonthOf(r), date: r.date, ts: r.createdTs || '', sup: r.supplier, no: r.no, total, ret, net: total - ret, r, subs });
