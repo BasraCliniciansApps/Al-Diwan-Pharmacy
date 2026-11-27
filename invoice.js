@@ -82,6 +82,7 @@ function numberToArabicWords(num) {
 
 // ---------- الحالة والحفظ ----------
 function billChanged() {
+    if (bill && !bill.items.length && !bill.issued && !bill.editing) { bill.discount = ''; const di = $b('billDiscount'); if (di) di.value = ''; }   // الفاتورة فارغة: يُمسح الخصم معها
     readInvoiceFields();
     recalcInvoice();
     clearTimeout(billSaveTimer);
