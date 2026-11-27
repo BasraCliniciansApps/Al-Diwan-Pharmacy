@@ -1,6 +1,6 @@
 // =====================================================================
 // المادة المرافقة: ربط الأمبول/الفيال بمادة تلزمه (سرنجة مثلاً). عند إضافة المادة للفاتورة يُقترح إضافة المرافقة.
-// p.link = { pid, qty }  — qty = عدد المرافق لكل وحدة مباعة. المرافق مادة مستقلة بمخزنها وجردها.
+// p.link = { pid, qty }  — qty = عدد المرافق لكل قطعة مباعة (أمبولة / فيال). المرافق مادة مستقلة بمخزنها وجردها.
 // =====================================================================
 const LK_AUTO_KEY = 'diwanLinkAuto';
 let lkBusy = false;   // يمنع سلسلة اقتراحات (إضافة المرافق لا تقترح مرافقاً له)
@@ -58,13 +58,13 @@ async function lkCountLink(pid) {
     if (typeof cnCanEdit === 'function' && !cnCanEdit()) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'ربط المادة المرافقة يحتاج صلاحية تعديل المواد.', confirmButtonColor: '#0f1c38' }); return; }
     const cur = lkOf(p);
     if (cur) {
-        const r = await Swal.fire({ title: 'المادة المرافقة', html: `<div dir="auto" style="line-height:1.9"><b dir="ltr">${escapeHtml(dispName(cur.p))}</b><br>العدد لكل وحدة مباعة: ${cur.qty}</div>`, showCancelButton: true, showDenyButton: true, confirmButtonText: 'تغيير', denyButtonText: 'إزالة الربط', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
+        const r = await Swal.fire({ title: 'المادة المرافقة', html: `<div dir="auto" style="line-height:1.9"><b dir="ltr">${escapeHtml(dispName(cur.p))}</b><br>العدد لكل قطعة مباعة: ${cur.qty}</div>`, showCancelButton: true, showDenyButton: true, confirmButtonText: 'تغيير', denyButtonText: 'إزالة الربط', cancelButtonText: 'إغلاق', confirmButtonColor: '#0f1c38' });
         if (r.isDenied) { const old = p.link; p.link = null; const ok = await saveProductsDelta([{ p, dq: 0, dl: 0 }]); if (!ok) p.link = old; if (typeof cnRedraw === 'function') cnRedraw(); return; }
         if (!r.isConfirmed) return;
     }
     const id = await lkPick(); if (!id) return;
     if (id === p.id) { Swal.fire({ icon: 'warning', title: 'لا يمكن ربط المادة بنفسها', toast: true, position: 'top', showConfirmButton: false, timer: 2000 }); return; }
-    const r2 = await Swal.fire({ title: 'عدد المرافق لكل وحدة مباعة', input: 'number', inputValue: cur ? cur.qty : 1, inputAttributes: { min: 1, step: 1 }, showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
+    const r2 = await Swal.fire({ title: 'عدد المرافق لكل قطعة مباعة (أمبولة / فيال)', input: 'number', inputValue: cur ? cur.qty : 1, inputAttributes: { min: 1, step: 1 }, showCancelButton: true, confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f1c38' });
     if (!r2.isConfirmed) return;
     const old = p.link; p.link = { pid: id, qty: Math.max(1, parseInt(r2.value) || 1) };
     const ok = await saveProductsDelta([{ p, dq: 0, dl: 0 }]); if (!ok) p.link = old;
@@ -85,10 +85,12 @@ function lkAddLinked(l, n) {
         else { try { renderInvoiceRows(); billChanged(); } catch (e) { /* تجاهل */ } }
     } finally { lkBusy = false; }
 }
-function lkOffer(pid, units) {
+// units = العدد المباع، unit = pack|part. المرافق يُحسب لكل قطعة (أمبولة)، فبيع عبوة كاملة من 5 يقترح 5 مرافق
+function lkOffer(pid, units, unit) {
     if (lkBusy) return;
     const p = products.find(x => x.id === pid), l = lkOf(p); if (!l) return;
-    const n = l.qty * Math.max(1, Math.round(units || 1));
+    const pieces = Math.max(1, Math.round(units || 1)) * (unit === 'part' || !hasRetail(p) ? 1 : btSc(p));
+    const n = l.qty * pieces;
     const nm = l.p.name + ' ×' + n;
     setTimeout(async () => {
         if (lkAutoOn()) {
