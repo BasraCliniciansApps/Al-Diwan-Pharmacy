@@ -165,7 +165,7 @@ function spCommit(next) {
     const name = p.name, edit = sp.edit;
     spClose();
     renderInvoiceRows(); billChanged();
-    if (!edit && typeof lkOffer === 'function') lkOffer(p.id, lines.reduce((a, l) => a + (l.n || 0), 0));
+    if (!edit && typeof lkOffer === 'function') lkOffer(p.id, lines.reduce((a, l) => a + (l.n || 0), 0), unit);
     if (!sgLowNote(p.id)) Swal.fire({ icon: 'success', title: (edit ? 'عُدّلت: ' : 'أُضيفت: ') + name, toast: true, position: 'bottom', showConfirmButton: false, timer: 1100 });
     if (next) setTimeout(() => billScan(), 250);
 }
