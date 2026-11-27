@@ -205,6 +205,16 @@ function lbToks(s) {
     s = String(s || '').toLowerCase().replace(/(\d)([a-z])/g, '$1 $2').replace(/([a-z])(\d)/g, '$1 $2');
     return new Set((s.match(/[a-z]+|\d+(?:\.\d+)?/g) || []).filter(t => (/^\d/.test(t) || t.length > 1) && !LB_FORM.has(t)));
 }
+function lbEd(a, b, mx) {   // مسافة التحرير (حرف ناقص/زائد/مبدّل) مع حد أقصى
+    if (Math.abs(a.length - b.length) > mx) return mx + 1;
+    let p = Array.from({ length: b.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= a.length; i++) {
+        const c = [i]; let mn = i;
+        for (let j = 1; j <= b.length; j++) { c[j] = Math.min(p[j] + 1, c[j - 1] + 1, p[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); if (c[j] < mn) mn = c[j]; }
+        if (mn > mx) return mx + 1; p = c;
+    }
+    return p[b.length];
+}
 async function applyLastBuyImport(data) {
     const lines = (data.lines || []).filter(l => l && l.name && l.date);
     const have = new Set(), haveKeys = new Set();
@@ -212,11 +222,20 @@ async function applyLastBuyImport(data) {
     const cand = products.filter(p => !have.has(String(p.id)) && !haveKeys.has([...lbToks(typeof dispName === 'function' ? dispName(p) : p.name)].sort().join(' ')));
     const byKey = new Map(lines.map(l => [l.k, l])), inv = new Map();
     lines.forEach(l => l.k.split(' ').forEach(t => { if (!inv.has(t)) inv.set(t, []); inv.get(t).push(l); }));
+    const vocab = [...inv.keys()].filter(t => !/^\d/.test(t) && t.length >= 4), fz = new Map();
+    const fixTok = t => {   // أقرب كلمة في ملفات الإكسل (خطأ إملائي بحرف أو حرفين)
+        if (/^\d/.test(t) || t.length < 4 || inv.has(t)) return t;
+        if (fz.has(t)) return fz.get(t);
+        const mx = t.length >= 9 ? 2 : 1; let best = t, bd = mx + 1;
+        for (const v of vocab) { const d = lbEd(t, v, mx); if (d < bd) { bd = d; best = v; if (d === 1) break; } }
+        fz.set(t, best); return best;
+    };
     const used = new Map(), rows = [], none = [];
     cand.forEach(p => {
-        const pn = typeof dispName === 'function' ? dispName(p) : p.name, tk = lbToks(pn), key = [...tk].sort().join(' ');
-        if (!tk.size) { none.push(pn); return; }
-        let l = byKey.get(key), exact = !!l, sc = 1;
+        const pn = typeof dispName === 'function' ? dispName(p) : p.name, tk0 = lbToks(pn);
+        if (!tk0.size) { none.push(pn); return; }
+        const tk = new Set([...tk0].map(fixTok)), typo = [...tk0].some(t => !tk.has(t)), key = [...tk].sort().join(' ');
+        let l = byKey.get(key), exact = !!l && !typo, sc = 1;
         if (!l) {
             const seen = new Map(); tk.forEach(t => (inv.get(t) || []).forEach(x => seen.set(x, (seen.get(x) || 0) + 1)));
             let best = 0.75 - 1e-9;
