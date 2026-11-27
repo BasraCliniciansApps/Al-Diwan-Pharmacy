@@ -163,12 +163,10 @@ function p2RoundNow() {
     const el = typeof qiEligible === 'function' ? qiEligible() : []; if (!el.length) return;
     const i = el.includes(p2.rcur) ? p2.rcur : el[0], it = bill.items[i]; if (!it) return;
     const tot = billTotals().total, target = Math.round(tot / 1000) * 1000, diff = target - tot;
-    const toast = t => Swal.fire({ icon: 'info', title: t, toast: true, position: 'top', showConfirmButton: false, timer: 1600 });
-    if (!diff) { toast('الصافي ألف كاملة أصلاً'); return; }
+    if (!diff) return;
     const np = (parseFloat(it.price) || 0) + diff / (parseFloat(it.qty) || 1);
-    if (target <= 0 || np <= 0) { toast('تعذّرت التسوية لهذا المبلغ'); return; }
+    if (target <= 0 || np <= 0) return;
     it.price = np; p2.rcur = i; billChanged(); p2Render();
-    toast('سُوّي الصافي إلى ' + fmtNum(target) + ' د.ع');
 }
 function p2Chip(k) { const S = billTotals().sub; p2SetDisc(p2ChipD(k, S)); p2Sync(); }
 function p2DiscMax() { p2SetDisc(posDiscForMax(billTotals().sub, posLimits().allow)); p2Sync(); }
