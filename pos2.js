@@ -158,11 +158,11 @@ function p2RStep(n) {   // نفس تسوية الألف في البيع السا
     const np = (parseFloat(it.price) || 0) + n / (parseFloat(it.qty) || 1); if (np <= 0) return;
     it.price = np; billChanged(); p2Render();
 }
-// تسوية الألف بضغطة واحدة: يُقرَّب الصافي لأقرب ألف بتعديل أسعار المواد التي بلا ملصق وزاري، بأسعار صحيحة دون كسور
+// تسوية الألف بضغطة واحدة: يُرفع الصافي دائماً إلى الألف الأعلى (لا نقصان) بتعديل أسعار المواد التي بلا ملصق وزاري، بأسعار صحيحة دون كسور
 // تُجرَّب مادة واحدة ثم مادتان (توزيع التسوية)، وإن تعذّر بلا كسور يُعرض تنبيه ولا يُعدَّل شيء
 function p2RoundNow() {
     const el = typeof qiEligible === 'function' ? qiEligible() : []; if (!el.length) return;
-    const tot = billTotals().total, target = Math.round(tot / 1000) * 1000, diff = target - tot;
+    const tot = billTotals().total, target = Math.ceil(tot / 1000) * 1000, diff = target - tot;
     if (!diff || target <= 0) return;
     const L = el.map(i => { const it = bill.items[i]; return { i, q: parseFloat(it.qty) || 0, p: parseFloat(it.price) || 0 }; }).filter(x => x.q > 0 && Number.isInteger(x.q));
     const ok = (x, d) => Number.isInteger(x.p) && x.p + d > 0;
@@ -172,9 +172,9 @@ function p2RoundNow() {
     if (!best) {
         for (let a = 0; a < L.length; a++) for (let b = a + 1; b < L.length; b++) {
             const x = L[a], y = L[b], lim = Math.ceil(Math.abs(diff) / Math.min(x.q, y.q)) + y.q;
-            for (let d1 = -lim; d1 <= lim; d1++) {
-                const rest = diff - d1 * x.q; if (d1 === 0 || rest % y.q !== 0) continue;
-                const d2 = rest / y.q; if (d2 === 0 || !ok(x, d1) || !ok(y, d2)) continue;
+            for (let d1 = 1; d1 <= lim; d1++) {
+                const rest = diff - d1 * x.q; if (rest % y.q !== 0) continue;
+                const d2 = rest / y.q; if (d2 <= 0 || !ok(x, d1) || !ok(y, d2)) continue;
                 const c = [{ x, d: d1 }, { x: y, d: d2 }]; if (!best || score(c) < score(best)) best = c;
             }
         }
