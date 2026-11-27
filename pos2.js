@@ -158,6 +158,18 @@ function p2RStep(n) {   // نفس تسوية الألف في البيع السا
     const np = (parseFloat(it.price) || 0) + n / (parseFloat(it.qty) || 1); if (np <= 0) return;
     it.price = np; billChanged(); p2Render();
 }
+// تسوية الألف بضغطة واحدة: يُقرَّب الصافي لأقرب ألف بتعديل سعر أول مادة مؤهلة (بلا ملصق وزاري)
+function p2RoundNow() {
+    const el = typeof qiEligible === 'function' ? qiEligible() : []; if (!el.length) return;
+    const i = el.includes(p2.rcur) ? p2.rcur : el[0], it = bill.items[i]; if (!it) return;
+    const tot = billTotals().total, target = Math.round(tot / 1000) * 1000, diff = target - tot;
+    const toast = t => Swal.fire({ icon: 'info', title: t, toast: true, position: 'top', showConfirmButton: false, timer: 1600 });
+    if (!diff) { toast('الصافي ألف كاملة أصلاً'); return; }
+    const np = (parseFloat(it.price) || 0) + diff / (parseFloat(it.qty) || 1);
+    if (target <= 0 || np <= 0) { toast('تعذّرت التسوية لهذا المبلغ'); return; }
+    it.price = np; p2.rcur = i; billChanged(); p2Render();
+    toast('سُوّي الصافي إلى ' + fmtNum(target) + ' د.ع');
+}
 function p2Chip(k) { const S = billTotals().sub; p2SetDisc(p2ChipD(k, S)); p2Sync(); }
 function p2DiscMax() { p2SetDisc(posDiscForMax(billTotals().sub, posLimits().allow)); p2Sync(); }
 function p2Sync() { const t = billTotals(), a = p2El('p2A'), p = p2El('p2P'); if (a) a.value = t.disc || ''; if (p) p.value = t.sub > 0 && t.disc > 0 ? Math.round(t.disc / t.sub * 1000) / 10 : ''; p2Totals(); }
@@ -384,7 +396,7 @@ function p2Pills(hasRnd) {
     if (!P2_COMPACT) return '';
     const bd = (id, on, txt) => `<i class="p2-bd" id="${id}" ${on ? '' : 'hidden'}>${txt || ''}</i>`;
     const b = (k, lbl, badge, cls) => `<button type="button" class="p2-pill${cls || ''}${p2.acc === k ? ' on' : ''}" onclick="p2Acc('${k}')"><span>${lbl}</span>${badge}</button>`;
-    return `<div class="p2-pills"><div class="p2-pr">${b('disc', 'خصم', bd('p2BdD', false))}${hasRnd ? b('rnd', 'تسوية الألف', '') : ''}${b('cr', 'بيع آجل', bd('p2BdR', p2.credit, '✓'))}</div>${b('calc', 'حاسبة الباقي', bd('p2BdC', p2Calc(), '✓'), ' p2-pill-wide')}</div>`;
+    return `<div class="p2-pills"><div class="p2-pr">${b('disc', 'خصم', bd('p2BdD', false))}${hasRnd ? `<button type="button" class="p2-pill" onclick="p2RoundNow()"><span>تسوية الألف</span></button>` : ''}${b('cr', 'بيع آجل', bd('p2BdR', p2.credit, '✓'))}</div>${b('calc', 'حاسبة الباقي', bd('p2BdC', p2Calc(), '✓'), ' p2-pill-wide')}</div>`;
 }
 function p2Fit() {   // ارتفاع التذييل الثابت والقسم المفتوح: لإزاحة المحتوى ووضع شريط الصافي فوقهما
     const ov = p2El('p2Ov'), a = ov && ov.querySelector('.p2-act'); if (!a) return;
