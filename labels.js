@@ -138,6 +138,7 @@ function lblOpen(arg, opt) {   // arg: مصفوفة مواد/عناصر، أو �
 function lblPickRecalc() {
     const act = products.filter(p => !p.arch);
     if (lblSt.src === 'nobc') lblSt.items = lblItemsOf(act.filter(p => !barcodesOf(p).length));
+    else if (lblSt.src === 'cnobc') lblSt.items = lblItemsOf(act.filter(p => p.counted === true && !barcodesOf(p).length));
     else if (lblSt.src === 'all') lblSt.items = lblItemsOf(act);
     else lblSt.items = lblItemsOf(lblSt.picked.map(id => products.find(p => p.id === id)).filter(Boolean));
 }
@@ -146,7 +147,7 @@ function lblDlgHtml() {
     const sw = (id, on, t) => `<div class="lbl-row"><span>${t}</span><label class="setup-sw"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><i></i></label></div>`;
     const num = (id, v, t, st) => `<label class="lbl-f"><span>${t}</span><input id="${id}" type="number" inputmode="decimal" step="${st || 'any'}" min="0" value="${v === undefined || v === null ? '' : v}" dir="ltr"></label>`;
     return `<div class="lbl-box">
-        ${lblSt.picker ? `<label class="lbl-f"><span>المواد المطلوب طباعتها</span><select id="lbSrc"><option value="nobc">المواد التي بلا باركود</option><option value="all">كل المواد</option><option value="pick">اختيار مواد بالاسم</option></select></label>
+        ${lblSt.picker ? `<label class="lbl-f"><span>المواد المطلوب طباعتها</span><select id="lbSrc"><option value="nobc">المواد التي بلا باركود</option><option value="cnobc">المواد المجرودة التي بلا باركود</option><option value="all">كل المواد</option><option value="pick">اختيار مواد بالاسم</option></select></label>
         <div id="lbPick" hidden><input id="lbQ" type="search" placeholder="ابحث باسم المادة..." autocomplete="off"><div id="lbRes" class="lbl-res"></div><div id="lbChips" class="lbl-chips"></div></div>` : ''}
         <div id="lbSum" class="lbl-sum"></div><div id="lbGenW"></div>
         <label class="lbl-f"><span>نوع تقسيم الورقة (A4)</span><select id="lbSheet">${LBL_SHEETS.map(s => `<option value="${s[0]}">${s[0]} ملصقاً — ${s[1]}×${s[2]} — ${s[3]}×${s[4]} ملم</option>`).join('')}<option value="custom">مخصّص (أدخل القياسات)</option></select></label>
