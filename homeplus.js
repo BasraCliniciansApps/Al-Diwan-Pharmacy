@@ -58,7 +58,7 @@ function hdGo(view) {
     try { window.__viewStack = []; showView(view); setTimeout(() => { try { window.__syncBackGuards && window.__syncBackGuards(); } catch (e) { /* تجاهل */ } }, 50); } catch (e) { /* تجاهل */ }
 }
 (function () {
-    const SEL = '.tr-head, .cn-head, .pos-head, .fm-top, .sh-bar, .help-top';
+    const SEL = '.tr-head, .cn-head, .pos-head, .fm-top, .sh-bar, .help-top, .dw-page .swal2-title';
     const HOME = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>';
     const BOX = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 8.35V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8.35A2 2 0 0 1 3.26 6.5l8-3.2a2 2 0 0 1 1.48 0l8 3.2A2 2 0 0 1 22 8.35Z"/><path d="M6 18h12"/><path d="M6 14h12"/><rect width="12" height="12" x="6" y="10"/></svg>';
     function mount(root) {
