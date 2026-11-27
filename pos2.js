@@ -161,7 +161,7 @@ function p2RStep(n) {   // نفس تسوية الألف في البيع السا
 // تسوية السعر بضغطة واحدة (r = الصافي mod 1000):
 //  أولاً: محاولة الإضافة (250/500/750) للوصول إلى الألف الأعلى على مواد بلا ملصق وزاري. الزيادة لكل قطعة مضاعف 250 فقط وبلا كسور
 //        (فلا تُوزَّع 250 على كمية > 1، ولا 500 على كمية > 2، ولا 750 على كمية > 3)، ويجوز تقسيمها على عدة مواد بـ250 لكل قطعة.
-//  إن لم تُمكن: خصم أقل مبلغ يوصل الباقي إلى مضاعف 250 تصح عنده الإضافة (أو إلى الألف الأدنى)، ويُسجَّل في خانة الخصم.
+//  إن كان الباقي ليس مضاعف 250: يُخصم الزائد فقط عن أقرب 250 تحته (9625←9500، 9825←9750) ويُسجَّل في خانة الخصم؛ وإن كان مضاعفاً ولم تصح الإضافة يبقى كما هو.
 function p2RoundAdd(u) {
     const el = typeof qiEligible === 'function' ? qiEligible() : [], n = u / 250; if (!el.length || !Number.isInteger(n) || n < 1) return false;
     const L = el.map(i => { const it = bill.items[i]; return { i, q: parseFloat(it.qty) || 0, p: parseFloat(it.price) || 0 }; }).filter(x => Number.isInteger(x.q) && x.q >= 1 && x.q <= n && Number.isInteger(x.p));
@@ -180,12 +180,10 @@ function p2RoundAdd(u) {
 function p2RoundNow() {
     const el = typeof qiEligible === 'function' ? qiEligible() : []; if (!el.length) return;
     const r = billTotals().total % 1000; if (!r) return;
-    for (let r2 = r - r % 250; r2 >= 0; r2 -= 250) {
-        const disc = r - r2;
-        if (r2 > 0 && !p2RoundAdd(1000 - r2)) continue;
-        if (disc) bill.discount = String((parseFloat(bill.discount) || 0) + disc);
-        writeInvoiceFields(); billChanged(); p2Render(); return;
-    }
+    const d = r % 250;
+    if (d === 0) { if (p2RoundAdd(1000 - r)) { writeInvoiceFields(); billChanged(); p2Render(); } return; }   // مضاعف 250: إضافة إن أمكن وإلا يبقى كما هو
+    bill.discount = String((parseFloat(bill.discount) || 0) + d);   // غير ذلك: خصم الزائد فقط عن أقرب 250 تحته
+    writeInvoiceFields(); billChanged(); p2Render();
 }
 function p2Chip(k) { const S = billTotals().sub; p2SetDisc(p2ChipD(k, S)); p2Sync(); }
 function p2DiscMax() { p2SetDisc(posDiscForMax(billTotals().sub, posLimits().allow)); p2Sync(); }
