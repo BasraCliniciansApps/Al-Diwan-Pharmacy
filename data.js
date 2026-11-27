@@ -5903,12 +5903,14 @@ function fmtMoney(n) { return (Number(n) || 0).toLocaleString('en-US', { maximum
         let y0 = 0, dy = 0, track = false;
         sh.addEventListener('touchstart', e => {
             if (e.touches.length !== 1) { track = false; return; }
-            track = sh.scrollTop <= 2 && (!zone || e.touches[0].clientY - sh.getBoundingClientRect().top <= zone); y0 = e.touches[0].clientY; dy = 0;
+            let atTop = sh.scrollTop <= 2;   // أي عنصر داخلي قابل للتمرير وغير موجود في أعلاه يمنع سحب الإغلاق
+            for (let n = e.target; atTop && n && n !== sh && n.nodeType === 1; n = n.parentNode) { if (n.scrollTop > 2 && n.scrollHeight > n.clientHeight) atTop = false; }
+            track = atTop && (!zone || e.touches[0].clientY - sh.getBoundingClientRect().top <= zone); y0 = e.touches[0].clientY; dy = 0;
         }, { passive: true });
         sh.addEventListener('touchmove', e => {
             if (!track) return;
             dy = e.touches[0].clientY - y0;
-            if (dy > 0 && sh.scrollTop <= 2) {
+            if (dy > 0) {
                 if (e.cancelable) e.preventDefault();          // يمنع «السحب للتحديث» في المتصفح
                 sh.style.transition = 'none'; sh.style.transform = 'translateY(' + dy + 'px)';
             } else if (dy < 0) { track = false; sh.style.transition = ''; sh.style.transform = ''; }
