@@ -218,14 +218,28 @@ async function applyLastBuyImport(data) {
     if (!rows.length) { Swal.fire({ icon: 'info', title: 'لا توجد مواد للتعبئة', text: 'كل المواد لها وارد، أو لا يوجد لها شراء مدقَّق في ملفات الإكسل.', confirmButtonColor: '#0f1c38' }); return; }
     const E = escapeHtml;
     const full = p => { try { return typeof dispName === 'function' ? dispName(p) : p.name; } catch (e) { return p.name; } };
-    const rowHtml = (r, i) => `<label class="lb-r"><input type="checkbox" class="lb-c lb-sw" data-i="${i}" ${r.on ? 'checked' : ''}><div class="lb-b"><div class="lb-n">${E(full(r.p))}</div>${r.p.activeIngredient ? `<div class="lb-a">${E(r.p.activeIngredient)}</div>` : ''}<div class="lb-x">← ${E(r.l.xn)}${r.l.xc ? ' | ' + E(r.l.xc) : ''}${r.l.conf === 'H' ? '' : (r.l.conf === 'Q' ? ' ؟' : ' ≈')}</div><div class="lb-d">${E(r.l.supplier)} · ${E(r.l.date)} · ${fmtNum(r.l.qty)} × ${fmtNum(r.l.cost)}</div></div></label>`;
-    const ok = await Swal.fire({ title: 'تعبئة آخر شراء', width: '96vw', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'استورد المحدد', cancelButtonText: 'إلغاء',
-        html: `<div style="text-align:right;font-size:.85rem;line-height:1.7">مواد بلا وارد: <b>${fmtNum(noInflow)}</b> · لها شراء مدقَّق: <b>${fmtNum(rows.length)}</b> (مؤكَّد: ${fmtNum(rows.filter(r => r.on).length)}، تخمين: ${fmtNum(rows.filter(r => r.l.conf === 'Q').length)}) · بلا شراء في الملفات: ${fmtNum(noInflow - rows.length)}<br><span style="color:#64748b">≈ مطابقة محتملة، ؟ تخمين مني: فعّل المفتاح فقط إذا كانت المادة هي نفسها. يُسجَّل كل سطر في قائمته الأصلية وبتاريخها، بلا أي تغيير في المخزن.</span></div><div class="lb-l" style="max-height:52vh;overflow:auto;margin-top:8px;border:1px solid #e2e8f0;border-radius:10px">${rows.map(rowHtml).join('')}</div>
-        <style>.lb-r{display:flex;gap:10px;align-items:flex-start;padding:9px 10px;border-bottom:1px solid #f1f5f9;text-align:right;cursor:pointer}.lb-b{flex:1;min-width:0;line-height:1.55}.lb-n{font-size:.84rem;font-weight:800;color:#0f1c38}.lb-a{font-size:.74rem;color:#475569}.lb-x{font-size:.78rem;color:#b45309;font-weight:700}.lb-d{font-size:.74rem;color:#64748b}.lb-sw{appearance:none;-webkit-appearance:none;flex:none;width:34px;height:20px;border-radius:20px;background:#cbd5e1;position:relative;margin:3px 0 0;transition:.15s}.lb-sw:before{content:'';position:absolute;top:2px;right:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s}.lb-sw:checked{background:#16a34a}.lb-sw:checked:before{right:16px}</style>`,
-        preConfirm: () => [...document.querySelectorAll('.lb-c')].filter(c => c.checked).map(c => +c.dataset.i) });
-    if (!ok.isConfirmed) return;
-    const sel = (ok.value || []).map(i => rows[i]);
-    if (!sel.length) return;
+    const rowHtml = (r, i) => `<label class="lb-r"><input type="checkbox" class="lb-c" data-i="${i}" ${r.on ? 'checked' : ''} onchange="lbCount()"><div class="lb-b"><div class="lb-n" dir="ltr">${E(full(r.p))}</div>${r.p.activeIngredient ? `<div class="lb-a" dir="ltr">${E(r.p.activeIngredient)}</div>` : ''}<div class="lb-x" dir="ltr">← ${E(r.l.xn)}${r.l.xc ? ' | ' + E(r.l.xc) : ''}${r.l.conf === 'H' ? '' : (r.l.conf === 'Q' ? ' ؟' : ' ≈')}</div><div class="lb-d">${E(r.l.supplier)} · ${E(r.l.date)} · ${fmtNum(r.l.qty)} × ${fmtNum(r.l.cost)}</div></div></label>`;
+    let ov = document.getElementById('lbOv');
+    if (!ov) { ov = document.createElement('div'); ov.id = 'lbOv'; ov.className = 'cn-ov no-print'; ov.setAttribute('dir', 'rtl'); document.body.appendChild(ov); }
+    ov.innerHTML = `<style>.lb-r{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-bottom:2px solid #cbd5e1;cursor:pointer;background:#fff}.lb-r:nth-child(even){background:#f8fafc}.lb-b{flex:1;min-width:0;line-height:1.6;text-align:right}.lb-n{font-size:.9rem;font-weight:800;color:#0f1c38;text-align:right}.lb-a{font-size:.78rem;color:#475569;text-align:right}.lb-x{font-size:.8rem;color:#b45309;font-weight:700;text-align:right}.lb-d{font-size:.76rem;color:#64748b}.lb-r input.lb-c:not(#a):not(#b){-webkit-appearance:checkbox;appearance:auto;width:24px;height:24px;min-width:24px;margin:2px 0 0;border-radius:4px;background:#fff;border:revert;box-shadow:none;position:static;accent-color:#0f1c38;cursor:pointer}.lb-r input.lb-c:not(#a):not(#b)::after,.lb-r input.lb-c:not(#a):not(#b)::before{content:none;display:none}.lb-sum{padding:10px 14px;font-size:.84rem;line-height:1.8;background:#fff;border-bottom:1px solid #e2e8f0}.lb-sum span{color:#64748b;display:block}</style>
+    <div class="cn-box"><div class="cn-head"><b>${pgIc('lb')}تعبئة آخر شراء</b></div>
+    <div class="cn-body" style="padding:0"><div class="lb-sum">مواد بلا وارد: <b>${fmtNum(noInflow)}</b> · لها شراء: <b>${fmtNum(rows.length)}</b> (مؤكَّد ${fmtNum(rows.filter(r => r.on).length)} · محتمل ${fmtNum(rows.filter(r => r.l.conf === 'L').length)} · تخمين ${fmtNum(rows.filter(r => r.l.conf === 'Q').length)}) · بلا شراء في الملفات: ${fmtNum(noInflow - rows.length)}<span>≈ مطابقة محتملة، ؟ تخمين: حدّد المربع فقط إذا كانت المادة هي نفسها. يُسجَّل كل سطر في قائمته الأصلية وبتاريخها بلا تغيير في المخزن.</span></div><div id="lbList">${rows.map(rowHtml).join('')}</div></div>
+    <div class="cn-foot"><button type="button" class="bill-tb-btn" id="lbCancel">إلغاء</button><button type="button" class="bill-tb-btn" id="lbOk" style="background:#0f1c38;color:#fff;flex:1"></button></div></div>`;
+    const lbCount = () => { const n = ov.querySelectorAll('.lb-c:checked').length; ov.querySelector('#lbOk').textContent = 'استورد المحدد (' + fmtNum(n) + ')'; };
+    window.lbCount = lbCount; lbCount();
+    ov.style.display = 'flex'; document.documentElement.classList.add('lk'); document.body.classList.add('ov-open');
+    window.lbClose = () => { ov.style.display = 'none'; document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); };
+    const picked = await new Promise(res => {
+        ov.querySelector('#lbOk').onclick = () => res([...ov.querySelectorAll('.lb-c:checked')].map(c => +c.dataset.i));
+        ov.querySelector('#lbCancel').onclick = async () => {
+            const c = await Swal.fire({ title: 'إلغاء التعبئة؟', text: 'لن يُسجَّل أي شيء.', icon: 'question', showCancelButton: true, confirmButtonColor: '#0f1c38', confirmButtonText: 'نعم، إلغاء', cancelButtonText: 'رجوع' });
+            if (c.isConfirmed) res(null);
+        };
+        window.lbBack = () => ov.querySelector('#lbCancel').click();
+    });
+    window.lbClose();
+    if (!picked || !picked.length) return;
+    const sel = picked.map(i => rows[i]);
     const recs = new Map();
     sel.forEach(r => {
         const l = r.l, rid = 'pimp-lb-' + puKey(l.supplier).replace(/\s+/g, '') + '-' + String(l.no).replace(/\W/g, '') + '-' + l.date;

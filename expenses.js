@@ -68,7 +68,8 @@ const PG_IC = {
     need: '<path d="M3 20h18"/><path d="M6 16v-5M11 16V6M16 16v-8M21 16v-3"/><path d="M5 8l5-4 4 3 6-4"/>',
     ndc: '<rect x="5" y="2.5" width="14" height="19" rx="2.5"/><rect x="8" y="5.5" width="8" height="3.5" rx="1"/><path d="M8.5 13h.01M12 13h.01M15.5 13h.01M8.5 17h.01M12 17h.01M15.5 17h.01"/>',
     xf: '<path d="M4 8h13l-3-3M20 16H7l3 3"/>',
-    lbl: '<path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M21 5v14"/>'
+    lbl: '<path d="M4 5v14M7 5v14M11 5v14M14 5v14M18 5v14M21 5v14"/>',
+    lb: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>'
 };
 function pgIc(k) { return '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + PG_IC[k] + '</svg> '; }
 function exEnsureDom() {
