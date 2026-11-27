@@ -78,7 +78,8 @@ function lkCountChip(p) {
 function lkAddLinked(l, n) {
     lkBusy = true;
     try {
-        const unit = typeof sellDefUnit === 'function' ? sellDefUnit(l.p) : 'pack';
+        // المرافق يُباع بالقطعة (سرنجة من علبة 100) ما لم تكن العلبة فقط
+        const unit = hasRetail(l.p) && sellMode(l.p) !== 'packOnly' ? 'part' : (typeof sellDefUnit === 'function' ? sellDefUnit(l.p) : 'pack');
         if (typeof posAdd === 'function') posAdd(l.p.id, unit, n);
         else if (typeof billAddProduct === 'function') { for (let i = 0; i < n; i++) billAddProduct(l.p.id); }
         if (typeof posDone_ === 'function' && typeof posOpenFlag !== 'undefined' && posOpenFlag) posDone_();
