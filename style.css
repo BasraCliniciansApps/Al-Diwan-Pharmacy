@@ -5305,3 +5305,12 @@ body.dark .of-h b, body.dark .of-k b { color: #e2e8f0; } body.dark .of-k div { b
 #syncView.sync-top { display: block !important; position: fixed; inset: 0; z-index: 100000; overflow-y: auto; background: #f1f5f9; padding-bottom: 70px; }
 .sync-top-x { position: fixed; bottom: 14px; inset-inline: 16px; z-index: 100001; min-height: 46px; border: 0; border-radius: 12px; background: #0f1c38; color: #fff; font-family: inherit; font-weight: 800; font-size: .95rem; cursor: pointer; display: none; }
 #syncView.sync-top .sync-top-x { display: block; }
+/* شريط واحد للأزرار الأربعة، وأزرار الإصدار تحته مع إلغاء */
+@media (max-width: 899px) {
+    .p2c .p2-pr { display: flex; gap: 5px; }
+    .p2c .p2-pr .p2-pill { flex: 1; min-width: 0; padding: 0 3px; font-size: .74rem; white-space: nowrap; }
+    .p2c .p2-pr .p2-pill span { overflow: hidden; text-overflow: ellipsis; }
+    .p2c .p2-pr .p2-bd { position: absolute; top: -7px; inset-inline-start: -3px; padding: 0 6px; font-size: .66rem; }
+}
+.p2-btns .pos-big.cx { flex: .55; background: #fff; color: #b91c1c; border: 1.5px solid #fecaca; }
+.p2-btns .pos-big.alt { flex: .8; }

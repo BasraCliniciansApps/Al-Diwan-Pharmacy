@@ -177,6 +177,13 @@ function p2RoundAdd(u) {
     best.forEach(r => { bill.items[r.x.i].price = r.x.p + 250 * r.k; }); p2.rcur = best[0].x.i;
     return true;
 }
+async function p2CancelSale() {   // إلغاء الفاتورة الحالية (بعد تأكيد): تُمسح المواد والخصم وتبدأ فاتورة جديدة
+    if (bill.items.length && !(await askSure('إلغاء هذه الفاتورة؟', 'ستُمسح كل المواد والخصم من الفاتورة الحالية.', 'إلغاء الفاتورة'))) return;
+    bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill));
+    p2.paid = ''; p2.recv = ''; p2.zero = false; p2.acc = null; p2.rndUndo = null;
+    try { writeInvoiceFields(); renderInvoiceRows(); recalcInvoice(); } catch (e) { /* تجاهل */ }
+    p2Render();
+}
 function p2RndOn() { const u = p2.rndUndo; return !!(u && u.bill === bill && bill.items.length); }
 function p2RndUndo() {   // إلغاء التسوية: إرجاع الأسعار والخصم كما كانت قبلها
     const u = p2.rndUndo; p2.rndUndo = null; if (!u) return;
@@ -423,7 +430,7 @@ function p2Pills(hasRnd) {
     if (!P2_COMPACT) return '';
     const bd = (id, on, txt) => `<i class="p2-bd" id="${id}" ${on ? '' : 'hidden'}>${txt || ''}</i>`;
     const b = (k, lbl, badge, cls) => `<button type="button" class="p2-pill${cls || ''}${p2.acc === k ? ' on' : ''}" onclick="p2Acc('${k}')"><span>${lbl}</span>${badge}</button>`;
-    return `<div class="p2-pills"><div class="p2-pr">${b('disc', 'خصم', bd('p2BdD', false))}${hasRnd ? `<button type="button" class="p2-pill${p2RndOn() ? ' p2-rnd-on' : ''}" onclick="p2RoundNow()"><span>${p2RndOn() ? 'إلغاء التسوية' : 'تسوية السعر'}</span></button>` : ''}${b('cr', 'بيع آجل', bd('p2BdR', p2.credit, '✓'))}</div>${b('calc', 'حاسبة الباقي', bd('p2BdC', p2Calc(), '✓'), ' p2-pill-wide')}</div>`;
+    return `<div class="p2-pills"><div class="p2-pr">${b('disc', 'خصم', bd('p2BdD', false))}${hasRnd ? `<button type="button" class="p2-pill${p2RndOn() ? ' p2-rnd-on' : ''}" onclick="p2RoundNow()"><span>${p2RndOn() ? 'إلغاء التسوية' : 'تسوية السعر'}</span></button>` : ''}${b('cr', 'بيع آجل', bd('p2BdR', p2.credit, '✓'))}${b('calc', 'حاسبة الباقي', bd('p2BdC', p2Calc(), '✓'))}</div></div>`;
 }
 function p2Fit() {   // ارتفاع التذييل الثابت والقسم المفتوح: لإزاحة المحتوى ووضع شريط الصافي فوقهما
     const ov = p2El('p2Ov'), a = ov && ov.querySelector('.p2-act'); if (!a) return;
@@ -460,7 +467,7 @@ function p2Panel() {
         <div class="p2-sumbar" id="p2SumBar"><span class="p2-sb-l">الصافي <small id="p2FSum"></small></span><b><span id="p2NetBar2"></span> <i>د.ع</i></b></div>
         <div class="p2-act"><div class="px-val" id="p2Val" style="display:none" role="alert"></div>
             ${p2Pills(el.length > 0)}<div class="p2-netbar"><span>الصافي</span><b id="p2NetBar">${fmtNum(t.total)}</b><i>د.ع</i></div>
-            <div class="p2-btns">${bill.editing ? '<button type="button" class="pos-big alt" onclick="p2SaveEdit(false)">حفظ التعديل</button><button type="button" class="pos-big go" onclick="p2SaveEdit(true)">حفظ وطباعة</button>' : '<button type="button" class="pos-big alt" onclick="p2Issue(false)">إصدار فقط</button><button type="button" class="pos-big go" onclick="p2Issue(true)">إصدار وطباعة</button>'}</div></div>`;
+            <div class="p2-btns">${bill.editing ? '<button type="button" class="pos-big alt" onclick="p2SaveEdit(false)">حفظ التعديل</button><button type="button" class="pos-big go" onclick="p2SaveEdit(true)">حفظ وطباعة</button>' : '<button type="button" class="pos-big cx" onclick="p2CancelSale()">إلغاء</button><button type="button" class="pos-big alt" onclick="p2Issue(false)">إصدار</button><button type="button" class="pos-big go" onclick="p2Issue(true)">إصدار وطباعة</button>'}</div></div>`;
 }
 function p2Render() {
     const ov = p2El('p2Ov'); if (!ov || !bill) return;
