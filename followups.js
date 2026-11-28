@@ -448,6 +448,7 @@ async function fmQuick(pid, name) {
             <div class="fm-l">سبب عدم البيع (اختياري)</div>
             <div class="cu-seg fm-why" id="fmWhy">${Object.keys(FM_WHY).map(k => `<button type="button" data-w="${k}" onclick="var on=this.classList.contains('on');document.querySelectorAll('#fmWhy button').forEach(b=>b.classList.remove('on'));if(!on)this.classList.add('on')">${FM_WHY[k]}</button>`).join('')}</div>
             <div class="fm-row"><label>الكمية المطلوبة<input id="fmQty" class="fu-in" type="number" inputmode="numeric" min="1" value="1"></label><label class="fm-rx"><input type="checkbox" id="fmRx"><span>بوصفة طبية</span></label></div>
+            <label class="fm-dt">تاريخ الطلب<input id="fmDate" class="fu-in" type="date" value="${todayLocalISO()}" max="${todayLocalISO()}"></label>
             <input id="fmCust" class="fu-in" placeholder="اسم الزبون (اختياري)" autocomplete="off">
             <input id="fmPhone" class="fu-in" type="tel" inputmode="tel" dir="ltr" placeholder="رقم الهاتف (اختياري، للاتصال عند توفر المادة)" autocomplete="off"></div>`,
         didOpen: () => { if (!p && name) fmSuggest(); },
@@ -455,12 +456,15 @@ async function fmQuick(pid, name) {
             const pick = window.__fmPick, typed = String((fmEl('fmItem') || {}).value || '').trim(), it = p ? nm : (pick ? pick.name : typed);
             if (!it) { Swal.showValidationMessage('اكتب اسم المادة'); return false; }
             if (!p && !pick && window.__fmWarn !== fuNormQ(typed) && (window.__fmCand || []).some(c => c.sim >= .6)) { window.__fmWarn = fuNormQ(typed); Swal.showValidationMessage('توجد مادة مشابهة في القائمة أعلاه: اخترها، أو اضغط حفظ مجدداً لتسجيلها كمادة جديدة'); return false; }
+            const dt = String((fmEl('fmDate') || {}).value || todayLocalISO());
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(dt)) { Swal.showValidationMessage('اختر تاريخ الطلب'); return false; }
+            if (dt > todayLocalISO()) { Swal.showValidationMessage('لا يمكن أن يكون تاريخ الطلب في المستقبل'); return false; }
             const a = document.querySelector('#fmAlt button.on'), w = document.querySelector('#fmWhy button.on'), id = p ? p.id : (pick && pick.pid) || null, prod = id ? products.find(z => z.id === id) : null;
-            return { item: it, pid: id, alt: a ? a.dataset.a : 'none', why: w ? w.dataset.w : (prod ? (isInStock(prod) ? '' : 'out') : 'never'), qty: Math.max(1, parseInt((fmEl('fmQty') || {}).value) || 1), rx: !!(fmEl('fmRx') || {}).checked, cust: String((fmEl('fmCust') || {}).value || '').trim(), phone: String((fmEl('fmPhone') || {}).value || '').replace(/[^0-9+]/g, '') };
+            return { date: dt, item: it, pid: id, alt: a ? a.dataset.a : 'none', why: w ? w.dataset.w : (prod ? (isInStock(prod) ? '' : 'out') : 'never'), qty: Math.max(1, parseInt((fmEl('fmQty') || {}).value) || 1), rx: !!(fmEl('fmRx') || {}).checked, cust: String((fmEl('fmCust') || {}).value || '').trim(), phone: String((fmEl('fmPhone') || {}).value || '').replace(/[^0-9+]/g, '') };
         }
     });
     if (!x.isConfirmed || !x.value) return;
-    const v = x.value, rec = { id: fmId(), type: 'miss', pid: v.pid, item: v.item, alt: v.alt, reason: v.why, qty: v.qty, rx: v.rx, customer: v.cust, phone: v.phone, status: v.phone ? 'open' : '', date: todayLocalISO(), ts: new Date().toISOString(), by: (typeof userName !== 'undefined' && userName) || 'المدير' };
+    const v = x.value, rec = { id: fmId(), type: 'miss', pid: v.pid, item: v.item, alt: v.alt, reason: v.why, qty: v.qty, rx: v.rx, customer: v.cust, phone: v.phone, status: v.phone ? 'open' : '', date: v.date, ts: new Date().toISOString(), by: (typeof userName !== 'undefined' && userName) || 'المدير' };
     const h = Prog.start('حفظ الطلب', { text: 'جارٍ الحفظ...' });
     const ok = await fmPut(rec);
     ok ? h.ok('تم تسجيل الطلب') : h.fail('حُفظ على هذا الجهاز فقط', 'سيُرفع عند توفر الاتصال أو بعد إضافة القاعدة.');

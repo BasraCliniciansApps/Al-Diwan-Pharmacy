@@ -5347,3 +5347,4 @@ body.dark .of-h b, body.dark .of-k b { color: #e2e8f0; } body.dark .of-k div { b
 .fmx-side .fm-add { margin: 0; }
 .fmx-l2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cu-row > div:nth-child(2) > b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fm-dt { display: grid; gap: 4px; font-size: 13px; color: #64748b; }
