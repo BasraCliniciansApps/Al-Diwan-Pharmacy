@@ -40,12 +40,7 @@ function exInRange(d, r) { d = String(d || ''); return d >= r.from && d <= r.to;
 // ذاكرة محلية لمبيعات آخر الأشهر على الجهاز: تقدير الاحتياج وغيره يقرأ منها فوراً، والسحابة تُجلب منها الفرق الجديد فقط
 const SALES_CACHE_KEY = 'diwanSalesCache', SALES_KEEP_DAYS = 120;
 function salesCacheRead() { try { const c = JSON.parse(lsGet(SALES_CACHE_KEY)); return c && Array.isArray(c.inv) ? c : null; } catch (e) { return null; } }
-function salesCacheWrite(list, fromISO) {
-    if (invOwnOnly()) return;
-    const cut = sdAdd(todayLocalISO(), -SALES_KEEP_DAYS), inv = list.filter(b => b && b.issued && !b.cancelled && String(b.date || '') >= cut);
-    const put = a => { try { localStorage.setItem(SALES_CACHE_KEY, JSON.stringify({ at: Date.now(), from: fromISO < cut ? cut : fromISO, inv: a })); return true; } catch (e) { return false; } };
-    if (!put(inv)) put(inv.filter(b => String(b.date || '') >= sdAdd(todayLocalISO(), -90)));   // امتلاء التخزين: نقتصر على 90 يوماً
-}
+function salesCacheWrite() { try { localStorage.removeItem(SALES_CACHE_KEY); } catch (e) { /* تجاهل */ } }   // لم تعد تُستخدم: مخزن الفواتير الكامل (IndexedDB) هو المصدر، وحماية localStorage من الامتلاء
 function salesCacheMerge(fromISO) {   // يدمج الذاكرة المحلية في billAll فوراً؛ يرجع الكاش للتحقق من تغطيته
     const c = salesCacheRead(); if (!c) return null;
     const m = new Map(); (billAll || []).forEach(x => x && x.id && m.set(x.id, x)); c.inv.forEach(x => x && x.id && !m.has(x.id) && m.set(x.id, x));

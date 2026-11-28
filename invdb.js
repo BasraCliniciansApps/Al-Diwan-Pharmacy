@@ -56,6 +56,7 @@ function invDbSave() { return InvDB.save().catch(() => 0); }
 setInterval(() => { invDbSave(); }, 20000);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') invDbSave(); });
 window.addEventListener('pagehide', () => { invDbSave(); });
+try { localStorage.removeItem('diwanSalesCache'); } catch (e) { /* تجاهل */ }   // ذاكرة قديمة (v910) تستهلك localStorage بلا فائدة
 invDbLoad();   // تحميل مبكر عند الإقلاع
 // تحميل فواتير آخر 12 أسبوعاً من السحابة مرة واحدة (صفحات 400) وحفظها في الجهاز
 async function invDbBackfill() {
