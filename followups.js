@@ -643,12 +643,12 @@ function fmStatsHtml() {
 }
 function fmDetail(key) {
     const g = fmGroups().find(x => x.key === key); if (!g) return;
-    const list = g.rows.slice().sort((a, b) => String(b.ts || b.date).localeCompare(String(a.ts || a.date))).slice(0, 15), k = fmEnc(key);
+    const allN = fmAll.filter(r => fmKey(r) === key).length, list = g.rows.slice().sort((a, b) => String(b.ts || b.date).localeCompare(String(a.ts || a.date))).slice(0, 15), k = fmEnc(key);
     const why = Object.keys(g.why).map(w => (FM_WHY[w] || w) + ' ' + fmtNum(g.why[w])).join(' • ');
     Swal.fire({
         title: 'تفاصيل الطلب', showConfirmButton: false, showCloseButton: true,
         html: `<div class="fu-det" dir="rtl"><div class="fu-dr"><span>المادة</span><b dir="ltr">${fuEsc(g.name)}</b></div>
-        <div class="fu-dr"><span>عدد الطلبات</span><b>${fmtNum(g.n)}</b></div><div class="fu-dr"><span>الكمية الإجمالية</span><b>${fmtNum(g.qty)}</b></div><div class="fu-dr"><span>أيام مختلفة</span><b>${fmtNum(g.d)}</b></div>
+        <div class="fu-dr"><span>عدد الطلبات (${fmPer ? 'آخر ' + fmtNum(fmPer) + ' يوماً' : 'كل الفترات'})</span><b>${fmtNum(g.n)}</b></div>${allN > g.n ? `<div class="fu-dr"><span>في كل الفترات</span><b>${fmtNum(allN)}</b></div>` : ''}<div class="fu-dr"><span>الكمية الإجمالية</span><b>${fmtNum(g.qty)}</b></div><div class="fu-dr"><span>أيام مختلفة</span><b>${fmtNum(g.d)}</b></div>
         <div class="fu-dr"><span>زبائن مسمّون</span><b>${fmtNum(g.cust.size)}</b></div><div class="fu-dr"><span>قبلوا البديل</span><b>${fmtNum(g.acc)}</b></div>
         ${g.rx ? `<div class="fu-dr"><span>بوصفة طبية</span><b>${fmtNum(g.rx)}</b></div>` : ''}${why ? `<div class="fu-dr"><span>الأسباب</span><b>${fuEsc(why)}</b></div>` : ''}${g.lost ? `<div class="fu-dr"><span>مبيعات ضائعة (تقدير)</span><b>${fmtNum(Math.round(g.lost))} د.ع</b></div>` : ''}
         <div class="fu-dr"><span>آخر 8 أسابيع</span><b>${fmSpark(g.wk)}</b></div>
