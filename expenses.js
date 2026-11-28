@@ -458,8 +458,9 @@ let ndmRows = [], ndmSetShow = false;
 function ndmSrcLine() {
     const f = ndmFrom(), t = todayLocalISO(), a = (billAll || []).filter(b => b && b.issued && !b.cancelled && String(b.date || '') >= f && String(b.date || '') <= t), ds = a.map(b => String(b.date)).sort();
     const rng = ds.length ? `من ${fmtDateDMY(ds[0])} إلى ${fmtDateDMY(ds[ds.length - 1])}` : 'لا توجد فواتير في المدة';
-    return `<div class="bill-set-hint" style="margin:6px 2px">المبيعات المعتمدة: ${fmtNum(a.length)} فاتورة (${rng}).${window.__invErr ? '<br>تعذّر تحديثها من السحابة: ' + escapeHtml(String(window.__invErr)) : ''}${ds.length && ds[0] > sdAdd(f, 6) || !ds.length ? '<br><button type="button" class="cn-new" style="margin-top:6px" onclick="invDbBackfill()">تحميل فواتير آخر 12 أسبوعاً (مرة واحدة)</button>' : ''}</div>`;
+    return `<div class="bill-set-hint" style="margin:6px 2px">المبيعات المعتمدة: ${fmtNum(a.length)} فاتورة (${rng}).${window.__invErr ? '<br>تعذّر تحديثها من السحابة: ' + escapeHtml(String(window.__invErr)) : ''}${(ds.length && ds[0] > sdAdd(f, 6) || !ds.length) && !(() => { try { return localStorage.getItem('diwanInvNoOlder') === '1'; } catch (e) { return false; } })() ? '<div style="display:flex;gap:8px;margin-top:6px"><button type="button" class="cn-new" onclick="invDbBackfill()">تحميل فواتير أقدم (مرة واحدة)</button><button type="button" class="cn-new" onclick="invNoOlder()">لا توجد فواتير أقدم</button></div>' : ''}</div>`;
 }
+function invNoOlder() { try { localStorage.setItem('diwanInvNoOlder', '1'); } catch (e) { /* تجاهل */ } try { if (typeof exRender === 'function') exRender(); } catch (e) { /* الشاشة غير مفتوحة */ } }
 function ndmHtml() {
     ndwSup = ''; const c = ndmCalc(); ndmRows = c.rows; const cfg = c.cfg, vc = k => c.rows.filter(r => r.status === k).length, nOrd = c.rows.filter(r => r.status === 'order' && r.sug > 0).length, nExp = c.rows.filter(r => r.ex && r.ex.flag).length;
     const main = [['order', 'اطلب الآن', vc('order')], ['over', 'زائد', vc('over')], ['rare', 'حسب الطلب', vc('rare')], ['all', 'الكل', null]];

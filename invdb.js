@@ -71,6 +71,6 @@ async function invDbBackfill() {
             if (snap.size < 400) break;
         }
         billAll = invScope([...m.values()]).sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
-        await invDbSave(); h.ok('تم: ' + fmtNum(n) + ' فاتورة'); if (typeof exRender === 'function') exRender();
+        await invDbSave(); try { localStorage.setItem('diwanInvNoOlder', '1'); } catch (e) { /* تجاهل */ } h.ok('تم: ' + fmtNum(n) + ' فاتورة'); if (typeof exRender === 'function') exRender();
     } catch (e) { h.fail('تعذر التحميل', (e && (e.code || e.message)) || ''); }
 }
