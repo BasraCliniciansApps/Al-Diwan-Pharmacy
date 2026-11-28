@@ -5348,3 +5348,15 @@ body.dark .of-h b, body.dark .of-k b { color: #e2e8f0; } body.dark .of-k div { b
 .fmx-l2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .cu-row > div:nth-child(2) > b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fm-dt { display: grid; gap: 4px; font-size: 13px; color: #64748b; }
+
+/* تبسيط واجهة الإحصاء: شريط ملخص واحد وفترة بقائمة منسدلة */
+.fm-tiles { grid-template-columns: repeat(4, 1fr) !important; gap: 6px !important; margin: 6px 0 4px !important; }
+.fm-tile { padding: 8px 4px !important; text-align: center; border-radius: 12px !important; }
+.fm-tile b { font-size: 1rem !important; } .fm-tile small { font-size: .68rem !important; }
+.fm-tile.ok { background: #ecfdf5; border-color: #a7f3d0; } .fm-tile.ok b { color: #065f46; }
+.fmx-per { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 6px 2px; }
+.fmx-per span { font-size: .8rem; color: #64748b; font-weight: 700; white-space: nowrap; }
+.fmx-per select { width: auto !important; min-width: 150px; height: 40px; padding: 0 12px; font-size: .84rem; }
+.fm-how > summary { cursor: pointer; font-weight: 800; color: #475569; list-style: none; padding: 4px 0; }
+.fm-how > summary::-webkit-details-marker { display: none; }
+.fm-how[open] > summary { margin-bottom: 6px; }

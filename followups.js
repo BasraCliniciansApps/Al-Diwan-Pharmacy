@@ -620,8 +620,10 @@ function fmSpark(wk) {
 function fmStatsHtml() {
     const gs = fmGroups(), pers = [[30, '30 يوماً'], [90, '90 يوماً'], [0, 'الكل']];
     const tot = gs.reduce((a, g) => a + g.n, 0), lost = gs.reduce((a, g) => a + g.lost, 0), nOk = gs.filter(g => g.verdict[1] === 'ok').length;
-    const tile = (l, v) => `<div class="fm-tile"><b>${v}</b><small>${l}</small></div>`;
-    const sum = `<div class="fm-tiles">${tile('الطلبات', fmtNum(tot))}${tile('المواد', fmtNum(gs.length))}${tile('تستحق التوفير', fmtNum(nOk))}${tile('مبيعات ضائعة (تقدير)', lost ? fmtNum(Math.round(lost)) + ' د.ع' : '—')}</div>`;
+    const short = n => n >= 1e6 ? (Math.round(n / 1e5) / 10) + ' مليون' : n >= 1e3 ? fmtNum(Math.round(n / 1e3)) + ' ألف' : fmtNum(Math.round(n));
+    const tile = (l, v, c) => `<div class="fm-tile ${c || ''}"><b>${v}</b><small>${l}</small></div>`;
+    const sum = `<div class="fm-tiles">${tile('طلبات', fmtNum(tot))}${tile('مواد', fmtNum(gs.length))}${tile('للتوفير', fmtNum(nOk), nOk ? 'ok' : '')}${tile('مبيعات ضائعة', lost ? short(lost) : '—')}</div>`;
+    const perSel = `<div class="fmx-per"><span>الفترة</span><select class="fu-in" onchange="fmPer=+this.value;fuListRender()" aria-label="الفترة">${pers.map(([k, l]) => `<option value="${k}" ${fmPer === k ? 'selected' : ''}>${k ? 'آخر ' + l : 'كل الفترات'}</option>`).join('')}</select></div>`;
     const row = g => {
         const p = g.pid ? products.find(x => x.id === g.pid) : null, st = !p ? ['غير مسجلة بالكتالوج', 'n'] : isInStock(p) ? ['متوفرة الآن', 'ok'] : ['غير متوفرة', 'bad'];
         const tr = g.n >= 3 && g.d >= 2 ? (g.recent > g.older ? '↑' : g.recent < g.older ? '↓' : '→') : '•', add = g.verdict[1] === 'ok' ? `<button type="button" class="fm-add" onclick="event.stopPropagation();fmToOrder(decodeURIComponent('${fmEnc(g.key)}'))">＋ للطلبية</button>` : '';
@@ -636,10 +638,9 @@ function fmStatsHtml() {
     const tr = fmTrials(), trHtml = tr.length ? `<div class="fmx-sec wb">قيد التجربة <b>${fmtNum(tr.length)}</b></div>` + tr.map(t => { const s = fmTrialStat(t); return `<div class="cu-row fu-row" onclick="fmTrialOpen('${t.id}')"><div class="cu-av fu-av ${s.v[1] === 'bad' ? '' : s.v[1]}">⏱</div><div><b dir="ltr">${fuEsc(t.name)}</b><small>اليوم ${fmtNum(Math.min(s.days, 30))} من 30 • بيع ${fmtNum(s.sold)} من ${fmtNum(s.need)} عبوة</small></div><div class="fu-st ${s.v[1]}">${s.v[0]}</div></div>`; }).join('') : '';
     const cand = gs.slice(0, 60), pairs = []; for (let i = 0; i < cand.length && pairs.length < 4; i++) for (let j = i + 1; j < cand.length && pairs.length < 4; j++) if (fmSim(cand[i].name, cand[j].name) >= .72) pairs.push([cand[i], cand[j]]);
     const mg = pairs.length ? `<div class="fmx-sec wb">أسماء قد تكون مكررة <b>${fmtNum(pairs.length)}</b></div>` + pairs.map(([a, b]) => `<div class="fm-dup"><span dir="ltr">${fuEsc(a.name)}</span><span dir="ltr">${fuEsc(b.name)}</span><button type="button" class="fm-add" onclick="fmMergePair(decodeURIComponent('${fmEnc(a.key)}'),decodeURIComponent('${fmEnc(b.key)}'))">دمج</button></div>`).join('') : '';
-    return `<div class="cn-chips fu-chips">${pers.map(([k, l]) => `<button type="button" class="cn-chip ${fmPer === k ? 'on' : ''}" onclick="fmPer=${k};fuListRender()">${l}</button>`).join('')}</div>
-        ${sum}${trHtml}${sec('ok', 'يستحق التوفير', gs.filter(g => g.verdict[1] === 'ok'))}${sec('wb', 'راقب', gs.filter(g => g.verdict[1] === 'wb'))}${sec('', 'طلبات عابرة', gs.filter(g => !g.verdict[1]), true)}${mg}
+    return `${perSel}${sum}${trHtml}${sec('ok', 'يستحق التوفير', gs.filter(g => g.verdict[1] === 'ok'))}${sec('wb', 'راقب', gs.filter(g => g.verdict[1] === 'wb'))}${sec('', 'طلبات عابرة', gs.filter(g => !g.verdict[1]), true)}${mg}
         ${gs.length ? '' : '<div class="cu-none">لا توجد طلبات مسجّلة في هذه المدة.</div>'}
-        <div class="fm-note"><div>• «يستحق التوفير»: ${(fmPer === 0 || fmPer >= 90) ? '4' : '3'} طلبات فأكثر في ${(fmPer === 0 || fmPer >= 90) ? '4' : '3'} أيام مختلفة، وقبول البديل لا يتجاوز النصف، ومن أكثر من زبون إن سُجّلت الأسماء.</div><div>• السهم (بعد 3 طلبات): ↑ الطلب يتزايد، ↓ يتناقص، → ثابت، مقارنةً بنصف المدة الأقدم.</div><div>• المبيعات الضائعة تقدير: سعر البيع × الكمية المطلوبة، دون الطلبات التي قبل صاحبها البديل.</div><div>• القرار النهائي بحسب الربح والصلاحية.</div></div>`;
+        <details class="fm-note fm-how"><summary>كيف يُحسب التقييم؟</summary><div>• «يستحق التوفير»: ${(fmPer === 0 || fmPer >= 90) ? '4' : '3'} طلبات فأكثر في ${(fmPer === 0 || fmPer >= 90) ? '4' : '3'} أيام مختلفة، وقبول البديل لا يتجاوز النصف، ومن أكثر من زبون إن سُجّلت الأسماء.</div><div>• السهم (بعد 3 طلبات): ↑ الطلب يتزايد، ↓ يتناقص، → ثابت، مقارنةً بنصف المدة الأقدم.</div><div>• المبيعات الضائعة تقدير: سعر البيع × الكمية المطلوبة، دون الطلبات التي قبل صاحبها البديل.</div><div>• القرار النهائي بحسب الربح والصلاحية.</div></details>`;
 }
 function fmDetail(key) {
     const g = fmGroups().find(x => x.key === key); if (!g) return;
