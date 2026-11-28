@@ -109,10 +109,14 @@ async function exOpen(tab) {
 }
 function exClose() { const ov = document.getElementById('exOv'); if (ov) ov.style.display = 'none'; document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); exOpenFlag = false; }
 async function exRefresh() {
+    const localOnly = exTab === 'need' || exTab === 'need2' || exTab === 'xf';   // تقدير الاحتياج والمناقلة: من بيانات الجهاز فقط، بلا شبكة
+    if (localOnly) {
+        try { if (typeof invDbLoad === 'function') await invDbLoad(); if (typeof puAll !== 'undefined' && !puAll.length && typeof puLoad === 'function') await puLoad(); if (exTab !== 'need' && typeof lgAll !== 'undefined' && !lgAll.length && typeof lgLoad === 'function') await lgLoad(); } catch (e) { /* تجاهل */ }
+        if (exOpenFlag) exRender(); return;
+    }
     const r = exRange(), h = Prog.start('تحميل البيانات', { text: 'المصروفات والفواتير...', indeterminate: false });
-    try { salesCacheMerge(); if (exOpenFlag && salesCacheRead()) exRender(); } catch (e) { /* تجاهل */ }   // عرض فوري من المبيعات المحفوظة قبل أي تحميل
-    try { await exLoad(); h.set(40); if ((exTab === 'need' || exTab === 'need2' || exTab === 'xf') && typeof puLoad === 'function') { try { await puLoad(); } catch (e) { /* تجاهل */ } if ((exTab === 'need2' || exTab === 'xf') && typeof lgLoad === 'function') { try { await lgLoad(); } catch (e) { /* تجاهل */ } } }
-    const fr = exTab === 'dash' ? sdFrom() : (exTab === 'need' || exTab === 'xf') ? ndmFrom() : exTab === 'need2' ? todayLocalISO() : r.from; if (!(window.__exInvFrom && window.__exInvFrom <= fr && Date.now() - (window.__exInvAt || 0) < 30 * 60000)) { await invEnsureSince(fr); window.__exInvFrom = fr; window.__exInvAt = Date.now(); } h.ok('تم التحميل'); } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
+    try { await exLoad(); h.set(40);
+    const fr = exTab === 'dash' ? sdFrom() : r.from; if (!(window.__exInvFrom && window.__exInvFrom <= fr && Date.now() - (window.__exInvAt || 0) < 30 * 60000)) { await invEnsureSince(fr); window.__exInvFrom = fr; window.__exInvAt = Date.now(); } h.ok('تم التحميل'); } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
     if (exOpenFlag) exRender();
 }
 function exSetMode(m) { exMode = m; exVal = ''; exRefresh(); }
@@ -459,7 +463,7 @@ let ndmRows = [], ndmSetShow = false;
 function ndmSrcLine() {
     const f = ndmFrom(), t = todayLocalISO(), a = (billAll || []).filter(b => b && b.issued && !b.cancelled && String(b.date || '') >= f && String(b.date || '') <= t), ds = a.map(b => String(b.date)).sort();
     const rng = ds.length ? `من ${fmtDateDMY(ds[0])} إلى ${fmtDateDMY(ds[ds.length - 1])}` : 'لا توجد فواتير في المدة';
-    return `<div class="bill-set-hint" style="margin:6px 2px">المبيعات المعتمدة: ${fmtNum(a.length)} فاتورة (${rng}).${window.__invErr ? '<br>تعذّر تحديثها من السحابة: ' + escapeHtml(String(window.__invErr)) : ''}</div>`;
+    return `<div class="bill-set-hint" style="margin:6px 2px">المبيعات المعتمدة: ${fmtNum(a.length)} فاتورة (${rng}).${window.__invErr ? '<br>تعذّر تحديثها من السحابة: ' + escapeHtml(String(window.__invErr)) : ''}${ds.length && ds[0] > sdAdd(f, 6) || !ds.length ? '<br><button type="button" class="cn-new" style="margin-top:6px" onclick="invDbBackfill()">تحميل فواتير آخر 12 أسبوعاً (مرة واحدة)</button>' : ''}</div>`;
 }
 function ndmHtml() {
     ndwSup = ''; const c = ndmCalc(); ndmRows = c.rows; const cfg = c.cfg, vc = k => c.rows.filter(r => r.status === k).length, nOrd = c.rows.filter(r => r.status === 'order' && r.sug > 0).length, nExp = c.rows.filter(r => r.ex && r.ex.flag).length;

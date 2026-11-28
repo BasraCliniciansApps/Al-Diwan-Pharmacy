@@ -82,7 +82,7 @@ async function bkApplyPlan(plan) {
         const merged = [...map.values()];
         if (p.c.key === 'purchases') { puAll = merged.sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdTs).localeCompare(String(a.createdTs))); lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500))); }
         else if (p.c.key === 'suppliers') { puSuppliers = merged; lsSet(PU_LS.sup, JSON.stringify(puSuppliers)); }
-        else if (p.c.key === 'invoices') { billAll = merged.sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt))); lsSet(BILL_LS.list, JSON.stringify(billAll)); }
+        else if (p.c.key === 'invoices') { billAll = merged.sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt))); lsSet(BILL_LS.list, JSON.stringify(billAll.slice(0, 300))); try { invDbSave(); } catch (e) { /* تجاهل */ } }
         else { lgAll = merged; lsSet(LG_LS.list, JSON.stringify(lgAll)); }
         if (cloudReady()) {
             for (let i = 0; i < items.length; i += 20) {

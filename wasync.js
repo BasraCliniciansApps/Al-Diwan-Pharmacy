@@ -848,7 +848,7 @@
             const pick = k => exact ? L2[k].slice() : merge(k === 'purchases' ? puAll : k === 'suppliers' ? puSuppliers : k === 'invoices' ? billAll : lgAll, L2[k], ts[k]);
             puAll = pick('purchases').sort((a, b2) => String(b2.date).localeCompare(String(a.date)) || String(b2.createdTs).localeCompare(String(a.createdTs))); lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500)));
             puSuppliers = pick('suppliers'); lsSet(PU_LS.sup, JSON.stringify(puSuppliers));
-            billAll = pick('invoices').sort((a, b2) => String(b2.issuedTs || b2.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt))); lsSet(BILL_LS.list, JSON.stringify(billAll));
+            billAll = pick('invoices').sort((a, b2) => String(b2.issuedTs || b2.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt))); lsSet(BILL_LS.list, JSON.stringify(billAll.slice(0, 300))); try { (exact ? InvDB.prune().then(invDbSave) : invDbSave()); } catch (e) { /* تجاهل */ }
             lgAll = pick('ledger'); lsSet(LG_LS.list, JSON.stringify(lgAll));
             h.set(75, 'تطبيق الإعدادات...');
             if (exact) { if (Array.isArray(d.departments)) departments = d.departments; if (Array.isArray(d.subCategories)) subCategories = d.subCategories; if (d.deptSubs && typeof d.deptSubs === 'object') deptSubs = d.deptSubs; if (d.taxLegacy && Array.isArray(d.taxLegacy.d)) taxLegacy = d.taxLegacy; }

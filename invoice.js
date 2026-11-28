@@ -707,7 +707,7 @@ async function deleteInvoicePermanently(id) {
         if (cloudReady()) await fsWrite(db.collection('pharmacy_invoices').doc(b.id).delete());
         let list = []; try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
         lsSet(BILL_LS.list, JSON.stringify(list.filter(x => x.id !== b.id)));
-        billAll = billAll.filter(x => x.id !== b.id);
+        billAll = billAll.filter(x => x.id !== b.id); try { if (typeof InvDB !== 'undefined') InvDB.del(b.id); } catch (e) { /* تجاهل */ }
         if (bill && bill.id === b.id) { bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); }
         billTab(currentBillTab === 'new' ? 'issued' : (currentBillTab || 'issued'));
         Swal.fire({ icon: 'success', title: 'حُذفت الفاتورة نهائياً', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
@@ -732,7 +732,7 @@ async function saveInvoiceRecord(b) {
     try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
     list = list.filter(x => x.id !== rec.id); list.unshift(rec);
     lsSet(BILL_LS.list, JSON.stringify(list.slice(0, 300)));
-    billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec);
+    billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec); try { if (typeof invDbSave === 'function') invDbSave(); } catch (e) { /* تجاهل */ }
     try { if (window.WA && WA.tapRecord) WA.tapRecord('invoice', rec); } catch (e) { /* تجاهل */ }
     if (window.LAN && LAN.active()) { LAN.captureRecord('invoice', rec); return; }
     if (cloudReady() && (navigator.onLine || persistenceOn)) {
