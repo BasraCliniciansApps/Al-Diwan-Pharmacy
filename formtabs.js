@@ -66,3 +66,19 @@ function catGoDetailed() {
     }
     try { fmCarry(q); } catch (e) { /* تجاهل */ }
 }
+
+// ---- «سريع» معطّل حالياً (الكود محفوظ): للتفعيل من جديد ضع diwanQuickEdit = 1 في localStorage ثم أعد التحميل ----
+const quickEditOn = () => { try { return localStorage.getItem('diwanQuickEdit') === '1'; } catch (e) { return false; } };
+try { document.body.classList.toggle('no-quick', !quickEditOn()); } catch (e) { /* تجاهل */ }
+function catGoDetailedDirect(id, pre, cb) {   // بديل catPrice حين يكون «سريع» معطّلاً: النموذج المفصل مباشرة
+    if (!writesAllowed()) return;
+    const p = id ? products.find(x => x.id === id) : null; if (id && !p) return;
+    fmNext = typeof cb === 'function' ? cb : null;
+    openFormModal(id || null);
+    if (!id) {
+        const name = typeof pre === 'string' ? pre.trim() : String((pre && pre.name) || '').trim(), bc = pre && typeof pre === 'object' && pre.bc ? cleanBarcode(pre.bc) : '';
+        if (name) document.getElementById('fName').value = name;
+        if (bc) { document.getElementById('fBarcode').value = bc; addFormBarcode(); }
+        formSnapshot = '';
+    }
+}

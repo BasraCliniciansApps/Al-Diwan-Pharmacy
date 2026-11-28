@@ -466,12 +466,15 @@ async function cnEditProduct(pid) {
     if (!cnCanEdit()) { Swal.fire({ icon: 'info', title: 'غير مصرّح', text: 'تعديل المادة يحتاج صلاحية تعديل المواد.', confirmButtonColor: '#0f1c38' }); return; }
     // إن كان عدد الجرد لهذه المادة فارغاً وأُدخلت لها كمية في نافذة التعديل، يُملأ العدد بالكمية المحفوظة
     const p0 = products.find(x => x.id === pid), q0 = p0 ? cnInt(p0.qty) : 0, l0 = p0 ? cnInt(p0.loose) : 0;
-    const fill = () => {
-        const p = products.find(x => x.id === pid); if (!p || !cnCur || (cnInt(p.qty) === q0 && cnInt(p.loose) === l0)) return;
-        let ch = false; cnCur.rows.forEach(r => { if (r.pid === pid && r.cnt === '') { const cur = cnSysOf(r); if (cur !== null && cur > 0) { r.cnt = String(cur); r.sq = cur; ch = true; } } });
+    const fill = post => {
+        const p = products.find(x => x.id === pid); if (!p || !cnCur) return;
+        let ch = false; const have = cnCur.rows.filter(r => r.pid === pid);
+        // إن فُعّلت التجزئة أو أُضيفت أجزاء بعد دخول المادة القائمة: تُضاف أسطر الوحدات الناقصة (مثل سطر الأجزاء) فتظهر الكمية مباشرة
+        if (post && have.length) cnUnits(p).forEach(u => { if (!have.some(r => r.unit === u)) { cnCur.rows.push({ id: cnId(), gid: have[0].gid, pid, unit: u, cnt: '', price: cnDefPrice(p, u) || '', ts: Date.now() }); ch = true; } });
+        if (cnInt(p.qty) !== q0 || cnInt(p.loose) !== l0) cnCur.rows.forEach(r => { if (r.pid === pid && r.cnt === '') { const cur = cnSysOf(r); if (cur !== null && cur > 0) { r.cnt = String(cur); r.sq = cur; ch = true; } } });
         if (ch) { cnTouch(); cnRedraw(); }
     };
-    await catPrice(pid, undefined, () => setTimeout(fill, 300));
+    await catPrice(pid, undefined, () => setTimeout(() => fill(true), 300));
     fill();
     if (cnCur) cnListRender(); else if (cnPendOpen) cnPendRender();
     setTimeout(() => { try { cnLiveNames(); } catch (e) { /* تجاهل */ } }, 600);   // إن وصلت نسخة أقدم من السحابة بين الحفظ والرسم

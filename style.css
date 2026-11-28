@@ -5360,3 +5360,6 @@ body.dark .of-h b, body.dark .of-k b { color: #e2e8f0; } body.dark .of-k div { b
 .fm-how > summary { cursor: pointer; font-weight: 800; color: #475569; list-style: none; padding: 4px 0; }
 .fm-how > summary::-webkit-details-marker { display: none; }
 .fm-how[open] > summary { margin-bottom: 6px; }
+
+/* «سريع» معطّل حالياً: يُخفى التبويب وزر التسعير السريع */
+.no-quick .fm-tabs, .no-quick .pcd-edit { display: none !important; }

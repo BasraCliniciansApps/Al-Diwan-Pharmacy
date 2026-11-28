@@ -485,6 +485,7 @@ function catPriceRead() {
         retail: sc < 2 ? { subCount: 0, subType: '', subPrice: 0 } : { subCount: sc, subType: $('qpSt').value || partSizeCalc((typeof p !== 'undefined' && p) ? p.meta : '', sc) || 'جزء', subPrice: sp > 0 ? sp : subPriceCalc(price, sc) } };
 }
 async function catPrice(id, pre, cb) {
+    if (typeof quickEditOn === 'function' && !quickEditOn()) { catGoDetailedDirect(id, pre, cb); return; }   // «سريع» معطّل: النموذج المفصل
     const p = id ? products.find(x => x.id === id) : null; if (id && !p) return;
     if (!writesAllowed()) return;
     const isNew = !p; window.__qpId = id || 0; window.__qpCb = cb;
