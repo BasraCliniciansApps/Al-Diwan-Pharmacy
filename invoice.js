@@ -708,6 +708,8 @@ async function deleteInvoicePermanently(id) {
         let list = []; try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
         lsSet(BILL_LS.list, JSON.stringify(list.filter(x => x.id !== b.id)));
         billAll = billAll.filter(x => x.id !== b.id); try { if (typeof InvDB !== 'undefined') InvDB.del(b.id); } catch (e) { /* تجاهل */ }
+        // الحذف النهائي يشمل كل النسخ المحلية حتى لا تعود الفاتورة من الذاكرات المؤقتة
+        [INV_CK, 'diwanSalesCache'].forEach(k => { try { const raw = lsGet(k); if (!raw) return; const o = JSON.parse(raw); if (Array.isArray(o)) lsSet(k, JSON.stringify(o.filter(x => x && x.id !== b.id))); else if (o && Array.isArray(o.inv)) { o.inv = o.inv.filter(x => x && x.id !== b.id); lsSet(k, JSON.stringify(o)); } } catch (e) { /* تجاهل */ } });
         if (bill && bill.id === b.id) { bill = emptyInvoice(); lsSet(BILL_LS.draft, JSON.stringify(bill)); }
         billTab(currentBillTab === 'new' ? 'issued' : (currentBillTab || 'issued'));
         Swal.fire({ icon: 'success', title: 'حُذفت الفاتورة نهائياً', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
@@ -732,7 +734,7 @@ async function saveInvoiceRecord(b) {
     try { list = JSON.parse(lsGet(BILL_LS.list)) || []; } catch (e) { list = []; }
     list = list.filter(x => x.id !== rec.id); list.unshift(rec);
     lsSet(BILL_LS.list, JSON.stringify(list.slice(0, 300)));
-    billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec); try { if (typeof invDbSave === 'function') invDbSave(); } catch (e) { /* تجاهل */ }
+    billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec); try { if (typeof invDbSave === 'function') invDbSave(); if (typeof exOpenFlag !== 'undefined' && exOpenFlag && ['need', 'need2', 'xf'].includes(exTab)) exRender(); } catch (e) { /* تجاهل */ }
     try { if (window.WA && WA.tapRecord) WA.tapRecord('invoice', rec); } catch (e) { /* تجاهل */ }
     if (window.LAN && LAN.active()) { LAN.captureRecord('invoice', rec); return; }
     if (cloudReady() && (navigator.onLine || persistenceOn)) {
