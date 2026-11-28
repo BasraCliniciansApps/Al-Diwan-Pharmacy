@@ -37,14 +37,36 @@ function exRange() {
 function exInRange(d, r) { d = String(d || ''); return d >= r.from && d <= r.to; }
 
 // ---------- حساب التقرير ----------
+// ذاكرة محلية لمبيعات آخر الأشهر على الجهاز: تقدير الاحتياج وغيره يقرأ منها فوراً، والسحابة تُجلب منها الفرق الجديد فقط
+const SALES_CACHE_KEY = 'diwanSalesCache', SALES_KEEP_DAYS = 120;
+function salesCacheRead() { try { const c = JSON.parse(lsGet(SALES_CACHE_KEY)); return c && Array.isArray(c.inv) ? c : null; } catch (e) { return null; } }
+function salesCacheWrite(list, fromISO) {
+    if (invOwnOnly()) return;
+    const cut = sdAdd(todayLocalISO(), -SALES_KEEP_DAYS), inv = list.filter(b => b && b.issued && !b.cancelled && String(b.date || '') >= cut);
+    const put = a => { try { localStorage.setItem(SALES_CACHE_KEY, JSON.stringify({ at: Date.now(), from: fromISO < cut ? cut : fromISO, inv: a })); return true; } catch (e) { return false; } };
+    if (!put(inv)) put(inv.filter(b => String(b.date || '') >= sdAdd(todayLocalISO(), -90)));   // امتلاء التخزين: نقتصر على 90 يوماً
+}
+function salesCacheMerge(fromISO) {   // يدمج الذاكرة المحلية في billAll فوراً؛ يرجع الكاش للتحقق من تغطيته
+    const c = salesCacheRead(); if (!c) return null;
+    const m = new Map(); (billAll || []).forEach(x => x && x.id && m.set(x.id, x)); c.inv.forEach(x => x && x.id && !m.has(x.id) && m.set(x.id, x));
+    billAll = invScope([...m.values()]).sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
+    return c;
+}
 async function invEnsureSince(fromISO) {   // تحميل الفواتير من تاريخ معيّن (الافتراضي يحمّل آخر 300 فقط)
+    const c = salesCacheMerge(fromISO);
     const m = new Map(); (billAll || []).forEach(x => x && x.id && m.set(x.id, x));
     try { (JSON.parse(lsGet(BILL_LS.list)) || []).forEach(x => x && x.id && !m.has(x.id) && m.set(x.id, x)); } catch (e) { /* تجاهل */ }
     if (cloudReady() && navigator.onLine) {
-        const snap = invOwnOnly() ? await invOwnCloud() : await db.collection('pharmacy_invoices').where('date', '>=', fromISO).get();
-        snap.forEach(d => { const x = d.data(); if (x && x.id) m.set(x.id, x); });
+        // الكاش يغطي الفترة وحديث (أقل من 7 أيام) ⇒ نجلب الفرق فقط (آخر 3 أيام قبل أحدث فاتورة محفوظة)، وإلا الفترة كاملة
+        let since = fromISO;
+        if (c && c.from <= fromISO && Date.now() - c.at < 7 * 864e5 && !invOwnOnly()) { const newest = c.inv.reduce((a, b) => (String(b.date || '') > a ? String(b.date) : a), ''); if (newest) { const d = sdAdd(newest, -3); if (d > since) since = d; } }
+        try {
+            const snap = invOwnOnly() ? await invOwnCloud() : await db.collection('pharmacy_invoices').where('date', '>=', since).get();
+            snap.forEach(d => { const x = d.data(); if (x && x.id) m.set(x.id, x); });
+        } catch (e) { if (!c) throw e; /* عند فشل الشبكة نكتفي بالبيانات المحفوظة على الجهاز */ }
     }
     billAll = invScope([...m.values()]).sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
+    salesCacheWrite(billAll, fromISO);
 }
 function exCalc(r) {
     let sales = 0, cost = 0, costRev = 0, noCost = 0, n = 0; const days = new Map();
@@ -87,6 +109,7 @@ async function exOpen(tab) {
 function exClose() { const ov = document.getElementById('exOv'); if (ov) ov.style.display = 'none'; document.documentElement.classList.remove('lk'); document.body.classList.remove('ov-open'); exOpenFlag = false; }
 async function exRefresh() {
     const r = exRange(), h = Prog.start('تحميل البيانات', { text: 'المصروفات والفواتير...', indeterminate: false });
+    try { salesCacheMerge(); if (exOpenFlag && salesCacheRead()) exRender(); } catch (e) { /* تجاهل */ }   // عرض فوري من المبيعات المحفوظة قبل أي تحميل
     try { await exLoad(); h.set(40); if ((exTab === 'need' || exTab === 'need2' || exTab === 'xf') && typeof puLoad === 'function') { try { await puLoad(); } catch (e) { /* تجاهل */ } if ((exTab === 'need2' || exTab === 'xf') && typeof lgLoad === 'function') { try { await lgLoad(); } catch (e) { /* تجاهل */ } } }
     const fr = exTab === 'dash' ? sdFrom() : (exTab === 'need' || exTab === 'xf') ? ndmFrom() : exTab === 'need2' ? todayLocalISO() : r.from; if (!(window.__exInvFrom && window.__exInvFrom <= fr && Date.now() - (window.__exInvAt || 0) < 30 * 60000)) { await invEnsureSince(fr); window.__exInvFrom = fr; window.__exInvAt = Date.now(); } h.ok('تم التحميل'); } catch (e) { h.fail('تعذر التحميل', e.message || String(e)); }
     if (exOpenFlag) exRender();
