@@ -36,11 +36,11 @@ const BigStore = (() => {
     const mirror = (k, v) => { if (failed) return; tx('readwrite', s => { s.put(v, 'mirror:' + k); }).catch(() => { }); };
     const mirrorGet = k => tx('readonly', s => s.get('mirror:' + k)).catch(() => null);
     async function diag() {
-        let usage = 0, quota = 0, persisted = null, lsBytes = 0;
+        /* lsBytes يُحسب بعدد الحروف: حد المتصفح نحو 5 ملايين حرف */ let usage = 0, quota = 0, persisted = null, lsBytes = 0;
         try { if (navigator.storage && navigator.storage.estimate) { const e = await navigator.storage.estimate(); usage = e.usage || 0; quota = e.quota || 0; } } catch (e) { /* تجاهل */ }
         try { if (navigator.storage && navigator.storage.persisted) persisted = await navigator.storage.persisted(); } catch (e) { /* تجاهل */ }
-        try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); lsBytes += (k.length + (localStorage.getItem(k) || '').length) * 2; } } catch (e) { /* تجاهل */ }
-        return { usage, quota, persisted, lsBytes, lsLimit: 5 * 1024 * 1024, ready, failed, err: lastErr, big: [...KEYS].map(k => [k, (mem.get(k) || '').length]) };
+        try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); lsBytes += k.length + (localStorage.getItem(k) || '').length; } } catch (e) { /* تجاهل */ }
+        return { usage, quota, persisted, lsBytes, lsLimit: 5e6, ready, failed, err: lastErr, big: [...KEYS].map(k => [k, (mem.get(k) || '').length]) };
     }
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && dirty.size) flush(); });
     window.addEventListener('pagehide', () => { if (dirty.size) flush(); });

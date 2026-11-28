@@ -528,10 +528,10 @@ function showSyncStatus(opts) {
     window.__ssOpen = true; clearInterval(ssTimer);
     ssTimer = setInterval(() => { if (currentView !== 'sync' && !window.__syncTop) { clearInterval(ssTimer); window.__ssOpen = false; return; } ssLive(); }, 1500);
     if (window.BigStore) BigStore.diag().then(d => {
-        const el = document.getElementById('ssStore'); if (!el) return; const mb = n => (n / 1048576).toFixed(1), ratio = d.quota ? d.usage / d.quota : 0, lsr = d.lsBytes / d.lsLimit, w = [];
-        if (d.persisted === false) w.push('التخزين غير محمي من المسح التلقائي؛ ثبّت التطبيق على الشاشة الرئيسية.');
+        const el = document.getElementById('ssStore'); if (!el) return; const nat = !!(window.Capacitor && Capacitor.isNativePlatform && Capacitor.isNativePlatform()), mb = n => (n / 1048576).toFixed(1), ratio = d.quota ? d.usage / d.quota : 0, lsr = d.lsBytes / d.lsLimit, w = [];
+        if (d.persisted === false && !nat) w.push('التخزين غير محمي من المسح التلقائي؛ ثبّت التطبيق على الشاشة الرئيسية.');
         if (ratio > .8) w.push('مساحة المتصفح شبه ممتلئة.'); if (lsr > .7) w.push('الذاكرة الصغيرة (localStorage) شبه ممتلئة.'); if (d.failed) w.push('تعذّر استعمال مخزن القوائم الكبيرة، وتُحفظ في الذاكرة الصغيرة.');
-        el.innerHTML = '<div>مساحة التخزين: <b>' + mb(d.usage) + '</b> من <b>' + mb(d.quota) + '</b> ميغابايت</div><div>الذاكرة الصغيرة: <b>' + mb(d.lsBytes) + '</b> من 5 ميغابايت</div><div>الحماية من المسح: <b>' + (d.persisted === true ? 'مفعّلة' : d.persisted === false ? 'غير مفعّلة' : 'غير معروفة') + '</b></div>' + w.map(x => '<div class="ss-warn">' + x + '</div>').join('');
+        el.innerHTML = '<div>مساحة التخزين: <b>' + mb(d.usage) + '</b> من <b>' + mb(d.quota) + '</b> ميغابايت</div><div>الذاكرة الصغيرة: <b>' + mb(d.lsBytes) + '</b> من 5 ملايين حرف</div>' + (nat ? '' : '<div>الحماية من المسح: <b>' + (d.persisted === true ? 'مفعّلة' : d.persisted === false ? 'غير مفعّلة' : 'غير معروفة') + '</b></div>') + w.map(x => '<div class="ss-warn">' + x + '</div>').join('');
     }).catch(() => { });
     appVersionTxt().then(v => { const el = document.getElementById('ssVer'); if (el) el.textContent = 'رقم نسخة التطبيق: ' + (v || 'غير معروف'); }).catch(() => { });
 }
