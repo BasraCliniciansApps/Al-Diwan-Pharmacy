@@ -63,8 +63,9 @@ async function invEnsureSince(fromISO) {   // تحميل الفواتير من �
         try {
             const snap = invOwnOnly() ? await invOwnCloud() : await db.collection('pharmacy_invoices').where('date', '>=', since).get();
             snap.forEach(d => { const x = d.data(); if (x && x.id) m.set(x.id, x); });
-        } catch (e) { if (!c) throw e; /* عند فشل الشبكة نكتفي بالبيانات المحفوظة على الجهاز */ }
+        } catch (e) { window.__invErr = (e && (e.code || e.message)) || 'خطأ'; if (!c) throw e; /* عند فشل الشبكة نكتفي بالبيانات المحفوظة على الجهاز */ }
     }
+    if (!window.__invErr || (cloudReady() && navigator.onLine)) { /* يبقى أثر آخر خطأ للعرض */ }
     billAll = invScope([...m.values()]).sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt)));
     salesCacheWrite(billAll, fromISO);
 }
@@ -454,13 +455,19 @@ function ndmCalc() {
     return { cfg, rows: rows.sort((a, b) => ord[a.status] - ord[b.status] || (a.cover == null ? 1e9 : a.cover) - (b.cover == null ? 1e9 : b.cover)) };
 }
 let ndmRows = [], ndmSetShow = false;
+// سطر توضيحي لمصدر بيانات المبيعات المعتمدة في التقدير (عددها ومداها وآخر خطأ تحميل)
+function ndmSrcLine() {
+    const f = ndmFrom(), t = todayLocalISO(), a = (billAll || []).filter(b => b && b.issued && !b.cancelled && String(b.date || '') >= f && String(b.date || '') <= t), ds = a.map(b => String(b.date)).sort();
+    const rng = ds.length ? `من ${fmtDateDMY(ds[0])} إلى ${fmtDateDMY(ds[ds.length - 1])}` : 'لا توجد فواتير في المدة';
+    return `<div class="bill-set-hint" style="margin:6px 2px">المبيعات المعتمدة: ${fmtNum(a.length)} فاتورة (${rng}).${window.__invErr ? '<br>تعذّر تحديثها من السحابة: ' + escapeHtml(String(window.__invErr)) : ''}</div>`;
+}
 function ndmHtml() {
     ndwSup = ''; const c = ndmCalc(); ndmRows = c.rows; const cfg = c.cfg, vc = k => c.rows.filter(r => r.status === k).length, nOrd = c.rows.filter(r => r.status === 'order' && r.sug > 0).length, nExp = c.rows.filter(r => r.ex && r.ex.flag).length;
     const main = [['order', 'اطلب الآن', vc('order')], ['over', 'زائد', vc('over')], ['rare', 'حسب الطلب', vc('rare')], ['all', 'الكل', null]];
     const seg = `<div class="ndw-seg">${main.map(([k, l, n]) => `<button type="button" class="${ndmF === k ? 'on' : ''}" onclick="ndmF='${k}';ndmShow=60;exRender()">${l}${n !== null ? '<b>' + fmtNum(n) + '</b>' : ''}</button>`).join('')}</div>`;
     const oth = `<select class="ndw-sel" onchange="if(this.value){ndmF=this.value;ndmShow=60;exRender()}" aria-label="حالات أخرى"><option value="" ${['wait', 'exp'].includes(ndmF) ? '' : 'selected'}>حالات أخرى</option><option value="wait" ${ndmF === 'wait' ? 'selected' : ''}>بانتظار الجرد (${fmtNum(vc('wait'))})</option><option value="exp" ${ndmF === 'exp' ? 'selected' : ''}>نفاذ قريب (${fmtNum(nExp)})</option></select>`;
     return `<div class="ndw-tb"><input type="search" id="ndmSearch" autocomplete="off" placeholder="ابحث عن مادة" value="${escapeHtml(ndmQ)}" oninput="ndmQ=this.value;ndmShow=60;ndmRowsRedraw()"><button type="button" class="ndw-ib" onclick="ndmSetShow=!ndmSetShow;exRender()" aria-label="الإعدادات"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg></button></div>
-        ${seg}<div class="ndw-fr">${oth}</div>
+        ${ndmSrcLine()}${seg}<div class="ndw-fr">${oth}</div>
         <details class="nd-set" ${ndmSetShow ? 'open' : 'style="display:none"'}><summary>الإعدادات وطريقة الحساب</summary><div class="nd-set-b">${ndwSetRows()}
         <div class="nd-hint">طريقة الحساب:<br>• الأساس المبيعات الفعلية (الصادر) خلال آخر 12 أسبوعاً، لا الوارد.<br>• تُستبعد فترة النفاد الحالية فقط (إن كان الرصيد صفراً)، ويُضاف ما سُجّل في «المطلوبة وغير المتوفرة».<br>• المواد غير المجرودة تظهر «بانتظار الجرد» ولا يُقترح لها طلب حتى يُعرف رصيدها.<br>• لا يُقترح طلب لمادة بيعت في أقل من 3 أيام مختلفة.<br>• يُصنَّف نمط الطلب (منتظم، متذبذب، متقطع، كتلي) ويُختار نموذج مناسب له.<br>• الكمية المقترحة تغطي «مدة الهدف» بعد خصم المتوفر وما قيد الطلب.<br>• الحد الأدنى المسجل في بطاقة المادة يُعتمد إن وُجد.<br>• المادة التي تقل مبيعاتها عن علبة شهرياً تُصنَّف «حسب الطلب» ولا يُقترح لها شراء.<br>• المذخر المقترح هو الأرخص بآخر سعر شراء، وإلا الأكثر شراءً منه.<br>• مدة وصول الطلبية ${fmtNum(cfg.lead)} ${cfg.lead === 1 ? 'يوم' : 'أيام'} ودورة الطلب ${fmtNum(cfg.rev)} ${cfg.rev === 1 ? 'يوم' : 'أيام'} (تلقائياً من سجل المخزن).</div>
         <div class="bill-set-hint">حدود هذه الطريقة:<br>• دقتها مرتبطة باكتمال تسجيل فواتير البيع.<br>• المواد التي لم تُسجَّل لها مبيعات خلال المدة لا تظهر هنا.<br>• الموسمية لا تُرصد قبل مرور سنة من البيانات.</div></div></details>
