@@ -185,7 +185,12 @@ function cnSyncParts(l) {
         const p = products.find(x => x.id === pid); if (!p) return;
         l.rows.forEach(r => { if (r.pid === pid && r.nm !== p.name) r.nm = p.name; });
         const want = cnUnits(p), mine = l.rows.filter(r => r.pid === pid), base = mine[0], ts = Math.min(...mine.map(r => r.ts || Date.now()));
-        want.forEach(u => { if (!mine.some(r => r.unit === u)) { l.rows.splice(l.rows.indexOf(mine[mine.length - 1]) + 1, 0, { id: cnId(), gid: base.gid, pid, unit: u, cnt: '', price: cnDefPrice(p, u) || '', ts }); ch = true; } });
+        want.forEach(u => {
+            if (mine.some(r => r.unit === u)) return;
+            // مادة مجرودة سابقاً وقائمة تتبع المخزن: وحدة جديدة (مثل الأجزاء بعد تفعيل التجزئة) تظهر كميتها فوراً بدل سطر فارغ
+            const sys = u === 'part' ? cnInt(p.loose) : cnInt(p.qty), seed = l.apply !== false && sys > 0 && mine.some(r => r.cnt !== '');
+            l.rows.splice(l.rows.indexOf(mine[mine.length - 1]) + 1, 0, { id: cnId(), gid: base.gid, pid, unit: u, cnt: seed ? String(sys) : '', price: cnDefPrice(p, u) || '', ts, auto: 1, ...(seed ? { sq: sys } : {}) }); ch = true;
+        });
         const gone = l.rows.filter(r => r.pid === pid && !want.includes(r.unit) && r.cnt === ''); if (gone.length) { cnTrash(l, gone); ch = true; }
         l.rows = l.rows.filter(r => r.pid !== pid || want.includes(r.unit) || r.cnt !== '');
     });
@@ -289,6 +294,9 @@ function cnFollow(l) {
     const out = [];
     if (!l) return out;
     l.rows.forEach(r => {
+        if (r.cnt === '' && r.auto && l.apply !== false) {   // سطر وحدة أُضيف تلقائياً وكان فارغاً: يُملأ حين تظهر كمية له بالمخزن (مثل أجزاء أُضيفت لاحقاً) إن كانت وحدة المادة الأخرى مجرودة
+            const c0 = cnSysOf(r); if (c0 !== null && c0 > 0 && l.rows.some(x => x.pid === r.pid && x !== r && x.cnt !== '')) { r.cnt = String(c0); r.sq = c0; out.push(r); }
+        }
         if (r.cnt === '') return; const cur = cnSysOf(r); if (cur === null) return;
         if (l.apply !== false) {   // القائمة المعتمدة على المخزن: العدد يتبع المخزن تلقائياً (بيع، تعديل دفعات...)، إلا سطراً عدّله المستخدم يدوياً ولم يُعتمد (تجاوز)
             if (r.ov && cnInt(r.cnt) === cur) r.ov = 0;
@@ -316,6 +324,7 @@ function cnLiveNames() {
 function cnLiveSync() {
     if (!cnCur || !cnOpenFlag || cnScr !== 'list') return;
     try { cnLiveNames(); } catch (e) { /* تجاهل */ }
+    const n0 = cnCur.rows.length; cnSyncParts(cnCur); if (cnCur.rows.length !== n0) { cnListRender(); return; }   // وحدات جديدة (أجزاء...) بعد تعديل المادة: يُعاد رسم القائمة
     const ch = cnFollow(cnCur); if (!ch.length) return;
     ch.forEach(r => {
         const row = document.getElementById('cnr-' + r.id); if (!row) return;
