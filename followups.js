@@ -362,9 +362,38 @@ const FM_LS = 'diwanMissed', FM_COLL = 'pharmacy_missed';
 let fmAll = [], fmPer = 30, fmView = 'call';
 const FM_ALT = { none: 'غادر دون شراء', accepted: 'قبل بديلاً', other: 'اشترى من مكان آخر' };
 const fmId = () => 'fm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-const fmKey = r => r.pid ? 'p' + r.pid : 'n' + fuNormQ(r.item);
+// ---- هوية موحّدة للمادة المطلوبة: مادة الكتالوج إن عُرفت، وإلا اسم مطبَّع؛ مع جدول مرادفات يُبنى عند الدمج ----
+const FM_AL = 'diwanMissedAlias', FM_TR = 'diwanMissedTrials';
+const FM_WHY = { out: 'نافدة من المخزن', never: 'لا نوفرها أصلاً', price: 'السعر', brand: 'ماركة محددة' };
+const fmEnc = s => encodeURIComponent(String(s == null ? '' : s)).replace(/'/g, '%27');
+const fmShortDate = d => { const t = fmtDateDMY(d); return String(d).slice(0, 4) === todayLocalISO().slice(0, 4) ? t.slice(0, 5) : t; };
+const fmEl = id => document.getElementById(id);
+const fmPl = (n, one, two, few, many) => n === 1 ? one : n === 2 ? two : n >= 3 && n <= 10 ? fmtNum(n) + ' ' + few : fmtNum(n) + ' ' + many;
+let _fmIdx = null, _fmIdxN = -1;
+function fmIdx() {
+    if (_fmIdx && _fmIdxN === products.length) return _fmIdx;
+    const m = new Map(); products.forEach(p => { if (p.arch) return; [dispName(p), p.name].forEach(n => { const k = fuNormQ(n); if (k && !m.has(k)) m.set(k, p.id); }); });
+    _fmIdx = m; _fmIdxN = products.length; return m;
+}
+function fmAliases() { try { return JSON.parse(lsGet(FM_AL)) || {}; } catch (e) { return {}; } }
+function fmAliasSet(text, target) { const a = fmAliases(); a[fuNormQ(text)] = target; lsSet(FM_AL, JSON.stringify(a)); }
+function fmCanon(r) {
+    if (r.pid) return { key: 'p' + r.pid, pid: r.pid };
+    const k = fuNormQ(r.item), al = fmAliases()[k];
+    if (al && al.pid) return { key: 'p' + al.pid, pid: al.pid };
+    if (al && al.name) return { key: 'n' + fuNormQ(al.name), pid: null, name: al.name };
+    const pid = fmIdx().get(k); if (pid) return { key: 'p' + pid, pid };
+    return { key: 'n' + k, pid: null };
+}
+const fmKey = r => fmCanon(r).key;
+function fmTri(s) { s = ' ' + fuNormQ(s).replace(/\s+/g, ' ') + ' '; const t = new Set(); for (let i = 0; i + 3 <= s.length; i++) t.add(s.slice(i, i + 3)); return t; }
+function fmSim(a, b) {   // تشابه الأسماء: احتواء أو تقاطع الأحرف الثلاثية
+    const x = fuNormQ(a).replace(/\s+/g, ' '), y = fuNormQ(b).replace(/\s+/g, ' '); if (!x || !y) return 0; if (x === y) return 1;
+    const sh = x.length < y.length ? x : y, lo = x.length < y.length ? y : x; if (sh.length >= 4 && lo.includes(sh)) return .8;
+    const A = fmTri(x), B = fmTri(y); let i = 0; A.forEach(t => { if (B.has(t)) i++; }); return i / (A.size + B.size - i || 1);
+}
 function fmLocal() { try { return (JSON.parse(lsGet(FM_LS)) || []).filter(x => x && x.id); } catch (e) { return []; } }
-function fmStore() { if (fmAll.length > 4000) fmAll = fmAll.slice(0, 4000); lsSet(FM_LS, JSON.stringify(fmAll)); }
+function fmStore() { lsSet(FM_LS, JSON.stringify(fmAll)); }
 function fmSort() { fmAll.sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || String(b.ts || '').localeCompare(String(a.ts || ''))); }
 async function fmLoad() {
     const m = new Map(fmLocal().map(x => [x.id, x]));
@@ -392,26 +421,46 @@ async function fmPut(rec) {
 }
 async function fmRefresh() { if (!fuAllowed()) return; const h = Prog.start('تحميل الطلبات', { text: 'جارٍ التحديث...' }); try { await fmLoad(); h.ok('تم التحديث'); } catch (e) { h.fail('تعذر التحديث', e.message || String(e)); } if (fuOpenFlag && fuScr === 'list' && fuTab === 'miss') fuListRender(); }
 
-// ---------- التسجيل السريع ----------
+// ---------- التسجيل السريع (مع اقتراحات من الكتالوج لمنع تكرار الأسماء) ----------
+function fmSuggest() {
+    const inp = fmEl('fmItem'), box = fmEl('fmSug'); if (!inp || !box) return;
+    window.__fmPick = null; window.__fmCand = []; const q = inp.value.trim(); if (q.length < 2) { box.innerHTML = ''; return; }
+    const nq = normSearch(q), toks = nq.split(' ');
+    const cat = products.map(p => [p, searchScore(p, nq, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 6)
+        .map(([p]) => ({ pid: p.id, name: dispName(p), sim: Math.max(fmSim(q, dispName(p)), fmSim(q, p.name)), st: p.arch ? 'مؤرشفة' : isInStock(p) ? 'متوفرة' : 'غير متوفرة' }));
+    const wanted = new Map(); fmAll.forEach(r => { const c = fmCanon(r); if (c.pid || wanted.has(c.key)) return; const nm = c.name || r.item, s = fmSim(q, nm); if (s >= .5) wanted.set(c.key, { pid: null, name: nm, sim: s, st: 'مطلوبة سابقاً' }); });
+    window.__fmCand = cat.concat([...wanted.values()].slice(0, 3));
+    box.innerHTML = window.__fmCand.map((c, i) => `<button type="button" class="cn-res" onclick="fmPickSug(${i})"><span dir="ltr">${fuEsc(c.name)}</span><em>${fuEsc(c.st)}</em></button>`).join('');
+}
+function fmPickSug(i) {
+    const c = (window.__fmCand || [])[i]; if (!c) return; window.__fmPick = c;
+    const inp = fmEl('fmItem'), box = fmEl('fmSug'); if (inp) inp.value = c.name; if (box) box.innerHTML = '<div class="fm-picked">✓ تم اختيار المادة من القائمة</div>';
+}
 async function fmQuick(pid, name) {
     if (typeof userRole !== 'undefined' && userRole === 'guest') return;
-    const p = pid ? products.find(x => x.id === pid) : null, nm = p ? dispName(p) : String(name || '').trim();
+    const p = pid ? products.find(x => x.id === pid) : null, nm = p ? dispName(p) : '';
+    window.__fmPick = p ? { pid: p.id, name: nm } : null; window.__fmCand = []; window.__fmWarn = '';
     const x = await Swal.fire({
         title: 'تسجيل طلب غير متوفر', confirmButtonText: 'حفظ', cancelButtonText: 'إلغاء', showCancelButton: true, confirmButtonColor: '#0f766e', reverseButtons: true, focusConfirm: false,
-        html: `<div class="fm-q" dir="rtl">${nm ? `<div class="fu-item"><span dir="ltr">${fuEsc(nm)}</span></div>` : `<input id="fmItem" class="fu-in" placeholder="اسم المادة المطلوبة" autocomplete="off">`}
+        html: `<div class="fm-q" dir="rtl">${p ? `<div class="fu-item"><span dir="ltr">${fuEsc(nm)}</span></div>` : `<input id="fmItem" class="fu-in" placeholder="اسم المادة المطلوبة" autocomplete="off" value="${fuEsc(name || '')}" oninput="fmSuggest()"><div id="fmSug" class="fm-sug"></div>`}
             <div class="fm-l">ماذا فعل الزبون؟</div>
             <div class="cu-seg" id="fmAlt">${Object.keys(FM_ALT).map((k, i) => `<button type="button" data-a="${k}" class="${i ? '' : 'on'}" onclick="document.querySelectorAll('#fmAlt button').forEach(b => b.classList.toggle('on', b === this))">${FM_ALT[k]}</button>`).join('')}</div>
+            <div class="fm-l">سبب عدم البيع (اختياري)</div>
+            <div class="cu-seg fm-why" id="fmWhy">${Object.keys(FM_WHY).map(k => `<button type="button" data-w="${k}" onclick="var on=this.classList.contains('on');document.querySelectorAll('#fmWhy button').forEach(b=>b.classList.remove('on'));if(!on)this.classList.add('on')">${FM_WHY[k]}</button>`).join('')}</div>
+            <div class="fm-row"><label>الكمية المطلوبة<input id="fmQty" class="fu-in" type="number" inputmode="numeric" min="1" value="1"></label><label class="fm-rx"><input type="checkbox" id="fmRx"><span>بوصفة طبية</span></label></div>
             <input id="fmCust" class="fu-in" placeholder="اسم الزبون (اختياري)" autocomplete="off">
             <input id="fmPhone" class="fu-in" type="tel" inputmode="tel" dir="ltr" placeholder="رقم الهاتف (اختياري، للاتصال عند توفر المادة)" autocomplete="off"></div>`,
+        didOpen: () => { if (!p && name) fmSuggest(); },
         preConfirm: () => {
-            const it = nm || String((document.getElementById('fmItem') || {}).value || '').trim();
+            const pick = window.__fmPick, typed = String((fmEl('fmItem') || {}).value || '').trim(), it = p ? nm : (pick ? pick.name : typed);
             if (!it) { Swal.showValidationMessage('اكتب اسم المادة'); return false; }
-            const a = document.querySelector('#fmAlt button.on');
-            return { item: it, alt: a ? a.dataset.a : 'none', cust: String((document.getElementById('fmCust') || {}).value || '').trim(), phone: String((document.getElementById('fmPhone') || {}).value || '').replace(/[^0-9+]/g, '') };
+            if (!p && !pick && window.__fmWarn !== fuNormQ(typed) && (window.__fmCand || []).some(c => c.sim >= .6)) { window.__fmWarn = fuNormQ(typed); Swal.showValidationMessage('توجد مادة مشابهة في القائمة أعلاه: اخترها، أو اضغط حفظ مجدداً لتسجيلها كمادة جديدة'); return false; }
+            const a = document.querySelector('#fmAlt button.on'), w = document.querySelector('#fmWhy button.on'), id = p ? p.id : (pick && pick.pid) || null, prod = id ? products.find(z => z.id === id) : null;
+            return { item: it, pid: id, alt: a ? a.dataset.a : 'none', why: w ? w.dataset.w : (prod ? (isInStock(prod) ? '' : 'out') : 'never'), qty: Math.max(1, parseInt((fmEl('fmQty') || {}).value) || 1), rx: !!(fmEl('fmRx') || {}).checked, cust: String((fmEl('fmCust') || {}).value || '').trim(), phone: String((fmEl('fmPhone') || {}).value || '').replace(/[^0-9+]/g, '') };
         }
     });
     if (!x.isConfirmed || !x.value) return;
-    const rec = { id: fmId(), type: 'miss', pid: p ? p.id : null, item: x.value.item, alt: x.value.alt, customer: x.value.cust, phone: x.value.phone, status: x.value.phone ? 'open' : '', date: todayLocalISO(), ts: new Date().toISOString(), by: (typeof userName !== 'undefined' && userName) || 'المدير' };
+    const v = x.value, rec = { id: fmId(), type: 'miss', pid: v.pid, item: v.item, alt: v.alt, reason: v.why, qty: v.qty, rx: v.rx, customer: v.cust, phone: v.phone, status: v.phone ? 'open' : '', date: todayLocalISO(), ts: new Date().toISOString(), by: (typeof userName !== 'undefined' && userName) || 'المدير' };
     const h = Prog.start('حفظ الطلب', { text: 'جارٍ الحفظ...' });
     const ok = await fmPut(rec);
     ok ? h.ok('تم تسجيل الطلب') : h.fail('حُفظ على هذا الجهاز فقط', 'سيُرفع عند توفر الاتصال أو بعد إضافة القاعدة.');
@@ -419,26 +468,29 @@ async function fmQuick(pid, name) {
 }
 
 // ---------- التقرير ----------
+const fmLost = r => { if (r.alt === 'accepted') return 0; const p = fmProd(r); return p ? (Number(p.price) || 0) * Math.max(1, parseInt(r.qty) || 1) : 0; };
 function fmGroups() {
     fmAll = fmAll.length ? fmAll : fmLocal();
-    const today = new Date(todayLocalISO() + 'T00:00:00'), per = fmPer;
+    const today = new Date(todayLocalISO() + 'T00:00:00'), per = fmPer, md = (per === 0 || per >= 90) ? 4 : 3;
     const age = r => Math.round((today - new Date(String(r.date || '').slice(0, 10) + 'T00:00:00')) / 864e5);
     const m = new Map();
     fmAll.forEach(r => {
         const a = age(r); if (!(a >= 0) || (per && a >= per)) return;
-        const k = fmKey(r), g = m.get(k) || { key: k, pid: r.pid, name: r.item, n: 0, days: new Set(), cust: new Set(), acc: 0, last: '', recent: 0, older: 0, rows: [] };
-        g.n++; g.days.add(r.date); if (r.customer) g.cust.add(fuNormQ(r.customer)); if (r.alt === 'accepted') g.acc++;
+        const c = fmCanon(r), k = c.key, g = m.get(k) || { key: k, pid: c.pid, name: c.name || r.item, n: 0, days: new Set(), cust: new Set(), acc: 0, last: '', recent: 0, older: 0, rows: [], qty: 0, lost: 0, why: {}, rx: 0, wk: new Array(8).fill(0) };
+        g.n++; g.qty += Math.max(1, parseInt(r.qty) || 1); g.days.add(r.date); if (r.customer) g.cust.add(fuNormQ(r.customer)); if (r.alt === 'accepted') g.acc++;
+        if (r.reason) g.why[r.reason] = (g.why[r.reason] || 0) + 1; if (r.rx) g.rx++; g.lost += fmLost(r);
         if (String(r.date) > g.last) g.last = r.date;
         if (per && a < per / 2) g.recent++; else g.older++;
+        const w = Math.floor(a / 7); if (w < 8) g.wk[7 - w]++;
         g.rows.push(r); m.set(k, g);
     });
     return [...m.values()].map(g => {
-        g.d = g.days.size;
-        g.verdict = g.n >= 3 && g.d >= 3 && g.acc / g.n <= 0.5 && (g.cust.size === 0 || g.cust.size >= 2) ? ['يستحق التوفير', 'ok'] : g.n >= 2 ? ['راقب', 'wb'] : ['عابر', ''];
+        g.d = g.days.size; const p = g.pid ? products.find(x => x.id === g.pid) : null; if (p) g.name = dispName(p);
+        g.verdict = g.n >= 3 && g.d >= md && g.acc / g.n <= 0.5 && (g.cust.size === 0 || g.cust.size >= 2) ? ['يستحق التوفير', 'ok'] : g.n >= 2 ? ['راقب', 'wb'] : ['عابر', ''];
         return g;
     }).sort((a, b) => b.n - a.n || b.d - a.d || String(b.last).localeCompare(String(a.last)));
 }
-function fmProd(r) { return r.pid ? products.find(x => x.id === r.pid) : products.find(x => !x.arch && fuNormQ(dispName(x)) === fuNormQ(r.item)); }
+function fmProd(r) { const c = fmCanon(r); return c.pid ? products.find(x => x.id === c.pid) : null; }
 async function fmUpd(rec) {
     delete rec.sy; fmAll = fmAll.filter(x => x.id !== rec.id); fmAll.unshift(rec); fmSort(); fmStore();
     if (cloudReady()) await fmPush(rec); fmStore();
@@ -488,31 +540,118 @@ function fmBodyHtml() {
     }
     return bar + fmStatsHtml();
 }
+// ---------- التجارب: توفير مادة 30 يوماً وقياس مبيعاتها ----------
+function fmTrials() { try { return JSON.parse(lsGet(FM_TR)) || []; } catch (e) { return []; } }
+function fmTrialsSave(a) { lsSet(FM_TR, JSON.stringify(a)); }
+function fmTrialStat(t) {
+    const p = products.find(x => x.id === t.pid); let sold = 0;
+    (billAll || []).forEach(b => { if (!b || !b.issued || b.cancelled || String(b.date || '') < t.start) return; (b.items || []).forEach(it => { if (it.pid !== t.pid) return; const q = parseFloat(it.qty) || 0; sold += it.unit === 'part' && p && hasRetail(p) ? q / subCountOf(p) : q; }); });
+    sold = Math.round(sold * 100) / 100; const days = fuAgo(t.start), need = Math.max(2, t.base || 0);
+    return { days, sold, need, v: days < 30 ? ['جارية', 'wb'] : sold >= need ? ['نجحت', 'ok'] : ['ضعيفة', 'bad'] };
+}
+// ---------- إضافة المادة إلى قائمة الطلبية في «تقدير الاحتياج» ----------
+function fmToOrder(key, quiet) {
+    const g = fmGroups().find(x => x.key === key); if (!g) return false;
+    if (typeof ndState !== 'function') { Swal.fire({ icon: 'info', title: 'غير متاح', text: 'قائمة الطلبية غير متاحة في هذه الصفحة.', confirmButtonColor: '#0f1c38' }); return false; }
+    const s = ndState();
+    if (g.pid) { delete s.off[g.pid]; delete s.ordered[g.pid]; if (!s.extra.includes(g.pid)) s.extra.push(g.pid); ndSave(s); }
+    else { const k = normSearch(g.name); let c = s.custom.find(x => normSearch(x.name) === k); if (!c) { s.cseq = (s.cseq || 0) + 1; c = { id: -s.cseq, name: g.name }; s.custom.push(c); } delete s.off[c.id]; if (!s.qty[c.id]) s.qty[c.id] = Math.max(1, Math.round(g.qty / Math.max(1, g.d))); ndSave(s); }
+    try { if (typeof ndBadge === 'function') ndBadge(); } catch (e) { /* تجاهل */ }
+    if (!quiet) Swal.fire({ icon: 'success', title: 'أُضيفت إلى قائمة الطلبية', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 });
+    return true;
+}
+async function fmTrialStart(key) {
+    const g = fmGroups().find(x => x.key === key); if (!g) return;
+    if (!g.pid) { Swal.fire({ icon: 'info', title: 'اربطها بمادة من الكتالوج أولاً', text: 'تحتاج التجربة إلى مادة في المخزن لقياس مبيعاتها.', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+    if (fmTrials().some(t => t.pid === g.pid && fmTrialStat(t).days < 30)) { Swal.fire({ icon: 'info', title: 'التجربة جارية بالفعل', confirmButtonColor: '#0f1c38', confirmButtonText: 'حسناً' }); return; }
+    const c = await Swal.fire({ icon: 'question', title: 'بدء تجربة توفير 30 يوماً؟', html: 'تُضاف المادة إلى قائمة الطلبية، وتُقاس مبيعاتها خلال 30 يوماً.<br>النجاح: بيع ما لا يقل عن <b>' + fmtNum(Math.max(2, g.d)) + '</b> عبوة.', showCancelButton: true, confirmButtonText: 'ابدأ', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', reverseButtons: true });
+    if (!c.isConfirmed) return;
+    const a = fmTrials(); a.unshift({ id: 'tr' + Date.now().toString(36), key: g.key, pid: g.pid, name: g.name, start: todayLocalISO(), base: g.d }); fmTrialsSave(a); fmToOrder(key, true);
+    Swal.fire({ icon: 'success', title: 'بدأت التجربة', toast: true, position: 'bottom', showConfirmButton: false, timer: 1600 }); if (fuOpenFlag && fuScr === 'list') fuListRender();
+}
+function fmTrialOpen(id) {
+    const t = fmTrials().find(x => x.id === id); if (!t) return; const s = fmTrialStat(t);
+    Swal.fire({ title: 'تجربة توفير', showConfirmButton: false, showCloseButton: true, html: `<div class="fu-det" dir="rtl"><div class="fu-dr"><span>المادة</span><b dir="ltr">${fuEsc(t.name)}</b></div>
+        <div class="fu-dr"><span>بدأت</span><b>${fuEsc(fmtDateDMY(t.start))}</b></div><div class="fu-dr"><span>الأيام المنقضية</span><b>${fmtNum(Math.min(s.days, 30))} من 30</b></div>
+        <div class="fu-dr"><span>المباع منذ البداية</span><b>${fmtNum(s.sold)} عبوة</b></div><div class="fu-dr"><span>حد النجاح</span><b>${fmtNum(s.need)} عبوة</b></div><div class="fu-dr"><span>النتيجة</span><b>${fuEsc(s.v[0])}</b></div>
+        <div class="fu-acts"><button type="button" class="fu-ab bad" onclick="Swal.close();fmTrialDel('${id}')">حذف التجربة</button></div></div>` });
+}
+async function fmTrialDel(id) {
+    const c = await Swal.fire({ icon: 'warning', title: 'حذف هذه التجربة؟', text: 'لا يمكن التراجع عن الحذف.', showCancelButton: true, confirmButtonText: 'نعم، احذف', cancelButtonText: 'إلغاء', confirmButtonColor: '#b91c1c', reverseButtons: true });
+    if (!c.isConfirmed) return; fmTrialsSave(fmTrials().filter(t => t.id !== id)); if (fuOpenFlag && fuScr === 'list') fuListRender();
+}
+// ---------- الدمج: ربط الأسماء المختلفة بمادة واحدة ----------
+async function fmApplyMerge(srcKey, pid, name) {
+    const rows = fmAll.filter(r => fmKey(r) === srcKey); if (!rows.length) return;
+    const h = Prog.start('دمج الطلبات', { text: 'جارٍ الدمج...' });
+    try { for (const r of rows) { fmAliasSet(r.item, pid ? { pid, name } : { name }); await fmUpd({ ...r, pid: pid || null, item: name }); } _fmIdxN = -1; h.ok('تم دمج ' + fmtNum(rows.length) + ' طلب'); }
+    catch (e) { h.fail('تعذر الدمج', (e && e.message) || ''); }
+    if (fuOpenFlag && fuScr === 'list') fuListRender();
+}
+async function fmMergePair(a, b) {
+    const ga = fmGroups().find(x => x.key === a), gb = fmGroups().find(x => x.key === b); if (!ga || !gb) return;
+    const tgt = ga.pid && !gb.pid ? ga : gb.pid && !ga.pid ? gb : ga.n >= gb.n ? ga : gb, src = tgt === ga ? gb : ga;
+    const c = await Swal.fire({ icon: 'question', title: 'دمج الاسمين؟', html: `سيُدمج «<span dir="ltr">${fuEsc(src.name)}</span>» في «<span dir="ltr">${fuEsc(tgt.name)}</span>».`, showCancelButton: true, confirmButtonText: 'ادمج', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', reverseButtons: true });
+    if (c.isConfirmed) await fmApplyMerge(src.key, tgt.pid, tgt.name);
+}
+function fmLinkOpen(key) {
+    window.__fmLinkKey = key;
+    Swal.fire({ title: 'ربط بمادة من الكتالوج', showConfirmButton: false, showCloseButton: true, html: `<div dir="rtl"><input id="fmLq" class="fu-in" type="search" autocomplete="off" placeholder="ابحث بالاسم أو الباركود" oninput="fmLinkSearch()"><div id="fmLres" class="fm-sug"></div></div>`, didOpen: () => { const i = fmEl('fmLq'); if (i) i.focus(); } });
+}
+function fmLinkSearch() {
+    const q = normSearch((fmEl('fmLq') || {}).value || ''), box = fmEl('fmLres'); if (!box) return; if (!q) { box.innerHTML = ''; return; }
+    const toks = q.split(' '); window.__fmLinkRes = products.filter(p => !p.arch).map(p => [p, searchScore(p, q, toks)]).filter(x => x[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 10).map(x => x[0]);
+    box.innerHTML = window.__fmLinkRes.map((p, i) => `<button type="button" class="cn-res" onclick="fmLinkPick(${i})"><span dir="ltr">${dispNameHtml(p)}</span><em>${fuEsc(stockLabel(p))}</em></button>`).join('') || '<div class="cu-none">لا توجد نتائج</div>';
+}
+async function fmLinkPick(i) {
+    const p = (window.__fmLinkRes || [])[i], key = window.__fmLinkKey; if (!p || !key) return; Swal.close();
+    const c = await Swal.fire({ icon: 'question', title: 'ربط الطلبات بهذه المادة؟', html: `<span dir="ltr">${fuEsc(dispName(p))}</span>`, showCancelButton: true, confirmButtonText: 'اربط', cancelButtonText: 'إلغاء', confirmButtonColor: '#0f766e', reverseButtons: true });
+    if (c.isConfirmed) await fmApplyMerge(key, p.id, dispName(p));
+}
+// ---------- العرض ----------
+function fmSpark(wk) {
+    const mx = Math.max(1, ...wk), w = 14, g = 4, H = 30;
+    return `<svg width="${wk.length * (w + g)}" height="${H}" viewBox="0 0 ${wk.length * (w + g)} ${H}" role="img" aria-label="الطلبات في آخر 8 أسابيع">${wk.map((v, i) => { const h = v ? Math.max(3, Math.round(v / mx * (H - 2))) : 1; return `<rect x="${i * (w + g)}" y="${H - h}" width="${w}" height="${h}" rx="2" fill="${v ? '#0f766e' : '#cbd5e1'}"/>`; }).join('')}</svg>`;
+}
 function fmStatsHtml() {
     const gs = fmGroups(), pers = [[30, '30 يوماً'], [90, '90 يوماً'], [0, 'الكل']];
-    const tot = gs.reduce((a, g) => a + g.n, 0);
-    const rows = gs.map(g => {
-        const p = g.pid ? products.find(x => x.id === g.pid) : null, inS = p && isInStock(p);
-        const tr = g.recent > g.older ? '↑' : g.recent < g.older ? '↓' : '';
-        return `<div class="cu-row fu-row" onclick="fmDetail('${fuEsc(g.key).replace(/'/g, '')}')"><div class="cu-av fu-av ${g.verdict[1]}">${tr || '•'}</div>
-        <div><b dir="ltr">${fuEsc(g.name)}</b><small>طُلبت ${fmtNum(g.n)} مرة • في ${fmtNum(g.d)} يوماً${g.cust.size ? ' • ' + fmtNum(g.cust.size) + ' زبون' : ''}${g.acc ? ' • قبل البديل ' + fmtNum(g.acc) : ''}</small><small>آخر طلب: ${fuEsc(fmtDateDMY(g.last))}${inS ? ' • متوفرة الآن' : ''}</small></div>
-        <div class="fu-st ${g.verdict[1]}">${g.verdict[0]}</div></div>`;
-    }).join('');
+    const tot = gs.reduce((a, g) => a + g.n, 0), lost = gs.reduce((a, g) => a + g.lost, 0), nOk = gs.filter(g => g.verdict[1] === 'ok').length;
+    const tile = (l, v) => `<div class="fm-tile"><b>${v}</b><small>${l}</small></div>`;
+    const sum = `<div class="fm-tiles">${tile('الطلبات', fmtNum(tot))}${tile('المواد', fmtNum(gs.length))}${tile('تستحق التوفير', fmtNum(nOk))}${tile('مبيعات ضائعة (تقدير)', lost ? fmtNum(Math.round(lost)) + ' د.ع' : '—')}</div>`;
+    const row = g => {
+        const p = g.pid ? products.find(x => x.id === g.pid) : null, st = !p ? ['غير مسجلة بالكتالوج', 'n'] : isInStock(p) ? ['متوفرة الآن', 'ok'] : ['غير متوفرة', 'bad'];
+        const tr = g.n >= 3 && g.d >= 2 ? (g.recent > g.older ? '↑' : g.recent < g.older ? '↓' : '→') : '•', add = g.verdict[1] === 'ok' ? `<button type="button" class="fm-add" onclick="event.stopPropagation();fmToOrder(decodeURIComponent('${fmEnc(g.key)}'))">＋ للطلبية</button>` : '';
+        return `<div class="cu-row fu-row" onclick="fmDetail(decodeURIComponent('${fmEnc(g.key)}'))"><div class="cu-av fu-av ${g.verdict[1]}">${tr}</div>
+        <div><b dir="ltr">${fuEsc(g.name)}</b><small>طُلبت ${fmPl(g.n, 'مرة واحدة', 'مرتين', 'مرات', 'مرة')} • في ${fmPl(g.d, 'يوم واحد', 'يومين', 'أيام', 'يوماً')}${g.cust.size ? ' • ' + fmPl(g.cust.size, 'زبون واحد', 'زبونان', 'زبائن', 'زبوناً') : ''}${g.acc ? ' • قبل البديل ' + fmtNum(g.acc) : ''}</small>
+        <small class="fmx-l2"><span class="fm-chip ${st[1]}">${st[0]}</span> آخر طلب: ${fuEsc(fmShortDate(g.last))}</small></div>
+        <div class="fmx-side"><div class="fu-st ${g.verdict[1]}">${g.verdict[0]}</div>${add}</div></div>`;
+    };
+    const sec = (cls, title, list, fold) => !list.length ? '' : fold
+        ? `<details class="fm-det"><summary>${title} <b>${fmtNum(list.length)}</b></summary>${list.map(row).join('')}</details>`
+        : `<div class="fmx-sec ${cls}">${title} <b>${fmtNum(list.length)}</b></div>${list.map(row).join('')}`;
+    const tr = fmTrials(), trHtml = tr.length ? `<div class="fmx-sec wb">قيد التجربة <b>${fmtNum(tr.length)}</b></div>` + tr.map(t => { const s = fmTrialStat(t); return `<div class="cu-row fu-row" onclick="fmTrialOpen('${t.id}')"><div class="cu-av fu-av ${s.v[1] === 'bad' ? '' : s.v[1]}">⏱</div><div><b dir="ltr">${fuEsc(t.name)}</b><small>اليوم ${fmtNum(Math.min(s.days, 30))} من 30 • بيع ${fmtNum(s.sold)} من ${fmtNum(s.need)} عبوة</small></div><div class="fu-st ${s.v[1]}">${s.v[0]}</div></div>`; }).join('') : '';
+    const cand = gs.slice(0, 60), pairs = []; for (let i = 0; i < cand.length && pairs.length < 4; i++) for (let j = i + 1; j < cand.length && pairs.length < 4; j++) if (fmSim(cand[i].name, cand[j].name) >= .72) pairs.push([cand[i], cand[j]]);
+    const mg = pairs.length ? `<div class="fmx-sec wb">أسماء قد تكون مكررة <b>${fmtNum(pairs.length)}</b></div>` + pairs.map(([a, b]) => `<div class="fm-dup"><span dir="ltr">${fuEsc(a.name)}</span><span dir="ltr">${fuEsc(b.name)}</span><button type="button" class="fm-add" onclick="fmMergePair(decodeURIComponent('${fmEnc(a.key)}'),decodeURIComponent('${fmEnc(b.key)}'))">دمج</button></div>`).join('') : '';
     return `<div class="cn-chips fu-chips">${pers.map(([k, l]) => `<button type="button" class="cn-chip ${fmPer === k ? 'on' : ''}" onclick="fmPer=${k};fuListRender()">${l}</button>`).join('')}</div>
-        <div class="fm-sum">${fmtNum(tot)} طلب لـ ${fmtNum(gs.length)} مادة</div>
-        ${rows || '<div class="cu-none">لا توجد طلبات مسجّلة في هذه المدة.</div>'}
-        <div class="fm-note">التقدير: «يستحق التوفير» عند 3 طلبات فأكثر في 3 أيام مختلفة، وقبول البديل لا يتجاوز النصف، ومن أكثر من زبون إن سُجّلت الأسماء. السهم يقارن النصف الأحدث من المدة بالأقدم. القرار النهائي لك بحسب الربح والصلاحية.</div>`;
+        ${sum}${trHtml}${sec('ok', 'يستحق التوفير', gs.filter(g => g.verdict[1] === 'ok'))}${sec('wb', 'راقب', gs.filter(g => g.verdict[1] === 'wb'))}${sec('', 'طلبات عابرة', gs.filter(g => !g.verdict[1]), true)}${mg}
+        ${gs.length ? '' : '<div class="cu-none">لا توجد طلبات مسجّلة في هذه المدة.</div>'}
+        <div class="fm-note"><div>• «يستحق التوفير»: ${(fmPer === 0 || fmPer >= 90) ? '4' : '3'} طلبات فأكثر في ${(fmPer === 0 || fmPer >= 90) ? '4' : '3'} أيام مختلفة، وقبول البديل لا يتجاوز النصف، ومن أكثر من زبون إن سُجّلت الأسماء.</div><div>• السهم (بعد 3 طلبات): ↑ الطلب يتزايد، ↓ يتناقص، → ثابت، مقارنةً بنصف المدة الأقدم.</div><div>• المبيعات الضائعة تقدير: سعر البيع × الكمية المطلوبة، دون الطلبات التي قبل صاحبها البديل.</div><div>• القرار النهائي بحسب الربح والصلاحية.</div></div>`;
 }
 function fmDetail(key) {
     const g = fmGroups().find(x => x.key === key); if (!g) return;
-    const list = g.rows.slice().sort((a, b) => String(b.ts || b.date).localeCompare(String(a.ts || a.date))).slice(0, 15);
+    const list = g.rows.slice().sort((a, b) => String(b.ts || b.date).localeCompare(String(a.ts || a.date))).slice(0, 15), k = fmEnc(key);
+    const why = Object.keys(g.why).map(w => (FM_WHY[w] || w) + ' ' + fmtNum(g.why[w])).join(' • ');
     Swal.fire({
         title: 'تفاصيل الطلب', showConfirmButton: false, showCloseButton: true,
         html: `<div class="fu-det" dir="rtl"><div class="fu-dr"><span>المادة</span><b dir="ltr">${fuEsc(g.name)}</b></div>
-        <div class="fu-dr"><span>عدد الطلبات</span><b>${fmtNum(g.n)}</b></div><div class="fu-dr"><span>أيام مختلفة</span><b>${fmtNum(g.d)}</b></div>
+        <div class="fu-dr"><span>عدد الطلبات</span><b>${fmtNum(g.n)}</b></div><div class="fu-dr"><span>الكمية الإجمالية</span><b>${fmtNum(g.qty)}</b></div><div class="fu-dr"><span>أيام مختلفة</span><b>${fmtNum(g.d)}</b></div>
         <div class="fu-dr"><span>زبائن مسمّون</span><b>${fmtNum(g.cust.size)}</b></div><div class="fu-dr"><span>قبلوا البديل</span><b>${fmtNum(g.acc)}</b></div>
+        ${g.rx ? `<div class="fu-dr"><span>بوصفة طبية</span><b>${fmtNum(g.rx)}</b></div>` : ''}${why ? `<div class="fu-dr"><span>الأسباب</span><b>${fuEsc(why)}</b></div>` : ''}${g.lost ? `<div class="fu-dr"><span>مبيعات ضائعة (تقدير)</span><b>${fmtNum(Math.round(g.lost))} د.ع</b></div>` : ''}
+        <div class="fu-dr"><span>آخر 8 أسابيع</span><b>${fmSpark(g.wk)}</b></div>
         ${list.map(r => `<div class="fu-dr fm-e"><span>${fuEsc(fmtDateDMY(r.date))}</span><b>${fuEsc(FM_ALT[r.alt] || '')}${r.customer ? ' • ' + fuEsc(r.customer) : ''}${r.phone ? ' • ' + fuEsc(r.phone) : ''}${r.by ? ' • ' + fuEsc(r.by) : ''}</b></div>`).join('')}
-        <div class="fu-acts"><button type="button" class="fu-ab ok" onclick="Swal.close();fmQuick(${g.pid ? g.pid : 'null'},'${fuEsc(g.name).replace(/'/g, '')}')">تسجيل طلب آخر</button><button type="button" class="fu-ab bad" onclick="Swal.close();fmDelGroup('${fuEsc(key).replace(/'/g, '')}')">حذف سجلات المادة</button></div></div>`
+        <div class="fu-acts"><button type="button" class="fu-ab ok" onclick="Swal.close();fmToOrder(decodeURIComponent('${k}'))">أضف للطلبية</button><button type="button" class="fu-ab ok" onclick="Swal.close();fmTrialStart(decodeURIComponent('${k}'))">تجربة توفير 30 يوماً</button>
+        <button type="button" class="fu-ab" onclick="Swal.close();fmQuick(${g.pid ? g.pid : 'null'},decodeURIComponent('${fmEnc(g.name)}'))">تسجيل طلب آخر</button>${g.pid ? '' : `<button type="button" class="fu-ab" onclick="Swal.close();fmLinkOpen(decodeURIComponent('${k}'))">ربط بمادة من الكتالوج</button>`}
+        <button type="button" class="fu-ab bad" onclick="Swal.close();fmDelGroup(decodeURIComponent('${k}'))">حذف السجلات</button></div></div>`
     });
 }
 async function fmDelGroup(key) {

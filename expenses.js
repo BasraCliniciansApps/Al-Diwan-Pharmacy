@@ -418,7 +418,7 @@ function ndmCalc() {
             const v = q * (parseFloat(it.price) || 0); rev.set(it.pid, (rev.get(it.pid) || 0) + v); totRev += v;
         });
     });
-    const miss = new Map(); try { (fmAll.length ? fmAll : fmLocal()).forEach(r => { const d = String(r.date || ''); if (r.pid && d >= from && d <= today) { let m = miss.get(r.pid); if (!m) { m = new Map(); miss.set(r.pid, m); } m.set(d, (m.get(d) || 0) + 1); } }); } catch (e) { /* تجاهل */ }
+    const miss = new Map(); try { (fmAll.length ? fmAll : fmLocal()).forEach(r => { const d = String(r.date || ''), mp = typeof fmCanon === 'function' ? fmCanon(r).pid : r.pid; if (mp && d >= from && d <= today) { let m = miss.get(mp); if (!m) { m = new Map(); miss.set(mp, m); } m.set(d, (m.get(d) || 0) + Math.max(1, parseInt(r.qty) || 1)); } }); } catch (e) { /* تجاهل */ }
     const onOrd = new Map(); try { if (typeof ndOrders === 'function') ndOrders().filter(o => o.status !== 'received').forEach(o => (o.items || []).forEach(x => onOrd.set(x.pid, (onOrd.get(x.pid) || 0) + (parseFloat(x.qty) || 0)))); } catch (e) { /* تجاهل */ }
     // فئات ABC بحسب الإيراد
     const abc = new Map(); let cum = 0; [...rev.entries()].sort((a, b) => b[1] - a[1]).forEach(([pid, v]) => { const before = cum / (totRev || 1); cum += v; abc.set(pid, before < 0.8 ? 'A' : before < 0.95 ? 'B' : 'C'); });

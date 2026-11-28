@@ -4,7 +4,7 @@
 // وتُزال من localStorage (5 ميغا) بعد التأكد من نجاح الحفظ. إن تعذّر IndexedDB يعود كل شيء إلى localStorage كما كان.
 // =====================================================================
 const BigStore = (() => {
-    const KEYS = new Set(['diwanPurchasesLocal', 'diwanLedgerLocal', 'diwanSuppliers']);
+    const KEYS = new Set(['diwanPurchasesLocal', 'diwanLedgerLocal', 'diwanSuppliers', 'diwanMissed']);
     const mem = new Map(), dirty = new Set(); let ready = false, failed = false, dbp = null, timer = 0, lastErr = '';
     const open = () => dbp || (dbp = new Promise((ok, no) => {
         try { const r = indexedDB.open('diwanBig', 1); r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains('kv')) r.result.createObjectStore('kv'); }; r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); r.onblocked = () => no(new Error('blocked')); } catch (e) { no(e); }
