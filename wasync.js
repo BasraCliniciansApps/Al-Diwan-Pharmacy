@@ -846,7 +846,7 @@
             h.set(50, 'تطبيق السجلات...');
             const ts = { purchases: r2 => String(r2.editedAt || r2.cancelledAt || r2.createdTs || ''), invoices: r2 => String(r2.editedAt || r2.cancelledAt || r2.issuedTs || ''), ledger: r2 => String(r2.upd || ''), suppliers: null };
             const pick = k => exact ? L2[k].slice() : merge(k === 'purchases' ? puAll : k === 'suppliers' ? puSuppliers : k === 'invoices' ? billAll : lgAll, L2[k], ts[k]);
-            puAll = pick('purchases').sort((a, b2) => String(b2.date).localeCompare(String(a.date)) || String(b2.createdTs).localeCompare(String(a.createdTs))); lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500)));
+            puAll = pick('purchases').sort((a, b2) => String(b2.date).localeCompare(String(a.date)) || String(b2.createdTs).localeCompare(String(a.createdTs))); lsSet(PU_LS.list, JSON.stringify(puAll));
             puSuppliers = pick('suppliers'); lsSet(PU_LS.sup, JSON.stringify(puSuppliers));
             billAll = pick('invoices').sort((a, b2) => String(b2.issuedTs || b2.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt))); lsSet(BILL_LS.list, JSON.stringify(billAll.slice(0, 300))); try { (exact ? InvDB.prune().then(invDbSave) : invDbSave()); } catch (e) { /* تجاهل */ }
             lgAll = pick('ledger'); lsSet(LG_LS.list, JSON.stringify(lgAll));

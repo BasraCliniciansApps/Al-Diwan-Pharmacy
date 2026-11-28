@@ -515,7 +515,7 @@
             rec.no = rec.no + '-' + (pre || 'X'); rec.renumbered = true; rep.renum++;   // رقم مكرر من جهاز آخر: يُميَّز بحرف الجهاز
         }
         list = list.filter(x => x.id !== rec.id); list.unshift(rec);
-        lsSet(KEY, JSON.stringify(list.slice(0, type === 'invoice' ? 300 : 1500)));
+        lsSet(KEY, JSON.stringify((type === 'invoice' ? list.slice(0, 300) : list)));
         try { if (type === 'invoice') { billAll = billAll.filter(x => x.id !== rec.id); billAll.unshift(rec); } else { puAll = puAll.filter(x => x.id !== rec.id); puAll.unshift(rec); } } catch (e) { /* تجاهل */ }
         rep[type === 'invoice' ? 'inv' : 'pur']++;
     }

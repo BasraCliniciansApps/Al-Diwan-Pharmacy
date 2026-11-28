@@ -80,7 +80,7 @@ async function bkApplyPlan(plan) {
         const map = new Map((bkCurrent(p.c.key) || []).map(x => [x.id, x]));
         items.forEach(x => map.set(x.id, x));
         const merged = [...map.values()];
-        if (p.c.key === 'purchases') { puAll = merged.sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdTs).localeCompare(String(a.createdTs))); lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500))); }
+        if (p.c.key === 'purchases') { puAll = merged.sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdTs).localeCompare(String(a.createdTs))); lsSet(PU_LS.list, JSON.stringify(puAll)); }
         else if (p.c.key === 'suppliers') { puSuppliers = merged; lsSet(PU_LS.sup, JSON.stringify(puSuppliers)); }
         else if (p.c.key === 'invoices') { billAll = merged.sort((a, b) => String(b.issuedTs || b.issuedAt).localeCompare(String(a.issuedTs || a.issuedAt))); lsSet(BILL_LS.list, JSON.stringify(billAll.slice(0, 300))); try { invDbSave(); } catch (e) { /* تجاهل */ } }
         else { lgAll = merged; lsSet(LG_LS.list, JSON.stringify(lgAll)); }
@@ -187,7 +187,7 @@ async function applyHistoryReplace(data) {
             }
         }
         const dl = new Set(delLg.map(x => x.id));
-        puAll = keepPu; lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500)));
+        puAll = keepPu; lsSet(PU_LS.list, JSON.stringify(puAll));
         lgAll = lgAll.filter(e => !dl.has(e.id)); lsSet(LG_LS.list, JSON.stringify(lgAll));
         h.set(45, 'رفع الجديد...'); h.span(45, 96);
         await bkApplyPlan(bkPlan({ purchases: newPu, suppliers: data.suppliers || [], ledger: newLg }).filter(p => p.total));

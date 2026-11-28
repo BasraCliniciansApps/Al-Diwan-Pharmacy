@@ -510,7 +510,7 @@ function showSyncStatus(opts) {
     const topBy = (t) => { const m = usageBy()[t] || {}; return Object.keys(m).sort((a, b) => m[b] - m[a]).slice(0, 5).map(k => `<span>${escapeHtml(SRC[k] || k)}: <b>${fmtNum(m[k])}</b></span>`).join(' · '); };
     const byHtml = (topBy('r') || topBy('w')) ? `<div class="ss-note ss-by">${topBy('r') ? '<div>أكثر القراءات: ' + topBy('r') + '</div>' : ''}${topBy('c') ? '<div>منها قراءة كاملة بعد غياب (فتح بارد): ' + topBy('c') + '</div>' : ''}${topBy('w') ? '<div>أكثر الكتابات: ' + topBy('w') + '</div>' : ''}</div>` : '';
     const capHtml = userRole === 'owner' ? `<div class="ss-cap"><label for="ssCapR">الحد اليومي للقراءات</label><input id="ssCapR" type="number" inputmode="numeric" min="1000" step="1000" value="${cr}" onchange="usageSetCap('r', this.value)"><label for="ssCapW">الحد اليومي للكتابات</label><input id="ssCapW" type="number" inputmode="numeric" min="1000" step="500" value="${cw}" onchange="usageSetCap('w', this.value)"></div><div class="ss-note">حصة Firebase المجانية للمشروع كله 50,000 قراءة و20,000 كتابة يومياً، وهي مشتركة بين كل الأجهزة. يُفضّل أن يكون مجموع حدود الأجهزة أقل منها.</div>` : '';
-    const tech = bar('الكتابات اليوم (هذا الجهاز)', u.w, cw) + bar('القراءات اليوم (هذا الجهاز)', u.r, cr) + byHtml + capHtml + (typeof suPanelHtml === 'function' ? suPanelHtml() : '') +
+    const tech = '<div id="ssStore" class="ss-note">جاري فحص مساحة التخزين...</div>' + bar('الكتابات اليوم (هذا الجهاز)', u.w, cw) + bar('القراءات اليوم (هذا الجهاز)', u.r, cr) + byHtml + capHtml + (typeof suPanelHtml === 'function' ? suPanelHtml() : '') +
         (!native && !persistenceOn ? '<div class="ss-note">الحفظ دون إنترنت غير مدعوم في هذا المتصفح، فلا تُحفظ العمليات إن انقطع الاتصال.</div>' : '');
     const html = `<div class="ss-wrap">
         <div class="ss-hero ss-${tone}"><span class="ss-dot"></span><div class="ss-ht"><b>${head}</b><small>${sub}</small></div></div>` +
@@ -527,6 +527,12 @@ function showSyncStatus(opts) {
     if (!top && (typeof currentView === 'undefined' || currentView !== 'sync')) showView('sync');   // صفحة كاملة بترويسة التطبيق (لا نافذة منبثقة)
     window.__ssOpen = true; clearInterval(ssTimer);
     ssTimer = setInterval(() => { if (currentView !== 'sync' && !window.__syncTop) { clearInterval(ssTimer); window.__ssOpen = false; return; } ssLive(); }, 1500);
+    if (window.BigStore) BigStore.diag().then(d => {
+        const el = document.getElementById('ssStore'); if (!el) return; const mb = n => (n / 1048576).toFixed(1), ratio = d.quota ? d.usage / d.quota : 0, lsr = d.lsBytes / d.lsLimit, w = [];
+        if (d.persisted === false) w.push('التخزين غير محمي من المسح التلقائي؛ ثبّت التطبيق على الشاشة الرئيسية.');
+        if (ratio > .8) w.push('مساحة المتصفح شبه ممتلئة.'); if (lsr > .7) w.push('الذاكرة الصغيرة (localStorage) شبه ممتلئة.'); if (d.failed) w.push('تعذّر استعمال مخزن القوائم الكبيرة، وتُحفظ في الذاكرة الصغيرة.');
+        el.innerHTML = '<div>مساحة التخزين: <b>' + mb(d.usage) + '</b> من <b>' + mb(d.quota) + '</b> ميغابايت</div><div>الذاكرة الصغيرة: <b>' + mb(d.lsBytes) + '</b> من 5 ميغابايت</div><div>الحماية من المسح: <b>' + (d.persisted === true ? 'مفعّلة' : d.persisted === false ? 'غير مفعّلة' : 'غير معروفة') + '</b></div>' + w.map(x => '<div class="ss-warn">' + x + '</div>').join('');
+    }).catch(() => { });
     appVersionTxt().then(v => { const el = document.getElementById('ssVer'); if (el) el.textContent = 'رقم نسخة التطبيق: ' + (v || 'غير معروف'); }).catch(() => { });
 }
 async function netCycle() {
@@ -813,9 +819,20 @@ async function initFirebase() {
 let _plTimer = 0;
 function flushProductsLocal() {
     if (_plTimer) { clearTimeout(_plTimer); _plTimer = 0; }
-    try { localStorage.setItem('diwanProducts', JSON.stringify(products)); try { if (window.SU) SU.commit(); } catch (e2) { /* تجاهل */ } }
+    let js = ''; try { js = JSON.stringify(products); } catch (e) { return; }
+    try { if (window.BigStore) BigStore.mirror('diwanProducts', js); } catch (e) { /* تجاهل */ }   // نسخة احتياطية في IndexedDB تنجو من امتلاء localStorage
+    try { localStorage.setItem('diwanProducts', js); try { if (window.SU) SU.commit(); } catch (e2) { /* تجاهل */ } }
     catch (e) { localStorage.removeItem('diwanProducts'); try { if (window.SU) SU.invalidate(); } catch (e2) { /* تجاهل */ } }   // ذاكرة ممتلئة: نقرأ من السحابة
 }
+// استرجاع المواد من النسخة الاحتياطية إذا غابت من localStorage (امتلأت الذاكرة أو مُسحت): يعمل التطبيق دون إنترنت ويصحّحه الفرق من السحابة لاحقاً
+window.addEventListener('load', async function productsRestore() {   // بعد تحميل كل الملفات (bigstore.js يُحمَّل بعد data.js)
+    try {
+        if (localStorage.getItem('diwanProducts') || !window.BigStore) return; await window.bigReady;
+        const js = await BigStore.mirrorGet('diwanProducts'); if (!js || (typeof products !== 'undefined' && products !== defaultProducts && products.length > defaultProducts.length)) return;
+        const arr = JSON.parse(js); if (!Array.isArray(arr) || !arr.length) return;
+        products = arr; try { renderAll(); } catch (e) { /* تجاهل */ }
+    } catch (e) { /* تجاهل */ }
+});
 function saveProductsLocalSoon() { if (_plTimer) clearTimeout(_plTimer); _plTimer = setTimeout(flushProductsLocal, 1000); }
 ['pagehide', 'beforeunload'].forEach(ev => window.addEventListener(ev, () => { if (_plTimer) flushProductsLocal(); }));
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && _plTimer) flushProductsLocal(); });

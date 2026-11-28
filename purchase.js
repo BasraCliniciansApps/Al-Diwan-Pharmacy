@@ -63,13 +63,13 @@ async function puLoad(ttl) {   // ttl: مهلة إعادة الجلب بالدق
     }
     puAll = [...map.values()].sort((a, b) => String(b.date).localeCompare(String(a.date)) || String(b.createdTs).localeCompare(String(a.createdTs)));
     puSuppliers = [...smap.values()];
-    lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500)));
+    lsSet(PU_LS.list, JSON.stringify(puAll));
     lsSet(PU_LS.sup, JSON.stringify(puSuppliers));
     return puAll;
 }
 async function puSaveRecord(r) {
     puAll = puAll.filter(x => x.id !== r.id); puAll.unshift(r);
-    lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500)));
+    lsSet(PU_LS.list, JSON.stringify(puAll));
     try { if (window.WA && WA.tapRecord) WA.tapRecord('purchase', r); } catch (e) { /* تجاهل */ }
     if (window.LAN && LAN.active()) { LAN.captureRecord('purchase', r); return; }
     if (cloudReady() && (navigator.onLine || persistenceOn)) {
@@ -639,7 +639,7 @@ async function puDeletePermanently(id) {
     try {
         if (cloudReady()) await fsWrite(db.collection('pharmacy_purchases').doc(r.id).delete());
         puAll = puAll.filter(x => x.id !== r.id);
-        lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500)));
+        lsSet(PU_LS.list, JSON.stringify(puAll));
         if (typeof renderPuLog === 'function' && $b('puLogList')) renderPuLog();
         Swal.fire({ icon: 'success', title: 'حُذف الوارد نهائياً', toast: true, position: 'bottom', showConfirmButton: false, timer: 2200 });
     } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }

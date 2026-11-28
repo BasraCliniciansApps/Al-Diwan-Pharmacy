@@ -74,7 +74,7 @@ async function lgBonusLine(rid, li) {
         if (!c.isConfirmed) return;
         r.items.splice(li, 1);
         try {
-            if (!r.items.length) { if (cloudReady()) await fsWrite(db.collection('pharmacy_purchases').doc(r.id).delete()); puAll = puAll.filter(x => x.id !== r.id); lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500))); }
+            if (!r.items.length) { if (cloudReady()) await fsWrite(db.collection('pharmacy_purchases').doc(r.id).delete()); puAll = puAll.filter(x => x.id !== r.id); lsSet(PU_LS.list, JSON.stringify(puAll)); }
             else await puSaveRecord(r);
         } catch (e) { Swal.fire({ icon: 'error', title: 'تعذر الحذف', text: e.message || String(e), confirmButtonColor: '#0f1c38' }); }
         lgRenderBonus(); return;

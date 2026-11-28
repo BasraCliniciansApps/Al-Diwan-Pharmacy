@@ -85,7 +85,7 @@ async function unApply() {
             else if (e.kind === 'bimp' && names.has(unNorm(e.name))) { e.name = p.name; e.pid = p.id; ch = true; }
             if (ch) { e.upd = new Date().toISOString(); led.push(e); }
         });
-        lsSet(PU_LS.list, JSON.stringify(puAll.slice(0, 1500))); lsSet(LG_LS.list, JSON.stringify(lgAll));
+        lsSet(PU_LS.list, JSON.stringify(puAll)); lsSet(LG_LS.list, JSON.stringify(lgAll));
         if (cloudReady()) {
             const jobs = [...recs.values()].map(x => ['pharmacy_purchases', x]).concat(led.map(x => ['pharmacy_ledger', x]));
             for (let i = 0; i < jobs.length; i += 20) { await Promise.all(jobs.slice(i, i + 20).map(([c, x]) => fsSet(db.collection(c).doc(String(x.id)), JSON.parse(JSON.stringify(x))))); progTick(Math.min(i + 20, jobs.length), jobs.length, 'حُفظ ' + fmtNum(Math.min(i + 20, jobs.length)) + ' من ' + fmtNum(jobs.length)); }

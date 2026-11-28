@@ -16,7 +16,7 @@
             let h = 0; const add = n => { h = (h * 31 + (n | 0)) | 0; };
             products.forEach(p => { add(p.id); add(p.qty); add(p.loose); add(Math.round((+p.price || 0) * 10)); add(Math.round((+p.costPrice || 0) * 10)); add(p.counted ? 1 : 0); add(p.arch ? 1 : 0); add(String(p.name || '').length); });
             const tail = (a, f) => (a && a.length ? String(f(a[0]) || '') : '');
-            const ls = k => { try { return (localStorage.getItem(k) || '').length; } catch (e) { return 0; } };
+            const ls = k => { try { return (lsGet(k) || '').length; } catch (e) { return 0; } };
             return [products.length, h, puAll.length, tail(puAll, x => x.editedAt || x.createdTs), lgAll.length, lgAll.reduce((m, e) => (String(e.upd || '') > m ? String(e.upd) : m), ''), billAll.length, tail(billAll, x => x.editedAt || x.cancelledAt || x.issuedTs), ls('diwanCountLists'), ls('diwanExpenses'), ls('diwanFollowups'), ls('diwanSuppliers')].join('|');
         } catch (e) { return 'x' + Date.now(); }
     }
